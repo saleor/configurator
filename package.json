@@ -6,8 +6,9 @@
     "schemaVersion": "3.20"
   },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "fetch-schema": "bun run graphql/fetch-schema.ts"
+    "configure": "bun run src/commands/configure.ts",
+    "fetch-schema": "bun run src/graphql/fetch-schema.ts",
+    "postinstall": "bun run fetch-schema"
   },
   "devDependencies": {
     "@types/bun": "latest",
