@@ -1,7 +1,7 @@
 import { configurator } from "./setup";
 
 // Example configuration
-configurator.configure({
+configurator.bootstrap({
   productTypes: [
     {
       name: "Books",

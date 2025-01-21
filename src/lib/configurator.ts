@@ -29,7 +29,7 @@ export type SaleorConfig = {
 export class SaleorConfigurator {
   constructor(private client: SaleorBuilder) {}
 
-  configure(config: SaleorConfig) {
+  bootstrap(config: SaleorConfig) {
     if (config.productTypes) {
       config.productTypes.forEach((productType) => {
         this.client.createProductTypeWithAttributes(productType);

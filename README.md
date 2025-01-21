@@ -5,6 +5,33 @@
 
 Configurator is a tool that helps you automate the creation of data models in Saleor. Instead of, for example, manually creating product types and attributes, you can define them in a configuration file and let the tool do the rest.
 
+## Example
+
+```ts
+configurator.bootstrap({
+  productTypes: [
+    {
+      name: "Books",
+      attributes: [
+        {
+          name: "Author",
+          inputType: "PLAIN_TEXT",
+        },
+        {
+          name: "Genre",
+          inputType: "DROPDOWN",
+          values: [
+            { name: "Fiction" },
+            { name: "Non-Fiction" },
+            { name: "Fantasy" },
+          ],
+        },
+      ],
+    },
+  ],
+});
+```
+
 ## Development
 
 ### Installing dependencies
