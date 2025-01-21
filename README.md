@@ -1,5 +1,8 @@
 # Configurator
 
+> [!WARNING]
+> This project is in early development. Please use with caution.
+
 Configurator is a tool that helps you automate the creation of data models in Saleor. Instead of, for example, manually creating product types and attributes, you can define them in a configuration file and let the tool do the rest.
 
 ## Development
