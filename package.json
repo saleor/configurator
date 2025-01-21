@@ -1,0 +1,24 @@
+{
+  "name": "saleor-configurator",
+  "module": "index.ts",
+  "type": "module",
+  "saleor": {
+    "schemaVersion": "3.20"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "fetch-schema": "bun run graphql/fetch-schema.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "3.3.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@urql/core": "^5.0.6",
+    "@urql/exchange-auth": "^2.2.0",
+    "gql.tada": "^1.8.5"
+  }
+}
