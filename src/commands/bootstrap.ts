@@ -30,4 +30,23 @@ configurator.bootstrap({
       slug: "atlantis",
     },
   ],
+  pageTypes: [
+    {
+      name: "Blog Post",
+      attributes: [
+        { name: "Title", inputType: "PLAIN_TEXT" },
+        { name: "Description", inputType: "PLAIN_TEXT" },
+        { name: "Author", inputType: "PLAIN_TEXT" },
+        {
+          name: "Tags",
+          inputType: "DROPDOWN",
+          values: [
+            { name: "Technology" },
+            { name: "Science" },
+            { name: "Health" },
+          ],
+        },
+      ],
+    },
+  ],
 });

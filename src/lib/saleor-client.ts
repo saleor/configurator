@@ -8,6 +8,11 @@ const createAttributeMutation = graphql(`
         id
         name
       }
+      errors {
+        message
+        code
+        field
+      }
     }
   }
 `);
@@ -17,8 +22,11 @@ type AttributeCreateInput = VariablesOf<
 >["input"];
 
 const getAttributesByNamesQuery = graphql(`
-  query GetAttributesByNames($names: [String!]!) {
-    attributes(first: 100, where: { name: { oneOf: $names } }) {
+  query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum) {
+    attributes(
+      first: 100
+      where: { name: { oneOf: $names }, type: { eq: $type } }
+    ) {
       edges {
         node {
           id
@@ -28,6 +36,8 @@ const getAttributesByNamesQuery = graphql(`
     }
   }
 `);
+
+type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
 
 const createProductTypeMutation = graphql(`
   mutation CreateProductType($input: ProductTypeInput!) {
@@ -113,6 +123,63 @@ export type Channel = NonNullable<
   ResultOf<typeof getChannelsQuery>["channels"]
 >[number];
 
+const createPageTypeMutation = graphql(`
+  mutation CreatePageType($input: PageTypeCreateInput!) {
+    pageTypeCreate(input: $input) {
+      pageType {
+        id
+        name
+        attributes {
+          id
+          name
+        }
+      }
+    }
+  }
+`);
+
+type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
+
+export type PageType = NonNullable<
+  NonNullable<
+    ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]
+  >["pageType"]
+>;
+
+const getPageTypeByNameQuery = graphql(`
+  query GetPageTypeByName($name: String!) {
+    pageTypes(filter: { search: $name }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          attributes {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`);
+
+const pageAttributeAssignMutation = graphql(`
+  mutation PageAttributeAssign($pageTypeId: ID!, $attributeIds: [ID!]!) {
+    pageAttributeAssign(pageTypeId: $pageTypeId, attributeIds: $attributeIds) {
+      pageType {
+        id
+      }
+      errors {
+        message
+        code
+        field
+      }
+    }
+  }
+`);
+
+type PageAttributeAssignInput = VariablesOf<typeof pageAttributeAssignMutation>;
+
 /**
  * @description Interacting with the Saleor API.
  */
@@ -124,6 +191,8 @@ export class SaleorClient {
       input: attributeInput,
     });
 
+    console.log(result.data?.attributeCreate?.errors);
+
     if (!result.data?.attributeCreate?.attribute) {
       throw new Error("Failed to create attribute", result.error);
     }
@@ -131,9 +200,10 @@ export class SaleorClient {
     return result.data?.attributeCreate?.attribute;
   }
 
-  async getAttributesByNames(names: string[]) {
+  async getAttributesByNames(input: GetAttributesByNamesInput) {
     const result = await this.client.query(getAttributesByNamesQuery, {
-      names,
+      names: input.names,
+      type: input.type,
     });
 
     return result.data?.attributes?.edges?.map((edge) => edge.node);
@@ -206,5 +276,45 @@ export class SaleorClient {
     }
 
     return result.data?.channelCreate?.channel;
+  }
+
+  async createPageType(pageTypeInput: PageTypeCreateInput) {
+    const result = await this.client.mutation(createPageTypeMutation, {
+      input: pageTypeInput,
+    });
+
+    if (!result.data?.pageTypeCreate?.pageType) {
+      throw new Error("Failed to create page type", result.error);
+    }
+
+    return result.data?.pageTypeCreate?.pageType;
+  }
+
+  async getPageTypeByName(name: string) {
+    const result = await this.client.query(getPageTypeByNameQuery, {
+      name,
+    });
+
+    const pageType = result.data?.pageTypes?.edges?.[0]?.node;
+
+    return pageType;
+  }
+
+  async assignAttributesToPageType({
+    attributeIds,
+    pageTypeId,
+  }: PageAttributeAssignInput) {
+    const result = await this.client.mutation(pageAttributeAssignMutation, {
+      pageTypeId,
+      attributeIds,
+    });
+
+    console.log(result.data?.pageAttributeAssign?.errors);
+
+    if (!result.data?.pageAttributeAssign?.pageType) {
+      throw new Error("Failed to assign attributes to page type", result.error);
+    }
+
+    return result.data?.pageAttributeAssign?.pageType;
   }
 }

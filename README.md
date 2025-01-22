@@ -37,6 +37,25 @@ configurator.bootstrap({
       slug: "atlantis",
     },
   ],
+  pageTypes: [
+    {
+      name: "Blog Post",
+      attributes: [
+        { name: "Title", inputType: "PLAIN_TEXT" },
+        { name: "Description", inputType: "PLAIN_TEXT" },
+        { name: "Author", inputType: "PLAIN_TEXT" },
+        {
+          name: "Tags",
+          inputType: "DROPDOWN",
+          values: [
+            { name: "Technology" },
+            { name: "Science" },
+            { name: "Health" },
+          ],
+        },
+      ],
+    },
+  ],
 });
 ```
 
@@ -70,9 +89,14 @@ Reads the configuration file and create the data models in Saleor.
 Currently, it supports:
 
 - [x] Creating product types with attributes
+- [x] Creating page types with attributes
 - [x] Creating channels
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products
 - [ ] Creating products with variants
 - [ ] Creating discounts
+- [ ] Creating collections
+- [ ] Creating collections with products
+- [ ] Creating categories
+- [ ] Creating categories with products

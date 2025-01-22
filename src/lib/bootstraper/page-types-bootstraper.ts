@@ -1,44 +1,24 @@
-import type { ProductType, SaleorClient } from "../saleor-client";
-import type { AttributeInput, SaleorConfig } from "../configurator";
+import type { AttributeInput, PageTypeInput } from "../configurator";
+import type { PageType, SaleorClient } from "../saleor-client";
 
-type ProductTypeWithAttributesInput = NonNullable<
-  SaleorConfig["productTypes"]
->[number];
-
-/**
- * @description Orchestrating the mutations needed to create product types in Saleor.
- */
-export class ProductTypeBootstraper {
+// Page Types follow a very similar interface to Product Types
+export class PageTypeBootstraper {
   constructor(private client: SaleorClient) {}
-
-  private async getOrCreateProductType(name: string): Promise<ProductType> {
-    const productType = await this.client.getProductTypeByName(name);
-
-    const isProductType = productType?.name === name;
-
-    if (!isProductType) {
-      console.log("Product type not found, creating...");
-      return this.client.createProductType({ name });
-    }
-
-    console.log("Product type already exists", productType);
-
-    return productType;
-  }
 
   private async getOrCreateAttributes(attributeInputs: AttributeInput[]) {
     const names = attributeInputs.map((attribute) => attribute.name);
     const attributes = await this.client.getAttributesByNames({
       names,
-      type: "PRODUCT_TYPE",
+      type: "PAGE_TYPE",
     });
 
+    // TODO: refactor to single factory for page types and product types
     if (!attributes || attributes.length === 0) {
       console.log("Attributes not found, creating...");
       return await Promise.all(
         attributeInputs.map((attribute) => {
           const slug = attribute.name.toLowerCase().replace(/ /g, "-");
-          const type = "PRODUCT_TYPE";
+          const type = "PAGE_TYPE";
           const name = attribute.name;
           const inputType = attribute.inputType;
 
@@ -68,46 +48,57 @@ export class ProductTypeBootstraper {
 
     return attributes;
   }
+  private async getOrCreatePageType(name: string): Promise<PageType> {
+    const pageType = await this.client.getPageTypeByName(name);
+
+    const isPageType = pageType?.name === name;
+
+    if (!isPageType) {
+      console.log("Page type not found, creating...");
+      return this.client.createPageType({ name });
+    }
+
+    console.log("Page type already exists", pageType);
+
+    return pageType;
+  }
 
   private async verifyIfAttributesExist(
-    productType: ProductType,
+    pageType: PageType,
     attributeInputs: AttributeInput[]
   ) {
     const names = attributeInputs.map((attribute) => attribute.name);
 
-    console.log("Names", names);
-
-    const productTypeAttributesNames = productType.productAttributes?.map(
+    const pageTypeAttributesNames = pageType.attributes?.map(
       (attribute) => attribute.name
     );
 
-    console.log("Product type attributes names", productTypeAttributesNames);
-
-    return names.every((name) => productTypeAttributesNames?.includes(name));
+    // TODO: skip individual attributes that already exist, not the whole array
+    return names.every((name) => pageTypeAttributesNames?.includes(name));
   }
 
-  async bootstrapProductType(input: ProductTypeWithAttributesInput) {
+  async bootstrapPageType(input: PageTypeInput) {
     const attributes = await this.getOrCreateAttributes(input.attributes);
 
-    console.log("Attributes", attributes);
-
-    const productType = await this.getOrCreateProductType(input.name);
+    const pageType = await this.getOrCreatePageType(input.name);
 
     const isAttributesAlreadyAssigned = await this.verifyIfAttributesExist(
-      productType,
+      pageType,
       input.attributes
     );
 
     if (isAttributesAlreadyAssigned) {
-      console.log("Attributes already assigned to product type");
+      console.log("Attributes already assigned to page type");
       return;
     }
 
-    await this.client.assignAttributesToProductType({
-      productTypeId: productType.id,
+    console.log("Attributes", attributes);
+
+    await this.client.assignAttributesToPageType({
+      pageTypeId: pageType.id,
       attributeIds: attributes.map((attribute) => attribute.id),
     });
 
-    console.log("Attributes assigned to product type");
+    console.log("Attributes assigned to page type");
   }
 }
