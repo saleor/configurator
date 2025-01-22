@@ -1,5 +1,5 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf } from "gql.tada";
+import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
 
 const createAttributeMutation = graphql(`
   mutation CreateAttribute($input: AttributeCreateInput!) {
@@ -16,16 +16,39 @@ type AttributeCreateInput = VariablesOf<
   typeof createAttributeMutation
 >["input"];
 
+const getAttributesByNamesQuery = graphql(`
+  query GetAttributesByNames($names: [String!]!) {
+    attributes(first: 100, where: { name: { oneOf: $names } }) {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+`);
+
 const createProductTypeMutation = graphql(`
   mutation CreateProductType($input: ProductTypeInput!) {
     productTypeCreate(input: $input) {
       productType {
         id
         name
+        productAttributes {
+          id
+          name
+        }
       }
     }
   }
 `);
+
+export type ProductType = NonNullable<
+  NonNullable<
+    ResultOf<typeof createProductTypeMutation>["productTypeCreate"]
+  >["productType"]
+>;
 
 type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
 
@@ -40,6 +63,23 @@ const assignAttributesToProductTypeMutation = graphql(`
     ) {
       productType {
         id
+      }
+    }
+  }
+`);
+
+const getProductTypeByNameQuery = graphql(`
+  query GetProductTypeByName($name: String!) {
+    productTypes(filter: { search: $name }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          productAttributes {
+            id
+            name
+          }
+        }
       }
     }
   }
@@ -61,6 +101,14 @@ export class SaleorClient {
     }
 
     return result.data?.attributeCreate?.attribute;
+  }
+
+  async getAttributesByNames(names: string[]) {
+    const result = await this.client.query(getAttributesByNamesQuery, {
+      names,
+    });
+
+    return result.data?.attributes?.edges?.map((edge) => edge.node);
   }
 
   async assignAttributesToProductType({
@@ -102,5 +150,15 @@ export class SaleorClient {
     }
 
     return result.data?.productTypeCreate?.productType;
+  }
+
+  async getProductTypeByName(name: string) {
+    const result = await this.client.query(getProductTypeByNameQuery, {
+      name,
+    });
+
+    const productType = result.data?.productTypes?.edges?.[0]?.node;
+
+    return productType;
   }
 }

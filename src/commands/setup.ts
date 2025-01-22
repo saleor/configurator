@@ -1,10 +1,10 @@
 import { SaleorClient } from "../lib/saleor-client";
-import { SaleorBuilder } from "../lib/bootstraper";
+import { SaleorBootstraper } from "../lib/bootstraper/product-types-bootstraper";
 import { SaleorConfigurator } from "../lib/configurator";
 import { graphqlClient } from "../graphql/client";
 
 const saleorClient = new SaleorClient(graphqlClient);
-const builder = new SaleorBuilder(saleorClient);
-const configurator = new SaleorConfigurator(builder);
+const bootstraper = new SaleorBootstraper(saleorClient);
+const configurator = new SaleorConfigurator(bootstraper);
 
 export { configurator };

@@ -1,4 +1,5 @@
-import type { SaleorBootstraper } from "./bootstraper";
+import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
+import type { SaleorClient } from "./saleor-client";
 
 type AttributeTypeInput =
   | {
@@ -12,7 +13,7 @@ type AttributeTypeInput =
       inputType: "NUMERIC";
     };
 
-type AttributeInput = {
+export type AttributeInput = {
   name: string;
 } & AttributeTypeInput;
 
@@ -27,12 +28,14 @@ export type SaleorConfig = {
  * @description Parsing the configuration and triggering the commands.
  */
 export class SaleorConfigurator {
-  constructor(private client: SaleorBootstraper) {}
+  constructor(private client: SaleorClient) {}
 
   bootstrap(config: SaleorConfig) {
     if (config.productTypes) {
+      const productTypeBootstraper = new ProductTypeBootstraper(this.client);
+
       config.productTypes.forEach((productType) => {
-        this.client.createProductTypeWithAttributes(productType);
+        productTypeBootstraper.bootstrapProductType(productType);
       });
     }
   }
