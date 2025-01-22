@@ -55,7 +55,7 @@ This will create a `.env` file. Here are the variables you need to set:
 
 ### Commands
 
-#### `bun run configure`
+#### `bun run bootstrap`
 
 Reads the configuration file and create the data models in Saleor.
 
