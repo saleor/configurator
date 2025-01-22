@@ -22,4 +22,12 @@ configurator.bootstrap({
       ],
     },
   ],
+  channels: [
+    {
+      name: "Atlantis",
+      currencyCode: "USD",
+      defaultCountry: "US",
+      slug: "atlantis",
+    },
+  ],
 });

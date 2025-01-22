@@ -85,6 +85,34 @@ const getProductTypeByNameQuery = graphql(`
   }
 `);
 
+const createChannelMutation = graphql(`
+  mutation CreateChannel($input: ChannelCreateInput!) {
+    channelCreate(input: $input) {
+      channel {
+        id
+        name
+      }
+    }
+  }
+`);
+
+type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
+
+export type CountryCode = NonNullable<ChannelCreateInput["defaultCountry"]>;
+
+const getChannelsQuery = graphql(`
+  query GetChannels {
+    channels {
+      id
+      name
+    }
+  }
+`);
+
+export type Channel = NonNullable<
+  ResultOf<typeof getChannelsQuery>["channels"]
+>[number];
+
 /**
  * @description Interacting with the Saleor API.
  */
@@ -160,5 +188,23 @@ export class SaleorClient {
     const productType = result.data?.productTypes?.edges?.[0]?.node;
 
     return productType;
+  }
+
+  async getChannels() {
+    const result = await this.client.query(getChannelsQuery, {});
+
+    return result.data?.channels;
+  }
+
+  async createChannel(channelInput: ChannelCreateInput) {
+    const result = await this.client.mutation(createChannelMutation, {
+      input: channelInput,
+    });
+
+    if (!result.data?.channelCreate?.channel) {
+      throw new Error("Failed to create channel", result.error);
+    }
+
+    return result.data?.channelCreate?.channel;
   }
 }

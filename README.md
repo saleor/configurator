@@ -62,7 +62,7 @@ Reads the configuration file and create the data models in Saleor.
 Currently, it supports:
 
 - [x] Creating product types with attributes
-- [ ] Creating channels
+- [x] Creating channels
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products
