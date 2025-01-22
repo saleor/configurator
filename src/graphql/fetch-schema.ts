@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 const packageJson = JSON.parse(
-  readFileSync(join(import.meta.dir, "../package.json"), "utf-8")
+  readFileSync(join(import.meta.dir, "../../package.json"), "utf-8")
 );
 
 const version = packageJson.saleor.schemaVersion;
