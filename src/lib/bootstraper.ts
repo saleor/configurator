@@ -8,7 +8,7 @@ type ProductTypeWithAttributesInput = NonNullable<
 /**
  * @description Orchestrating the mutations needed to create data types in Saleor.
  */
-export class SaleorBuilder {
+export class SaleorBootstraper {
   constructor(private client: SaleorClient) {}
 
   async createProductTypeWithAttributes(input: ProductTypeWithAttributesInput) {

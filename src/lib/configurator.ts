@@ -1,4 +1,4 @@
-import type { SaleorBuilder } from "./builder";
+import type { SaleorBootstraper } from "./bootstraper";
 
 type AttributeTypeInput =
   | {
@@ -27,7 +27,7 @@ export type SaleorConfig = {
  * @description Parsing the configuration and triggering the commands.
  */
 export class SaleorConfigurator {
-  constructor(private client: SaleorBuilder) {}
+  constructor(private client: SaleorBootstraper) {}
 
   bootstrap(config: SaleorConfig) {
     if (config.productTypes) {
