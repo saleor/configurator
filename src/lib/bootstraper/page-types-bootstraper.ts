@@ -1,9 +1,5 @@
 import type { PageTypeInput } from "../configurator";
-import type {
-  Attribute,
-  PageType,
-  BootstrapClient,
-} from "../saleor-client/bootstrap-client";
+import type { Attribute, PageType, BootstrapClient } from "./bootstrap-client";
 import { AttributeBootstraper } from "./attribute-bootstraper";
 
 // Page Types follow a very similar interface to Product Types

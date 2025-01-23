@@ -1,8 +1,5 @@
 import type { AttributeInput } from "../configurator";
-import type {
-  Attribute,
-  SaleorClient,
-} from "../saleor-client/bootstrap-client";
+import type { Attribute, BootstrapClient } from "./bootstrap-client";
 
 const createAttribute = (
   input: AttributeInput,
@@ -57,7 +54,7 @@ const createAttribute = (
 };
 
 export class AttributeBootstraper {
-  constructor(private client: SaleorClient) {}
+  constructor(private client: BootstrapClient) {}
 
   private filterOutExistingAttributes(
     existingAttributes: Attribute[],

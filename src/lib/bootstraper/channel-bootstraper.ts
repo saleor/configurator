@@ -1,8 +1,5 @@
 import type { ChannelInput } from "../configurator";
-import type {
-  Channel,
-  BootstrapClient,
-} from "../saleor-client/bootstrap-client";
+import type { Channel, BootstrapClient } from "./bootstrap-client";
 
 export class ChannelBootstraper {
   private channels: Channel[] | null = null;

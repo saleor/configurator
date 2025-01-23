@@ -5,8 +5,9 @@ import { AttributeBootstraper } from "./bootstraper/attribute-bootstraper";
 import {
   BootstrapClient,
   type CountryCode,
-} from "./saleor-client/bootstrap-client";
+} from "./bootstraper/bootstrap-client";
 import type { Client } from "@urql/core";
+import { ConfigurationFetcher } from "./fetcher/configuration-fetcher";
 
 type AttributeTypeInput =
   | {
@@ -41,12 +42,17 @@ type AttributeTypeInput =
     }
   | {
       inputType: "FILE";
+    }
+  | {
+      inputType: "REFERENCE";
     };
 
 export type AttributeInput = {
   name: string;
   type?: "PRODUCT_TYPE" | "PAGE_TYPE";
 } & AttributeTypeInput;
+
+export type AttributeInputType = AttributeInput["inputType"];
 
 export type ChannelInput = {
   name: string;
@@ -125,5 +131,10 @@ export class SaleorConfigurator {
         });
       });
     }
+  }
+
+  fetchConfiguration() {
+    const configurationFetcher = new ConfigurationFetcher(this.client);
+    return configurationFetcher.fetch();
   }
 }

@@ -3,7 +3,7 @@ import type {
   Attribute,
   ProductType,
   BootstrapClient,
-} from "../saleor-client/bootstrap-client";
+} from "./bootstrap-client";
 import { AttributeBootstraper } from "./attribute-bootstraper";
 
 type ProductTypeWithAttributesInput = NonNullable<

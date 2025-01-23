@@ -121,3 +121,16 @@ Currently, it supports:
 - [ ] Creating collections with products
 - [ ] Creating categories
 - [ ] Creating categories with products
+- [ ] Reading the configuration from a file
+
+#### `bun run fetch`
+
+Fetches the configuration from the Saleor instance and saves it to a file.
+
+Currently, it supports:
+
+- [x] Fetching channels
+- [ ] Fetching product types
+- [ ] Fetching page types
+- [ ] Fetching attributes
+- [ ] Saving it to a file
