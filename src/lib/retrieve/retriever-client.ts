@@ -12,7 +12,7 @@ const getConfigQuery = graphql(`
       }
       slug
     }
-    productTypes {
+    productTypes(first: 100) {
       edges {
         node {
           id
@@ -22,11 +22,18 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
           }
         }
       }
     }
-    pageTypes {
+    pageTypes(first: 100) {
       edges {
         node {
           id
@@ -36,17 +43,31 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
           }
         }
       }
     }
-    attributes {
+    attributes(first: 100) {
       edges {
         node {
           id
           name
           type
           inputType
+          choices(first: 100) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
         }
       }
     }
@@ -55,7 +76,7 @@ const getConfigQuery = graphql(`
 
 export type RawSaleorConfig = ResultOf<typeof getConfigQuery>;
 
-export class FetcherClient {
+export class RetrieverClient {
   constructor(private client: Client) {}
 
   async fetchConfig() {

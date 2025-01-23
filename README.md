@@ -123,9 +123,9 @@ Currently, it supports:
 - [ ] Creating categories with products
 - [ ] Reading the configuration from a file
 
-#### `bun run fetch`
+#### `bun run retrieve`
 
-Fetches the configuration from the Saleor instance and saves it to a file.
+Retrieves the configuration from the Saleor instance and saves it to a file.
 
 Currently, it supports:
 

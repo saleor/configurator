@@ -7,7 +7,8 @@ import {
   type CountryCode,
 } from "./bootstraper/bootstrap-client";
 import type { Client } from "@urql/core";
-import { ConfigurationFetcher } from "./fetcher/configuration-fetcher";
+import { RetrieverClient } from "./retrieve/retriever-client";
+import { ConfigurationRetriever } from "./retrieve/configuration-retriever";
 
 type AttributeTypeInput =
   | {
@@ -136,7 +137,7 @@ export class SaleorConfigurator {
   }
 
   fetchConfiguration() {
-    const configurationFetcher = new ConfigurationFetcher(this.client);
-    return configurationFetcher.fetch();
+    const configurationRetriever = new ConfigurationRetriever(this.client);
+    return configurationRetriever.retrieve();
   }
 }
