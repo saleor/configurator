@@ -2,3 +2,4 @@
 node_modules
 graphql-env.d.ts
 schema.graphql
+config.yml

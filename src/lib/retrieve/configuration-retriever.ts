@@ -1,8 +1,9 @@
 import type { Client } from "@urql/core";
+import invariant from "tiny-invariant";
 import type { CountryCode } from "../bootstraper/bootstrap-client";
 import type { AttributeInput, SaleorConfig } from "../configurator";
 import { RetrieverClient, type RawSaleorConfig } from "./retriever-client";
-import invariant from "tiny-invariant";
+import { YamlConfigurationManager } from "./yaml-configuration-manager";
 
 function mapChannels(rawChannels: RawSaleorConfig["channels"]) {
   return (
@@ -92,6 +93,11 @@ export class ConfigurationRetriever {
   async retrieve(): Promise<SaleorConfig> {
     const client = new RetrieverClient(this.client);
     const rawConfig = await client.fetchConfig();
-    return this.parseConfig(rawConfig);
+    const config = this.parseConfig(rawConfig);
+
+    const yamlManager = new YamlConfigurationManager();
+    yamlManager.save(config);
+
+    return config;
   }
 }

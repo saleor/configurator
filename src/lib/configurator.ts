@@ -1,14 +1,14 @@
-import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
-import { ChannelBootstraper } from "./bootstraper/channel-bootstraper";
-import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
+import type { Client } from "@urql/core";
 import { AttributeBootstraper } from "./bootstraper/attribute-bootstraper";
 import {
   BootstrapClient,
   type CountryCode,
 } from "./bootstraper/bootstrap-client";
-import type { Client } from "@urql/core";
-import { RetrieverClient } from "./retrieve/retriever-client";
+import { ChannelBootstraper } from "./bootstraper/channel-bootstraper";
+import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
+import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
 import { ConfigurationRetriever } from "./retrieve/configuration-retriever";
+import { YamlConfigurationManager } from "./retrieve/yaml-configuration-manager";
 
 type AttributeTypeInput =
   | {
@@ -89,7 +89,10 @@ export class SaleorConfigurator {
     this.bootstrapClient = new BootstrapClient(client);
   }
 
-  bootstrap(config: SaleorConfig) {
+  async bootstrap() {
+    const yamlManager = new YamlConfigurationManager();
+    const config = await yamlManager.load();
+
     if (config.productTypes) {
       const productTypeBootstraper = new ProductTypeBootstraper(
         this.bootstrapClient
@@ -136,7 +139,7 @@ export class SaleorConfigurator {
     }
   }
 
-  fetchConfiguration() {
+  async retrieve() {
     const configurationRetriever = new ConfigurationRetriever(this.client);
     return configurationRetriever.retrieve();
   }

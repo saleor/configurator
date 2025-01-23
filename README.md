@@ -7,76 +7,33 @@ Configurator is a tool that helps you automate the creation of data models in Sa
 
 ## Example
 
-```ts
-// Example configuration
-configurator.bootstrap({
-  productTypes: [
-    {
-      name: "Sweets",
-      attributes: [
-        {
-          name: "Brand",
-          inputType: "PLAIN_TEXT",
-        },
-        {
-          name: "Flavor",
-          inputType: "MULTISELECT",
-          values: [
-            { name: "Fiction" },
-            { name: "Non-Fiction" },
-            { name: "Fantasy" },
-          ],
-        },
-        {
-          name: "Sugar Content",
-          inputType: "DROPDOWN",
-          values: [{ name: "Low" }, { name: "Medium" }, { name: "High" }],
-        },
-        {
-          name: "Is Organic",
-          inputType: "BOOLEAN",
-        },
-      ],
-    },
-  ],
-  channels: [
-    {
-      name: "Atlantis",
-      currencyCode: "USD",
-      defaultCountry: "US",
-      slug: "atlantis",
-    },
-  ],
-  pageTypes: [
-    {
-      name: "Blog Post",
-      attributes: [
-        { name: "Title", inputType: "PLAIN_TEXT" },
-        { name: "Description", inputType: "PLAIN_TEXT" },
-        { name: "Writer", inputType: "PLAIN_TEXT" },
-        {
-          name: "Tags",
-          inputType: "DROPDOWN",
-          values: [
-            { name: "Technology" },
-            { name: "Science" },
-            { name: "Health" },
-          ],
-        },
-        { name: "Published Date", inputType: "DATE" },
-      ],
-    },
-  ],
-  attributes: [
-    {
-      name: "Color",
-      inputType: "SWATCH",
-      values: [{ name: "Red" }],
-      type: "PRODUCT_TYPE",
-    },
-  ],
-});
-
+```yaml
+// Example config.yml
+channels:
+  - name: Poland
+    currencyCode: PLN
+    defaultCountry: PL
+    slug: poland
+productTypes:
+  - name: Books
+    attributes:
+      - name: Author
+        inputType: PLAIN_TEXT
+      - name: Genre
+        inputType: DROPDOWN
+        values:
+          - name: Fiction
+          - name: Non-Fiction
+          - name: Fantasy
+pageTypes:
+  - name: Blog Post
+    attributes:
+      - name: Title
+        inputType: PLAIN_TEXT
+      - name: Description
+        inputType: PLAIN_TEXT
+      - name: Published Date
+        inputType: DATE
 ```
 
 ## Development
@@ -112,6 +69,7 @@ Currently, it supports:
 - [x] Creating product types with attributes
 - [x] Creating page types with attributes
 - [x] Creating channels
+- [x] Reading the configuration from config.yml file
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products
@@ -121,7 +79,6 @@ Currently, it supports:
 - [ ] Creating collections with products
 - [ ] Creating categories
 - [ ] Creating categories with products
-- [ ] Reading the configuration from a file
 
 #### `bun run retrieve`
 
@@ -130,7 +87,11 @@ Retrieves the configuration from the Saleor instance and saves it to a file.
 Currently, it supports:
 
 - [x] Fetching channels
-- [ ] Fetching product types
-- [ ] Fetching page types
-- [ ] Fetching attributes
-- [ ] Saving it to a file
+- [x] Saving config to config.yml file
+- [x] Fetching product types
+- [x] Fetching page types
+- [x] Fetching attributes
+
+### Limitations
+
+- Configurator fetches first 100 items from all paginated queries.
