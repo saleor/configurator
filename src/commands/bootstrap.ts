@@ -4,20 +4,29 @@ import { configurator } from "./setup";
 configurator.bootstrap({
   productTypes: [
     {
-      name: "Books",
+      name: "Sweets",
       attributes: [
         {
-          name: "Author",
+          name: "Brand",
           inputType: "PLAIN_TEXT",
         },
         {
-          name: "Genre",
-          inputType: "DROPDOWN",
+          name: "Flavor",
+          inputType: "MULTISELECT",
           values: [
             { name: "Fiction" },
             { name: "Non-Fiction" },
             { name: "Fantasy" },
           ],
+        },
+        {
+          name: "Sugar Content",
+          inputType: "DROPDOWN",
+          values: [{ name: "Low" }, { name: "Medium" }, { name: "High" }],
+        },
+        {
+          name: "Is Organic",
+          inputType: "BOOLEAN",
         },
       ],
     },
@@ -36,7 +45,7 @@ configurator.bootstrap({
       attributes: [
         { name: "Title", inputType: "PLAIN_TEXT" },
         { name: "Description", inputType: "PLAIN_TEXT" },
-        { name: "Author", inputType: "PLAIN_TEXT" },
+        { name: "Writer", inputType: "PLAIN_TEXT" },
         {
           name: "Tags",
           inputType: "DROPDOWN",
@@ -46,7 +55,16 @@ configurator.bootstrap({
             { name: "Health" },
           ],
         },
+        { name: "Published Date", inputType: "DATE" },
       ],
+    },
+  ],
+  attributes: [
+    {
+      name: "Color",
+      inputType: "SWATCH",
+      values: [{ name: "Red" }],
+      type: "PRODUCT_TYPE",
     },
   ],
 });

@@ -1,5 +1,6 @@
-import type { ProductType, SaleorClient } from "../saleor-client";
-import type { AttributeInput, SaleorConfig } from "../configurator";
+import type { SaleorConfig } from "../configurator";
+import type { Attribute, ProductType, SaleorClient } from "../saleor-client";
+import { AttributeBootstraper } from "./attribute-bootstraper";
 
 type ProductTypeWithAttributesInput = NonNullable<
   SaleorConfig["productTypes"]
@@ -26,86 +27,42 @@ export class ProductTypeBootstraper {
     return productType;
   }
 
-  private async getOrCreateAttributes(attributeInputs: AttributeInput[]) {
-    const names = attributeInputs.map((attribute) => attribute.name);
-    const attributes = await this.client.getAttributesByNames({
-      names,
-      type: "PRODUCT_TYPE",
-    });
-
-    if (!attributes || attributes.length === 0) {
-      console.log("Attributes not found, creating...");
-      return await Promise.all(
-        attributeInputs.map((attribute) => {
-          const slug = attribute.name.toLowerCase().replace(/ /g, "-");
-          const type = "PRODUCT_TYPE";
-          const name = attribute.name;
-          const inputType = attribute.inputType;
-
-          if (attribute.inputType === "DROPDOWN") {
-            return this.client.createAttribute({
-              name,
-              type,
-              slug,
-              inputType,
-              values: attribute.values.map((value) => ({
-                name: value.name,
-              })),
-            });
-          }
-
-          return this.client.createAttribute({
-            name,
-            type,
-            slug,
-            inputType: attribute.inputType,
-          });
-        })
-      );
-    }
-
-    console.log("Attributes already exist", attributes);
-
-    return attributes;
-  }
-
-  private async verifyIfAttributesExist(
+  private filterOutExistingAttributes(
     productType: ProductType,
-    attributeInputs: AttributeInput[]
+    attributes: Attribute[]
   ) {
-    const names = attributeInputs.map((attribute) => attribute.name);
-
-    console.log("Names", names);
-
     const productTypeAttributesNames = productType.productAttributes?.map(
       (attribute) => attribute.name
     );
 
-    console.log("Product type attributes names", productTypeAttributesNames);
-
-    return names.every((name) => productTypeAttributesNames?.includes(name));
+    return attributes.filter(
+      (attribute) => !productTypeAttributesNames?.includes(attribute.name)
+    );
   }
 
   async bootstrapProductType(input: ProductTypeWithAttributesInput) {
-    const attributes = await this.getOrCreateAttributes(input.attributes);
-
-    console.log("Attributes", attributes);
+    console.log("Bootstrapping product type", input);
+    const attributeBootstraper = new AttributeBootstraper(this.client);
+    const attributes = await attributeBootstraper.bootstrapAttributes({
+      attributeInputs: input.attributes,
+      type: "PRODUCT_TYPE",
+    });
 
     const productType = await this.getOrCreateProductType(input.name);
 
-    const isAttributesAlreadyAssigned = await this.verifyIfAttributesExist(
+    const attributesToAssign = this.filterOutExistingAttributes(
       productType,
-      input.attributes
+      attributes
     );
 
-    if (isAttributesAlreadyAssigned) {
-      console.log("Attributes already assigned to product type");
+    if (!attributesToAssign.length) {
+      console.log("No attributes to assign");
       return;
     }
 
     await this.client.assignAttributesToProductType({
       productTypeId: productType.id,
-      attributeIds: attributes.map((attribute) => attribute.id),
+      attributeIds: attributesToAssign.map((attribute) => attribute.id),
     });
 
     console.log("Attributes assigned to product type");

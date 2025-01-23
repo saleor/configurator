@@ -2,6 +2,7 @@ import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper"
 import { ChannelBootstraper } from "./bootstraper/channel-bootstraper";
 import type { CountryCode, SaleorClient } from "./saleor-client";
 import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
+import { AttributeBootstraper } from "./bootstraper/attribute-bootstraper";
 
 type AttributeTypeInput =
   | {
@@ -13,10 +14,34 @@ type AttributeTypeInput =
     }
   | {
       inputType: "NUMERIC";
+    }
+  | {
+      inputType: "MULTISELECT";
+      values: { name: string }[];
+    }
+  | {
+      inputType: "DATE";
+    }
+  | {
+      inputType: "BOOLEAN";
+    }
+  | {
+      inputType: "RICH_TEXT";
+    }
+  | {
+      inputType: "SWATCH";
+      values: { name: string }[];
+    }
+  | {
+      inputType: "DATE_TIME";
+    }
+  | {
+      inputType: "FILE";
     };
 
 export type AttributeInput = {
   name: string;
+  type?: "PRODUCT_TYPE" | "PAGE_TYPE";
 } & AttributeTypeInput;
 
 export type ChannelInput = {
@@ -40,6 +65,7 @@ export type SaleorConfig = {
   productTypes?: Array<ProductTypeInput>;
   channels?: Array<ChannelInput>;
   pageTypes?: Array<PageTypeInput>;
+  attributes?: Array<AttributeInput>;
 };
 
 /**
@@ -70,6 +96,23 @@ export class SaleorConfigurator {
 
       config.pageTypes.forEach((pageType) => {
         pageTypeBootstraper.bootstrapPageType(pageType);
+      });
+    }
+
+    if (config.attributes) {
+      const attributeBootstraper = new AttributeBootstraper(this.client);
+
+      config.attributes.forEach((attribute) => {
+        if (!attribute.type) {
+          throw new Error(
+            "When bootstrapping attributes, the type (PRODUCT_TYPE or PAGE_TYPE) is required"
+          );
+        }
+
+        attributeBootstraper.bootstrapAttributes({
+          attributeInputs: [attribute],
+          type: attribute.type,
+        });
       });
     }
   }

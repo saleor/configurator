@@ -39,6 +39,10 @@ const getAttributesByNamesQuery = graphql(`
 
 type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
 
+export type Attribute = NonNullable<
+  NonNullable<ResultOf<typeof getAttributesByNamesQuery>["attributes"]>["edges"]
+>[number]["node"];
+
 const createProductTypeMutation = graphql(`
   mutation CreateProductType($input: ProductTypeInput!) {
     productTypeCreate(input: $input) {

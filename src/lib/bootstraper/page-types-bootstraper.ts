@@ -1,53 +1,11 @@
-import type { AttributeInput, PageTypeInput } from "../configurator";
-import type { PageType, SaleorClient } from "../saleor-client";
+import type { PageTypeInput } from "../configurator";
+import type { Attribute, PageType, SaleorClient } from "../saleor-client";
+import { AttributeBootstraper } from "./attribute-bootstraper";
 
 // Page Types follow a very similar interface to Product Types
 export class PageTypeBootstraper {
   constructor(private client: SaleorClient) {}
 
-  private async getOrCreateAttributes(attributeInputs: AttributeInput[]) {
-    const names = attributeInputs.map((attribute) => attribute.name);
-    const attributes = await this.client.getAttributesByNames({
-      names,
-      type: "PAGE_TYPE",
-    });
-
-    // TODO: refactor to single factory for page types and product types
-    if (!attributes || attributes.length === 0) {
-      console.log("Attributes not found, creating...");
-      return await Promise.all(
-        attributeInputs.map((attribute) => {
-          const slug = attribute.name.toLowerCase().replace(/ /g, "-");
-          const type = "PAGE_TYPE";
-          const name = attribute.name;
-          const inputType = attribute.inputType;
-
-          if (attribute.inputType === "DROPDOWN") {
-            return this.client.createAttribute({
-              name,
-              type,
-              slug,
-              inputType,
-              values: attribute.values.map((value) => ({
-                name: value.name,
-              })),
-            });
-          }
-
-          return this.client.createAttribute({
-            name,
-            type,
-            slug,
-            inputType: attribute.inputType,
-          });
-        })
-      );
-    }
-
-    console.log("Attributes already exist", attributes);
-
-    return attributes;
-  }
   private async getOrCreatePageType(name: string): Promise<PageType> {
     const pageType = await this.client.getPageTypeByName(name);
 
@@ -63,40 +21,40 @@ export class PageTypeBootstraper {
     return pageType;
   }
 
-  private async verifyIfAttributesExist(
+  private filterOutAssignedAttributes(
     pageType: PageType,
-    attributeInputs: AttributeInput[]
+    attributes: Attribute[]
   ) {
-    const names = attributeInputs.map((attribute) => attribute.name);
-
-    const pageTypeAttributesNames = pageType.attributes?.map(
-      (attribute) => attribute.name
+    return attributes.filter(
+      (attribute) =>
+        !pageType.attributes?.some((a) => a.name === attribute.name)
     );
-
-    // TODO: skip individual attributes that already exist, not the whole array
-    return names.every((name) => pageTypeAttributesNames?.includes(name));
   }
 
   async bootstrapPageType(input: PageTypeInput) {
-    const attributes = await this.getOrCreateAttributes(input.attributes);
+    console.log("Bootstrapping page type", input);
+    const attributeBootstraper = new AttributeBootstraper(this.client);
+    const attributes = await attributeBootstraper.bootstrapAttributes({
+      attributeInputs: input.attributes,
+      type: "PAGE_TYPE",
+    });
 
     const pageType = await this.getOrCreatePageType(input.name);
 
-    const isAttributesAlreadyAssigned = await this.verifyIfAttributesExist(
+    // filter out attributes that already exist on the page type
+    const attributesToAssign = this.filterOutAssignedAttributes(
       pageType,
-      input.attributes
+      attributes
     );
 
-    if (isAttributesAlreadyAssigned) {
-      console.log("Attributes already assigned to page type");
+    if (!attributesToAssign.length) {
+      console.log("No attributes to assign");
       return;
     }
 
-    console.log("Attributes", attributes);
-
     await this.client.assignAttributesToPageType({
       pageTypeId: pageType.id,
-      attributeIds: attributes.map((attribute) => attribute.id),
+      attributeIds: attributesToAssign.map((attribute) => attribute.id),
     });
 
     console.log("Attributes assigned to page type");
