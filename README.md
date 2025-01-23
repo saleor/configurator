@@ -8,23 +8,33 @@ Configurator is a tool that helps you automate the creation of data models in Sa
 ## Example
 
 ```ts
+// Example configuration
 configurator.bootstrap({
   productTypes: [
     {
-      name: "Books",
+      name: "Sweets",
       attributes: [
         {
-          name: "Author",
+          name: "Brand",
           inputType: "PLAIN_TEXT",
         },
         {
-          name: "Genre",
-          inputType: "DROPDOWN",
+          name: "Flavor",
+          inputType: "MULTISELECT",
           values: [
             { name: "Fiction" },
             { name: "Non-Fiction" },
             { name: "Fantasy" },
           ],
+        },
+        {
+          name: "Sugar Content",
+          inputType: "DROPDOWN",
+          values: [{ name: "Low" }, { name: "Medium" }, { name: "High" }],
+        },
+        {
+          name: "Is Organic",
+          inputType: "BOOLEAN",
         },
       ],
     },
@@ -43,7 +53,7 @@ configurator.bootstrap({
       attributes: [
         { name: "Title", inputType: "PLAIN_TEXT" },
         { name: "Description", inputType: "PLAIN_TEXT" },
-        { name: "Author", inputType: "PLAIN_TEXT" },
+        { name: "Writer", inputType: "PLAIN_TEXT" },
         {
           name: "Tags",
           inputType: "DROPDOWN",
@@ -53,10 +63,20 @@ configurator.bootstrap({
             { name: "Health" },
           ],
         },
+        { name: "Published Date", inputType: "DATE" },
       ],
     },
   ],
+  attributes: [
+    {
+      name: "Color",
+      inputType: "SWATCH",
+      values: [{ name: "Red" }],
+      type: "PRODUCT_TYPE",
+    },
+  ],
 });
+
 ```
 
 ## Development
@@ -88,6 +108,7 @@ Reads the configuration file and create the data models in Saleor.
 
 Currently, it supports:
 
+- [x] Creating attributes
 - [x] Creating product types with attributes
 - [x] Creating page types with attributes
 - [x] Creating channels
