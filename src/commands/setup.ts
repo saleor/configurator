@@ -1,6 +1,6 @@
 import { graphqlClient } from "../graphql/client";
 import { SaleorConfigurator } from "../lib/configurator";
-import { SaleorClient } from "../lib/saleor-client";
+import { SaleorClient } from "../lib/saleor-client/bootstrap-client";
 
 const saleorClient = new SaleorClient(graphqlClient);
 const configurator = new SaleorConfigurator(saleorClient);

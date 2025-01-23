@@ -1,10 +1,13 @@
 import type { ChannelInput } from "../configurator";
-import type { Channel, SaleorClient } from "../saleor-client";
+import type {
+  Channel,
+  BootstrapClient,
+} from "../saleor-client/bootstrap-client";
 
 export class ChannelBootstraper {
   private channels: Channel[] | null = null;
 
-  constructor(private client: SaleorClient) {}
+  constructor(private client: BootstrapClient) {}
 
   private async getOrCreateChannel(input: ChannelInput) {
     const channels = this.channels ?? (await this.client.getChannels());

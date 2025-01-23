@@ -1,5 +1,9 @@
 import type { SaleorConfig } from "../configurator";
-import type { Attribute, ProductType, SaleorClient } from "../saleor-client";
+import type {
+  Attribute,
+  ProductType,
+  BootstrapClient,
+} from "../saleor-client/bootstrap-client";
 import { AttributeBootstraper } from "./attribute-bootstraper";
 
 type ProductTypeWithAttributesInput = NonNullable<
@@ -10,7 +14,7 @@ type ProductTypeWithAttributesInput = NonNullable<
  * @description Orchestrating the mutations needed to create product types in Saleor.
  */
 export class ProductTypeBootstraper {
-  constructor(private client: SaleorClient) {}
+  constructor(private client: BootstrapClient) {}
 
   private async getOrCreateProductType(name: string): Promise<ProductType> {
     const productType = await this.client.getProductTypeByName(name);

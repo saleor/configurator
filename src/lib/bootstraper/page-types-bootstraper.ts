@@ -1,10 +1,14 @@
 import type { PageTypeInput } from "../configurator";
-import type { Attribute, PageType, SaleorClient } from "../saleor-client";
+import type {
+  Attribute,
+  PageType,
+  BootstrapClient,
+} from "../saleor-client/bootstrap-client";
 import { AttributeBootstraper } from "./attribute-bootstraper";
 
 // Page Types follow a very similar interface to Product Types
 export class PageTypeBootstraper {
-  constructor(private client: SaleorClient) {}
+  constructor(private client: BootstrapClient) {}
 
   private async getOrCreatePageType(name: string): Promise<PageType> {
     const pageType = await this.client.getPageTypeByName(name);

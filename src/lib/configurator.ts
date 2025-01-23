@@ -1,8 +1,12 @@
 import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
 import { ChannelBootstraper } from "./bootstraper/channel-bootstraper";
-import type { CountryCode, SaleorClient } from "./saleor-client";
 import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
 import { AttributeBootstraper } from "./bootstraper/attribute-bootstraper";
+import {
+  BootstrapClient,
+  type CountryCode,
+} from "./saleor-client/bootstrap-client";
+import type { Client } from "@urql/core";
 
 type AttributeTypeInput =
   | {
@@ -72,11 +76,17 @@ export type SaleorConfig = {
  * @description Parsing the configuration and triggering the commands.
  */
 export class SaleorConfigurator {
-  constructor(private client: SaleorClient) {}
+  private bootstrapClient: BootstrapClient;
+
+  constructor(private client: Client) {
+    this.bootstrapClient = new BootstrapClient(client);
+  }
 
   bootstrap(config: SaleorConfig) {
     if (config.productTypes) {
-      const productTypeBootstraper = new ProductTypeBootstraper(this.client);
+      const productTypeBootstraper = new ProductTypeBootstraper(
+        this.bootstrapClient
+      );
 
       config.productTypes.forEach((productType) => {
         productTypeBootstraper.bootstrapProductType(productType);
@@ -84,7 +94,7 @@ export class SaleorConfigurator {
     }
 
     if (config.channels) {
-      const channelBootstraper = new ChannelBootstraper(this.client);
+      const channelBootstraper = new ChannelBootstraper(this.bootstrapClient);
 
       config.channels.forEach((channel) => {
         channelBootstraper.bootstrapChannel(channel);
@@ -92,7 +102,7 @@ export class SaleorConfigurator {
     }
 
     if (config.pageTypes) {
-      const pageTypeBootstraper = new PageTypeBootstraper(this.client);
+      const pageTypeBootstraper = new PageTypeBootstraper(this.bootstrapClient);
 
       config.pageTypes.forEach((pageType) => {
         pageTypeBootstraper.bootstrapPageType(pageType);

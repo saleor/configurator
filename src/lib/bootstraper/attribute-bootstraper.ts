@@ -1,5 +1,8 @@
 import type { AttributeInput } from "../configurator";
-import type { Attribute, SaleorClient } from "../saleor-client";
+import type {
+  Attribute,
+  SaleorClient,
+} from "../saleor-client/bootstrap-client";
 
 const createAttribute = (
   input: AttributeInput,

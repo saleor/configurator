@@ -185,9 +185,9 @@ const pageAttributeAssignMutation = graphql(`
 type PageAttributeAssignInput = VariablesOf<typeof pageAttributeAssignMutation>;
 
 /**
- * @description Interacting with the Saleor API.
+ * @description A client for bootstrapping the data models. It checks if the data models exist and creates them if they don't.
  */
-export class SaleorClient {
+export class BootstrapClient {
   constructor(private client: Client) {}
 
   async createAttribute(attributeInput: AttributeCreateInput) {
