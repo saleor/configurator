@@ -116,7 +116,9 @@ export class SaleorConfigurator {
     }
 
     if (config.attributes) {
-      const attributeBootstraper = new AttributeBootstraper(this.client);
+      const attributeBootstraper = new AttributeBootstraper(
+        this.bootstrapClient
+      );
 
       config.attributes.forEach((attribute) => {
         if (!attribute.type) {
