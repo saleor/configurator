@@ -1,5 +1,5 @@
 import { stringify, parse } from "yaml";
-import type { SaleorConfig } from "../configurator";
+import { configSchema, type SaleorConfig } from "../config-schema";
 
 const CONFIG_PATH = "config.yml";
 
@@ -20,9 +20,18 @@ export class YamlConfigurationManager {
     }
 
     const yml = await file.text();
-    const config = parse(yml);
+    const rawConfig = parse(yml);
 
-    // TODO: Validate the config
-    return config as SaleorConfig;
+    const { success, data, error } = configSchema.safeParse(rawConfig);
+
+    if (!success) {
+      console.log(error);
+      throw new Error(
+        "Invalid configuration file. " +
+          error.issues.map((issue) => issue.message).join(", ")
+      );
+    }
+
+    return data;
   }
 }

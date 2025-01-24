@@ -1,4 +1,4 @@
-import type { ChannelInput } from "../configurator";
+import type { ChannelInput } from "../config-schema";
 import type { Channel, BootstrapClient } from "./bootstrap-client";
 
 export class ChannelBootstraper {
@@ -29,7 +29,7 @@ export class ChannelBootstraper {
       return createdChannel;
     }
 
-    console.log("Channel already exists", channel);
+    console.log("Channel already exists: ", channel.id);
 
     return channel;
   }

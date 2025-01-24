@@ -1,4 +1,4 @@
-import type { SaleorConfig } from "../configurator";
+import type { SaleorConfig } from "../config-schema";
 import type {
   Attribute,
   ProductType,
@@ -26,7 +26,7 @@ export class ProductTypeBootstraper {
       return this.client.createProductType({ name });
     }
 
-    console.log("Product type already exists", productType);
+    console.log("Product type already exists: ", productType.id);
 
     return productType;
   }
