@@ -1,4 +1,4 @@
-import type { AttributeInput } from "../configurator";
+import type { AttributeInput } from "../config-schema";
 import type { Attribute, BootstrapClient } from "./bootstrap-client";
 
 const createAttribute = (

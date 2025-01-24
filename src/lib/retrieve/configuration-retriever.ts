@@ -1,9 +1,9 @@
 import type { Client } from "@urql/core";
 import invariant from "tiny-invariant";
 import type { CountryCode } from "../bootstraper/bootstrap-client";
-import type { AttributeInput, SaleorConfig } from "../configurator";
 import { RetrieverClient, type RawSaleorConfig } from "./retriever-client";
 import { YamlConfigurationManager } from "./yaml-configuration-manager";
+import type { AttributeInput, SaleorConfig } from "../config-schema";
 
 function mapChannels(rawChannels: RawSaleorConfig["channels"]) {
   return (

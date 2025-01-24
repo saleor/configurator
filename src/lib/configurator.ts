@@ -1,83 +1,11 @@
 import type { Client } from "@urql/core";
 import { AttributeBootstraper } from "./bootstraper/attribute-bootstraper";
-import {
-  BootstrapClient,
-  type CountryCode,
-} from "./bootstraper/bootstrap-client";
+import { BootstrapClient } from "./bootstraper/bootstrap-client";
 import { ChannelBootstraper } from "./bootstraper/channel-bootstraper";
 import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
 import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
 import { ConfigurationRetriever } from "./retrieve/configuration-retriever";
 import { YamlConfigurationManager } from "./retrieve/yaml-configuration-manager";
-
-type AttributeTypeInput =
-  | {
-      inputType: "DROPDOWN";
-      values: { name: string }[];
-    }
-  | {
-      inputType: "PLAIN_TEXT";
-    }
-  | {
-      inputType: "NUMERIC";
-    }
-  | {
-      inputType: "MULTISELECT";
-      values: { name: string }[];
-    }
-  | {
-      inputType: "DATE";
-    }
-  | {
-      inputType: "BOOLEAN";
-    }
-  | {
-      inputType: "RICH_TEXT";
-    }
-  | {
-      inputType: "SWATCH";
-      values: { name: string }[];
-    }
-  | {
-      inputType: "DATE_TIME";
-    }
-  | {
-      inputType: "FILE";
-    }
-  | {
-      inputType: "REFERENCE";
-    };
-
-export type AttributeInput = {
-  name: string;
-  type?: "PRODUCT_TYPE" | "PAGE_TYPE";
-} & AttributeTypeInput;
-
-export type AttributeInputType = AttributeInput["inputType"];
-
-export type ChannelInput = {
-  name: string;
-  currencyCode: string;
-  defaultCountry: CountryCode;
-  slug: string;
-};
-
-type ProductTypeInput = {
-  name: string;
-  attributes: AttributeInput[];
-};
-
-export type PageTypeInput = {
-  name: string;
-  attributes: AttributeInput[];
-};
-
-export type SaleorConfig = {
-  productTypes?: Array<ProductTypeInput>;
-  channels?: Array<ChannelInput>;
-  pageTypes?: Array<PageTypeInput>;
-  attributes?: Array<AttributeInput>;
-};
 
 /**
  * @description Parsing the configuration and triggering the commands.

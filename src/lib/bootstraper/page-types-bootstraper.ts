@@ -1,8 +1,7 @@
-import type { PageTypeInput } from "../configurator";
 import type { Attribute, PageType, BootstrapClient } from "./bootstrap-client";
 import { AttributeBootstraper } from "./attribute-bootstraper";
+import type { PageTypeInput } from "../config-schema";
 
-// Page Types follow a very similar interface to Product Types
 export class PageTypeBootstraper {
   constructor(private client: BootstrapClient) {}
 
@@ -16,7 +15,7 @@ export class PageTypeBootstraper {
       return this.client.createPageType({ name });
     }
 
-    console.log("Page type already exists", pageType);
+    console.log("Page type already exists: ", pageType.id);
 
     return pageType;
   }
