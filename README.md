@@ -53,7 +53,7 @@ pageTypes:
 ### Installing dependencies
 
 ```bash
-bun install
+pnpm install
 ```
 
 This will install the dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
@@ -71,7 +71,7 @@ This will create a `.env` file. Here are the variables you need to set:
 
 ### Commands
 
-#### `bun run bootstrap`
+#### `pnpm bootstrap`
 
 Reads the configuration file and create the data models in Saleor.
 
@@ -93,7 +93,7 @@ Currently, it supports:
 - [ ] Creating categories
 - [ ] Creating categories with products
 
-#### `bun run retrieve`
+#### `pnpm retrieve`
 
 Retrieves the configuration from the Saleor instance and saves it to a file.
 
