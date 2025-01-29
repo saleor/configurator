@@ -82,6 +82,7 @@ Currently, it supports:
 - [x] Creating page types with attributes
 - [x] Creating channels
 - [x] Reading the configuration from config.yml file
+- [x] Creating and updating channels with settings (payment, stock, order, checkout)
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products
