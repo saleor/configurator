@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 if (!process.env.APP_TOKEN) {
   throw new Error("APP_TOKEN is not set");
 }

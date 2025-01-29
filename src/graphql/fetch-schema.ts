@@ -1,14 +1,15 @@
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync, writeFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const packageJson = JSON.parse(
-  readFileSync(join(import.meta.dir, "../../package.json"), "utf-8")
+  readFileSync(join(__dirname, "../../package.json"), "utf-8")
 );
 
 const version = packageJson.saleor.schemaVersion;
 const url = `https://raw.githubusercontent.com/saleor/saleor/${version}/saleor/graphql/schema.graphql`;
 
-await Bun.write(
-  "graphql/schema.graphql",
-  await fetch(url).then((r) => r.text())
-);
+const response = await fetch(url);
+const schema = await response.text();
+writeFileSync("graphql/schema.graphql", schema);

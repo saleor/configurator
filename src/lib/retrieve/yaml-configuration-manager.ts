@@ -1,37 +1,37 @@
+import { readFile, writeFile } from "node:fs/promises";
 import { stringify, parse } from "yaml";
 import { configSchema, type SaleorConfig } from "../config-schema";
 
 const CONFIG_PATH = "config.yml";
 
 export class YamlConfigurationManager {
-  save(config: SaleorConfig) {
+  async save(config: SaleorConfig) {
     const yml = stringify(config);
-    const file = Bun.file(CONFIG_PATH);
-    file.write(yml);
+    await writeFile(CONFIG_PATH, yml);
     console.log(`Config saved to ${CONFIG_PATH}`);
   }
 
   async load() {
-    const file = Bun.file(CONFIG_PATH);
-    const exists = await file.exists();
+    try {
+      const yml = await readFile(CONFIG_PATH, "utf-8");
+      const rawConfig = parse(yml);
 
-    if (!exists) {
-      throw new Error(`Configuration file not found: ${CONFIG_PATH}`);
+      const { success, data, error } = configSchema.safeParse(rawConfig);
+
+      if (!success) {
+        console.log(error);
+        throw new Error(
+          "Invalid configuration file. " +
+            error.issues.map((issue) => issue.message).join(", ")
+        );
+      }
+
+      return data;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new Error(`Configuration file not found: ${CONFIG_PATH}`);
+      }
+      throw error;
     }
-
-    const yml = await file.text();
-    const rawConfig = parse(yml);
-
-    const { success, data, error } = configSchema.safeParse(rawConfig);
-
-    if (!success) {
-      console.log(error);
-      throw new Error(
-        "Invalid configuration file. " +
-          error.issues.map((issue) => issue.message).join(", ")
-      );
-    }
-
-    return data;
   }
 }
