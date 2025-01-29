@@ -110,7 +110,9 @@ const createChannelMutation = graphql(`
   }
 `);
 
-type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
+export type ChannelCreateInput = VariablesOf<
+  typeof createChannelMutation
+>["input"];
 
 export type CountryCode = NonNullable<ChannelCreateInput["defaultCountry"]>;
 
@@ -183,6 +185,28 @@ const pageAttributeAssignMutation = graphql(`
 `);
 
 type PageAttributeAssignInput = VariablesOf<typeof pageAttributeAssignMutation>;
+
+const updateChannelMutation = graphql(`
+  mutation UpdateChannel($id: ID!, $input: ChannelUpdateInput!) {
+    channelUpdate(id: $id, input: $input) {
+      channel {
+        id
+        name
+        slug
+        currencyCode
+        defaultCountry {
+          code
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 
 /**
  * @description A client for bootstrapping the data models. It checks if the data models exist and creates them if they don't.
@@ -320,5 +344,26 @@ export class BootstrapClient {
     }
 
     return result.data?.pageAttributeAssign?.pageType;
+  }
+
+  async updateChannel(id: string, input: ChannelUpdateInput) {
+    const result = await this.client.mutation(updateChannelMutation, {
+      id,
+      input,
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to update channel: ${result.error.message}`);
+    }
+
+    if (result.data?.channelUpdate?.errors.length) {
+      throw new Error(
+        `Failed to update channel: ${result.data.channelUpdate.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    return result.data?.channelUpdate?.channel;
   }
 }
