@@ -1,6 +1,10 @@
 {
   "name": "saleor-configurator",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
   "saleor": {
     "schemaVersion": "3.20"
   },
