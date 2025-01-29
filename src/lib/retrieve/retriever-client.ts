@@ -11,6 +11,25 @@ const getConfigQuery = graphql(`
         code
       }
       slug
+      checkoutSettings {
+        useLegacyErrorFlow
+        automaticallyCompleteFullyPaidCheckouts
+      }
+      paymentSettings {
+        defaultTransactionFlowStrategy
+      }
+      stockSettings {
+        allocationStrategy
+      }
+      orderSettings {
+        automaticallyConfirmAllNewOrders
+        automaticallyFulfillNonShippableGiftCard
+        expireOrdersAfter
+        deleteExpiredOrdersAfter
+        markAsPaidStrategy
+        allowUnpaidOrders
+        includeDraftOrderInVoucherUsage
+      }
     }
     productTypes(first: 100) {
       edges {

@@ -14,8 +14,20 @@ channels:
     currencyCode: PLN
     defaultCountry: PL
     slug: poland
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 60
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
 productTypes:
-  - name: Books
+  - name: Book
     attributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -70,6 +82,7 @@ Currently, it supports:
 - [x] Creating page types with attributes
 - [x] Creating channels
 - [x] Reading the configuration from config.yml file
+- [x] Creating and updating channels with settings (payment, stock, order, checkout)
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products

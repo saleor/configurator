@@ -5,13 +5,35 @@ import { RetrieverClient, type RawSaleorConfig } from "./retriever-client";
 import { YamlConfigurationManager } from "./yaml-configuration-manager";
 import type { AttributeInput, SaleorConfig } from "../config-schema";
 
-function mapChannels(rawChannels: RawSaleorConfig["channels"]) {
+function mapChannels(
+  rawChannels: RawSaleorConfig["channels"]
+): SaleorConfig["channels"] {
   return (
     rawChannels?.map((channel) => ({
       name: channel.name,
       currencyCode: channel.currencyCode,
       defaultCountry: channel.defaultCountry.code as CountryCode,
       slug: channel.slug,
+      settings: {
+        useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
+        automaticallyCompleteFullyPaidCheckouts:
+          channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts,
+        defaultTransactionFlowStrategy:
+          channel.paymentSettings.defaultTransactionFlowStrategy,
+        allocationStrategy: channel.stockSettings.allocationStrategy,
+        automaticallyConfirmAllNewOrders:
+          channel.orderSettings.automaticallyConfirmAllNewOrders,
+        automaticallyFulfillNonShippableGiftCard:
+          channel.orderSettings.automaticallyFulfillNonShippableGiftCard,
+        expireOrdersAfter: Number(channel.orderSettings.expireOrdersAfter),
+        deleteExpiredOrdersAfter: Number(
+          channel.orderSettings.deleteExpiredOrdersAfter
+        ),
+        markAsPaidStrategy: channel.orderSettings.markAsPaidStrategy,
+        allowUnpaidOrders: channel.orderSettings.allowUnpaidOrders,
+        includeDraftOrderInVoucherUsage:
+          channel.orderSettings.includeDraftOrderInVoucherUsage,
+      },
     })) ?? []
   );
 }
@@ -79,7 +101,7 @@ function mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
 export class ConfigurationRetriever {
   constructor(private client: Client) {}
 
-  private parseConfig(rawConfig: RawSaleorConfig): SaleorConfig {
+  private mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
     const rawAttributes = rawConfig.attributes?.edges ?? [];
     return {
       channels: mapChannels(rawConfig.channels),
@@ -93,7 +115,7 @@ export class ConfigurationRetriever {
   async retrieve(): Promise<SaleorConfig> {
     const client = new RetrieverClient(this.client);
     const rawConfig = await client.fetchConfig();
-    const config = this.parseConfig(rawConfig);
+    const config = this.mapConfig(rawConfig);
 
     const yamlManager = new YamlConfigurationManager();
     yamlManager.save(config);

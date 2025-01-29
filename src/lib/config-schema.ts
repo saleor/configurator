@@ -297,6 +297,27 @@ const channelSchema = z.object({
   currencyCode: z.string(),
   defaultCountry: countryCodeSchema,
   slug: z.string(),
+  settings: z
+    .object({
+      allocationStrategy: z
+        .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
+        .optional(),
+      automaticallyConfirmAllNewOrders: z.boolean().optional(),
+      automaticallyFulfillNonShippableGiftCard: z.boolean().optional(),
+      expireOrdersAfter: z.number().optional(),
+      deleteExpiredOrdersAfter: z.number().optional(),
+      markAsPaidStrategy: z
+        .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
+        .optional(),
+      allowUnpaidOrders: z.boolean().optional(),
+      includeDraftOrderInVoucherUsage: z.boolean().optional(),
+      useLegacyErrorFlow: z.boolean().optional(),
+      automaticallyCompleteFullyPaidCheckouts: z.boolean().optional(),
+      defaultTransactionFlowStrategy: z
+        .enum(["AUTHORIZATION", "CHARGE"])
+        .optional(),
+    })
+    .optional(),
 });
 
 export type ChannelInput = z.infer<typeof channelSchema>;
