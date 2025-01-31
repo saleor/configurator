@@ -22,9 +22,11 @@ export class SaleorConfigurator {
     const yamlManager = new YamlConfigurationManager();
     const config = await yamlManager.load();
 
+    const bootstrapTasks = [];
+
     if (config.shop) {
       const shopBootstraper = new ShopBootstraper(this.bootstrapClient);
-      await shopBootstraper.bootstrapShop(config.shop);
+      bootstrapTasks.push(shopBootstraper.bootstrapShop(config.shop));
     }
 
     if (config.productTypes) {
@@ -32,25 +34,37 @@ export class SaleorConfigurator {
         this.bootstrapClient
       );
 
-      for (const productType of config.productTypes) {
-        await productTypeBootstraper.bootstrapProductType(productType);
-      }
+      bootstrapTasks.push(
+        Promise.all(
+          config.productTypes.map((productType) =>
+            productTypeBootstraper.bootstrapProductType(productType)
+          )
+        )
+      );
     }
 
     if (config.channels) {
       const channelBootstraper = new ChannelBootstraper(this.bootstrapClient);
 
-      for (const channel of config.channels) {
-        await channelBootstraper.bootstrapChannel(channel);
-      }
+      bootstrapTasks.push(
+        Promise.all(
+          config.channels.map((channel) =>
+            channelBootstraper.bootstrapChannel(channel)
+          )
+        )
+      );
     }
 
     if (config.pageTypes) {
       const pageTypeBootstraper = new PageTypeBootstraper(this.bootstrapClient);
 
-      for (const pageType of config.pageTypes) {
-        await pageTypeBootstraper.bootstrapPageType(pageType);
-      }
+      bootstrapTasks.push(
+        Promise.all(
+          config.pageTypes.map((pageType) =>
+            pageTypeBootstraper.bootstrapPageType(pageType)
+          )
+        )
+      );
     }
 
     if (config.attributes) {
@@ -58,19 +72,25 @@ export class SaleorConfigurator {
         this.bootstrapClient
       );
 
-      for (const attribute of config.attributes) {
-        if (!attribute.type) {
-          throw new Error(
-            "When bootstrapping attributes, the type (PRODUCT_TYPE or PAGE_TYPE) is required"
-          );
-        }
+      bootstrapTasks.push(
+        Promise.all(
+          config.attributes.map((attribute) => {
+            if (!attribute.type) {
+              throw new Error(
+                "When bootstrapping attributes, the type (PRODUCT_TYPE or PAGE_TYPE) is required"
+              );
+            }
 
-        await attributeBootstraper.bootstrapAttributes({
-          attributeInputs: [attribute],
-          type: attribute.type,
-        });
-      }
+            return attributeBootstraper.bootstrapAttributes({
+              attributeInputs: [attribute],
+              type: attribute.type,
+            });
+          })
+        )
+      );
     }
+
+    await Promise.all(bootstrapTasks);
   }
 
   async retrieve() {
