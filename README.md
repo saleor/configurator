@@ -9,6 +9,31 @@ Configurator is a tool that helps you automate the creation of data models in Sa
 
 ```yaml
 // Example config.yml
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Saleor Store"
+  defaultMailSenderAddress: "store@example.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: false
+  companyAddress:
+    streetAddress1: "123 Main St"
+    streetAddress2: "Suite 101"
+    city: "San Francisco"
+    cityArea: "Downtown"
+    postalCode: "94105"
+    country: "US"
+    countryArea: "CA"
+    companyName: "Saleor Commerce"
+    phone: "+1 234 567 8901"
+
 channels:
   - name: Poland
     currencyCode: PLN
@@ -26,6 +51,7 @@ channels:
       useLegacyErrorFlow: false
       automaticallyCompleteFullyPaidCheckouts: true
       defaultTransactionFlowStrategy: AUTHORIZATION
+
 productTypes:
   - name: Book
     attributes:
@@ -37,6 +63,7 @@ productTypes:
           - name: Fiction
           - name: Non-Fiction
           - name: Fantasy
+
 pageTypes:
   - name: Blog Post
     attributes:
@@ -83,6 +110,7 @@ Currently, it supports:
 - [x] Creating channels
 - [x] Reading the configuration from config.yml file
 - [x] Creating and updating channels with settings (payment, stock, order, checkout)
+- [x] Updating shop settings
 - [ ] Creating channels with warehouses
 - [ ] Creating channels with warehouses and shipping zones
 - [ ] Creating products

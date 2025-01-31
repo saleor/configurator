@@ -329,11 +329,34 @@ const pageTypeSchema = z.object({
 
 export type PageTypeInput = z.infer<typeof pageTypeSchema>;
 
+const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
+
+export const shopSchema = z.object({
+  headerText: z.string().optional(),
+  description: z.string().optional(),
+  trackInventoryByDefault: z.boolean().optional(),
+  defaultWeightUnit: weightUnitEnum.optional(),
+  automaticFulfillmentDigitalProducts: z.boolean().optional(),
+  fulfillmentAutoApprove: z.boolean().optional(),
+  fulfillmentAllowUnpaid: z.boolean().optional(),
+  defaultDigitalMaxDownloads: z.number().optional(),
+  defaultDigitalUrlValidDays: z.number().optional(),
+  defaultMailSenderName: z.string().optional(),
+  defaultMailSenderAddress: z.string().optional(),
+  customerSetPasswordUrl: z.string().optional(),
+  reserveStockDurationAnonymousUser: z.number().optional(),
+  reserveStockDurationAuthenticatedUser: z.number().optional(),
+  limitQuantityPerCheckout: z.number().optional(),
+  enableAccountConfirmationByEmail: z.boolean().optional(),
+  allowLoginWithoutConfirmation: z.boolean().optional(),
+});
+
 export const configSchema = z.object({
   productTypes: z.array(productTypeSchema).optional(),
   channels: z.array(channelSchema).optional(),
   pageTypes: z.array(pageTypeSchema).optional(),
   attributes: z.array(attributeSchema).optional(),
+  shop: shopSchema.optional(),
 });
 
 export type SaleorConfig = z.infer<typeof configSchema>;

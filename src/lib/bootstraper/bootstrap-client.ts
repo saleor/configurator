@@ -208,6 +208,30 @@ const updateChannelMutation = graphql(`
 
 type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 
+const updateShopSettingsMutation = graphql(`
+  mutation UpdateShopSettings($input: ShopSettingsInput!) {
+    shopSettingsUpdate(input: $input) {
+      shop {
+        headerText
+        description
+        defaultWeightUnit
+        fulfillmentAutoApprove
+        fulfillmentAllowUnpaid
+        automaticFulfillmentDigitalProducts
+      }
+      errors {
+        field
+        message
+        code
+      }
+    }
+  }
+`);
+
+export type ShopSettingsInput = VariablesOf<
+  typeof updateShopSettingsMutation
+>["input"];
+
 /**
  * @description A client for bootstrapping the data models. It checks if the data models exist and creates them if they don't.
  */
@@ -365,5 +389,27 @@ export class BootstrapClient {
     }
 
     return result.data?.channelUpdate?.channel;
+  }
+
+  async updateShopSettings(input: ShopSettingsInput) {
+    const result = await this.client.mutation(updateShopSettingsMutation, {
+      input,
+    });
+
+    if (result.error) {
+      throw new Error(
+        `Failed to update shop settings: ${result.error.message}`
+      );
+    }
+
+    if (result.data?.shopSettingsUpdate?.errors?.length) {
+      throw new Error(
+        `Failed to update shop settings: ${result.data.shopSettingsUpdate.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
+    }
+
+    return result.data?.shopSettingsUpdate?.shop;
   }
 }
