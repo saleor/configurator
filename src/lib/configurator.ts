@@ -6,7 +6,7 @@ import { PageTypeBootstraper } from "./bootstraper/page-types-bootstraper";
 import { ProductTypeBootstraper } from "./bootstraper/product-types-bootstraper";
 import { ShopBootstraper } from "./bootstraper/shop-bootstraper";
 import { ConfigurationRetriever } from "./retrieve/configuration-retriever";
-import { YamlConfigurationManager } from "./retrieve/yaml-configuration-manager";
+import { YamlConfigurationManager } from "./yaml-configuration-manager";
 
 /**
  * @description Parsing the configuration and triggering the commands.

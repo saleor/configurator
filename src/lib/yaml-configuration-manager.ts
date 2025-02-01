@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { stringify, parse } from "yaml";
-import { configSchema, type SaleorConfig } from "../config-schema";
+import { configSchema, type SaleorConfig } from "./config-schema";
 
 const CONFIG_PATH = "config.yml";
 
