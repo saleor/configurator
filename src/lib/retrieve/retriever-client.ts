@@ -3,6 +3,33 @@ import { graphql, type ResultOf } from "gql.tada";
 
 const getConfigQuery = graphql(`
   query GetConfig {
+    shop {
+      defaultMailSenderName
+      defaultMailSenderAddress
+      displayGrossPrices
+      enableAccountConfirmationByEmail
+      limitQuantityPerCheckout
+      trackInventoryByDefault
+      reserveStockDurationAnonymousUser
+      reserveStockDurationAuthenticatedUser
+      defaultDigitalMaxDownloads
+      defaultDigitalUrlValidDays
+      defaultWeightUnit
+      allowLoginWithoutConfirmation
+      companyAddress {
+        streetAddress1
+        streetAddress2
+        city
+        cityArea
+        postalCode
+        country {
+          code
+        }
+        countryArea
+        companyName
+        phone
+      }
+    }
     channels {
       id
       name

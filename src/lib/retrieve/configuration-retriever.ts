@@ -4,6 +4,7 @@ import type { CountryCode } from "../bootstraper/bootstrap-client";
 import { RetrieverClient, type RawSaleorConfig } from "./retriever-client";
 import { YamlConfigurationManager } from "./yaml-configuration-manager";
 import type { AttributeInput, SaleorConfig } from "../config-schema";
+import { object } from "../utils/object";
 
 function mapChannels(
   rawChannels: RawSaleorConfig["channels"]
@@ -98,12 +99,41 @@ function mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
   );
 }
 
+function mapShopSettings(rawConfig: RawSaleorConfig): SaleorConfig["shop"] {
+  const settings = rawConfig.shop;
+  if (!settings) return undefined;
+
+  return object.filterUndefinedValues({
+    defaultMailSenderName: settings.defaultMailSenderName,
+    defaultMailSenderAddress: settings.defaultMailSenderAddress,
+    displayGrossPrices: settings.displayGrossPrices,
+    enableAccountConfirmationByEmail: settings.enableAccountConfirmationByEmail,
+    limitQuantityPerCheckout: settings.limitQuantityPerCheckout,
+    trackInventoryByDefault: settings.trackInventoryByDefault,
+    reserveStockDurationAnonymousUser:
+      settings.reserveStockDurationAnonymousUser,
+    reserveStockDurationAuthenticatedUser:
+      settings.reserveStockDurationAuthenticatedUser,
+    defaultDigitalMaxDownloads: settings.defaultDigitalMaxDownloads,
+    defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
+    defaultWeightUnit: settings.defaultWeightUnit,
+    allowLoginWithoutConfirmation: settings.allowLoginWithoutConfirmation,
+    companyAddress: settings.companyAddress
+      ? object.filterUndefinedValues({
+          streetAddress1: settings.companyAddress.streetAddress1,
+          streetAddress2: settings.companyAddress.streetAddress2,
+        })
+      : undefined,
+  });
+}
+
 export class ConfigurationRetriever {
   constructor(private client: Client) {}
 
   private mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
     const rawAttributes = rawConfig.attributes?.edges ?? [];
     return {
+      shop: mapShopSettings(rawConfig),
       channels: mapChannels(rawConfig.channels),
       productTypes: mapProductTypes(rawConfig.productTypes),
       pageTypes: mapPageTypes(rawConfig.pageTypes),
