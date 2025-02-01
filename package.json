@@ -12,7 +12,8 @@
     "bootstrap": "tsx src/commands/bootstrap.ts",
     "retrieve": "tsx src/commands/retrieve.ts",
     "fetch-schema": "tsx src/graphql/fetch-schema.ts",
-    "postinstall": "pnpm run fetch-schema"
+    "postinstall": "pnpm run fetch-schema",
+    "test": "vitest"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
