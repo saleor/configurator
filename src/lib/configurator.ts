@@ -94,7 +94,9 @@ export class SaleorConfigurator {
   }
 
   async retrieve() {
-    const configurationRetriever = new ConfigurationRetriever(this.client);
+    const configurationRetriever = ConfigurationRetriever.createDefault(
+      this.client
+    );
     return configurationRetriever.retrieve();
   }
 }

@@ -19,7 +19,12 @@ export class NodeFileSystem implements FileSystem {
   }
 }
 
-export class YamlConfigurationManager {
+export interface ConfigurationStorage {
+  save(config: SaleorConfig): Promise<void>;
+  load(): Promise<SaleorConfig>;
+}
+
+export class YamlConfigurationManager implements ConfigurationStorage {
   constructor(
     private readonly configPath: string = "config.yml",
     private readonly fs: FileSystem = new NodeFileSystem()
