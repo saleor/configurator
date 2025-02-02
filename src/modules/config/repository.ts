@@ -122,7 +122,11 @@ const getConfigQuery = graphql(`
 
 export type RawSaleorConfig = ResultOf<typeof getConfigQuery>;
 
-export class RetrieverClient {
+export interface ConfigurationOperations {
+  fetchConfig(): Promise<RawSaleorConfig>;
+}
+
+export class ConfigurationRepository implements ConfigurationOperations {
   constructor(private client: Client) {}
 
   async fetchConfig() {

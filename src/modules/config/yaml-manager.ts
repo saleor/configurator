@@ -1,14 +1,12 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { stringify, parse } from "yaml";
-import { configSchema, type SaleorConfig } from "./config-schema";
+import { configSchema, type SaleorConfig } from "./schema";
 
-// Interface for file system operations
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;
   writeFile(path: string, data: string): Promise<void>;
 }
 
-// Default implementation using node:fs
 export class NodeFileSystem implements FileSystem {
   async readFile(path: string, encoding: BufferEncoding): Promise<string> {
     return readFile(path, encoding);

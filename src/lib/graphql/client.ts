@@ -1,6 +1,6 @@
 import { Client, fetchExchange } from "@urql/core";
 import { authExchange } from "@urql/exchange-auth";
-import { APP_TOKEN, SALEOR_API_URL } from "../lib/env";
+import { APP_TOKEN, SALEOR_API_URL } from "../env";
 
 const createClient = (token: string) => {
   return new Client({

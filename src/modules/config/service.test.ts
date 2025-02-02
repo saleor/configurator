@@ -1,13 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  ConfigurationRetriever,
-  DefaultConfigurationMapper,
-  type ConfigurationFetcher,
-  type ConfigurationMapper,
-} from "./configuration-retriever";
-import type { RawSaleorConfig } from "./retriever-client";
-import type { SaleorConfig } from "../config-schema";
-import type { ConfigurationStorage } from "../yaml-configuration-manager";
+import { describe, it, expect, vi } from "vitest";
+import { ConfigurationService } from "./service";
+import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
+import type { SaleorConfig } from "./schema";
+import { YamlConfigurationManager } from "./yaml-manager";
 
 const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultMailSenderName: "Test Store",
@@ -63,7 +58,7 @@ const mockMappedShopData: SaleorConfig["shop"] = {
   },
 };
 
-class MockFetcher implements ConfigurationFetcher {
+class MockRepository implements ConfigurationOperations {
   constructor(private mockData: RawSaleorConfig) {}
 
   async fetchConfig(): Promise<RawSaleorConfig> {
@@ -71,24 +66,7 @@ class MockFetcher implements ConfigurationFetcher {
   }
 }
 
-class MockMapper implements ConfigurationMapper {
-  mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
-    return {
-      shop: mockMappedShopData,
-      channels: [],
-      productTypes: [],
-      pageTypes: [],
-      attributes: [],
-    };
-  }
-}
-
-class MockStorage implements ConfigurationStorage {
-  save = vi.fn().mockResolvedValue(undefined);
-  load = vi.fn().mockResolvedValue({} as SaleorConfig);
-}
-
-describe("ConfigurationRetriever", () => {
+describe("ConfigurationService", () => {
   describe("retrieve method", () => {
     it("should fetch, map and save configuration", async () => {
       const mockRawConfig: RawSaleorConfig = {
@@ -99,57 +77,32 @@ describe("ConfigurationRetriever", () => {
         attributes: { edges: [] },
       };
 
-      const fetcher = new MockFetcher(mockRawConfig);
-      const mapper = new MockMapper();
-      const storage = new MockStorage();
+      const repository = new MockRepository(mockRawConfig);
+      const storage = new YamlConfigurationManager();
+      storage.save = vi.fn().mockResolvedValue(undefined);
+      storage.load = vi.fn().mockResolvedValue({} as SaleorConfig);
 
-      const retriever = new ConfigurationRetriever(fetcher, mapper, storage);
+      const service = new ConfigurationService(repository, storage);
+      const result = await service.retrieve();
 
-      const result = await retriever.retrieve();
-
-      expect(result).toEqual({
-        shop: mockMappedShopData,
-        channels: [],
-        productTypes: [],
-        pageTypes: [],
-        attributes: [],
-      });
+      expect(result.shop).toEqual(mockMappedShopData);
+      expect(result.channels).toEqual([]);
+      expect(result.productTypes).toEqual([]);
+      expect(result.pageTypes).toEqual([]);
+      expect(result.attributes).toEqual([]);
       expect(storage.save).toHaveBeenCalledWith(result);
     });
 
-    it("should propagate errors from fetcher", async () => {
-      const fetcher = {
+    it("should propagate errors from repository", async () => {
+      const repository = {
         fetchConfig: vi.fn().mockRejectedValue(new Error("Fetch failed")),
       };
-      const mapper = new MockMapper();
-      const storage = new MockStorage();
+      const storage = new YamlConfigurationManager();
+      storage.save = vi.fn().mockResolvedValue(undefined);
 
-      const retriever = new ConfigurationRetriever(fetcher, mapper, storage);
+      const service = new ConfigurationService(repository, storage);
 
-      await expect(retriever.retrieve()).rejects.toThrow("Fetch failed");
-      expect(storage.save).not.toHaveBeenCalled();
-    });
-
-    it("should propagate errors from mapper", async () => {
-      const mockRawConfig: RawSaleorConfig = {
-        shop: mockRawShopData,
-        channels: [],
-        productTypes: { edges: [] },
-        pageTypes: { edges: [] },
-        attributes: { edges: [] },
-      };
-
-      const fetcher = new MockFetcher(mockRawConfig);
-      const mapper = {
-        mapConfig: vi.fn().mockImplementation(() => {
-          throw new Error("Mapping failed");
-        }),
-      };
-      const storage = new MockStorage();
-
-      const retriever = new ConfigurationRetriever(fetcher, mapper, storage);
-
-      await expect(retriever.retrieve()).rejects.toThrow("Mapping failed");
+      await expect(service.retrieve()).rejects.toThrow("Fetch failed");
       expect(storage.save).not.toHaveBeenCalled();
     });
 
@@ -162,39 +115,17 @@ describe("ConfigurationRetriever", () => {
         attributes: { edges: [] },
       };
 
-      const fetcher = new MockFetcher(mockRawConfig);
-      const mapper = new MockMapper();
-      const storage = {
-        save: vi.fn().mockRejectedValue(new Error("Save failed")),
-        load: vi.fn().mockResolvedValue({} as SaleorConfig),
-      };
+      const repository = new MockRepository(mockRawConfig);
+      const storage = new YamlConfigurationManager();
+      storage.save = vi.fn().mockRejectedValue(new Error("Save failed"));
 
-      const retriever = new ConfigurationRetriever(fetcher, mapper, storage);
+      const service = new ConfigurationService(repository, storage);
 
-      await expect(retriever.retrieve()).rejects.toThrow("Save failed");
+      await expect(service.retrieve()).rejects.toThrow("Save failed");
     });
   });
 
-  describe("createDefault", () => {
-    it("should create instance with correct dependencies", () => {
-      const mockClient = {} as any;
-      const retriever = ConfigurationRetriever.createDefault(mockClient);
-
-      expect(retriever).toBeInstanceOf(ConfigurationRetriever);
-      // We can't easily test private fields, but we can verify it's properly constructed
-      expect(retriever.retrieve).toBeInstanceOf(Function);
-    });
-  });
-});
-
-describe("DefaultConfigurationMapper", () => {
-  let mapper: DefaultConfigurationMapper;
-
-  beforeEach(() => {
-    mapper = new DefaultConfigurationMapper();
-  });
-
-  describe("mapConfig", () => {
+  describe("mapConfig method", () => {
     it("should handle empty raw config", () => {
       const emptyConfig: RawSaleorConfig = {
         shop: mockRawShopData,
@@ -204,7 +135,8 @@ describe("DefaultConfigurationMapper", () => {
         attributes: { edges: [] },
       };
 
-      const result = mapper.mapConfig(emptyConfig);
+      const service = new ConfigurationService(new MockRepository(emptyConfig));
+      const result = service.mapConfig(emptyConfig);
 
       expect(result).toEqual({
         shop: mockMappedShopData,
@@ -310,16 +242,17 @@ describe("DefaultConfigurationMapper", () => {
         attributes: { edges: [] },
       };
 
-      const result = mapper.mapConfig(completeConfig);
+      const service = new ConfigurationService(
+        new MockRepository(completeConfig)
+      );
+      const result = service.mapConfig(completeConfig);
 
       expect(result.shop?.defaultMailSenderName).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
       expect(result.productTypes?.[0]?.attributes).toHaveLength(1);
       expect(result.pageTypes?.[0]?.attributes).toHaveLength(1);
     });
-  });
 
-  describe("attribute mapping", () => {
     it("should handle different attribute input types", () => {
       const rawConfig: RawSaleorConfig = {
         shop: mockRawShopData,
@@ -356,13 +289,25 @@ describe("DefaultConfigurationMapper", () => {
         attributes: { edges: [] },
       };
 
-      const result = mapper.mapConfig(rawConfig);
+      const service = new ConfigurationService(new MockRepository(rawConfig));
+      const result = service.mapConfig(rawConfig);
       const attributes = result.productTypes?.[0]?.attributes;
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);
       expect(attributes?.[0]).toHaveProperty("values");
       expect(attributes?.[1]).not.toHaveProperty("values");
+    });
+  });
+
+  describe("createDefault", () => {
+    it("should create instance with correct dependencies", () => {
+      const mockClient = {} as any;
+      const service = ConfigurationService.createDefault(mockClient);
+
+      expect(service).toBeInstanceOf(ConfigurationService);
+      expect(service.retrieve).toBeInstanceOf(Function);
+      expect(service.mapConfig).toBeInstanceOf(Function);
     });
   });
 });

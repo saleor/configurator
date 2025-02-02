@@ -1,5 +1,5 @@
-import { graphqlClient } from "../graphql/client";
-import { SaleorConfigurator } from "../lib/configurator";
+import { graphqlClient } from "../lib/graphql/client";
+import { SaleorConfigurator } from "../core/configurator";
 
 const configurator = new SaleorConfigurator(graphqlClient);
 

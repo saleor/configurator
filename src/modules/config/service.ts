@@ -1,23 +1,31 @@
 import type { Client } from "@urql/core";
 import invariant from "tiny-invariant";
-import type { CountryCode } from "../bootstraper/bootstrap-client";
-import { RetrieverClient, type RawSaleorConfig } from "./retriever-client";
+import { object } from "../../lib/utils/object";
+import { YamlConfigurationManager } from "./yaml-manager";
+import type { AttributeInput, CountryCode, SaleorConfig } from "./schema";
 import {
-  YamlConfigurationManager,
-  type ConfigurationStorage,
-} from "../yaml-configuration-manager";
-import type { AttributeInput, SaleorConfig } from "../config-schema";
-import { object } from "../utils/object";
+  ConfigurationRepository,
+  type ConfigurationOperations,
+  type RawSaleorConfig,
+} from "./repository";
 
-export interface ConfigurationMapper {
-  mapConfig(rawConfig: RawSaleorConfig): SaleorConfig;
-}
+export class ConfigurationService {
+  constructor(
+    private repository: ConfigurationOperations,
+    private storage = new YamlConfigurationManager()
+  ) {}
 
-export interface ConfigurationFetcher {
-  fetchConfig(): Promise<RawSaleorConfig>;
-}
+  async retrieve(): Promise<SaleorConfig> {
+    const rawConfig = await this.repository.fetchConfig();
+    const config = this.mapConfig(rawConfig);
+    await this.storage.save(config);
+    return config;
+  }
 
-export class DefaultConfigurationMapper implements ConfigurationMapper {
+  static createDefault(client: Client): ConfigurationService {
+    return new ConfigurationService(new ConfigurationRepository(client));
+  }
+
   private mapChannels(
     rawChannels: RawSaleorConfig["channels"]
   ): SaleorConfig["channels"] {
@@ -153,29 +161,6 @@ export class DefaultConfigurationMapper implements ConfigurationMapper {
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
       attributes: this.mapAttributes(rawAttributes.map((edge) => edge.node)),
     };
-  }
-}
-
-export class ConfigurationRetriever {
-  constructor(
-    private fetcher: ConfigurationFetcher,
-    private mapper: ConfigurationMapper,
-    private storage: ConfigurationStorage
-  ) {}
-
-  static createDefault(client: Client): ConfigurationRetriever {
-    return new ConfigurationRetriever(
-      new RetrieverClient(client),
-      new DefaultConfigurationMapper(),
-      new YamlConfigurationManager()
-    );
-  }
-
-  async retrieve(): Promise<SaleorConfig> {
-    const rawConfig = await this.fetcher.fetchConfig();
-    const config = this.mapper.mapConfig(rawConfig);
-    await this.storage.save(config);
-    return config;
   }
 }
 
