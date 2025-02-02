@@ -351,12 +351,14 @@ export const shopSchema = z.object({
   allowLoginWithoutConfirmation: z.boolean().optional(),
 });
 
-export const configSchema = z.object({
-  productTypes: z.array(productTypeSchema).optional(),
-  channels: z.array(channelSchema).optional(),
-  pageTypes: z.array(pageTypeSchema).optional(),
-  attributes: z.array(attributeSchema).optional(),
-  shop: shopSchema.optional(),
-});
+export const configSchema = z
+  .object({
+    productTypes: z.array(productTypeSchema).optional(),
+    channels: z.array(channelSchema).optional(),
+    pageTypes: z.array(pageTypeSchema).optional(),
+    attributes: z.array(attributeSchema).optional(),
+    shop: shopSchema.optional(),
+  })
+  .strict();
 
 export type SaleorConfig = z.infer<typeof configSchema>;
