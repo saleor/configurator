@@ -16,19 +16,6 @@ const getConfigQuery = graphql(`
       defaultDigitalUrlValidDays
       defaultWeightUnit
       allowLoginWithoutConfirmation
-      companyAddress {
-        streetAddress1
-        streetAddress2
-        city
-        cityArea
-        postalCode
-        country {
-          code
-        }
-        countryArea
-        companyName
-        phone
-      }
     }
     channels {
       id

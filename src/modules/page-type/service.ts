@@ -1,7 +1,7 @@
-import type { PageTypeOperations, PageType } from "./repository";
-import type { AttributeService } from "../attribute/service";
-import type { PageTypeInput } from "../../config/schema";
 import { logger } from "../../lib/logger";
+import type { AttributeService } from "../attribute/service";
+import type { PageTypeInput } from "../config/schema";
+import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
   constructor(
@@ -43,12 +43,6 @@ export class PageTypeService {
     const filteredIds = attributeIds.filter(
       (id) => !assignedAttributeIds.has(id)
     );
-
-    logger.debug("Filtered out assigned attributes", {
-      total: attributeIds.length,
-      new: filteredIds.length,
-      existing: assignedAttributeIds.size,
-    });
 
     return filteredIds;
   }

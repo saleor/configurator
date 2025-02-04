@@ -106,22 +106,6 @@ export type PageTypeInput = z.infer<typeof pageTypeSchema>;
 
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
-const addressSchema = z.object({
-  streetAddress1: z.string().optional(),
-  streetAddress2: z.string().optional(),
-  city: z.string().optional(),
-  cityArea: z.string().optional(),
-  postalCode: z.string().optional(),
-  country: z
-    .object({
-      code: countryCodeSchema,
-    })
-    .optional(),
-  countryArea: z.string().optional(),
-  companyName: z.string().optional(),
-  phone: z.string().optional(),
-});
-
 export const shopSchema = z.object({
   headerText: z.string().optional(),
   description: z.string().optional(),
@@ -141,7 +125,6 @@ export const shopSchema = z.object({
   enableAccountConfirmationByEmail: z.boolean().optional(),
   allowLoginWithoutConfirmation: z.boolean().optional(),
   displayGrossPrices: z.boolean().optional(),
-  companyAddress: addressSchema.optional(),
 });
 
 export const configSchema = z

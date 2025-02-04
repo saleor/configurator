@@ -1,4 +1,4 @@
-import type { SaleorConfig } from "../../config/schema";
+import type { SaleorConfig } from "../config/schema";
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/service";
 import type { ProductTypeOperations, ProductType } from "./repository";
@@ -43,12 +43,6 @@ export class ProductTypeService {
     const filteredIds = attributeIds.filter(
       (id) => !existingAttributeIds.has(id)
     );
-
-    logger.debug("Filtered assigned attributes", {
-      totalCount: attributeIds.length,
-      newCount: filteredIds.length,
-      existingCount: existingAttributeIds.size,
-    });
 
     return filteredIds;
   }

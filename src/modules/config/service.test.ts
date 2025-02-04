@@ -17,17 +17,6 @@ const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
-  companyAddress: {
-    streetAddress1: "123 Main St",
-    streetAddress2: "Suite 101",
-    city: "San Francisco",
-    cityArea: "Downtown",
-    postalCode: "94105",
-    country: { code: "US" },
-    countryArea: "CA",
-    companyName: "Saleor Commerce",
-    phone: "+1 234 567 8901",
-  },
 };
 
 const mockMappedShopData: SaleorConfig["shop"] = {
@@ -43,19 +32,6 @@ const mockMappedShopData: SaleorConfig["shop"] = {
   defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
-  companyAddress: {
-    streetAddress1: "123 Main St",
-    streetAddress2: "Suite 101",
-    city: "San Francisco",
-    cityArea: "Downtown",
-    postalCode: "94105",
-    country: {
-      code: "US",
-    },
-    countryArea: "CA",
-    companyName: "Saleor Commerce",
-    phone: "+1 234 567 8901",
-  },
 };
 
 class MockRepository implements ConfigurationOperations {
@@ -151,17 +127,6 @@ describe("ConfigurationService", () => {
       const completeConfig: RawSaleorConfig = {
         shop: {
           ...mockRawShopData,
-          companyAddress: {
-            streetAddress1: "123 Test St",
-            streetAddress2: "Suite 100",
-            city: "Test City",
-            cityArea: "Test Area",
-            postalCode: "12345",
-            country: { code: "US" },
-            countryArea: "Test State",
-            companyName: "Test Company",
-            phone: "123-456-7890",
-          },
         },
         channels: [
           {

@@ -1,5 +1,5 @@
 import type { ShopOperations } from "./repository";
-import type { SaleorConfig } from "../../config/schema";
+import type { SaleorConfig } from "../config/schema";
 
 export class ShopService {
   constructor(private repository: ShopOperations) {}

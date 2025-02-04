@@ -1,4 +1,4 @@
-import type { AttributeInput } from "../../config/schema";
+import type { AttributeInput } from "../config/schema";
 import { logger } from "../../lib/logger";
 import type {
   AttributeCreateInput,
@@ -63,11 +63,7 @@ export class AttributeService {
     const filtered = attributeInputs.filter(
       (attribute) => !existingAttributes?.some((a) => a.name === attribute.name)
     );
-    logger.debug("Filtered attributes", {
-      totalCount: attributeInputs.length,
-      newCount: filtered.length,
-      existingCount: existingAttributes.length,
-    });
+
     return filtered;
   }
 

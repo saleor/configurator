@@ -44,9 +44,6 @@ export const logger = new Logger({
   prettyErrorLoggerNameDelimiter: " ",
   prettyErrorParentNamesSeparator: ":",
   hideLogPositionForProduction: process.env.NODE_ENV === "production",
-  // Limit object logging
-  maskValuesOfKeys: ["config", "rawConfig", "input", "updateInput"],
-  maskPlaceholder: "[Object]",
 });
 
 // Log the current log level on startup

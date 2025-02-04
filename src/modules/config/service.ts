@@ -15,13 +15,6 @@ export class ConfigurationService {
     private storage = new YamlConfigurationManager()
   ) {}
 
-  async retrieve(): Promise<SaleorConfig> {
-    const rawConfig = await this.repository.fetchConfig();
-    const config = this.mapConfig(rawConfig);
-    await this.storage.save(config);
-    return config;
-  }
-
   static createDefault(client: Client): ConfigurationService {
     return new ConfigurationService(new ConfigurationRepository(client));
   }
@@ -136,19 +129,6 @@ export class ConfigurationService {
       defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
       defaultWeightUnit: settings.defaultWeightUnit,
       allowLoginWithoutConfirmation: settings.allowLoginWithoutConfirmation,
-      companyAddress: settings.companyAddress
-        ? object.filterUndefinedValues({
-            streetAddress1: settings.companyAddress.streetAddress1,
-            streetAddress2: settings.companyAddress.streetAddress2,
-            city: settings.companyAddress.city,
-            cityArea: settings.companyAddress.cityArea,
-            postalCode: settings.companyAddress.postalCode,
-            country: settings.companyAddress.country,
-            countryArea: settings.companyAddress.countryArea,
-            companyName: settings.companyAddress.companyName,
-            phone: settings.companyAddress.phone,
-          })
-        : undefined,
     });
   }
 
@@ -161,6 +141,13 @@ export class ConfigurationService {
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
       attributes: this.mapAttributes(rawAttributes.map((edge) => edge.node)),
     };
+  }
+
+  async retrieve(): Promise<SaleorConfig> {
+    const rawConfig = await this.repository.fetchConfig();
+    const config = this.mapConfig(rawConfig);
+    await this.storage.save(config);
+    return config;
   }
 }
 

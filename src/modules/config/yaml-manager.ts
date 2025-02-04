@@ -53,9 +53,11 @@ export class YamlConfigurationManager implements ConfigurationStorage {
     try {
       const yml = await this.fs.readFile(this.configPath, "utf-8");
       const rawConfig = parse(yml);
-      logger.debug("Parsed YAML configuration", { rawConfig });
+      logger.debug("Raw YAML configuration", { rawConfig });
 
       const { success, data, error } = configSchema.safeParse(rawConfig);
+
+      logger.debug("Parsed configuration", { data });
 
       if (!success) {
         const validationError = new Error(
