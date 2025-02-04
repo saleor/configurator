@@ -1,4 +1,5 @@
 import type { Client } from "@urql/core";
+import { logger } from "../lib/logger";
 import {
   type AttributeOperations,
   AttributeRepository,
@@ -25,7 +26,10 @@ import {
   ShopRepository,
 } from "../modules/shop/repository";
 import { ShopService } from "../modules/shop/service";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import {
+  DEFAULT_CONFIG_PATH,
+  YamlConfigurationManager,
+} from "../modules/config/yaml-manager";
 
 /**
  * @description Parsing the configuration and triggering the commands.
@@ -45,6 +49,7 @@ export class SaleorConfigurator {
   }
 
   private createRepositories(client: Client) {
+    logger.debug("Creating repositories");
     return {
       attribute: new AttributeRepository(client),
       channel: new ChannelRepository(client),
@@ -61,6 +66,7 @@ export class SaleorConfigurator {
     productType: ProductTypeOperations;
     shop: ShopOperations;
   }) {
+    logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
 
     return {
@@ -76,16 +82,20 @@ export class SaleorConfigurator {
   }
 
   async bootstrap() {
+    logger.info("Starting bootstrap process");
     const yamlManager = new YamlConfigurationManager();
     const config = await yamlManager.load();
+    logger.debug("Configuration loaded", { config });
 
     const bootstrapTasks = [];
 
     if (config.shop) {
+      logger.debug("Bootstrapping shop settings");
       bootstrapTasks.push(this.services.shop.updateSettings(config.shop));
     }
 
     if (config.productTypes) {
+      logger.debug(`Bootstrapping ${config.productTypes.length} product types`);
       bootstrapTasks.push(
         Promise.all(
           config.productTypes.map((productType) =>
@@ -99,12 +109,14 @@ export class SaleorConfigurator {
     }
 
     if (config.channels) {
+      logger.debug(`Bootstrapping ${config.channels.length} channels`);
       bootstrapTasks.push(
         this.services.channel.bootstrapChannels(config.channels)
       );
     }
 
     if (config.pageTypes) {
+      logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
       bootstrapTasks.push(
         Promise.all(
           config.pageTypes.map((pageType) =>
@@ -115,13 +127,16 @@ export class SaleorConfigurator {
     }
 
     if (config.attributes) {
+      logger.debug(`Bootstrapping ${config.attributes.length} attributes`);
       bootstrapTasks.push(
         Promise.all(
           config.attributes.map((attribute) => {
             if (!attribute.type) {
-              throw new Error(
+              const error = new Error(
                 "When bootstrapping attributes, the type (PRODUCT_TYPE or PAGE_TYPE) is required"
               );
+              logger.error("Attribute type missing", { attribute });
+              throw error;
             }
 
             return this.services.attribute.bootstrapAttributes({
@@ -133,19 +148,27 @@ export class SaleorConfigurator {
       );
     }
 
-    await Promise.all(bootstrapTasks);
-
-    console.log("Bootstrap finished");
+    try {
+      await Promise.all(bootstrapTasks);
+      logger.info("Bootstrap process completed successfully");
+    } catch (error) {
+      logger.error("Bootstrap process failed", { error });
+      throw error;
+    }
   }
 
   async retrieve() {
+    logger.info("Starting configuration retrieval");
     const configurationService = ConfigurationService.createDefault(
       this.client
     );
-    const config = await configurationService.retrieve();
-
-    console.log("Retrieve finished");
-
-    return config;
+    try {
+      const config = await configurationService.retrieve();
+      logger.info("Configuration retrieved successfully");
+      return config;
+    } catch (error) {
+      logger.error("Failed to retrieve configuration", { error });
+      throw error;
+    }
   }
 }
