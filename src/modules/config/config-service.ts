@@ -1,22 +1,23 @@
-import type { Client } from "@urql/core";
 import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
-import { YamlConfigurationManager } from "./yaml-manager";
-import type { AttributeInput, CountryCode, SaleorConfig } from "./schema";
 import {
-  ConfigurationRepository,
   type ConfigurationOperations,
   type RawSaleorConfig,
 } from "./repository";
+import type { AttributeInput, CountryCode, SaleorConfig } from "./schema";
+import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
   constructor(
     private repository: ConfigurationOperations,
-    private storage = new YamlConfigurationManager()
+    private storage: ConfigurationStorage
   ) {}
 
-  static createDefault(client: Client): ConfigurationService {
-    return new ConfigurationService(new ConfigurationRepository(client));
+  async retrieve(): Promise<SaleorConfig> {
+    const rawConfig = await this.repository.fetchConfig();
+    const config = this.mapConfig(rawConfig);
+    await this.storage.save(config);
+    return config;
   }
 
   private mapChannels(
@@ -141,13 +142,6 @@ export class ConfigurationService {
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
       attributes: this.mapAttributes(rawAttributes.map((edge) => edge.node)),
     };
-  }
-
-  async retrieve(): Promise<SaleorConfig> {
-    const rawConfig = await this.repository.fetchConfig();
-    const config = this.mapConfig(rawConfig);
-    await this.storage.save(config);
-    return config;
   }
 }
 

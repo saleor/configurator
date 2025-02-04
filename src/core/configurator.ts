@@ -1,87 +1,15 @@
-import type { Client } from "@urql/core";
 import { logger } from "../lib/logger";
-import { AttributeService } from "../modules/attribute/attribute-service";
-import {
-  type AttributeOperations,
-  AttributeRepository,
-} from "../modules/attribute/repository";
-import { ChannelService } from "../modules/channel/channel-service";
-import {
-  type ChannelOperations,
-  ChannelRepository,
-} from "../modules/channel/repository";
-import { ConfigurationService } from "../modules/config/config-service";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
-import { PageTypeService } from "../modules/page-type/page-type-service";
-import {
-  type PageTypeOperations,
-  PageTypeRepository,
-} from "../modules/page-type/repository";
-import { ProductTypeService } from "../modules/product-type/product-type-service";
-import {
-  type ProductTypeOperations,
-  ProductTypeRepository,
-} from "../modules/product-type/repository";
-import {
-  type ShopOperations,
-  ShopRepository,
-} from "../modules/shop/repository";
-import { ShopService } from "../modules/shop/shop-service";
+import type { ServiceContainer } from "./service-container";
 
 /**
  * @description Parsing the configuration and triggering the commands.
  */
 export class SaleorConfigurator {
-  private readonly services: {
-    attribute: AttributeService;
-    channel: ChannelService;
-    pageType: PageTypeService;
-    productType: ProductTypeService;
-    shop: ShopService;
-  };
-
-  constructor(private readonly client: Client) {
-    const repositories = this.createRepositories(client);
-    this.services = this.createServices(repositories);
-  }
-
-  private createRepositories(client: Client) {
-    logger.debug("Creating repositories");
-    return {
-      attribute: new AttributeRepository(client),
-      channel: new ChannelRepository(client),
-      pageType: new PageTypeRepository(client),
-      productType: new ProductTypeRepository(client),
-      shop: new ShopRepository(client),
-    } as const;
-  }
-
-  private createServices(repositories: {
-    attribute: AttributeOperations;
-    channel: ChannelOperations;
-    pageType: PageTypeOperations;
-    productType: ProductTypeOperations;
-    shop: ShopOperations;
-  }) {
-    logger.debug("Creating services");
-    const attributeService = new AttributeService(repositories.attribute);
-
-    return {
-      attribute: attributeService,
-      channel: new ChannelService(repositories.channel),
-      pageType: new PageTypeService(repositories.pageType, attributeService),
-      productType: new ProductTypeService(
-        repositories.productType,
-        attributeService
-      ),
-      shop: new ShopService(repositories.shop),
-    } as const;
-  }
+  constructor(private readonly services: ServiceContainer) {}
 
   async bootstrap() {
     logger.info("Starting bootstrap process");
-    const yamlManager = new YamlConfigurationManager();
-    const config = await yamlManager.load();
+    const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
     const bootstrapTasks = [];
@@ -156,11 +84,8 @@ export class SaleorConfigurator {
 
   async retrieve() {
     logger.info("Starting configuration retrieval");
-    const configurationService = ConfigurationService.createDefault(
-      this.client
-    );
     try {
-      const config = await configurationService.retrieve();
+      const config = await this.services.configuration.retrieve();
       logger.info("Configuration retrieved successfully");
       return config;
     } catch (error) {
