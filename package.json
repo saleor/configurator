@@ -11,7 +11,7 @@
   "scripts": {
     "bootstrap": "tsx src/commands/bootstrap.ts",
     "retrieve": "tsx src/commands/retrieve.ts",
-    "fetch-schema": "tsx src/graphql/fetch-schema.ts",
+    "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest"
   },
