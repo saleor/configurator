@@ -25,4 +25,8 @@ jobs:
         run: pnpm install
 
       - name: Run tests
+        env:
+          APP_TOKEN: test-token
+          SALEOR_API_URL: http://test.example.com
+          LOG_LEVEL: error
         run: pnpm test
