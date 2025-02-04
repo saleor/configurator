@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const createChannelMutation = graphql(`
   mutation CreateChannel($input: ChannelCreateInput!) {
@@ -77,6 +78,13 @@ export class ChannelRepository implements ChannelOperations {
 
   async getChannels() {
     const result = await this.client.query(getChannelsQuery, {});
+
+    logger.debug("Fetching channels result", { result });
+
+    if (result.error) {
+      throw new Error(`Failed to fetch channels: ${result.error.message}`);
+    }
+
     return result.data?.channels;
   }
 

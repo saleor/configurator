@@ -1,5 +1,7 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf } from "gql.tada";
+import { handleGraphQLErrors } from "../../lib/graphql/errors";
+import { logger } from "../../lib/logger";
 
 const getConfigQuery = graphql(`
   query GetConfig {
@@ -119,8 +121,14 @@ export class ConfigurationRepository implements ConfigurationOperations {
   async fetchConfig() {
     const result = await this.client.query(getConfigQuery, {});
 
+    logger.debug("Fetching config result", { result });
+
+    if (result.error) {
+      handleGraphQLErrors(result.error);
+    }
+
     if (!result.data) {
-      throw new Error("Failed to fetch config");
+      throw new Error("Failed to fetch config: No data returned");
     }
 
     return result.data;
