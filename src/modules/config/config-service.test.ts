@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { SaleorConfig } from "./schema";
-import { YamlConfigurationManager } from "./yaml-manager";
 
 const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultMailSenderName: "Test Store",
@@ -42,6 +41,11 @@ class MockRepository implements ConfigurationOperations {
   }
 }
 
+const createMockStorage = () => ({
+  save: vi.fn().mockResolvedValue(undefined),
+  load: vi.fn().mockResolvedValue({} as SaleorConfig),
+});
+
 describe("ConfigurationService", () => {
   describe("retrieve method", () => {
     it("should fetch, map and save configuration", async () => {
@@ -54,9 +58,7 @@ describe("ConfigurationService", () => {
       };
 
       const repository = new MockRepository(mockRawConfig);
-      const storage = new YamlConfigurationManager();
-      storage.save = vi.fn().mockResolvedValue(undefined);
-      storage.load = vi.fn().mockResolvedValue({} as SaleorConfig);
+      const storage = createMockStorage();
 
       const service = new ConfigurationService(repository, storage);
       const result = await service.retrieve();
@@ -73,8 +75,7 @@ describe("ConfigurationService", () => {
       const repository = {
         fetchConfig: vi.fn().mockRejectedValue(new Error("Fetch failed")),
       };
-      const storage = new YamlConfigurationManager();
-      storage.save = vi.fn().mockResolvedValue(undefined);
+      const storage = createMockStorage();
 
       const service = new ConfigurationService(repository, storage);
 
@@ -92,8 +93,8 @@ describe("ConfigurationService", () => {
       };
 
       const repository = new MockRepository(mockRawConfig);
-      const storage = new YamlConfigurationManager();
-      storage.save = vi.fn().mockRejectedValue(new Error("Save failed"));
+      const storage = createMockStorage();
+      storage.save.mockRejectedValue(new Error("Save failed"));
 
       const service = new ConfigurationService(repository, storage);
 
@@ -111,7 +112,10 @@ describe("ConfigurationService", () => {
         attributes: { edges: [] },
       };
 
-      const service = new ConfigurationService(new MockRepository(emptyConfig));
+      const service = new ConfigurationService(
+        new MockRepository(emptyConfig),
+        createMockStorage()
+      );
       const result = service.mapConfig(emptyConfig);
 
       expect(result).toEqual({
@@ -208,7 +212,8 @@ describe("ConfigurationService", () => {
       };
 
       const service = new ConfigurationService(
-        new MockRepository(completeConfig)
+        new MockRepository(completeConfig),
+        createMockStorage()
       );
       const result = service.mapConfig(completeConfig);
 
@@ -254,7 +259,10 @@ describe("ConfigurationService", () => {
         attributes: { edges: [] },
       };
 
-      const service = new ConfigurationService(new MockRepository(rawConfig));
+      const service = new ConfigurationService(
+        new MockRepository(rawConfig),
+        createMockStorage()
+      );
       const result = service.mapConfig(rawConfig);
       const attributes = result.productTypes?.[0]?.attributes;
 
@@ -267,8 +275,10 @@ describe("ConfigurationService", () => {
 
   describe("createDefault", () => {
     it("should create instance with correct dependencies", () => {
-      const mockClient = {} as any;
-      const service = ConfigurationService.createDefault(mockClient);
+      const service = new ConfigurationService(
+        new MockRepository({} as RawSaleorConfig),
+        createMockStorage()
+      );
 
       expect(service).toBeInstanceOf(ConfigurationService);
       expect(service.retrieve).toBeInstanceOf(Function);
