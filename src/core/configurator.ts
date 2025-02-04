@@ -1,35 +1,32 @@
 import type { Client } from "@urql/core";
 import { logger } from "../lib/logger";
+import { AttributeService } from "../modules/attribute/attribute-service";
 import {
   type AttributeOperations,
   AttributeRepository,
 } from "../modules/attribute/repository";
-import { AttributeService } from "../modules/attribute/service";
+import { ChannelService } from "../modules/channel/channel-service";
 import {
   type ChannelOperations,
   ChannelRepository,
 } from "../modules/channel/repository";
-import { ChannelService } from "../modules/channel/service";
-import { ConfigurationService } from "../modules/config/service";
+import { ConfigurationService } from "../modules/config/config-service";
+import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import { PageTypeService } from "../modules/page-type/page-type-service";
 import {
   type PageTypeOperations,
   PageTypeRepository,
 } from "../modules/page-type/repository";
-import { PageTypeService } from "../modules/page-type/service";
+import { ProductTypeService } from "../modules/product-type/product-type-service";
 import {
   type ProductTypeOperations,
   ProductTypeRepository,
 } from "../modules/product-type/repository";
-import { ProductTypeService } from "../modules/product-type/service";
 import {
   type ShopOperations,
   ShopRepository,
 } from "../modules/shop/repository";
-import { ShopService } from "../modules/shop/service";
-import {
-  DEFAULT_CONFIG_PATH,
-  YamlConfigurationManager,
-} from "../modules/config/yaml-manager";
+import { ShopService } from "../modules/shop/shop-service";
 
 /**
  * @description Parsing the configuration and triggering the commands.

@@ -1,6 +1,6 @@
 import type { SaleorConfig } from "../config/schema";
 import { logger } from "../../lib/logger";
-import type { AttributeService } from "../attribute/service";
+import type { AttributeService } from "../attribute/attribute-service";
 import type { ProductTypeOperations, ProductType } from "./repository";
 
 type ProductTypeInput = NonNullable<SaleorConfig["productTypes"]>[number];

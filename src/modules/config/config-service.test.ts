@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { ConfigurationService } from "./service";
+import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { SaleorConfig } from "./schema";
 import { YamlConfigurationManager } from "./yaml-manager";
