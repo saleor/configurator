@@ -16,19 +16,6 @@ const getConfigQuery = graphql(`
       defaultDigitalUrlValidDays
       defaultWeightUnit
       allowLoginWithoutConfirmation
-      companyAddress {
-        streetAddress1
-        streetAddress2
-        city
-        cityArea
-        postalCode
-        country {
-          code
-        }
-        countryArea
-        companyName
-        phone
-      }
     }
     channels {
       id
@@ -122,7 +109,11 @@ const getConfigQuery = graphql(`
 
 export type RawSaleorConfig = ResultOf<typeof getConfigQuery>;
 
-export class RetrieverClient {
+export interface ConfigurationOperations {
+  fetchConfig(): Promise<RawSaleorConfig>;
+}
+
+export class ConfigurationRepository implements ConfigurationOperations {
   constructor(private client: Client) {}
 
   async fetchConfig() {

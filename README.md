@@ -23,16 +23,6 @@ shop:
   defaultDigitalUrlValidDays: 30
   defaultWeightUnit: KG
   allowLoginWithoutConfirmation: false
-  companyAddress:
-    streetAddress1: "123 Main St"
-    streetAddress2: "Suite 101"
-    city: "San Francisco"
-    cityArea: "Downtown"
-    postalCode: "94105"
-    country: "US"
-    countryArea: "CA"
-    companyName: "Saleor Commerce"
-    phone: "+1 234 567 8901"
 
 channels:
   - name: Poland
