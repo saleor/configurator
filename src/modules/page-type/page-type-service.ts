@@ -61,8 +61,10 @@ export class PageTypeService {
     });
 
     const attributes = await this.attributeService.bootstrapAttributes({
-      attributeInputs: input.attributes,
-      type: "PAGE_TYPE",
+      attributeInputs: input.attributes.map((a) => ({
+        ...a,
+        type: "PAGE_TYPE",
+      })),
     });
 
     const attributeIds = attributes.map((attr) => attr.id);

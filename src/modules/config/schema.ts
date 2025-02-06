@@ -1,16 +1,30 @@
 import { z } from "zod";
 
+const attributeValueSchema = z.object({
+  name: z.string(),
+});
+
+const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);
+
+// Base attribute fields that are common to all types
 const baseAttributeSchema = z.object({
   name: z.string(),
-  type: z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]).optional(),
 });
 
+// Schema for attributes with multiple values (dropdown, multiselect, swatch)
 const multipleValuesAttributeSchema = baseAttributeSchema.extend({
   inputType: z.enum(["DROPDOWN", "MULTISELECT", "SWATCH"]),
-  values: z.array(z.object({ name: z.string() })),
+  values: z.array(attributeValueSchema),
 });
 
-const singleValueAttributeSchema = baseAttributeSchema.extend({
+// Schema for reference type attributes
+const referenceAttributeSchema = baseAttributeSchema.extend({
+  inputType: z.literal("REFERENCE"),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+});
+
+// Schema for simple value attributes
+const simpleAttributeSchema = baseAttributeSchema.extend({
   inputType: z.enum([
     "PLAIN_TEXT",
     "NUMERIC",
@@ -19,23 +33,31 @@ const singleValueAttributeSchema = baseAttributeSchema.extend({
     "RICH_TEXT",
     "DATE_TIME",
     "FILE",
-    "REFERENCE",
   ]),
 });
 
-const attributeSchema = z.discriminatedUnion("inputType", [
+// Combined attribute schema using discriminted union based on inputType
+const noTypeAttributeSchema = z.discriminatedUnion("inputType", [
   multipleValuesAttributeSchema,
-  singleValueAttributeSchema,
+  referenceAttributeSchema,
+  simpleAttributeSchema,
 ]);
 
-export type AttributeInput = z.infer<typeof attributeSchema>;
+const attributeSchema = noTypeAttributeSchema.and(
+  z.object({
+    type: attributeTypeSchema,
+  })
+);
 
+export type AttributeInput = z.infer<typeof attributeSchema>;
 export type AttributeInputType = AttributeInput["inputType"];
 
-const productTypeSchema = z.object({
+const pageOrProductTypeSchema = z.object({
   name: z.string(),
-  attributes: z.array(attributeSchema),
+  attributes: z.array(noTypeAttributeSchema),
 });
+
+export type PageTypeInput = z.infer<typeof pageOrProductTypeSchema>;
 
 const countryCodeSchema = z.enum([
   "US",
@@ -97,13 +119,6 @@ const channelSchema = z.object({
 
 export type ChannelInput = z.infer<typeof channelSchema>;
 
-const pageTypeSchema = z.object({
-  name: z.string(),
-  attributes: z.array(attributeSchema),
-});
-
-export type PageTypeInput = z.infer<typeof pageTypeSchema>;
-
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
 export const shopSchema = z.object({
@@ -129,12 +144,16 @@ export const shopSchema = z.object({
 
 export const configSchema = z
   .object({
-    productTypes: z.array(productTypeSchema).optional(),
+    productTypes: z.array(pageOrProductTypeSchema).optional(),
     channels: z.array(channelSchema).optional(),
-    pageTypes: z.array(pageTypeSchema).optional(),
+    pageTypes: z.array(pageOrProductTypeSchema).optional(),
     attributes: z.array(attributeSchema).optional(),
     shop: shopSchema.optional(),
   })
   .strict();
 
 export type SaleorConfig = z.infer<typeof configSchema>;
+export type PageTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
+export type PageType = z.infer<typeof pageOrProductTypeSchema>;
+export type ProductTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
+export type ProductType = z.infer<typeof pageOrProductTypeSchema>;

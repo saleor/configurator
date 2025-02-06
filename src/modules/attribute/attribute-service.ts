@@ -6,16 +6,26 @@ import type {
   Attribute,
 } from "./repository";
 
-const createAttributeInput = (
-  input: AttributeInput,
-  type: "PRODUCT_TYPE" | "PAGE_TYPE"
-): AttributeCreateInput => {
+const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
   const base = {
     name: input.name,
-    type,
+    type: input.type,
     slug: input.name.toLowerCase().replace(/ /g, "-"),
     inputType: input.inputType,
   };
+
+  if (input.inputType === "REFERENCE") {
+    if (!input.entityType) {
+      throw new Error(
+        `Entity type is required for reference attribute ${input.name}`
+      );
+    }
+
+    return {
+      ...base,
+      entityType: input.entityType,
+    };
+  }
 
   if ("values" in input && input.values) {
     return {
@@ -69,21 +79,17 @@ export class AttributeService {
 
   async bootstrapAttributes({
     attributeInputs,
-    type,
   }: {
     attributeInputs: AttributeInput[];
-    type: "PRODUCT_TYPE" | "PAGE_TYPE";
   }) {
     logger.debug("Bootstrapping attributes", {
       count: attributeInputs.length,
-      type,
     });
 
     const names = attributeInputs.map((attribute) => attribute.name);
     logger.debug("Checking existing attributes", { nameCount: names.length });
     const existingAttributes = await this.repository.getAttributesByNames({
       names,
-      type,
     });
 
     const attributesToCreate = this.filterOutExistingAttributes(
@@ -100,7 +106,7 @@ export class AttributeService {
     try {
       const createdAttributes = await Promise.all(
         attributesToCreate.map((attribute) => {
-          const attributeInput = createAttributeInput(attribute, type);
+          const attributeInput = createAttributeInput(attribute);
           logger.debug("Creating attribute", { name: attributeInput.name });
           return this.repository.createAttribute(attributeInput);
         })

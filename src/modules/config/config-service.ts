@@ -53,50 +53,128 @@ export class ConfigurationService {
     );
   }
 
-  private mapAttributes(rawAttributes: RawAttribute[]) {
-    return rawAttributes?.map((attribute) => {
-      invariant(
-        attribute.name,
-        "Unable to retrieve product type attribute name"
-      );
-      invariant(
-        attribute.inputType,
-        "Unable to retrieve product type attribute input type"
-      );
+  private isMultipleChoiceAttribute(
+    inputType: string | null
+  ): inputType is "DROPDOWN" | "MULTISELECT" | "SWATCH" {
+    return (
+      inputType === "DROPDOWN" ||
+      inputType === "MULTISELECT" ||
+      inputType === "SWATCH"
+    );
+  }
 
-      const baseAttribute = {
+  private isBasicAttribute(
+    inputType: string | null
+  ): inputType is
+    | "PLAIN_TEXT"
+    | "NUMERIC"
+    | "DATE"
+    | "BOOLEAN"
+    | "RICH_TEXT"
+    | "DATE_TIME"
+    | "FILE" {
+    return (
+      inputType === "PLAIN_TEXT" ||
+      inputType === "NUMERIC" ||
+      inputType === "DATE" ||
+      inputType === "BOOLEAN" ||
+      inputType === "RICH_TEXT" ||
+      inputType === "DATE_TIME" ||
+      inputType === "FILE"
+    );
+  }
+
+  private isReferenceAttribute(
+    inputType: string | null
+  ): inputType is "REFERENCE" {
+    return inputType === "REFERENCE";
+  }
+
+  private mapAttribute(
+    attribute: RawAttribute,
+    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
+  ): AttributeInput {
+    invariant(attribute.name, "Unable to retrieve attribute name");
+    invariant(attribute.inputType, "Unable to retrieve attribute input type");
+
+    if (this.isMultipleChoiceAttribute(attribute.inputType)) {
+      invariant(
+        attribute.choices?.edges,
+        "Unable to retrieve attribute choices"
+      );
+      return {
         name: attribute.name,
         inputType: attribute.inputType,
-        type: "PRODUCT_TYPE",
+        type: attributeType,
+        values: attribute.choices.edges
+          .filter(
+            (edge): edge is { node: { name: string } } =>
+              edge.node.name !== null && edge.node.name !== undefined
+          )
+          .map((edge) => ({
+            name: edge.node.name,
+          })),
       };
+    }
 
-      switch (attribute.inputType) {
-        case "DROPDOWN":
-        case "MULTISELECT":
-        case "SWATCH":
-          invariant(
-            attribute.choices?.edges,
-            "Unable to retrieve attribute choices"
-          );
-          return {
-            ...baseAttribute,
-            values: attribute.choices.edges.map((edge) => ({
-              name: edge.node.name,
-            })),
-          } as AttributeInput;
-        default:
-          return {
-            ...baseAttribute,
-          } as AttributeInput;
-      }
-    });
+    if (this.isReferenceAttribute(attribute.inputType)) {
+      invariant(
+        attribute.entityType,
+        `Entity type is required for reference attribute ${attribute.name}`
+      );
+      return {
+        name: attribute.name,
+        inputType: "REFERENCE" as const,
+        entityType: attribute.entityType as
+          | "PAGE"
+          | "PRODUCT"
+          | "PRODUCT_VARIANT",
+        type: attributeType,
+      };
+    }
+
+    if (this.isBasicAttribute(attribute.inputType)) {
+      return {
+        name: attribute.name,
+        inputType: attribute.inputType,
+        type: attributeType,
+      };
+    }
+
+    throw new Error(`Unsupported input type: ${attribute.inputType}`);
+  }
+
+  private mapAttributes(
+    rawAttributes: RawAttribute[],
+    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
+  ): AttributeInput[] {
+    return (
+      rawAttributes?.map((attribute) =>
+        this.mapAttribute(attribute, attributeType)
+      ) ?? []
+    );
+  }
+
+  private mapStandaloneAttributes(
+    standaloneAttributes: RawSaleorConfig["attributes"]
+  ): AttributeInput[] {
+    return (
+      standaloneAttributes?.edges?.map((edge) => {
+        const attribute = edge.node;
+        invariant(attribute.type, "Unable to retrieve attribute type");
+        return this.mapAttribute(attribute, attribute.type);
+      }) ?? []
+    );
   }
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]) {
     return (
       rawProductTypes?.edges?.map((edge) => ({
         name: edge.node.name,
-        attributes: this.mapAttributes(edge.node.productAttributes ?? []),
+        attributes: this.mapAttributes(
+          edge.node.productAttributes ?? [],
+          "PRODUCT_TYPE"
+        ),
       })) ?? []
     );
   }
@@ -105,7 +183,8 @@ export class ConfigurationService {
     return (
       rawPageTypes?.edges?.map((edge) => ({
         name: edge.node.name,
-        attributes: this.mapAttributes(edge.node.attributes ?? []),
+        slug: edge.node.name.toLowerCase().replace(/\s+/g, "-"),
+        attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
       })) ?? []
     );
   }
@@ -134,13 +213,13 @@ export class ConfigurationService {
   }
 
   mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
-    const rawAttributes = rawConfig.attributes?.edges ?? [];
+    const standaloneAttributes = rawConfig.attributes;
     return {
       shop: this.mapShopSettings(rawConfig),
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      attributes: this.mapAttributes(rawAttributes.map((edge) => edge.node)),
+      attributes: this.mapStandaloneAttributes(standaloneAttributes),
     };
   }
 }
@@ -149,4 +228,6 @@ type RawAttribute = NonNullable<
   NonNullable<
     RawSaleorConfig["productTypes"]
   >["edges"][number]["node"]["productAttributes"]
->[number];
+>[number] & {
+  entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
+};
