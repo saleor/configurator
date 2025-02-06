@@ -72,8 +72,10 @@ export class ProductTypeService {
     });
 
     const createdAttributes = await this.attributeService.bootstrapAttributes({
-      attributeInputs: attributes,
-      type: "PRODUCT_TYPE",
+      attributeInputs: attributes.map((a) => ({
+        ...a,
+        type: "PRODUCT_TYPE",
+      })),
     });
 
     if (!createdAttributes.length) {

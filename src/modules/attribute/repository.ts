@@ -7,11 +7,20 @@ const createAttributeMutation = graphql(`
       attribute {
         id
         name
+        type
+        inputType
+        entityType
+        choices(first: 100) {
+          edges {
+            node {
+              name
+            }
+          }
+        }
       }
       errors {
-        message
-        code
         field
+        message
       }
     }
   }
@@ -20,6 +29,14 @@ const createAttributeMutation = graphql(`
 export type AttributeCreateInput = VariablesOf<
   typeof createAttributeMutation
 >["input"];
+
+type AttributeFragment = NonNullable<
+  NonNullable<
+    NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]
+  >["attribute"]
+>;
+
+export type Attribute = AttributeFragment;
 
 const getAttributesByNamesQuery = graphql(`
   query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum) {
@@ -31,6 +48,16 @@ const getAttributesByNamesQuery = graphql(`
         node {
           id
           name
+          type
+          inputType
+          entityType
+          choices(first: 100) {
+            edges {
+              node {
+                name
+              }
+            }
+          }
         }
       }
     }
@@ -40,9 +67,6 @@ const getAttributesByNamesQuery = graphql(`
 export type GetAttributesByNamesInput = VariablesOf<
   typeof getAttributesByNamesQuery
 >;
-export type Attribute = NonNullable<
-  NonNullable<ResultOf<typeof getAttributesByNamesQuery>["attributes"]>["edges"]
->[number]["node"];
 
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
@@ -54,18 +78,18 @@ export interface AttributeOperations {
 export class AttributeRepository implements AttributeOperations {
   constructor(private client: Client) {}
 
-  async createAttribute(attributeInput: AttributeCreateInput) {
+  async createAttribute(
+    attributeInput: AttributeCreateInput
+  ): Promise<Attribute> {
     const result = await this.client.mutation(createAttributeMutation, {
       input: attributeInput,
     });
 
-    console.log(result.data?.attributeCreate?.errors);
-
     if (!result.data?.attributeCreate?.attribute) {
-      throw new Error("Failed to create attribute", result.error);
+      throw new Error("Failed to create attribute");
     }
 
-    return result.data?.attributeCreate?.attribute;
+    return result.data.attributeCreate.attribute as Attribute;
   }
 
   async getAttributesByNames(input: GetAttributesByNamesInput) {
@@ -74,6 +98,8 @@ export class AttributeRepository implements AttributeOperations {
       type: input.type,
     });
 
-    return result.data?.attributes?.edges?.map((edge) => edge.node);
+    return result.data?.attributes?.edges?.map(
+      (edge) => edge.node as Attribute
+    );
   }
 }

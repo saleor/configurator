@@ -66,7 +66,6 @@ export class SaleorConfigurator {
 
             return this.services.attribute.bootstrapAttributes({
               attributeInputs: [attribute],
-              type: attribute.type,
             });
           })
         )

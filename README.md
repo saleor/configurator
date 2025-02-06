@@ -53,6 +53,10 @@ productTypes:
           - name: Fiction
           - name: Non-Fiction
           - name: Fantasy
+      - name: Related Books
+        inputType: REFERENCE
+        entityType: PRODUCT
+
 
 pageTypes:
   - name: Blog Post
@@ -63,6 +67,9 @@ pageTypes:
         inputType: PLAIN_TEXT
       - name: Published Date
         inputType: DATE
+      - name: Related Posts
+        inputType: REFERENCE
+        entityType: PAGE
 ```
 
 ## Development
