@@ -71,91 +71,10 @@ pageTypes:
         inputType: REFERENCE
         entityType: PAGE
 
-collections:
-  - name: "Classic Literature"
-    description: "Timeless literary masterpieces"
-    products:
-      - "The Great Gatsby"
-      - "To Kill a Mockingbird"
-  - name: "20th Century Fiction"
-    description: "Notable works from the 1900s"
-    products:
-      - "The Great Gatsby"
-      - "The Sun Also Rises"
 
 categories:
   - name: "Fiction"
-    description: "Works of fiction"
-    products:
-      - "The Great Gatsby"
-      - "To Kill a Mockingbird"
-      - "The Sun Also Rises"
-    subcategories:
-      - name: "Literary Fiction"
-        description: "Serious works of fiction"
-        products:
-          - "The Great Gatsby"
-          - "To Kill a Mockingbird"
-        subcategories:
-          - name: "Modern Classics"
-            description: "Classic works from the 20th century"
-            products:
-              - "The Great Gatsby"
-      - name: "Science Fiction"
-        description: "Speculative fiction"
-        products:
-          - "1984"
-          - "Brave New World"
   - name: "Non-Fiction"
-    description: "Non-fiction works"
-    products:
-      - "A Brief History of Time"
-      - "The Selfish Gene"
-    subcategories:
-      - name: "Science"
-        description: "Scientific works"
-        products:
-          - "A Brief History of Time"
-          - "The Selfish Gene"
-        subcategories:
-          - name: "Physics"
-            description: "Books about physics"
-            products:
-              - "A Brief History of Time"
-          - name: "Biology"
-            description: "Books about biology"
-            products:
-              - "The Selfish Gene"
-
-products:
-  - name: "The Great Gatsby"
-    description: "A story of decadence and excess..."
-    productType: Book
-    attributes:
-      Author: "F. Scott Fitzgerald"
-      Genre: "Fiction"
-    variants:
-      - name: "Paperback"
-        sku: "GG-PB-001"
-        price: 9.99
-        weight: 0.5
-        stockQuantity: 100
-      - name: "Hardcover"
-        sku: "GG-HC-001"
-        price: 19.99
-        weight: 0.8
-        stockQuantity: 50
-    collections:
-      - "Classic Literature"
-      - "20th Century Fiction"
-    category: "Fiction"
-    rating: 4.5
-    ratingCount: 1250
-    availableForPurchase: true
-    visibleInListings: true
-    chargeTaxes: true
-    taxClass: "Standard"
-
 
 ## Development
 
@@ -198,10 +117,13 @@ Currently, it supports:
 - [ ] Creating products
 - [ ] Creating products with variants
 - [ ] Creating discounts
-- [ ] Creating collections
-- [ ] Creating collections with products
-- [ ] Creating categories
-- [ ] Creating categories with products
+- [ ] Categories
+  - [x] Creating categories
+  - [ ] Creating categories with products
+  - [ ] Creating categories with subcategories
+- [ ] Collections
+  - [ ] Creating collections
+  - [ ] Creating collections with products
 
 #### `pnpm retrieve`
 
