@@ -71,10 +71,14 @@ pageTypes:
         inputType: REFERENCE
         entityType: PAGE
 
-
 categories:
   - name: "Fiction"
+    subcategories:
+      - name: "Fantasy"
   - name: "Non-Fiction"
+    subcategories:
+      - name: "Science"
+      - name: "History"
 
 ## Development
 

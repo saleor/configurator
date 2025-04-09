@@ -147,13 +147,11 @@ const baseCategorySchema = z.object({
 });
 
 type Category = z.infer<typeof baseCategorySchema> & {
-  // TODO: add subcategories
-  // subcategories?: Category[];
+  subcategories?: Category[];
 };
 
 const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
-  // TODO: add subcategories
-  // subcategories: z.lazy(() => categorySchema.array()).optional(),
+  subcategories: z.lazy(() => categorySchema.array()).optional(),
 });
 
 export const configSchema = z

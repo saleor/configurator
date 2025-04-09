@@ -3,8 +3,8 @@ import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
 import logger from "../../lib/logger";
 
 const createCategoryMutation = graphql(`
-  mutation CreateCategory($input: CategoryInput!) {
-    categoryCreate(input: $input) {
+  mutation CreateCategory($input: CategoryInput!, $parent: ID) {
+    categoryCreate(input: $input, parent: $parent) {
       category {
         id
         name
@@ -46,22 +46,116 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(input: CategoryInput): Promise<Category> {
-    const result = await this.client.mutation(createCategoryMutation, {
-      input: {
+  async createCategory(
+    input: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
+    try {
+      if (!input.name) {
+        throw new Error("Category name is required");
+      }
+
+      logger.debug("Creating category", {
         name: input.name,
-      },
-    });
-
-    if (!result.data?.categoryCreate?.category) {
-      logger.error("Failed to create category", {
-        errors: result.data?.categoryCreate?.errors,
-        error: result.error,
+        parentId,
       });
-      throw new Error("Failed to create category");
-    }
 
-    return result.data.categoryCreate.category;
+      const variables = {
+        input: {
+          name: input.name,
+        },
+        parent: parentId,
+      };
+
+      logger.debug("GraphQL mutation", {
+        mutation: createCategoryMutation.toString(),
+        variables,
+      });
+
+      const result = await this.client.mutation(
+        createCategoryMutation,
+        variables
+      );
+
+      logger.debug("GraphQL response", {
+        data: result.data,
+        error: result.error,
+        operation: result.operation,
+      });
+
+      if (result.error) {
+        logger.error("GraphQL error occurred", {
+          error: result.error,
+          graphQLErrors: result.error.graphQLErrors,
+          networkError: result.error.networkError,
+          response: result.error.response,
+        });
+        throw new Error(`GraphQL error: ${result.error.message}`);
+      }
+
+      if (!result.data?.categoryCreate?.category) {
+        const errors = result.data?.categoryCreate?.errors;
+        logger.error("Failed to create category", {
+          errors,
+          name: input.name,
+          parentId,
+          response: result.data,
+        });
+        throw new Error(
+          `Failed to create category: ${
+            errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ||
+            "Unknown error"
+          }`
+        );
+      }
+
+      const createdCategory = result.data.categoryCreate.category;
+      logger.debug("Successfully created category", {
+        id: createdCategory.id,
+        name: createdCategory.name,
+        parentId,
+        response: result.data,
+      });
+
+      return createdCategory;
+    } catch (error) {
+      logger.error("Unexpected error in createCategory", {
+        error,
+        name: input.name,
+        parentId,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      throw error;
+    }
+  }
+
+  async createCategoryWithSubcategories(
+    name: string,
+    subcategories: string[] = []
+  ): Promise<Category> {
+    try {
+      logger.debug("Creating category with subcategories", {
+        name,
+        subcategories,
+      });
+
+      // First create the parent category
+      const parentCategory = await this.createCategory({ name });
+
+      // Then create each subcategory with the parent ID
+      for (const subcategoryName of subcategories) {
+        await this.createCategory({ name: subcategoryName }, parentCategory.id);
+      }
+
+      return parentCategory;
+    } catch (error) {
+      logger.error("Failed to create category with subcategories", {
+        error,
+        name,
+        subcategories,
+      });
+      throw error;
+    }
   }
 
   async getCategoryByName(name: string) {
