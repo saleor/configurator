@@ -72,6 +72,13 @@ export class SaleorConfigurator {
       );
     }
 
+    if (config.categories) {
+      logger.debug(`Bootstrapping ${config.categories.length} categories`);
+      bootstrapTasks.push(
+        this.services.category.bootstrapCategories(config.categories)
+      );
+    }
+
     try {
       await Promise.all(bootstrapTasks);
       logger.info("Bootstrap process completed successfully");

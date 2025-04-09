@@ -2,6 +2,8 @@ import type { Client } from "@urql/core";
 import { logger } from "../lib/logger";
 import { AttributeService } from "../modules/attribute/attribute-service";
 import { AttributeRepository } from "../modules/attribute/repository";
+import { CategoryService } from "../modules/category/category-service";
+import { CategoryRepository } from "../modules/category/repository";
 import { ChannelService } from "../modules/channel/channel-service";
 import { ChannelRepository } from "../modules/channel/repository";
 import { ConfigurationService } from "../modules/config/config-service";
@@ -22,6 +24,7 @@ export interface ServiceContainer {
   readonly shop: ShopService;
   readonly configuration: ConfigurationService;
   readonly configStorage: YamlConfigurationManager;
+  readonly category: CategoryService;
 }
 
 export class ServiceComposer {
@@ -34,6 +37,7 @@ export class ServiceComposer {
       productType: new ProductTypeRepository(client),
       shop: new ShopRepository(client),
       configuration: new ConfigurationRepository(client),
+      category: new CategoryRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -55,6 +59,7 @@ export class ServiceComposer {
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,
+      category: new CategoryService(repositories.category),
     };
   }
 }

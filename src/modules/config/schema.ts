@@ -142,6 +142,18 @@ export const shopSchema = z.object({
   displayGrossPrices: z.boolean().optional(),
 });
 
+const baseCategorySchema = z.object({
+  name: z.string(),
+});
+
+type Category = z.infer<typeof baseCategorySchema> & {
+  subcategories?: Category[];
+};
+
+const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
+  subcategories: z.lazy(() => categorySchema.array()).optional(),
+});
+
 export const configSchema = z
   .object({
     productTypes: z.array(pageOrProductTypeSchema).optional(),
@@ -149,6 +161,7 @@ export const configSchema = z
     pageTypes: z.array(pageOrProductTypeSchema).optional(),
     attributes: z.array(attributeSchema).optional(),
     shop: shopSchema.optional(),
+    categories: z.array(categorySchema).optional(),
   })
   .strict();
 

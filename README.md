@@ -70,7 +70,15 @@ pageTypes:
       - name: Related Posts
         inputType: REFERENCE
         entityType: PAGE
-```
+
+categories:
+  - name: "Fiction"
+    subcategories:
+      - name: "Fantasy"
+  - name: "Non-Fiction"
+    subcategories:
+      - name: "Science"
+      - name: "History"
 
 ## Development
 
@@ -113,10 +121,13 @@ Currently, it supports:
 - [ ] Creating products
 - [ ] Creating products with variants
 - [ ] Creating discounts
-- [ ] Creating collections
-- [ ] Creating collections with products
-- [ ] Creating categories
-- [ ] Creating categories with products
+- [ ] Categories
+  - [x] Creating categories
+  - [ ] Creating categories with products
+  - [ ] Creating categories with subcategories
+- [ ] Collections
+  - [ ] Creating collections
+  - [ ] Creating collections with products
 
 #### `pnpm retrieve`
 
