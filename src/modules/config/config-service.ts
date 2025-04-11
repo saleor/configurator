@@ -219,7 +219,6 @@ export class ConfigurationService {
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      attributes: this.mapStandaloneAttributes(standaloneAttributes),
     };
   }
 }

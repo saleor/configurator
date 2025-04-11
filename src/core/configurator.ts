@@ -51,27 +51,6 @@ export class SaleorConfigurator {
       );
     }
 
-    if (config.attributes) {
-      logger.debug(`Bootstrapping ${config.attributes.length} attributes`);
-      bootstrapTasks.push(
-        Promise.all(
-          config.attributes.map((attribute) => {
-            if (!attribute.type) {
-              const error = new Error(
-                "When bootstrapping attributes, the type (PRODUCT_TYPE or PAGE_TYPE) is required"
-              );
-              logger.error("Attribute type missing", { attribute });
-              throw error;
-            }
-
-            return this.services.attribute.bootstrapAttributes({
-              attributeInputs: [attribute],
-            });
-          })
-        )
-      );
-    }
-
     if (config.categories) {
       logger.debug(`Bootstrapping ${config.categories.length} categories`);
       bootstrapTasks.push(

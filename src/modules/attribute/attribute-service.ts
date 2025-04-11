@@ -42,17 +42,6 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
 export class AttributeService {
   constructor(private repository: AttributeOperations) {}
 
-  private filterOutExistingAttributes(
-    existingAttributes: Attribute[],
-    attributeInputs: AttributeInput[]
-  ) {
-    const filtered = attributeInputs.filter(
-      (attribute) => !existingAttributes?.some((a) => a.name === attribute.name)
-    );
-
-    return filtered;
-  }
-
   async bootstrapAttributes({
     attributeInputs,
   }: {
@@ -62,41 +51,14 @@ export class AttributeService {
       count: attributeInputs.length,
     });
 
-    const names = attributeInputs.map((attribute) => attribute.name);
-    logger.debug("Checking existing attributes", { nameCount: names.length });
-    const existingAttributes = await this.repository.getAttributesByNames({
-      names,
-    });
-
-    const attributesToCreate = this.filterOutExistingAttributes(
-      existingAttributes ?? [],
-      attributeInputs
+    const createdAttributes = await Promise.all(
+      attributeInputs.map((attribute) => {
+        const attributeInput = createAttributeInput(attribute);
+        logger.debug("Creating attribute", { name: attributeInput.name });
+        return this.repository.createAttribute(attributeInput);
+      })
     );
 
-    if (!attributesToCreate.length) {
-      logger.debug("No new attributes to create");
-      return existingAttributes ?? [];
-    }
-
-    logger.debug(`Creating ${attributesToCreate.length} new attributes`);
-    try {
-      const createdAttributes = await Promise.all(
-        attributesToCreate.map((attribute) => {
-          const attributeInput = createAttributeInput(attribute);
-          logger.debug("Creating attribute", { name: attributeInput.name });
-          return this.repository.createAttribute(attributeInput);
-        })
-      );
-      logger.debug("Successfully created all attributes", {
-        count: createdAttributes.length,
-      });
-      return createdAttributes;
-    } catch (error) {
-      logger.error("Failed to create attributes", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        count: attributesToCreate.length,
-      });
-      throw error;
-    }
+    return createdAttributes;
   }
 }

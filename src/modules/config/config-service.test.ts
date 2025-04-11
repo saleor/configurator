@@ -67,7 +67,6 @@ describe("ConfigurationService", () => {
       expect(result.channels).toEqual([]);
       expect(result.productTypes).toEqual([]);
       expect(result.pageTypes).toEqual([]);
-      expect(result.attributes).toEqual([]);
       expect(storage.save).toHaveBeenCalledWith(result);
     });
 
