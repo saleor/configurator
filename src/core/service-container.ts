@@ -17,7 +17,6 @@ import { ShopService } from "../modules/shop/shop-service";
 import { ShopRepository } from "../modules/shop/repository";
 
 export interface ServiceContainer {
-  readonly attribute: AttributeService;
   readonly channel: ChannelService;
   readonly pageType: PageTypeService;
   readonly productType: ProductTypeService;
@@ -49,7 +48,6 @@ export class ServiceComposer {
     );
 
     return {
-      attribute: attributeService,
       channel: new ChannelService(repositories.channel),
       pageType: new PageTypeService(repositories.pageType, attributeService),
       productType: new ProductTypeService(

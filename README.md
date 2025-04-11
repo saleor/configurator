@@ -123,8 +123,8 @@ Currently, it supports:
 - [ ] Creating discounts
 - [ ] Categories
   - [x] Creating categories
+  - [x] Creating categories with subcategories
   - [ ] Creating categories with products
-  - [ ] Creating categories with subcategories
 - [ ] Collections
   - [ ] Creating collections
   - [ ] Creating collections with products

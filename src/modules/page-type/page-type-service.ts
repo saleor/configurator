@@ -47,7 +47,7 @@ export class PageTypeService {
     return filteredIds;
   }
 
-  async bootstrapPageType(input: PageTypeInput) {
+  async bootstrapPageType(input: Pick<PageTypeInput, "name" | "attributes">) {
     logger.debug("Bootstrapping page type", {
       name: input.name,
       attributesCount: input.attributes.length,
@@ -55,13 +55,17 @@ export class PageTypeService {
 
     const pageType = await this.getOrCreate(input.name);
 
-    logger.debug("Creating attributes for page type", {
-      pageType: input.name,
-      attributes: input.attributes.map((a) => a.name),
+    // check if the page type has the attributes already
+    const attributesToCreate = input.attributes.filter(
+      (a) => !pageType.attributes?.some((attr) => attr.name === a.name)
+    );
+
+    logger.debug("Attributes to create", {
+      attributesToCreate,
     });
 
     const attributes = await this.attributeService.bootstrapAttributes({
-      attributeInputs: input.attributes.map((a) => ({
+      attributeInputs: attributesToCreate.map((a) => ({
         ...a,
         type: "PAGE_TYPE",
       })),

@@ -49,7 +49,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
   }
 
   async load(): Promise<SaleorConfig> {
-    logger.info("Loading configuration from YAML", { path: this.configPath });
+    logger.debug("Loading configuration");
     try {
       const yml = await this.fs.readFile(this.configPath, "utf-8");
       const rawConfig = parse(yml);
@@ -71,7 +71,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
         throw validationError;
       }
 
-      logger.info("Configuration loaded successfully");
+      logger.info("Loaded configuration from " + this.configPath);
       logger.debug("Validated configuration", { config: data });
       return data;
     } catch (error) {

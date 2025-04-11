@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const createAttributeMutation = graphql(`
   mutation CreateAttribute($input: AttributeCreateInput!) {
@@ -88,6 +89,10 @@ export class AttributeRepository implements AttributeOperations {
     if (!result.data?.attributeCreate?.attribute) {
       throw new Error("Failed to create attribute");
     }
+
+    logger.info("Attribute created", {
+      name: result.data.attributeCreate.attribute.name,
+    });
 
     return result.data.attributeCreate.attribute as Attribute;
   }

@@ -11,7 +11,7 @@ export class ProductTypeService {
     private attributeService: AttributeService
   ) {}
 
-  private async getOrCreate(name: string) {
+  private async upsert(name: string) {
     logger.debug("Looking up product type", { name });
     const existingProductType =
       await this.repository.getProductTypeByName(name);
@@ -56,23 +56,18 @@ export class ProductTypeService {
   }) {
     logger.debug("Bootstrapping product type", {
       name,
-      attributeCount: attributes?.length ?? 0,
     });
 
-    const productType = await this.getOrCreate(name);
+    const productType = await this.upsert(name);
 
-    if (!attributes?.length) {
-      logger.debug("No attributes to bootstrap for product type", { name });
-      return productType;
-    }
-
-    logger.debug("Creating attributes for product type", {
-      productType: name,
-      attributeCount: attributes.length,
-    });
+    // check if the product type has the attributes already
+    const attributesToCreate = attributes.filter(
+      (a) =>
+        !productType.productAttributes?.some((attr) => attr.name === a.name)
+    );
 
     const createdAttributes = await this.attributeService.bootstrapAttributes({
-      attributeInputs: attributes.map((a) => ({
+      attributeInputs: attributesToCreate.map((a) => ({
         ...a,
         type: "PRODUCT_TYPE",
       })),

@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const createProductTypeMutation = graphql(`
   mutation CreateProductType($input: ProductTypeInput!) {
@@ -82,7 +83,13 @@ export class ProductTypeRepository implements ProductTypeOperations {
       throw new Error("Failed to create product type", result.error);
     }
 
-    return result.data?.productTypeCreate?.productType;
+    const productType = result.data.productTypeCreate.productType;
+
+    logger.info("Product type created", {
+      name: productType.name,
+    });
+
+    return productType;
   }
 
   async getProductTypeByName(name: string) {
@@ -100,7 +107,6 @@ export class ProductTypeRepository implements ProductTypeOperations {
     attributeIds: string[];
     productTypeId: string;
   }) {
-    console.log("assignAttributesToProductType", attributeIds, productTypeId);
     const result = await this.client.mutation(
       assignAttributesToProductTypeMutation,
       {
