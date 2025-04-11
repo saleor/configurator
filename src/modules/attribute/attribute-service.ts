@@ -42,30 +42,6 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
 export class AttributeService {
   constructor(private repository: AttributeOperations) {}
 
-  async getOrCreate(name: string, type: "PRODUCT_TYPE" | "PAGE_TYPE") {
-    logger.debug("Looking up attribute", { name, type });
-    const existingAttributes = await this.repository.getAttributesByNames({
-      names: [name],
-      type,
-    });
-
-    const existingAttribute = existingAttributes?.[0];
-    if (existingAttribute) {
-      logger.debug("Found existing attribute", {
-        id: existingAttribute.id,
-        name: existingAttribute.name,
-      });
-      return existingAttribute;
-    }
-
-    logger.debug("Creating new attribute", { name, type });
-    return this.repository.createAttribute({
-      name,
-      type,
-      inputType: "DROPDOWN",
-    });
-  }
-
   private filterOutExistingAttributes(
     existingAttributes: Attribute[],
     attributeInputs: AttributeInput[]
