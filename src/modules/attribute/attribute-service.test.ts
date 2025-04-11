@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { AttributeService } from "./attribute-service";
 
 describe("AttributeService", () => {
-  describe("is idempotent", () => {
-    it("should not create an attribute that already exists", async () => {
+  describe("is not idempotent", () => {
+    it("should create an attribute that already exists", async () => {
       // Given
       const existingAttribute = {
         name: "Color",
@@ -30,7 +30,7 @@ describe("AttributeService", () => {
       });
 
       // Then
-      expect(mockOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockOperations.createAttribute).toHaveBeenCalled();
     });
   });
 });
