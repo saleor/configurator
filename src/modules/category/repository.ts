@@ -8,6 +8,14 @@ const createCategoryMutation = graphql(`
       category {
         id
         name
+        children(first: 100) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
       }
       errors {
         field
@@ -16,12 +24,6 @@ const createCategoryMutation = graphql(`
     }
   }
 `);
-
-export type Category = NonNullable<
-  NonNullable<
-    ResultOf<typeof createCategoryMutation>["categoryCreate"]
-  >["category"]
->;
 
 export type CategoryInput = VariablesOf<typeof createCategoryMutation>["input"];
 
@@ -32,11 +34,23 @@ const getCategoryByNameQuery = graphql(`
         node {
           id
           name
+          children(first: 100) {
+            edges {
+              node {
+                id
+                name
+              }
+            }
+          }
         }
       }
     }
   }
 `);
+
+export type Category = NonNullable<
+  NonNullable<ResultOf<typeof getCategoryByNameQuery>["categories"]>["edges"]
+>[number]["node"];
 
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
@@ -50,113 +64,38 @@ export class CategoryRepository implements CategoryOperations {
     input: CategoryInput,
     parentId?: string
   ): Promise<Category> {
-    try {
-      if (!input.name) {
-        throw new Error("Category name is required");
-      }
+    logger.debug("Creating category", {
+      name: input.name,
+      parentId,
+    });
 
-      logger.debug("Creating category", {
+    const result = await this.client.mutation(createCategoryMutation, {
+      input: {
         name: input.name,
-        parentId,
-      });
+      },
+      parent: parentId,
+    });
 
-      const variables = {
-        input: {
-          name: input.name,
-        },
-        parent: parentId,
-      };
-
-      logger.debug("GraphQL mutation", {
-        mutation: createCategoryMutation.toString(),
-        variables,
-      });
-
-      const result = await this.client.mutation(
-        createCategoryMutation,
-        variables
+    if (!result.data?.categoryCreate?.category) {
+      throw new Error(
+        `Failed to create category: ${
+          result.data?.categoryCreate?.errors
+            ?.map((e) => `${e.field}: ${e.message}`)
+            .join(", ") || "Unknown error"
+        }`
       );
-
-      logger.debug("GraphQL response", {
-        data: result.data,
-        error: result.error,
-        operation: result.operation,
-      });
-
-      if (result.error) {
-        logger.error("GraphQL error occurred", {
-          error: result.error,
-          graphQLErrors: result.error.graphQLErrors,
-          networkError: result.error.networkError,
-          response: result.error.response,
-        });
-        throw new Error(`GraphQL error: ${result.error.message}`);
-      }
-
-      if (!result.data?.categoryCreate?.category) {
-        const errors = result.data?.categoryCreate?.errors;
-        logger.error("Failed to create category", {
-          errors,
-          name: input.name,
-          parentId,
-          response: result.data,
-        });
-        throw new Error(
-          `Failed to create category: ${
-            errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ||
-            "Unknown error"
-          }`
-        );
-      }
-
-      const createdCategory = result.data.categoryCreate.category;
-
-      logger.info("Category created", {
-        category: createdCategory,
-      });
-
-      return createdCategory;
-    } catch (error) {
-      logger.error("Unexpected error in createCategory", {
-        error,
-        name: input.name,
-        parentId,
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      throw error;
     }
+
+    const createdCategory = result.data.categoryCreate.category;
+
+    logger.info("Category created", {
+      category: createdCategory,
+    });
+
+    return createdCategory;
   }
 
-  async createCategoryWithSubcategories(
-    name: string,
-    subcategories: string[] = []
-  ): Promise<Category> {
-    try {
-      logger.debug("Creating category with subcategories", {
-        name,
-        subcategories,
-      });
-
-      // First create the parent category
-      const parentCategory = await this.createCategory({ name });
-
-      // Then create each subcategory with the parent ID
-      for (const subcategoryName of subcategories) {
-        await this.createCategory({ name: subcategoryName }, parentCategory.id);
-      }
-
-      return parentCategory;
-    } catch (error) {
-      logger.error("Failed to create category with subcategories", {
-        error,
-        name,
-        subcategories,
-      });
-      throw error;
-    }
-  }
-
-  async getCategoryByName(name: string) {
+  async getCategoryByName(name: string): Promise<Category | null | undefined> {
     const result = await this.client.query(getCategoryByNameQuery, {
       name,
     });

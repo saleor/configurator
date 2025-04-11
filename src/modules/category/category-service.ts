@@ -8,17 +8,7 @@ export class CategoryService {
   constructor(private repository: CategoryOperations) {}
 
   private async getExistingCategory(name: string) {
-    logger.debug("Looking up category", { name });
-    const existingCategory = await this.repository.getCategoryByName(name);
-
-    if (existingCategory) {
-      logger.debug("Found category", {
-        id: existingCategory.id,
-        name: existingCategory.name,
-      });
-    }
-
-    return existingCategory;
+    return this.repository.getCategoryByName(name);
   }
 
   private async createCategory(
@@ -30,103 +20,70 @@ export class CategoryService {
       parentId,
     });
 
-    try {
-      const category = await this.repository.createCategory(
-        {
-          name: input.name,
-        },
-        parentId
-      );
-
-      logger.debug("Created category", {
-        id: category.id,
-        name: category.name,
-        parentId,
-      });
-
-      return category;
-    } catch (error) {
-      logger.error("Failed to create category", {
-        error: error instanceof Error ? error.message : "Unknown error",
+    const category = await this.repository.createCategory(
+      {
         name: input.name,
-        parentId,
-      });
-      throw error;
-    }
+      },
+      parentId
+    );
+
+    logger.debug("Created category", {
+      id: category.id,
+      name: category.name,
+      parentId,
+    });
+
+    return category;
   }
 
   async bootstrapCategories(categories: CategoryConfigInput[]) {
-    logger.debug("Bootstrapping categories", { count: categories.length });
+    logger.debug("Bootstrapping categories");
 
-    try {
-      const results = await Promise.all(
-        categories.map((category) => this.bootstrapCategory(category))
-      );
-
-      logger.debug("Bootstrapped categories", {
-        count: results.length,
-      });
-
-      return results;
-    } catch (error) {
-      logger.error("Failed to bootstrap categories", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      throw error;
-    }
+    return Promise.all(
+      categories.map((category) => this.bootstrapCategory(category))
+    );
   }
 
-  private async bootstrapCategory(
-    category: CategoryConfigInput
+  private async getOrCreateCategory(
+    categoryInput: CategoryConfigInput
   ): Promise<Category> {
-    logger.debug("Bootstrapping category", { name: category.name });
-
-    const existingCategory = await this.getExistingCategory(category.name);
+    const existingCategory = await this.getExistingCategory(categoryInput.name);
 
     if (existingCategory) {
-      logger.debug("Found existing category", {
-        id: existingCategory.id,
-        name: existingCategory.name,
-      });
-
-      if (category.subcategories?.length) {
-        logger.debug("Creating subcategories", {
-          parent: category.name,
-          count: category.subcategories.length,
-        });
-
-        for (const subcategory of category.subcategories) {
-          const existingSubcategory = await this.getExistingCategory(
-            subcategory.name
-          );
-          if (!existingSubcategory) {
-            await this.createCategory(
-              { name: subcategory.name },
-              existingCategory.id
-            );
-          }
-        }
-      }
-
       return existingCategory;
     }
 
-    const createdCategory = await this.createCategory(category);
+    return this.createCategory(categoryInput);
+  }
 
-    if (category.subcategories?.length) {
-      logger.debug("Creating subcategories", {
-        parent: category.name,
-        count: category.subcategories.length,
-      });
+  private async bootstrapCategory(
+    categoryInput: CategoryConfigInput
+  ): Promise<Category> {
+    logger.debug("Bootstrapping category", { name: categoryInput.name });
 
-      for (const subcategory of category.subcategories) {
-        await this.createCategory(
-          { name: subcategory.name },
-          createdCategory.id
-        );
-      }
+    const category = await this.getOrCreateCategory(categoryInput);
+
+    logger.debug("Existing category", {
+      category,
+    });
+
+    // compare existingCategory subcategories with categoryInput.subcategories
+    const subcategoriesToCreate =
+      categoryInput.subcategories?.filter(
+        (subcategory) =>
+          !category?.children?.edges?.some(
+            (edge) => edge.node.name === subcategory.name
+          )
+      ) ?? [];
+
+    logger.debug("Subcategories to create", {
+      subcategories: subcategoriesToCreate,
+    });
+
+    for (const subcategory of subcategoriesToCreate) {
+      await this.createCategory({ name: subcategory.name }, category.id);
     }
 
-    return createdCategory;
+    return category;
   }
 }
