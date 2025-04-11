@@ -47,7 +47,7 @@ export class PageTypeService {
     return filteredIds;
   }
 
-  async bootstrapPageType(input: PageTypeInput) {
+  async bootstrapPageType(input: Pick<PageTypeInput, "name" | "attributes">) {
     logger.debug("Bootstrapping page type", {
       name: input.name,
       attributesCount: input.attributes.length,
