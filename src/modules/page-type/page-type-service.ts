@@ -60,6 +60,10 @@ export class PageTypeService {
       (a) => !pageType.attributes?.some((attr) => attr.name === a.name)
     );
 
+    logger.debug("Attributes to create", {
+      attributesToCreate,
+    });
+
     const attributes = await this.attributeService.bootstrapAttributes({
       attributeInputs: attributesToCreate.map((a) => ({
         ...a,

@@ -1,6 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
-import logger from "../../lib/logger";
+import { logger } from "../../lib/logger";
 
 const createCategoryMutation = graphql(`
   mutation CreateCategory($input: CategoryInput!, $parent: ID) {
@@ -110,11 +110,9 @@ export class CategoryRepository implements CategoryOperations {
       }
 
       const createdCategory = result.data.categoryCreate.category;
-      logger.debug("Successfully created category", {
-        id: createdCategory.id,
-        name: createdCategory.name,
-        parentId,
-        response: result.data,
+
+      logger.info("Category created", {
+        category: createdCategory,
       });
 
       return createdCategory;

@@ -48,5 +48,3 @@ export const logger = new Logger({
 
 // Log the current log level on startup
 logger.debug("Logger initialized", { level: LOG_LEVEL });
-
-export default logger;

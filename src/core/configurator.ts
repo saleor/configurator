@@ -8,7 +8,7 @@ export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
   async bootstrap() {
-    logger.info("Starting bootstrap process");
+    logger.debug("Starting bootstrap process");
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
