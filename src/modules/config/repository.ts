@@ -87,23 +87,6 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    attributes(first: 100) {
-      edges {
-        node {
-          id
-          name
-          type
-          inputType
-          choices(first: 100) {
-            edges {
-              node {
-                name
-              }
-            }
-          }
-        }
-      }
-    }
   }
 `);
 

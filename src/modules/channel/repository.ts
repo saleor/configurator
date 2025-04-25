@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const createChannelMutation = graphql(`
   mutation CreateChannel($input: ChannelCreateInput!) {
@@ -72,7 +73,11 @@ export class ChannelRepository implements ChannelOperations {
       throw new Error("Failed to create channel", result.error);
     }
 
-    return result.data?.channelCreate?.channel;
+    const channel = result.data.channelCreate.channel;
+
+    logger.info("Channel created", { channel });
+
+    return channel;
   }
 
   async getChannels() {

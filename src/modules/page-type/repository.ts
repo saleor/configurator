@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const createPageTypeMutation = graphql(`
   mutation CreatePageType($input: PageTypeCreateInput!) {
@@ -56,8 +57,6 @@ const pageAttributeAssignMutation = graphql(`
   }
 `);
 
-type PageAttributeAssignInput = VariablesOf<typeof pageAttributeAssignMutation>;
-
 const getPageTypeQuery = graphql(`
   query GetPageType($id: ID!) {
     pageType(id: $id) {
@@ -93,7 +92,11 @@ export class PageTypeRepository implements PageTypeOperations {
       throw new Error("Failed to create page type", result.error);
     }
 
-    return result.data?.pageTypeCreate?.pageType;
+    const pageType = result.data.pageTypeCreate.pageType;
+
+    logger.info("Page type created", { name: pageType.name });
+
+    return pageType;
   }
 
   async getPageTypeByName(name: string) {

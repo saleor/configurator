@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf } from "gql.tada";
+import { logger } from "../../lib/logger";
 
 const updateShopSettingsMutation = graphql(`
   mutation UpdateShopSettings($input: ShopSettingsInput!) {
@@ -50,5 +51,7 @@ export class ShopRepository implements ShopOperations {
           .join(", ")}`
       );
     }
+
+    logger.info("Shop settings updated");
   }
 }

@@ -54,7 +54,6 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
-        attributes: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -67,7 +66,6 @@ describe("ConfigurationService", () => {
       expect(result.channels).toEqual([]);
       expect(result.productTypes).toEqual([]);
       expect(result.pageTypes).toEqual([]);
-      expect(result.attributes).toEqual([]);
       expect(storage.save).toHaveBeenCalledWith(result);
     });
 
@@ -89,7 +87,6 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
-        attributes: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -109,7 +106,6 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
-        attributes: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -123,7 +119,6 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
-        attributes: [],
       });
     });
 
@@ -208,7 +203,6 @@ describe("ConfigurationService", () => {
             },
           ],
         },
-        attributes: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -256,7 +250,6 @@ describe("ConfigurationService", () => {
           ],
         },
         pageTypes: { edges: [] },
-        attributes: { edges: [] },
       };
 
       const service = new ConfigurationService(

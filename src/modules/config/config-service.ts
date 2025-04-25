@@ -155,18 +155,6 @@ export class ConfigurationService {
     );
   }
 
-  private mapStandaloneAttributes(
-    standaloneAttributes: RawSaleorConfig["attributes"]
-  ): AttributeInput[] {
-    return (
-      standaloneAttributes?.edges?.map((edge) => {
-        const attribute = edge.node;
-        invariant(attribute.type, "Unable to retrieve attribute type");
-        return this.mapAttribute(attribute, attribute.type);
-      }) ?? []
-    );
-  }
-
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]) {
     return (
       rawProductTypes?.edges?.map((edge) => ({
@@ -213,13 +201,11 @@ export class ConfigurationService {
   }
 
   mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
-    const standaloneAttributes = rawConfig.attributes;
     return {
       shop: this.mapShopSettings(rawConfig),
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      attributes: this.mapStandaloneAttributes(standaloneAttributes),
     };
   }
 }

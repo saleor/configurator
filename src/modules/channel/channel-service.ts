@@ -25,7 +25,7 @@ export class ChannelService {
     return existingChannel;
   }
 
-  async getOrCreate(input: ChannelInput) {
+  private async getOrCreate(input: ChannelInput) {
     logger.debug("Getting or creating channel", { name: input.name });
     const existingChannel = await this.getExistingChannel(input.name);
 

@@ -159,7 +159,6 @@ export const configSchema = z
     productTypes: z.array(pageOrProductTypeSchema).optional(),
     channels: z.array(channelSchema).optional(),
     pageTypes: z.array(pageOrProductTypeSchema).optional(),
-    attributes: z.array(attributeSchema).optional(),
     shop: shopSchema.optional(),
     categories: z.array(categorySchema).optional(),
   })
