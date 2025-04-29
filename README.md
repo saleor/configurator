@@ -79,6 +79,7 @@ categories:
     subcategories:
       - name: "Science"
       - name: "History"
+```
 
 ## Development
 
