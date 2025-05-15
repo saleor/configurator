@@ -10,6 +10,12 @@ Pulls config from a target environment.
 
 **Example:** `configurator pull production`
 
+TODO: how do you resolve conflicts? what happens if pulled config is different from the local one?
+
+pulling is more permissive than pushing
+
+when pulling, we rely on the GraphQL API to throw errors when there is something funky going on
+
 ### `diff`
 
 Shows the differences between the current config and the target environment.
@@ -20,7 +26,7 @@ Shows the differences between the current config and the target environment.
 
 ### `push`
 
-Shows the list of changes that will be pushed to the target environment. If accepted, pushes the changes and creates a configuration artifact.
+Compares two (local vs. target) states, shows the list of changes that will be pushed to the target environment. If accepted, pushes the changes and creates a configuration artifact.
 
 **Syntax:** `configurator push <env> [--dry-run]`
 
@@ -64,6 +70,17 @@ Status: success
 
 View details: configurator artifacts show cfg_20240315_123456
 ```
+
+TODO: show how artifact is uploaded to s3
+
+We need a state manager. It will be responsible for:
+
+- Saving the current state of the configuration to s3
+- Restoring the configuration from an artifact
+- Comparing the current state with the target state
+- Generating a list of changes
+
+artifacts are saved in s3
 
 ### `rollback`
 
@@ -203,3 +220,15 @@ Removes an environment.
 **Syntax:** `configurator env remove <name>`
 
 **Example:** `configurator env remove staging`
+
+---
+
+## Tasks
+
+- Artifact Manager
+  - uploading to s3
+  - downloading from s3
+
+- State Manager
+  - comparing the current state with the target state
+  - generating a list of changes
