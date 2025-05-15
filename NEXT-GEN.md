@@ -20,7 +20,7 @@ when pulling, we rely on the GraphQL API to throw errors when there is something
 
 Shows the differences between the current config and the target environment.
 
-**Syntax:** `configurator diff <env>`
+**Syntax:** `configurator diff <url>`
 
 **Example:** `configurator diff production`
 
@@ -28,9 +28,9 @@ Shows the differences between the current config and the target environment.
 
 Compares two (local vs. target) states, shows the list of changes that will be pushed to the target environment. If accepted, pushes the changes and creates a configuration artifact.
 
-**Syntax:** `configurator push <env> [--dry-run]`
+**Syntax:** `configurator push url=<url> token=<token> [--dry-run]`
 
-**Example:** `configurator push production --dry-run`
+**Example:** `configurator push url=https://production.saleor.cloud token=1234567890 --dry-run`
 
 The `--dry-run` flag will show what changes would be made without actually applying them.
 
