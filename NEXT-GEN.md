@@ -4,11 +4,11 @@
 
 ### `pull`
 
-Pulls config from a target environment.
+Pulls config from a target Saleor instance.
 
-**Syntax:** `configurator pull <env>`
+**Syntax:** `configurator pull url=<url> token=<token>`
 
-**Example:** `configurator pull production`
+**Example:** `configurator pull url=https://production.saleor.cloud token=1234567890`
 
 TODO: how do you resolve conflicts? what happens if pulled config is different from the local one?
 
@@ -18,15 +18,15 @@ when pulling, we rely on the GraphQL API to throw errors when there is something
 
 ### `diff`
 
-Shows the differences between the current config and the target environment.
+Shows the differences between the current config and the target Saleor instance.
 
-**Syntax:** `configurator diff <url>`
+**Syntax:** `configurator diff url=<url> token=<token>`
 
-**Example:** `configurator diff production`
+**Example:** `configurator diff url=https://production.saleor.cloud token=1234567890`
 
 ### `push`
 
-Compares two (local vs. target) states, shows the list of changes that will be pushed to the target environment. If accepted, pushes the changes and creates a configuration artifact.
+Compares two (local vs. target) states, shows the list of changes that will be pushed to the target Saleor instance. If accepted, pushes the changes and creates a configuration artifact.
 
 **Syntax:** `configurator push url=<url> token=<token> [--dry-run]`
 
@@ -37,7 +37,7 @@ The `--dry-run` flag will show what changes would be made without actually apply
 **Example output:**
 
 ```bash
-$ configurator push production
+$ configurator push url=https://production.saleor.cloud token=1234567890
 Analyzing changes...
 The following changes will be applied:
 
@@ -63,7 +63,7 @@ Applying changes...
 
 Configuration artifact created:
 ID: cfg_20240315_123456
-Environment: production
+URL: https://production.saleor.cloud
 Timestamp: 2024-03-15T12:34:56Z
 Changes: 4
 Status: success
@@ -84,16 +84,16 @@ artifacts are saved in s3
 
 ### `rollback`
 
-Rolls back the environment to a previous configuration state.
+Rolls back a Saleor instance to a previous configuration state.
 
-**Syntax:** `configurator rollback <env> --artifact <id>`
+**Syntax:** `configurator rollback url=<url> token=<token> --artifact <id>`
 
-**Example:** `configurator rollback production --artifact cfg_20240315_123456`
+**Example:** `configurator rollback url=https://production.saleor.cloud token=1234567890 --artifact cfg_20240315_123456`
 
 **Example output:**
 
 ```bash
-$ configurator rollback production --artifact cfg_20240315_123456
+$ configurator rollback url=https://production.saleor.cloud token=1234567890 --artifact cfg_20240315_123456
 Analyzing rollback...
 The following changes will be reverted:
 
@@ -115,7 +115,7 @@ Applying rollback...
 
 Rollback artifact created:
 ID: rbk_20240315_124500
-Environment: production
+URL: https://production.saleor.cloud
 Timestamp: 2024-03-15T12:45:00Z
 Original artifact: cfg_20240315_123456
 Changes reverted: 4
@@ -130,17 +130,17 @@ Manages configuration artifacts and their history.
 
 #### `artifacts list`
 
-Lists all configuration artifacts for an environment.
+Lists all configuration artifacts for a Saleor instance.
 
-**Syntax:** `configurator artifacts list <env>`
+**Syntax:** `configurator artifacts list url=<url> token=<token>`
 
-**Example:** `configurator artifacts list production`
+**Example:** `configurator artifacts list url=https://production.saleor.cloud token=1234567890`
 
 **Example output:**
 
 ```bash
-$ configurator artifacts list production
-Configuration artifacts for production:
+$ configurator artifacts list url=https://production.saleor.cloud token=1234567890
+Configuration artifacts:
 
 ID                  Type      Timestamp           Status    Changes    User
 cfg_20240315_123456 config    2024-03-15 12:34    success   4          john.doe
@@ -162,7 +162,7 @@ Shows detailed information about a specific configuration artifact.
 $ configurator artifacts show cfg_20240315_123456
 Configuration Artifact: cfg_20240315_123456
 Type: config
-Environment: production
+URL: https://production.saleor.cloud
 Timestamp: 2024-03-15T12:34:56Z
 Status: success
 User: john.doe
@@ -192,34 +192,6 @@ Metadata:
 - Duration: 2.3s
 - API calls: 12
 ```
-
-### `env`
-
-The environment management system allows you to manage different Saleor instances (e.g., development, staging, production) and their configurations. Each environment can have its own configuration file and state.
-
-#### `env list`
-
-Lists all environments.
-
-**Syntax:** `configurator env list`
-
-**Example:** `configurator env list`
-
-#### `env add`
-
-Adds a new environment.
-
-**Syntax:** `configurator env add <name>`
-
-**Example:** `configurator env add staging`
-
-#### `env remove`
-
-Removes an environment.
-
-**Syntax:** `configurator env remove <name>`
-
-**Example:** `configurator env remove staging`
 
 ---
 
