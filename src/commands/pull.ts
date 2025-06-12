@@ -35,4 +35,4 @@ const services = ServiceComposer.compose(client);
 // Create a new configurator with the services
 const configurator = new SaleorConfigurator(services);
 
-configurator.retrieve();
+configurator.pull();

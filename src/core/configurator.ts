@@ -7,8 +7,8 @@ import type { ServiceContainer } from "./service-container";
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
-  async bootstrap() {
-    logger.debug("Starting bootstrap process");
+  async push() {
+    logger.debug("Starting push process");
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
@@ -67,8 +67,8 @@ export class SaleorConfigurator {
     }
   }
 
-  async retrieve() {
-    logger.info("Starting configuration retrieval");
+  async pull() {
+    logger.info("Starting pull process");
     try {
       const config = await this.services.configuration.retrieve();
       logger.info("Configuration retrieved successfully");
