@@ -9,14 +9,15 @@
     "schemaVersion": "3.20"
   },
   "scripts": {
-    "bootstrap": "tsx src/commands/bootstrap.ts",
-    "retrieve": "tsx src/commands/retrieve.ts",
+    "push": "tsx src/commands/push.ts",
+    "pull": "tsx src/commands/pull.ts",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/yargs": "^17.0.32",
     "prettier": "3.3.3",
     "tsx": "^4.7.0",
     "typescript": "^5.5.4",
@@ -30,6 +31,7 @@
     "tiny-invariant": "^1.3.3",
     "tslog": "^4.9.3",
     "yaml": "^2.7.0",
+    "yargs": "^17.7.2",
     "zod": "^3.24.1"
   }
 }

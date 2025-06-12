@@ -104,7 +104,7 @@ This will create a `.env` file. Here are the variables you need to set:
 
 ### Commands
 
-#### `pnpm bootstrap`
+#### `pnpm push`
 
 Reads the configuration file and create the data models in Saleor.
 
@@ -130,7 +130,7 @@ Currently, it supports:
   - [ ] Creating collections
   - [ ] Creating collections with products
 
-#### `pnpm retrieve`
+#### `pnpm pull`
 
 Retrieves the configuration from the Saleor instance and saves it to a file.
 

@@ -1,10 +1,9 @@
 import { Client, fetchExchange } from "@urql/core";
 import { authExchange } from "@urql/exchange-auth";
-import { APP_TOKEN, SALEOR_API_URL } from "../env";
 
-const createClient = (token: string) => {
+export const createClient = (token: string, url: string) => {
   return new Client({
-    url: SALEOR_API_URL,
+    url,
     requestPolicy: "network-only",
     exchanges: [
       authExchange(async (utils) => {
@@ -27,5 +26,3 @@ const createClient = (token: string) => {
     ],
   });
 };
-
-export const graphqlClient = createClient(APP_TOKEN);
