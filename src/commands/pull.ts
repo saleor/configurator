@@ -1,36 +1,16 @@
 import { createClient } from "../lib/graphql/client";
 import { ServiceComposer } from "../core/service-container";
 import { SaleorConfigurator } from "../core/configurator";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+import { z } from "zod";
+import { parseCliArgs } from "../lib/utils/cli-args";
 
-const argv = yargs(hideBin(process.argv))
-  .option("url", {
-    type: "string",
-    description: "Saleor instance URL",
-  })
-  .option("token", {
-    type: "string",
-    description: "Saleor API token",
-  })
-  .option("config", {
-    type: "string",
-    description: "Path to configuration file",
-    default: "config.yml",
-  })
-  .parseSync();
+const argsSchema = z.object({
+  url: z.string({ required_error: "URL is required" }),
+  token: z.string({ required_error: "Token is required" }),
+  config: z.string().default("config.yml"),
+});
 
-const url = argv.url;
-const token = argv.token;
-const configPath = argv.config;
-
-if (!url) {
-  throw new Error("URL is not set");
-}
-
-if (!token) {
-  throw new Error("Token is not set");
-}
+const { url, token, config: configPath } = parseCliArgs(argsSchema);
 
 // Create a new client with the provided configuration
 const client = createClient(token, url);
