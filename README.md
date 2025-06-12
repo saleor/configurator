@@ -102,11 +102,27 @@ This will create a `.env` file. Here are the variables you need to set:
 - `APP_TOKEN`: An app token with the necessary permissions to create the data models. You can create one by going to _Configuration_ → _Webhooks & Events_ in the Saleor dashboard.
 - `SALEOR_API_URL`: The URL of the Saleor instance you want to use.
 
-### Commands
+## Commands
 
-#### `pnpm bootstrap`
+### `pnpm push`
 
-Reads the configuration file and create the data models in Saleor.
+Reads the configuration file from a given path and creates/updates the data models in Saleor.
+
+#### Options
+
+- `--url` (required): The URL of the Saleor instance
+- `--token` (required): App token with necessary permissions  
+- `--config` (optional): Path to configuration file (defaults to `config.yml`)
+
+#### Usage
+
+```bash
+# Basic usage
+pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+
+# With custom config file
+pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+```
 
 Currently, it supports:
 
@@ -130,9 +146,25 @@ Currently, it supports:
   - [ ] Creating collections
   - [ ] Creating collections with products
 
-#### `pnpm retrieve`
+### `pnpm pull`
 
-Retrieves the configuration from the Saleor instance and saves it to a file.
+Retrieves the configuration from the Saleor instance and saves it to a file under the given path.
+
+#### Options
+
+- `--url` (required): The URL of the Saleor instance
+- `--token` (required): App token with necessary permissions  
+- `--config` (optional): Path to configuration file (defaults to `config.yml`)
+
+#### Usage
+
+```bash
+# Basic usage
+pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+
+# With custom config file
+pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="backup.yml"
+```
 
 Currently, it supports:
 

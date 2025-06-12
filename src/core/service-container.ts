@@ -27,7 +27,7 @@ export interface ServiceContainer {
 }
 
 export class ServiceComposer {
-  static compose(client: Client): ServiceContainer {
+  static compose(client: Client, configPath?: string): ServiceContainer {
     logger.debug("Creating repositories");
     const repositories = {
       attribute: new AttributeRepository(client),
@@ -41,7 +41,7 @@ export class ServiceComposer {
 
     logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
-    const configStorage = new YamlConfigurationManager();
+    const configStorage = new YamlConfigurationManager(configPath);
     const configurationService = new ConfigurationService(
       repositories.configuration,
       configStorage

@@ -118,17 +118,10 @@ export class ConfigurationService {
     }
 
     if (this.isReferenceAttribute(attribute.inputType)) {
-      invariant(
-        attribute.entityType,
-        `Entity type is required for reference attribute ${attribute.name}`
-      );
       return {
         name: attribute.name,
         inputType: "REFERENCE" as const,
-        entityType: attribute.entityType as
-          | "PAGE"
-          | "PRODUCT"
-          | "PRODUCT_VARIANT",
+        entityType: attribute.entityType,
         type: attributeType,
       };
     }

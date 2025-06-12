@@ -20,7 +20,7 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]).optional(),
 });
 
 // Schema for simple value attributes

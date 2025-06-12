@@ -9,8 +9,8 @@
     "schemaVersion": "3.20"
   },
   "scripts": {
-    "bootstrap": "tsx src/commands/bootstrap.ts",
-    "retrieve": "tsx src/commands/retrieve.ts",
+    "push": "tsx src/commands/push.ts",
+    "pull": "tsx src/commands/pull.ts",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest"
