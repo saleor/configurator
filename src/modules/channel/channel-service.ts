@@ -1,5 +1,9 @@
 import { object } from "../../lib/utils/object";
-import type { ChannelInput, ChannelCreateInput, ChannelUpdateInput } from "../config/schema";
+import type {
+  ChannelInput,
+  ChannelCreateInput,
+  ChannelUpdateInput,
+} from "../config/schema";
 import type { ChannelOperations } from "./repository";
 import { logger } from "../../lib/logger";
 
@@ -31,6 +35,7 @@ export class ChannelService {
         slug: input.slug,
         currencyCode: input.currencyCode,
         defaultCountry: input.defaultCountry,
+        isActive: false,
       });
       logger.debug("Successfully created channel", {
         id: channel.id,
@@ -52,12 +57,15 @@ export class ChannelService {
 
     if (existingChannel) {
       // Check if this is an update input (has settings)
-      if ('settings' in input) {
+      if ("settings" in input) {
         logger.debug("Updating existing channel", {
           id: existingChannel.id,
           name: input.name,
         });
-        return this.updateChannel(existingChannel.id, input as ChannelUpdateInput);
+        return this.updateChannel(
+          existingChannel.id,
+          input as ChannelUpdateInput
+        );
       } else {
         // It's a create input but channel exists, return existing
         logger.debug("Channel already exists, returning existing", {
