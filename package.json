@@ -1,5 +1,6 @@
 {
   "name": "saleor-configurator",
+  "version": "0.1.0",
   "type": "module",
   "engines": {
     "node": ">=20.0.0",
@@ -13,9 +14,14 @@
     "pull": "tsx src/commands/pull.ts",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "postinstall": "pnpm run fetch-schema",
-    "test": "vitest"
+    "test": "vitest",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.1",
+    "@changesets/cli": "^2.29.4",
     "@types/node": "^20.0.0",
     "prettier": "3.3.3",
     "tsx": "^4.7.0",

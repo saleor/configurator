@@ -91,16 +91,24 @@ pnpm install
 
 This will install the dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
-### Environment variables
+### Versioning
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management and changelog generation.
+
+Please execute the following command when making changes that should be released:
 
 ```bash
-cp .env.example .env
+# Document your changes
+pnpm changeset
 ```
 
-This will create a `.env` file. Here are the variables you need to set:
+**Automated workflow:**
 
-- `APP_TOKEN`: An app token with the necessary permissions to create the data models. You can create one by going to _Configuration_ → _Webhooks & Events_ in the Saleor dashboard.
-- `SALEOR_API_URL`: The URL of the Saleor instance you want to use.
+1. PRs require changesets (enforced by CI)
+2. When PRs with changesets are merged, a Release PR is automatically created
+3. Merging the Release PR finalizes the version and creates a GitHub release
+
+**Skip changesets:** Add the `skip-changeset` label to PRs that don't need versioning (docs, tests, internal changes).
 
 ## Commands
 
