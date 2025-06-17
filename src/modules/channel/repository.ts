@@ -8,6 +8,8 @@ const createChannelMutation = graphql(`
       channel {
         id
         name
+        slug
+        isActive
       }
     }
   }

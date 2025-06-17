@@ -37,13 +37,14 @@ export class ChannelService {
       return this.updateChannel(existingChannel.id, input);
     }
 
-    logger.debug("Creating new channel", { name: input.name });
+    logger.debug("Creating new channel", { name: input.name, isActive: input.isActive });
     try {
       const channel = await this.repository.createChannel({
         name: input.name,
         slug: input.slug,
         currencyCode: input.currencyCode,
         defaultCountry: input.defaultCountry,
+        isActive: input.isActive, // Use isActive from config (defaults to false)
       });
       logger.debug("Successfully created channel", {
         id: channel.id,

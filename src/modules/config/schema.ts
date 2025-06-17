@@ -96,6 +96,7 @@ const channelSchema = z.object({
   currencyCode: z.string().describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
   slug: z.string().describe("Channel.slug"),
+  isActive: z.boolean().optional().describe("Channel.isActive").default(false), // Channels inactive by default
   settings: z
     .object({
       allocationStrategy: z
@@ -238,6 +239,38 @@ const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
     .describe("Category.children"),
 });
 
+const productChannelListingSchema = z.object({
+  channel: z.string(), // Channel slug reference (e.g., "poland")
+  isPublished: z.boolean().optional().default(true),
+  visibleInListings: z.boolean().optional().default(true),
+  availableForPurchase: z.string().optional(), // ISO date string
+  publishedAt: z.string().optional(), // ISO date string
+});
+
+const productVariantChannelListingSchema = z.object({
+  channel: z.string(), // Channel slug reference (e.g., "poland")
+  price: z.number(),
+  costPrice: z.number().optional(),
+});
+
+const productVariantSchema = z.object({
+  name: z.string(),
+  sku: z.string(),
+  weight: z.number().optional(),
+  digital: z.boolean().optional(),
+  channelListings: z.array(productVariantChannelListingSchema),
+});
+
+const productSchema = z.object({
+  name: z.string(),
+  productType: z.string(),
+  category: z.string(),
+  description: z.string().optional(),
+  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  channelListings: z.array(productChannelListingSchema).optional(),
+  variants: z.array(productVariantSchema),
+});
+
 export const configSchema = z
   .object({
     shop: shopSchema.optional().describe("Shop"),
@@ -248,6 +281,7 @@ export const configSchema = z
       .describe("ProductType"),
     pageTypes: z.array(pageOrProductTypeSchema).optional().describe("PageType"),
     categories: z.array(categorySchema).optional().describe("Category"),
+    products: z.array(productSchema).optional().describe("Product"),
   })
   .strict()
   .describe("Configuration");
@@ -257,3 +291,11 @@ export type PageTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
 export type PageType = z.infer<typeof pageOrProductTypeSchema>;
 export type ProductTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
 export type ProductType = z.infer<typeof pageOrProductTypeSchema>;
+export type ProductInput = z.infer<typeof productSchema>;
+export type ProductVariantInput = z.infer<typeof productVariantSchema>;
+export type ProductChannelListingInput = z.infer<
+  typeof productChannelListingSchema
+>;
+export type ProductVariantChannelListingInput = z.infer<
+  typeof productVariantChannelListingSchema
+>;
