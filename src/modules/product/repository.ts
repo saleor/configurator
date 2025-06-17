@@ -37,6 +37,41 @@ const createProductMutation = graphql(`
 
 export type ProductCreateInput = VariablesOf<typeof createProductMutation>["input"];
 
+const updateProductMutation = graphql(`
+  mutation UpdateProduct($id: ID!, $input: ProductInput!) {
+    productUpdate(id: $id, input: $input) {
+      product {
+        id
+        name
+        slug
+        productType {
+          id
+          name
+        }
+        category {
+          id
+          name
+        }
+        channelListings {
+          id
+          channel {
+            id
+            name
+          }
+          isPublished
+          visibleInListings
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+export type ProductUpdateInput = VariablesOf<typeof updateProductMutation>["input"];
+
 const createProductVariantMutation = graphql(`
   mutation CreateProductVariant($input: ProductVariantCreateInput!) {
     productVariantCreate(input: $input) {
@@ -121,6 +156,29 @@ const getCategoryByNameQuery = graphql(`
   }
 `);
 
+const getAttributeByNameQuery = graphql(`
+  query GetAttributeByName($name: String!) {
+    attributes(filter: { search: $name }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          inputType
+          choices {
+            edges {
+              node {
+                id
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 const getProductVariantBySkuQuery = graphql(`
   query GetProductVariantBySku($skus: [String!]!) {
     productVariants(filter: { sku: $skus }, first: 1) {
@@ -195,6 +253,7 @@ export type ProductVariant = NonNullable<
 
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
+  updateProduct(id: string, input: ProductUpdateInput): Promise<Product>;
   createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
@@ -202,8 +261,15 @@ export interface ProductOperations {
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
+  getAttributeByName(name: string): Promise<Attribute | null>;
   // TODO: Add back getChannelBySlug and updateProductChannelListings in separate commit
 }
+
+export type Attribute = NonNullable<
+  NonNullable<
+    ResultOf<typeof getAttributeByNameQuery>["attributes"]
+  >["edges"]
+>[number]["node"];
 
 export class ProductRepository implements ProductOperations {
   constructor(private client: Client) {}
@@ -232,6 +298,38 @@ export class ProductRepository implements ProductOperations {
     const product = result.data.productCreate.product;
 
     logger.info("Product created", {
+      id: product.id,
+      name: product.name,
+    });
+
+    return product;
+  }
+
+  async updateProduct(id: string, input: ProductUpdateInput): Promise<Product> {
+    logger.debug("Updating product", { id, input });
+
+    const result = await this.client.mutation(updateProductMutation, {
+      id,
+      input,
+    });
+
+    logger.debug("Product update result", { 
+      success: !!result.data?.productUpdate?.product,
+      error: result.error?.message,
+      errors: result.data?.productUpdate?.errors 
+    });
+
+    if (!result.data?.productUpdate?.product) {
+      const errors = result.data?.productUpdate?.errors
+        ?.map((e) => `${e.field}: ${e.message}`)
+        .join(", ");
+      const graphqlError = result.error?.message;
+      throw new Error(`Failed to update product: ${errors || graphqlError || "Unknown error"}`);
+    }
+
+    const product = result.data.productUpdate.product;
+
+    logger.info("Product updated", {
       id: product.id,
       name: product.name,
     });
@@ -359,6 +457,21 @@ export class ProductRepository implements ProductOperations {
     });
     
     return this.getCategoryByName(finalCategoryName);
+  }
+
+  async getAttributeByName(name: string): Promise<Attribute | null> {
+    logger.debug("Looking up attribute by name", { name });
+
+    const result = await this.client.query(getAttributeByNameQuery, { name });
+    const attribute = result.data?.attributes?.edges?.[0]?.node;
+
+    if (attribute) {
+      logger.debug("Found attribute", { id: attribute.id, name: attribute.name });
+    } else {
+      logger.debug("No attribute found", { name });
+    }
+
+    return attribute || null;
   }
 
   // TODO: Add getChannelBySlug method in separate commit
