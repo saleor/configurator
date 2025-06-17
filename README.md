@@ -111,11 +111,17 @@ products:
       - name: "Hardcover"
         sku: "BOOK-001-HC"
         weight: 1.2
+        attributes:
+          Size: "Large"
+          Cover: "Hardcover"
         # Note: Channel listings will be supported in a future release
         channelListings: []
       - name: "Paperback"
         sku: "BOOK-001-PB"
         weight: 0.8
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
         channelListings: []
   
   - name: "Sample Non-Fiction Book"
@@ -130,10 +136,16 @@ products:
       - name: "Digital"
         sku: "BOOK-002-DIG"
         digital: true
+        attributes:
+          Format: "PDF"
+          DRM: "None"
         channelListings: []
       - name: "Print"
         sku: "BOOK-002-PRT"
         weight: 0.9
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
         channelListings: []
 ```
 
@@ -215,7 +227,7 @@ Currently, it supports:
 - [x] Attributes and product types
 - [x] Page types with attributes
 - [x] Categories and subcategories
-- [x] Products with variants and SKUs
+- [x] Products with variants, SKUs, and attributes
 - [ ] Product variants with channel pricing and inventory
 - [ ] Warehouses and shipping zones
 - [ ] Collections and discounts

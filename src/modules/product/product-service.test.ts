@@ -5,6 +5,7 @@ import type { ProductInput } from "../config/schema";
 
 const mockRepository: ProductOperations = {
   createProduct: vi.fn(),
+  updateProduct: vi.fn(),
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
@@ -12,6 +13,7 @@ const mockRepository: ProductOperations = {
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
   getCategoryByPath: vi.fn(),
+  getAttributeByName: vi.fn(),
 };
 
 describe("ProductService", () => {

@@ -334,6 +334,7 @@ const productVariantSchema = z.object({
   sku: z.string(),
   weight: z.number().optional(),
   digital: z.boolean().optional(),
+  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
   channelListings: z.array(productVariantChannelListingSchema),
 });
 
