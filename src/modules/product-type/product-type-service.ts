@@ -110,4 +110,8 @@ export class ProductTypeService {
 
     return productType;
   }
+
+  async getProductTypeByName(name: string) {
+    return this.repository.getProductTypeByName(name);
+  }
 }

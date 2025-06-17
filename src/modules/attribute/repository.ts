@@ -74,6 +74,7 @@ export interface AttributeOperations {
   getAttributesByNames(
     input: GetAttributesByNamesInput
   ): Promise<Attribute[] | null | undefined>;
+  getAttributeByName(name: string): Promise<Attribute | null | undefined>;
 }
 
 export class AttributeRepository implements AttributeOperations {
@@ -104,7 +105,12 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     return result.data?.attributes?.edges?.map(
-      (edge) => edge.node as Attribute
+      (edge: any) => edge.node as Attribute
     );
+  }
+
+  async getAttributeByName(name: string): Promise<Attribute | null | undefined> {
+    const attributes = await this.getAttributesByNames({ names: [name] });
+    return attributes?.[0];
   }
 }

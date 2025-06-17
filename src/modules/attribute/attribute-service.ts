@@ -61,4 +61,8 @@ export class AttributeService {
 
     return createdAttributes;
   }
+
+  async getAttributeByName(name: string) {
+    return this.repository.getAttributeByName(name);
+  }
 }

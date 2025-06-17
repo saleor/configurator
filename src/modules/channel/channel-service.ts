@@ -149,4 +149,14 @@ export class ChannelService {
       throw error;
     }
   }
+
+  async getAllChannels() {
+    return this.repository.getChannels();
+  }
+
+  async getChannelsBySlug(slugs: string[]) {
+    logger.debug("Getting channels by slug", { slugs });
+    const channels = await this.repository.getChannels();
+    return channels?.filter((channel) => slugs.includes(channel.slug)) || [];
+  }
 }

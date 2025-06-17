@@ -86,4 +86,22 @@ export class CategoryService {
 
     return category;
   }
+
+  async getCategoryBySlug(slug: string) {
+    return this.repository.getCategoryBySlug(slug);
+  }
+
+  async getCategoriesBySlugs(slugs: string[]) {
+    logger.debug("Getting categories by slugs", { slugs });
+    const categories = [];
+    
+    for (const slug of slugs) {
+      const category = await this.getCategoryBySlug(slug);
+      if (category) {
+        categories.push(category);
+      }
+    }
+    
+    return categories;
+  }
 }

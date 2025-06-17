@@ -6,15 +6,27 @@ import { CategoryService } from "../modules/category/category-service";
 import { CategoryRepository } from "../modules/category/repository";
 import { ChannelService } from "../modules/channel/channel-service";
 import { ChannelRepository } from "../modules/channel/repository";
+import { CollectionService } from "../modules/collection/collection-service";
+import { CollectionRepository } from "../modules/collection/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import { PageTypeService } from "../modules/page-type/page-type-service";
 import { PageTypeRepository } from "../modules/page-type/repository";
+import { ProductService } from "../modules/product/product-service";
+import { ProductRepository } from "../modules/product/repository";
 import { ProductTypeService } from "../modules/product-type/product-type-service";
 import { ProductTypeRepository } from "../modules/product-type/repository";
 import { ShopService } from "../modules/shop/shop-service";
 import { ShopRepository } from "../modules/shop/repository";
+import { WarehouseService } from "../modules/warehouse/warehouse-service";
+import { WarehouseRepository } from "../modules/warehouse/repository";
+import { ShippingService } from "../modules/shipping/shipping-service";
+import { ShippingRepository } from "../modules/shipping/repository";
+import { TaxService } from "../modules/tax/tax-service";
+import { TaxRepository } from "../modules/tax/repository";
+import { VoucherService } from "../modules/voucher/voucher-service";
+import { VoucherRepository } from "../modules/voucher/repository";
 
 export interface ServiceContainer {
   readonly channel: ChannelService;
@@ -24,6 +36,13 @@ export interface ServiceContainer {
   readonly configuration: ConfigurationService;
   readonly configStorage: YamlConfigurationManager;
   readonly category: CategoryService;
+  readonly warehouse: WarehouseService;
+  readonly collection: CollectionService;
+  readonly product: ProductService;
+  readonly attribute: AttributeService;
+  readonly shipping: ShippingService;
+  readonly tax: TaxService;
+  readonly voucher: VoucherService;
 }
 
 export class ServiceComposer {
@@ -37,6 +56,12 @@ export class ServiceComposer {
       shop: new ShopRepository(client),
       configuration: new ConfigurationRepository(client),
       category: new CategoryRepository(client),
+      warehouse: new WarehouseRepository(client),
+      collection: new CollectionRepository(client),
+      product: new ProductRepository(client),
+      shipping: new ShippingRepository(client),
+      tax: new TaxRepository(client),
+      voucher: new VoucherRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -46,18 +71,47 @@ export class ServiceComposer {
       repositories.configuration,
       configStorage
     );
+    
+    const channelService = new ChannelService(repositories.channel);
+    const categoryService = new CategoryService(repositories.category);
+    const productTypeService = new ProductTypeService(
+      repositories.productType,
+      attributeService
+    );
+    const collectionService = new CollectionService(
+      repositories.collection,
+      channelService
+    );
+    const productService = new ProductService(
+      repositories.product,
+      channelService,
+      productTypeService,
+      categoryService,
+      collectionService,
+      attributeService
+    );
 
     return {
-      channel: new ChannelService(repositories.channel),
+      channel: channelService,
       pageType: new PageTypeService(repositories.pageType, attributeService),
-      productType: new ProductTypeService(
-        repositories.productType,
-        attributeService
-      ),
+      productType: productTypeService,
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,
-      category: new CategoryService(repositories.category),
+      category: categoryService,
+      warehouse: new WarehouseService(repositories.warehouse),
+      collection: collectionService,
+      product: productService,
+      attribute: attributeService,
+      shipping: new ShippingService(repositories.shipping, channelService),
+      tax: new TaxService(repositories.tax, channelService),
+      voucher: new VoucherService(
+        repositories.voucher, 
+        channelService, 
+        categoryService, 
+        collectionService, 
+        productService
+      ),
     };
   }
 }

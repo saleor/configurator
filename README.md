@@ -79,6 +79,70 @@ categories:
     subcategories:
       - name: "Science"
       - name: "History"
+
+warehouses:
+  - name: Main Warehouse
+    slug: main-warehouse
+    email: warehouse@example.com
+    address:
+      streetAddress1: 123 Warehouse Street
+      city: Warsaw
+      postalCode: 00-001
+      country: PL
+      phone: "+48123456789"
+
+collections:
+  - name: Summer Collection
+    slug: summer-collection
+    description: Best products for summer season
+    isPublished: true
+    channelListings:
+      - channelSlug: poland
+        isPublished: true
+
+products:
+  - name: The Great Novel
+    slug: the-great-novel
+    description: An amazing story that will captivate readers
+    productTypeName: Book
+    categorySlug: fiction
+    collections:
+      - summer-collection
+    weight: 0.5
+    rating: 4.5
+    attributes:
+      - name: Author
+        value: John Doe
+      - name: Genre
+        value: Fiction
+    channelListings:
+      - channelSlug: poland
+        isPublished: true
+        visibleInListings: true
+        isAvailableForPurchase: true
+    variants:
+      - sku: TGN-HARDCOVER
+        name: Hardcover Edition
+        weight: 0.7
+        trackInventory: true
+        channelListings:
+          - channelSlug: poland
+            price: 79.99
+            costPrice: 45.00
+        stocks:
+          - warehouseSlug: main-warehouse
+            quantity: 100
+      - sku: TGN-PAPERBACK
+        name: Paperback Edition
+        weight: 0.5
+        trackInventory: true
+        channelListings:
+          - channelSlug: poland
+            price: 49.99
+            costPrice: 25.00
+        stocks:
+          - warehouseSlug: main-warehouse
+            quantity: 200
 ```
 
 ## Development
@@ -134,25 +198,36 @@ pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-tok
 
 Currently, it supports:
 
-- [x] Creating attributes
-- [x] Creating product types with attributes
-- [x] Creating page types with attributes
-- [x] Creating channels
-- [x] Reading the configuration from config.yml file
-- [x] Creating and updating channels with settings (payment, stock, order, checkout)
-- [x] Updating shop settings
-- [ ] Creating channels with warehouses
-- [ ] Creating channels with warehouses and shipping zones
-- [ ] Creating products
-- [ ] Creating products with variants
-- [ ] Creating discounts
-- [ ] Categories
-  - [x] Creating categories
-  - [x] Creating categories with subcategories
-  - [ ] Creating categories with products
-- [ ] Collections
-  - [ ] Creating collections
-  - [ ] Creating collections with products
+- [x] Shop Settings
+  - [x] Update general shop settings (mail, inventory, digital products, etc.)
+- [x] Channels
+  - [x] Create and update channels with full settings (payment, stock, order, checkout)
+- [x] Attributes
+  - [x] Create attributes of all types (text, dropdown, multiselect, boolean, numeric, date, reference, etc.)
+- [x] Product Types
+  - [x] Create product types with assigned attributes
+- [x] Page Types
+  - [x] Create page types with assigned attributes
+- [x] Categories
+  - [x] Create categories with nested subcategories hierarchy
+- [x] Warehouses
+  - [x] Create warehouses with full address details
+- [x] Collections
+  - [x] Create collections with channel assignments
+- [x] Products
+  - [x] Create products with attributes and channel listings
+  - [x] Create product variants with pricing and inventory
+  - [x] Manage stock levels per variant per warehouse
+- [x] Reading the configuration from YAML file
+
+Not yet supported:
+- [x] Shipping zones and methods
+- [x] Tax configuration
+- [x] Discounts and vouchers
+- [ ] Gift cards
+- [ ] Menus and navigation
+- [ ] Pages
+- [ ] Translations
 
 ### `pnpm pull`
 
