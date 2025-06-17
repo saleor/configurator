@@ -91,17 +91,6 @@ pnpm install
 
 This will install the dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
-### Environment variables
-
-```bash
-cp .env.example .env
-```
-
-This will create a `.env` file. Here are the variables you need to set:
-
-- `APP_TOKEN`: An app token with the necessary permissions to create the data models. You can create one by going to _Configuration_ → _Webhooks & Events_ in the Saleor dashboard.
-- `SALEOR_API_URL`: The URL of the Saleor instance you want to use.
-
 ## Commands
 
 ### `pnpm push`
