@@ -91,6 +91,25 @@ pnpm install
 
 This will install the dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
+### Versioning
+
+This project uses [Changesets](https://github.com/changesets/changesets) for version management and changelog generation.
+
+Please execute the following command when making changes that should be released:
+
+```bash
+# Document your changes
+pnpm changeset
+```
+
+**Automated workflow:**
+
+1. PRs require changesets (enforced by CI)
+2. When PRs with changesets are merged, a Release PR is automatically created
+3. Merging the Release PR finalizes the version and creates a GitHub release
+
+**Skip changesets:** Add the `skip-changeset` label to PRs that don't need versioning (docs, tests, internal changes).
+
 ## Commands
 
 ### `pnpm push`
