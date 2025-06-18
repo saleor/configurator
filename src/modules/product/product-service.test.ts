@@ -78,6 +78,7 @@ describe("ProductService", () => {
         slug: "test-book",
         productType: "pt-1",
         category: "cat-1",
+        attributes: [],
       });
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
@@ -86,7 +87,7 @@ describe("ProductService", () => {
         sku: "BOOK-001-HC",
         trackInventory: true,
         weight: 1.2,
-        stocks: [{ warehouse: "", quantity: 100 }],
+        attributes: [],
       });
 
       expect(result.product).toEqual(mockProduct);
@@ -101,7 +102,17 @@ describe("ProductService", () => {
         category: { id: "cat-1", name: "Fiction" },
       };
 
+      // Set up all required mocks
       vi.mocked(mockRepository.getProductByName).mockResolvedValue(existingProduct);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
 
       const mockVariant = {
         id: "var-1",
@@ -111,11 +122,18 @@ describe("ProductService", () => {
         channelListings: [],
       };
 
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct);
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant);
 
       const result = await service.bootstrapProduct(mockProductInput);
 
       expect(mockRepository.createProduct).not.toHaveBeenCalled();
+      expect(mockRepository.updateProduct).toHaveBeenCalledWith("prod-1", {
+        name: "Test Book",
+        slug: "test-book",
+        category: "cat-1",
+        attributes: [],
+      });
       expect(result.product).toEqual(existingProduct);
     });
 
