@@ -1,0 +1,57 @@
+name: Update Schema Documentation
+
+on:
+  push:
+    paths:
+      - "src/modules/config/schema.ts"
+      - "scripts/generate-schema-docs.ts"
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/modules/config/schema.ts"
+      - "scripts/generate-schema-docs.ts"
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate schema docs
+        run: pnpm run generate-docs
+
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit updated docs
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add SCHEMA.md
+          git commit -m "docs: auto-update schema documentation
+
+          🤖 Generated with GitHub Actions"
+          git push

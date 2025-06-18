@@ -2,6 +2,7 @@
   "name": "saleor-configurator",
   "version": "0.1.0",
   "type": "module",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=8.0.0"
@@ -13,6 +14,7 @@
     "push": "tsx src/commands/push.ts",
     "pull": "tsx src/commands/pull.ts",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
+    "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest",
     "changeset": "changeset",
