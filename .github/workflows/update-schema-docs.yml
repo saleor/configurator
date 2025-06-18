@@ -6,10 +6,6 @@ on:
       - "src/modules/config/schema.ts"
       - "scripts/generate-schema-docs.ts"
     branches: [main]
-  pull_request:
-    paths:
-      - "src/modules/config/schema.ts"
-      - "scripts/generate-schema-docs.ts"
 
 jobs:
   update-docs:
