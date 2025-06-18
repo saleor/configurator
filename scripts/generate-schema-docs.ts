@@ -112,6 +112,19 @@ function analyzeZodSchema(
     return doc;
   }
 
+  // Handle discriminated unions and intersections
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    doc.type = "object";
+    return doc;
+  }
+
+  if (schema instanceof z.ZodIntersection) {
+    const left = analyzeZodSchema(schema._def.left, name);
+    const right = analyzeZodSchema(schema._def.right, name);
+    doc.type = `${left.type} & ${right.type}`;
+    return doc;
+  }
+
   // Handle basic types
   if (schema instanceof z.ZodString) {
     doc.type = "string";
@@ -144,14 +157,14 @@ function generateMarkdownDocs(
   const header = "#".repeat(Math.min(level + 1, 6));
   let markdown = `${header} ${schema.name}\n\n`;
 
-  // Add GraphQL field reference as a badge-like element
+  // Add GraphQL field reference
   if (schema.description && !enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]) {
-    markdown += `> **GraphQL**: \`${schema.description}\`\n\n`;
+    markdown += `**GraphQL Field**: \`${schema.description}\`\n\n`;
   }
 
   // Create a compact info table for primitive types
   if (!schema.properties || schema.properties.length === 0) {
-    markdown += "| | |\n";
+    markdown += "| Property | Value |\n";
     markdown += "|---|---|\n";
     markdown += `| **Type** | \`${schema.type}\` |\n`;
     markdown += `| **Required** | ${schema.optional ? "No" : "Yes"} |\n`;

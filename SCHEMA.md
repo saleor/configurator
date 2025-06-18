@@ -22,36 +22,36 @@ Global shop settings that apply to the entire Saleor instance
 
 ### headerText
 
-> **GraphQL**: `Shop.headerText`
+**GraphQL Field**: `Shop.headerText`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
 
 ### description
 
-> **GraphQL**: `Shop.description`
+**GraphQL Field**: `Shop.description`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
 
 ### trackInventoryByDefault
 
-> **GraphQL**: `Shop.trackInventoryByDefault`
+**GraphQL Field**: `Shop.trackInventoryByDefault`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### defaultWeightUnit
 
-> **GraphQL**: `Shop.defaultWeightUnit`
+**GraphQL Field**: `Shop.defaultWeightUnit`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `enum` |
 | **Required** | No |
@@ -59,126 +59,126 @@ Global shop settings that apply to the entire Saleor instance
 
 ### automaticFulfillmentDigitalProducts
 
-> **GraphQL**: `Shop.automaticFulfillmentDigitalProducts`
+**GraphQL Field**: `Shop.automaticFulfillmentDigitalProducts`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### fulfillmentAutoApprove
 
-> **GraphQL**: `Shop.fulfillmentAutoApprove`
+**GraphQL Field**: `Shop.fulfillmentAutoApprove`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### fulfillmentAllowUnpaid
 
-> **GraphQL**: `Shop.fulfillmentAllowUnpaid`
+**GraphQL Field**: `Shop.fulfillmentAllowUnpaid`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### defaultDigitalMaxDownloads
 
-> **GraphQL**: `Shop.defaultDigitalMaxDownloads`
+**GraphQL Field**: `Shop.defaultDigitalMaxDownloads`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 ### defaultDigitalUrlValidDays
 
-> **GraphQL**: `Shop.defaultDigitalUrlValidDays`
+**GraphQL Field**: `Shop.defaultDigitalUrlValidDays`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 ### defaultMailSenderName
 
-> **GraphQL**: `Shop.defaultMailSenderName`
+**GraphQL Field**: `Shop.defaultMailSenderName`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
 
 ### defaultMailSenderAddress
 
-> **GraphQL**: `Shop.defaultMailSenderAddress`
+**GraphQL Field**: `Shop.defaultMailSenderAddress`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
 
 ### customerSetPasswordUrl
 
-> **GraphQL**: `Shop.customerSetPasswordUrl`
+**GraphQL Field**: `Shop.customerSetPasswordUrl`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | No |
 
 ### reserveStockDurationAnonymousUser
 
-> **GraphQL**: `Shop.reserveStockDurationAnonymousUser`
+**GraphQL Field**: `Shop.reserveStockDurationAnonymousUser`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 ### reserveStockDurationAuthenticatedUser
 
-> **GraphQL**: `Shop.reserveStockDurationAuthenticatedUser`
+**GraphQL Field**: `Shop.reserveStockDurationAuthenticatedUser`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 ### limitQuantityPerCheckout
 
-> **GraphQL**: `Shop.limitQuantityPerCheckout`
+**GraphQL Field**: `Shop.limitQuantityPerCheckout`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 ### enableAccountConfirmationByEmail
 
-> **GraphQL**: `Shop.enableAccountConfirmationByEmail`
+**GraphQL Field**: `Shop.enableAccountConfirmationByEmail`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### allowLoginWithoutConfirmation
 
-> **GraphQL**: `Shop.allowLoginWithoutConfirmation`
+**GraphQL Field**: `Shop.allowLoginWithoutConfirmation`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 ### displayGrossPrices
 
-> **GraphQL**: `Shop.displayGrossPrices`
+**GraphQL Field**: `Shop.displayGrossPrices`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
@@ -191,27 +191,27 @@ Sales channels for different markets, regions, or customer segments
 
 ### name
 
-> **GraphQL**: `Channel.name`
+**GraphQL Field**: `Channel.name`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### currencyCode
 
-> **GraphQL**: `Channel.currencyCode`
+**GraphQL Field**: `Channel.currencyCode`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### defaultCountry
 
-> **GraphQL**: `Channel.defaultCountry.code`
+**GraphQL Field**: `Channel.defaultCountry.code`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `enum` |
 | **Required** | Yes |
@@ -219,24 +219,24 @@ Sales channels for different markets, regions, or customer segments
 
 ### slug
 
-> **GraphQL**: `Channel.slug`
+**GraphQL Field**: `Channel.slug`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### settings
 
-> **GraphQL**: `Channel settings`
+**GraphQL Field**: `Channel settings`
 
 **Type**: `object` (optional)
 
 #### allocationStrategy
 
-> **GraphQL**: `Channel.stockSettings.allocationStrategy`
+**GraphQL Field**: `Channel.stockSettings.allocationStrategy`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `enum` |
 | **Required** | No |
@@ -244,45 +244,45 @@ Sales channels for different markets, regions, or customer segments
 
 #### automaticallyConfirmAllNewOrders
 
-> **GraphQL**: `Channel.orderSettings.automaticallyConfirmAllNewOrders`
+**GraphQL Field**: `Channel.orderSettings.automaticallyConfirmAllNewOrders`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### automaticallyFulfillNonShippableGiftCard
 
-> **GraphQL**: `Channel.orderSettings.automaticallyFulfillNonShippableGiftCard`
+**GraphQL Field**: `Channel.orderSettings.automaticallyFulfillNonShippableGiftCard`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### expireOrdersAfter
 
-> **GraphQL**: `Channel.orderSettings.expireOrdersAfter`
+**GraphQL Field**: `Channel.orderSettings.expireOrdersAfter`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 #### deleteExpiredOrdersAfter
 
-> **GraphQL**: `Channel.orderSettings.deleteExpiredOrdersAfter`
+**GraphQL Field**: `Channel.orderSettings.deleteExpiredOrdersAfter`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `number` |
 | **Required** | No |
 
 #### markAsPaidStrategy
 
-> **GraphQL**: `Channel.orderSettings.markAsPaidStrategy`
+**GraphQL Field**: `Channel.orderSettings.markAsPaidStrategy`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `enum` |
 | **Required** | No |
@@ -290,45 +290,45 @@ Sales channels for different markets, regions, or customer segments
 
 #### allowUnpaidOrders
 
-> **GraphQL**: `Channel.orderSettings.allowUnpaidOrders`
+**GraphQL Field**: `Channel.orderSettings.allowUnpaidOrders`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### includeDraftOrderInVoucherUsage
 
-> **GraphQL**: `Channel.orderSettings.includeDraftOrderInVoucherUsage`
+**GraphQL Field**: `Channel.orderSettings.includeDraftOrderInVoucherUsage`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### useLegacyErrorFlow
 
-> **GraphQL**: `Channel.checkoutSettings.useLegacyErrorFlow`
+**GraphQL Field**: `Channel.checkoutSettings.useLegacyErrorFlow`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### automaticallyCompleteFullyPaidCheckouts
 
-> **GraphQL**: `Channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts`
+**GraphQL Field**: `Channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `boolean` |
 | **Required** | No |
 
 #### defaultTransactionFlowStrategy
 
-> **GraphQL**: `Channel.paymentSettings.defaultTransactionFlowStrategy`
+**GraphQL Field**: `Channel.paymentSettings.defaultTransactionFlowStrategy`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `enum` |
 | **Required** | No |
@@ -342,20 +342,20 @@ Product type definitions with their associated attributes
 
 ### name
 
-> **GraphQL**: `ProductType.name / PageType.name`
+**GraphQL Field**: `ProductType.name / PageType.name`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### attributes
 
-> **GraphQL**: `ProductType.productAttributes / PageType.attributes`
+**GraphQL Field**: `ProductType.productAttributes / PageType.attributes`
 
-| | |
+| Property | Value |
 |---|---|
-| **Type** | `unknown[]` |
+| **Type** | `object[]` |
 | **Required** | Yes |
 | **Example** | `{"Color":"Red","Size":["S","M","L"]}` |
 
@@ -367,20 +367,20 @@ Page type definitions for CMS content
 
 ### name
 
-> **GraphQL**: `ProductType.name / PageType.name`
+**GraphQL Field**: `ProductType.name / PageType.name`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### attributes
 
-> **GraphQL**: `ProductType.productAttributes / PageType.attributes`
+**GraphQL Field**: `ProductType.productAttributes / PageType.attributes`
 
-| | |
+| Property | Value |
 |---|---|
-| **Type** | `unknown[]` |
+| **Type** | `object[]` |
 | **Required** | Yes |
 | **Example** | `{"Color":"Red","Size":["S","M","L"]}` |
 
@@ -392,18 +392,18 @@ Product category hierarchy
 
 ### name
 
-> **GraphQL**: `Category.name`
+**GraphQL Field**: `Category.name`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `string` |
 | **Required** | Yes |
 
 ### subcategories
 
-> **GraphQL**: `Category.children`
+**GraphQL Field**: `Category.children`
 
-| | |
+| Property | Value |
 |---|---|
 | **Type** | `recursive` |
 | **Required** | No |
