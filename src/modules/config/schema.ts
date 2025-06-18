@@ -53,8 +53,8 @@ export type AttributeInput = z.infer<typeof attributeSchema>;
 export type AttributeInputType = AttributeInput["inputType"];
 
 const pageOrProductTypeSchema = z.object({
-  name: z.string(),
-  attributes: z.array(noTypeAttributeSchema),
+  name: z.string().describe("ProductType.name / PageType.name"),
+  attributes: z.array(noTypeAttributeSchema).describe("ProductType.productAttributes / PageType.attributes"),
 });
 
 export type PageTypeInput = z.infer<typeof pageOrProductTypeSchema>;
@@ -90,31 +90,43 @@ const countryCodeSchema = z.enum([
 export type CountryCode = z.infer<typeof countryCodeSchema>;
 
 const channelSchema = z.object({
-  name: z.string(),
-  currencyCode: z.string(),
-  defaultCountry: countryCodeSchema,
-  slug: z.string(),
+  name: z.string().describe("Channel.name"),
+  currencyCode: z.string().describe("Channel.currencyCode"),
+  defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
+  slug: z.string().describe("Channel.slug"),
   settings: z
     .object({
       allocationStrategy: z
         .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
-        .optional(),
-      automaticallyConfirmAllNewOrders: z.boolean().optional(),
-      automaticallyFulfillNonShippableGiftCard: z.boolean().optional(),
-      expireOrdersAfter: z.number().optional(),
-      deleteExpiredOrdersAfter: z.number().optional(),
+        .optional()
+        .describe("Channel.stockSettings.allocationStrategy"),
+      automaticallyConfirmAllNewOrders: z.boolean().optional()
+        .describe("Channel.orderSettings.automaticallyConfirmAllNewOrders"),
+      automaticallyFulfillNonShippableGiftCard: z.boolean().optional()
+        .describe("Channel.orderSettings.automaticallyFulfillNonShippableGiftCard"),
+      expireOrdersAfter: z.number().optional()
+        .describe("Channel.orderSettings.expireOrdersAfter"),
+      deleteExpiredOrdersAfter: z.number().optional()
+        .describe("Channel.orderSettings.deleteExpiredOrdersAfter"),
       markAsPaidStrategy: z
         .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
-        .optional(),
-      allowUnpaidOrders: z.boolean().optional(),
-      includeDraftOrderInVoucherUsage: z.boolean().optional(),
-      useLegacyErrorFlow: z.boolean().optional(),
-      automaticallyCompleteFullyPaidCheckouts: z.boolean().optional(),
+        .optional()
+        .describe("Channel.orderSettings.markAsPaidStrategy"),
+      allowUnpaidOrders: z.boolean().optional()
+        .describe("Channel.orderSettings.allowUnpaidOrders"),
+      includeDraftOrderInVoucherUsage: z.boolean().optional()
+        .describe("Channel.orderSettings.includeDraftOrderInVoucherUsage"),
+      useLegacyErrorFlow: z.boolean().optional()
+        .describe("Channel.checkoutSettings.useLegacyErrorFlow"),
+      automaticallyCompleteFullyPaidCheckouts: z.boolean().optional()
+        .describe("Channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts"),
       defaultTransactionFlowStrategy: z
         .enum(["AUTHORIZATION", "CHARGE"])
-        .optional(),
+        .optional()
+        .describe("Channel.paymentSettings.defaultTransactionFlowStrategy"),
     })
-    .optional(),
+    .optional()
+    .describe("Channel settings"),
 });
 
 export type ChannelInput = z.infer<typeof channelSchema>;
@@ -122,28 +134,28 @@ export type ChannelInput = z.infer<typeof channelSchema>;
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
 export const shopSchema = z.object({
-  headerText: z.string().optional(),
-  description: z.string().optional(),
-  trackInventoryByDefault: z.boolean().optional(),
-  defaultWeightUnit: weightUnitEnum.optional(),
-  automaticFulfillmentDigitalProducts: z.boolean().optional(),
-  fulfillmentAutoApprove: z.boolean().optional(),
-  fulfillmentAllowUnpaid: z.boolean().optional(),
-  defaultDigitalMaxDownloads: z.number().optional(),
-  defaultDigitalUrlValidDays: z.number().optional(),
-  defaultMailSenderName: z.string().optional(),
-  defaultMailSenderAddress: z.string().optional(),
-  customerSetPasswordUrl: z.string().optional(),
-  reserveStockDurationAnonymousUser: z.number().optional(),
-  reserveStockDurationAuthenticatedUser: z.number().optional(),
-  limitQuantityPerCheckout: z.number().optional(),
-  enableAccountConfirmationByEmail: z.boolean().optional(),
-  allowLoginWithoutConfirmation: z.boolean().optional(),
-  displayGrossPrices: z.boolean().optional(),
+  headerText: z.string().optional().describe("Shop.headerText"),
+  description: z.string().optional().describe("Shop.description"),
+  trackInventoryByDefault: z.boolean().optional().describe("Shop.trackInventoryByDefault"),
+  defaultWeightUnit: weightUnitEnum.optional().describe("Shop.defaultWeightUnit"),
+  automaticFulfillmentDigitalProducts: z.boolean().optional().describe("Shop.automaticFulfillmentDigitalProducts"),
+  fulfillmentAutoApprove: z.boolean().optional().describe("Shop.fulfillmentAutoApprove"),
+  fulfillmentAllowUnpaid: z.boolean().optional().describe("Shop.fulfillmentAllowUnpaid"),
+  defaultDigitalMaxDownloads: z.number().optional().describe("Shop.defaultDigitalMaxDownloads"),
+  defaultDigitalUrlValidDays: z.number().optional().describe("Shop.defaultDigitalUrlValidDays"),
+  defaultMailSenderName: z.string().optional().describe("Shop.defaultMailSenderName"),
+  defaultMailSenderAddress: z.string().optional().describe("Shop.defaultMailSenderAddress"),
+  customerSetPasswordUrl: z.string().optional().describe("Shop.customerSetPasswordUrl"),
+  reserveStockDurationAnonymousUser: z.number().optional().describe("Shop.reserveStockDurationAnonymousUser"),
+  reserveStockDurationAuthenticatedUser: z.number().optional().describe("Shop.reserveStockDurationAuthenticatedUser"),
+  limitQuantityPerCheckout: z.number().optional().describe("Shop.limitQuantityPerCheckout"),
+  enableAccountConfirmationByEmail: z.boolean().optional().describe("Shop.enableAccountConfirmationByEmail"),
+  allowLoginWithoutConfirmation: z.boolean().optional().describe("Shop.allowLoginWithoutConfirmation"),
+  displayGrossPrices: z.boolean().optional().describe("Shop.displayGrossPrices"),
 });
 
 const baseCategorySchema = z.object({
-  name: z.string(),
+  name: z.string().describe("Category.name"),
 });
 
 type Category = z.infer<typeof baseCategorySchema> & {
@@ -151,18 +163,32 @@ type Category = z.infer<typeof baseCategorySchema> & {
 };
 
 const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
+  subcategories: z.lazy(() => categorySchema.array()).optional()
+    .describe("Category.children"),
+});
   subcategories: z.lazy(() => categorySchema.array()).optional(),
 });
 
 export const configSchema = z
   .object({
+    shop: shopSchema.optional()
+      .describe("Shop"),
+    channels: z.array(channelSchema).optional()
+      .describe("Channel"),
+    productTypes: z.array(pageOrProductTypeSchema).optional()
+      .describe("ProductType"),
+    pageTypes: z.array(pageOrProductTypeSchema).optional()
+      .describe("PageType"),
+    categories: z.array(categorySchema).optional()
+      .describe("Category"),
     productTypes: z.array(pageOrProductTypeSchema).optional(),
     channels: z.array(channelSchema).optional(),
     pageTypes: z.array(pageOrProductTypeSchema).optional(),
     shop: shopSchema.optional(),
     categories: z.array(categorySchema).optional(),
   })
-  .strict();
+  .strict()
+  .describe("Configuration");
 
 export type SaleorConfig = z.infer<typeof configSchema>;
 export type PageTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
