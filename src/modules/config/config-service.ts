@@ -121,7 +121,7 @@ export class ConfigurationService {
       return {
         name: attribute.name,
         inputType: "REFERENCE" as const,
-        entityType: attribute.entityType,
+        entityType: attribute.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT",
         type: attributeType,
       };
     }

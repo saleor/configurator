@@ -22,6 +22,7 @@ const getChannelsQuery = graphql(`
     channels {
       id
       name
+      slug
     }
   }
 `);
@@ -64,28 +65,28 @@ export interface ChannelOperations {
 export class ChannelRepository implements ChannelOperations {
   constructor(private client: Client) {}
 
-  async createChannel(input: ChannelCreateInput) {
+  async createChannel(input: ChannelCreateInput): Promise<Channel> {
     const result = await this.client.mutation(createChannelMutation, {
       input,
     });
 
     if (!result.data?.channelCreate?.channel) {
-      throw new Error("Failed to create channel", result.error);
+      throw new Error("Failed to create channel");
     }
 
     const channel = result.data.channelCreate.channel;
 
     logger.info("Channel created", { channel });
 
-    return channel;
+    return channel as Channel;
   }
 
-  async getChannels() {
+  async getChannels(): Promise<Channel[] | null | undefined> {
     const result = await this.client.query(getChannelsQuery, {});
     return result.data?.channels;
   }
 
-  async updateChannel(id: string, input: ChannelUpdateInput) {
+  async updateChannel(id: string, input: ChannelUpdateInput): Promise<Channel | null | undefined> {
     const result = await this.client.mutation(updateChannelMutation, {
       id,
       input,
@@ -98,11 +99,11 @@ export class ChannelRepository implements ChannelOperations {
     if (result.data?.channelUpdate?.errors.length) {
       throw new Error(
         `Failed to update channel: ${result.data.channelUpdate.errors
-          .map((e) => e.message)
+          .map((e: any) => e.message)
           .join(", ")}`
       );
     }
 
-    return result.data?.channelUpdate?.channel;
+    return result.data?.channelUpdate?.channel as Channel;
   }
 }

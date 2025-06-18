@@ -120,18 +120,68 @@ export class SaleorConfigurator {
         );
       }
 
+      if (config.pages) {
+        logger.debug(`Bootstrapping ${config.pages.length} pages`);
+        quaternaryTasks.push(
+          this.services.page.upsertPages(config.pages)
+        );
+      }
+
       await Promise.all(quaternaryTasks);
       logger.info("Quaternary bootstrap tasks completed");
 
-      // Execute entities that depend on products
+      // Execute entities that depend on products and pages
+      const quinaryTasks = [];
+
       if (config.vouchers) {
         logger.debug(`Bootstrapping ${config.vouchers.length} vouchers`);
-        await this.services.voucher.upsertVouchers(config.vouchers);
+        quinaryTasks.push(
+          this.services.voucher.upsertVouchers(config.vouchers)
+        );
       }
 
       if (config.sales) {
         logger.debug(`Bootstrapping ${config.sales.length} sales`);
-        await this.services.voucher.upsertSales(config.sales);
+        quinaryTasks.push(
+          this.services.voucher.upsertSales(config.sales)
+        );
+      }
+
+      if (config.giftCards) {
+        if (config.giftCards.individual) {
+          logger.debug(`Bootstrapping ${config.giftCards.individual.length} individual gift cards`);
+          quinaryTasks.push(
+            this.services.giftCard.createGiftCards(config.giftCards.individual)
+          );
+        }
+        
+        if (config.giftCards.bulk) {
+          logger.debug(`Bootstrapping bulk gift cards`);
+          quinaryTasks.push(
+            Promise.all(
+              config.giftCards.bulk.map((bulk) =>
+                this.services.giftCard.bulkCreateGiftCards(bulk)
+              )
+            )
+          );
+        }
+      }
+
+      if (config.menus) {
+        logger.debug(`Bootstrapping ${config.menus.length} menus`);
+        quinaryTasks.push(
+          this.services.menu.upsertMenus(config.menus)
+        );
+      }
+
+      await Promise.all(quinaryTasks);
+      logger.info("Quinary bootstrap tasks completed");
+
+      // Execute translations last as they depend on all entities
+      if (config.translations) {
+        logger.debug(`Bootstrapping ${config.translations.length} translations`);
+        await this.services.translation.applyTranslations(config.translations);
+        logger.info("Translations applied successfully");
       }
 
       logger.info("Bootstrap process completed successfully");

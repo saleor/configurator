@@ -14,7 +14,6 @@ const createCollectionMutation = graphql(`
       errors {
         field
         message
-        code
       }
     }
   }
@@ -33,6 +32,23 @@ const updateCollectionMutation = graphql(`
         field
         message
         code
+      }
+    }
+  }
+`);
+
+const publishCollectionMutation = graphql(`
+  mutation PublishCollection($id: ID!, $input: CollectionChannelListingUpdateInput!) {
+    collectionChannelListingUpdate(id: $id, input: $input) {
+      collection {
+        id
+        name
+        slug
+        description
+      }
+      errors {
+        field
+        message
       }
     }
   }
@@ -206,10 +222,13 @@ export class CollectionRepository implements CollectionOperations {
     collectionId: string,
     productIds: string[]
   ): Promise<Collection> {
-    const result = await this.client.mutation(collectionAddProductsMutation, {
-      collectionId,
-      products: productIds,
-    });
+    const result = await this.client.mutation(
+      collectionAddProductsMutation,
+      {
+        collectionId,
+        products: productIds,
+      }
+    );
 
     if (result.error) {
       throw new Error(
@@ -230,18 +249,20 @@ export class CollectionRepository implements CollectionOperations {
       throw new Error("Failed to add products to collection: no data returned");
     }
 
-    logger.info(`Products added to collection: ${collection.name}`);
-    return collection;
+    return collection as Collection;
   }
 
   async removeProductsFromCollection(
     collectionId: string,
     productIds: string[]
   ): Promise<Collection> {
-    const result = await this.client.mutation(collectionRemoveProductsMutation, {
-      collectionId,
-      products: productIds,
-    });
+    const result = await this.client.mutation(
+      collectionRemoveProductsMutation,
+      {
+        collectionId,
+        products: productIds,
+      }
+    );
 
     if (result.error) {
       throw new Error(
@@ -262,18 +283,20 @@ export class CollectionRepository implements CollectionOperations {
       throw new Error("Failed to remove products from collection: no data returned");
     }
 
-    logger.info(`Products removed from collection: ${collection.name}`);
-    return collection;
+    return collection as Collection;
   }
 
   async updateCollectionChannelListings(
     id: string,
     input: CollectionChannelListingUpdateInput
   ): Promise<Collection> {
-    const result = await this.client.mutation(collectionChannelListingUpdateMutation, {
-      id,
-      input,
-    });
+    const result = await this.client.mutation(
+      collectionChannelListingUpdateMutation,
+      {
+        id,
+        input,
+      }
+    );
 
     if (result.error) {
       throw new Error(
@@ -294,7 +317,6 @@ export class CollectionRepository implements CollectionOperations {
       throw new Error("Failed to update collection channel listings: no data returned");
     }
 
-    logger.info(`Collection channel listings updated: ${collection.name}`);
-    return collection;
+    return collection as Collection;
   }
 } 

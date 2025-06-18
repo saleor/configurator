@@ -27,6 +27,14 @@ import { TaxService } from "../modules/tax/tax-service";
 import { TaxRepository } from "../modules/tax/repository";
 import { VoucherService } from "../modules/voucher/voucher-service";
 import { VoucherRepository } from "../modules/voucher/repository";
+import { GiftCardService } from "../modules/gift-card/gift-card-service";
+import { GiftCardRepository } from "../modules/gift-card/repository";
+import { MenuService } from "../modules/menu/menu-service";
+import { MenuRepository } from "../modules/menu/repository";
+import { PageService } from "../modules/page/page-service";
+import { PageRepository } from "../modules/page/repository";
+import { TranslationService } from "../modules/translation/translation-service";
+import { TranslationRepository } from "../modules/translation/repository";
 
 export interface ServiceContainer {
   readonly channel: ChannelService;
@@ -43,6 +51,10 @@ export interface ServiceContainer {
   readonly shipping: ShippingService;
   readonly tax: TaxService;
   readonly voucher: VoucherService;
+  readonly giftCard: GiftCardService;
+  readonly menu: MenuService;
+  readonly page: PageService;
+  readonly translation: TranslationService;
 }
 
 export class ServiceComposer {
@@ -62,6 +74,10 @@ export class ServiceComposer {
       shipping: new ShippingRepository(client),
       tax: new TaxRepository(client),
       voucher: new VoucherRepository(client),
+      giftCard: new GiftCardRepository(client),
+      menu: new MenuRepository(client),
+      page: new PageRepository(client),
+      translation: new TranslationRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -90,10 +106,42 @@ export class ServiceComposer {
       collectionService,
       attributeService
     );
+    const pageTypeService = new PageTypeService(repositories.pageType, attributeService);
+    const pageService = new PageService(
+      repositories.page,
+      pageTypeService,
+      attributeService
+    );
+    const menuService = new MenuService(
+      repositories.menu,
+      categoryService,
+      collectionService,
+      pageService
+    );
+    const shippingService = new ShippingService(repositories.shipping, channelService);
+    const taxService = new TaxService(repositories.tax, channelService);
+    const voucherService = new VoucherService(
+      repositories.voucher, 
+      channelService, 
+      categoryService, 
+      collectionService, 
+      productService
+    );
+    const giftCardService = new GiftCardService(repositories.giftCard);
+    const translationService = new TranslationService(
+      repositories.translation,
+      productService,
+      collectionService,
+      categoryService,
+      pageService,
+      shippingService,
+      menuService,
+      attributeService
+    );
 
     return {
       channel: channelService,
-      pageType: new PageTypeService(repositories.pageType, attributeService),
+      pageType: pageTypeService,
       productType: productTypeService,
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
@@ -103,15 +151,13 @@ export class ServiceComposer {
       collection: collectionService,
       product: productService,
       attribute: attributeService,
-      shipping: new ShippingService(repositories.shipping, channelService),
-      tax: new TaxService(repositories.tax, channelService),
-      voucher: new VoucherService(
-        repositories.voucher, 
-        channelService, 
-        categoryService, 
-        collectionService, 
-        productService
-      ),
+      shipping: shippingService,
+      tax: taxService,
+      voucher: voucherService,
+      giftCard: giftCardService,
+      menu: menuService,
+      page: pageService,
+      translation: translationService,
     };
   }
 }

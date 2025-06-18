@@ -1,508 +1,329 @@
-# Saleor Configurator - AI/LLM Assistant Index
+# Saleor Configurator - AI/LLM Documentation Index
+
+## Quick Reference for AI Assistants
+
+This document provides structured information optimized for AI/LLM consumption to understand and work with the Saleor Configurator codebase.
 
 ## Project Overview
 
-The Saleor Configurator is a TypeScript-based infrastructure-as-code tool for managing Saleor e-commerce platform configurations. It enables declarative configuration management through YAML files, automating the setup and maintenance of Saleor instances.
+**Purpose**: Declarative configuration management for Saleor e-commerce platform via GraphQL API.
 
-### Core Purpose
-- **Configuration as Code**: Define entire e-commerce setup in YAML
-- **Idempotent Operations**: Safe to run multiple times
-- **Dependency Management**: Handles entity relationships automatically
-- **Multi-Environment Support**: Manage dev/staging/prod configurations
+**Tech Stack**:
+- Language: TypeScript
+- Runtime: Node.js (>=20)
+- Package Manager: pnpm
+- Key Libraries: @urql/core, gql.tada, zod, yaml, vitest
+- Architecture: Service/Repository pattern with dependency injection
 
-## Architecture Summary
+## Core Concepts
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  YAML Config    │────▶│   Configurator   │────▶│  Saleor GraphQL │
-│     Files       │     │    TypeScript    │     │      API        │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-                               │
-                    ┌──────────┴──────────┐
-                    │                     │
-              ┌─────▼─────┐        ┌─────▼─────┐
-              │  Services  │        │ Repositories│
-              │  (Logic)   │        │  (GraphQL)  │
-              └───────────┘        └─────────────┘
-```
-
-## Key Components
-
-### 1. Core System (`/src/core/`)
-
-#### Configurator (`configurator.ts`)
-- **Purpose**: Main orchestrator for push/pull operations
-- **Key Methods**:
-  - `push()`: Apply configuration to Saleor
-  - `pull()`: Retrieve current configuration
-- **Execution Order**: Handles dependencies automatically
-
-#### Service Container (`service-container.ts`)
-- **Purpose**: Dependency injection container
-- **Pattern**: Composition root pattern
-- **Services**: All business logic services
-
-### 2. Modules (`/src/modules/`)
-
-Each module follows the same pattern:
-- **Repository**: GraphQL operations
-- **Service**: Business logic and orchestration
-- **Types**: TypeScript interfaces
-
-#### Available Modules
-
-##### Shop (`/shop/`)
-- Global store settings
-- Default configurations
-- Business rules
-
-##### Channels (`/channel/`)
-- Multi-channel setup
-- Currency and country settings
-- Channel-specific configurations
-
-##### Product Management
-- **Product Types** (`/product-type/`): Product schemas with attributes
-- **Categories** (`/category/`): Hierarchical categorization
-- **Products** (`/product/`): Actual product catalog
-- **Collections** (`/collection/`): Product groupings
-
-##### Logistics
-- **Warehouses** (`/warehouse/`): Inventory locations
-- **Shipping** (`/shipping/`): Zones and methods
-
-##### Financial
-- **Tax** (`/tax/`): Tax classes and configurations
-
-##### Content
-- **Page Types** (`/page-type/`): Content schemas
-- **Attributes** (`/attribute/`): Reusable attribute definitions
-
-### 3. Configuration Schema (`/src/modules/config/schema.ts`)
-
-Uses Zod for runtime validation. Key schemas:
-
+### 1. Service Pattern
 ```typescript
-// Main configuration structure
-export const configSchema = z.object({
-  shop: shopSchema.optional(),
-  channels: z.array(channelSchema).optional(),
-  productTypes: z.array(productTypeSchema).optional(),
-  categories: z.array(categorySchema).optional(),
-  warehouses: z.array(warehouseSchema).optional(),
-  collections: z.array(collectionSchema).optional(),
-  products: z.array(productSchema).optional(),
-  shippingZones: z.array(shippingZoneSchema).optional(),
-  taxClasses: z.array(taxClassSchema).optional(),
-  // ... more entities
-});
+// Pattern: Each module has a service class managing business logic
+export class [Entity]Service {
+  constructor(
+    private readonly repository: [Entity]Repository,
+    // ... other service dependencies
+  ) {}
+  
+  async upsert[Entities](inputs: [Entity]Input[]): Promise<[Entity][]>
+}
 ```
 
-## YAML Configuration Structure
+### 2. Repository Pattern
+```typescript
+// Pattern: Each module has a repository handling GraphQL operations
+export class [Entity]Repository implements [Entity]Operations {
+  constructor(private readonly client: Client) {}
+  
+  async create[Entity](input: [Entity]CreateInput): Promise<[Entity]>
+  async update[Entity](id: string, input: [Entity]UpdateInput): Promise<[Entity]>
+  async get[Entity](identifier: string): Promise<[Entity] | null>
+}
+```
 
-### Basic Template
+### 3. Module Structure
+```
+src/modules/[entity]/
+├── [entity]-service.ts      # Business logic
+├── [entity]-service.test.ts # Unit tests
+└── repository.ts            # GraphQL operations
+```
 
+## Module Dependency Tree
+
+```
+Level 0 (No Dependencies):
+- shop
+- warehouse
+- attribute
+- category
+- gift-card
+
+Level 1 (Depends on Level 0):
+- channel → []
+- product-type → [attribute]
+- page-type → [attribute]
+
+Level 2 (Depends on Level 0-1):
+- collection → [channel]
+- tax → [channel]
+- shipping → [channel]
+
+Level 3 (Depends on Level 0-2):
+- product → [channel, product-type, category, collection, attribute]
+- page → [page-type, attribute]
+- voucher → [channel, category, collection, product]
+
+Level 4 (Depends on Level 0-3):
+- menu → [category, collection, page]
+
+Level 5 (Depends on All):
+- translation → [all entities]
+```
+
+## Entity Relationships
+
+### Products
+- **Requires**: productType (schema), category (optional), collections (optional)
+- **Has**: variants, attributes, channelListings, media
+- **Referenced by**: vouchers, translations
+
+### Channels
+- **Foundation entity**: Most entities have channel-specific settings
+- **Controls**: pricing, availability, tax, shipping
+
+### Attributes
+- **Types**: PRODUCT_TYPE, PAGE_TYPE
+- **Input Types**: DROPDOWN, MULTISELECT, PLAIN_TEXT, RICH_TEXT, NUMERIC, BOOLEAN, DATE, DATE_TIME, FILE, REFERENCE, SWATCH
+- **Used by**: products, pages via their types
+
+## Common Operations
+
+### 1. Creating Entities
+```typescript
+// All services follow upsert pattern
+await service.upsert[Entities]([
+  { 
+    // entity data
+    slug: "unique-identifier", // Most entities use slug as identifier
+    name: "Display Name",
+    // ... specific fields
+  }
+]);
+```
+
+### 2. Relationships
+```typescript
+// Reference by slug/name
+{
+  productType: "t-shirt",        // References product type by slug
+  category: "clothing",          // References category by slug
+  collections: ["summer-2024"],  // References collections by slug
+  channelListings: [
+    { channel: "default-channel" } // References channel by slug
+  ]
+}
+```
+
+### 3. Error Handling
+- All services throw descriptive errors
+- GraphQL errors are wrapped with context
+- Validation happens at schema level (Zod)
+
+## Configuration Schema
+
+### Root Structure
 ```yaml
-# Shop-level settings
-shop:
-  headerText: "Store Name"
-  trackInventoryByDefault: true
-  defaultWeightUnit: KG
-
-# Define channels first (many entities depend on them)
-channels:
-  - name: "Main Channel"
-    slug: "main"
-    currencyCode: "USD"
-    defaultCountry: "US"
-
-# Product structure
-productTypes:
-  - name: "Physical Product"
-    attributes:
-      - name: "Size"
-        inputType: DROPDOWN
-        values:
-          - name: "S"
-          - name: "M"
-          - name: "L"
-
-# Categories (hierarchical)
-categories:
-  - name: "Clothing"
-    subcategories:
-      - name: "T-Shirts"
-
-# Warehouses for inventory
-warehouses:
-  - name: "Main Warehouse"
-    slug: "main-wh"
-    address:
-      streetAddress1: "123 Main St"
-      city: "New York"
-      postalCode: "10001"
-      country: "US"
-
-# Products (depends on types, categories, warehouses)
-products:
-  - name: "Basic T-Shirt"
-    slug: "basic-tshirt"
-    productTypeName: "Physical Product"
-    categorySlug: "t-shirts"
-    variants:
-      - sku: "TSHIRT-001"
-        stocks:
-          - warehouseSlug: "main-wh"
-            quantity: 100
+shop: {}                  # Global settings
+channels: []              # Sales channels
+warehouses: []            # Inventory locations
+attributes: []            # Custom fields
+productTypes: []          # Product schemas
+pageTypes: []             # Page schemas
+categories: []            # Product categorization
+collections: []           # Product groupings
+products: []              # Products and variants
+pages: []                 # Content pages
+menus: []                 # Navigation
+shippingZones: []         # Shipping configuration
+taxClasses: []            # Tax categories
+taxConfiguration: []      # Channel tax settings
+vouchers: []              # Discounts
+giftCards: {}             # Gift cards (individual/bulk)
+translations: []          # Multi-language content
 ```
 
-## Entity Dependencies
+## Testing Patterns
 
-### Dependency Graph
-```
-Shop Settings (no dependencies)
-    │
-    ├─→ Channels
-    │      ├─→ Warehouses
-    │      ├─→ Collections
-    │      └─→ Shipping Zones
-    │
-    ├─→ Product Types ─→ Products
-    │
-    └─→ Categories ────→ Products
+### Service Tests
+```typescript
+// Mock pattern for services
+const mockRepository = {
+  createEntity: vi.fn(),
+  updateEntity: vi.fn(),
+  getEntity: vi.fn(),
+} as unknown as EntityRepository;
+
+const service = new EntityService(mockRepository, ...dependencies);
 ```
 
-### Key Rules
-1. **Channels** must exist before most other entities
-2. **Product Types** must exist before products
-3. **Categories** must exist before products can reference them
-4. **Warehouses** must exist before product stock
+### Common Test Scenarios
+1. Create when doesn't exist
+2. Update when exists
+3. Handle missing dependencies
+4. Error handling
 
-## Common AI/LLM Tasks
+## GraphQL Patterns
 
-### 1. Creating a Basic Store Configuration
-
-```yaml
-# Minimal viable configuration
-shop:
-  headerText: "My Store"
-
-channels:
-  - name: "Default"
-    slug: "default"
-    currencyCode: "USD"
-    defaultCountry: "US"
-
-productTypes:
-  - name: "Simple Product"
-    attributes: []
-
-warehouses:
-  - name: "Default Warehouse"
-    slug: "default"
-    address:
-      streetAddress1: "123 Main St"
-      city: "City"
-      postalCode: "12345"
-      country: "US"
+### Query Structure
+```graphql
+query GetEntity($identifier: String!) {
+  entity(slug: $identifier) {
+    id
+    # ... fields
+  }
+}
 ```
 
-### 2. Multi-Channel Setup
-
-```yaml
-channels:
-  - name: "B2C US"
-    slug: "b2c-us"
-    currencyCode: "USD"
-    defaultCountry: "US"
-    
-  - name: "B2C EU"
-    slug: "b2c-eu"
-    currencyCode: "EUR"
-    defaultCountry: "DE"
-    
-  - name: "B2B"
-    slug: "b2b"
-    currencyCode: "USD"
-    defaultCountry: "US"
-    settings:
-      allowUnpaidOrders: true
+### Mutation Structure
+```graphql
+mutation CreateEntity($input: EntityCreateInput!) {
+  entityCreate(input: $input) {
+    entity {
+      id
+      # ... fields
+    }
+    errors {
+      field
+      message
+      code
+    }
+  }
+}
 ```
 
-### 3. Complex Product with Variants
+## File Naming Conventions
 
-```yaml
-productTypes:
-  - name: "Apparel"
-    attributes:
-      - name: "Color"
-        inputType: SWATCH
-        values:
-          - name: "Red"
-          - name: "Blue"
-      - name: "Size"
-        inputType: DROPDOWN
-        values:
-          - name: "S"
-          - name: "M"
-          - name: "L"
+- Services: `[entity]-service.ts`
+- Tests: `[entity]-service.test.ts`
+- Repositories: `repository.ts`
+- Types/Schema: Embedded in service/repository files
 
-products:
-  - name: "Designer T-Shirt"
-    slug: "designer-tshirt"
-    productTypeName: "Apparel"
-    variants:
-      - sku: "DT-RED-S"
-        attributes:
-          - name: "Color"
-            value: "Red"
-          - name: "Size"
-            value: "S"
-        channelListings:
-          - channelSlug: "b2c-us"
-            price: 29.99
-```
+## Environment Configuration
 
-## Schema Validation Rules
+Required variables:
+- `GRAPHQL_ENDPOINT`: Saleor GraphQL URL
+- `SALEOR_APP_TOKEN`: Authentication token
+- `LOG_LEVEL`: Logging verbosity (debug|info|warn|error)
 
-### Required Fields by Entity
+Optional:
+- `CONFIG_PATH`: YAML config location (default: ./saleor-config.yml)
 
-#### Channel
-- `name`: string
-- `slug`: string (unique)
-- `currencyCode`: string (3-letter ISO)
-- `defaultCountry`: string (2-letter ISO)
+## Command Usage
 
-#### Product Type
-- `name`: string
-- `attributes`: array (can be empty)
-
-#### Product
-- `name`: string
-- `slug`: string (unique)
-- `productTypeName`: string (must exist)
-
-#### Warehouse
-- `name`: string
-- `slug`: string (unique)
-- `address.streetAddress1`: string
-- `address.city`: string
-- `address.postalCode`: string
-- `address.country`: string (2-letter ISO)
-
-### Attribute Input Types
-
-```yaml
-# Text inputs
-- inputType: PLAIN_TEXT    # Single line
-- inputType: RICH_TEXT     # Multi-line with formatting
-
-# Numeric
-- inputType: NUMERIC       # Numbers only
-
-# Date/Time
-- inputType: DATE          # Date picker
-- inputType: DATE_TIME     # Date and time picker
-
-# Boolean
-- inputType: BOOLEAN       # Yes/No
-
-# Selection
-- inputType: DROPDOWN      # Single selection
-- inputType: MULTISELECT   # Multiple selections
-- inputType: SWATCH        # Color/pattern swatches
-
-# File
-- inputType: FILE          # File upload
-
-# Reference
-- inputType: REFERENCE     # Link to other entities
-  entityType: PRODUCT      # PRODUCT, PAGE, or PRODUCT_VARIANT
-```
-
-## Error Handling Patterns
-
-### Common Issues and Solutions
-
-1. **Missing Dependencies**
-```yaml
-# ERROR: Product type "Electronics" not found
-products:
-  - productTypeName: "Electronics"  # Must create this first
-
-# SOLUTION: Define product type before products
-productTypes:
-  - name: "Electronics"
-    attributes: []
-```
-
-2. **Invalid References**
-```yaml
-# ERROR: Channel "us-store" not found
-products:
-  - channelListings:
-      - channelSlug: "us-store"  # Typo or doesn't exist
-
-# SOLUTION: Use exact slug from channels section
-channels:
-  - slug: "us"  # Use this exact value
-```
-
-3. **Type Mismatches**
-```yaml
-# ERROR: Invalid attribute value type
-attributes:
-  - name: "Price"
-    inputType: NUMERIC
-    value: "Twenty"  # Should be number
-
-# SOLUTION: Match value type to inputType
-value: 20
-```
-
-## Best Practices for AI/LLM Usage
-
-### 1. Always Validate Context
-- Check which entities already exist
-- Verify referenced names/slugs
-- Understand the current state
-
-### 2. Follow Dependency Order
-- Create channels first
-- Then product types and categories
-- Finally products and variants
-
-### 3. Use Descriptive Names
-- Names should be human-readable
-- Slugs should be URL-friendly
-- SKUs should follow a pattern
-
-### 4. Handle Multi-Environment
-```yaml
+```bash
 # Development
-channels:
-  - name: "Dev Channel"
-    slug: "dev"
-    
-# Production
-channels:
-  - name: "Main Store"
-    slug: "main"
+pnpm install              # Install dependencies
+pnpm test                # Run tests
+pnpm run pull            # Pull config from Saleor
+pnpm run push            # Push config to Saleor
+
+# With arguments
+pnpm run push -- --config ./custom-config.yml
 ```
 
-## Advanced Patterns
+## Common Tasks for AI
 
-### Dynamic Attribute Assignment
+### Adding a New Entity Module
 
-```yaml
-# Product with dynamic attributes based on type
-products:
-  - name: "Laptop"
-    productTypeName: "Electronics"
-    attributes:
-      - name: "RAM"
-        value: "16GB"
-      - name: "Storage"
-        value: "512GB SSD"
-```
+1. Create module directory: `src/modules/[entity]/`
+2. Implement repository with GraphQL operations
+3. Implement service with business logic
+4. Add tests following existing patterns
+5. Update service container
+6. Update configurator bootstrap order
+7. Update schema in `config/schema.ts`
 
-### Hierarchical Categories
+### Modifying Existing Modules
 
-```yaml
-categories:
-  - name: "Electronics"
-    subcategories:
-      - name: "Computers"
-        subcategories:
-          - name: "Laptops"
-          - name: "Desktops"
-      - name: "Mobile"
-        subcategories:
-          - name: "Smartphones"
-          - name: "Tablets"
-```
+1. Check dependencies in service container
+2. Update both service and repository if needed
+3. Update tests
+4. Consider impact on dependent modules
 
-### Multi-Warehouse Stock
+### Debugging Issues
 
-```yaml
-variants:
-  - sku: "PROD-001"
-    stocks:
-      - warehouseSlug: "us-east"
-        quantity: 50
-      - warehouseSlug: "us-west"
-        quantity: 30
-      - warehouseSlug: "eu-central"
-        quantity: 100
-```
+1. Check bootstrap order in configurator
+2. Verify entity exists (pull from Saleor first)
+3. Check GraphQL permissions
+4. Enable debug logging: `LOG_LEVEL=debug`
 
-## Troubleshooting Guide
+## Type Safety
 
-### Debug Information
-- Enable debug logging: `LOG_LEVEL=debug`
-- Check GraphQL responses
-- Validate YAML syntax
-- Verify API permissions
+- All inputs validated by Zod schemas
+- GraphQL types generated by gql.tada
+- Strict TypeScript configuration
+- Runtime validation for API responses
 
-### Common GraphQL Errors
-- `GRAPHQL_VALIDATION_FAILED`: Schema mismatch
-- `PERMISSION_DENIED`: Insufficient API token permissions
-- `NOT_FOUND`: Referenced entity doesn't exist
-- `UNIQUE_CONSTRAINT`: Duplicate slug or SKU
+## Performance Considerations
+
+- Batch operations where possible
+- Reuse entity lookups within operations
+- Channel operations can be expensive
+- Translation operations are per-entity
+
+## Security
+
+- API token in environment only
+- No credentials in configuration
+- All inputs sanitized by GraphQL
+- Zod validation prevents injection
+
+## Module-Specific Notes
+
+### Products
+- Most complex entity
+- Variants require SKU
+- Attributes inherited from product type
+- Channel listings control visibility
+
+### Translations
+- Applied after all entities exist
+- Language codes follow ISO standards
+- Not all fields are translatable
+
+### Vouchers
+- Complex discount rules
+- Can target products/categories/collections
+- Channel-specific
+
+### Menus
+- Recursive structure
+- Items can link to categories/collections/pages/URLs
 
 ## Integration Points
 
-### Environment Variables
-```bash
-SALEOR_API_URL=https://your-store.saleor.cloud/graphql/
-SALEOR_API_TOKEN=your-api-token
-LOG_LEVEL=info
-CONFIG_PATH=./saleor-config.yaml
-```
+### GraphQL Client
+- Configured in `src/lib/graphql/client.ts`
+- Uses URQL with auth exchange
+- Handles token authentication
 
-### CLI Commands
-```bash
-# Apply configuration
-saleor-config push --config ./config.yaml
+### Configuration
+- YAML files parsed and validated
+- Schema defined with Zod
+- Supports environment variable interpolation
 
-# Retrieve current state
-saleor-config pull --output ./current.yaml
+### Logging
+- Structured logging with tslog
+- Context-aware log messages
+- Configurable levels
 
-# Validate without applying
-saleor-config validate --config ./config.yaml
-```
+## Code Quality
 
-## Tips for AI Assistants
+- ESLint configuration (if present)
+- Prettier formatting
+- Comprehensive test coverage
+- Type checking with TypeScript
 
-1. **Always check existing entities** before creating new ones
-2. **Use exact name matching** - it's case-sensitive
-3. **Follow the dependency graph** - some entities must exist first
-4. **Validate incrementally** - test small changes
-5. **Use meaningful slugs** - they're often used as identifiers
-6. **Consider multi-channel** - most entities can be channel-specific
-7. **Handle variants properly** - they inherit from product
-8. **Remember idempotency** - operations should be safe to repeat
-
-## Quick Reference
-
-### Entity Creation Order
-1. Shop settings
-2. Channels
-3. Attributes
-4. Product types & Page types
-5. Categories
-6. Warehouses
-7. Tax classes
-8. Shipping zones
-9. Collections
-10. Products
-11. Menus
-12. Pages
-
-### Naming Conventions
-- **Names**: Human-readable, can contain spaces
-- **Slugs**: URL-safe, lowercase, hyphens
-- **SKUs**: Unique product identifiers
-- **Codes**: Usually uppercase (country, currency)
-
-This index is designed to help AI/LLM assistants understand and work with the Saleor Configurator effectively. For detailed implementation, refer to the source code and tests. 
+This index is designed to help AI assistants quickly understand the codebase structure, patterns, and conventions when working with the Saleor Configurator. 

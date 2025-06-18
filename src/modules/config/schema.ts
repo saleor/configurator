@@ -20,7 +20,7 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]).optional(),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
 // Schema for simple value attributes
@@ -36,13 +36,14 @@ const simpleAttributeSchema = baseAttributeSchema.extend({
   ]),
 });
 
-// Combined attribute schema using discriminted union based on inputType
+// Combined attribute schema using discriminated union based on inputType
 const noTypeAttributeSchema = z.discriminatedUnion("inputType", [
   multipleValuesAttributeSchema,
   referenceAttributeSchema,
   simpleAttributeSchema,
 ]);
 
+// Main attribute schema with type field (for creation operations)
 const attributeSchema = noTypeAttributeSchema.and(
   z.object({
     type: attributeTypeSchema,
@@ -59,62 +60,76 @@ const pageOrProductTypeSchema = z.object({
 
 export type PageTypeInput = z.infer<typeof pageOrProductTypeSchema>;
 
+// Country codes aligned with GraphQL CountryCode enum (subset of most common ones)
 const countryCodeSchema = z.enum([
-  "US",
-  "GB",
-  "DE",
-  "FR",
-  "ES",
-  "IT",
-  "PL",
-  "NL",
-  "BE",
-  "CZ",
-  "PT",
-  "SE",
-  "AT",
-  "CH",
-  "DK",
-  "FI",
-  "NO",
-  "IE",
-  "AU",
-  "JP",
-  "BR",
-  "RU",
-  "CN",
-  "IN",
-  "CA",
+  "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", 
+  "AU", "AT", "AZ", "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", 
+  "BO", "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "CV", "KH", 
+  "CM", "CA", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", 
+  "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", 
+  "EG", "SV", "GQ", "ER", "EE", "SZ", "ET", "EU", "FK", "FO", "FJ", "FI", "FR", 
+  "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", 
+  "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", 
+  "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", 
+  "KE", "KI", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", 
+  "MO", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", 
+  "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", 
+  "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "KP", "MK", "MP", "NO", "OM", "PK", 
+  "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", 
+  "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST", 
+  "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", 
+  "KR", "SS", "ES", "LK", "SD", "SR", "SJ", "SE", "CH", "SY", "TW", "TJ", "TZ", 
+  "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", 
+  "AE", "GB", "UM", "US", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", 
+  "YE", "ZM", "ZW"
 ]);
 
 export type CountryCode = z.infer<typeof countryCodeSchema>;
 
+// Channel schema aligned with GraphQL ChannelCreateInput
 const channelSchema = z.object({
+  // Required fields matching GraphQL ChannelCreateInput
   name: z.string(),
+  slug: z.string(), 
   currencyCode: z.string(),
   defaultCountry: countryCodeSchema,
-  slug: z.string(),
-  settings: z
-    .object({
-      allocationStrategy: z
-        .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
-        .optional(),
-      automaticallyConfirmAllNewOrders: z.boolean().optional(),
-      automaticallyFulfillNonShippableGiftCard: z.boolean().optional(),
-      expireOrdersAfter: z.number().optional(),
-      deleteExpiredOrdersAfter: z.number().optional(),
-      markAsPaidStrategy: z
-        .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
-        .optional(),
-      allowUnpaidOrders: z.boolean().optional(),
-      includeDraftOrderInVoucherUsage: z.boolean().optional(),
-      useLegacyErrorFlow: z.boolean().optional(),
-      automaticallyCompleteFullyPaidCheckouts: z.boolean().optional(),
-      defaultTransactionFlowStrategy: z
-        .enum(["AUTHORIZATION", "CHARGE"])
-        .optional(),
-    })
-    .optional(),
+  
+  // Optional fields matching GraphQL ChannelCreateInput
+  isActive: z.boolean().optional(),
+  
+  // Settings nested object
+  stockSettings: z.object({
+    allocationStrategy: z
+      .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
+      .optional(),
+  }).optional(),
+  
+  orderSettings: z.object({
+    automaticallyConfirmAllNewOrders: z.boolean().optional(),
+    automaticallyFulfillNonShippableGiftCard: z.boolean().optional(),
+    expireOrdersAfter: z.number().optional(),
+    deleteExpiredOrdersAfter: z.number().optional(),
+    markAsPaidStrategy: z
+      .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
+      .optional(),
+    allowUnpaidOrders: z.boolean().optional(),
+    includeDraftOrderInVoucherUsage: z.boolean().optional(),
+  }).optional(),
+  
+  checkoutSettings: z.object({
+    useLegacyErrorFlow: z.boolean().optional(),
+    automaticallyCompleteFullyPaidCheckouts: z.boolean().optional(),
+  }).optional(),
+  
+  paymentSettings: z.object({
+    defaultTransactionFlowStrategy: z
+      .enum(["AUTHORIZATION", "CHARGE"])
+      .optional(),
+  }).optional(),
+  
+  // Additional fields for warehouse/shipping zone association
+  addWarehouses: z.array(z.string()).optional(),
+  addShippingZones: z.array(z.string()).optional(),
 });
 
 export type ChannelInput = z.infer<typeof channelSchema>;
@@ -322,8 +337,105 @@ const saleSchema = z.object({
 export type VoucherInput = z.infer<typeof voucherSchema>;
 export type SaleInput = z.infer<typeof saleSchema>;
 
+const giftCardIndividualSchema = z.object({
+  code: z.string().optional(),
+  initialBalance: z.object({
+    amount: z.number(),
+    currency: z.string(),
+  }),
+  expiryDate: z.string().optional(),
+  isActive: z.boolean().optional(),
+  tag: z.string().optional(),
+  email: z.string().email().optional(),
+  note: z.string().optional(),
+});
+
+const giftCardBulkSchema = z.object({
+  count: z.number(),
+  initialBalance: z.object({
+    amount: z.number(),
+    currency: z.string(),
+  }),
+  expiryDate: z.string().optional(),
+  isActive: z.boolean().optional(),
+  tag: z.string(),
+});
+
+const giftCardSchema = z.object({
+  individual: z.array(giftCardIndividualSchema).optional(),
+  bulk: z.array(giftCardBulkSchema).optional(),
+});
+
+export type GiftCardIndividualInput = z.infer<typeof giftCardIndividualSchema>;
+export type GiftCardBulkInput = z.infer<typeof giftCardBulkSchema>;
+export type GiftCardInput = z.infer<typeof giftCardSchema>;
+
+const menuItemSchema: z.ZodType<any> = z.object({
+  name: z.string(),
+  url: z.string().optional(),
+  category: z.string().optional(),
+  collection: z.string().optional(),
+  page: z.string().optional(),
+  children: z.lazy(() => menuItemSchema.array()).optional(),
+});
+
+const menuSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  items: z.array(menuItemSchema).optional(),
+});
+
+export type MenuItemInput = z.infer<typeof menuItemSchema>;
+export type MenuInput = z.infer<typeof menuSchema>;
+
+const pageSchema = z.object({
+  title: z.string(),
+  slug: z.string(),
+  content: z.string().optional(),
+  isPublished: z.boolean().optional(),
+  publishedAt: z.string().optional(),
+  pageTypeName: z.string(),
+  attributes: z.array(z.object({
+    name: z.string(),
+    value: z.any(),
+  })).optional(),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+});
+
+export type PageInput = z.infer<typeof pageSchema>;
+
+const translationSchema = z.object({
+  entityType: z.enum([
+    "product",
+    "collection",
+    "category",
+    "variant",
+    "page",
+    "shipping",
+    "menuItem",
+    "attribute",
+    "attributeValue"
+  ]),
+  entityIdentifier: z.string(),
+  languageCode: z.string(),
+  translations: z.object({
+    name: z.string().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    content: z.string().optional(),
+    seoTitle: z.string().optional(),
+    seoDescription: z.string().optional(),
+    richText: z.string().optional(),
+    plainText: z.string().optional(),
+  }),
+});
+
+export type TranslationInput = z.infer<typeof translationSchema>;
+
 export const configSchema = z
   .object({
+    attributes: z.array(attributeSchema).optional(),
     productTypes: z.array(pageOrProductTypeSchema).optional(),
     channels: z.array(channelSchema).optional(),
     pageTypes: z.array(pageOrProductTypeSchema).optional(),
@@ -337,6 +449,10 @@ export const configSchema = z
     taxConfigurations: z.array(taxConfigurationSchema).optional(),
     vouchers: z.array(voucherSchema).optional(),
     sales: z.array(saleSchema).optional(),
+    giftCards: giftCardSchema.optional(),
+    menus: z.array(menuSchema).optional(),
+    pages: z.array(pageSchema).optional(),
+    translations: z.array(translationSchema).optional(),
   })
   .strict();
 
