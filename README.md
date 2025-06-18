@@ -1,29 +1,45 @@
-# Configurator
+# Saleor Configurator
 
-> [!WARNING]
-> This project is in early development. Please use with caution.
+A powerful TypeScript-based infrastructure-as-code tool for managing Saleor e-commerce configurations declaratively.
 
-Configurator is a tool that helps you automate the creation of data models in Saleor. Instead of, for example, manually creating product types and attributes, you can define them in a configuration file and let the tool do the rest.
+## 📚 Documentation
 
-## Example
+- **[Quick Start Guide](./QUICK_START.md)** - Get up and running in 5 minutes
+- **[Complete Module Documentation](./MODULES_DOCUMENTATION.md)** - Detailed guide for all modules
+- **[AI/LLM Reference](./AI_LLM_INDEX.md)** - Structured documentation for AI assistants and IDE integration
+- **[Integration Guide](./INTEGRATION.md)** - How to integrate configurator with Saleor
 
-```yaml
-// Example config.yml
+## 🎯 Overview
+
+The Saleor Configurator enables you to:
+- Define your entire e-commerce setup in YAML
+- Version control your store configuration
+- Automate deployment across environments
+- Ensure consistency and reproducibility
+
+## ✨ Features
+
+- **Declarative Configuration**: Define desired state, not imperative steps
+- **Idempotent Operations**: Safe to run multiple times
+- **Dependency Management**: Automatically handles entity relationships
+- **Type Safety**: Full TypeScript support with runtime validation
+- **Comprehensive Coverage**: Supports all major Saleor entities
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your Saleor credentials
+
+# Create your configuration
+cat > my-store.yml << 'EOF'
 shop:
-  customerAllowedToSetExternalReference: false
-  defaultMailSenderName: "Saleor Store"
-  defaultMailSenderAddress: "store@example.com"
-  displayGrossPrices: true
-  enableAccountConfirmationByEmail: true
-  limitQuantityPerCheckout: 50
-  trackInventoryByDefault: true
-  reserveStockDurationAnonymousUser: 60
-  reserveStockDurationAuthenticatedUser: 120
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-  defaultWeightUnit: KG
-  allowLoginWithoutConfirmation: false
-
+  defaultMailSenderName: "My Store"
+  
 channels:
   - name: Poland
     currencyCode: PLN
@@ -185,21 +201,35 @@ Retrieves the configuration from the Saleor instance and saves it to a file unde
 #### Usage
 
 ```bash
-# Basic usage
-pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+# Run tests
+pnpm test
 
-# With custom config file
-pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="backup.yml"
+# Run with debug logging
+LOG_LEVEL=debug pnpm run push
+
+# Type checking
+pnpm tsc --noEmit
 ```
 
-Currently, it supports:
+## 📄 License
 
-- [x] Fetching channels
-- [x] Saving config to config.yml file
-- [x] Fetching product types
-- [x] Fetching page types
-- [x] Fetching attributes
+MIT License - see [LICENSE](./LICENSE) file for details.
 
-### Limitations
+## 🤝 Contributing
 
-- Configurator fetches first 100 items from all paginated queries.
+Contributions are welcome! Please:
+1. Follow the existing patterns
+2. Add tests for new functionality
+3. Update documentation
+4. Ensure all tests pass
+
+## 📞 Support
+
+- Check the [documentation](./MODULES_DOCUMENTATION.md)
+- Review [test files](./src/modules/) for examples
+- Enable debug logging for troubleshooting
+- Refer to [Saleor documentation](https://docs.saleor.io/)
+
+---
+
+Built with ❤️ for the Saleor community

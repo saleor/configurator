@@ -52,9 +52,28 @@ export type Category = NonNullable<
   NonNullable<ResultOf<typeof getCategoryByNameQuery>["categories"]>["edges"]
 >[number]["node"];
 
+const getCategoryBySlugQuery = graphql(`
+  query GetCategoryBySlug($slug: String!) {
+    category(slug: $slug) {
+      id
+      name
+      slug
+      children(first: 100) {
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`);
+
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
+  getCategoryBySlug(slug: string): Promise<Category | null | undefined>;
 }
 
 export class CategoryRepository implements CategoryOperations {
@@ -101,5 +120,13 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     return result.data?.categories?.edges?.[0]?.node;
+  }
+
+  async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
+    const result = await this.client.query(getCategoryBySlugQuery, {
+      slug,
+    });
+
+    return result.data?.category as Category | null | undefined;
   }
 }
