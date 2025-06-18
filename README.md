@@ -81,6 +81,9 @@ categories:
       - name: "History"
 ```
 
+> [!TIP]
+> See [SCHEMA.md](SCHEMA.md) for schema documentation with all the available properties.
+
 ## Development
 
 ### Installing dependencies
