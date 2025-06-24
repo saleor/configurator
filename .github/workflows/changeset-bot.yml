@@ -29,10 +29,5 @@ jobs:
             echo "Changesets found!"
           else
             echo "There is no changeset file in your pull request."
-            gh pr comment "$PR_ID" --body "⚠️ **Missing Changeset**
-
-            This PR doesn't include a changeset file. Please run \`pnpm changeset\` to document your changes.
-            
-            If this PR doesn't need a changeset (docs, tests, internal changes), add the \`skip changeset\` label."
             exit 1
           fi
