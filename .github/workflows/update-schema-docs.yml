@@ -2,11 +2,7 @@ name: Update Schema Documentation
 
 on:
   push:
-    paths:
-      - "src/modules/config/schema.ts"
-      - "scripts/generate-schema-docs.ts"
     branches: [main]
-  pull_request:
     paths:
       - "src/modules/config/schema.ts"
       - "scripts/generate-schema-docs.ts"
@@ -45,13 +41,35 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit updated docs
+      - name: Create PR with updated docs
         if: steps.verify-changed-files.outputs.changed == 'true'
         run: |
+          # Configure git
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          
+          # Create a new branch for the docs update
+          BRANCH_NAME="docs/auto-update-schema-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH_NAME"
+          
+          # Commit the changes
           git add SCHEMA.md
           git commit -m "docs: auto-update schema documentation
 
           🤖 Generated with GitHub Actions"
-          git push
+          
+          # Push the branch
+          git push origin "$BRANCH_NAME"
+          
+          # Create a pull request using GitHub CLI
+          gh pr create \
+            --title "docs: auto-update schema documentation" \
+            --body "Automatically generated documentation update for schema changes.
+
+          This PR was created automatically after changes were merged to main that affected the schema.
+
+          🤖 Generated with GitHub Actions" \
+            --head "$BRANCH_NAME" \
+            --base main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
