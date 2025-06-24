@@ -70,6 +70,7 @@ jobs:
 
           🤖 Generated with GitHub Actions" \
             --head "$BRANCH_NAME" \
-            --base main
+            --base main \
+            --label "skip changeset"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
