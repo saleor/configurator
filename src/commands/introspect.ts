@@ -13,12 +13,12 @@ const argsSchema = z.object({
   verbose: z.boolean().default(false),
 });
 
-async function runPull() {
+async function runIntrospect() {
   try {
-    console.log("📥 Saleor Configuration Pull\n");
+    console.log("🔍 Saleor Configuration Introspect\n");
     
     // Parse CLI arguments with better error handling
-    const args = parseCliArgs(argsSchema, "pull");
+    const args = parseCliArgs(argsSchema, "introspect");
     const { url, token, config: configPath, quiet, verbose } = args;
 
     // Set logger level based on flags
@@ -49,12 +49,12 @@ async function runPull() {
     // Create a new configurator with the services
     const configurator = new SaleorConfigurator(services);
 
-    // Run pull with progress indicators
+    // Run introspect with progress indicators
     if (!quiet) {
-      console.log("🌐 Fetching configuration from Saleor...");
+      console.log("🌐 Introspecting configuration from Saleor...");
     }
 
-    const config = await configurator.pull();
+    const config = await configurator.introspect();
 
     if (!quiet) {
       console.log(`\n✅ Configuration successfully saved to ${configPath}`);
@@ -63,7 +63,7 @@ async function runPull() {
     process.exit(0);
 
   } catch (error) {
-    logger.error("Pull command failed", { error });
+    logger.error("Introspect command failed", { error });
     
     if (error instanceof Error) {
       console.error(`\n❌ Error: ${error.message}`);
@@ -84,8 +84,8 @@ async function runPull() {
   }
 }
 
-// Run the pull command
-runPull().catch((error) => {
+// Run the introspect command
+runIntrospect().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
-});
+}); 

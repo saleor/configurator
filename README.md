@@ -8,10 +8,10 @@ Configurator is a tool that helps you automate the creation of data models in Sa
 ## Quickstart
 
 1. Create an app token with all permissions.
-2. Pull your current configuration from Saleor to `config.yml`:
+2. Introspect your current configuration from Saleor to `config.yml`:
 
 ```bash
-pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token""
+pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token""
 ```
 
 3. Edit the configuration file to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
@@ -192,7 +192,7 @@ Currently, it supports:
   - [ ] Creating collections
   - [ ] Creating collections with products
 
-### `pnpm pull`
+### `pnpm introspect`
 
 Retrieves the configuration from the Saleor instance and saves it to a file under the given path.
 
@@ -206,10 +206,10 @@ Retrieves the configuration from the Saleor instance and saves it to a file unde
 
 ```bash
 # Basic usage
-pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
 # With custom config file
-pnpm pull --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="backup.yml"
+pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="backup.yml"
 ```
 
 Currently, it supports:
