@@ -1,9 +1,7 @@
 import { object } from "../../lib/utils/object";
-import type { SaleorConfig } from "../config/schema";
+import type { ChannelInput, ChannelCreateInput, ChannelUpdateInput } from "../config/schema";
 import type { ChannelOperations } from "./repository";
 import { logger } from "../../lib/logger";
-
-type ChannelInput = NonNullable<SaleorConfig["channels"]>[number];
 
 export class ChannelService {
   constructor(private repository: ChannelOperations) {}
@@ -25,18 +23,7 @@ export class ChannelService {
     return existingChannel;
   }
 
-  private async getOrCreate(input: ChannelInput) {
-    logger.debug("Getting or creating channel", { name: input.name });
-    const existingChannel = await this.getExistingChannel(input.name);
-
-    if (existingChannel) {
-      logger.debug("Updating existing channel", {
-        id: existingChannel.id,
-        name: input.name,
-      });
-      return this.updateChannel(existingChannel.id, input);
-    }
-
+  async createChannel(input: ChannelCreateInput) {
     logger.debug("Creating new channel", { name: input.name });
     try {
       const channel = await this.repository.createChannel({
@@ -59,7 +46,33 @@ export class ChannelService {
     }
   }
 
-  private async updateChannel(id: string, input: ChannelInput) {
+  private async getOrCreate(input: ChannelInput) {
+    logger.debug("Getting or creating channel", { name: input.name });
+    const existingChannel = await this.getExistingChannel(input.name);
+
+    if (existingChannel) {
+      // Check if this is an update input (has settings)
+      if ('settings' in input) {
+        logger.debug("Updating existing channel", {
+          id: existingChannel.id,
+          name: input.name,
+        });
+        return this.updateChannel(existingChannel.id, input as ChannelUpdateInput);
+      } else {
+        // It's a create input but channel exists, return existing
+        logger.debug("Channel already exists, returning existing", {
+          id: existingChannel.id,
+          name: input.name,
+        });
+        return existingChannel;
+      }
+    }
+
+    // Create new channel with minimal input
+    return this.createChannel(input as ChannelCreateInput);
+  }
+
+  async updateChannel(id: string, input: ChannelUpdateInput) {
     logger.debug("Preparing channel update", { id, name: input.name });
     const settings = input.settings ?? {};
 

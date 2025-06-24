@@ -27,8 +27,37 @@ const createAttributeMutation = graphql(`
   }
 `);
 
+const updateAttributeMutation = graphql(`
+  mutation UpdateAttribute($id: ID!, $input: AttributeUpdateInput!) {
+    attributeUpdate(id: $id, input: $input) {
+      attribute {
+        id
+        name
+        type
+        inputType
+        entityType
+        choices(first: 100) {
+          edges {
+            node {
+              name
+            }
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
 export type AttributeCreateInput = VariablesOf<
   typeof createAttributeMutation
+>["input"];
+
+export type AttributeUpdateInput = VariablesOf<
+  typeof updateAttributeMutation
 >["input"];
 
 type AttributeFragment = NonNullable<
@@ -71,6 +100,7 @@ export type GetAttributesByNamesInput = VariablesOf<
 
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
+  updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
   getAttributesByNames(
     input: GetAttributesByNamesInput
   ): Promise<Attribute[] | null | undefined>;
@@ -95,6 +125,27 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     return result.data.attributeCreate.attribute as Attribute;
+  }
+
+  async updateAttribute(
+    id: string,
+    attributeInput: AttributeUpdateInput
+  ): Promise<Attribute> {
+    const result = await this.client.mutation(updateAttributeMutation, {
+      id,
+      input: attributeInput,
+    });
+
+    if (!result.data?.attributeUpdate?.attribute) {
+      throw new Error("Failed to update attribute");
+    }
+
+    logger.info("Attribute updated", {
+      name: result.data.attributeUpdate.attribute.name,
+      id,
+    });
+
+    return result.data.attributeUpdate.attribute as Attribute;
   }
 
   async getAttributesByNames(input: GetAttributesByNamesInput) {

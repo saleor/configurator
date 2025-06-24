@@ -1,0 +1,69 @@
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Saleor Store"
+  defaultMailSenderAddress: "store@example.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: false
+
+channels:
+  - name: Poland
+    currencyCode: PLN
+    defaultCountry: PL
+    slug: poland
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 60
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+
+productTypes:
+  - name: Book
+    attributes:
+      - name: Author
+        inputType: PLAIN_TEXT
+      - name: Genre
+        inputType: DROPDOWN
+        values:
+          - name: Fiction
+          - name: Non-Fiction
+          - name: Fantasy
+      - name: Related Books
+        inputType: REFERENCE
+        entityType: PRODUCT
+
+pageTypes:
+  - name: Blog Post
+    attributes:
+      - name: Title
+        inputType: PLAIN_TEXT
+      - name: Description
+        inputType: PLAIN_TEXT
+      - name: Published Date
+        inputType: DATE
+      - name: Related Posts
+        inputType: REFERENCE
+        entityType: PAGE
+
+categories:
+  - name: "Fiction"
+    subcategories:
+      - name: "Fantasy"
+  - name: "Non-Fiction"
+    subcategories:
+      - name: "Science"
+      - name: "History"

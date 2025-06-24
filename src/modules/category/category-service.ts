@@ -1,8 +1,6 @@
-import type { SaleorConfig } from "../config/schema";
+import type { CategoryInput } from "../config/schema";
 import { logger } from "../../lib/logger";
 import type { CategoryOperations, Category } from "./repository";
-
-type CategoryConfigInput = NonNullable<SaleorConfig["categories"]>[number];
 
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
@@ -12,7 +10,7 @@ export class CategoryService {
   }
 
   private async createCategory(
-    input: CategoryConfigInput,
+    input: CategoryInput,
     parentId?: string
   ): Promise<Category> {
     logger.debug("Creating category", {
@@ -36,7 +34,7 @@ export class CategoryService {
     return category;
   }
 
-  async bootstrapCategories(categories: CategoryConfigInput[]) {
+  async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories");
 
     return Promise.all(
@@ -45,7 +43,7 @@ export class CategoryService {
   }
 
   private async getOrCreateCategory(
-    categoryInput: CategoryConfigInput
+    categoryInput: CategoryInput
   ): Promise<Category> {
     const existingCategory = await this.getExistingCategory(categoryInput.name);
 
@@ -57,7 +55,7 @@ export class CategoryService {
   }
 
   private async bootstrapCategory(
-    categoryInput: CategoryConfigInput
+    categoryInput: CategoryInput
   ): Promise<Category> {
     logger.debug("Bootstrapping category", { name: categoryInput.name });
 
@@ -67,21 +65,22 @@ export class CategoryService {
       category,
     });
 
-    // compare existingCategory subcategories with categoryInput.subcategories
-    const subcategoriesToCreate =
-      categoryInput.subcategories?.filter(
+    // Handle union type - check if this is an update input with subcategories
+    if ('subcategories' in categoryInput && categoryInput.subcategories) {
+      const subcategoriesToCreate = categoryInput.subcategories.filter(
         (subcategory) =>
           !category?.children?.edges?.some(
             (edge) => edge.node.name === subcategory.name
           )
-      ) ?? [];
+      );
 
-    logger.debug("Subcategories to create", {
-      subcategories: subcategoriesToCreate,
-    });
+      logger.debug("Subcategories to create", {
+        subcategories: subcategoriesToCreate,
+      });
 
-    for (const subcategory of subcategoriesToCreate) {
-      await this.createCategory({ name: subcategory.name }, category.id);
+      for (const subcategory of subcategoriesToCreate) {
+        await this.createCategory(subcategory, category.id);
+      }
     }
 
     return category;
