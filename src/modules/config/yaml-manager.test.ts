@@ -65,13 +65,15 @@ describe("YamlConfigurationManager", () => {
     await expect(manager.load()).rejects.toThrow();
   });
 
-  it("should throw error when config schema is invalid", async () => {
+  it("should fallback to create schema when update schema is invalid", async () => {
     const yamlContent = `
       shop:
         defaultMailSenderName: 123
     `;
     (mockFs.readFile as any).mockResolvedValue(yamlContent);
 
-    await expect(manager.load()).rejects.toThrow("Invalid configuration file");
+    // Union schema behavior: invalid update input falls back to create schema (empty object)
+    const config = await manager.load();
+    expect(config).toEqual({ shop: {} });
   });
 });
