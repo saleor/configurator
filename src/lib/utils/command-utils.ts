@@ -2,6 +2,8 @@ import { createClient } from "../graphql/client";
 import { ServiceComposer } from "../../core/service-container";
 import { SaleorConfigurator } from "../../core/configurator";
 import { logger } from "../logger";
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * Validates and suggests corrections for Saleor GraphQL URLs
@@ -149,4 +151,44 @@ export function handleCommandError(error: unknown, commandName: string): void {
   }
   
   process.exit(1);
+}
+
+/**
+ * Creates a backup file with timestamp
+ */
+export function createBackupPath(originalPath: string): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const parts = originalPath.split('.');
+  const extension = parts.pop();
+  const baseName = parts.join('.');
+  return `${baseName}.backup.${timestamp}.${extension}`;
+}
+
+/**
+ * Creates a backup of the specified file
+ */
+export async function createBackup(filePath: string): Promise<string | null> {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return null; // No file to backup
+    }
+
+    const backupPath = createBackupPath(filePath);
+    await fs.promises.copyFile(filePath, backupPath);
+    return backupPath;
+  } catch (error) {
+    logger.warn(`Failed to create backup of ${filePath}`, { error });
+    return null;
+  }
+}
+
+/**
+ * Checks if a file exists
+ */
+export function fileExists(filePath: string): boolean {
+  try {
+    return fs.existsSync(filePath);
+  } catch {
+    return false;
+  }
 } 

@@ -26,6 +26,9 @@ const argDescriptions: Record<string, string> = {
   filter: "Filter by entity types (comma-separated: channels,shop,producttypes,pagetypes,categories)",
   quiet: "Suppress progress messages",
   verbose: "Show detailed debug information",
+  force: "Skip confirmation prompts and overwrite files without asking",
+  dryRun: "Preview changes without making any modifications (dry-run mode)",
+  skipValidation: "Skip validation checks and diff comparison (advanced users only)",
 };
 
 /**

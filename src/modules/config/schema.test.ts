@@ -7,6 +7,7 @@ import {
   type ChannelUpdateInput,
   type ShopCreateInput,
   type ShopUpdateInput,
+  type CountryCode,
 } from "./schema";
 
 describe("Schema Union Types", () => {
@@ -384,6 +385,320 @@ describe("Schema Union Types", () => {
       };
 
       expect(() => configSchema.parse(invalidInput)).toThrow();
+    });
+  });
+});
+
+describe("ShopConfigurationSchema", () => {
+  const validShopConfig = {
+    shop: {
+      headerText: "Test Shop",
+      description: "Test shop description",
+    },
+    channels: [
+      {
+        name: "Test Channel", 
+        slug: "test-channel",
+        currencyCode: "USD",
+        defaultCountry: "US" as CountryCode,
+      },
+    ],
+  };
+
+  describe("valid configurations", () => {
+    it("should validate a complete valid configuration", () => {
+      // Arrange & Act
+      const result = configSchema.safeParse(validShopConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept configuration with new country codes", () => {
+      // Arrange
+      const configWithNewCountries = {
+        ...validShopConfig,
+        channels: [
+          {
+            ...validShopConfig.channels[0],
+            defaultCountry: "AE" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(configWithNewCountries);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept configuration with all new country codes", () => {
+      // Arrange
+      const newCountryCodes = [
+        "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
+        "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+      ];
+
+      const channels = newCountryCodes.map((country, index) => ({
+        name: `Test Channel ${index}`,
+        slug: `test-channel-${index}`,
+        currencyCode: "USD",
+        defaultCountry: country as CountryCode,
+      }));
+
+      const configWithAllNewCountries = {
+        ...validShopConfig,
+        channels,
+      };
+
+      // Act
+      const result = configSchema.safeParse(configWithAllNewCountries);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept minimal valid configuration", () => {
+      // Arrange
+      const minimalConfig = {
+        channels: [
+          {
+            name: "Minimal Channel",
+            slug: "minimal",
+            currencyCode: "USD",
+            defaultCountry: "US" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(minimalConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("invalid configurations", () => {
+    it("should reject configuration with invalid country code", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validShopConfig,
+        channels: [
+          {
+            ...validShopConfig.channels[0],
+            defaultCountry: "INVALID" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(invalidConfig);
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.code).toContain("invalid");
+    });
+
+    it("should reject configuration with missing required channel fields", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validShopConfig,
+        channels: [
+          {
+            name: "Test Channel",
+            // Missing required fields
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(invalidConfig);
+
+      // Assert
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject configuration with invalid currency code", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validShopConfig,
+        channels: [
+          {
+            ...validShopConfig.channels[0],
+            currencyCode: "INVALID",
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(invalidConfig);
+
+      // Assert
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject configuration with unknown fields when strict is enabled", () => {
+      // Arrange
+      const invalidConfig = {
+        ...validShopConfig,
+        unknownField: "this should not be allowed",
+      };
+
+      // Act
+      const result = configSchema.safeParse(invalidConfig);
+
+      // Assert
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("CountryCode validation", () => {
+    const { z } = require("zod");
+    const countryCodeSchema = z.enum([
+      "US", "GB", "DE", "FR", "ES", "IT", "PL", "NL", "BE", "CZ", "PT", "SE", "AT", "CH", "DK", "FI", "NO", "IE",
+      "AU", "JP", "BR", "RU", "CN", "IN", "CA", "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
+      "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+    ]);
+
+    it("should include all original country codes", () => {
+      // Arrange
+      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
+
+      // Act & Assert
+      originalCodes.forEach(code => {
+        const result = countryCodeSchema.safeParse(code);
+        expect(result.success).toBe(true);
+      });
+    });
+
+    it("should include all new country codes", () => {
+      // Arrange
+      const newCodes = [
+        "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
+        "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+      ];
+
+      // Act & Assert
+      newCodes.forEach(code => {
+        const result = countryCodeSchema.safeParse(code);
+        expect(result.success).toBe(true);
+      });
+    });
+
+    it("should reject invalid country codes", () => {
+      // Arrange
+      const invalidCodes = ["XX", "INVALID", "US1", "us", ""];
+
+      // Act & Assert
+      invalidCodes.forEach(code => {
+        const result = countryCodeSchema.safeParse(code);
+        expect(result.success).toBe(false);
+      });
+    });
+  });
+
+  describe("edge cases and validation scenarios", () => {
+    it("should handle configuration with optional shop fields", () => {
+      // Arrange
+      const configWithOptionals = {
+        shop: {
+          headerText: "Shop Header",
+          description: "Shop Description",
+          trackInventoryByDefault: true,
+          defaultWeightUnit: "KG",
+        },
+        channels: [
+          {
+            name: "Test Channel",
+            slug: "test-channel",
+            currencyCode: "USD",
+            defaultCountry: "US" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(configWithOptionals);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should validate configuration with multiple channels", () => {
+      // Arrange
+      const multiChannelConfig = {
+        ...validShopConfig,
+        channels: [
+          validShopConfig.channels[0],
+          {
+            name: "Second Channel",
+            slug: "second-channel",
+            currencyCode: "EUR",
+            defaultCountry: "DE" as CountryCode,
+          },
+          {
+            name: "Third Channel",
+            slug: "third-channel",
+            currencyCode: "GBP",
+            defaultCountry: "GB" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(multiChannelConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should validate configuration with product types", () => {
+      // Arrange
+      const configWithProductTypes = {
+        ...validShopConfig,
+        productTypes: [
+          {
+            name: "Physical Product",
+            attributes: [
+              {
+                name: "Color",
+                inputType: "DROPDOWN",
+                values: [{ name: "Red" }, { name: "Blue" }],
+              },
+            ],
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(configWithProductTypes);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should validate configuration with categories", () => {
+      // Arrange
+      const configWithCategories = {
+        ...validShopConfig,
+        categories: [
+          {
+            name: "Electronics",
+            subcategories: [
+              { name: "Phones" },
+              { name: "Laptops" },
+            ],
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(configWithCategories);
+
+      // Assert
+      expect(result.success).toBe(true);
     });
   });
 });

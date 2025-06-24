@@ -201,17 +201,16 @@ Retrieves the configuration from the Saleor instance and saves it to a file unde
 - `--url` (required): The URL of the Saleor instance
 - `--token` (required): App token with necessary permissions
 - `--config` (optional): Path to configuration file (defaults to `config.yml`)
+- `--force` (optional): Skip confirmation prompts and overwrite files without asking
+- `--dry-run` (optional): Preview changes without making any modifications
 
 #### Usage
 
 ```bash
-# Basic usage
+# Basic usage (shows diff and asks for confirmation)
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
-# With custom config file
-pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="backup.yml"
 ```
-
 Currently, it supports:
 
 - [x] Fetching channels
