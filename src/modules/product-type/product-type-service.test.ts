@@ -27,6 +27,7 @@ describe("ProductTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(existingAttribute),
+        updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([existingAttribute]),
       };
 
@@ -84,6 +85,7 @@ describe("ProductTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
+        updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
       };
 
@@ -156,6 +158,7 @@ describe("ProductTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(existingAttribute),
+        updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([existingAttribute]),
       };
 
@@ -208,6 +211,7 @@ describe("ProductTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
+        updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
       };
 
@@ -231,6 +235,277 @@ describe("ProductTypeService", () => {
           ],
         })
       ).rejects.toThrow("Assignment failed");
+    });
+  });
+
+  describe("updateProductType", () => {
+    it("should update existing attributes with new values", async () => {
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Book",
+        productAttributes: [
+          { id: "attr-1", name: "Genre" },
+          { id: "attr-2", name: "Author" },
+        ],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const existingGenreAttribute = {
+        id: "attr-1",
+        name: "Genre",
+        type: "PRODUCT_TYPE",
+        inputType: "DROPDOWN",
+        entityType: null,
+        choices: {
+          edges: [
+            { node: { name: "Fiction" } },
+            { node: { name: "Non-Fiction" } },
+          ],
+        },
+      };
+
+      const existingAuthorAttribute = {
+        id: "attr-2",
+        name: "Author",
+        type: "PRODUCT_TYPE",
+        inputType: "PLAIN_TEXT",
+        entityType: null,
+        choices: null,
+      };
+
+      const updatedGenreAttribute = {
+        ...existingGenreAttribute,
+        choices: {
+          edges: [
+            { node: { name: "Fiction" } },
+            { node: { name: "Non-Fiction" } },
+            { node: { name: "Romance" } },
+          ],
+        },
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn().mockResolvedValue(updatedGenreAttribute),
+        getAttributesByNames: vi.fn().mockResolvedValue([
+          existingGenreAttribute,
+          existingAuthorAttribute,
+        ]),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const updateAttributeSpy = vi.spyOn(attributeService, 'updateAttribute');
+
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // When
+      await service.updateProductType(existingProductType, {
+        name: "Book",
+        attributes: [
+          {
+            name: "Genre",
+            inputType: "DROPDOWN",
+            values: [
+              { name: "Fiction" },
+              { name: "Non-Fiction" },
+              { name: "Romance" }, // New value
+            ],
+          },
+          {
+            name: "Author",
+            inputType: "PLAIN_TEXT",
+          },
+        ],
+      });
+
+      // Then
+      expect(updateAttributeSpy).toHaveBeenCalledWith(
+        {
+          name: "Genre",
+          inputType: "DROPDOWN",
+          values: [
+            { name: "Fiction" },
+            { name: "Non-Fiction" },
+            { name: "Romance" },
+          ],
+          type: "PRODUCT_TYPE",
+        },
+        existingGenreAttribute
+      );
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).not.toHaveBeenCalled();
+    });
+
+    it("should create new attributes and update existing ones", async () => {
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Book",
+        productAttributes: [
+          { id: "attr-1", name: "Genre" },
+        ],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const existingGenreAttribute = {
+        id: "attr-1",
+        name: "Genre",
+        type: "PRODUCT_TYPE",
+        inputType: "DROPDOWN",
+        entityType: null,
+        choices: {
+          edges: [
+            { node: { name: "Fiction" } },
+          ],
+        },
+      };
+
+      const newAuthorAttribute = {
+        id: "attr-2",
+        name: "Author",
+        type: "PRODUCT_TYPE",
+        inputType: "PLAIN_TEXT",
+        entityType: null,
+        choices: null,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(newAuthorAttribute),
+        updateAttribute: vi.fn().mockResolvedValue(existingGenreAttribute),
+        getAttributesByNames: vi.fn().mockResolvedValue([existingGenreAttribute]),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // When
+      await service.updateProductType(existingProductType, {
+        name: "Book",
+        attributes: [
+          {
+            name: "Genre",
+            inputType: "DROPDOWN",
+            values: [
+              { name: "Fiction" },
+              { name: "Romance" }, // New value
+            ],
+          },
+          {
+            name: "Author", // New attribute
+            inputType: "PLAIN_TEXT",
+          },
+        ],
+      });
+
+      // Then
+      expect(mockAttributeOperations.updateAttribute).toHaveBeenCalled();
+      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
+        name: "Author",
+        type: "PRODUCT_TYPE",
+        slug: "author",
+        inputType: "PLAIN_TEXT",
+      });
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-2"],
+      });
+    });
+
+    it("should handle create input (name only)", async () => {
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Book",
+        productAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // When
+      const result = await service.bootstrapProductType({
+        name: "Book", // Create input - name only
+      });
+
+      // Then
+      expect(result).toBe(existingProductType);
+      expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createProductType", () => {
+    it("should create a new product type with minimal input", async () => {
+      const newProductType: ProductType = {
+        id: "1",
+        name: "Electronics",
+        productAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn(),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // When
+      const result = await service.createProductType({
+        name: "Electronics",
+      });
+
+      // Then
+      expect(mockProductTypeOperations.createProductType).toHaveBeenCalledWith({
+        name: "Electronics",
+        kind: "NORMAL",
+        hasVariants: false,
+        isShippingRequired: false,
+        taxClass: null,
+      });
+      expect(result).toBe(newProductType);
     });
   });
 });

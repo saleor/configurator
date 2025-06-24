@@ -1,6 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
-import type { PageTypeInput } from "../config/schema";
+import type { PageTypeInput, PageTypeCreateInput, PageTypeUpdateInput } from "../config/schema";
 import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
@@ -47,59 +47,66 @@ export class PageTypeService {
     return filteredIds;
   }
 
-  async bootstrapPageType(input: Pick<PageTypeInput, "name" | "attributes">) {
+  async bootstrapPageType(input: PageTypeInput) {
     logger.debug("Bootstrapping page type", {
       name: input.name,
-      attributesCount: input.attributes.length,
     });
 
     const pageType = await this.getOrCreate(input.name);
 
-    // check if the page type has the attributes already
-    const attributesToCreate = input.attributes.filter(
-      (a) => !pageType.attributes?.some((attr) => attr.name === a.name)
-    );
-
-    logger.debug("Attributes to create", {
-      attributesToCreate,
-    });
-
-    const attributes = await this.attributeService.bootstrapAttributes({
-      attributeInputs: attributesToCreate.map((a) => ({
-        ...a,
-        type: "PAGE_TYPE",
-      })),
-    });
-
-    const attributeIds = attributes.map((attr) => attr.id);
-    const attributesToAssign = await this.filterOutAssignedAttributes(
-      pageType.id,
-      attributeIds
-    );
-
-    if (attributesToAssign.length > 0) {
-      logger.debug("Assigning attributes to page type", {
-        pageType: input.name,
-        attributeCount: attributesToAssign.length,
+    // Check if this is an update input (has attributes)
+    if ('attributes' in input) {
+      const updateInput = input as PageTypeUpdateInput;
+      logger.debug("Processing page type attributes", {
+        attributesCount: updateInput.attributes.length,
       });
 
-      try {
-        await this.repository.assignAttributes(pageType.id, attributesToAssign);
-        logger.debug("Successfully assigned attributes to page type", {
+      // check if the page type has the attributes already
+      const attributesToCreate = updateInput.attributes.filter(
+        (a) => !pageType.attributes?.some((attr) => attr.name === a.name)
+      );
+
+      logger.debug("Attributes to create", {
+        attributesToCreate,
+      });
+
+      const attributes = await this.attributeService.bootstrapAttributes({
+        attributeInputs: attributesToCreate.map((a) => ({
+          ...a,
+          type: "PAGE_TYPE",
+        })),
+      });
+
+      const attributeIds = attributes.map((attr) => attr.id);
+      const attributesToAssign = await this.filterOutAssignedAttributes(
+        pageType.id,
+        attributeIds
+      );
+
+      if (attributesToAssign.length > 0) {
+        logger.debug("Assigning attributes to page type", {
+          pageType: input.name,
+          attributeCount: attributesToAssign.length,
+        });
+
+        try {
+          await this.repository.assignAttributes(pageType.id, attributesToAssign);
+          logger.debug("Successfully assigned attributes to page type", {
+            name: input.name,
+          });
+        } catch (error) {
+          logger.error("Failed to assign attributes to page type", {
+            error,
+            pageType: input.name,
+            attributeIds: attributesToAssign,
+          });
+          throw error;
+        }
+      } else {
+        logger.debug("No new attributes to assign to page type", {
           name: input.name,
         });
-      } catch (error) {
-        logger.error("Failed to assign attributes to page type", {
-          error,
-          pageType: input.name,
-          attributeIds: attributesToAssign,
-        });
-        throw error;
       }
-    } else {
-      logger.debug("No new attributes to assign to page type", {
-        name: input.name,
-      });
     }
 
     return pageType;

@@ -24,10 +24,7 @@ export class SaleorConfigurator {
       bootstrapTasks.push(
         Promise.all(
           config.productTypes.map((productType) =>
-            this.services.productType.bootstrapProductType({
-              name: productType.name,
-              attributes: productType.attributes,
-            })
+            this.services.productType.bootstrapProductType(productType)
           )
         )
       );

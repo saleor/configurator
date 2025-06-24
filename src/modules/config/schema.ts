@@ -52,14 +52,47 @@ const attributeSchema = noTypeAttributeSchema.and(
 export type AttributeInput = z.infer<typeof attributeSchema>;
 export type AttributeInputType = AttributeInput["inputType"];
 
-const pageOrProductTypeSchema = z.object({
-  name: z.string().describe("ProductType.name / PageType.name"),
-  attributes: z
-    .array(noTypeAttributeSchema)
-    .describe("ProductType.productAttributes / PageType.attributes"),
+// ProductType Create Schema - minimal fields for creation
+const productTypeCreateSchema = z.object({
+  name: z.string().describe("ProductType.name"),
 });
 
-export type PageTypeInput = z.infer<typeof pageOrProductTypeSchema>;
+// ProductType Update Schema - full state representation
+const productTypeUpdateSchema = z.object({
+  name: z.string().describe("ProductType.name"),
+  attributes: z
+    .array(noTypeAttributeSchema)
+    .describe("ProductType.productAttributes"),
+});
+
+// Union type that accepts either create or update input
+// Try update schema first (more specific) then create schema
+const productTypeSchema = productTypeUpdateSchema.or(productTypeCreateSchema);
+
+export type ProductTypeCreateInput = z.infer<typeof productTypeCreateSchema>;
+export type ProductTypeUpdateInput = z.infer<typeof productTypeUpdateSchema>;
+export type ProductTypeInput = z.infer<typeof productTypeSchema>;
+
+// PageType Create Schema - minimal fields for creation
+const pageTypeCreateSchema = z.object({
+  name: z.string().describe("PageType.name"),
+});
+
+// PageType Update Schema - full state representation
+const pageTypeUpdateSchema = z.object({
+  name: z.string().describe("PageType.name"),
+  attributes: z
+    .array(noTypeAttributeSchema)
+    .describe("PageType.attributes"),
+});
+
+// Union type that accepts either create or update input  
+// Try update schema first (more specific) then create schema
+const pageTypeSchema = pageTypeUpdateSchema.or(pageTypeCreateSchema);
+
+export type PageTypeCreateInput = z.infer<typeof pageTypeCreateSchema>;
+export type PageTypeUpdateInput = z.infer<typeof pageTypeUpdateSchema>;
+export type PageTypeInput = z.infer<typeof pageTypeSchema>;
 
 const countryCodeSchema = z.enum([
   "US",
@@ -91,7 +124,16 @@ const countryCodeSchema = z.enum([
 
 export type CountryCode = z.infer<typeof countryCodeSchema>;
 
-const channelSchema = z.object({
+// Channel Create Schema - minimal fields for creation
+const channelCreateSchema = z.object({
+  name: z.string().describe("Channel.name"),
+  currencyCode: z.string().describe("Channel.currencyCode"),
+  defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
+  slug: z.string().describe("Channel.slug"),
+});
+
+// Channel Update Schema - full state representation
+const channelUpdateSchema = z.object({
   name: z.string().describe("Channel.name"),
   currencyCode: z.string().describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
@@ -151,11 +193,21 @@ const channelSchema = z.object({
     .describe("Channel settings"),
 });
 
+// Union type that accepts either create or update input
+// Try update schema first (more specific) then create schema  
+const channelSchema = channelUpdateSchema.or(channelCreateSchema);
+
+export type ChannelCreateInput = z.infer<typeof channelCreateSchema>;
+export type ChannelUpdateInput = z.infer<typeof channelUpdateSchema>;
 export type ChannelInput = z.infer<typeof channelSchema>;
 
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
-export const shopSchema = z.object({
+// Shop Create Schema - minimal fields for shop creation (can be empty)
+const shopCreateSchema = z.object({}).describe("Shop create input");
+
+// Shop Update Schema - full state representation
+const shopUpdateSchema = z.object({
   headerText: z.string().optional().describe("Shop.headerText"),
   description: z.string().optional().describe("Shop.description"),
   trackInventoryByDefault: z
@@ -223,37 +275,57 @@ export const shopSchema = z.object({
     .describe("Shop.displayGrossPrices"),
 });
 
-const baseCategorySchema = z.object({
+// Union type that accepts either create or update input
+// Try update schema first (more specific) then create schema
+export const shopSchema = shopUpdateSchema.or(shopCreateSchema);
+
+export type ShopCreateInput = z.infer<typeof shopCreateSchema>;
+export type ShopUpdateInput = z.infer<typeof shopUpdateSchema>;
+export type ShopInput = z.infer<typeof shopSchema>;
+
+// Category Create Schema - minimal fields for creation
+const categoryCreateSchema = z.object({
   name: z.string().describe("Category.name"),
 });
 
-type Category = z.infer<typeof baseCategorySchema> & {
-  subcategories?: Category[];
+// Category Update Schema - full state representation with subcategories
+const baseCategoryUpdateSchema = z.object({
+  name: z.string().describe("Category.name"),
+});
+
+type CategoryUpdate = z.infer<typeof baseCategoryUpdateSchema> & {
+  subcategories?: CategoryUpdate[];
 };
 
-const categorySchema: z.ZodType<Category> = baseCategorySchema.extend({
+const categoryUpdateSchema: z.ZodType<CategoryUpdate> = baseCategoryUpdateSchema.extend({
   subcategories: z
-    .lazy(() => categorySchema.array())
+    .lazy(() => categoryUpdateSchema.array())
     .optional()
     .describe("Category.children"),
 });
+
+// Union type that accepts either create or update input
+type CategoryCreate = z.infer<typeof categoryCreateSchema>;
+type Category = CategoryCreate | CategoryUpdate;
+
+const categorySchema: z.ZodType<Category> = categoryUpdateSchema.or(categoryCreateSchema);
+
+export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
+export type CategoryUpdateInput = CategoryUpdate;
+export type CategoryInput = Category;
 
 export const configSchema = z
   .object({
     shop: shopSchema.optional().describe("Shop"),
     channels: z.array(channelSchema).optional().describe("Channel"),
     productTypes: z
-      .array(pageOrProductTypeSchema)
+      .array(productTypeSchema)
       .optional()
       .describe("ProductType"),
-    pageTypes: z.array(pageOrProductTypeSchema).optional().describe("PageType"),
+    pageTypes: z.array(pageTypeSchema).optional().describe("PageType"),
     categories: z.array(categorySchema).optional().describe("Category"),
   })
   .strict()
   .describe("Configuration");
 
 export type SaleorConfig = z.infer<typeof configSchema>;
-export type PageTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
-export type PageType = z.infer<typeof pageOrProductTypeSchema>;
-export type ProductTypeAttribute = z.infer<typeof pageOrProductTypeSchema>;
-export type ProductType = z.infer<typeof pageOrProductTypeSchema>;
