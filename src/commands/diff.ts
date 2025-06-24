@@ -9,17 +9,19 @@ const argsSchema = z.object({
   url: z.string({ required_error: "Saleor GraphQL URL is required" }),
   token: z.string({ required_error: "Saleor authentication token is required" }),
   config: z.string().default("config.yml"),
+  format: z.enum(["table", "json", "summary"]).default("table"),
+  filter: z.string().optional(),
   quiet: z.boolean().default(false),
   verbose: z.boolean().default(false),
 });
 
-async function runPush() {
+async function runDiff() {
   try {
-    console.log("🚀 Saleor Configuration Push\n");
+    console.log("🔍 Saleor Configuration Diff\n");
     
     // Parse CLI arguments with better error handling
-    const args = parseCliArgs(argsSchema, "push");
-    const { url, token, config: configPath, quiet, verbose } = args;
+    const args = parseCliArgs(argsSchema, "diff");
+    const { url, token, config: configPath, format, filter, quiet, verbose } = args;
 
     // Set logger level based on flags
     if (verbose) {
@@ -32,6 +34,8 @@ async function runPush() {
       console.log("📋 Configuration:");
       console.log(`   URL: ${url}`);
       console.log(`   Config: ${configPath}`);
+      console.log(`   Format: ${format}`);
+      if (filter) console.log(`   Filter: ${filter}`);
       console.log("");
     }
 
@@ -49,21 +53,32 @@ async function runPush() {
     // Create a new configurator with the services
     const configurator = new SaleorConfigurator(services);
 
-    // Run push with progress indicators
+    // Run diff with progress indicators
     if (!quiet) {
-      console.log("📤 Applying configuration to Saleor...");
+      console.log("🔄 Running diff analysis...");
     }
 
-    await configurator.push();
+    const summary = await configurator.diff({ 
+      format, 
+      filter: filter?.split(","), 
+      quiet 
+    });
 
-    if (!quiet) {
-      console.log("\n✅ Configuration successfully applied to Saleor");
+    // Set appropriate exit code
+    if (summary.totalChanges > 0) {
+      if (!quiet) {
+        console.log(`\n⚠️  Found ${summary.totalChanges} difference${summary.totalChanges !== 1 ? 's' : ''} that would be applied by 'push'`);
+      }
+      process.exit(1); // Changes detected
+    } else {
+      if (!quiet) {
+        console.log("\n✅ No differences found - configurations are in sync");
+      }
+      process.exit(0); // No changes
     }
-    
-    process.exit(0);
 
   } catch (error) {
-    logger.error("Push command failed", { error });
+    logger.error("Diff command failed", { error });
     
     if (error instanceof Error) {
       console.error(`\n❌ Error: ${error.message}`);
@@ -84,8 +99,8 @@ async function runPush() {
   }
 }
 
-// Run the push command
-runPush().catch((error) => {
+// Run the diff command
+runDiff().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
-});
+}); 

@@ -13,6 +13,7 @@
   "scripts": {
     "push": "tsx src/commands/push.ts",
     "pull": "tsx src/commands/pull.ts",
+    "diff": "tsx src/commands/diff.ts",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema",
