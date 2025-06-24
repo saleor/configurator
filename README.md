@@ -7,7 +7,7 @@ Configurator is a tool that helps you automate the creation of data models in Sa
 
 ## Quickstart
 
-1. Create an app token with all the permissions.
+1. Create an app token with all permissions.
 2. Pull your current configuration from Saleor to `config.yml`:
 
 ```bash
