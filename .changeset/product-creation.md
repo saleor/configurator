@@ -2,9 +2,6 @@
 "saleor-configurator": minor
 ---
 
-Add product creation support
+**Product Creation Support**
 
-- Add product creation with variants, SKUs, and weights
-- Support automatic product type and category reference resolution
-- Optimize parallel execution for channels
-- Enable idempotent operations
+Add product creation with variants, SKUs, automatic reference resolution, and idempotent operations
