@@ -140,7 +140,7 @@ export function parseCliArgs<T extends z.ZodRawShape>(
   const envDefaults: Record<string, string> = {};
   if (process.env.SALEOR_URL) envDefaults.url = process.env.SALEOR_URL;
   if (process.env.SALEOR_TOKEN) envDefaults.token = process.env.SALEOR_TOKEN;
-  if (process.env.SALEOR_CONFIG) envDefaults.config = process.env.SALEOR_CONFIG;
+  if (process.env.SALEOR_CONFIG_PATH) envDefaults.config = process.env.SALEOR_CONFIG_PATH;
 
   // Merge environment defaults with parsed args (CLI args take precedence)
   const finalArgs = { ...envDefaults, ...parsedArgs };
