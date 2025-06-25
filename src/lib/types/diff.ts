@@ -62,7 +62,7 @@ export class DiffFormatter {
         }
         
         if (result.operation === "DELETE" && result.current) {
-          lines.push(`    │ This ${entityType.toLowerCase()} exists on Saleor but not in local config`);
+          lines.push(`    │ The ${entityType.toLowerCase()} exists on Saleor but is missing from the local configuration.`);
         }
         
         if (result.operation === "CREATE" && result.desired) {
