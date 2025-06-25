@@ -30,6 +30,7 @@ export class SaleorConfigurator {
       );
     }
 
+    // Channels are added first to ensure they're ready before products (which reference them)
     if (config.channels) {
       logger.debug(`Bootstrapping ${config.channels.length} channels`);
       bootstrapTasks.push(
@@ -53,6 +54,11 @@ export class SaleorConfigurator {
       bootstrapTasks.push(
         this.services.category.bootstrapCategories(config.categories)
       );
+    }
+
+    if (config.products) {
+      logger.debug(`Bootstrapping ${config.products.length} products`);
+      bootstrapTasks.push(this.services.product.bootstrapProducts(config.products));
     }
 
     try {
