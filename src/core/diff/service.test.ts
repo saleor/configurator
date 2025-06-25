@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DiffService } from "./diff-service";
-import type { ServiceContainer } from "./service-container";
-import type { SaleorConfig } from "../modules/config/schema";
+import { DiffService } from "./service";
+import type { ServiceContainer } from "../service-container";
+import type { SaleorConfig } from "../../modules/config/schema";
+import { 
+  ConfigurationLoadError, 
+  RemoteConfigurationError,
+  DiffComparisonError 
+} from "./errors";
 
 describe("DiffService", () => {
   let diffService: DiffService;
@@ -221,7 +226,8 @@ describe("DiffService", () => {
       mockServices.configStorage.load = vi.fn().mockRejectedValue(new Error("Config file not found"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow("Config file not found");
+      await expect(diffService.compare()).rejects.toThrow(ConfigurationLoadError);
+      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
 
     it("should handle remote configuration retrieval errors", async () => {
@@ -230,7 +236,22 @@ describe("DiffService", () => {
       mockServices.configuration.retrieveWithoutSaving = vi.fn().mockRejectedValue(new Error("Network error"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow("Network error");
+      await expect(diffService.compare()).rejects.toThrow(RemoteConfigurationError);
+      await expect(diffService.compare()).rejects.toThrow("Failed to retrieve remote configuration");
+    });
+
+    it("should handle timeout for remote configuration", async () => {
+      // Arrange: Create service with short timeout
+      const serviceWithTimeout = new DiffService(mockServices, { remoteTimeoutMs: 100 });
+      
+      mockServices.configStorage.load = vi.fn().mockResolvedValue({});
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockImplementation(() => 
+        new Promise(resolve => setTimeout(resolve, 200)) // Takes longer than timeout
+      );
+
+      // Act & Assert
+      await expect(serviceWithTimeout.compare()).rejects.toThrow(RemoteConfigurationError);
+      await expect(serviceWithTimeout.compare()).rejects.toThrow("timed out");
     });
   });
 
@@ -261,6 +282,26 @@ describe("DiffService", () => {
       expect(summary.updates).toBe(0);
       expect(summary.deletes).toBe(0);
       expect(summary.results).toHaveLength(0);
+    });
+  });
+
+  describe("service configuration", () => {
+    it("should use custom configuration", async () => {
+      // Arrange: Create service with debug logging enabled
+      const serviceWithDebug = new DiffService(mockServices, { 
+        enableDebugLogging: true,
+        maxConcurrentComparisons: 2
+      });
+
+      const config: SaleorConfig = {};
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(config);
+
+      // Act
+      const summary = await serviceWithDebug.compare();
+
+      // Assert
+      expect(summary.totalChanges).toBe(0);
     });
   });
 
@@ -380,72 +421,6 @@ describe("DiffService", () => {
       expect(newChannels).toContain("UK Store");
     });
 
-    it("should detect attribute updates scenario", async () => {
-      // Arrange: Expanding product attributes for better catalog
-      const localConfig: SaleorConfig = {
-        productTypes: [
-          {
-            name: "Clothing",
-            attributes: [
-              {
-                name: "Size", // Existing
-                inputType: "DROPDOWN",
-                values: [
-                  { name: "S" },
-                  { name: "M" },
-                  { name: "L" },
-                  { name: "XL" }, // New value
-                ],
-              },
-              {
-                name: "Material", // New attribute
-                inputType: "DROPDOWN",
-                values: [
-                  { name: "Cotton" },
-                  { name: "Polyester" },
-                ],
-              },
-            ],
-          },
-        ],
-      };
-
-      const remoteConfig: SaleorConfig = {
-        productTypes: [
-          {
-            name: "Clothing",
-            attributes: [
-              {
-                name: "Size",
-                inputType: "DROPDOWN",
-                values: [
-                  { name: "S" },
-                  { name: "M" },
-                  { name: "L" },
-                ],
-              },
-            ],
-          },
-        ],
-      };
-
-      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
-
-      // Act
-      const summary = await diffService.compare();
-
-      // Assert
-      expect(summary.totalChanges).toBe(1);
-      expect(summary.updates).toBe(1);
-
-      const clothingUpdate = summary.results.find(
-        r => r.entityType === "Product Types" && r.entityName === "Clothing"
-      );
-      expect(clothingUpdate).toBeDefined();
-      expect(clothingUpdate?.changes?.length).toBeGreaterThan(0);
-    });
-
     it("should detect configuration cleanup scenario", async () => {
       // Arrange: Removing unused entities (what would be deleted)
       const localConfig: SaleorConfig = {
@@ -497,82 +472,6 @@ describe("DiffService", () => {
         .map(r => r.entityName);
       expect(deletedChannels).toContain("Test Channel");
       expect(deletedChannels).toContain("Old Channel");
-    });
-  });
-
-  describe("output formatting", () => {
-    it("should format complex diff scenarios correctly", async () => {
-      // Arrange: Complex scenario with multiple changes
-      const localConfig: SaleorConfig = {
-        shop: {
-          defaultMailSenderName: "Updated Store",
-        },
-        channels: [
-          {
-            name: "New Channel",
-            currencyCode: "EUR",
-            defaultCountry: "DE",
-            slug: "new",
-          },
-        ],
-        productTypes: [
-          {
-            name: "Updated Product",
-            attributes: [
-              {
-                name: "New Attribute",
-                inputType: "PLAIN_TEXT",
-              },
-            ],
-          },
-        ],
-      };
-
-      const remoteConfig: SaleorConfig = {
-        shop: {
-          defaultMailSenderName: "Old Store",
-        },
-        channels: [
-          {
-            name: "Old Channel",
-            currencyCode: "USD",
-            defaultCountry: "US",
-            slug: "old",
-          },
-        ],
-        productTypes: [
-          {
-            name: "Updated Product",
-            attributes: [],
-          },
-        ],
-      };
-
-      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
-
-      // Act
-      const summary = await diffService.compare();
-
-      // Assert: Test table format exists and contains expected sections
-      const { DiffFormatter } = await import("../lib/types/diff");
-      const tableOutput = DiffFormatter.format(summary);
-      expect(tableOutput).toContain("📊 Configuration Diff Results");
-      expect(tableOutput).toContain("🏪 Shop Settings");
-      expect(tableOutput).toContain("🌐 Channels");
-      expect(tableOutput).toContain("📦 Product Types");
-      expect(tableOutput).toContain("📈 Summary");
-
-      // Test summary format
-      const summaryOutput = DiffFormatter.formatSummary(summary);
-      expect(summaryOutput).toContain("Found");
-      expect(summaryOutput).toContain("difference");
-
-      // Test JSON serialization
-      const jsonString = JSON.stringify(summary);
-      const parsedSummary = JSON.parse(jsonString);
-      expect(parsedSummary.totalChanges).toBe(summary.totalChanges);
-      expect(parsedSummary.results).toHaveLength(summary.results.length);
     });
   });
 

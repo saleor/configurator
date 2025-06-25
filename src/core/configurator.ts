@@ -1,7 +1,7 @@
 import { logger } from "../lib/logger";
 import type { ServiceContainer } from "./service-container";
-import { DiffService } from "./diff-service";
-import { DiffFormatter } from "../lib/types/diff";
+import { DiffService } from "./diff";
+import { DiffFormatter } from "./diff";
 
 export interface DiffOptions {
   format?: "table" | "json" | "summary";

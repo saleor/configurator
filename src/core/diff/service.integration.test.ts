@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { promises as fs } from "fs";
-import { DiffService } from "../core/diff-service";
-import { DiffFormatter, type DiffSummary, type DiffChange } from "../lib/types/diff";
+import { DiffService } from "./service";
+import { DiffFormatter, type DiffSummary, type DiffChange } from ".";
 
 /**
  * Integration Tests for Diff Functionality
@@ -188,6 +188,37 @@ productTypes:
       expect(summary.totalChanges).toBe(0);
       expect(summary.results).toHaveLength(0);
     });
+
+    it("should respect service configuration", async () => {
+      const identicalConfig = {
+        shop: {
+          defaultMailSenderName: "Same Store",
+        },
+      };
+
+      const mockServices = {
+        configStorage: {
+          load: async () => identicalConfig,
+          save: async () => {},
+        },
+        configuration: {
+          retrieve: async () => identicalConfig,
+          retrieveWithoutSaving: async () => identicalConfig,
+        }
+      } as any;
+
+      // Test with custom configuration
+      const diffService = new DiffService(mockServices, {
+        enableDebugLogging: true,
+        maxConcurrentComparisons: 10,
+        remoteTimeoutMs: 5000,
+      });
+      
+      const summary = await diffService.compare();
+
+      expect(summary.totalChanges).toBe(0);
+      expect(summary.results).toHaveLength(0);
+    });
   });
 
   describe("Output Format Integration", () => {
@@ -308,7 +339,7 @@ productTypes:
 
       const diffService = new DiffService(mockServices);
 
-      await expect(diffService.compare()).rejects.toThrow("Network error");
+      await expect(diffService.compare()).rejects.toThrow("Failed to retrieve remote configuration");
     });
 
     it("should handle config loading errors", async () => {
@@ -327,7 +358,7 @@ productTypes:
 
       const diffService = new DiffService(mockServices);
 
-      await expect(diffService.compare()).rejects.toThrow("Config file not found");
+      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
   });
 
