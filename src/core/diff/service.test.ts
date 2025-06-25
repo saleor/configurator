@@ -187,6 +187,58 @@ describe("DiffService", () => {
       expect(summary.results[0].changes).toHaveLength(1);
       expect(summary.results[0].changes?.[0].description).toContain('Attribute "Color" added');
     });
+
+    it("should detect product type creation with attributes", async () => {
+      // Arrange: Product type with attributes in local but not in remote at all
+      const localConfig: SaleorConfig = {
+        productTypes: [
+          {
+            name: "Book",
+            attributes: [
+              {
+                name: "Author",
+                inputType: "PLAIN_TEXT",
+              },
+              {
+                name: "Genre",
+                inputType: "DROPDOWN",
+                values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Fantasy" }],
+              },
+              {
+                name: "Related Books",
+                inputType: "REFERENCE",
+                entityType: "PRODUCT",
+              },
+            ],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        productTypes: [],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compare();
+
+      // Assert
+      expect(summary.totalChanges).toBe(1);
+      expect(summary.creates).toBe(1);
+      expect(summary.results[0]).toMatchObject({
+        operation: "CREATE",
+        entityType: "Product Types",
+        entityName: "Book",
+      });
+      
+      // Should have changes array with all 3 attributes
+      expect(summary.results[0].changes).toHaveLength(3);
+      expect(summary.results[0].changes?.[0].description).toContain('Attribute "Author" will be created');
+      expect(summary.results[0].changes?.[1].description).toContain('Attribute "Genre" will be created');
+      expect(summary.results[0].changes?.[2].description).toContain('Attribute "Related Books" will be created');
+    });
   });
 
   describe("compareShopSettings", () => {

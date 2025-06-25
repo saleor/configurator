@@ -46,7 +46,27 @@ export class ProductTypeComparator extends BaseEntityComparator<
       const remotePT = remoteByName.get(this.getEntityName(localPT));
       
       if (!remotePT) {
-        results.push(this.createCreateResult(localPT));
+        // For new product types, analyze attributes that will be created
+        const localAttributes = this.getAttributes(localPT);
+        const changes: DiffChange[] = [];
+        
+        // Compare against empty attributes array to show what will be created
+        if (localAttributes.length > 0) {
+          changes.push(...this.compareAttributes(localAttributes, [], true));
+        }
+        
+        // Create result with changes if attributes exist, otherwise basic create
+        if (changes.length > 0) {
+          results.push({
+            operation: "CREATE",
+            entityType: this.entityType as any,
+            entityName: this.getEntityName(localPT),
+            desired: localPT,
+            changes,
+          });
+        } else {
+          results.push(this.createCreateResult(localPT));
+        }
       } else {
         // Check for updates
         const changes = this.compareEntityFields(localPT, remotePT);
@@ -87,7 +107,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
     const remoteAttributes = this.getAttributes(remote);
     
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
-      changes.push(...this.compareAttributes(localAttributes, remoteAttributes));
+      changes.push(...this.compareAttributes(localAttributes, remoteAttributes, false));
     }
 
     return changes;
@@ -107,7 +127,8 @@ export class ProductTypeComparator extends BaseEntityComparator<
    */
   private compareAttributes(
     local: readonly ProductTypeAttribute[],
-    remote: readonly ProductTypeAttribute[]
+    remote: readonly ProductTypeAttribute[],
+    isCreating: boolean = false
   ): DiffChange[] {
     const changes: DiffChange[] = [];
     
@@ -117,11 +138,16 @@ export class ProductTypeComparator extends BaseEntityComparator<
     // Find added attributes
     for (const localAttr of local) {
       if (!remoteAttrMap.has(localAttr.name)) {
+        // Use different description based on whether we're creating or updating
+        const description = isCreating 
+          ? `Attribute "${localAttr.name}" will be created`
+          : `Attribute "${localAttr.name}" added`;
+        
         changes.push(this.createFieldChange(
           'attributes',
           null,
           localAttr.name,
-          `Attribute "${localAttr.name}" added (in config, not on Saleor)`
+          description
         ));
       }
     }
@@ -133,7 +159,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
           'attributes',
           remoteAttr.name,
           null,
-          `Attribute "${remoteAttr.name}" removed (on Saleor, not in config)`
+          `Attribute "${remoteAttr.name}" removed`
         ));
       }
     }
