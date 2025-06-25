@@ -1,150 +1,372 @@
 import { z } from "zod";
 
 export interface CliError extends Error {
-  isCliError: true;
-  helpText?: string;
+  readonly isCliError: true;
+  readonly helpText?: string;
+}
+
+export interface ParsedArgs {
+  readonly [key: string]: string | boolean | undefined;
+}
+
+export interface EnvironmentVariables {
+  readonly SALEOR_URL?: string;
+  readonly SALEOR_TOKEN?: string;
+  readonly SALEOR_CONFIG?: string;
+}
+
+export interface HelpDisplayOptions {
+  readonly commandName: string;
+  readonly schema: z.ZodObject<z.ZodRawShape>;
+}
+
+export interface ArgumentParsingOptions {
+  readonly argv: readonly string[];
+  readonly env: EnvironmentVariables;
 }
 
 /**
- * Creates a CLI error with helpful messaging
+ * Common CLI argument definitions shared across commands
  */
-function createCliError(message: string, helpText?: string): CliError {
+export const commonArgs = {
+  url: z
+    .string({ required_error: "Saleor GraphQL URL is required" })
+    .describe("Saleor GraphQL endpoint URL"),
+  token: z
+    .string({ required_error: "Saleor authentication token is required" })
+    .describe("Saleor authentication token (staff user with proper permissions)"),
+  config: z
+    .string()
+    .default("config.yml")
+    .describe("Path to configuration file"),
+  quiet: z
+    .boolean()
+    .default(false)
+    .describe("Suppress progress messages"),
+  verbose: z
+    .boolean()
+    .default(false)
+    .describe("Show detailed debug information"),
+} as const;
+
+/**
+ * Diff command specific arguments
+ */
+export const diffOnlyArgs = {
+  format: z
+    .enum(["table", "json", "summary"])
+    .default("table")
+    .describe("Output format (table, json, summary)"),
+  filter: z
+    .string()
+    .optional()
+    .describe("Filter by entity types (comma-separated: channels,shop,producttypes,pagetypes,categories)"),
+} as const;
+
+/**
+ * Pre-defined command schemas for type safety and reusability
+ */
+export const commandSchemas = {
+  push: z.object(commonArgs),
+  pull: z.object(commonArgs),
+  diff: z.object({ ...commonArgs, ...diffOnlyArgs }),
+} as const;
+
+// Derive command names from schema keys for type safety
+export type CommandName = keyof typeof commandSchemas;
+
+/**
+ * Factory function to create CLI-specific errors
+ * @param message - Error message
+ * @param helpText - Optional help text to display
+ * @returns Properly typed CLI error
+ */
+export const createCliError = (message: string, helpText?: string): CliError => {
   const error = new Error(message) as CliError;
-  error.isCliError = true;
-  error.helpText = helpText;
+  Object.defineProperty(error, 'isCliError', { value: true, writable: false });
+  if (helpText) {
+    Object.defineProperty(error, 'helpText', { value: helpText, writable: false });
+  }
   return error;
-}
-
-/**
- * Argument descriptions for better help text
- */
-const argDescriptions: Record<string, string> = {
-  url: "Saleor GraphQL endpoint URL",
-  token: "Saleor authentication token (staff user with proper permissions)", 
-  config: "Path to configuration file",
-  format: "Output format (table, json, summary)",
-  filter: "Filter by entity types (comma-separated: channels,shop,producttypes,pagetypes,categories)",
-  quiet: "Suppress progress messages",
-  verbose: "Show detailed debug information",
 };
 
 /**
- * Displays help information for CLI commands
+ * Extract all field descriptions from a Zod object schema
  */
-function displayHelp(commandName: string, schema: z.ZodObject<any>): void {
+export function extractSchemaDescriptions<T extends z.ZodRawShape>(
+  schema: z.ZodObject<T>
+): Record<string, string> {
+  const descriptions: Record<string, string> = {};
+  const shape = schema.shape;
+
+  Object.entries(shape).forEach(([key, fieldSchema]) => {
+    const description = extractFieldDescription(fieldSchema as z.ZodTypeAny);
+    if (description) {
+      descriptions[key] = description;
+    }
+  });
+
+  return descriptions;
+}
+
+/**
+ * Extract description from a single field schema, handling nested types
+ */
+function extractFieldDescription(fieldSchema: z.ZodTypeAny): string | undefined {
+  let currentSchema = fieldSchema;
+  
+  // Check current level first
+  let description = getDirectDescription(currentSchema);
+  if (description) return description;
+
+  // Unwrap nested schemas (Optional, Default, etc.)
+  const maxDepth = 5; // Prevent infinite loops
+  let depth = 0;
+  
+  while (
+    !description && 
+    depth < maxDepth && 
+    (currentSchema instanceof z.ZodOptional || currentSchema instanceof z.ZodDefault)
+  ) {
+    currentSchema = currentSchema instanceof z.ZodOptional 
+      ? currentSchema.unwrap()
+      : currentSchema._def.innerType;
+    
+    description = getDirectDescription(currentSchema);
+    depth++;
+  }
+
+  return description;
+}
+
+/**
+ * Get description directly from schema _def
+ */
+function getDirectDescription(schema: z.ZodTypeAny): string | undefined {
+  return (schema as any)._def?.description;
+}
+/**
+ * Parse command line arguments into a structured object
+ */
+export function parseRawArguments(argv: readonly string[]): ParsedArgs {
+  const parsedArgs: Record<string, string | boolean> = {};
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    
+    if (!arg.startsWith("--")) continue;
+
+    const { key, value, skipNext } = parseArgument(arg, argv[i + 1]);
+    parsedArgs[key] = value;
+    
+    if (skipNext) i++; // Skip the next argument if it was consumed as a value
+  }
+
+  return parsedArgs;
+}
+
+/**
+ * Parse a single argument and its potential value
+ */
+function parseArgument(
+  arg: string, 
+  nextArg?: string
+): { key: string; value: string | boolean; skipNext: boolean } {
+  // Handle --key=value format
+  if (arg.includes("=")) {
+    const [key, ...valueParts] = arg.slice(2).split("=");
+    return { 
+      key, 
+      value: valueParts.join("="), // Rejoin in case value contains =
+      skipNext: false 
+    };
+  }
+
+  // Handle --key value format
+  const key = arg.slice(2);
+  if (nextArg && !nextArg.startsWith("--")) {
+    return { key, value: nextArg, skipNext: true };
+  }
+
+  // Boolean flag
+  return { key, value: true, skipNext: false };
+}
+
+/**
+ * Extract relevant environment variables
+ */
+export function extractEnvironmentDefaults(env: NodeJS.ProcessEnv = process.env): EnvironmentVariables {
+  return {
+    SALEOR_URL: env.SALEOR_URL,
+    SALEOR_TOKEN: env.SALEOR_TOKEN,
+    SALEOR_CONFIG: env.SALEOR_CONFIG,
+  };
+}
+
+const ENVIRONMENT_PREFIX = "SALEOR_";
+
+/**
+ * Display comprehensive help for a command
+ */
+export function displayHelp({ commandName, schema }: HelpDisplayOptions): void {
+  const sections = generateHelpSections(commandName, schema);
+  
   console.log(`\n📖 ${commandName.toUpperCase()} Command Help\n`);
   
-  const shape = schema.shape;
+  sections.forEach(section => {
+    console.log(section);
+  });
+}
+
+/**
+ * Generate help sections for better organization
+ */
+function generateHelpSections(
+  commandName: string, 
+  schema: z.ZodObject<z.ZodRawShape>
+): string[] {
+  const { required, optional } = categorizeArguments(schema);
+  const descriptions = extractSchemaDescriptions(schema);
+  
+  const sections: string[] = [];
+
+  // Required arguments section
+  if (required.length > 0) {
+    sections.push(formatArgumentSection("🔴 Required Arguments:", required, descriptions, true));
+  }
+
+  // Optional arguments section
+  if (optional.length > 0) {
+    sections.push(formatArgumentSection("🟡 Optional Arguments:", optional, descriptions, false));
+  }
+
+  // Examples section
+  sections.push(generateExamplesSection(commandName));
+
+  // Tips section
+  sections.push(generateTipsSection());
+
+  return sections;
+}
+
+/**
+ * Categorize arguments into required and optional
+ */
+function categorizeArguments(schema: z.ZodObject<z.ZodRawShape>) {
   const required: string[] = [];
   const optional: string[] = [];
   
-  // Categorize fields
-  Object.entries(shape).forEach(([key, fieldSchema]) => {
+  Object.entries(schema.shape).forEach(([key, fieldSchema]) => {
     if (fieldSchema instanceof z.ZodDefault || fieldSchema instanceof z.ZodOptional) {
       optional.push(key);
     } else {
       required.push(key);
     }
   });
-  
-  if (required.length > 0) {
-    console.log("🔴 Required Arguments:");
-    required.forEach(arg => {
-      const envVar = `SALEOR_${arg.toUpperCase()}`;
-      const description = argDescriptions[arg] || "";
-      console.log(`  --${arg} <value>`);
-      console.log(`      ${description}`);
-      console.log(`      Environment: ${envVar}`);
-      console.log("");
-    });
-  }
-  
-  if (optional.length > 0) {
-    console.log("🟡 Optional Arguments:");
-    optional.forEach(arg => {
-      const description = argDescriptions[arg] || "";
-      console.log(`  --${arg} <value>`);
-      if (description) {
-        console.log(`      ${description}`);
-      }
-      console.log("");
-    });
-  }
-  
-  console.log("📝 Examples:");
-  console.log(`  # Using command line arguments`);
-  console.log(`  npm run ${commandName} -- --url https://demo.saleor.io/graphql/ --token your-token`);
-  console.log(``);
-  console.log(`  # Using environment variables`);
-  console.log(`  SALEOR_URL=https://demo.saleor.io/graphql/ SALEOR_TOKEN=your-token npm run ${commandName}`);
-  console.log(``);
-  
-  if (commandName === "diff") {
-    console.log(`  # Diff-specific examples`);
-    console.log(`  npm run diff -- --url ... --token ... --format summary`);
-    console.log(`  npm run diff -- --url ... --token ... --filter channels,shop --quiet`);
-    console.log(``);
-  }
-  
-  console.log("💡 Tips:");
-  console.log("  • Create a .env file with your credentials (see .env.example)");
-  console.log("  • Use --quiet for CI/CD environments"); 
-  console.log("  • Use --verbose for debugging issues");
-  console.log("");
+
+  return { required, optional };
 }
 
 /**
- * Parses command line arguments and validates them using a zod schema
- * @param schema - Zod schema to validate the arguments
- * @param commandName - Name of the command for help text
- * @returns Validated arguments object
+ * Format a section of arguments (required or optional)
+ */
+function formatArgumentSection(
+  title: string,
+  args: string[],
+  descriptions: Record<string, string>,
+  showEnvVars: boolean
+): string {
+  const lines = [title];
+  
+  args.forEach(arg => {
+    lines.push(`  --${arg} <value>`);
+    
+    const description = descriptions[arg];
+    if (description) {
+      lines.push(`      ${description}`);
+    }
+    
+    if (showEnvVars) {
+      const envVar = `${ENVIRONMENT_PREFIX}${arg.toUpperCase()}`;
+      lines.push(`      Environment: ${envVar}`);
+    }
+    
+    lines.push("");
+  });
+
+  return lines.join("\n");
+}
+
+/**
+ * Generate examples section
+ */
+function generateExamplesSection(commandName: string): string {
+  const examples = [
+    "📝 Examples:",
+    "  # Using command line arguments",
+    `  npm run ${commandName} -- --url https://demo.saleor.io/graphql/ --token your-token`,
+    "",
+    "  # Using environment variables",
+    `  SALEOR_URL=https://demo.saleor.io/graphql/ SALEOR_TOKEN=your-token npm run ${commandName}`,
+    "",
+  ];
+
+  // Add command-specific examples
+  if (commandName === "diff") {
+    examples.push(
+      "  # Diff-specific examples",
+      "  npm run diff -- --url ... --token ... --format summary",
+      "  npm run diff -- --url ... --token ... --filter channels,shop --quiet",
+      ""
+    );
+  }
+
+  return examples.join("\n");
+}
+
+/**
+ * Generate tips section
+ */
+function generateTipsSection(): string {
+  return [
+    "💡 Tips:",
+    "  • Create a .env file with your credentials (see .env.example)",
+    "  • Use --quiet for CI/CD environments",
+    "  • Use --verbose for debugging issues",
+    "",
+  ].join("\n");
+}
+
+/**
+ * Main CLI argument parsing function with improved error handling and separation of concerns
  */
 export function parseCliArgs<T extends z.ZodRawShape>(
   schema: z.ZodObject<T>,
-  commandName: string = "command"
+  commandName: string = "command",
+  options: Partial<ArgumentParsingOptions> = {}
 ): z.infer<z.ZodObject<T>> {
-  // Parse command line arguments manually
-  const rawArgs = process.argv.slice(2);
-  const parsedArgs: Record<string, string | boolean> = {};
+  const argv = options.argv ?? process.argv.slice(2);
+  const env = options.env ?? extractEnvironmentDefaults();
 
-  // Check for help flag first
-  if (rawArgs.includes("--help") || rawArgs.includes("-h")) {
-    displayHelp(commandName, schema);
+  // Handle help request early
+  if (argv.includes("--help") || argv.includes("-h")) {
+    displayHelp({ commandName, schema });
     process.exit(0);
   }
 
-  for (let i = 0; i < rawArgs.length; i++) {
-    const arg = rawArgs[i];
-    if (arg.startsWith("--")) {
-      // Handle --key=value format
-      if (arg.includes("=")) {
-        const [key, ...valueParts] = arg.slice(2).split("=");
-        const value = valueParts.join("="); // Rejoin in case value contains =
-        parsedArgs[key] = value;
-      } else {
-        // Handle --key value format
-        const key = arg.slice(2);
-        const value = rawArgs[i + 1];
-        if (value && !value.startsWith("--")) {
-          parsedArgs[key] = value;
-          i++; // Skip the value in next iteration
-        } else {
-          // Boolean flag
-          parsedArgs[key] = true;
-        }
-      }
-    }
-  }
-
-  // Add environment variable defaults
-  const envDefaults: Record<string, string> = {};
-  if (process.env.SALEOR_URL) envDefaults.url = process.env.SALEOR_URL;
-  if (process.env.SALEOR_TOKEN) envDefaults.token = process.env.SALEOR_TOKEN;
-  if (process.env.SALEOR_CONFIG) envDefaults.config = process.env.SALEOR_CONFIG;
-
-  // Merge environment defaults with parsed args (CLI args take precedence)
+  // Parse arguments
+  const parsedArgs = parseRawArguments(argv);
+  
+  // Merge with environment variables (CLI args take precedence)
+  const envDefaults = {
+    ...(env.SALEOR_URL && { url: env.SALEOR_URL }),
+    ...(env.SALEOR_TOKEN && { token: env.SALEOR_TOKEN }),
+    ...(env.SALEOR_CONFIG && { config: env.SALEOR_CONFIG }),
+  };
+  
   const finalArgs = { ...envDefaults, ...parsedArgs };
 
+  // Validate with schema
   try {
     return schema.parse(finalArgs);
   } catch (error) {

@@ -2,16 +2,10 @@ import { createClient } from "../lib/graphql/client";
 import { ServiceComposer } from "../core/service-container";
 import { SaleorConfigurator } from "../core/configurator";
 import { z } from "zod";
-import { parseCliArgs } from "../lib/utils/cli-args";
+import { parseCliArgs, commandSchemas } from "../cli/index.js";
 import { logger } from "../lib/logger";
 
-const argsSchema = z.object({
-  url: z.string({ required_error: "Saleor GraphQL URL is required" }),
-  token: z.string({ required_error: "Saleor authentication token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-  verbose: z.boolean().default(false),
-});
+const argsSchema = commandSchemas.pull;
 
 async function runPull() {
   try {
