@@ -4,3 +4,4 @@ graphql-env.d.ts
 schema.graphql
 config.yml
 CLAUDE.md
+.biome
