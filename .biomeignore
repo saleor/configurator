@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.changeset/
+coverage/
+*.generated.*
+schema.graphql
+src/graphql/graphql-env.d.ts 
