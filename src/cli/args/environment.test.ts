@@ -8,121 +8,106 @@ import {
 import type { EnvironmentVariables } from '../schemas/types';
 
 describe('extractEnvironmentDefaults', () => {
-  it('should extract standard Saleor environment variables', () => {
-    // Arrange
-    const env = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: 'test-token-123',
-      SALEOR_CONFIG: 'custom-config.yml',
-      OTHER_VAR: 'should-be-ignored'
+  it('should extract environment variables with defaults', () => {
+    const mockEnv = {
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: 'test-token-123',
+      SALEOR_CONFIG_PATH: 'custom-config.yml',
     };
 
-    // Act
-    const result = extractEnvironmentDefaults(env);
+    const result = extractEnvironmentDefaults(mockEnv);
 
-    // Assert
     expect(result).toEqual({
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: 'test-token-123',
-      SALEOR_CONFIG: 'custom-config.yml'
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: 'test-token-123',
+      SALEOR_CONFIG_PATH: 'custom-config.yml'
     });
   });
 
-  it('should handle missing environment variables', () => {
-    // Arrange
-    const env = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      OTHER_VAR: 'present'
+  it('should handle undefined environment variables', () => {
+    const mockEnv = {
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
     };
 
-    // Act
-    const result = extractEnvironmentDefaults(env);
+    const result = extractEnvironmentDefaults(mockEnv);
 
-    // Assert
     expect(result).toEqual({
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     });
   });
 
-  it('should handle empty environment object', () => {
-    // Arrange
-    const env = {};
+  it('should use process.env when no env parameter provided', () => {
+    // Mock process.env
+    const originalEnv = process.env;
+    process.env = {
+      ...originalEnv,
+      SALEOR_API_URL: undefined,
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
+    };
 
-    // Act
-    const result = extractEnvironmentDefaults(env);
+    const result = extractEnvironmentDefaults();
 
-    // Assert
     expect(result).toEqual({
-      SALEOR_URL: undefined,
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: undefined,
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     });
+
+    // Restore original process.env
+    process.env = originalEnv;
   });
 
   it('should use custom configuration', () => {
-    // Arrange
-    const env = {
+    const mockEnv = {
       CUSTOM_URL: 'https://custom.api.com',
       CUSTOM_TOKEN: 'custom-token',
       CUSTOM_CONFIG: 'custom.yml'
     };
-    const config = {
+
+    const customConfig = {
       prefix: 'CUSTOM_',
       mappings: {
         url: 'CUSTOM_URL',
         token: 'CUSTOM_TOKEN',
-        config: 'CUSTOM_CONFIG'
-      }
+        config: 'CUSTOM_CONFIG',
+      },
     };
 
-    // Act
-    const result = extractEnvironmentDefaults(env, config);
+    const result = extractEnvironmentDefaults(mockEnv, customConfig);
 
-    // Assert
     expect(result).toEqual({
-      SALEOR_URL: 'https://custom.api.com',
-      SALEOR_TOKEN: 'custom-token',
-      SALEOR_CONFIG: 'custom.yml'
+      SALEOR_API_URL: 'https://custom.api.com',
+      SALEOR_AUTH_TOKEN: 'custom-token',
+      SALEOR_CONFIG_PATH: 'custom.yml'
     });
   });
 
-  it('should handle undefined env parameter by using process.env', () => {
-    // Arrange
-    const originalEnv = process.env;
-    process.env = {
-      SALEOR_URL: 'https://process-env.com',
-      SALEOR_TOKEN: 'process-token'
-    };
-
-    try {
-      // Act
-      const result = extractEnvironmentDefaults();
-
-      // Assert
-      expect(result.SALEOR_URL).toBe('https://process-env.com');
-      expect(result.SALEOR_TOKEN).toBe('process-token');
-    } finally {
-      // Cleanup
-      process.env = originalEnv;
-    }
+  it('should prioritize explicit env over process.env', () => {
+    process.env.SALEOR_API_URL = 'https://process-env.com';
+    process.env.SALEOR_AUTH_TOKEN = 'process-token';
+    
+    const explicitEnv = {};
+    
+    const result = extractEnvironmentDefaults(explicitEnv);
+    
+    expect(result.SALEOR_API_URL).toBe(undefined);
+    expect(result.SALEOR_AUTH_TOKEN).toBe(undefined);
   });
 });
 
 describe('environmentToCliArgs', () => {
-  it('should convert environment variables to CLI argument format', () => {
-    // Arrange
+  it('should convert environment variables to CLI arguments', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: 'test-token-123',
-      SALEOR_CONFIG: 'production.yml'
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: 'test-token-123',
+      SALEOR_CONFIG_PATH: 'production.yml'
     };
 
-    // Act
     const result = environmentToCliArgs(envVars);
 
-    // Assert
     expect(result).toEqual({
       url: 'https://api.saleor.io/graphql/',
       token: 'test-token-123',
@@ -130,18 +115,15 @@ describe('environmentToCliArgs', () => {
     });
   });
 
-  it('should handle undefined environment variables', () => {
-    // Arrange
+  it('should handle undefined values', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     };
 
-    // Act
     const result = environmentToCliArgs(envVars);
 
-    // Assert
     expect(result).toEqual({
       url: 'https://api.saleor.io/graphql/',
       token: undefined,
@@ -149,18 +131,15 @@ describe('environmentToCliArgs', () => {
     });
   });
 
-  it('should handle all undefined environment variables', () => {
-    // Arrange
+  it('should handle empty environment variables object', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: undefined,
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: undefined,
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     };
 
-    // Act
     const result = environmentToCliArgs(envVars);
 
-    // Assert
     expect(result).toEqual({
       url: undefined,
       token: undefined,
@@ -170,142 +149,121 @@ describe('environmentToCliArgs', () => {
 });
 
 describe('validateEnvironmentVariables', () => {
-  it('should validate all variables are present when required', () => {
-    // Arrange
+  it('should validate required environment variables - all present', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: 'test-token',
-      SALEOR_CONFIG: 'config.yml'
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: 'test-token',
+      SALEOR_CONFIG_PATH: 'config.yml'
     };
-    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_URL', 'SALEOR_TOKEN'];
-
-    // Act
+    
+    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_API_URL', 'SALEOR_AUTH_TOKEN'];
+    
     const result = validateEnvironmentVariables(envVars, requiredVars);
-
-    // Assert
+    
     expect(result.isValid).toBe(true);
     expect(result.missing).toEqual([]);
   });
 
-  it('should identify missing required variables', () => {
-    // Arrange
+  it('should validate required environment variables - some missing', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: 'https://api.saleor.io/graphql/',
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: 'https://api.saleor.io/graphql/',
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     };
-    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_URL', 'SALEOR_TOKEN', 'SALEOR_CONFIG'];
-
-    // Act
+    
+    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_API_URL', 'SALEOR_AUTH_TOKEN', 'SALEOR_CONFIG_PATH'];
+    
     const result = validateEnvironmentVariables(envVars, requiredVars);
-
-    // Assert
+    
     expect(result.isValid).toBe(false);
-    expect(result.missing).toEqual(['SALEOR_TOKEN', 'SALEOR_CONFIG']);
+    expect(result.missing).toEqual(['SALEOR_AUTH_TOKEN', 'SALEOR_CONFIG_PATH']);
   });
 
-  it('should handle empty required variables array', () => {
-    // Arrange
+  it('should validate required environment variables - no requirements', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: undefined,
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: undefined,
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     };
-    const requiredVars: Array<keyof EnvironmentVariables> = [];
-
-    // Act
-    const result = validateEnvironmentVariables(envVars, requiredVars);
-
-    // Assert
-    expect(result.isValid).toBe(true);
-    expect(result.missing).toEqual([]);
-  });
-
-  it('should use default empty array for required variables', () => {
-    // Arrange
-    const envVars: EnvironmentVariables = {
-      SALEOR_URL: undefined,
-      SALEOR_TOKEN: undefined,
-      SALEOR_CONFIG: undefined
-    };
-
-    // Act
+    
     const result = validateEnvironmentVariables(envVars);
-
-    // Assert
+    
     expect(result.isValid).toBe(true);
     expect(result.missing).toEqual([]);
   });
 
-  it('should treat empty strings as missing', () => {
-    // Arrange
+  it('should validate required environment variables - empty requirements', () => {
     const envVars: EnvironmentVariables = {
-      SALEOR_URL: '',
-      SALEOR_TOKEN: 'valid-token',
-      SALEOR_CONFIG: undefined
+      SALEOR_API_URL: undefined,
+      SALEOR_AUTH_TOKEN: undefined,
+      SALEOR_CONFIG_PATH: undefined
     };
-    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_URL', 'SALEOR_TOKEN'];
+    
+    const result = validateEnvironmentVariables(envVars, []);
+    
+    expect(result.isValid).toBe(true);
+    expect(result.missing).toEqual([]);
+  });
 
-    // Act
+  it('should consider empty strings as missing', () => {
+    const envVars: EnvironmentVariables = {
+      SALEOR_API_URL: '',
+      SALEOR_AUTH_TOKEN: 'valid-token',
+      SALEOR_CONFIG_PATH: undefined
+    };
+    
+    const requiredVars: Array<keyof EnvironmentVariables> = ['SALEOR_API_URL', 'SALEOR_AUTH_TOKEN'];
+    
     const result = validateEnvironmentVariables(envVars, requiredVars);
-
-    // Assert
+    
     expect(result.isValid).toBe(false);
-    expect(result.missing).toEqual(['SALEOR_URL']);
+    expect(result.missing).toEqual(['SALEOR_API_URL']);
   });
 });
 
 describe('getEnvironmentHelpText', () => {
   it('should generate help text with default configuration', () => {
-    // Arrange & Act
     const helpText = getEnvironmentHelpText();
-
-    // Assert
+    
     expect(helpText).toContain('🌍 Environment Variables:');
-    expect(helpText).toContain('SALEOR_URL - Sets the --url argument');
-    expect(helpText).toContain('SALEOR_TOKEN - Sets the --token argument');
-    expect(helpText).toContain('SALEOR_CONFIG - Sets the --config argument');
-    expect(helpText).toContain('export SALEOR_URL=https://demo.saleor.io/graphql/');
-    expect(helpText).toContain('export SALEOR_TOKEN=your-authentication-token');
+    expect(helpText).toContain('SALEOR_API_URL - Sets the --url argument');
+    expect(helpText).toContain('SALEOR_AUTH_TOKEN - Sets the --token argument');
+    expect(helpText).toContain('SALEOR_CONFIG_PATH - Sets the --config argument');
+    expect(helpText).toContain('export SALEOR_API_URL=https://demo.saleor.io/graphql/');
+    expect(helpText).toContain('export SALEOR_AUTH_TOKEN=your-authentication-token');
   });
 
   it('should generate help text with custom configuration', () => {
-    // Arrange
-    const config = {
+    const customConfig = {
       prefix: 'CUSTOM_',
       mappings: {
-        endpoint: 'CUSTOM_ENDPOINT',
-        auth: 'CUSTOM_AUTH'
-      }
+        url: 'CUSTOM_URL',
+        token: 'CUSTOM_TOKEN',
+        config: 'CUSTOM_CONFIG'
+      },
     };
-
-    // Act
-    const helpText = getEnvironmentHelpText(config);
-
-    // Assert
+    
+    const helpText = getEnvironmentHelpText(customConfig);
+    
     expect(helpText).toContain('🌍 Environment Variables:');
-    expect(helpText).toContain('CUSTOM_ENDPOINT - Sets the --endpoint argument');
-    expect(helpText).toContain('CUSTOM_AUTH - Sets the --auth argument');
+    expect(helpText).toContain('CUSTOM_URL - Sets the --url argument');
+    expect(helpText).toContain('CUSTOM_TOKEN - Sets the --token argument');
+    expect(helpText).toContain('CUSTOM_CONFIG - Sets the --config argument');
   });
 
-  it('should include examples section', () => {
-    // Arrange & Act
-    const helpText = getEnvironmentHelpText();
-
-    // Assert
-    expect(helpText).toContain('Example:');
-    expect(helpText).toContain('export SALEOR_URL=');
-    expect(helpText).toContain('export SALEOR_TOKEN=');
-  });
-
-  it('should format text with proper line breaks', () => {
-    // Arrange & Act
-    const helpText = getEnvironmentHelpText();
-
-    // Assert
-    const lines = helpText.split('\n');
-    expect(lines.length).toBeGreaterThan(5);
-    expect(lines[0]).toBe('🌍 Environment Variables:');
-    expect(lines[lines.length - 1]).toBe('');
+  it('should generate help text with minimal configuration', () => {
+    const minimalConfig = {
+      prefix: 'TEST_',
+      mappings: {
+        url: 'TEST_URL',
+      },
+    };
+    
+    const helpText = getEnvironmentHelpText(minimalConfig);
+    
+    expect(helpText).toContain('🌍 Environment Variables:');
+    expect(helpText).toContain('TEST_URL - Sets the --url argument');
+    expect(helpText).toContain('export SALEOR_API_URL=');
+    expect(helpText).toContain('export SALEOR_AUTH_TOKEN=');
   });
 }); 

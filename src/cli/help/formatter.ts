@@ -154,7 +154,7 @@ function generateExamplesSection(commandName: string): string {
     `  npm run ${commandName} -- --url https://demo.saleor.io/graphql/ --token your-token`,
     "",
     "  # Using environment variables", 
-    `  SALEOR_URL=https://demo.saleor.io/graphql/ SALEOR_TOKEN=your-token npm run ${commandName}`,
+    `  SALEOR_API_URL=https://demo.saleor.io/graphql/ SALEOR_AUTH_TOKEN=your-token npm run ${commandName}`,
     "",
   ];
 

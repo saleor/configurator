@@ -53,9 +53,9 @@ describe('parseCliArgs integration', () => {
     // Arrange
     const argv = ['--token=cli-token'];
     const env = {
-      SALEOR_URL: 'https://env.example.com',
-      SALEOR_TOKEN: 'env-token',
-      SALEOR_CONFIG: 'env-config.yml'
+      SALEOR_API_URL: 'https://env.example.com',
+      SALEOR_AUTH_TOKEN: 'env-token',
+      SALEOR_CONFIG_PATH: 'env-config.yml'
     };
 
     // Act
@@ -213,7 +213,7 @@ describe('createCommandParser', () => {
     const originalEnv = process.env;
     
     process.argv = ['node', 'script.js', '--url=https://process.com'];
-    process.env = { SALEOR_URL: 'https://env.com' };
+    process.env = { SALEOR_API_URL: 'https://env.com' };
 
     const parser = createCommandParser('test-cmd', testSchema);
 
@@ -288,8 +288,8 @@ describe('setupCommand', () => {
     // Arrange
     const argv = ['--verbose'];
     const env = {
-      SALEOR_URL: 'https://env.example.com',
-      SALEOR_TOKEN: 'env-token'
+      SALEOR_API_URL: 'https://env.example.com',
+      SALEOR_AUTH_TOKEN: 'env-token'
     };
 
     // Act

@@ -19,9 +19,9 @@ export interface ParsedArgs {
  * Environment variable configuration for Saleor CLI
  */
 export interface EnvironmentVariables {
-  readonly SALEOR_URL?: string;
-  readonly SALEOR_TOKEN?: string;
-  readonly SALEOR_CONFIG?: string;
+  readonly SALEOR_API_URL?: string;
+  readonly SALEOR_AUTH_TOKEN?: string;
+  readonly SALEOR_CONFIG_PATH?: string;
 }
 
 /**

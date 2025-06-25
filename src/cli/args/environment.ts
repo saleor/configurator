@@ -21,9 +21,9 @@ interface EnvironmentConfig {
 const DEFAULT_ENV_CONFIG: EnvironmentConfig = {
   prefix: 'SALEOR_',
   mappings: {
-    url: 'SALEOR_URL',
-    token: 'SALEOR_TOKEN',
-    config: 'SALEOR_CONFIG',
+    url: 'SALEOR_API_URL',
+    token: 'SALEOR_AUTH_TOKEN',
+    config: 'SALEOR_CONFIG_PATH',
   },
 } as const;
 
@@ -38,9 +38,9 @@ export function extractEnvironmentDefaults(
   config: EnvironmentConfig = DEFAULT_ENV_CONFIG
 ): EnvironmentVariables {
   return {
-    SALEOR_URL: env[config.mappings.url],
-    SALEOR_TOKEN: env[config.mappings.token],
-    SALEOR_CONFIG: env[config.mappings.config],
+    SALEOR_API_URL: env[config.mappings.url],
+    SALEOR_AUTH_TOKEN: env[config.mappings.token],
+    SALEOR_CONFIG_PATH: env[config.mappings.config],
   };
 }
 
@@ -51,9 +51,9 @@ export function extractEnvironmentDefaults(
  */
 export function environmentToCliArgs(envVars: EnvironmentVariables): Record<string, string | undefined> {
   return {
-    url: envVars.SALEOR_URL,
-    token: envVars.SALEOR_TOKEN,
-    config: envVars.SALEOR_CONFIG,
+    url: envVars.SALEOR_API_URL,
+    token: envVars.SALEOR_AUTH_TOKEN,
+    config: envVars.SALEOR_CONFIG_PATH,
   };
 }
 
@@ -100,8 +100,8 @@ export function getEnvironmentHelpText(config: EnvironmentConfig = DEFAULT_ENV_C
   lines.push(
     "",
     "  Example:",
-    `  export SALEOR_URL=https://demo.saleor.io/graphql/`,
-    `  export SALEOR_TOKEN=your-authentication-token`,
+    `  export SALEOR_API_URL=https://demo.saleor.io/graphql/`,
+    `  export SALEOR_AUTH_TOKEN=your-authentication-token`,
     ""
   );
   
