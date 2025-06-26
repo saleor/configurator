@@ -446,6 +446,7 @@ export class ProductService {
     logger.debug("Bootstrapping products", { count: products.length });
 
     // Build caches to reduce API calls
+    // Note: This is called AFTER foundation entities (product types, attributes) are created
     logger.debug("Building lookup caches for performance optimization");
     
     const caches = {
@@ -508,11 +509,19 @@ export class ProductService {
       });
     });
     
+    // Add small delay to ensure attributes are fully created with choices
+    logger.debug('Waiting for attributes to be fully available...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     for (const attributeName of uniqueAttributes) {
       try {
         const attribute = await this.repository.getAttributeByName(attributeName);
         if (attribute) {
           caches.attributes.set(attributeName, attribute);
+          logger.debug(`Cached attribute: ${attributeName}`, {
+            inputType: attribute.inputType,
+            choicesCount: attribute.choices?.edges?.length || 0
+          });
         }
       } catch (error) {
         logger.warn(`Failed to cache attribute ${attributeName}`, { error });

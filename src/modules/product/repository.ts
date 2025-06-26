@@ -537,7 +537,13 @@ export class ProductRepository implements ProductOperations {
     )?.node;
 
     if (exactMatch) {
-      logger.debug("Found attribute", { id: exactMatch.id, name: exactMatch.name });
+      logger.debug("Found attribute", { 
+        id: exactMatch.id, 
+        name: exactMatch.name,
+        inputType: exactMatch.inputType,
+        choicesCount: exactMatch.choices?.edges?.length || 0,
+        choices: exactMatch.choices?.edges?.map(e => e.node.name) || []
+      });
       return exactMatch;
     } else {
       logger.debug("No exact attribute match found", { 
