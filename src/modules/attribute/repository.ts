@@ -141,7 +141,8 @@ export class AttributeRepository implements AttributeOperations {
       name: createdAttribute.name,
       inputType: createdAttribute.inputType,
       choicesCount: createdAttribute.choices?.edges?.length || 0,
-      choices: createdAttribute.choices?.edges?.map(e => e.node.name) || []
+      choices: createdAttribute.choices?.edges?.map(e => e.node.name) || [],
+      expectedChoicesFromInput: attributeInput.values ? attributeInput.values.length : 0
     });
 
     return result.data.attributeCreate.attribute as Attribute;
