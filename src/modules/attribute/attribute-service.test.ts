@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AttributeService } from "./attribute-service";
-import type { Attribute } from "./repository";
+import type { Attribute, AttributeCreateInput } from "./repository";
 
 describe("AttributeService", () => {
   describe("bootstrapAttributes", () => {
@@ -14,7 +14,11 @@ describe("AttributeService", () => {
       };
 
       const mockOperations = {
-        createAttribute: vi.fn(),
+        createAttribute: vi.fn().mockResolvedValue({
+          id: "1",
+          ...existingAttribute,
+          choices: { edges: [{ node: { name: "Red" } }] },
+        }),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([
           {
@@ -199,6 +203,112 @@ describe("AttributeService", () => {
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
       expect(result).toBe(existingAttribute);
+    });
+  });
+
+  describe("createAttributeInput", () => {
+    it("should create correct input for dropdown attributes with values", () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+      const service = new AttributeService(mockOperations);
+
+      const attributeInput = {
+        name: "Genre",
+        inputType: "DROPDOWN" as const,
+        type: "PRODUCT_TYPE" as const,
+        values: [
+          { name: "Fiction" },
+          { name: "Non-Fiction" },
+          { name: "Fantasy" },
+        ],
+      };
+
+      // When creating the attribute, verify the GraphQL input structure
+      service.bootstrapAttributes({ attributeInputs: [attributeInput] });
+
+      // Then - verify the createAttribute was called with correct GraphQL structure
+      expect(mockOperations.createAttribute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Genre",
+          type: "PRODUCT_TYPE",
+          slug: "genre",
+          inputType: "DROPDOWN",
+          values: expect.arrayContaining([
+            expect.objectContaining({
+              name: expect.any(String),
+              // Should NOT have 'value' field for regular dropdowns (only for swatch)
+            }),
+          ]),
+        })
+      );
+    });
+
+    it("should create correct input for plain text attributes", () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+      const service = new AttributeService(mockOperations);
+
+      const attributeInput = {
+        name: "Author",
+        inputType: "PLAIN_TEXT" as const,
+        type: "PRODUCT_TYPE" as const,
+      };
+
+      // When
+      service.bootstrapAttributes({ attributeInputs: [attributeInput] });
+
+      // Then
+      expect(mockOperations.createAttribute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Author",
+          type: "PRODUCT_TYPE",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          // Should not have values field for plain text
+        })
+      );
+      
+      const createCall = mockOperations.createAttribute.mock.calls[0][0];
+      expect(createCall).not.toHaveProperty('values');
+    });
+
+    it("should create correct input for reference attributes", () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+      const service = new AttributeService(mockOperations);
+
+      const attributeInput = {
+        name: "Related Posts",
+        inputType: "REFERENCE" as const,
+        type: "PAGE_TYPE" as const,
+        entityType: "PAGE" as const,
+      };
+
+      // When
+      service.bootstrapAttributes({ attributeInputs: [attributeInput] });
+
+      // Then
+      expect(mockOperations.createAttribute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Related Posts",
+          type: "PAGE_TYPE",
+          slug: "related-posts",
+          inputType: "REFERENCE",
+          entityType: "PAGE",
+        })
+      );
     });
   });
 });
