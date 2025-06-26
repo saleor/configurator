@@ -41,7 +41,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -54,12 +54,10 @@ describe("ProductTypeService", () => {
       expect(
         mockProductTypeOperations.createProductType
       ).not.toHaveBeenCalled();
-      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
-        name: "Color",
-        type: "PRODUCT_TYPE",
-        slug: "color",
-        inputType: "DROPDOWN",
-        values: [{ name: "Red" }],
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["1"],
       });
     });
 
@@ -86,10 +84,14 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
       };
 
-      const attributeService = new AttributeService(mockAttributeOperations);
+      const attributeService = {
+        bootstrapAttributes: vi.fn().mockResolvedValue([newAttribute]),
+        updateAttribute: vi.fn(),
+        repo: mockAttributeOperations,
+      };
 
       const service = new ProductTypeService(
         mockProductTypeOperations,
@@ -99,7 +101,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: newProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -116,12 +118,13 @@ describe("ProductTypeService", () => {
         isShippingRequired: false,
         taxClass: null,
       });
-      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
-        name: "Color",
-        type: "PRODUCT_TYPE",
-        slug: "color",
-        inputType: "DROPDOWN",
-        values: [{ name: "Red" }],
+      expect(attributeService.bootstrapAttributes).toHaveBeenCalledWith({
+        attributeInputs: [{
+          name: "Color",
+          inputType: "DROPDOWN",
+          values: [{ name: "Red" }],
+          type: "PRODUCT_TYPE",
+        }],
       });
       expect(
         mockProductTypeOperations.assignAttributesToProductType
@@ -172,7 +175,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -226,7 +229,7 @@ describe("ProductTypeService", () => {
       await expect(
         service.bootstrapProductType({
           name: newProductType.name,
-          attributes: [
+          productAttributes: [
             {
               name: "Color",
               inputType: "DROPDOWN",
@@ -309,7 +312,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -397,7 +400,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
