@@ -117,8 +117,9 @@ describe("ProductService", () => {
             channelId: "ch-1",
             isPublished: true,
             visibleInListings: true,
-            availableForPurchase: undefined,
+            availableForPurchaseAt: undefined,
             publishedAt: undefined,
+            isAvailableForPurchase: false,
           },
         ],
       });

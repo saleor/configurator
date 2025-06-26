@@ -90,7 +90,7 @@ export class AttributeService {
       
       // Check if this is a dropdown attribute and if choices were created
       if (attribute.inputType === 'DROPDOWN' && attribute.values && attribute.values.length > 0) {
-        const choicesCount = createdAttribute.choices?.edges?.length || 0;
+        const choicesCount = createdAttribute?.choices?.edges?.length || 0;
         logger.debug(`Dropdown attribute created with ${choicesCount} choices`, {
           name: attribute.name,
           expectedChoices: attribute.values.length,

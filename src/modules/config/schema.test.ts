@@ -25,7 +25,7 @@ describe("Schema Union Types", () => {
       
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({ name: "Book" });
-      expect("attributes" in result.productTypes![0]).toBe(false);
+      expect("productAttributes" in result.productTypes![0]).toBe(false);
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -33,7 +33,7 @@ describe("Schema Union Types", () => {
         productTypes: [
           {
             name: "Book",
-            attributes: [
+            productAttributes: [
               {
                 name: "Genre",
                 inputType: "DROPDOWN",
@@ -52,7 +52,7 @@ describe("Schema Union Types", () => {
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -63,7 +63,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("attributes" in result.productTypes![0]).toBe(true);
+      expect("productAttributes" in result.productTypes![0]).toBe(true);
     });
 
     it("should prioritize update schema over create schema", () => {
@@ -72,7 +72,7 @@ describe("Schema Union Types", () => {
         productTypes: [
           {
             name: "Book",
-            attributes: [],
+            productAttributes: [],
           },
         ],
       };
@@ -81,9 +81,9 @@ describe("Schema Union Types", () => {
       
       expect(result.productTypes![0]).toEqual({
         name: "Book",
-        attributes: [],
+        productAttributes: [],
       });
-      expect("attributes" in result.productTypes![0]).toBe(true);
+      expect("productAttributes" in result.productTypes![0]).toBe(true);
     });
   });
 
