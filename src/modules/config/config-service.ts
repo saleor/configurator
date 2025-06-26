@@ -20,6 +20,12 @@ export class ConfigurationService {
     return config;
   }
 
+  async retrieveWithoutSaving(): Promise<SaleorConfig> {
+    const rawConfig = await this.repository.fetchConfig();
+    const config = this.mapConfig(rawConfig);
+    return config;
+  }
+
   private mapChannels(
     rawChannels: RawSaleorConfig["channels"]
   ): SaleorConfig["channels"] {

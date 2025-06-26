@@ -4,17 +4,15 @@ import { SaleorConfigurator } from "../core/configurator";
 import { parseCliArgs, commandSchemas } from "../cli/index.js";
 import { logger } from "../lib/logger";
 
-const argsSchema = commandSchemas.push;
+const argsSchema = commandSchemas.diff;
 
-async function runPush() {
+async function runDiff() {
   try {
-    console.log("🚀 Saleor Configuration Push\n");
+    console.log("🔍 Saleor Configuration Diff\n");
     
-    // Parse CLI arguments with better error handling
-    const args = parseCliArgs(argsSchema, "push");
-    const { url, token, config: configPath, quiet, verbose } = args;
+    const args = parseCliArgs(argsSchema, "diff");
+    const { url, token, config: configPath, format, filter, quiet, verbose } = args;
 
-    // Set logger level based on flags
     if (verbose) {
       process.env.LOG_LEVEL = "debug";
     } else if (quiet) {
@@ -25,43 +23,51 @@ async function runPush() {
       console.log("📋 Configuration:");
       console.log(`   URL: ${url}`);
       console.log(`   Config: ${configPath}`);
+      console.log(`   Format: ${format}`);
+      if (filter) console.log(`   Filter: ${filter}`);
       console.log("");
     }
 
-    // Progress indicator
     if (!quiet) {
       console.log("⚙️  Initializing...");
     }
 
-    // Create a new client with the provided configuration
     const client = createClient(token, url);
 
-    // Create new services with the client, passing the config path
     const services = ServiceComposer.compose(client, configPath);
 
-    // Create a new configurator with the services
     const configurator = new SaleorConfigurator(services);
 
-    // Run push with progress indicators
     if (!quiet) {
-      console.log("📤 Applying configuration to Saleor...");
+      console.log("🔄 Running diff analysis...");
     }
 
-    await configurator.push();
+    const summary = await configurator.diff({ 
+      format, 
+      filter: filter?.split(","), 
+      quiet 
+    });
 
-    if (!quiet) {
-      console.log("\n✅ Configuration successfully applied to Saleor");
+    if (summary.totalChanges > 0) {
+      if (!quiet) {
+        console.log(`\n⚠️  Found ${summary.totalChanges} difference${summary.totalChanges !== 1 ? 's' : ''} that would be applied by 'push'`);
+      }
+    } else {
+      if (!quiet) {
+        console.log("\n✅ No differences found - configurations are in sync");
+      }
     }
-    
+
+    // Exit with success code regardless of whether differences were found
+    // Finding differences is expected behavior, not an error
     process.exit(0);
 
   } catch (error) {
-    logger.error("Push command failed", { error });
+    logger.error("Diff command failed", { error });
     
     if (error instanceof Error) {
       console.error(`\n❌ Error: ${error.message}`);
       
-      // Provide helpful hints for common errors
       if (error.message.includes("ENOENT") && error.message.includes("config")) {
         console.error("💡 Make sure your config file exists and is readable");
       } else if (error.message.includes("fetch") || error.message.includes("network")) {
@@ -77,8 +83,8 @@ async function runPush() {
   }
 }
 
-// Run the push command
-runPush().catch((error) => {
+// Run the diff command
+runDiff().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
-});
+}); 
