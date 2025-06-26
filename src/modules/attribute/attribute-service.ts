@@ -32,7 +32,7 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
     return {
       ...base,
       values: input.values.map((value) => ({
-        name: value.name,
+        value: value.name,
       })),
     };
   }
