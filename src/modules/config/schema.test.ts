@@ -294,7 +294,7 @@ describe("Schema Union Types", () => {
 
       const updateProductType: ProductTypeUpdateInput = {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -315,6 +315,7 @@ describe("Schema Union Types", () => {
         currencyCode: "USD",
         defaultCountry: "US",
         slug: "us",
+        isActive: true,
         settings: {
           useLegacyErrorFlow: false,
         },
@@ -328,7 +329,7 @@ describe("Schema Union Types", () => {
 
       // If these compile without TypeScript errors, the types are working correctly
       expect(createProductType.name).toBe("Book");
-      expect(updateProductType.attributes).toHaveLength(1);
+      expect(updateProductType.productAttributes).toHaveLength(1);
       expect(createChannel.name).toBe("US");
       expect(updateChannel.settings?.useLegacyErrorFlow).toBe(false);
       expect(Object.keys(createShop)).toHaveLength(0);

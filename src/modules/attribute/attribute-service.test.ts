@@ -51,8 +51,8 @@ describe("AttributeService", () => {
         entityType: null,
         choices: {
           edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
+            { node: { id: "1", name: "Fiction", value: "Fiction" } },
+            { node: { id: "2", name: "Non-Fiction", value: "Non-Fiction" } },
           ],
         },
       };
@@ -106,8 +106,8 @@ describe("AttributeService", () => {
         entityType: null,
         choices: {
           edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
+            { node: { id: "1", name: "Fiction", value: "Fiction" } },
+            { node: { id: "2", name: "Non-Fiction", value: "Non-Fiction" } },
           ],
         },
       };

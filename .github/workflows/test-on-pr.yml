@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Type check
+        run: npx tsc --noEmit
+
       - name: Run tests
         env:
           APP_TOKEN: test-token

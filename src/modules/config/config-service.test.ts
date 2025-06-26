@@ -54,6 +54,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -87,6 +88,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -106,6 +108,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -177,6 +180,7 @@ describe("ConfigurationService", () => {
                     },
                   },
                 ],
+                variantAttributes: [],
               },
             },
           ],
@@ -205,6 +209,7 @@ describe("ConfigurationService", () => {
             },
           ],
         },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -247,11 +252,13 @@ describe("ConfigurationService", () => {
                     choices: null,
                   },
                 ],
+                variantAttributes: [],
               },
             },
           ],
         },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
