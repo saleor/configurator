@@ -118,6 +118,17 @@ export class ProductService {
     let attributeMap: Map<string, Attribute>;
     if (attributeCache) {
       attributeMap = attributeCache;
+      // Verify cached attributes have choices for dropdown types
+      for (const attributeName of attributeNames) {
+        const cachedAttr = attributeCache.get(attributeName);
+        if (cachedAttr && cachedAttr.inputType === 'DROPDOWN' && (!cachedAttr.choices?.edges || cachedAttr.choices.edges.length === 0)) {
+          logger.warn(`Cached attribute "${attributeName}" is missing choices, refetching`);
+          const freshAttr = await this.repository.getAttributeByName(attributeName);
+          if (freshAttr) {
+            attributeMap.set(attributeName, freshAttr);
+          }
+        }
+      }
     } else {
       attributeMap = new Map();
       // Batch fetch all attributes at once
@@ -509,9 +520,7 @@ export class ProductService {
       });
     });
     
-    // Add small delay to ensure attributes are fully created with choices
-    logger.debug('Waiting for attributes to be fully available...');
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Cache attributes after foundation entities are created
     
     for (const attributeName of uniqueAttributes) {
       try {

@@ -136,8 +136,12 @@ export class AttributeRepository implements AttributeOperations {
       throw new Error(`Failed to create attribute: ${errors || graphqlError || "Unknown error"}`);
     }
 
+    const createdAttribute = result.data.attributeCreate.attribute;
     logger.info("Attribute created", {
-      name: result.data.attributeCreate.attribute.name,
+      name: createdAttribute.name,
+      inputType: createdAttribute.inputType,
+      choicesCount: createdAttribute.choices?.edges?.length || 0,
+      choices: createdAttribute.choices?.edges?.map(e => e.node.name) || []
     });
 
     return result.data.attributeCreate.attribute as Attribute;
