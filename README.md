@@ -26,44 +26,19 @@ The above will apply the changes to your Saleor instance.
 ## Configuration
 
 ```yaml
-// Example config.yml
 shop:
-  customerAllowedToSetExternalReference: false
   defaultMailSenderName: "Saleor Store"
   defaultMailSenderAddress: "store@example.com"
   displayGrossPrices: true
-  enableAccountConfirmationByEmail: true
-  limitQuantityPerCheckout: 50
   trackInventoryByDefault: true
-  reserveStockDurationAnonymousUser: 60
-  reserveStockDurationAuthenticatedUser: 120
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-  defaultWeightUnit: KG
-  allowLoginWithoutConfirmation: false
-
 channels:
   - name: Poland
     currencyCode: PLN
     defaultCountry: PL
     slug: poland
-    isActive: false  # Channels are inactive by default
-    settings:
-      allocationStrategy: PRIORITIZE_SORTING_ORDER
-      automaticallyConfirmAllNewOrders: true
-      automaticallyFulfillNonShippableGiftCard: true
-      expireOrdersAfter: 30
-      deleteExpiredOrdersAfter: 60
-      markAsPaidStrategy: TRANSACTION_FLOW
-      allowUnpaidOrders: false
-      includeDraftOrderInVoucherUsage: true
-      useLegacyErrorFlow: false
-      automaticallyCompleteFullyPaidCheckouts: true
-      defaultTransactionFlowStrategy: AUTHORIZATION
-
+    isActive: false
 productTypes:
   - name: Book
-    # Product-level attributes (shared across all variants)
     productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -72,109 +47,44 @@ productTypes:
         values:
           - name: Fiction
           - name: Non-Fiction
-          - name: Fantasy
-          - name: Science Fiction
-          - name: Mystery
-          - name: Romance
-      - name: Publisher
-        inputType: PLAIN_TEXT
-      - name: Publication Year
-        inputType: NUMERIC
-    # Variant-level attributes (different for each variant)
     variantAttributes:
       - name: Format
         inputType: DROPDOWN
         values:
           - name: Hardcover
           - name: Paperback
-          - name: E-book
-          - name: Audiobook
-      - name: ISBN
-        inputType: PLAIN_TEXT
-      - name: Page Count
-        inputType: NUMERIC
-
-
 pageTypes:
   - name: Blog Post
     attributes:
       - name: Title
         inputType: PLAIN_TEXT
-      - name: Description
-        inputType: PLAIN_TEXT
       - name: Published Date
         inputType: DATE
-      - name: Related Posts
-        inputType: REFERENCE
-        entityType: PAGE
-
 categories:
   - name: "Fiction"
     subcategories:
       - name: "Fantasy"
-  - name: "Non-Fiction"
-    subcategories:
-      - name: "Science"
-      - name: "History"
-
 products:
-  - name: "The Lord of the Rings: The Fellowship of the Ring"
+  - name: "The Lord of the Rings"
     productType: "Book"
     category: "Fiction/Fantasy"
-    description: "The first volume of J.R.R. Tolkien's epic fantasy trilogy"
-    # Product-level attributes (shared across all variants)
     attributes:
       Author: "J.R.R. Tolkien"
       Genre: "Fantasy"
-      Publisher: "Houghton Mifflin"
-      Publication Year: 1954
-    # Configure product-level channel settings
-    channelListings:
       - channel: "poland"
         isPublished: true
-        visibleInListings: true
-        availableForPurchase: "2024-01-01T00:00:00Z"
-        publishedAt: "2024-01-01T00:00:00Z"
     variants:
-      - name: "Hardcover First Edition"
-        sku: "LOTR-FOTR-HC-1ST"
-        weight: 1.8
-        # Variant-level attributes (specific to this format/edition)
+      - name: "Hardcover"
+        sku: "LOTR-HC"
         attributes:
           Format: "Hardcover"
-          ISBN: "978-0-395-08254-6"
-          Page Count: 479
         channelListings:
           - channel: "poland"
             price: 89.99
-            costPrice: 45.00
-      - name: "Paperback"
-        sku: "LOTR-FOTR-PB"
-        weight: 0.6
-        attributes:
-          Format: "Paperback"
-          ISBN: "978-0-547-92822-7"
-          Page Count: 479
-        channelListings:
-          - channel: "poland"
-            price: 24.99
-            costPrice: 12.50
-      - name: "E-book"
-        sku: "LOTR-FOTR-EBOOK"
-        weight: 0
-        digital: true
-        attributes:
-          Format: "E-book"
-          ISBN: "978-0-547-95154-6"
-          Page Count: 479
-        channelListings:
-          - channel: "poland"
-            price: 14.99
-            costPrice: 7.50
 ```
 
 > [!TIP]
-> See [SCHEMA.md](SCHEMA.md) for schema documentation with all the available properties.
+> See [example.yml](example.yml) for a complete configuration example, or [SCHEMA.md](SCHEMA.md) for detailed schema documentation with all available properties.
 
 ## Development
 
@@ -275,14 +185,3 @@ Retrieves the configuration from the Saleor instance and saves it to a file unde
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
 ```
-Currently, it supports:
-
-- [x] Fetching channels
-- [x] Saving config to config.yml file
-- [x] Fetching product types
-- [x] Fetching page types
-- [x] Fetching attributes
-
-### Limitations
-
-- Configurator fetches first 100 items from all paginated queries.
