@@ -1,8 +1,12 @@
-import { createClient } from "../lib/graphql/client";
-import { ServiceComposer } from "../core/service-container";
-import { SaleorConfigurator } from "../core/configurator";
-import { parseCliArgs, commandSchemas } from "../cli/index.js";
-import { logger } from "../lib/logger";
+import { 
+  parseCliArgs, 
+  commandSchemas,
+  validateSaleorUrl,
+  setupLogger,
+  displayConfig,
+  handleCommandError
+} from "../cli";
+import { createConfigurator } from "../core/factory";
 
 const argsSchema = commandSchemas.diff;
 
@@ -11,32 +15,21 @@ async function runDiff() {
     console.log("🔍 Saleor Configuration Diff\n");
     
     const args = parseCliArgs(argsSchema, "diff");
-    const { url, token, config: configPath, format, filter, quiet, verbose } = args;
+    const { url, token, config: configPath, format, filter, quiet, verbose, dryRun } = args;
 
-    if (verbose) {
-      process.env.LOG_LEVEL = "debug";
-    } else if (quiet) {
-      process.env.LOG_LEVEL = "error";
-    }
+    const validatedUrl = validateSaleorUrl(url, quiet);
+    setupLogger(verbose, quiet);
+    displayConfig({ ...args, url: validatedUrl }, quiet);
 
-    if (!quiet) {
-      console.log("📋 Configuration:");
-      console.log(`   URL: ${url}`);
-      console.log(`   Config: ${configPath}`);
-      console.log(`   Format: ${format}`);
-      if (filter) console.log(`   Filter: ${filter}`);
-      console.log("");
+    if (dryRun && !quiet) {
+      console.log("🔍 Dry-run mode: Analysis only, no changes will be made\n");
     }
 
     if (!quiet) {
       console.log("⚙️  Initializing...");
     }
 
-    const client = createClient(token, url);
-
-    const services = ServiceComposer.compose(client, configPath);
-
-    const configurator = new SaleorConfigurator(services);
+    const configurator = createConfigurator(token, validatedUrl, configPath);
 
     if (!quiet) {
       console.log("🔄 Running diff analysis...");
@@ -63,27 +56,10 @@ async function runDiff() {
     process.exit(0);
 
   } catch (error) {
-    logger.error("Diff command failed", { error });
-    
-    if (error instanceof Error) {
-      console.error(`\n❌ Error: ${error.message}`);
-      
-      if (error.message.includes("ENOENT") && error.message.includes("config")) {
-        console.error("💡 Make sure your config file exists and is readable");
-      } else if (error.message.includes("fetch") || error.message.includes("network")) {
-        console.error("💡 Check your Saleor URL and network connection");
-      } else if (error.message.includes("Unauthorized") || error.message.includes("401")) {
-        console.error("💡 Check your authentication token");
-      }
-    } else {
-      console.error("\n❌ An unexpected error occurred");
-    }
-    
-    process.exit(1);
+    handleCommandError(error, "Diff");
   }
 }
 
-// Run the diff command
 runDiff().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);

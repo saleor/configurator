@@ -78,8 +78,8 @@ export class SaleorConfigurator {
     }
   }
 
-  async pull() {
-    logger.info("Starting pull process");
+  async introspect() {
+    logger.info("Starting introspect process");
     try {
       const config = await this.services.configuration.retrieve();
       logger.info("Configuration retrieved successfully");

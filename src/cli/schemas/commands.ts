@@ -28,9 +28,9 @@ export const diffArgsDefinition = {
  * Each command combines common arguments with command-specific ones
  */
 export const commandSchemas = {
-  // Push and Pull commands use only common arguments
+  // Push and Introspect commands use only common arguments
   push: z.object(commonArgsDefinition),
-  pull: z.object(commonArgsDefinition),
+  introspect: z.object(commonArgsDefinition),
   
   // Diff command extends common arguments with diff-specific ones
   diff: extendCommonArgs(diffArgsDefinition),

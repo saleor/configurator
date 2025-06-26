@@ -29,6 +29,21 @@ export const commonArgsDefinition = {
     .boolean()
     .default(false)
     .describe("Show detailed debug information and execution logs"),
+    
+  force: z
+    .boolean()
+    .default(false)
+    .describe("Skip confirmation prompts and overwrite files without asking"),
+    
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Preview changes without making any modifications (dry-run mode)"),
+    
+  skipValidation: z
+    .boolean()
+    .default(false)
+    .describe("Skip validation checks and diff comparison (advanced users only)"),
 } as const;
 
 /**

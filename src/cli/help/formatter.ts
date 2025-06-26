@@ -177,11 +177,12 @@ function generateExamplesSection(commandName: string): string {
     );
   }
 
-  if (commandName === 'pull') {
+  if (commandName === 'introspect') {
     examples.push(
-      "  # Pull command specific examples",
-      "  npm run pull -- --url ... --token ... --config downloaded.yml", 
-      "  npm run pull -- --url ... --token ... --quiet",
+      "  # Introspect command specific examples",
+      `  npm run introspect -- --url ... --token ... --config downloaded.yml`, 
+      `  npm run introspect -- --url ... --token ... --quiet --force`,
+      `  npm run introspect -- --url ... --token ... --dry-run`,
       ""
     );
   }

@@ -118,14 +118,45 @@ const countryCodeSchema = z.enum([
   "CN",
   "IN",
   "CA",
+  "AE",
+  "MX",
+  "KR",
+  "SG",
+  "HK",
+  "MY",
+  "TH",
+  "ID",
+  "PH",
+  "VN",
+  "EG",
+  "SA",
+  "IL",
+  "TR",
+  "ZA",
+  "NG",
+  "AR",
+  "CL",
+  "CO",
+  "PE",
+  "NZ",
 ]);
 
 export type CountryCode = z.infer<typeof countryCodeSchema>;
 
+// Currency Code Schema - common currency codes
+const currencyCodeSchema = z.enum([
+  "USD", "EUR", "GBP", "JPY", "AUD", "CAD", "CHF", "CNY", "SEK", "NZD",
+  "MXN", "SGD", "HKD", "NOK", "KRW", "TRY", "RUB", "INR", "BRL", "ZAR",
+  "PLN", "CZK", "DKK", "HUF", "ILS", "THB", "IDR", "MYR", "PHP", "VND",
+  "EGP", "SAR", "AED", "NGN", "ARS", "CLP", "COP", "PEN"
+]);
+
+export type CurrencyCode = z.infer<typeof currencyCodeSchema>;
+
 // Channel Create Schema - minimal fields for creation
 const channelCreateSchema = z.object({
   name: z.string().describe("Channel.name"),
-  currencyCode: z.string().describe("Channel.currencyCode"),
+  currencyCode: currencyCodeSchema.describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
   slug: z.string().describe("Channel.slug"),
 });
@@ -133,7 +164,7 @@ const channelCreateSchema = z.object({
 // Channel Update Schema - full state representation
 const channelUpdateSchema = z.object({
   name: z.string().describe("Channel.name"),
-  currencyCode: z.string().describe("Channel.currencyCode"),
+  currencyCode: currencyCodeSchema.describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
   slug: z.string().describe("Channel.slug"),
   isActive: z.boolean().optional().describe("Channel.isActive").default(false), // Channels inactive by default

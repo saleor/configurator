@@ -251,7 +251,10 @@ describe('setupCommand', () => {
       token: 'test-token',
       config: 'custom.yml',
       quiet: false,
-      verbose: true
+      verbose: true,
+      force: false,
+      dryRun: false,
+      skipValidation: false
     });
   });
 
@@ -279,6 +282,9 @@ describe('setupCommand', () => {
       config: 'config.yml',
       quiet: false,
       verbose: false,
+      force: false,
+      dryRun: false,
+      skipValidation: false,
       format: 'json',
       limit: '50'
     });
@@ -301,7 +307,10 @@ describe('setupCommand', () => {
       token: 'env-token',
       config: 'config.yml',
       quiet: false,
-      verbose: true
+      verbose: true,
+      force: false,
+      dryRun: false,
+      skipValidation: false
     });
   });
 }); 

@@ -33,13 +33,24 @@ export type {
 } from './schemas/types';
 
 // Error handling exports
-export { createCliError, createValidationError, handleCliError } from './errors/handlers';
+export { createCliError, createValidationError, handleCliError, handleCommandError, displayErrorWithContext } from './errors/handlers';
 export { isCliError, isValidationError } from './errors/types';
 export type { CliError, ValidationError, HelpDisplayOptions } from './errors/types';
 
 // Help system exports
 export { displayHelp, displayUsage, displayErrorWithHelp } from './help/display';
 export { generateHelpSections, formatArgumentSection } from './help/formatter';
+
+// Validation exports
+export { validateSaleorUrl, validateConfigPath, validateFormat } from './validation';
+
+// Display exports
+export { setupLogger, displayConfig, displayProgress, displaySuccess, displayWarning } from './display';
+export type { BaseCommandArgs } from './display';
+
+// Interactive exports
+export { confirmPrompt, selectPrompt, displayDiffSummary } from './interactive';
+export type { PromptOptions, DiffSummary } from './interactive';
 
 /**
  * Main CLI argument parsing function with comprehensive error handling and help support
@@ -93,7 +104,7 @@ export function parseCliArgs<T extends z.ZodRawShape>(
     
   } catch (error) {
     if (error instanceof Error && 'isCliError' in error) {
-      const cliError = error as import('./errors/types.js').CliError;
+      const cliError = error as import('./errors/types').CliError;
       console.error(`❌ ${cliError.message}`);
       
       if (cliError.helpText) {
