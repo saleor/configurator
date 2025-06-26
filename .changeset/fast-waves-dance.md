@@ -2,7 +2,7 @@
 "saleor-configurator": minor
 ---
 
-# Add diff command with enhanced developer experience
+Add `diff` command
 
 Introduces a comprehensive `diff` command that compares local YAML configuration with remote Saleor instance state, enabling users to preview changes before applying them. This release also includes significant CLI/DX improvements across all commands.
 
