@@ -565,6 +565,136 @@ describe("DiffService", () => {
     });
   });
 
+  describe("product type attribute schema compatibility", () => {
+    it("should detect productAttributes and variantAttributes correctly", async () => {
+      // Arrange: Test that the diff service handles both productAttributes and variantAttributes
+      const localConfig: SaleorConfig = {
+        productTypes: [
+          {
+            name: "Book",
+            productAttributes: [
+              {
+                name: "Author",
+                inputType: "PLAIN_TEXT",
+              },
+              {
+                name: "Genre",
+                inputType: "DROPDOWN",
+                values: [{ name: "Fiction" }, { name: "Non-Fiction" }],
+              },
+            ],
+            variantAttributes: [
+              {
+                name: "Format",
+                inputType: "DROPDOWN", 
+                values: [{ name: "Hardcover" }, { name: "Paperback" }, { name: "E-book" }],
+              },
+            ],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        productTypes: [
+          {
+            name: "Book",
+            productAttributes: [
+              {
+                name: "Author",
+                inputType: "PLAIN_TEXT",
+              },
+            ],
+            variantAttributes: [
+              {
+                name: "Format",
+                inputType: "DROPDOWN",
+                values: [{ name: "Hardcover" }, { name: "Paperback" }],
+              },
+            ],
+          },
+        ],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compare();
+
+      // Assert
+      expect(summary.totalChanges).toBe(1); // One product type update
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(1);
+      expect(summary.deletes).toBe(0);
+
+      const productTypeUpdate = summary.results.find(r => r.entityType === "Product Types");
+      expect(productTypeUpdate).toBeDefined();
+      expect(productTypeUpdate?.operation).toBe("UPDATE");
+      expect(productTypeUpdate?.entityName).toBe("Book");
+
+      // Check that changes include both productAttributes and variantAttributes
+      const changes = productTypeUpdate?.changes || [];
+      const changeFields = changes.map(c => c.field);
+      
+      // Should detect Genre attribute added to productAttributes
+      expect(changeFields).toContain("productAttributes");
+      
+      // Should detect E-book value added to variantAttributes Format
+      expect(changeFields.some(field => field.includes("variantAttributes"))).toBe(true);
+
+      // Verify change descriptions are clear about attribute types
+      const descriptions = changes.map(c => c.description);
+      expect(descriptions.some(desc => desc && desc.includes('Genre'))).toBe(true);
+      expect(descriptions.some(desc => desc && desc.includes('E-book'))).toBe(true);
+    });
+
+    it("should handle backward compatibility with old 'attributes' field", async () => {
+      // Arrange: Test that the diff service still works with old schema using 'attributes'
+      const localConfig: SaleorConfig = {
+        productTypes: [
+          {
+            name: "OldBook",
+            // Using old 'attributes' field for backward compatibility
+            attributes: [
+              {
+                name: "Title",
+                inputType: "PLAIN_TEXT",
+              },
+            ],
+          } as any,
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        productTypes: [],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compare();
+
+      // Assert
+      expect(summary.totalChanges).toBe(1); // One product type create
+      expect(summary.creates).toBe(1);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(0);
+
+      const productTypeCreate = summary.results.find(r => r.entityType === "Product Types");
+      expect(productTypeCreate).toBeDefined();
+      expect(productTypeCreate?.operation).toBe("CREATE");
+      expect(productTypeCreate?.entityName).toBe("OldBook");
+
+      // Should still detect the attribute from the old 'attributes' field
+      const changes = productTypeCreate?.changes || [];
+      expect(changes.length).toBeGreaterThan(0);
+      
+      const descriptions = changes.map(c => c.description);
+      expect(descriptions.some(desc => desc && desc.includes('Title'))).toBe(true);
+    });
+  });
+
   describe("edge cases", () => {
     it("should handle empty configurations", async () => {
       // Arrange: Both configs empty
