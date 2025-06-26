@@ -224,7 +224,7 @@ const getCategoryByNameQuery = graphql(`
 
 const getAttributeByNameQuery = graphql(`
   query GetAttributeByName($name: String!) {
-    attributes(filter: { search: $name }, first: 1) {
+    attributes(filter: { search: $name }, first: 50) {
       edges {
         node {
           id
@@ -530,15 +530,22 @@ export class ProductRepository implements ProductOperations {
     logger.debug("Looking up attribute by name", { name });
 
     const result = await this.client.query(getAttributeByNameQuery, { name });
-    const attribute = result.data?.attributes?.edges?.[0]?.node;
+    
+    // Find exact match by name since search filter is fuzzy
+    const exactMatch = result.data?.attributes?.edges?.find(
+      edge => edge.node.name === name
+    )?.node;
 
-    if (attribute) {
-      logger.debug("Found attribute", { id: attribute.id, name: attribute.name });
+    if (exactMatch) {
+      logger.debug("Found attribute", { id: exactMatch.id, name: exactMatch.name });
+      return exactMatch;
     } else {
-      logger.debug("No attribute found", { name });
+      logger.debug("No exact attribute match found", { 
+        name, 
+        foundAttributes: result.data?.attributes?.edges?.map(e => e.node.name) || []
+      });
+      return null;
     }
-
-    return attribute || null;
   }
 
   async updateProductChannelListings(id: string, input: ProductChannelListingUpdateInput): Promise<Product> {

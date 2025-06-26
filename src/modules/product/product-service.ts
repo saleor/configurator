@@ -151,14 +151,20 @@ export class ProductService {
             : [String(attributeValue)];
           values = [];
 
+          logger.debug(`Resolving dropdown choices for attribute "${attributeName}"`, {
+            valueNames,
+            availableChoices: attribute.choices?.edges?.map(e => e.node.name) || []
+          });
+
           for (const valueName of valueNames) {
             const choice = attribute.choices?.edges?.find(
               (edge) => edge.node.name === valueName || edge.node.value === valueName
             );
             if (choice) {
               values.push(choice.node.id);
+              logger.debug(`Found choice "${valueName}" with ID: ${choice.node.id}`);
             } else {
-              logger.warn(`Choice "${valueName}" not found for attribute "${attributeName}"`);
+              logger.warn(`Choice "${valueName}" not found for attribute "${attributeName}". Available choices: ${attribute.choices?.edges?.map(e => e.node.name).join(', ') || 'none'}`);
             }
           }
         } else if (attribute.inputType === "REFERENCE") {
@@ -179,7 +185,7 @@ export class ProductService {
             }
           }
         } else {
-          logger.warn(`Unsupported attribute input type: ${attribute.inputType}`);
+          logger.warn(`Unsupported attribute input type: ${attribute.inputType} for attribute: ${attributeName}`);
           continue;
         }
 
