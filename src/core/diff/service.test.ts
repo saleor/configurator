@@ -150,7 +150,7 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "ProductTypeA",
-            attributes: [
+            productAttributes: [
               {
                 name: "Color",
                 inputType: "DROPDOWN",
@@ -165,7 +165,7 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "ProductTypeA",
-            attributes: [],
+            productAttributes: [],
           },
         ],
       };
@@ -194,7 +194,7 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "Book",
-            attributes: [
+            productAttributes: [
               {
                 name: "Author",
                 inputType: "PLAIN_TEXT",
@@ -377,7 +377,7 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "Physical Product",
-            attributes: [
+            productAttributes: [
               {
                 name: "Color",
                 inputType: "DROPDOWN",
