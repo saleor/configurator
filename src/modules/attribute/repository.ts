@@ -14,7 +14,9 @@ const createAttributeMutation = graphql(`
         choices(first: 100) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
@@ -39,7 +41,9 @@ const updateAttributeMutation = graphql(`
         choices(first: 100) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
@@ -112,12 +116,24 @@ export class AttributeRepository implements AttributeOperations {
   async createAttribute(
     attributeInput: AttributeCreateInput
   ): Promise<Attribute> {
+    logger.debug("Creating attribute", { name: attributeInput.name, input: attributeInput });
+
     const result = await this.client.mutation(createAttributeMutation, {
       input: attributeInput,
     });
 
+    logger.debug("Attribute creation result", { 
+      success: !!result.data?.attributeCreate?.attribute,
+      error: result.error?.message,
+      errors: result.data?.attributeCreate?.errors 
+    });
+
     if (!result.data?.attributeCreate?.attribute) {
-      throw new Error("Failed to create attribute");
+      const errors = result.data?.attributeCreate?.errors
+        ?.map((e) => `${e.field}: ${e.message}`)
+        .join(", ");
+      const graphqlError = result.error?.message;
+      throw new Error(`Failed to create attribute: ${errors || graphqlError || "Unknown error"}`);
     }
 
     logger.info("Attribute created", {

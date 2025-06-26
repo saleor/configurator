@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ProductService } from "./product-service";
 import type { ProductOperations } from "./repository";
+import type { ChannelOperations } from "../channel/repository";
 import type { ProductInput } from "../config/schema";
 
 const mockRepository: ProductOperations = {
@@ -8,6 +9,8 @@ const mockRepository: ProductOperations = {
   updateProduct: vi.fn(),
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
+  updateProductChannelListings: vi.fn(),
+  updateProductVariantChannelListings: vi.fn(),
   getProductByName: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
@@ -16,12 +19,19 @@ const mockRepository: ProductOperations = {
   getAttributeByName: vi.fn(),
 };
 
+const mockChannelRepository: ChannelOperations = {
+  createChannel: vi.fn(),
+  updateChannel: vi.fn(),
+  getChannels: vi.fn(),
+  getChannelBySlug: vi.fn(),
+};
+
 describe("ProductService", () => {
   let service: ProductService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ProductService(mockRepository);
+    service = new ProductService(mockRepository, mockChannelRepository);
   });
 
   describe("bootstrapProduct", () => {
@@ -30,12 +40,25 @@ describe("ProductService", () => {
       productType: "Book",
       category: "Fiction",
       description: "A test book product",
+      channelListings: [
+        {
+          channel: "default-channel",
+          isPublished: true,
+          visibleInListings: true,
+        },
+      ],
       variants: [
         {
           name: "Hardcover",
           sku: "BOOK-001-HC",
           weight: 1.2,
-          channelListings: [],
+          channelListings: [
+            {
+              channel: "default-channel",
+              price: 29.99,
+              costPrice: 15.00,
+            },
+          ],
         },
       ],
     };
@@ -50,6 +73,11 @@ describe("ProductService", () => {
       vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
         id: "cat-1",
         name: "Fiction",
+      });
+      vi.mocked(mockChannelRepository.getChannelBySlug).mockResolvedValue({
+        id: "ch-1",
+        name: "Default Channel",
+        slug: "default-channel",
       });
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
 
@@ -69,7 +97,9 @@ describe("ProductService", () => {
       };
 
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
+      vi.mocked(mockRepository.updateProductChannelListings).mockResolvedValue(mockProduct);
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant);
+      vi.mocked(mockRepository.updateProductVariantChannelListings).mockResolvedValue(mockVariant);
 
       const result = await service.bootstrapProduct(mockProductInput);
 
@@ -81,6 +111,18 @@ describe("ProductService", () => {
         attributes: [],
       });
 
+      expect(mockRepository.updateProductChannelListings).toHaveBeenCalledWith("prod-1", {
+        updateChannels: [
+          {
+            channelId: "ch-1",
+            isPublished: true,
+            visibleInListings: true,
+            availableForPurchase: undefined,
+            publishedAt: undefined,
+          },
+        ],
+      });
+
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
         product: "prod-1",
         name: "Hardcover",
@@ -89,6 +131,14 @@ describe("ProductService", () => {
         weight: 1.2,
         attributes: [],
       });
+
+      expect(mockRepository.updateProductVariantChannelListings).toHaveBeenCalledWith("var-1", [
+        {
+          channelId: "ch-1",
+          price: "29.99",
+          costPrice: "15",
+        },
+      ]);
 
       expect(result.product).toEqual(mockProduct);
       expect(result.variants).toHaveLength(1);
@@ -112,6 +162,11 @@ describe("ProductService", () => {
         id: "cat-1",
         name: "Fiction",
       });
+      vi.mocked(mockChannelRepository.getChannelBySlug).mockResolvedValue({
+        id: "ch-1",
+        name: "Default Channel",
+        slug: "default-channel",
+      });
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
 
       const mockVariant = {
@@ -123,7 +178,9 @@ describe("ProductService", () => {
       };
 
       vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct);
+      vi.mocked(mockRepository.updateProductChannelListings).mockResolvedValue(existingProduct);
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant);
+      vi.mocked(mockRepository.updateProductVariantChannelListings).mockResolvedValue(mockVariant);
 
       const result = await service.bootstrapProduct(mockProductInput);
 
@@ -167,13 +224,25 @@ describe("ProductService", () => {
           name: "Book 1",
           productType: "Book",
           category: "Fiction",
-          variants: [{ name: "Default", sku: "B1", channelListings: [] }],
+          variants: [{ 
+            name: "Default", 
+            sku: "B1", 
+            channelListings: [
+              { channel: "default-channel", price: 19.99 }
+            ] 
+          }],
         },
         {
           name: "Book 2", 
           productType: "Book",
           category: "Fiction",
-          variants: [{ name: "Default", sku: "B2", channelListings: [] }],
+          variants: [{ 
+            name: "Default", 
+            sku: "B2", 
+            channelListings: [
+              { channel: "default-channel", price: 24.99 }
+            ] 
+          }],
         },
       ];
 
@@ -187,6 +256,11 @@ describe("ProductService", () => {
         id: "cat-1", 
         name: "Fiction",
       });
+      vi.mocked(mockChannelRepository.getChannelBySlug).mockResolvedValue({
+        id: "ch-1",
+        name: "Default Channel",
+        slug: "default-channel",
+      });
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
       vi.mocked(mockRepository.createProduct).mockResolvedValue({
         id: "prod-1",
@@ -194,7 +268,20 @@ describe("ProductService", () => {
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
       });
+      vi.mocked(mockRepository.updateProductChannelListings).mockResolvedValue({
+        id: "prod-1",
+        name: "Book 1",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+      });
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
+        id: "var-1",
+        name: "Default",
+        sku: "B1",
+        weight: { value: 0 },
+        channelListings: [],
+      });
+      vi.mocked(mockRepository.updateProductVariantChannelListings).mockResolvedValue({
         id: "var-1",
         name: "Default",
         sku: "B1",

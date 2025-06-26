@@ -63,6 +63,19 @@ const getConfigQuery = graphql(`
               }
             }
           }
+          variantAttributes {
+            id
+            name
+            type
+            inputType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -83,6 +96,18 @@ const getConfigQuery = graphql(`
                 }
               }
             }
+          }
+        }
+      }
+    }
+    categories(first: 100) {
+      edges {
+        node {
+          id
+          name
+          parent {
+            id
+            name
           }
         }
       }

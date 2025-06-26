@@ -63,7 +63,8 @@ channels:
 
 productTypes:
   - name: Book
-    attributes:
+    # Product-level attributes (shared across all variants)
+    productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
       - name: Genre
@@ -72,9 +73,26 @@ productTypes:
           - name: Fiction
           - name: Non-Fiction
           - name: Fantasy
-      - name: Related Books
-        inputType: REFERENCE
-        entityType: PRODUCT
+          - name: Science Fiction
+          - name: Mystery
+          - name: Romance
+      - name: Publisher
+        inputType: PLAIN_TEXT
+      - name: Publication Year
+        inputType: NUMERIC
+    # Variant-level attributes (different for each variant)
+    variantAttributes:
+      - name: Format
+        inputType: DROPDOWN
+        values:
+          - name: Hardcover
+          - name: Paperback
+          - name: E-book
+          - name: Audiobook
+      - name: ISBN
+        inputType: PLAIN_TEXT
+      - name: Page Count
+        inputType: NUMERIC
 
 
 pageTypes:
@@ -100,53 +118,59 @@ categories:
       - name: "History"
 
 products:
-  - name: "Sample Fiction Book"
+  - name: "The Lord of the Rings: The Fellowship of the Ring"
     productType: "Book"
-    category: "Fiction"
-    description: "A reference book product for testing the Book product type"
+    category: "Fiction/Fantasy"
+    description: "The first volume of J.R.R. Tolkien's epic fantasy trilogy"
+    # Product-level attributes (shared across all variants)
     attributes:
-      Author: "Jane Doe"
-      Genre: "Fiction"
+      Author: "J.R.R. Tolkien"
+      Genre: "Fantasy"
+      Publisher: "Houghton Mifflin"
+      Publication Year: 1954
+    # Configure product-level channel settings
+    channelListings:
+      - channel: "poland"
+        isPublished: true
+        visibleInListings: true
+        availableForPurchase: "2024-01-01T00:00:00Z"
+        publishedAt: "2024-01-01T00:00:00Z"
     variants:
-      - name: "Hardcover"
-        sku: "BOOK-001-HC"
-        weight: 1.2
+      - name: "Hardcover First Edition"
+        sku: "LOTR-FOTR-HC-1ST"
+        weight: 1.8
+        # Variant-level attributes (specific to this format/edition)
         attributes:
-          Size: "Large"
-          Cover: "Hardcover"
-        # Note: Channel listings will be supported in a future release
-        channelListings: []
+          Format: "Hardcover"
+          ISBN: "978-0-395-08254-6"
+          Page Count: 479
+        channelListings:
+          - channel: "poland"
+            price: 89.99
+            costPrice: 45.00
       - name: "Paperback"
-        sku: "BOOK-001-PB"
-        weight: 0.8
+        sku: "LOTR-FOTR-PB"
+        weight: 0.6
         attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
-  
-  - name: "Sample Non-Fiction Book"
-    productType: "Book"
-    category: "Non-Fiction/Science"
-    description: "Demonstrates subcategory assignment and reference attributes"
-    attributes:
-      Author: "Dr. John Smith"
-      Genre: "Non-Fiction"
-      Related Books: ["Sample Fiction Book"]  # Reference to other products
-    variants:
-      - name: "Digital"
-        sku: "BOOK-002-DIG"
+          Format: "Paperback"
+          ISBN: "978-0-547-92822-7"
+          Page Count: 479
+        channelListings:
+          - channel: "poland"
+            price: 24.99
+            costPrice: 12.50
+      - name: "E-book"
+        sku: "LOTR-FOTR-EBOOK"
+        weight: 0
         digital: true
         attributes:
-          Format: "PDF"
-          DRM: "None"
-        channelListings: []
-      - name: "Print"
-        sku: "BOOK-002-PRT"
-        weight: 0.9
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
+          Format: "E-book"
+          ISBN: "978-0-547-95154-6"
+          Page Count: 479
+        channelListings:
+          - channel: "poland"
+            price: 14.99
+            costPrice: 7.50
 ```
 
 > [!TIP]
@@ -228,7 +252,7 @@ Currently, it supports:
 - [x] Page types with attributes
 - [x] Categories and subcategories
 - [x] Products with variants, SKUs, and attributes
-- [ ] Product variants with channel pricing and inventory
+- [x] Product and variant channel listings with pricing
 - [ ] Warehouses and shipping zones
 - [ ] Collections and discounts
 

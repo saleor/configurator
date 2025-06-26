@@ -60,9 +60,14 @@ const productTypeCreateSchema = z.object({
 // ProductType Update Schema - full state representation
 const productTypeUpdateSchema = z.object({
   name: z.string().describe("ProductType.name"),
-  attributes: z
+  productAttributes: z
     .array(noTypeAttributeSchema)
+    .optional()
     .describe("ProductType.productAttributes"),
+  variantAttributes: z
+    .array(noTypeAttributeSchema)
+    .optional()
+    .describe("ProductType.variantAttributes"),
 });
 
 // Union type that accepts either create or update input
@@ -365,7 +370,7 @@ const productVariantSchema = z.object({
   sku: z.string(),
   weight: z.number().optional(),
   digital: z.boolean().optional(),
-  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  attributes: z.record(z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional(),
   channelListings: z.array(productVariantChannelListingSchema),
 });
 
@@ -374,7 +379,7 @@ const productSchema = z.object({
   productType: z.string(),
   category: z.string(),
   description: z.string().optional(),
-  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  attributes: z.record(z.union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])).optional(),
   channelListings: z.array(productChannelListingSchema).optional(),
   variants: z.array(productVariantSchema),
 });

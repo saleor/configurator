@@ -33,7 +33,7 @@ channels:
 
 productTypes:
   - name: Book
-    attributes:
+    productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
       - name: Genre
@@ -42,9 +42,40 @@ productTypes:
           - name: Fiction
           - name: Non-Fiction
           - name: Fantasy
-      - name: Related Books
-        inputType: REFERENCE
-        entityType: PRODUCT
+          - name: Science Fiction
+          - name: Mystery
+          - name: Romance
+      - name: Publisher
+        inputType: PLAIN_TEXT
+      - name: Publication Year
+        inputType: NUMERIC
+      - name: Language
+        inputType: DROPDOWN
+        values:
+          - name: English
+          - name: Spanish
+          - name: French
+          - name: German
+          - name: Polish
+    variantAttributes:
+      - name: Format
+        inputType: DROPDOWN
+        values:
+          - name: Hardcover
+          - name: Paperback
+          - name: E-book
+          - name: Audiobook
+      - name: Page Count
+        inputType: NUMERIC
+      - name: ISBN
+        inputType: PLAIN_TEXT
+      - name: Edition
+        inputType: DROPDOWN
+        values:
+          - name: First Edition
+          - name: Second Edition
+          - name: Revised Edition
+          - name: Anniversary Edition
 
 pageTypes:
   - name: Blog Post
@@ -67,3 +98,106 @@ categories:
     subcategories:
       - name: "Science"
       - name: "History"
+
+products:
+  - name: "The Lord of the Rings: The Fellowship of the Ring"
+    productType: "Book"
+    category: "Fiction/Fantasy"
+    description: "The first volume of J.R.R. Tolkien's epic fantasy trilogy, following the journey of Frodo Baggins and the Fellowship as they set out to destroy the One Ring."
+    # Product-level attributes (shared across all variants)
+    attributes:
+      Author: "J.R.R. Tolkien"
+      Genre: "Fantasy"
+      Publisher: "Houghton Mifflin"
+      Publication Year: 1954
+      Language: "English"
+    # Configure product-level channel settings
+    channelListings:
+      - channel: "poland"
+        isPublished: true
+        visibleInListings: true
+        availableForPurchase: "2024-01-01T00:00:00Z"
+        publishedAt: "2024-01-01T00:00:00Z"
+    variants:
+      - name: "Hardcover First Edition"
+        sku: "LOTR-FOTR-HC-1ST"
+        weight: 1.8
+        # Variant-level attributes (specific to this format/edition)
+        attributes:
+          Format: "Hardcover"
+          Page Count: 479
+          ISBN: "978-0-395-08254-6"
+          Edition: "First Edition"
+        # Configure variant-level pricing per channel
+        channelListings:
+          - channel: "poland"
+            price: 89.99
+            costPrice: 45.00
+      - name: "Paperback"
+        sku: "LOTR-FOTR-PB"
+        weight: 0.6
+        attributes:
+          Format: "Paperback"
+          Page Count: 479
+          ISBN: "978-0-547-92822-7"
+          Edition: "Revised Edition"
+        channelListings:
+          - channel: "poland"
+            price: 24.99
+            costPrice: 12.50
+      - name: "E-book"
+        sku: "LOTR-FOTR-EBOOK"
+        weight: 0
+        digital: true
+        attributes:
+          Format: "E-book"
+          Page Count: 479
+          ISBN: "978-0-547-95154-6"
+          Edition: "Revised Edition"
+        channelListings:
+          - channel: "poland"
+            price: 14.99
+            costPrice: 7.50
+
+  - name: "Dune"
+    productType: "Book"
+    category: "Fiction"
+    description: "Frank Herbert's groundbreaking science fiction novel set on the desert planet Arrakis, following Paul Atreides and his journey to becoming a messianic leader."
+    # Product-level attributes
+    attributes:
+      Author: "Frank Herbert"
+      Genre: "Science Fiction"
+      Publisher: "Chilton Books"
+      Publication Year: 1965
+      Language: "English"
+    channelListings:
+      - channel: "poland"
+        isPublished: true
+        visibleInListings: true
+        availableForPurchase: "2024-01-01T00:00:00Z"
+        publishedAt: "2024-01-01T00:00:00Z"
+    variants:
+      - name: "Hardcover Anniversary Edition"
+        sku: "DUNE-HC-ANNIV"
+        weight: 2.1
+        attributes:
+          Format: "Hardcover"
+          Page Count: 688
+          ISBN: "978-0-441-01590-1"
+          Edition: "Anniversary Edition"
+        channelListings:
+          - channel: "poland"
+            price: 79.99
+            costPrice: 40.00
+      - name: "Paperback"
+        sku: "DUNE-PB"
+        weight: 0.8
+        attributes:
+          Format: "Paperback"
+          Page Count: 688
+          ISBN: "978-0-441-17271-9"
+          Edition: "Revised Edition"
+        channelListings:
+          - channel: "poland"
+            price: 19.99
+            costPrice: 10.00
