@@ -29,16 +29,11 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
   }
 
   if ("values" in input && input.values) {
-    // Try both 'values' and 'choices' field names for compatibility
-    const choiceValues = input.values.map((value) => ({
-      name: value.name,
-    }));
-    
     return {
       ...base,
-      values: choiceValues,
-      // Also try the choices field in case that's what Saleor expects
-      choices: choiceValues,
+      values: input.values.map((value) => ({
+        name: value.name,
+      })),
     };
   }
 
