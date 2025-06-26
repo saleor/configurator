@@ -1,27 +1,17 @@
-import { z } from "zod";
-import { parseCliArgs } from "../lib/utils/cli-args";
 import { 
-  validateSaleorUrl, 
-  setupLogger, 
-  displayConfig, 
-  createConfigurator, 
+  parseCliArgs, 
+  commandSchemas,
+  validateSaleorUrl,
+  setupLogger,
+  displayConfig,
   handleCommandError,
-  createBackup,
-  fileExists,
-  type BaseCommandArgs 
-} from "../lib/utils/command-utils";
-import { confirmPrompt, displayDiffSummary } from "../lib/utils/interactive";
+  confirmPrompt,
+  displayDiffSummary
+} from "../cli";
+import { createConfigurator } from "../core/factory";
+import { createBackup, fileExists } from "../lib/utils/file";
 
-const argsSchema = z.object({
-  url: z.string({ required_error: "Saleor GraphQL URL is required" }),
-  token: z.string({ required_error: "Saleor authentication token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-  verbose: z.boolean().default(false),
-  force: z.boolean().default(false),
-  dryRun: z.boolean().default(false),
-  skipValidation: z.boolean().default(false),
-});
+const argsSchema = commandSchemas.introspect;
 
 async function runIntrospect() {
   try {
@@ -45,7 +35,6 @@ async function runIntrospect() {
     const configurator = createConfigurator(token, validatedUrl, configPath);
 
     const hasLocalFile = fileExists(configPath);
-    let shouldProceed = true;
 
     if (hasLocalFile && !force && !dryRun && !skipValidation) {
       if (!quiet) {
@@ -132,7 +121,7 @@ async function runIntrospect() {
       console.log("🌐 Introspecting configuration from Saleor...");
     }
 
-    const config = await configurator.introspect();
+    await configurator.introspect();
 
     if (!quiet) {
       console.log(`\n✅ Configuration successfully saved to ${configPath}`);

@@ -81,12 +81,10 @@ const pageTypeCreateSchema = z.object({
 // PageType Update Schema - full state representation
 const pageTypeUpdateSchema = z.object({
   name: z.string().describe("PageType.name"),
-  attributes: z
-    .array(noTypeAttributeSchema)
-    .describe("PageType.attributes"),
+  attributes: z.array(noTypeAttributeSchema).describe("PageType.attributes"),
 });
 
-// Union type that accepts either create or update input  
+// Union type that accepts either create or update input
 // Try update schema first (more specific) then create schema
 const pageTypeSchema = pageTypeUpdateSchema.or(pageTypeCreateSchema);
 
@@ -169,6 +167,7 @@ const channelUpdateSchema = z.object({
   currencyCode: currencyCodeSchema.describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
   slug: z.string().describe("Channel.slug"),
+  isActive: z.boolean().optional().describe("Channel.isActive").default(false), // Channels inactive by default
   settings: z
     .object({
       allocationStrategy: z
@@ -225,7 +224,7 @@ const channelUpdateSchema = z.object({
 });
 
 // Union type that accepts either create or update input
-// Try update schema first (more specific) then create schema  
+// Try update schema first (more specific) then create schema
 const channelSchema = channelUpdateSchema.or(channelCreateSchema);
 
 export type ChannelCreateInput = z.infer<typeof channelCreateSchema>;
@@ -328,35 +327,70 @@ type CategoryUpdate = z.infer<typeof baseCategoryUpdateSchema> & {
   subcategories?: CategoryUpdate[];
 };
 
-const categoryUpdateSchema: z.ZodType<CategoryUpdate> = baseCategoryUpdateSchema.extend({
-  subcategories: z
-    .lazy(() => categoryUpdateSchema.array())
-    .optional()
-    .describe("Category.children"),
-});
+const categoryUpdateSchema: z.ZodType<CategoryUpdate> =
+  baseCategoryUpdateSchema.extend({
+    subcategories: z
+      .lazy(() => categoryUpdateSchema.array())
+      .optional()
+      .describe("Category.children"),
+  });
 
 // Union type that accepts either create or update input
 type CategoryCreate = z.infer<typeof categoryCreateSchema>;
 type Category = CategoryCreate | CategoryUpdate;
 
-const categorySchema: z.ZodType<Category> = categoryUpdateSchema.or(categoryCreateSchema);
+const categorySchema: z.ZodType<Category> =
+  categoryUpdateSchema.or(categoryCreateSchema);
 
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
 export type CategoryUpdateInput = CategoryUpdate;
 export type CategoryInput = Category;
 
+const productChannelListingSchema = z.object({
+  channel: z.string(), // Channel slug reference (e.g., "poland")
+  isPublished: z.boolean().optional().default(true),
+  visibleInListings: z.boolean().optional().default(true),
+  availableForPurchase: z.string().optional(), // ISO date string
+  publishedAt: z.string().optional(), // ISO date string
+});
+
+const productVariantChannelListingSchema = z.object({
+  channel: z.string(), // Channel slug reference (e.g., "poland")
+  price: z.number(),
+  costPrice: z.number().optional(),
+});
+
+const productVariantSchema = z.object({
+  name: z.string(),
+  sku: z.string(),
+  weight: z.number().optional(),
+  digital: z.boolean().optional(),
+  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  channelListings: z.array(productVariantChannelListingSchema),
+});
+
+const productSchema = z.object({
+  name: z.string(),
+  productType: z.string(),
+  category: z.string(),
+  description: z.string().optional(),
+  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  channelListings: z.array(productChannelListingSchema).optional(),
+  variants: z.array(productVariantSchema),
+});
+
 export const configSchema = z
   .object({
     shop: shopSchema.optional().describe("Shop"),
     channels: z.array(channelSchema).optional().describe("Channel"),
-    productTypes: z
-      .array(productTypeSchema)
-      .optional()
-      .describe("ProductType"),
+    productTypes: z.array(productTypeSchema).optional().describe("ProductType"),
     pageTypes: z.array(pageTypeSchema).optional().describe("PageType"),
     categories: z.array(categorySchema).optional().describe("Category"),
+    products: z.array(productSchema).optional().describe("Product"),
   })
   .strict()
   .describe("Configuration");
 
 export type SaleorConfig = z.infer<typeof configSchema>;
+export type ProductInput = z.infer<typeof productSchema>;
+export type ProductVariantInput = z.infer<typeof productVariantSchema>;

@@ -1,7 +1,7 @@
 import { logger } from "../lib/logger";
 import type { ServiceContainer } from "./service-container";
-import { DiffService } from "./diff-service";
-import { DiffFormatter } from "../lib/types/diff";
+import { DiffService } from "./diff";
+import { DiffFormatter } from "./diff";
 
 export interface DiffOptions {
   format?: "table" | "json" | "summary";
@@ -38,6 +38,7 @@ export class SaleorConfigurator {
       );
     }
 
+    // Channels are added first to ensure they're ready before products (which reference them)
     if (config.channels) {
       logger.debug(`Bootstrapping ${config.channels.length} channels`);
       bootstrapTasks.push(
@@ -61,6 +62,11 @@ export class SaleorConfigurator {
       bootstrapTasks.push(
         this.services.category.bootstrapCategories(config.categories)
       );
+    }
+
+    if (config.products) {
+      logger.debug(`Bootstrapping ${config.products.length} products`);
+      bootstrapTasks.push(this.services.product.bootstrapProducts(config.products));
     }
 
     try {

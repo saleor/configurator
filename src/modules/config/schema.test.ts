@@ -108,6 +108,7 @@ describe("Schema Union Types", () => {
         currencyCode: "PLN",
         defaultCountry: "PL",
         slug: "poland",
+        isActive: false,
       });
       expect("settings" in result.channels![0]).toBe(false);
     });
@@ -135,6 +136,7 @@ describe("Schema Union Types", () => {
         currencyCode: "PLN",
         defaultCountry: "PL",
         slug: "poland",
+        isActive: false,
         settings: {
           useLegacyErrorFlow: false,
           automaticallyCompleteFullyPaidCheckouts: true,

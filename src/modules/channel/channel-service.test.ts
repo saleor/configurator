@@ -9,6 +9,7 @@ describe("ChannelService", () => {
         slug: "channel-1",
         currencyCode: "USD",
         defaultCountry: "US" as const,
+        isActive: false,
       };
 
       const mockOperations = {

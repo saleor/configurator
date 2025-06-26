@@ -35,6 +35,7 @@ export class ConfigurationService {
         currencyCode: channel.currencyCode,
         defaultCountry: channel.defaultCountry.code as CountryCode,
         slug: channel.slug,
+        isActive: false, // Default value for channels
         settings: {
           useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
           automaticallyCompleteFullyPaidCheckouts:

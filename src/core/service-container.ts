@@ -15,6 +15,8 @@ import { ProductTypeService } from "../modules/product-type/product-type-service
 import { ProductTypeRepository } from "../modules/product-type/repository";
 import { ShopService } from "../modules/shop/shop-service";
 import { ShopRepository } from "../modules/shop/repository";
+import { ProductService } from "../modules/product/product-service";
+import { ProductRepository } from "../modules/product/repository";
 
 export interface ServiceContainer {
   readonly channel: ChannelService;
@@ -24,6 +26,7 @@ export interface ServiceContainer {
   readonly configuration: ConfigurationService;
   readonly configStorage: YamlConfigurationManager;
   readonly category: CategoryService;
+  readonly product: ProductService;
 }
 
 export class ServiceComposer {
@@ -37,6 +40,7 @@ export class ServiceComposer {
       shop: new ShopRepository(client),
       configuration: new ConfigurationRepository(client),
       category: new CategoryRepository(client),
+      product: new ProductRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -58,6 +62,7 @@ export class ServiceComposer {
       configuration: configurationService,
       configStorage,
       category: new CategoryService(repositories.category),
+      product: new ProductService(repositories.product),
     };
   }
 }

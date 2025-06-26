@@ -3,7 +3,7 @@
 > [!WARNING]
 > This project is in early development. Please use with caution.
 
-Configurator is a tool that helps you automate the creation of data models in Saleor. Instead of, for example, manually creating product types and attributes, you can define them in a configuration file and let the tool do the rest.
+Configurator is a "commerce as code" tool that helps you automate the creation and management of data models in Saleor. Instead of manually creating product types, attributes, products, and variants, you can define them in a configuration file and let the tool handle the synchronization with your Saleor instance.
 
 ## Quickstart
 
@@ -47,6 +47,7 @@ channels:
     currencyCode: PLN
     defaultCountry: PL
     slug: poland
+    isActive: false  # Channels are inactive by default
     settings:
       allocationStrategy: PRIORITIZE_SORTING_ORDER
       automaticallyConfirmAllNewOrders: true
@@ -97,6 +98,55 @@ categories:
     subcategories:
       - name: "Science"
       - name: "History"
+
+products:
+  - name: "Sample Fiction Book"
+    productType: "Book"
+    category: "Fiction"
+    description: "A reference book product for testing the Book product type"
+    attributes:
+      Author: "Jane Doe"
+      Genre: "Fiction"
+    variants:
+      - name: "Hardcover"
+        sku: "BOOK-001-HC"
+        weight: 1.2
+        attributes:
+          Size: "Large"
+          Cover: "Hardcover"
+        # Note: Channel listings will be supported in a future release
+        channelListings: []
+      - name: "Paperback"
+        sku: "BOOK-001-PB"
+        weight: 0.8
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
+        channelListings: []
+  
+  - name: "Sample Non-Fiction Book"
+    productType: "Book"
+    category: "Non-Fiction/Science"
+    description: "Demonstrates subcategory assignment and reference attributes"
+    attributes:
+      Author: "Dr. John Smith"
+      Genre: "Non-Fiction"
+      Related Books: ["Sample Fiction Book"]  # Reference to other products
+    variants:
+      - name: "Digital"
+        sku: "BOOK-002-DIG"
+        digital: true
+        attributes:
+          Format: "PDF"
+          DRM: "None"
+        channelListings: []
+      - name: "Print"
+        sku: "BOOK-002-PRT"
+        weight: 0.9
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
+        channelListings: []
 ```
 
 > [!TIP]
@@ -172,25 +222,15 @@ pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-tok
 
 Currently, it supports:
 
-- [x] Creating attributes
-- [x] Creating product types with attributes
-- [x] Creating page types with attributes
-- [x] Creating channels
-- [x] Reading the configuration from config.yml file
-- [x] Creating and updating channels with settings (payment, stock, order, checkout)
-- [x] Updating shop settings
-- [ ] Creating channels with warehouses
-- [ ] Creating channels with warehouses and shipping zones
-- [ ] Creating products
-- [ ] Creating products with variants
-- [ ] Creating discounts
-- [ ] Categories
-  - [x] Creating categories
-  - [x] Creating categories with subcategories
-  - [ ] Creating categories with products
-- [ ] Collections
-  - [ ] Creating collections
-  - [ ] Creating collections with products
+- [x] Shop settings configuration
+- [x] Channels with settings (payment, stock, order, checkout)
+- [x] Attributes and product types
+- [x] Page types with attributes
+- [x] Categories and subcategories
+- [x] Products with variants, SKUs, and attributes
+- [ ] Product variants with channel pricing and inventory
+- [ ] Warehouses and shipping zones
+- [ ] Collections and discounts
 
 ### `pnpm introspect`
 
