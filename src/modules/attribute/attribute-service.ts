@@ -98,7 +98,7 @@ export class AttributeService {
         });
         
         // If no choices were created, try to add them via update
-        if (choicesCount === 0) {
+        if (choicesCount === 0 && createdAttribute?.id) {
           logger.warn(`No choices created for dropdown attribute "${attribute.name}", attempting to add via update`);
           try {
             createdAttribute = await this.updateAttribute(attribute, createdAttribute);
@@ -117,13 +117,13 @@ export class AttributeService {
   async updateAttribute(attributeInput: AttributeInput, existingAttribute: Attribute) {
     logger.debug("Updating attribute", { 
       name: attributeInput.name,
-      id: existingAttribute.id 
+      id: existingAttribute?.id 
     });
 
     const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
     
     // Only update if there are actual changes
-    if (Object.keys(updateInput).length > 1) { // More than just the name
+    if (Object.keys(updateInput).length > 1 && existingAttribute?.id) { // More than just the name
       return this.repository.updateAttribute(existingAttribute.id, updateInput);
     }
 
