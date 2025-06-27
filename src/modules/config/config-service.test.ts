@@ -54,6 +54,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -87,6 +88,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -106,6 +108,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -119,6 +122,8 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
+        categories: [],
+        products: [],
       });
     });
 
@@ -175,6 +180,7 @@ describe("ConfigurationService", () => {
                     },
                   },
                 ],
+                variantAttributes: [],
               },
             },
           ],
@@ -203,6 +209,7 @@ describe("ConfigurationService", () => {
             },
           ],
         },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -213,7 +220,7 @@ describe("ConfigurationService", () => {
 
       expect((result.shop as any)?.defaultMailSenderName).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
-      expect((result.productTypes?.[0] as any)?.attributes).toHaveLength(1);
+      expect((result.productTypes?.[0] as any)?.productAttributes).toHaveLength(1);
       expect((result.pageTypes?.[0] as any)?.attributes).toHaveLength(1);
     });
 
@@ -245,11 +252,13 @@ describe("ConfigurationService", () => {
                     choices: null,
                   },
                 ],
+                variantAttributes: [],
               },
             },
           ],
         },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -257,7 +266,7 @@ describe("ConfigurationService", () => {
         createMockStorage()
       );
       const result = service.mapConfig(rawConfig);
-      const attributes = (result.productTypes?.[0] as any)?.attributes;
+      const attributes = (result.productTypes?.[0] as any)?.productAttributes;
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);

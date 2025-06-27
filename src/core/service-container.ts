@@ -62,7 +62,7 @@ export class ServiceComposer {
       configuration: configurationService,
       configStorage,
       category: new CategoryService(repositories.category),
-      product: new ProductService(repositories.product),
+      product: new ProductService(repositories.product, repositories.channel),
     };
   }
 }

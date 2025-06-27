@@ -24,6 +24,17 @@ const getChannelsQuery = graphql(`
     channels {
       id
       name
+      slug
+    }
+  }
+`);
+
+const getChannelBySlugQuery = graphql(`
+  query GetChannelBySlug($slug: String!) {
+    channel(slug: $slug) {
+      id
+      name
+      slug
     }
   }
 `);
@@ -57,6 +68,7 @@ type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 export interface ChannelOperations {
   createChannel(input: ChannelCreateInput): Promise<Channel>;
   getChannels(): Promise<Channel[] | null | undefined>;
+  getChannelBySlug(slug: string): Promise<Channel | null | undefined>;
   updateChannel(
     id: string,
     input: ChannelUpdateInput
@@ -85,6 +97,21 @@ export class ChannelRepository implements ChannelOperations {
   async getChannels() {
     const result = await this.client.query(getChannelsQuery, {});
     return result.data?.channels;
+  }
+
+  async getChannelBySlug(slug: string): Promise<Channel | null | undefined> {
+    logger.debug("Looking up channel by slug", { slug });
+    
+    const result = await this.client.query(getChannelBySlugQuery, { slug });
+    const channel = result.data?.channel;
+    
+    if (channel) {
+      logger.debug("Found channel", { id: channel.id, slug: channel.slug });
+    } else {
+      logger.debug("No channel found with slug", { slug });
+    }
+    
+    return channel;
   }
 
   async updateChannel(id: string, input: ChannelUpdateInput) {

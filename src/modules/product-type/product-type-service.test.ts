@@ -10,12 +10,14 @@ describe("ProductTypeService", () => {
         id: "1",
         name: "Product Type 1",
         productAttributes: [],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         createProductType: vi.fn(),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const existingAttribute = {
@@ -41,7 +43,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -54,12 +56,10 @@ describe("ProductTypeService", () => {
       expect(
         mockProductTypeOperations.createProductType
       ).not.toHaveBeenCalled();
-      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
-        name: "Color",
-        type: "PRODUCT_TYPE",
-        slug: "color",
-        inputType: "DROPDOWN",
-        values: [{ name: "Red" }],
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["1"],
       });
     });
 
@@ -68,28 +68,35 @@ describe("ProductTypeService", () => {
         id: "1",
         name: "New Product Type",
         productAttributes: [],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(null),
         createProductType: vi.fn().mockResolvedValue(newProductType),
         assignAttributesToProductType: vi.fn().mockResolvedValue({ id: "1" }),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const newAttribute = {
         id: "1",
         name: "Color",
+        type: "PRODUCT_TYPE" as const,
         inputType: "DROPDOWN" as const,
-        values: [{ name: "Red" }],
+        entityType: null,
+        choices: {
+          edges: [{ node: { id: "1", name: "Red", value: "Red" } }],
+        },
       };
 
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
+      vi.spyOn(attributeService, 'bootstrapAttributes').mockResolvedValue([newAttribute]);
 
       const service = new ProductTypeService(
         mockProductTypeOperations,
@@ -99,7 +106,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: newProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -116,12 +123,13 @@ describe("ProductTypeService", () => {
         isShippingRequired: false,
         taxClass: null,
       });
-      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
-        name: "Color",
-        type: "PRODUCT_TYPE",
-        slug: "color",
-        inputType: "DROPDOWN",
-        values: [{ name: "Red" }],
+      expect(attributeService.bootstrapAttributes).toHaveBeenCalledWith({
+        attributeInputs: [{
+          name: "Color",
+          inputType: "DROPDOWN",
+          values: [{ name: "Red" }],
+          type: "PRODUCT_TYPE",
+        }],
       });
       expect(
         mockProductTypeOperations.assignAttributesToProductType
@@ -141,12 +149,14 @@ describe("ProductTypeService", () => {
             name: "Color",
           },
         ],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         createProductType: vi.fn(),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const existingAttribute = {
@@ -172,7 +182,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
-        attributes: [
+        productAttributes: [
           {
             name: "Color",
             inputType: "DROPDOWN",
@@ -192,6 +202,7 @@ describe("ProductTypeService", () => {
         id: "1",
         name: "New Product Type",
         productAttributes: [],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
@@ -200,13 +211,18 @@ describe("ProductTypeService", () => {
         assignAttributesToProductType: vi
           .fn()
           .mockRejectedValue(new Error("Assignment failed")),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const newAttribute = {
         id: "1",
         name: "Color",
+        type: "PRODUCT_TYPE" as const,
         inputType: "DROPDOWN" as const,
-        values: [{ name: "Red" }],
+        entityType: null,
+        choices: {
+          edges: [{ node: { id: "1", name: "Red", value: "Red" } }],
+        },
       };
 
       const mockAttributeOperations = {
@@ -226,7 +242,7 @@ describe("ProductTypeService", () => {
       await expect(
         service.bootstrapProductType({
           name: newProductType.name,
-          attributes: [
+          productAttributes: [
             {
               name: "Color",
               inputType: "DROPDOWN",
@@ -247,12 +263,14 @@ describe("ProductTypeService", () => {
           { id: "attr-1", name: "Genre" },
           { id: "attr-2", name: "Author" },
         ],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         createProductType: vi.fn(),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const existingGenreAttribute = {
@@ -309,7 +327,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -351,12 +369,14 @@ describe("ProductTypeService", () => {
         productAttributes: [
           { id: "attr-1", name: "Genre" },
         ],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         createProductType: vi.fn(),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const existingGenreAttribute = {
@@ -397,7 +417,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -432,12 +452,14 @@ describe("ProductTypeService", () => {
         id: "1",
         name: "Book",
         productAttributes: [],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         createProductType: vi.fn(),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const mockAttributeOperations = {
@@ -471,12 +493,14 @@ describe("ProductTypeService", () => {
         id: "1",
         name: "Electronics",
         productAttributes: [],
+        variantAttributes: [],
       };
 
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn(),
         createProductType: vi.fn().mockResolvedValue(newProductType),
         assignAttributesToProductType: vi.fn(),
+        assignVariantAttributesToProductType: vi.fn(),
       };
 
       const mockAttributeOperations = {

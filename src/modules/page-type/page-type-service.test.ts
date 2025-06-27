@@ -26,6 +26,7 @@ describe("PageTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]),
       };
 

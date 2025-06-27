@@ -106,8 +106,74 @@ const createProductVariantMutation = graphql(`
 
 export type ProductVariantCreateInput = VariablesOf<typeof createProductVariantMutation>["input"];
 export type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantMutation>["input"];
+export type ProductChannelListingUpdateInput = VariablesOf<typeof productChannelListingUpdateMutation>["input"];
+export type ProductVariantChannelListingAddInput = VariablesOf<typeof productVariantChannelListingUpdateMutation>["input"][number];
 
-// TODO: Add productChannelListingUpdate mutation in separate commit
+const productChannelListingUpdateMutation = graphql(`
+  mutation ProductChannelListingUpdate($id: ID!, $input: ProductChannelListingUpdateInput!) {
+    productChannelListingUpdate(id: $id, input: $input) {
+      product {
+        id
+        name
+        productType {
+          id
+          name
+        }
+        category {
+          id
+          name
+        }
+        channelListings {
+          id
+          channel {
+            id
+            name
+          }
+          isPublished
+          visibleInListings
+          availableForPurchase
+          publishedAt
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+const productVariantChannelListingUpdateMutation = graphql(`
+  mutation ProductVariantChannelListingUpdate($id: ID!, $input: [ProductVariantChannelListingAddInput!]!) {
+    productVariantChannelListingUpdate(id: $id, input: $input) {
+      variant {
+        id
+        name
+        sku
+        weight {
+          value
+        }
+        channelListings {
+          id
+          channel {
+            id
+            name
+          }
+          price {
+            amount
+          }
+          costPrice {
+            amount
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
 
 const getProductByNameQuery = graphql(`
   query GetProductByName($name: String!) {
@@ -158,7 +224,7 @@ const getCategoryByNameQuery = graphql(`
 
 const getAttributeByNameQuery = graphql(`
   query GetAttributeByName($name: String!) {
-    attributes(filter: { search: $name }, first: 1) {
+    attributes(filter: { search: $name }, first: 50) {
       edges {
         node {
           id
@@ -256,13 +322,14 @@ export interface ProductOperations {
   updateProduct(id: string, input: ProductUpdateInput): Promise<Product>;
   createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
+  updateProductChannelListings(id: string, input: ProductChannelListingUpdateInput): Promise<Product>;
+  updateProductVariantChannelListings(id: string, input: ProductVariantChannelListingAddInput[]): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
-  // TODO: Add back getChannelBySlug and updateProductChannelListings in separate commit
 }
 
 export type Attribute = NonNullable<
@@ -463,16 +530,82 @@ export class ProductRepository implements ProductOperations {
     logger.debug("Looking up attribute by name", { name });
 
     const result = await this.client.query(getAttributeByNameQuery, { name });
-    const attribute = result.data?.attributes?.edges?.[0]?.node;
+    
+    // Find exact match by name since search filter is fuzzy
+    const exactMatch = result.data?.attributes?.edges?.find(
+      edge => edge.node.name === name
+    )?.node;
 
-    if (attribute) {
-      logger.debug("Found attribute", { id: attribute.id, name: attribute.name });
+    if (exactMatch) {
+      logger.debug("Found attribute", { 
+        id: exactMatch.id, 
+        name: exactMatch.name,
+        inputType: exactMatch.inputType,
+        choicesCount: exactMatch.choices?.edges?.length || 0,
+        choices: exactMatch.choices?.edges?.map(e => e.node.name) || []
+      });
+      return exactMatch;
     } else {
-      logger.debug("No attribute found", { name });
+      logger.debug("No exact attribute match found", { 
+        name, 
+        foundAttributes: result.data?.attributes?.edges?.map(e => e.node.name) || []
+      });
+      return null;
     }
-
-    return attribute || null;
   }
 
-  // TODO: Add getChannelBySlug method in separate commit
+  async updateProductChannelListings(id: string, input: ProductChannelListingUpdateInput): Promise<Product> {
+    logger.debug("Updating product channel listings", { productId: id, input });
+
+    const result = await this.client.mutation(productChannelListingUpdateMutation, {
+      id,
+      input,
+    });
+
+    if (!result.data?.productChannelListingUpdate?.product) {
+      const errors = result.data?.productChannelListingUpdate?.errors
+        ?.map((e) => `${e.field}: ${e.message}`)
+        .join(", ");
+      const graphqlError = result.error?.message;
+      throw new Error(`Failed to update product channel listings: ${errors || graphqlError || "Unknown error"}`);
+    }
+
+    const product = result.data.productChannelListingUpdate.product;
+
+    logger.info("Product channel listings updated", {
+      id: product.id,
+      name: product.name,
+      channelCount: product.channelListings?.length || 0,
+    });
+
+    return product;
+  }
+
+  async updateProductVariantChannelListings(id: string, input: ProductVariantChannelListingAddInput[]): Promise<ProductVariant> {
+    logger.debug("Updating product variant channel listings", { variantId: id, input });
+
+    const result = await this.client.mutation(productVariantChannelListingUpdateMutation, {
+      id,
+      input,
+    });
+
+    if (!result.data?.productVariantChannelListingUpdate?.variant) {
+      const errors = result.data?.productVariantChannelListingUpdate?.errors
+        ?.map((e) => `${e.field}: ${e.message}`)
+        .join(", ");
+      const graphqlError = result.error?.message;
+      throw new Error(`Failed to update product variant channel listings: ${errors || graphqlError || "Unknown error"}`);
+    }
+
+    const variant = result.data.productVariantChannelListingUpdate.variant;
+
+    logger.info("Product variant channel listings updated", {
+      id: variant.id,
+      name: variant.name,
+      sku: variant.sku,
+      channelCount: variant.channelListings?.length || 0,
+    });
+
+    return variant;
+  }
 }

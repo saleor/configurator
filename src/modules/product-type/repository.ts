@@ -12,22 +12,46 @@ const createProductTypeMutation = graphql(`
           id
           name
         }
+        variantAttributes {
+          id
+          name
+        }
       }
     }
   }
 `);
 
+
 export type ProductType = NonNullable<
   NonNullable<
-    ResultOf<typeof createProductTypeMutation>["productTypeCreate"]
-  >["productType"]
->;
+    ResultOf<typeof getProductTypeByNameQuery>["productTypes"]
+  >["edges"]
+>[number]["node"];
 export type ProductTypeInput = VariablesOf<
   typeof createProductTypeMutation
 >["input"];
 
 const assignAttributesToProductTypeMutation = graphql(`
   mutation AssignAttributesToProductType(
+    $productTypeId: ID!
+    $operations: [ProductAttributeAssignInput!]!
+  ) {
+    productAttributeAssign(
+      productTypeId: $productTypeId
+      operations: $operations
+    ) {
+      productType {
+        id
+      }
+      errors {
+        message
+      }
+    }
+  }
+`);
+
+const assignVariantAttributesToProductTypeMutation = graphql(`
+  mutation AssignVariantAttributesToProductType(
     $productTypeId: ID!
     $operations: [ProductAttributeAssignInput!]!
   ) {
@@ -56,6 +80,10 @@ const getProductTypeByNameQuery = graphql(`
             id
             name
           }
+          variantAttributes {
+            id
+            name
+          }
         }
       }
     }
@@ -66,6 +94,10 @@ export interface ProductTypeOperations {
   createProductType(input: ProductTypeInput): Promise<ProductType>;
   getProductTypeByName(name: string): Promise<ProductType | null | undefined>;
   assignAttributesToProductType(input: {
+    attributeIds: string[];
+    productTypeId: string;
+  }): Promise<{ id: string }>;
+  assignVariantAttributesToProductType(input: {
     attributeIds: string[];
     productTypeId: string;
   }): Promise<{ id: string }>;
@@ -91,6 +123,7 @@ export class ProductTypeRepository implements ProductTypeOperations {
 
     return productType;
   }
+
 
   async getProductTypeByName(name: string) {
     const result = await this.client.query(getProductTypeByNameQuery, {
@@ -122,6 +155,35 @@ export class ProductTypeRepository implements ProductTypeOperations {
       console.log(result.data?.productAttributeAssign?.errors);
       throw new Error(
         "Failed to assign attributes to product type",
+        result.error
+      );
+    }
+
+    return result.data?.productAttributeAssign?.productType;
+  }
+
+  async assignVariantAttributesToProductType({
+    attributeIds,
+    productTypeId,
+  }: {
+    attributeIds: string[];
+    productTypeId: string;
+  }) {
+    const result = await this.client.mutation(
+      assignVariantAttributesToProductTypeMutation,
+      {
+        productTypeId,
+        operations: attributeIds.map((id) => ({
+          id,
+          type: "VARIANT" as const,
+        })),
+      }
+    );
+
+    if (!result.data?.productAttributeAssign?.productType) {
+      console.log(result.data?.productAttributeAssign?.errors);
+      throw new Error(
+        "Failed to assign variant attributes to product type",
         result.error
       );
     }

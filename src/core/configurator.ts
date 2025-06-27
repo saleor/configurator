@@ -20,57 +20,64 @@ export class SaleorConfigurator {
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
-    const bootstrapTasks = [];
-
-    if (config.shop) {
-      logger.debug("Bootstrapping shop settings");
-      bootstrapTasks.push(this.services.shop.updateSettings(config.shop));
-    }
-
-    if (config.productTypes) {
-      logger.debug(`Bootstrapping ${config.productTypes.length} product types`);
-      bootstrapTasks.push(
-        Promise.all(
-          config.productTypes.map((productType) =>
-            this.services.productType.bootstrapProductType(productType)
-          )
-        )
-      );
-    }
-
-    // Channels are added first to ensure they're ready before products (which reference them)
-    if (config.channels) {
-      logger.debug(`Bootstrapping ${config.channels.length} channels`);
-      bootstrapTasks.push(
-        this.services.channel.bootstrapChannels(config.channels)
-      );
-    }
-
-    if (config.pageTypes) {
-      logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
-      bootstrapTasks.push(
-        Promise.all(
-          config.pageTypes.map((pageType) =>
-            this.services.pageType.bootstrapPageType(pageType)
-          )
-        )
-      );
-    }
-
-    if (config.categories) {
-      logger.debug(`Bootstrapping ${config.categories.length} categories`);
-      bootstrapTasks.push(
-        this.services.category.bootstrapCategories(config.categories)
-      );
-    }
-
-    if (config.products) {
-      logger.debug(`Bootstrapping ${config.products.length} products`);
-      bootstrapTasks.push(this.services.product.bootstrapProducts(config.products));
-    }
-
     try {
-      await Promise.all(bootstrapTasks);
+      // Phase 1: Shop settings (can run independently)
+      if (config.shop) {
+        logger.debug("Bootstrapping shop settings");
+        await this.services.shop.updateSettings(config.shop);
+      }
+
+      // Phase 2: Foundation entities that don't depend on each other
+      const foundationTasks = [];
+      
+      if (config.channels) {
+        logger.debug(`Bootstrapping ${config.channels.length} channels`);
+        foundationTasks.push(
+          this.services.channel.bootstrapChannels(config.channels)
+        );
+      }
+
+      if (config.productTypes) {
+        logger.debug(`Bootstrapping ${config.productTypes.length} product types`);
+        foundationTasks.push(
+          Promise.all(
+            config.productTypes.map((productType) =>
+              this.services.productType.bootstrapProductType(productType)
+            )
+          )
+        );
+      }
+
+      if (config.pageTypes) {
+        logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
+        foundationTasks.push(
+          Promise.all(
+            config.pageTypes.map((pageType) =>
+              this.services.pageType.bootstrapPageType(pageType)
+            )
+          )
+        );
+      }
+
+      if (config.categories) {
+        logger.debug(`Bootstrapping ${config.categories.length} categories`);
+        foundationTasks.push(
+          this.services.category.bootstrapCategories(config.categories)
+        );
+      }
+
+      // Wait for all foundation entities to complete
+      if (foundationTasks.length > 0) {
+        await Promise.all(foundationTasks);
+        logger.debug("Foundation entities created successfully");
+      }
+
+      // Phase 3: Products (depend on productTypes, channels, and categories)
+      if (config.products) {
+        logger.debug(`Bootstrapping ${config.products.length} products`);
+        await this.services.product.bootstrapProducts(config.products);
+      }
+
       logger.info("Bootstrap process completed successfully");
     } catch (error) {
       logger.error("Bootstrap process failed", { error });

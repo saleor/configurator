@@ -1,8 +1,8 @@
 import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
-import {
-  type ConfigurationOperations,
-  type RawSaleorConfig,
+import type {
+  ConfigurationOperations,
+  RawSaleorConfig,
 } from "./repository";
 import type { AttributeInput, CountryCode, SaleorConfig } from "./schema";
 import type { ConfigurationStorage } from "./yaml-manager";
@@ -157,13 +157,29 @@ export class ConfigurationService {
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]) {
     return (
-      rawProductTypes?.edges?.map((edge) => ({
-        name: edge.node.name,
-        attributes: this.mapAttributes(
-          edge.node.productAttributes ?? [],
-          "PRODUCT_TYPE"
-        ),
-      })) ?? []
+      rawProductTypes?.edges?.map((edge) => {
+        const productType: any = {
+          name: edge.node.name,
+        };
+
+        // Add productAttributes if they exist
+        if (edge.node.productAttributes && edge.node.productAttributes.length > 0) {
+          productType.productAttributes = this.mapAttributes(
+            edge.node.productAttributes,
+            "PRODUCT_TYPE"
+          );
+        }
+
+        // Add variantAttributes if they exist
+        if (edge.node.variantAttributes && edge.node.variantAttributes.length > 0) {
+          productType.variantAttributes = this.mapAttributes(
+            edge.node.variantAttributes,
+            "PRODUCT_TYPE"
+          );
+        }
+
+        return productType;
+      }) ?? []
     );
   }
 
@@ -200,12 +216,51 @@ export class ConfigurationService {
     });
   }
 
+  mapCategories(rawCategories: RawSaleorConfig["categories"]) {
+    if (!rawCategories?.edges) return [];
+
+    // First, create a map of all categories
+    const categoryMap = new Map();
+    const rootCategories: any[] = [];
+
+    rawCategories.edges.forEach((edge) => {
+      const category = edge.node;
+      const categoryData = {
+        name: category.name,
+        subcategories: [] as any[],
+      };
+      
+      categoryMap.set(category.id, categoryData);
+      
+      // If category has no parent, it's a root category
+      if (!category.parent) {
+        rootCategories.push(categoryData);
+      }
+    });
+
+    // Now build the hierarchy by adding subcategories to their parents
+    rawCategories.edges.forEach((edge) => {
+      const category = edge.node;
+      if (category.parent) {
+        const parentCategory = categoryMap.get(category.parent.id);
+        const childCategory = categoryMap.get(category.id);
+        if (parentCategory && childCategory) {
+          parentCategory.subcategories.push(childCategory);
+        }
+      }
+    });
+
+    return rootCategories;
+  }
+
   mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
     return {
       shop: this.mapShopSettings(rawConfig),
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
+      categories: this.mapCategories(rawConfig.categories),
+      products: [], // Always empty array since we don't pull products
     };
   }
 }

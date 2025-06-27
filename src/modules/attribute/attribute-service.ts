@@ -80,13 +80,36 @@ export class AttributeService {
       count: attributeInputs.length,
     });
 
-    const createdAttributes = await Promise.all(
-      attributeInputs.map((attribute) => {
-        const attributeInput = createAttributeInput(attribute);
-        logger.debug("Creating attribute", { name: attributeInput.name });
-        return this.repository.createAttribute(attributeInput);
-      })
-    );
+    const createdAttributes = [];
+    
+    for (const attribute of attributeInputs) {
+      const attributeInput = createAttributeInput(attribute);
+      logger.debug("Creating attribute", { name: attributeInput.name });
+      
+      let createdAttribute = await this.repository.createAttribute(attributeInput);
+      
+      // Check if this is a dropdown attribute and if choices were created
+      if (attribute.inputType === 'DROPDOWN' && attribute.values && attribute.values.length > 0) {
+        const choicesCount = createdAttribute?.choices?.edges?.length || 0;
+        logger.debug(`Dropdown attribute created with ${choicesCount} choices`, {
+          name: attribute.name,
+          expectedChoices: attribute.values.length,
+          actualChoices: choicesCount
+        });
+        
+        // If no choices were created, try to add them via update
+        if (choicesCount === 0 && createdAttribute?.id) {
+          logger.warn(`No choices created for dropdown attribute "${attribute.name}", attempting to add via update`);
+          try {
+            createdAttribute = await this.updateAttribute(attribute, createdAttribute);
+          } catch (error) {
+            logger.error(`Failed to add choices via update for attribute "${attribute.name}"`, { error });
+          }
+        }
+      }
+      
+      createdAttributes.push(createdAttribute);
+    }
 
     return createdAttributes;
   }
@@ -94,13 +117,13 @@ export class AttributeService {
   async updateAttribute(attributeInput: AttributeInput, existingAttribute: Attribute) {
     logger.debug("Updating attribute", { 
       name: attributeInput.name,
-      id: existingAttribute.id 
+      id: existingAttribute?.id 
     });
 
     const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
     
     // Only update if there are actual changes
-    if (Object.keys(updateInput).length > 1) { // More than just the name
+    if (Object.keys(updateInput).length > 1 && existingAttribute?.id) { // More than just the name
       return this.repository.updateAttribute(existingAttribute.id, updateInput);
     }
 

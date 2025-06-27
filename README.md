@@ -26,44 +26,20 @@ The above will apply the changes to your Saleor instance.
 ## Configuration
 
 ```yaml
-// Example config.yml
 shop:
-  customerAllowedToSetExternalReference: false
   defaultMailSenderName: "Saleor Store"
   defaultMailSenderAddress: "store@example.com"
   displayGrossPrices: true
-  enableAccountConfirmationByEmail: true
-  limitQuantityPerCheckout: 50
   trackInventoryByDefault: true
-  reserveStockDurationAnonymousUser: 60
-  reserveStockDurationAuthenticatedUser: 120
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-  defaultWeightUnit: KG
-  allowLoginWithoutConfirmation: false
-
 channels:
   - name: Poland
     currencyCode: PLN
     defaultCountry: PL
     slug: poland
-    isActive: false  # Channels are inactive by default
-    settings:
-      allocationStrategy: PRIORITIZE_SORTING_ORDER
-      automaticallyConfirmAllNewOrders: true
-      automaticallyFulfillNonShippableGiftCard: true
-      expireOrdersAfter: 30
-      deleteExpiredOrdersAfter: 60
-      markAsPaidStrategy: TRANSACTION_FLOW
-      allowUnpaidOrders: false
-      includeDraftOrderInVoucherUsage: true
-      useLegacyErrorFlow: false
-      automaticallyCompleteFullyPaidCheckouts: true
-      defaultTransactionFlowStrategy: AUTHORIZATION
-
+    isActive: false
 productTypes:
   - name: Book
-    attributes:
+    productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
       - name: Genre
@@ -71,86 +47,44 @@ productTypes:
         values:
           - name: Fiction
           - name: Non-Fiction
-          - name: Fantasy
-      - name: Related Books
-        inputType: REFERENCE
-        entityType: PRODUCT
-
-
+    variantAttributes:
+      - name: Format
+        inputType: DROPDOWN
+        values:
+          - name: Hardcover
+          - name: Paperback
 pageTypes:
   - name: Blog Post
     attributes:
       - name: Title
         inputType: PLAIN_TEXT
-      - name: Description
-        inputType: PLAIN_TEXT
       - name: Published Date
         inputType: DATE
-      - name: Related Posts
-        inputType: REFERENCE
-        entityType: PAGE
-
 categories:
   - name: "Fiction"
     subcategories:
       - name: "Fantasy"
-  - name: "Non-Fiction"
-    subcategories:
-      - name: "Science"
-      - name: "History"
-
 products:
-  - name: "Sample Fiction Book"
+  - name: "The Lord of the Rings"
     productType: "Book"
-    category: "Fiction"
-    description: "A reference book product for testing the Book product type"
+    category: "Fiction/Fantasy"
     attributes:
-      Author: "Jane Doe"
-      Genre: "Fiction"
+      Author: "J.R.R. Tolkien"
+      Genre: "Fantasy"
+      - channel: "poland"
+        isPublished: true
     variants:
       - name: "Hardcover"
-        sku: "BOOK-001-HC"
-        weight: 1.2
+        sku: "LOTR-HC"
         attributes:
-          Size: "Large"
-          Cover: "Hardcover"
-        # Note: Channel listings will be supported in a future release
-        channelListings: []
-      - name: "Paperback"
-        sku: "BOOK-001-PB"
-        weight: 0.8
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
-  
-  - name: "Sample Non-Fiction Book"
-    productType: "Book"
-    category: "Non-Fiction/Science"
-    description: "Demonstrates subcategory assignment and reference attributes"
-    attributes:
-      Author: "Dr. John Smith"
-      Genre: "Non-Fiction"
-      Related Books: ["Sample Fiction Book"]  # Reference to other products
-    variants:
-      - name: "Digital"
-        sku: "BOOK-002-DIG"
-        digital: true
-        attributes:
-          Format: "PDF"
-          DRM: "None"
-        channelListings: []
-      - name: "Print"
-        sku: "BOOK-002-PRT"
-        weight: 0.9
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
+          Format: "Hardcover"
+        channelListings:
+          - channel: "poland"
+            price: 89.99
 ```
 
 > [!TIP]
-> See [SCHEMA.md](SCHEMA.md) for schema documentation with all the available properties.
+> See [example.yml](example.yml) for a complete configuration example, or [SCHEMA.md](SCHEMA.md) for detailed schema documentation with all available properties.
 
 ## Development
 
@@ -228,7 +162,7 @@ Currently, it supports:
 - [x] Page types with attributes
 - [x] Categories and subcategories
 - [x] Products with variants, SKUs, and attributes
-- [ ] Product variants with channel pricing and inventory
+- [x] Product and variant channel listings with pricing
 - [ ] Warehouses and shipping zones
 - [ ] Collections and discounts
 
@@ -251,14 +185,3 @@ Retrieves the configuration from the Saleor instance and saves it to a file unde
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
 ```
-Currently, it supports:
-
-- [x] Fetching channels
-- [x] Saving config to config.yml file
-- [x] Fetching product types
-- [x] Fetching page types
-- [x] Fetching attributes
-
-### Limitations
-
-- Configurator fetches first 100 items from all paginated queries.
