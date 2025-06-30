@@ -1,12 +1,12 @@
-import { 
-  parseCliArgs, 
+import {
+  parseCliArgs,
   commandSchemas,
   validateSaleorUrl,
   setupLogger,
   displayConfig,
   handleCommandError,
   confirmPrompt,
-  displayDiffSummary
+  displayDiffSummary,
 } from "../cli";
 import { createConfigurator } from "../core/factory";
 import { createBackup, fileExists } from "../lib/utils/file";
@@ -16,9 +16,18 @@ const argsSchema = commandSchemas.introspect;
 async function runIntrospect() {
   try {
     console.log("🔍 Saleor Configuration Introspect\n");
-    
+
     const args = parseCliArgs(argsSchema, "introspect");
-    const { url, token, config: configPath, quiet, verbose, force, dryRun, skipValidation } = args;
+    const {
+      url,
+      token,
+      config: configPath,
+      quiet,
+      verbose,
+      force,
+      dryRun,
+      skipValidation,
+    } = args;
 
     const validatedUrl = validateSaleorUrl(url, quiet);
     setupLogger(verbose, quiet);
@@ -38,13 +47,15 @@ async function runIntrospect() {
 
     if (hasLocalFile && !force && !dryRun && !skipValidation) {
       if (!quiet) {
-        console.log("📊 Analyzing differences between remote and local configuration...");
+        console.log(
+          "📊 Analyzing differences between remote and local configuration..."
+        );
       }
 
       try {
-        const diffSummary = await configurator.diff({ 
-          format: "table", 
-          quiet: true  
+        const diffSummary = await configurator.diff({
+          format: "table",
+          quiet: true,
         });
 
         displayDiffSummary(diffSummary);
@@ -57,45 +68,64 @@ async function runIntrospect() {
         }
 
         if (!quiet) {
-          console.log("⚠️  Introspecting will overwrite your local configuration file.");
+          console.log(
+            "⚠️  Introspecting will overwrite your local configuration file."
+          );
           const confirmed = await confirmPrompt(
-            "Do you want to continue and update the local file?", 
+            "Do you want to continue and update the local file?",
             false
           );
-          
+
           if (!confirmed) {
             console.log("❌ Operation cancelled by user");
             process.exit(0);
           }
         }
       } catch (diffError) {
-        if (diffError instanceof Error && diffError.message.includes("Invalid configuration file")) {
+        if (
+          diffError instanceof Error &&
+          diffError.message.includes("Invalid configuration file")
+        ) {
           if (!quiet) {
             console.warn("⚠️  Local configuration file has validation issues:");
             console.warn(`   ${diffError.message}`);
             console.warn("");
             console.warn("📋 This usually means:");
             console.warn("   • Your local config uses unsupported values");
-            console.warn("   • The config format has changed since it was created");
+            console.warn(
+              "   • The config format has changed since it was created"
+            );
             console.warn("");
-            console.warn("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
-            
+            console.warn(
+              "🔧 Introspecting will fetch the latest valid configuration from Saleor."
+            );
+
             const confirmed = await confirmPrompt(
-              "Do you want to proceed and replace the invalid local file?", 
+              "Do you want to proceed and replace the invalid local file?",
               true
             );
-            
+
             if (!confirmed) {
               console.log("❌ Operation cancelled by user");
-              console.log("💡 You can fix the local file manually or use --force to skip this check");
+              console.log(
+                "💡 You can fix the local file manually or use --force to skip this check"
+              );
               process.exit(0);
             }
           }
         } else {
           if (!quiet) {
-            console.warn("⚠️  Could not compute diff, proceeding with introspect...");
+            console.warn(
+              "⚠️  Could not compute diff, proceeding with introspect..."
+            );
             if (verbose) {
-              console.warn(`   Diff error: ${diffError instanceof Error ? diffError.message : 'Unknown error'}`);
+              console.warn(
+                `   Diff error: ${
+                  diffError instanceof Error
+                    ? diffError.message
+                    : "Unknown error"
+                }`
+              );
             }
           }
         }
@@ -104,7 +134,9 @@ async function runIntrospect() {
 
     if (dryRun) {
       if (!quiet) {
-        console.log("🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes.");
+        console.log(
+          "🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes."
+        );
       }
       process.exit(0);
     }
@@ -125,16 +157,17 @@ async function runIntrospect() {
 
     if (!quiet) {
       console.log(`\n✅ Configuration successfully saved to ${configPath}`);
-      
+
       if (hasLocalFile) {
-        console.log("💡 You can restore the previous version from the backup if needed");
+        console.log(
+          "💡 You can restore the previous version from the backup if needed"
+        );
       }
     }
-    
-    process.exit(0);
 
+    process.exit(0);
   } catch (error) {
-    handleCommandError(error, "Introspect");
+    handleCommandError(error);
   }
 }
 
@@ -143,4 +176,4 @@ export { runIntrospect };
 runIntrospect().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
-}); 
+});

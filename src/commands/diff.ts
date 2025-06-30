@@ -1,10 +1,10 @@
-import { 
-  parseCliArgs, 
+import {
+  parseCliArgs,
   commandSchemas,
   validateSaleorUrl,
   setupLogger,
   displayConfig,
-  handleCommandError
+  handleCommandError,
 } from "../cli";
 import { createConfigurator } from "../core/factory";
 
@@ -13,9 +13,18 @@ const argsSchema = commandSchemas.diff;
 async function runDiff() {
   try {
     console.log("🔍 Saleor Configuration Diff\n");
-    
+
     const args = parseCliArgs(argsSchema, "diff");
-    const { url, token, config: configPath, format, filter, quiet, verbose, dryRun } = args;
+    const {
+      url,
+      token,
+      config: configPath,
+      format,
+      filter,
+      quiet,
+      verbose,
+      dryRun,
+    } = args;
 
     const validatedUrl = validateSaleorUrl(url, quiet);
     setupLogger(verbose, quiet);
@@ -35,15 +44,19 @@ async function runDiff() {
       console.log("🔄 Running diff analysis...");
     }
 
-    const summary = await configurator.diff({ 
-      format, 
-      filter: filter?.split(","), 
-      quiet 
+    const summary = await configurator.diff({
+      format,
+      filter: filter?.split(","),
+      quiet,
     });
 
     if (summary.totalChanges > 0) {
       if (!quiet) {
-        console.log(`\n⚠️  Found ${summary.totalChanges} difference${summary.totalChanges !== 1 ? 's' : ''} that would be applied by 'push'`);
+        console.log(
+          `\n⚠️  Found ${summary.totalChanges} difference${
+            summary.totalChanges !== 1 ? "s" : ""
+          } that would be applied by 'push'`
+        );
       }
     } else {
       if (!quiet) {
@@ -54,13 +67,12 @@ async function runDiff() {
     // Exit with success code regardless of whether differences were found
     // Finding differences is expected behavior, not an error
     process.exit(0);
-
   } catch (error) {
-    handleCommandError(error, "Diff");
+    handleCommandError(error);
   }
 }
 
 runDiff().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);
-}); 
+});
