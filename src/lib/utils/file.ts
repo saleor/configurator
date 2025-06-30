@@ -1,12 +1,12 @@
 /**
  * File System Utilities
- * 
+ *
  * This module provides file system operations including file existence checks,
  * backup creation, and path manipulation utilities.
  */
 
-import * as fs from 'fs';
-import { logger } from '../logger';
+import * as fs from "fs";
+import { logger } from "../logger";
 
 /**
  * Checks if a file exists
@@ -27,10 +27,10 @@ export function fileExists(filePath: string): boolean {
  * @returns Backup file path with timestamp
  */
 export function createBackupPath(originalPath: string): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const parts = originalPath.split('.');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const parts = originalPath.split(".");
   const extension = parts.pop();
-  const baseName = parts.join('.');
+  const baseName = parts.join(".");
   return `${baseName}.backup.${timestamp}.${extension}`;
 }
 
@@ -62,7 +62,7 @@ export async function ensureDirectory(dirPath: string): Promise<void> {
   try {
     await fs.promises.mkdir(dirPath, { recursive: true });
   } catch (error) {
-    if (error instanceof Error && 'code' in error && error.code !== 'EEXIST') {
+    if (error instanceof Error && "code" in error && error.code !== "EEXIST") {
       throw error;
     }
   }
@@ -75,9 +75,11 @@ export async function ensureDirectory(dirPath: string): Promise<void> {
  */
 export async function readFile(filePath: string): Promise<string> {
   try {
-    return await fs.promises.readFile(filePath, 'utf-8');
+    return await fs.promises.readFile(filePath, "utf-8");
   } catch (error) {
-    throw new Error(`Failed to read file ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to read file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
 }
 
@@ -88,8 +90,10 @@ export async function readFile(filePath: string): Promise<string> {
  */
 export async function writeFile(filePath: string, content: string): Promise<void> {
   try {
-    await fs.promises.writeFile(filePath, content, 'utf-8');
+    await fs.promises.writeFile(filePath, content, "utf-8");
   } catch (error) {
-    throw new Error(`Failed to write file ${filePath}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to write file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
-} 
+}

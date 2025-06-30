@@ -35,7 +35,7 @@ export class CategoryComparator extends BaseEntityComparator<
     // Validate unique names
     this.validateUniqueNames(local);
     this.validateUniqueNames(remote);
-    
+
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
     const localByName = this.createEntityMap(local);
@@ -43,7 +43,7 @@ export class CategoryComparator extends BaseEntityComparator<
     // Check for creates and updates
     for (const localCat of local) {
       const remoteCat = remoteByName.get(this.getEntityName(localCat));
-      
+
       if (!remoteCat) {
         results.push(this.createCreateResult(localCat));
       } else {
@@ -69,8 +69,8 @@ export class CategoryComparator extends BaseEntityComparator<
    * Gets the name of a category entity
    */
   protected getEntityName(entity: CategoryEntity): string {
-    if (!entity.name || typeof entity.name !== 'string') {
-      throw new Error('Category entity must have a valid name');
+    if (!entity.name || typeof entity.name !== "string") {
+      throw new Error("Category entity must have a valid name");
     }
     return entity.name;
   }
@@ -84,15 +84,15 @@ export class CategoryComparator extends BaseEntityComparator<
     // Compare slug if it exists
     const localSlug = this.getSlug(local);
     const remoteSlug = this.getSlug(remote);
-    
+
     if (localSlug && remoteSlug && localSlug !== remoteSlug) {
-      changes.push(this.createFieldChange('slug', remoteSlug, localSlug));
+      changes.push(this.createFieldChange("slug", remoteSlug, localSlug));
     }
 
     // Compare subcategories if they exist
     const localSubcats = this.getSubcategories(local);
     const remoteSubcats = this.getSubcategories(remote);
-    
+
     if (localSubcats.length > 0 || remoteSubcats.length > 0) {
       changes.push(...this.compareSubcategories(localSubcats, remoteSubcats));
     }
@@ -125,34 +125,38 @@ export class CategoryComparator extends BaseEntityComparator<
     remote: readonly Subcategory[]
   ): DiffChange[] {
     const changes: DiffChange[] = [];
-    
-    const localSubcatMap = new Map(local.map(subcat => [subcat.name, subcat]));
-    const remoteSubcatMap = new Map(remote.map(subcat => [subcat.name, subcat]));
-    
+
+    const localSubcatMap = new Map(local.map((subcat) => [subcat.name, subcat]));
+    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.name, subcat]));
+
     // Find added subcategories
     for (const localSubcat of local) {
       if (!remoteSubcatMap.has(localSubcat.name)) {
-        changes.push(this.createFieldChange(
-          'subcategories',
-          null,
-          localSubcat.name,
-          `Subcategory "${localSubcat.name}" added (in config, not on Saleor)`
-        ));
+        changes.push(
+          this.createFieldChange(
+            "subcategories",
+            null,
+            localSubcat.name,
+            `Subcategory "${localSubcat.name}" added (in config, not on Saleor)`
+          )
+        );
       }
     }
-    
+
     // Find removed subcategories
     for (const remoteSubcat of remote) {
       if (!localSubcatMap.has(remoteSubcat.name)) {
-        changes.push(this.createFieldChange(
-          'subcategories',
-          remoteSubcat.name,
-          null,
-          `Subcategory "${remoteSubcat.name}" removed (on Saleor, not in config)`
-        ));
+        changes.push(
+          this.createFieldChange(
+            "subcategories",
+            remoteSubcat.name,
+            null,
+            `Subcategory "${remoteSubcat.name}" removed (on Saleor, not in config)`
+          )
+        );
       }
     }
 
     return changes;
   }
-} 
+}

@@ -46,10 +46,7 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
-          ],
+          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
         },
       };
 
@@ -101,20 +98,14 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
-          ],
+          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
         },
       };
 
       const sameAttributeInput = {
         name: "Genre",
         inputType: "DROPDOWN" as const,
-        values: [
-          { name: "Fiction" },
-          { name: "Non-Fiction" },
-        ],
+        values: [{ name: "Fiction" }, { name: "Non-Fiction" }],
         type: "PRODUCT_TYPE" as const,
       };
 

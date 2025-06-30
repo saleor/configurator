@@ -60,10 +60,7 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(
-    input: CategoryInput,
-    parentId?: string
-  ): Promise<Category> {
+  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -79,9 +76,8 @@ export class CategoryRepository implements CategoryOperations {
     if (!result.data?.categoryCreate?.category) {
       throw new Error(
         `Failed to create category: ${
-          result.data?.categoryCreate?.errors
-            ?.map((e) => `${e.field}: ${e.message}`)
-            .join(", ") || "Unknown error"
+          result.data?.categoryCreate?.errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ||
+          "Unknown error"
         }`
       );
     }

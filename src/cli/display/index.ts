@@ -1,6 +1,6 @@
 /**
  * CLI Display Utilities
- * 
+ *
  * This module handles display and output formatting for CLI commands,
  * including configuration display, progress indicators, and logging setup.
  */
@@ -40,14 +40,14 @@ export function displayConfig(args: BaseCommandArgs & Record<string, any>, quiet
   console.log("📋 Configuration:");
   console.log(`   URL: ${args.url}`);
   console.log(`   Config: ${args.config}`);
-  
+
   // Display additional args (format, filter, etc.)
   Object.entries(args).forEach(([key, value]) => {
-    if (!['url', 'token', 'config', 'quiet', 'verbose'].includes(key) && value !== undefined) {
+    if (!["url", "token", "config", "quiet", "verbose"].includes(key) && value !== undefined) {
       console.log(`   ${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`);
     }
   });
-  
+
   console.log("");
 }
 
@@ -82,4 +82,4 @@ export function displayWarning(message: string, quiet: boolean): void {
   if (!quiet) {
     console.warn(`⚠️  ${message}`);
   }
-} 
+}

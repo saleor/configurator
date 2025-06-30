@@ -1,11 +1,11 @@
 /**
  * Environment Variable Handling
- * 
+ *
  * This module handles extraction and processing of environment variables
  * used by CLI commands, providing a clean interface for environment-based configuration.
  */
 
-import type { EnvironmentVariables } from '../schemas/types';
+import type { EnvironmentVariables } from "../schemas/types";
 
 /**
  * Configuration for environment variable processing
@@ -19,11 +19,11 @@ interface EnvironmentConfig {
  * Default environment variable configuration for Saleor CLI
  */
 const DEFAULT_ENV_CONFIG: EnvironmentConfig = {
-  prefix: 'SALEOR_',
+  prefix: "SALEOR_",
   mappings: {
-    url: 'SALEOR_API_URL',
-    token: 'SALEOR_AUTH_TOKEN',
-    config: 'SALEOR_CONFIG_PATH',
+    url: "SALEOR_API_URL",
+    token: "SALEOR_AUTH_TOKEN",
+    config: "SALEOR_CONFIG_PATH",
   },
 } as const;
 
@@ -49,7 +49,9 @@ export function extractEnvironmentDefaults(
  * @param envVars - Processed environment variables
  * @returns Object with CLI argument keys mapped to environment values
  */
-export function environmentToCliArgs(envVars: EnvironmentVariables): Record<string, string | undefined> {
+export function environmentToCliArgs(
+  envVars: EnvironmentVariables
+): Record<string, string | undefined> {
   return {
     url: envVars.SALEOR_API_URL,
     token: envVars.SALEOR_AUTH_TOKEN,
@@ -68,13 +70,13 @@ export function validateEnvironmentVariables(
   requiredVars: Array<keyof EnvironmentVariables> = []
 ): { isValid: boolean; missing: string[] } {
   const missing: string[] = [];
-  
+
   for (const varName of requiredVars) {
     if (!envVars[varName]) {
       missing.push(varName);
     }
   }
-  
+
   return {
     isValid: missing.length === 0,
     missing,
@@ -92,11 +94,11 @@ export function getEnvironmentHelpText(config: EnvironmentConfig = DEFAULT_ENV_C
     "  You can set these environment variables instead of using CLI arguments:",
     "",
   ];
-  
+
   Object.entries(config.mappings).forEach(([cliArg, envVar]) => {
     lines.push(`  ${envVar} - Sets the --${cliArg} argument`);
   });
-  
+
   lines.push(
     "",
     "  Example:",
@@ -104,6 +106,6 @@ export function getEnvironmentHelpText(config: EnvironmentConfig = DEFAULT_ENV_C
     `  export SALEOR_AUTH_TOKEN=your-authentication-token`,
     ""
   );
-  
+
   return lines.join("\n");
-} 
+}

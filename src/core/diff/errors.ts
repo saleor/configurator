@@ -2,10 +2,13 @@
  * Base error class for diff-related errors
  */
 export abstract class DiffError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = this.constructor.name;
-    
+
     // Maintains proper stack trace for where our error was thrown
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
@@ -17,8 +20,11 @@ export abstract class DiffError extends Error {
  * Error thrown when configuration loading fails
  */
 export class ConfigurationLoadError extends DiffError {
-  constructor(message: string, public readonly filePath?: string) {
-    super(message, 'CONFIG_LOAD_ERROR');
+  constructor(
+    message: string,
+    public readonly filePath?: string
+  ) {
+    super(message, "CONFIG_LOAD_ERROR");
   }
 }
 
@@ -26,8 +32,11 @@ export class ConfigurationLoadError extends DiffError {
  * Error thrown when remote configuration retrieval fails
  */
 export class RemoteConfigurationError extends DiffError {
-  constructor(message: string, public readonly originalError?: Error) {
-    super(message, 'REMOTE_CONFIG_ERROR');
+  constructor(
+    message: string,
+    public readonly originalError?: Error
+  ) {
+    super(message, "REMOTE_CONFIG_ERROR");
   }
 }
 
@@ -36,11 +45,11 @@ export class RemoteConfigurationError extends DiffError {
  */
 export class EntityValidationError extends DiffError {
   constructor(
-    message: string, 
+    message: string,
     public readonly entityType: string,
     public readonly entityName?: string
   ) {
-    super(message, 'ENTITY_VALIDATION_ERROR');
+    super(message, "ENTITY_VALIDATION_ERROR");
   }
 }
 
@@ -53,6 +62,6 @@ export class DiffComparisonError extends DiffError {
     public readonly entityType?: string,
     public readonly originalError?: Error
   ) {
-    super(message, 'DIFF_COMPARISON_ERROR');
+    super(message, "DIFF_COMPARISON_ERROR");
   }
-} 
+}

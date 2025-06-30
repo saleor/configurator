@@ -6,11 +6,11 @@ export type DiffOperation = "CREATE" | "UPDATE" | "DELETE";
 /**
  * Represents a single entity type that can be compared
  */
-export type EntityType = 
-  | "Product Types" 
-  | "Channels" 
-  | "Page Types" 
-  | "Categories" 
+export type EntityType =
+  | "Product Types"
+  | "Channels"
+  | "Page Types"
+  | "Categories"
   | "Shop Settings";
 
 /**
@@ -84,4 +84,4 @@ export interface DiffStatistics {
   readonly byOperation: ReadonlyMap<DiffOperation, number>;
   /** Most common change type */
   readonly mostCommonOperation: DiffOperation | null;
-} 
+}

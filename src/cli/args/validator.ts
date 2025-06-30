@@ -1,18 +1,18 @@
 /**
  * CLI Argument Validation
- * 
+ *
  * This module handles validation of parsed CLI arguments against Zod schemas.
  * It provides utilities for extracting descriptions and validating arguments with detailed error reporting.
  */
 
-import { z } from 'zod';
-import type { ParsedArgs, SchemaValidationResult } from '../schemas/types';
-import { createValidationError } from '../errors/handlers';
+import { z } from "zod";
+import type { ParsedArgs, SchemaValidationResult } from "../schemas/types";
+import { createValidationError } from "../errors/handlers";
 
 /**
  * Extract all field descriptions from a Zod object schema
  * Handles nested optional, default, and other wrapper schemas
- * 
+ *
  * @param schema - The Zod object schema to extract descriptions from
  * @returns Record mapping field names to their descriptions
  */
@@ -35,13 +35,13 @@ export function extractSchemaDescriptions<T extends z.ZodRawShape>(
 /**
  * Extract description from a single field schema, handling nested types
  * Recursively unwraps optional, default, and other wrapper schemas
- * 
+ *
  * @param fieldSchema - The field schema to extract description from
  * @returns The description string if found
  */
 function extractFieldDescription(fieldSchema: z.ZodTypeAny): string | undefined {
   let currentSchema = fieldSchema;
-  
+
   // Check current level first for performance
   let description = getDirectDescription(currentSchema);
   if (description) return description;
@@ -49,12 +49,12 @@ function extractFieldDescription(fieldSchema: z.ZodTypeAny): string | undefined 
   // Unwrap nested schemas with safety limit
   const maxDepth = 10; // Prevent infinite loops
   let depth = 0;
-  
+
   while (!description && depth < maxDepth) {
     // Check if we can unwrap further
     const unwrapped = unwrapSchema(currentSchema);
     if (!unwrapped || unwrapped === currentSchema) break;
-    
+
     currentSchema = unwrapped;
     description = getDirectDescription(currentSchema);
     depth++;
@@ -72,15 +72,15 @@ function unwrapSchema(schema: z.ZodTypeAny): z.ZodTypeAny | null {
   if (schema instanceof z.ZodOptional) {
     return schema.unwrap();
   }
-  
+
   if (schema instanceof z.ZodDefault) {
     return schema._def.innerType;
   }
-  
+
   if (schema instanceof z.ZodNullable) {
     return schema.unwrap();
   }
-  
+
   // Add more wrapper types as needed
   return null;
 }
@@ -117,7 +117,7 @@ export function validateArguments<T extends z.ZodRawShape>(
         error: error,
       };
     }
-    
+
     // Re-throw non-Zod errors
     throw error;
   }
@@ -129,41 +129,41 @@ export function validateArguments<T extends z.ZodRawShape>(
  * @returns Array of formatted error messages
  */
 export function formatValidationErrors(errors: z.ZodIssue[]): string[] {
-  return errors.map(error => {
-    const field = error.path.join('.');
-    const fieldDisplay = field || 'argument';
-    
+  return errors.map((error) => {
+    const field = error.path.join(".");
+    const fieldDisplay = field || "argument";
+
     switch (error.code) {
-      case 'invalid_type':
+      case "invalid_type":
         return `Invalid type for ${fieldDisplay}: expected ${error.expected}, got ${error.received}`;
-      
-      case 'too_small':
-        if (error.type === 'string') {
+
+      case "too_small":
+        if (error.type === "string") {
           return `${fieldDisplay} must be at least ${error.minimum} characters long`;
         }
         return `${fieldDisplay} must be at least ${error.minimum}`;
-      
-      case 'too_big':
-        if (error.type === 'string') {
+
+      case "too_big":
+        if (error.type === "string") {
           return `${fieldDisplay} must be at most ${error.maximum} characters long`;
         }
         return `${fieldDisplay} must be at most ${error.maximum}`;
-      
-      case 'invalid_string':
-        if (error.validation === 'url') {
+
+      case "invalid_string":
+        if (error.validation === "url") {
           return `${fieldDisplay} must be a valid URL`;
         }
-        if (error.validation === 'email') {
+        if (error.validation === "email") {
           return `${fieldDisplay} must be a valid email address`;
         }
         return `${fieldDisplay} format is invalid`;
-      
-      case 'invalid_enum_value':
-        return `${fieldDisplay} must be one of: ${error.options.join(', ')}`;
-      
-      case 'custom':
+
+      case "invalid_enum_value":
+        return `${fieldDisplay} must be one of: ${error.options.join(", ")}`;
+
+      case "custom":
         return error.message;
-      
+
       default:
         return `${fieldDisplay}: ${error.message}`;
     }
@@ -180,7 +180,7 @@ export function categorizeSchemaFields<T extends z.ZodRawShape>(
 ): { required: string[]; optional: string[] } {
   const required: string[] = [];
   const optional: string[] = [];
-  
+
   Object.entries(schema.shape).forEach(([key, fieldSchema]) => {
     if (isFieldOptional(fieldSchema as z.ZodTypeAny)) {
       optional.push(key);
@@ -198,7 +198,9 @@ export function categorizeSchemaFields<T extends z.ZodRawShape>(
  * @returns True if the field is optional
  */
 function isFieldOptional(fieldSchema: z.ZodTypeAny): boolean {
-  return fieldSchema instanceof z.ZodDefault || 
-         fieldSchema instanceof z.ZodOptional ||
-         fieldSchema instanceof z.ZodNullable;
-} 
+  return (
+    fieldSchema instanceof z.ZodDefault ||
+    fieldSchema instanceof z.ZodOptional ||
+    fieldSchema instanceof z.ZodNullable
+  );
+}

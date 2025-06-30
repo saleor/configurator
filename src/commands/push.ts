@@ -1,10 +1,10 @@
-import { 
-  parseCliArgs, 
+import {
+  parseCliArgs,
   commandSchemas,
   validateSaleorUrl,
   setupLogger,
   displayConfig,
-  handleCommandError
+  handleCommandError,
 } from "../cli";
 import { createConfigurator } from "../core/factory";
 
@@ -13,7 +13,7 @@ const argsSchema = commandSchemas.push;
 async function runPush() {
   try {
     console.log("🚀 Saleor Configuration Push\n");
-    
+
     const args = parseCliArgs(argsSchema, "push");
     const { url, token, config: configPath, quiet, verbose, dryRun, skipValidation } = args;
 
@@ -37,7 +37,9 @@ async function runPush() {
 
     if (dryRun) {
       if (!quiet) {
-        console.log("🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes.");
+        console.log(
+          "🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes."
+        );
       }
       process.exit(0);
     }
@@ -52,9 +54,8 @@ async function runPush() {
     if (!quiet) {
       console.log("\n✅ Configuration successfully applied to Saleor");
     }
-    
-    process.exit(0);
 
+    process.exit(0);
   } catch (error) {
     handleCommandError(error, "Push");
   }

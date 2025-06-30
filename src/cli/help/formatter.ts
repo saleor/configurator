@@ -1,19 +1,19 @@
 /**
  * CLI Help Text Formatting
- * 
+ *
  * This module handles the formatting and generation of help text for CLI commands.
  * It provides utilities for creating well-structured, readable help documentation.
  */
 
-import type { z } from 'zod';
-import { extractSchemaDescriptions, categorizeSchemaFields } from '../args/validator';
-import { getEnvironmentHelpText } from '../args/environment';
+import type { z } from "zod";
+import { extractSchemaDescriptions, categorizeSchemaFields } from "../args/validator";
+import { getEnvironmentHelpText } from "../args/environment";
 
 /**
  * Configuration for help text formatting
  */
 interface HelpFormattingConfig {
-  readonly showEnvironmentVariables: boolean;  
+  readonly showEnvironmentVariables: boolean;
   readonly showExamples: boolean;
   readonly showTips: boolean;
   readonly environmentPrefix: string;
@@ -27,7 +27,7 @@ const DEFAULT_HELP_CONFIG: HelpFormattingConfig = {
   showEnvironmentVariables: true,
   showExamples: true,
   showTips: true,
-  environmentPrefix: 'SALEOR_',
+  environmentPrefix: "SALEOR_",
   maxWidth: 80,
 } as const;
 
@@ -45,7 +45,7 @@ export function generateHelpSections<T extends z.ZodRawShape>(
 ): string[] {
   const { required, optional } = categorizeSchemaFields(schema);
   const descriptions = extractSchemaDescriptions(schema);
-  
+
   const sections: string[] = [];
 
   // Command header
@@ -53,24 +53,28 @@ export function generateHelpSections<T extends z.ZodRawShape>(
 
   // Required arguments section
   if (required.length > 0) {
-    sections.push(formatArgumentSection(
-      "🔴 Required Arguments",
-      required,
-      descriptions,
-      config.showEnvironmentVariables,
-      config.environmentPrefix
-    ));
+    sections.push(
+      formatArgumentSection(
+        "🔴 Required Arguments",
+        required,
+        descriptions,
+        config.showEnvironmentVariables,
+        config.environmentPrefix
+      )
+    );
   }
 
-  // Optional arguments section  
+  // Optional arguments section
   if (optional.length > 0) {
-    sections.push(formatArgumentSection(
-      "🟡 Optional Arguments",
-      optional,
-      descriptions,
-      false, // Don't show env vars for optional args
-      config.environmentPrefix
-    ));
+    sections.push(
+      formatArgumentSection(
+        "🟡 Optional Arguments",
+        optional,
+        descriptions,
+        false, // Don't show env vars for optional args
+        config.environmentPrefix
+      )
+    );
   }
 
   // Environment variables section
@@ -114,27 +118,27 @@ export function formatArgumentSection(
   args: string[],
   descriptions: Record<string, string>,
   showEnvVars: boolean,
-  envPrefix: string = 'SALEOR_'
+  envPrefix: string = "SALEOR_"
 ): string {
   const lines = [title];
-  
-  args.forEach(arg => {
+
+  args.forEach((arg) => {
     // Argument name
     lines.push(`  --${arg} <value>`);
-    
+
     // Description with proper indentation
     const description = descriptions[arg];
     if (description) {
       const wrappedDescription = wrapText(description, 60, 6);
       lines.push(wrappedDescription);
     }
-    
+
     // Environment variable alternative
     if (showEnvVars) {
       const envVar = `${envPrefix}${arg.toUpperCase()}`;
       lines.push(`      Environment: ${envVar}`);
     }
-    
+
     lines.push(""); // Empty line for spacing
   });
 
@@ -153,13 +157,13 @@ function generateExamplesSection(commandName: string): string {
     "  # Using command line arguments",
     `  npm run ${commandName} -- --url https://demo.saleor.io/graphql/ --token your-token`,
     "",
-    "  # Using environment variables", 
+    "  # Using environment variables",
     `  SALEOR_API_URL=https://demo.saleor.io/graphql/ SALEOR_AUTH_TOKEN=your-token npm run ${commandName}`,
     "",
   ];
 
   // Add command-specific examples
-  if (commandName === 'diff') {
+  if (commandName === "diff") {
     examples.push(
       "  # Diff command specific examples",
       "  npm run diff -- --url ... --token ... --format summary",
@@ -168,19 +172,19 @@ function generateExamplesSection(commandName: string): string {
     );
   }
 
-  if (commandName === 'push') {
+  if (commandName === "push") {
     examples.push(
-      "  # Push command specific examples", 
+      "  # Push command specific examples",
       "  npm run push -- --url ... --token ... --config production.yml",
       "  npm run push -- --url ... --token ... --verbose --config staging.yml",
       ""
     );
   }
 
-  if (commandName === 'introspect') {
+  if (commandName === "introspect") {
     examples.push(
       "  # Introspect command specific examples",
-      `  npm run introspect -- --url ... --token ... --config downloaded.yml`, 
+      `  npm run introspect -- --url ... --token ... --config downloaded.yml`,
       `  npm run introspect -- --url ... --token ... --quiet --force`,
       `  npm run introspect -- --url ... --token ... --dry-run`,
       ""
@@ -199,7 +203,7 @@ function generateTipsSection(): string {
     "💡 Tips & Best Practices:",
     "  • Create a .env file with your credentials for convenience",
     "  • Use --quiet flag in CI/CD environments to reduce output",
-    "  • Use --verbose flag when debugging configuration issues", 
+    "  • Use --verbose flag when debugging configuration issues",
     "  • Always test configuration changes in a staging environment first",
     "  • Keep your authentication tokens secure and rotate them regularly",
     "",
@@ -214,14 +218,14 @@ function generateTipsSection(): string {
  * @returns Wrapped and indented text
  */
 function wrapText(text: string, maxWidth: number, indent: number): string {
-  const indentStr = ' '.repeat(indent);
-  const words = text.split(' ');
+  const indentStr = " ".repeat(indent);
+  const words = text.split(" ");
   const lines: string[] = [];
   let currentLine = indentStr;
 
   for (const word of words) {
-    const testLine = currentLine === indentStr ? currentLine + word : currentLine + ' ' + word;
-    
+    const testLine = currentLine === indentStr ? currentLine + word : currentLine + " " + word;
+
     if (testLine.length <= maxWidth) {
       currentLine = testLine;
     } else {
@@ -231,10 +235,10 @@ function wrapText(text: string, maxWidth: number, indent: number): string {
       currentLine = indentStr + word;
     }
   }
-  
+
   if (currentLine !== indentStr) {
     lines.push(currentLine);
   }
 
-  return lines.join('\n');
-} 
+  return lines.join("\n");
+}

@@ -85,11 +85,7 @@ function getErrorType(errorMessage: string): string {
   const patterns: Record<string, string[]> = {
     forbidden: ["GraphQL Error: Forbidden (403)", "[Network] Forbidden", "403"],
     "not-found": ["GraphQL Error: Not Found (404)", "[Network]", "404"],
-    "connection-failed": [
-      "GraphQL Error: Connection Failed",
-      "ENOTFOUND",
-      "ECONNREFUSED",
-    ],
+    "connection-failed": ["GraphQL Error: Connection Failed", "ENOTFOUND", "ECONNREFUSED"],
     unauthorized: ["GraphQL Error: Unauthorized (401)", "Unauthorized", "401"],
     "config-error": ["ENOENT", "config"],
     "network-error": ["fetch", "network"],
@@ -158,10 +154,7 @@ export function handleCommandError(error: unknown): never {
  * @param error - The error to handle
  * @param commandName - The command that triggered the error
  */
-export function handleCliError(
-  error: unknown,
-  commandName: string = "command"
-): never {
+export function handleCliError(error: unknown, commandName: string = "command"): never {
   if (error instanceof Error && "isCliError" in error) {
     const cliError = error as CliError;
     console.error(`❌ ${cliError.message}`);
@@ -170,15 +163,9 @@ export function handleCliError(
       console.error(`\n💡 ${cliError.helpText}`);
     }
 
-    console.error(
-      `\n🔍 Run 'npm run ${commandName} -- --help' for usage information`
-    );
+    console.error(`\n🔍 Run 'npm run ${commandName} -- --help' for usage information`);
   } else {
-    console.error(
-      `❌ Unexpected error: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
+    console.error(`❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   process.exit(1);

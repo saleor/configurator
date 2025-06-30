@@ -36,7 +36,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
     // Validate unique names
     this.validateUniqueNames(local);
     this.validateUniqueNames(remote);
-    
+
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
     const localByName = this.createEntityMap(local);
@@ -44,17 +44,17 @@ export class ProductTypeComparator extends BaseEntityComparator<
     // Check for creates and updates
     for (const localPT of local) {
       const remotePT = remoteByName.get(this.getEntityName(localPT));
-      
+
       if (!remotePT) {
         // For new product types, analyze attributes that will be created
         const localAttributes = this.getAttributes(localPT);
         const changes: DiffChange[] = [];
-        
+
         // Compare against empty attributes array to show what will be created
         if (localAttributes.length > 0) {
           changes.push(...this.compareAttributes(localAttributes, [], true));
         }
-        
+
         // Create result with changes if attributes exist, otherwise basic create
         if (changes.length > 0) {
           results.push({
@@ -90,8 +90,8 @@ export class ProductTypeComparator extends BaseEntityComparator<
    * Gets the name of a product type entity
    */
   protected getEntityName(entity: ProductTypeEntity): string {
-    if (!entity.name || typeof entity.name !== 'string') {
-      throw new Error('Product type entity must have a valid name');
+    if (!entity.name || typeof entity.name !== "string") {
+      throw new Error("Product type entity must have a valid name");
     }
     return entity.name;
   }
@@ -105,7 +105,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
     // Compare attributes if they exist
     const localAttributes = this.getAttributes(local);
     const remoteAttributes = this.getAttributes(remote);
-    
+
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
       changes.push(...this.compareAttributes(localAttributes, remoteAttributes, false));
     }
@@ -131,36 +131,33 @@ export class ProductTypeComparator extends BaseEntityComparator<
     isCreating: boolean = false
   ): DiffChange[] {
     const changes: DiffChange[] = [];
-    
-    const localAttrMap = new Map(local.map(attr => [attr.name, attr]));
-    const remoteAttrMap = new Map(remote.map(attr => [attr.name, attr]));
-    
+
+    const localAttrMap = new Map(local.map((attr) => [attr.name, attr]));
+    const remoteAttrMap = new Map(remote.map((attr) => [attr.name, attr]));
+
     // Find added attributes
     for (const localAttr of local) {
       if (!remoteAttrMap.has(localAttr.name)) {
         // Use different description based on whether we're creating or updating
-        const description = isCreating 
+        const description = isCreating
           ? `Attribute "${localAttr.name}" will be created`
           : `Attribute "${localAttr.name}" added`;
-        
-        changes.push(this.createFieldChange(
-          'attributes',
-          null,
-          localAttr.name,
-          description
-        ));
+
+        changes.push(this.createFieldChange("attributes", null, localAttr.name, description));
       }
     }
-    
+
     // Find removed attributes
     for (const remoteAttr of remote) {
       if (!localAttrMap.has(remoteAttr.name)) {
-        changes.push(this.createFieldChange(
-          'attributes',
-          remoteAttr.name,
-          null,
-          `Attribute "${remoteAttr.name}" removed`
-        ));
+        changes.push(
+          this.createFieldChange(
+            "attributes",
+            remoteAttr.name,
+            null,
+            `Attribute "${remoteAttr.name}" removed`
+          )
+        );
       }
     }
 
@@ -186,12 +183,14 @@ export class ProductTypeComparator extends BaseEntityComparator<
 
     // Compare input type
     if (local.inputType !== remote.inputType) {
-      changes.push(this.createFieldChange(
-        `attributes.${local.name}.inputType`,
-        remote.inputType,
-        local.inputType,
-        `Attribute "${local.name}" input type changed from "${remote.inputType}" to "${local.inputType}"`
-      ));
+      changes.push(
+        this.createFieldChange(
+          `attributes.${local.name}.inputType`,
+          remote.inputType,
+          local.inputType,
+          `Attribute "${local.name}" input type changed from "${remote.inputType}" to "${local.inputType}"`
+        )
+      );
     }
 
     // Compare attribute values if they exist
@@ -212,34 +211,38 @@ export class ProductTypeComparator extends BaseEntityComparator<
     const changes: DiffChange[] = [];
     const localValues = local.values || [];
     const remoteValues = remote.values || [];
-    
-    const localValueNames = new Set(localValues.map(v => v.name));
-    const remoteValueNames = new Set(remoteValues.map(v => v.name));
-    
+
+    const localValueNames = new Set(localValues.map((v) => v.name));
+    const remoteValueNames = new Set(remoteValues.map((v) => v.name));
+
     // Find added values
     for (const localValue of localValues) {
       if (!remoteValueNames.has(localValue.name)) {
-        changes.push(this.createFieldChange(
-          `attributes.${local.name}.values`,
-          null,
-          localValue.name,
-          `Attribute "${local.name}" value "${localValue.name}" added`
-        ));
+        changes.push(
+          this.createFieldChange(
+            `attributes.${local.name}.values`,
+            null,
+            localValue.name,
+            `Attribute "${local.name}" value "${localValue.name}" added`
+          )
+        );
       }
     }
-    
+
     // Find removed values
     for (const remoteValue of remoteValues) {
       if (!localValueNames.has(remoteValue.name)) {
-        changes.push(this.createFieldChange(
-          `attributes.${local.name}.values`,
-          remoteValue.name,
-          null,
-          `Attribute "${local.name}" value "${remoteValue.name}" removed`
-        ));
+        changes.push(
+          this.createFieldChange(
+            `attributes.${local.name}.values`,
+            remoteValue.name,
+            null,
+            `Attribute "${local.name}" value "${remoteValue.name}" removed`
+          )
+        );
       }
     }
 
     return changes;
   }
-} 
+}

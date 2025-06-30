@@ -20,9 +20,7 @@ const createPageTypeMutation = graphql(`
 type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
 
 export type PageType = NonNullable<
-  NonNullable<
-    ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]
-  >["pageType"]
+  NonNullable<ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]>["pageType"]
 >;
 
 const getPageTypeByNameQuery = graphql(`
@@ -74,10 +72,7 @@ export interface PageTypeOperations {
   createPageType(pageTypeInput: PageTypeCreateInput): Promise<PageType>;
   getPageTypeByName(name: string): Promise<PageType | null | undefined>;
   getPageType(id: string): Promise<PageType | null | undefined>;
-  assignAttributes(
-    pageTypeId: string,
-    attributeIds: string[]
-  ): Promise<{ id: string }>;
+  assignAttributes(pageTypeId: string, attributeIds: string[]): Promise<{ id: string }>;
 }
 
 export class PageTypeRepository implements PageTypeOperations {

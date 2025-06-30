@@ -4,14 +4,14 @@
 export const DIFF_ICONS = {
   OPERATIONS: {
     CREATE: "➕",
-    UPDATE: "🔄", 
+    UPDATE: "🔄",
     DELETE: "➖",
   },
   ENTITIES: {
     "Product Types": "📦",
-    "Channels": "🌐",
+    Channels: "🌐",
     "Page Types": "📄",
-    "Categories": "🏷️",
+    Categories: "🏷️",
     "Shop Settings": "🏪",
   },
   SUMMARY: {
@@ -26,7 +26,7 @@ export const DIFF_ICONS = {
  */
 export const OPERATION_LABELS = {
   CREATE: "Create",
-  UPDATE: "Update", 
+  UPDATE: "Update",
   DELETE: "Delete",
 } as const;
 
@@ -47,22 +47,18 @@ export const FORMAT_CONFIG = {
 export const DIFF_MESSAGES = {
   NO_CHANGES: "No differences found. Local configuration matches Saleor instance.",
   HEADER: "Configuration Diff Results",
-  RECONCILE_INTRO: "The following changes would be applied to reconcile Saleor with your local configuration:",
+  RECONCILE_INTRO:
+    "The following changes would be applied to reconcile Saleor with your local configuration:",
   SUMMARY_HEADER: "Summary",
-  DELETE_EXPLANATION: (entityType: string) => 
+  DELETE_EXPLANATION: (entityType: string) =>
     `The ${entityType.toLowerCase()} exists on Saleor but is missing from the local configuration.`,
-  FOUND_DIFFERENCES: (count: number) => 
-    `Found ${count} difference${count !== 1 ? 's' : ''}`,
-  ITEMS_TO_CREATE: (count: number) => 
-    `${count} item${count !== 1 ? 's' : ''} to create`,
-  ITEMS_TO_UPDATE: (count: number) => 
-    `${count} item${count !== 1 ? 's' : ''} to update`,
-  ITEMS_TO_DELETE: (count: number) => 
-    `${count} item${count !== 1 ? 's' : ''} to delete`,
-  TOTAL_CHANGES: (count: number) => 
-    `Total Changes: ${count}`,
-  ENTITY_CHANGES: (entityType: string, count: number) => 
-    `${entityType}: ${count} change${count !== 1 ? 's' : ''}`,
-  OPERATION_COUNT: (count: number, operation: string) => 
-    `${count} ${operation}${count !== 1 ? 's' : ''}`,
-} as const; 
+  FOUND_DIFFERENCES: (count: number) => `Found ${count} difference${count !== 1 ? "s" : ""}`,
+  ITEMS_TO_CREATE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to create`,
+  ITEMS_TO_UPDATE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to update`,
+  ITEMS_TO_DELETE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to delete`,
+  TOTAL_CHANGES: (count: number) => `Total Changes: ${count}`,
+  ENTITY_CHANGES: (entityType: string, count: number) =>
+    `${entityType}: ${count} change${count !== 1 ? "s" : ""}`,
+  OPERATION_COUNT: (count: number, operation: string) =>
+    `${count} ${operation}${count !== 1 ? "s" : ""}`,
+} as const;

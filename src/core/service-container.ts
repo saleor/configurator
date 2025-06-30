@@ -54,10 +54,7 @@ export class ServiceComposer {
     return {
       channel: new ChannelService(repositories.channel),
       pageType: new PageTypeService(repositories.pageType, attributeService),
-      productType: new ProductTypeService(
-        repositories.productType,
-        attributeService
-      ),
+      productType: new ProductTypeService(repositories.productType, attributeService),
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,

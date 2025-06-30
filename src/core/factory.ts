@@ -1,7 +1,7 @@
 /**
  * Configurator Factory
- * 
- * This module provides factory functions for creating and configuring 
+ *
+ * This module provides factory functions for creating and configuring
  * SaleorConfigurator instances with the proper dependencies.
  */
 
@@ -16,7 +16,11 @@ import { SaleorConfigurator } from "./configurator";
  * @param configPath - Path to configuration file
  * @returns Configured SaleorConfigurator instance
  */
-export function createConfigurator(token: string, url: string, configPath: string): SaleorConfigurator {
+export function createConfigurator(
+  token: string,
+  url: string,
+  configPath: string
+): SaleorConfigurator {
   const client = createClient(token, url);
   const services = ServiceComposer.compose(client, configPath);
   return new SaleorConfigurator(services);
@@ -29,7 +33,11 @@ export function createConfigurator(token: string, url: string, configPath: strin
  * @param configPath - Path to configuration file
  * @returns Configured SaleorConfigurator instance optimized for read operations
  */
-export function createReadOnlyConfigurator(token: string, url: string, configPath: string): SaleorConfigurator {
+export function createReadOnlyConfigurator(
+  token: string,
+  url: string,
+  configPath: string
+): SaleorConfigurator {
   // For now, same as regular configurator - could be optimized in the future
   return createConfigurator(token, url, configPath);
 }
@@ -54,4 +62,4 @@ export function createConfiguratorWithOptions(options: ConfiguratorOptions): Sal
     return createReadOnlyConfigurator(options.token, options.url, options.configPath);
   }
   return createConfigurator(options.token, options.url, options.configPath);
-} 
+}

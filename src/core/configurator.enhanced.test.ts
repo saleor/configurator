@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SaleorConfigurator } from './configurator';
-import type { ServiceContainer } from './service-container';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { SaleorConfigurator } from "./configurator";
+import type { ServiceContainer } from "./service-container";
 
 // Mock dependencies
-vi.mock('./service-container');
-vi.mock('./diff-service');
-vi.mock('../lib/logger');
+vi.mock("./service-container");
+vi.mock("./diff-service");
+vi.mock("../lib/logger");
 
-describe('SaleorConfigurator enhanced functionality', () => {
+describe("SaleorConfigurator enhanced functionality", () => {
   let configurator: SaleorConfigurator;
   let mockServices: Partial<ServiceContainer>;
 
@@ -48,12 +48,14 @@ describe('SaleorConfigurator enhanced functionality', () => {
     vi.restoreAllMocks();
   });
 
-  describe('introspect method', () => {
-    it('should successfully introspect and return configuration', async () => {
+  describe("introspect method", () => {
+    it("should successfully introspect and return configuration", async () => {
       // Arrange
       const mockRemoteConfig = {
-        shop: { headerText: 'Test Shop' },
-        channels: [{ name: 'Test Channel', slug: 'test', currencyCode: 'USD', defaultCountry: 'US' }],
+        shop: { headerText: "Test Shop" },
+        channels: [
+          { name: "Test Channel", slug: "test", currencyCode: "USD", defaultCountry: "US" },
+        ],
       };
 
       mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(mockRemoteConfig);
@@ -66,16 +68,16 @@ describe('SaleorConfigurator enhanced functionality', () => {
       expect(result).toEqual(mockRemoteConfig);
     });
 
-    it('should handle service composition errors', async () => {
+    it("should handle service composition errors", async () => {
       // Arrange
-      const error = new Error('GraphQL composition failed');
+      const error = new Error("GraphQL composition failed");
       mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(error);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow('GraphQL composition failed');
+      await expect(configurator.introspect()).rejects.toThrow("GraphQL composition failed");
     });
 
-    it('should introspect with empty configuration', async () => {
+    it("should introspect with empty configuration", async () => {
       // Arrange
       const emptyConfig = {};
       mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(emptyConfig);
@@ -87,21 +89,19 @@ describe('SaleorConfigurator enhanced functionality', () => {
       expect(result).toEqual(emptyConfig);
     });
 
-    it('should handle complex configuration introspection', async () => {
+    it("should handle complex configuration introspection", async () => {
       // Arrange
       const complexConfig = {
-        shop: { 
-          headerText: 'Complex Shop',
-          description: 'A complex shop configuration',
+        shop: {
+          headerText: "Complex Shop",
+          description: "A complex shop configuration",
           trackInventoryByDefault: true,
         },
         channels: [
-          { name: 'Channel 1', slug: 'ch1', currencyCode: 'USD', defaultCountry: 'US' },
-          { name: 'Channel 2', slug: 'ch2', currencyCode: 'EUR', defaultCountry: 'DE' },
+          { name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" },
+          { name: "Channel 2", slug: "ch2", currencyCode: "EUR", defaultCountry: "DE" },
         ],
-        productTypes: [
-          { name: 'Product Type 1', attributes: [] },
-        ],
+        productTypes: [{ name: "Product Type 1", attributes: [] }],
       };
 
       mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(complexConfig);
@@ -113,15 +113,13 @@ describe('SaleorConfigurator enhanced functionality', () => {
       expect(result).toEqual(complexConfig);
     });
 
-    it('should handle concurrent introspect operations', async () => {
+    it("should handle concurrent introspect operations", async () => {
       // Arrange
-      const config1 = { shop: { headerText: 'Shop 1' } };
-      const config2 = { shop: { headerText: 'Shop 2' } };
-      
-      const mockRetrieve = vi.fn()
-        .mockResolvedValueOnce(config1)
-        .mockResolvedValueOnce(config2);
-      
+      const config1 = { shop: { headerText: "Shop 1" } };
+      const config2 = { shop: { headerText: "Shop 2" } };
+
+      const mockRetrieve = vi.fn().mockResolvedValueOnce(config1).mockResolvedValueOnce(config2);
+
       mockServices.configuration!.retrieve = mockRetrieve;
 
       // Act
@@ -137,72 +135,69 @@ describe('SaleorConfigurator enhanced functionality', () => {
     });
   });
 
-  describe('error handling scenarios', () => {
-    it('should handle network errors gracefully', async () => {
+  describe("error handling scenarios", () => {
+    it("should handle network errors gracefully", async () => {
       // Arrange
-      const networkError = new Error('Network request failed');
+      const networkError = new Error("Network request failed");
       mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(networkError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow('Network request failed');
+      await expect(configurator.introspect()).rejects.toThrow("Network request failed");
     });
 
-    it('should handle authentication errors', async () => {
+    it("should handle authentication errors", async () => {
       // Arrange
-      const authError = new Error('GraphQL Error: Unauthorized (401)');
+      const authError = new Error("GraphQL Error: Unauthorized (401)");
       mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(authError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow('GraphQL Error: Unauthorized (401)');
+      await expect(configurator.introspect()).rejects.toThrow("GraphQL Error: Unauthorized (401)");
     });
   });
 
-  describe('integration scenarios', () => {
-    it('should handle complex configuration with all sections', async () => {
+  describe("integration scenarios", () => {
+    it("should handle complex configuration with all sections", async () => {
       // Arrange
       const complexConfig = {
         shop: {
-          headerText: 'Complex Shop',
-          description: 'A shop with all features',
+          headerText: "Complex Shop",
+          description: "A shop with all features",
           trackInventoryByDefault: true,
         },
         channels: [
           {
-            name: 'Web Channel',
-            slug: 'web',
-            currencyCode: 'USD',
-            defaultCountry: 'US',
+            name: "Web Channel",
+            slug: "web",
+            currencyCode: "USD",
+            defaultCountry: "US",
             settings: {
-              allocationStrategy: 'PRIORITIZE_HIGH_STOCK',
+              allocationStrategy: "PRIORITIZE_HIGH_STOCK",
               automaticallyConfirmAllNewOrders: true,
             },
           },
           {
-            name: 'Mobile Channel', 
-            slug: 'mobile',
-            currencyCode: 'EUR',
-            defaultCountry: 'DE',
+            name: "Mobile Channel",
+            slug: "mobile",
+            currencyCode: "EUR",
+            defaultCountry: "DE",
           },
         ],
         productTypes: [
           {
-            name: 'Digital Product',
+            name: "Digital Product",
             attributes: [
               {
-                name: 'Format',
-                inputType: 'DROPDOWN',
-                values: [{ name: 'PDF' }, { name: 'Video' }],
+                name: "Format",
+                inputType: "DROPDOWN",
+                values: [{ name: "PDF" }, { name: "Video" }],
               },
             ],
           },
         ],
         categories: [
           {
-            name: 'Electronics',
-            subcategories: [
-              { name: 'Phones' },
-              { name: 'Computers' },
-            ],
+            name: "Electronics",
+            subcategories: [{ name: "Phones" }, { name: "Computers" }],
           },
         ],
       };
@@ -216,4 +211,4 @@ describe('SaleorConfigurator enhanced functionality', () => {
       expect(result).toEqual(complexConfig);
     });
   });
-}); 
+});

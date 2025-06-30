@@ -1,11 +1,11 @@
 /**
  * CLI Schema Type Definitions
- * 
+ *
  * This module provides essential type definitions for CLI functionality,
  * using Zod's built-in type inference where possible to avoid redundancy.
  */
 
-import type { z } from 'zod';
+import type { z } from "zod";
 
 /**
  * Base interface for parsed CLI arguments (before schema validation)
@@ -38,4 +38,4 @@ export interface ArgumentParsingOptions {
 export type SchemaValidationResult<T extends z.ZodObject<z.ZodRawShape>> = z.SafeParseReturnType<
   z.input<T>,
   z.output<T>
->; 
+>;

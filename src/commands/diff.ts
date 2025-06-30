@@ -15,16 +15,7 @@ async function runDiff() {
     console.log("🔍 Saleor Configuration Diff\n");
 
     const args = parseCliArgs(argsSchema, "diff");
-    const {
-      url,
-      token,
-      config: configPath,
-      format,
-      filter,
-      quiet,
-      verbose,
-      dryRun,
-    } = args;
+    const { url, token, config: configPath, format, filter, quiet, verbose, dryRun } = args;
 
     const validatedUrl = validateSaleorUrl(url, quiet);
     setupLogger(verbose, quiet);

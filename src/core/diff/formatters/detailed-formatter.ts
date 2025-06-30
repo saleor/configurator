@@ -11,7 +11,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   format(summary: DiffSummary): string {
     this.validateSummary(summary);
-    
+
     if (summary.totalChanges === 0) {
       return `${DIFF_ICONS.SUMMARY.SUCCESS} ${DIFF_MESSAGES.NO_CHANGES}`;
     }
@@ -21,7 +21,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     this.addIntroduction(lines);
     this.addEntitySections(lines, summary);
     this.addSummarySection(lines, summary);
-    
+
     return lines.join("\n");
   }
 
@@ -56,11 +56,15 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds a section for a specific entity type
    */
-  private addEntitySection(lines: string[], entityType: string, results: readonly DiffResult[]): void {
+  private addEntitySection(
+    lines: string[],
+    entityType: string,
+    results: readonly DiffResult[]
+  ): void {
     const icon = this.getEntityIcon(entityType as any);
     lines.push(`${icon} ${entityType}`);
     lines.push(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR));
-    
+
     for (const result of results) {
       this.addResultDetails(lines, result);
     }
@@ -72,12 +76,12 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   private addResultDetails(lines: string[], result: DiffResult): void {
     const opIcon = this.getOperationIcon(result.operation);
     const opText = this.getOperationText(result.operation);
-    
+
     lines.push(`  ${opIcon} ${opText}: "${result.entityName}"`);
-    
+
     this.addChangeDetails(lines, result);
     this.addOperationSpecificDetails(lines, result);
-    
+
     lines.push("");
   }
 
@@ -86,9 +90,10 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   private addChangeDetails(lines: string[], result: DiffResult): void {
     if (!result.changes || result.changes.length === 0) return;
-    
+
     for (const change of result.changes) {
-      const description = change.description || 
+      const description =
+        change.description ||
         `${change.field}: "${change.currentValue}" → "${change.desiredValue}"`;
       lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} ${description}`);
     }
@@ -99,9 +104,11 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   private addOperationSpecificDetails(lines: string[], result: DiffResult): void {
     if (result.operation === "DELETE" && result.current) {
-      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} ${DIFF_MESSAGES.DELETE_EXPLANATION(result.entityType)}`);
+      lines.push(
+        `    ${FORMAT_CONFIG.TREE_BRANCH} ${DIFF_MESSAGES.DELETE_EXPLANATION(result.entityType)}`
+      );
     }
-    
+
     if (result.operation === "CREATE" && result.desired) {
       this.addCreationDetails(lines, result.desired);
     }
@@ -112,11 +119,11 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   private addCreationDetails(lines: string[], entity: unknown): void {
     const typedEntity = entity as any;
-    
+
     if (typedEntity?.currencyCode) {
       lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Currency: ${typedEntity.currencyCode}`);
     }
-    
+
     if (typedEntity?.defaultCountry) {
       lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Country: ${typedEntity.defaultCountry}`);
     }
@@ -133,4 +140,4 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.updates, "Update")}`);
     lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.deletes, "Deletion")}`);
   }
-} 
+}

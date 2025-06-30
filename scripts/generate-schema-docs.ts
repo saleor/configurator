@@ -42,10 +42,7 @@ interface SchemaDocumentation {
   example?: any;
 }
 
-function analyzeZodSchema(
-  schema: z.ZodTypeAny,
-  name: string = "root"
-): SchemaDocumentation {
+function analyzeZodSchema(schema: z.ZodTypeAny, name: string = "root"): SchemaDocumentation {
   const doc: SchemaDocumentation = {
     name,
     type: "unknown",
@@ -139,10 +136,7 @@ function analyzeZodSchema(
   return doc;
 }
 
-function generateMarkdownDocs(
-  schema: SchemaDocumentation,
-  level: number = 1
-): string {
+function generateMarkdownDocs(schema: SchemaDocumentation, level: number = 1): string {
   // Skip root level "Configuration" wrapper
   if (level === 1 && schema.name === "Configuration") {
     let markdown = "";
@@ -158,7 +152,10 @@ function generateMarkdownDocs(
   let markdown = `${header} ${schema.name}\n\n`;
 
   // Add GraphQL field reference
-  if (schema.description && !enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]) {
+  if (
+    schema.description &&
+    !enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]
+  ) {
     markdown += `**GraphQL Field**: \`${schema.description}\`\n\n`;
   }
 
@@ -168,21 +165,24 @@ function generateMarkdownDocs(
     markdown += "|---|---|\n";
     markdown += `| **Type** | \`${schema.type}\` |\n`;
     markdown += `| **Required** | ${schema.optional ? "No" : "Yes"} |\n`;
-    
+
     if (schema.enum) {
-      markdown += `| **Values** | ${schema.enum.map(v => `\`${v}\``).join(", ")} |\n`;
+      markdown += `| **Values** | ${schema.enum.map((v) => `\`${v}\``).join(", ")} |\n`;
     }
-    
+
     if (schema.example !== undefined) {
       markdown += `| **Example** | \`${JSON.stringify(schema.example)}\` |\n`;
     }
-    
+
     markdown += "\n";
   } else {
     // For objects with properties, show type info inline
     markdown += `**Type**: \`${schema.type}\` ${schema.optional ? "(optional)" : "(required)"}\n\n`;
-    
-    if (schema.description && enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]) {
+
+    if (
+      schema.description &&
+      enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]
+    ) {
       markdown += `${schema.description}\n\n`;
     }
   }
@@ -200,8 +200,7 @@ function generateMarkdownDocs(
 // Add descriptions and examples to make documentation richer
 const enhancedDescriptions = {
   shop: "Global shop settings that apply to the entire Saleor instance",
-  channels:
-    "Sales channels for different markets, regions, or customer segments",
+  channels: "Sales channels for different markets, regions, or customer segments",
   productTypes: "Product type definitions with their associated attributes",
   pageTypes: "Page type definitions for CMS content",
   categories: "Product category hierarchy",
@@ -211,8 +210,7 @@ const enhancedDescriptions = {
 function addDescriptions(doc: SchemaDocumentation): SchemaDocumentation {
   // Only add enhanced descriptions for top-level sections
   if (enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions]) {
-    doc.description =
-      enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions];
+    doc.description = enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions];
   }
 
   // Recursively process properties
@@ -234,13 +232,13 @@ function addDescriptions(doc: SchemaDocumentation): SchemaDocumentation {
 
 function generateTableOfContents(schema: SchemaDocumentation): string {
   let toc = "## Table of Contents\n\n";
-  
+
   if (schema.properties) {
     for (const prop of schema.properties) {
       toc += `- [${prop.name}](#${prop.name.toLowerCase()})\n`;
     }
   }
-  
+
   return toc + "\n";
 }
 

@@ -8,23 +8,24 @@ import type { DiffSummary, DiffResult, DiffStatistics, EntityType, DiffOperation
 export function calculateDiffStatistics(summary: DiffSummary): DiffStatistics {
   const byEntityType = new Map<EntityType, number>();
   const byOperation = new Map<DiffOperation, number>();
-  
+
   // Count by entity type
   for (const result of summary.results) {
     const current = byEntityType.get(result.entityType) || 0;
     byEntityType.set(result.entityType, current + 1);
   }
-  
+
   // Count by operation
   byOperation.set("CREATE", summary.creates);
   byOperation.set("UPDATE", summary.updates);
   byOperation.set("DELETE", summary.deletes);
-  
+
   // Find most common operation
-  const mostCommonOperation = Array.from(byOperation.entries())
-    .filter(([_, count]) => count > 0)
-    .sort(([, a], [, b]) => b - a)[0]?.[0] || null;
-  
+  const mostCommonOperation =
+    Array.from(byOperation.entries())
+      .filter(([_, count]) => count > 0)
+      .sort(([, a], [, b]) => b - a)[0]?.[0] || null;
+
   return {
     byEntityType,
     byOperation,
@@ -39,13 +40,13 @@ export function calculateDiffStatistics(summary: DiffSummary): DiffStatistics {
  * @returns A new diff summary with filtered results
  */
 export function filterDiffByEntityType(
-  summary: DiffSummary, 
+  summary: DiffSummary,
   entityTypes: readonly EntityType[]
 ): DiffSummary {
-  const filteredResults = summary.results.filter(result => 
+  const filteredResults = summary.results.filter((result) =>
     entityTypes.includes(result.entityType)
   );
-  
+
   return recalculateDiffSummary(filteredResults);
 }
 
@@ -56,13 +57,11 @@ export function filterDiffByEntityType(
  * @returns A new diff summary with filtered results
  */
 export function filterDiffByOperation(
-  summary: DiffSummary, 
+  summary: DiffSummary,
   operations: readonly DiffOperation[]
 ): DiffSummary {
-  const filteredResults = summary.results.filter(result => 
-    operations.includes(result.operation)
-  );
-  
+  const filteredResults = summary.results.filter((result) => operations.includes(result.operation));
+
   return recalculateDiffSummary(filteredResults);
 }
 
@@ -91,10 +90,10 @@ export function hasSafeDiffChangesOnly(summary: DiffSummary): boolean {
  * @returns Array of diff results for the specified entity type
  */
 export function getDiffResultsForEntityType(
-  summary: DiffSummary, 
+  summary: DiffSummary,
   entityType: EntityType
 ): readonly DiffResult[] {
-  return summary.results.filter(result => result.entityType === entityType);
+  return summary.results.filter((result) => result.entityType === entityType);
 }
 
 /**
@@ -104,10 +103,10 @@ export function getDiffResultsForEntityType(
  * @returns Array of diff results for the specified operation
  */
 export function getDiffResultsForOperation(
-  summary: DiffSummary, 
+  summary: DiffSummary,
   operation: DiffOperation
 ): readonly DiffResult[] {
-  return summary.results.filter(result => result.operation === operation);
+  return summary.results.filter((result) => result.operation === operation);
 }
 
 /**
@@ -116,10 +115,10 @@ export function getDiffResultsForOperation(
  * @returns A new diff summary with recalculated statistics
  */
 function recalculateDiffSummary(results: readonly DiffResult[]): DiffSummary {
-  const creates = results.filter(r => r.operation === "CREATE").length;
-  const updates = results.filter(r => r.operation === "UPDATE").length;
-  const deletes = results.filter(r => r.operation === "DELETE").length;
-  
+  const creates = results.filter((r) => r.operation === "CREATE").length;
+  const updates = results.filter((r) => r.operation === "UPDATE").length;
+  const deletes = results.filter((r) => r.operation === "DELETE").length;
+
   return {
     totalChanges: results.length,
     creates,
@@ -127,4 +126,4 @@ function recalculateDiffSummary(results: readonly DiffResult[]): DiffSummary {
     deletes,
     results,
   };
-} 
+}

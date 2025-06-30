@@ -18,16 +18,7 @@ async function runIntrospect() {
     console.log("🔍 Saleor Configuration Introspect\n");
 
     const args = parseCliArgs(argsSchema, "introspect");
-    const {
-      url,
-      token,
-      config: configPath,
-      quiet,
-      verbose,
-      force,
-      dryRun,
-      skipValidation,
-    } = args;
+    const { url, token, config: configPath, quiet, verbose, force, dryRun, skipValidation } = args;
 
     const validatedUrl = validateSaleorUrl(url, quiet);
     setupLogger(verbose, quiet);
@@ -47,9 +38,7 @@ async function runIntrospect() {
 
     if (hasLocalFile && !force && !dryRun && !skipValidation) {
       if (!quiet) {
-        console.log(
-          "📊 Analyzing differences between remote and local configuration..."
-        );
+        console.log("📊 Analyzing differences between remote and local configuration...");
       }
 
       try {
@@ -68,9 +57,7 @@ async function runIntrospect() {
         }
 
         if (!quiet) {
-          console.log(
-            "⚠️  Introspecting will overwrite your local configuration file."
-          );
+          console.log("⚠️  Introspecting will overwrite your local configuration file.");
           const confirmed = await confirmPrompt(
             "Do you want to continue and update the local file?",
             false
@@ -92,13 +79,9 @@ async function runIntrospect() {
             console.warn("");
             console.warn("📋 This usually means:");
             console.warn("   • Your local config uses unsupported values");
-            console.warn(
-              "   • The config format has changed since it was created"
-            );
+            console.warn("   • The config format has changed since it was created");
             console.warn("");
-            console.warn(
-              "🔧 Introspecting will fetch the latest valid configuration from Saleor."
-            );
+            console.warn("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
 
             const confirmed = await confirmPrompt(
               "Do you want to proceed and replace the invalid local file?",
@@ -115,16 +98,10 @@ async function runIntrospect() {
           }
         } else {
           if (!quiet) {
-            console.warn(
-              "⚠️  Could not compute diff, proceeding with introspect..."
-            );
+            console.warn("⚠️  Could not compute diff, proceeding with introspect...");
             if (verbose) {
               console.warn(
-                `   Diff error: ${
-                  diffError instanceof Error
-                    ? diffError.message
-                    : "Unknown error"
-                }`
+                `   Diff error: ${diffError instanceof Error ? diffError.message : "Unknown error"}`
               );
             }
           }
@@ -159,9 +136,7 @@ async function runIntrospect() {
       console.log(`\n✅ Configuration successfully saved to ${configPath}`);
 
       if (hasLocalFile) {
-        console.log(
-          "💡 You can restore the previous version from the backup if needed"
-        );
+        console.log("💡 You can restore the previous version from the backup if needed");
       }
     }
 

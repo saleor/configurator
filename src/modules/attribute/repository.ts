@@ -52,18 +52,12 @@ const updateAttributeMutation = graphql(`
   }
 `);
 
-export type AttributeCreateInput = VariablesOf<
-  typeof createAttributeMutation
->["input"];
+export type AttributeCreateInput = VariablesOf<typeof createAttributeMutation>["input"];
 
-export type AttributeUpdateInput = VariablesOf<
-  typeof updateAttributeMutation
->["input"];
+export type AttributeUpdateInput = VariablesOf<typeof updateAttributeMutation>["input"];
 
 type AttributeFragment = NonNullable<
-  NonNullable<
-    NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]
-  >["attribute"]
+  NonNullable<NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]>["attribute"]
 >;
 
 export type Attribute = AttributeFragment;
@@ -94,24 +88,18 @@ const getAttributesByNamesQuery = graphql(`
   }
 `);
 
-export type GetAttributesByNamesInput = VariablesOf<
-  typeof getAttributesByNamesQuery
->;
+export type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
 
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
   updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
-  getAttributesByNames(
-    input: GetAttributesByNamesInput
-  ): Promise<Attribute[] | null | undefined>;
+  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[] | null | undefined>;
 }
 
 export class AttributeRepository implements AttributeOperations {
   constructor(private client: Client) {}
 
-  async createAttribute(
-    attributeInput: AttributeCreateInput
-  ): Promise<Attribute> {
+  async createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute> {
     const result = await this.client.mutation(createAttributeMutation, {
       input: attributeInput,
     });
@@ -127,10 +115,7 @@ export class AttributeRepository implements AttributeOperations {
     return result.data.attributeCreate.attribute as Attribute;
   }
 
-  async updateAttribute(
-    id: string,
-    attributeInput: AttributeUpdateInput
-  ): Promise<Attribute> {
+  async updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute> {
     const result = await this.client.mutation(updateAttributeMutation, {
       id,
       input: attributeInput,
@@ -154,8 +139,6 @@ export class AttributeRepository implements AttributeOperations {
       type: input.type,
     });
 
-    return result.data?.attributes?.edges?.map(
-      (edge) => edge.node as Attribute
-    );
+    return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
   }
 }

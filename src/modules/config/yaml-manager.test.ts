@@ -54,9 +54,7 @@ describe("YamlConfigurationManager", () => {
     (error as NodeJS.ErrnoException).code = "ENOENT";
     (mockFs.readFile as any).mockRejectedValue(error);
 
-    await expect(manager.load()).rejects.toThrow(
-      `Configuration file not found: ${CONFIG_PATH}`
-    );
+    await expect(manager.load()).rejects.toThrow(`Configuration file not found: ${CONFIG_PATH}`);
   });
 
   it("should throw error when YAML is invalid", async () => {

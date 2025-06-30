@@ -266,9 +266,7 @@ export interface ProductOperations {
 }
 
 export type Attribute = NonNullable<
-  NonNullable<
-    ResultOf<typeof getAttributeByNameQuery>["attributes"]
-  >["edges"]
+  NonNullable<ResultOf<typeof getAttributeByNameQuery>["attributes"]>["edges"]
 >[number]["node"];
 
 export class ProductRepository implements ProductOperations {
@@ -281,10 +279,10 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
-    logger.debug("Product creation result", { 
+    logger.debug("Product creation result", {
       success: !!result.data?.productCreate?.product,
       error: result.error?.message,
-      errors: result.data?.productCreate?.errors 
+      errors: result.data?.productCreate?.errors,
     });
 
     if (!result.data?.productCreate?.product) {
@@ -313,10 +311,10 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
-    logger.debug("Product update result", { 
+    logger.debug("Product update result", {
       success: !!result.data?.productUpdate?.product,
       error: result.error?.message,
-      errors: result.data?.productUpdate?.errors 
+      errors: result.data?.productUpdate?.errors,
     });
 
     if (!result.data?.productUpdate?.product) {
@@ -338,10 +336,10 @@ export class ProductRepository implements ProductOperations {
   }
 
   async createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant> {
-    logger.debug("Creating product variant", { 
+    logger.debug("Creating product variant", {
       productId: input.product,
       name: input.name,
-      sku: input.sku 
+      sku: input.sku,
     });
 
     const result = await this.client.mutation(createProductVariantMutation, {
@@ -366,7 +364,10 @@ export class ProductRepository implements ProductOperations {
     return variant;
   }
 
-  async updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant> {
+  async updateProductVariant(
+    id: string,
+    input: ProductVariantUpdateInput
+  ): Promise<ProductVariant> {
     logger.debug("Updating product variant", { variantId: id, input });
 
     const result = await this.client.mutation(updateProductVariantMutation, {
@@ -376,7 +377,7 @@ export class ProductRepository implements ProductOperations {
 
     logger.debug("Update variant result", {
       success: !!result.data?.productVariantUpdate?.productVariant,
-      error: result.error?.message
+      error: result.error?.message,
     });
 
     if (!result.data?.productVariantUpdate?.productVariant) {
@@ -384,7 +385,9 @@ export class ProductRepository implements ProductOperations {
         ?.map((e) => `${e.field}: ${e.message}`)
         .join(", ");
       const graphqlError = result.error?.message;
-      throw new Error(`Failed to update product variant: ${errors || graphqlError || "Unknown error"}`);
+      throw new Error(
+        `Failed to update product variant: ${errors || graphqlError || "Unknown error"}`
+      );
     }
 
     const variant = result.data.productVariantUpdate.productVariant;
@@ -402,10 +405,10 @@ export class ProductRepository implements ProductOperations {
     logger.debug("Looking up product variant by SKU", { sku });
 
     const result = await this.client.query(getProductVariantBySkuQuery, { skus: [sku] });
-    
+
     logger.debug("Variant query result", {
       variantCount: result.data?.productVariants?.edges?.length || 0,
-      error: result.error?.message
+      error: result.error?.message,
     });
 
     const variant = result.data?.productVariants?.edges?.[0]?.node;
@@ -413,10 +416,10 @@ export class ProductRepository implements ProductOperations {
     if (variant) {
       logger.debug("Found existing variant", { id: variant.id, sku: variant.sku });
     } else {
-      logger.debug("No variant found with SKU", { 
+      logger.debug("No variant found with SKU", {
         sku,
         totalVariants: result.data?.productVariants?.edges?.length || 0,
-        allVariantSkus: result.data?.productVariants?.edges?.map(edge => edge.node.sku) || []
+        allVariantSkus: result.data?.productVariants?.edges?.map((edge) => edge.node.sku) || [],
       });
     }
 
@@ -441,7 +444,7 @@ export class ProductRepository implements ProductOperations {
   async getCategoryByPath(path: string): Promise<{ id: string; name: string } | null> {
     // Handle nested category paths like "Fiction/Fantasy"
     const parts = path.split("/");
-    
+
     if (parts.length === 1) {
       // Simple category lookup
       return this.getCategoryByName(parts[0]);
@@ -453,9 +456,9 @@ export class ProductRepository implements ProductOperations {
     logger.warn("Category path resolution simplified", {
       path,
       resolving: finalCategoryName,
-      note: "Full path resolution not yet implemented"
+      note: "Full path resolution not yet implemented",
     });
-    
+
     return this.getCategoryByName(finalCategoryName);
   }
 

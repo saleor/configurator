@@ -22,9 +22,7 @@ const updateShopSettingsMutation = graphql(`
   }
 `);
 
-export type ShopSettingsInput = VariablesOf<
-  typeof updateShopSettingsMutation
->["input"];
+export type ShopSettingsInput = VariablesOf<typeof updateShopSettingsMutation>["input"];
 
 export interface ShopOperations {
   updateShopSettings(input: ShopSettingsInput): Promise<void>;
@@ -39,9 +37,7 @@ export class ShopRepository implements ShopOperations {
     });
 
     if (result.error) {
-      throw new Error(
-        `Failed to update shop settings: ${result.error.message}`
-      );
+      throw new Error(`Failed to update shop settings: ${result.error.message}`);
     }
 
     if (result.data?.shopSettingsUpdate?.errors?.length) {
