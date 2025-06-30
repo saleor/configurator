@@ -7,7 +7,7 @@ describe("ChannelService", () => {
       const existingChannel = {
         name: "Channel 1",
         slug: "channel-1",
-        currencyCode: "USD",
+        currencyCode: "USD" as const,
         defaultCountry: "US" as const,
         isActive: false,
       };

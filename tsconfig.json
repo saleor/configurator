@@ -22,8 +22,8 @@
     "plugins": [
       {
         "name": "gql.tada/ts-plugin",
-        "schema": "./src/graphql/schema.graphql",
-        "tadaOutputLocation": "./src/graphql/graphql-env.d.ts"
+        "schema": "./src/lib/graphql/schema.graphql",
+        "tadaOutputLocation": "./src/lib/graphql/graphql-env.d.ts"
       }
     ]
   }

@@ -4,7 +4,12 @@ import {
   type ConfigurationOperations,
   type RawSaleorConfig,
 } from "./repository";
-import type { AttributeInput, CountryCode, SaleorConfig } from "./schema";
+import type {
+  AttributeInput,
+  CountryCode,
+  CurrencyCode,
+  SaleorConfig,
+} from "./schema";
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -32,7 +37,7 @@ export class ConfigurationService {
     return (
       rawChannels?.map((channel) => ({
         name: channel.name,
-        currencyCode: channel.currencyCode,
+        currencyCode: channel.currencyCode as CurrencyCode,
         defaultCountry: channel.defaultCountry.code as CountryCode,
         slug: channel.slug,
         isActive: false, // Default value for channels
