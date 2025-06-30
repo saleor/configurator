@@ -22,7 +22,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(createInput);
-      
+
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({ name: "Book" });
       expect("attributes" in result.productTypes![0]).toBe(false);
@@ -37,10 +37,7 @@ describe("Schema Union Types", () => {
               {
                 name: "Genre",
                 inputType: "DROPDOWN",
-                values: [
-                  { name: "Fiction" },
-                  { name: "Romance" },
-                ],
+                values: [{ name: "Fiction" }, { name: "Romance" }],
               },
             ],
           },
@@ -48,7 +45,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(updateInput);
-      
+
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({
         name: "Book",
@@ -56,10 +53,7 @@ describe("Schema Union Types", () => {
           {
             name: "Genre",
             inputType: "DROPDOWN",
-            values: [
-              { name: "Fiction" },
-              { name: "Romance" },
-            ],
+            values: [{ name: "Fiction" }, { name: "Romance" }],
           },
         ],
       });
@@ -78,7 +72,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(ambiguousInput);
-      
+
       expect(result.productTypes![0]).toEqual({
         name: "Book",
         attributes: [],
@@ -101,7 +95,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(createInput);
-      
+
       expect(result.channels).toHaveLength(1);
       expect(result.channels![0]).toEqual({
         name: "Poland",
@@ -130,7 +124,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(updateInput);
-      
+
       expect(result.channels![0]).toEqual({
         name: "Poland",
         currencyCode: "PLN",
@@ -153,7 +147,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(createInput);
-      
+
       expect(result.shop).toEqual({});
       expect(Object.keys(result.shop!)).toHaveLength(0);
     });
@@ -168,7 +162,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(updateInput);
-      
+
       expect(result.shop).toEqual({
         defaultMailSenderName: "Test Store",
         displayGrossPrices: true,
@@ -188,7 +182,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(createInput);
-      
+
       expect(result.pageTypes).toHaveLength(1);
       expect(result.pageTypes![0]).toEqual({ name: "Article" });
       expect("attributes" in result.pageTypes![0]).toBe(false);
@@ -210,7 +204,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(updateInput);
-      
+
       expect(result.pageTypes![0]).toEqual({
         name: "Article",
         attributes: [
@@ -235,7 +229,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(createInput);
-      
+
       expect(result.categories).toHaveLength(1);
       expect(result.categories![0]).toEqual({ name: "Electronics" });
       expect("subcategories" in result.categories![0]).toBe(false);
@@ -264,7 +258,7 @@ describe("Schema Union Types", () => {
       };
 
       const result = configSchema.parse(updateInput);
-      
+
       expect(result.categories![0]).toEqual({
         name: "Electronics",
         subcategories: [
@@ -315,6 +309,7 @@ describe("Schema Union Types", () => {
         currencyCode: "USD",
         defaultCountry: "US",
         slug: "us",
+        isActive: false,
         settings: {
           useLegacyErrorFlow: false,
         },
@@ -356,7 +351,7 @@ describe("Schema Union Types", () => {
       // Union schema behavior: when update schema fails, it falls back to create schema
       // This results in attributes being stripped out and only the name being kept
       const result = configSchema.parse(invalidInput);
-      
+
       expect(result.productTypes).toEqual([{ name: "Book" }]);
       expect("attributes" in result.productTypes![0]).toBe(false);
     });
@@ -399,7 +394,7 @@ describe("ShopConfigurationSchema", () => {
     },
     channels: [
       {
-        name: "Test Channel", 
+        name: "Test Channel",
         slug: "test-channel",
         currencyCode: "USD",
         defaultCountry: "US" as CountryCode,
@@ -438,8 +433,27 @@ describe("ShopConfigurationSchema", () => {
     it("should accept configuration with all new country codes", () => {
       // Arrange
       const newCountryCodes = [
-        "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
-        "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+        "AE",
+        "MX",
+        "KR",
+        "SG",
+        "HK",
+        "MY",
+        "TH",
+        "ID",
+        "PH",
+        "VN",
+        "EG",
+        "SA",
+        "IL",
+        "TR",
+        "ZA",
+        "NG",
+        "AR",
+        "CL",
+        "CO",
+        "PE",
+        "NZ",
       ];
 
       const channels = newCountryCodes.map((country, index) => ({
@@ -559,9 +573,52 @@ describe("ShopConfigurationSchema", () => {
   describe("CountryCode validation", () => {
     const { z } = require("zod");
     const countryCodeSchema = z.enum([
-      "US", "GB", "DE", "FR", "ES", "IT", "PL", "NL", "BE", "CZ", "PT", "SE", "AT", "CH", "DK", "FI", "NO", "IE",
-      "AU", "JP", "BR", "RU", "CN", "IN", "CA", "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
-      "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+      "US",
+      "GB",
+      "DE",
+      "FR",
+      "ES",
+      "IT",
+      "PL",
+      "NL",
+      "BE",
+      "CZ",
+      "PT",
+      "SE",
+      "AT",
+      "CH",
+      "DK",
+      "FI",
+      "NO",
+      "IE",
+      "AU",
+      "JP",
+      "BR",
+      "RU",
+      "CN",
+      "IN",
+      "CA",
+      "AE",
+      "MX",
+      "KR",
+      "SG",
+      "HK",
+      "MY",
+      "TH",
+      "ID",
+      "PH",
+      "VN",
+      "EG",
+      "SA",
+      "IL",
+      "TR",
+      "ZA",
+      "NG",
+      "AR",
+      "CL",
+      "CO",
+      "PE",
+      "NZ",
     ]);
 
     it("should include all original country codes", () => {
@@ -569,7 +626,7 @@ describe("ShopConfigurationSchema", () => {
       const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
 
       // Act & Assert
-      originalCodes.forEach(code => {
+      originalCodes.forEach((code) => {
         const result = countryCodeSchema.safeParse(code);
         expect(result.success).toBe(true);
       });
@@ -578,12 +635,31 @@ describe("ShopConfigurationSchema", () => {
     it("should include all new country codes", () => {
       // Arrange
       const newCodes = [
-        "AE", "MX", "KR", "SG", "HK", "MY", "TH", "ID", "PH", "VN",
-        "EG", "SA", "IL", "TR", "ZA", "NG", "AR", "CL", "CO", "PE", "NZ"
+        "AE",
+        "MX",
+        "KR",
+        "SG",
+        "HK",
+        "MY",
+        "TH",
+        "ID",
+        "PH",
+        "VN",
+        "EG",
+        "SA",
+        "IL",
+        "TR",
+        "ZA",
+        "NG",
+        "AR",
+        "CL",
+        "CO",
+        "PE",
+        "NZ",
       ];
 
       // Act & Assert
-      newCodes.forEach(code => {
+      newCodes.forEach((code) => {
         const result = countryCodeSchema.safeParse(code);
         expect(result.success).toBe(true);
       });
@@ -594,7 +670,7 @@ describe("ShopConfigurationSchema", () => {
       const invalidCodes = ["XX", "INVALID", "US1", "us", ""];
 
       // Act & Assert
-      invalidCodes.forEach(code => {
+      invalidCodes.forEach((code) => {
         const result = countryCodeSchema.safeParse(code);
         expect(result.success).toBe(false);
       });
@@ -688,10 +764,7 @@ describe("ShopConfigurationSchema", () => {
         categories: [
           {
             name: "Electronics",
-            subcategories: [
-              { name: "Phones" },
-              { name: "Laptops" },
-            ],
+            subcategories: [{ name: "Phones" }, { name: "Laptops" }],
           },
         ],
       };

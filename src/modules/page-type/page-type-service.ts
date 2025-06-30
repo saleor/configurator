@@ -21,10 +21,7 @@ export class PageTypeService {
     return this.repository.createPageType({ name });
   }
 
-  private async filterOutAssignedAttributes(
-    pageTypeId: string,
-    attributeIds: string[]
-  ) {
+  private async filterOutAssignedAttributes(pageTypeId: string, attributeIds: string[]) {
     logger.debug("Checking for assigned attributes", {
       pageTypeId,
       attributeIds,
@@ -40,9 +37,7 @@ export class PageTypeService {
     const assignedAttributeIds = new Set(
       pageType.attributes.map((attr: { id: string }) => attr.id)
     );
-    const filteredIds = attributeIds.filter(
-      (id) => !assignedAttributeIds.has(id)
-    );
+    const filteredIds = attributeIds.filter((id) => !assignedAttributeIds.has(id));
 
     return filteredIds;
   }
@@ -55,7 +50,7 @@ export class PageTypeService {
     const pageType = await this.getOrCreate(input.name);
 
     // Check if this is an update input (has attributes)
-    if ('attributes' in input) {
+    if ("attributes" in input) {
       const updateInput = input as PageTypeUpdateInput;
       logger.debug("Processing page type attributes", {
         attributesCount: updateInput.attributes.length,
@@ -78,10 +73,7 @@ export class PageTypeService {
       });
 
       const attributeIds = attributes.map((attr) => attr.id);
-      const attributesToAssign = await this.filterOutAssignedAttributes(
-        pageType.id,
-        attributeIds
-      );
+      const attributesToAssign = await this.filterOutAssignedAttributes(pageType.id, attributeIds);
 
       if (attributesToAssign.length > 0) {
         logger.debug("Assigning attributes to page type", {

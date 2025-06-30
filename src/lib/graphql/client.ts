@@ -10,9 +10,7 @@ export const createClient = (token: string, url: string) => {
         return {
           async refreshAuth() {},
           didAuthError(error, _operation) {
-            return error.graphQLErrors.some(
-              (e) => e.extensions?.code === "FORBIDDEN"
-            );
+            return error.graphQLErrors.some((e) => e.extensions?.code === "FORBIDDEN");
           },
           addAuthToOperation(operation) {
             if (!token) return operation;

@@ -17,9 +17,7 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
 
   if (input.inputType === "REFERENCE") {
     if (!input.entityType) {
-      throw new Error(
-        `Entity type is required for reference attribute ${input.name}`
-      );
+      throw new Error(`Entity type is required for reference attribute ${input.name}`);
     }
 
     return {
@@ -40,23 +38,26 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
   return base;
 };
 
-const createAttributeUpdateInput = (input: AttributeInput, existingAttribute: Attribute): AttributeUpdateInput => {
+const createAttributeUpdateInput = (
+  input: AttributeInput,
+  existingAttribute: Attribute
+): AttributeUpdateInput => {
   const base: AttributeUpdateInput = {
     name: input.name,
   };
 
   // For attributes with values (dropdown, multiselect, swatch), compare and update values
   if ("values" in input && input.values) {
-    const existingValues = existingAttribute.choices?.edges?.map(edge => edge.node.name) || [];
-    const newValues = input.values.map(v => v.name);
-    
+    const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
+    const newValues = input.values.map((v) => v.name);
+
     // Find values to add
-    const valuesToAdd = newValues.filter(value => !existingValues.includes(value));
-    
+    const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
+
     if (valuesToAdd.length > 0) {
       return {
         ...base,
-        addValues: valuesToAdd.map(name => ({ name })),
+        addValues: valuesToAdd.map((name) => ({ name })),
       };
     }
   }
@@ -71,11 +72,7 @@ export class AttributeService {
     return this.repository;
   }
 
-  async bootstrapAttributes({
-    attributeInputs,
-  }: {
-    attributeInputs: AttributeInput[];
-  }) {
+  async bootstrapAttributes({ attributeInputs }: { attributeInputs: AttributeInput[] }) {
     logger.debug("Bootstrapping attributes", {
       count: attributeInputs.length,
     });
@@ -92,15 +89,16 @@ export class AttributeService {
   }
 
   async updateAttribute(attributeInput: AttributeInput, existingAttribute: Attribute) {
-    logger.debug("Updating attribute", { 
+    logger.debug("Updating attribute", {
       name: attributeInput.name,
-      id: existingAttribute.id 
+      id: existingAttribute.id,
     });
 
     const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
-    
+
     // Only update if there are actual changes
-    if (Object.keys(updateInput).length > 1) { // More than just the name
+    if (Object.keys(updateInput).length > 1) {
+      // More than just the name
       return this.repository.updateAttribute(existingAttribute.id, updateInput);
     }
 

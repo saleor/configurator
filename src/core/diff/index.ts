@@ -39,4 +39,4 @@ export { DiffService, type DiffServiceConfig } from "./service";
 export type { EntityComparator } from "./comparators";
 
 // Constants
-export { DIFF_ICONS, OPERATION_LABELS, FORMAT_CONFIG, DIFF_MESSAGES } from "./constants"; 
+export { DIFF_ICONS, OPERATION_LABELS, FORMAT_CONFIG, DIFF_MESSAGES } from "./constants";

@@ -168,10 +168,7 @@ describe("ConfigurationService", () => {
                     type: "PRODUCT_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Red" } },
-                        { node: { name: "Blue" } },
-                      ],
+                      edges: [{ node: { name: "Red" } }, { node: { name: "Blue" } }],
                     },
                   },
                 ],
@@ -192,10 +189,7 @@ describe("ConfigurationService", () => {
                     type: "PAGE_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Full Width" } },
-                        { node: { name: "Sidebar" } },
-                      ],
+                      edges: [{ node: { name: "Full Width" } }, { node: { name: "Sidebar" } }],
                     },
                   },
                 ],
@@ -252,10 +246,7 @@ describe("ConfigurationService", () => {
         pageTypes: { edges: [] },
       };
 
-      const service = new ConfigurationService(
-        new MockRepository(rawConfig),
-        createMockStorage()
-      );
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
       const result = service.mapConfig(rawConfig);
       const attributes = (result.productTypes?.[0] as any)?.attributes;
 

@@ -1,6 +1,6 @@
 /**
  * CLI Validation Utilities
- * 
+ *
  * This module contains validation functions specific to CLI operations,
  * including URL validation, format checking, and input sanitization.
  */
@@ -14,21 +14,19 @@
 export function validateSaleorUrl(url: string, quiet: boolean = false): string {
   try {
     const urlObj = new URL(url);
-    
-    if (!urlObj.pathname.includes('/graphql')) {
-      const correctedUrl = url.endsWith('/') 
-        ? `${url}graphql/` 
-        : `${url}/graphql/`;
-      
+
+    if (!urlObj.pathname.includes("/graphql")) {
+      const correctedUrl = url.endsWith("/") ? `${url}graphql/` : `${url}/graphql/`;
+
       if (!quiet) {
         console.warn(`\n⚠️  Warning: URL missing GraphQL endpoint`);
         console.warn(`   Original: ${url}`);
         console.warn(`   Using: ${correctedUrl}\n`);
       }
-      
+
       return correctedUrl;
     }
-    
+
     return url;
   } catch {
     throw new Error(`Invalid URL format: ${url}`);
@@ -42,7 +40,7 @@ export function validateSaleorUrl(url: string, quiet: boolean = false): string {
  */
 export function validateConfigPath(configPath: string): boolean {
   // Basic validation - could be enhanced
-  return configPath.length > 0 && !configPath.includes('\0');
+  return configPath.length > 0 && !configPath.includes("\0");
 }
 
 /**
@@ -53,4 +51,4 @@ export function validateConfigPath(configPath: string): boolean {
  */
 export function validateFormat(format: string, allowedFormats: string[]): boolean {
   return allowedFormats.includes(format);
-} 
+}

@@ -41,27 +41,21 @@ export class SaleorConfigurator {
     // Channels are added first to ensure they're ready before products (which reference them)
     if (config.channels) {
       logger.debug(`Bootstrapping ${config.channels.length} channels`);
-      bootstrapTasks.push(
-        this.services.channel.bootstrapChannels(config.channels)
-      );
+      bootstrapTasks.push(this.services.channel.bootstrapChannels(config.channels));
     }
 
     if (config.pageTypes) {
       logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
       bootstrapTasks.push(
         Promise.all(
-          config.pageTypes.map((pageType) =>
-            this.services.pageType.bootstrapPageType(pageType)
-          )
+          config.pageTypes.map((pageType) => this.services.pageType.bootstrapPageType(pageType))
         )
       );
     }
 
     if (config.categories) {
       logger.debug(`Bootstrapping ${config.categories.length} categories`);
-      bootstrapTasks.push(
-        this.services.category.bootstrapCategories(config.categories)
-      );
+      bootstrapTasks.push(this.services.category.bootstrapCategories(config.categories));
     }
 
     if (config.products) {
@@ -92,47 +86,47 @@ export class SaleorConfigurator {
 
   async diff(options: DiffOptions = {}) {
     const { format = "table", filter, quiet = false } = options;
-    
+
     logger.info("Starting diff process");
-    
+
     try {
       if (!quiet) {
         console.log("📥 Loading local configuration...");
       }
-      
+
       const diffService = new DiffService(this.services);
-      
+
       if (!quiet) {
         console.log("🌐 Fetching remote configuration...");
       }
-      
+
       const summary = await diffService.compare();
-      
+
       if (!quiet) {
         console.log("🔍 Analyzing differences...\n");
       }
-      
+
       // Apply filter if specified
       let filteredSummary = summary;
       if (filter && filter.length > 0) {
-        const filterSet = new Set(filter.map(f => f.toLowerCase()));
-        const filteredResults = summary.results.filter(result => 
+        const filterSet = new Set(filter.map((f) => f.toLowerCase()));
+        const filteredResults = summary.results.filter((result) =>
           filterSet.has(result.entityType.toLowerCase().replace(/\s+/g, ""))
         );
-        
+
         filteredSummary = {
           ...summary,
           results: filteredResults,
           totalChanges: filteredResults.length,
-          creates: filteredResults.filter(r => r.operation === "CREATE").length,
-          updates: filteredResults.filter(r => r.operation === "UPDATE").length,
-          deletes: filteredResults.filter(r => r.operation === "DELETE").length,
+          creates: filteredResults.filter((r) => r.operation === "CREATE").length,
+          updates: filteredResults.filter((r) => r.operation === "UPDATE").length,
+          deletes: filteredResults.filter((r) => r.operation === "DELETE").length,
         };
       }
-      
+
       // Format and display output
       let formattedOutput: string;
-      
+
       switch (format) {
         case "json":
           formattedOutput = JSON.stringify(filteredSummary, null, 2);
@@ -144,16 +138,16 @@ export class SaleorConfigurator {
         default:
           formattedOutput = DiffFormatter.format(filteredSummary);
       }
-      
+
       console.log(formattedOutput);
-      
+
       logger.info("Diff process completed successfully", {
         totalChanges: filteredSummary.totalChanges,
         creates: filteredSummary.creates,
         updates: filteredSummary.updates,
         deletes: filteredSummary.deletes,
       });
-      
+
       return filteredSummary;
     } catch (error) {
       logger.error("Failed to diff configurations", { error });

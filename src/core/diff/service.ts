@@ -10,11 +10,7 @@ import {
   CategoryComparator,
   type EntityComparator,
 } from "./comparators";
-import {
-  ConfigurationLoadError,
-  RemoteConfigurationError,
-  DiffComparisonError,
-} from "./errors";
+import { ConfigurationLoadError, RemoteConfigurationError, DiffComparisonError } from "./errors";
 
 /**
  * Configuration for the diff service
@@ -102,9 +98,11 @@ export class DiffService {
       });
 
       // Re-throw with more context if it's not already a custom error
-      if (error instanceof ConfigurationLoadError ||
-          error instanceof RemoteConfigurationError ||
-          error instanceof DiffComparisonError) {
+      if (
+        error instanceof ConfigurationLoadError ||
+        error instanceof RemoteConfigurationError ||
+        error instanceof DiffComparisonError
+      ) {
         throw error;
       }
 
@@ -138,7 +136,7 @@ export class DiffService {
       return config || {};
     } catch (error) {
       throw new ConfigurationLoadError(
-        `Failed to load local configuration: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to load local configuration: ${error instanceof Error ? error.message : String(error)}`
         // Could extract file path from error if available
       );
     }
@@ -152,13 +150,17 @@ export class DiffService {
       // Apply timeout to remote configuration retrieval
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error(`Remote configuration retrieval timed out after ${this.config.remoteTimeoutMs}ms`));
+          reject(
+            new Error(
+              `Remote configuration retrieval timed out after ${this.config.remoteTimeoutMs}ms`
+            )
+          );
         }, this.config.remoteTimeoutMs);
       });
 
       const configPromise = this.services.configuration.retrieveWithoutSaving();
       const config = await Promise.race([configPromise, timeoutPromise]);
-      
+
       return config || {};
     } catch (error) {
       throw new RemoteConfigurationError(
@@ -179,18 +181,12 @@ export class DiffService {
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
-      comparisons.push(
-        this.performComparison(
-          "shop",
-          localConfig.shop,
-          remoteConfig.shop
-        )
-      );
+      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
     }
 
     // Entity array comparisons
     const entityTypes = ["channels", "productTypes", "pageTypes", "categories"] as const;
-    
+
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
         comparisons.push(
@@ -224,7 +220,7 @@ export class DiffService {
       }
 
       const results = await comparator.compare(local, remote);
-      
+
       if (this.config.enableDebugLogging && results.length > 0) {
         logger.debug(`Comparison completed for ${entityType}`, {
           entityType,
@@ -245,14 +241,12 @@ export class DiffService {
   /**
    * Executes promises with concurrency limit
    */
-  private async executeConcurrently<T>(
-    promises: readonly Promise<T>[]
-  ): Promise<T[]> {
+  private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
     const results: T[] = [];
     const executing = new Set<Promise<void>>();
 
     for (const promise of promises) {
-      const executePromise = promise.then(result => {
+      const executePromise = promise.then((result) => {
         results.push(result);
         executing.delete(executePromise);
       });
@@ -272,9 +266,9 @@ export class DiffService {
    * Calculates summary statistics from diff results
    */
   private calculateSummary(results: readonly DiffResult[]): DiffSummary {
-    const creates = results.filter(r => r.operation === "CREATE").length;
-    const updates = results.filter(r => r.operation === "UPDATE").length;
-    const deletes = results.filter(r => r.operation === "DELETE").length;
+    const creates = results.filter((r) => r.operation === "CREATE").length;
+    const updates = results.filter((r) => r.operation === "UPDATE").length;
+    const deletes = results.filter((r) => r.operation === "DELETE").length;
 
     return {
       totalChanges: results.length,
@@ -291,7 +285,7 @@ export class DiffService {
   private sanitizeConfig(config: SaleorConfig): unknown {
     // Create a deep copy and remove sensitive fields
     const sanitized = JSON.parse(JSON.stringify(config));
-    
+
     // Remove potentially sensitive shop settings
     if (sanitized.shop) {
       delete sanitized.shop.defaultMailSenderAddress;
@@ -300,4 +294,4 @@ export class DiffService {
 
     return sanitized;
   }
-} 
+}

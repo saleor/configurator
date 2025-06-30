@@ -8,9 +8,11 @@ export abstract class BaseDiffFormatter {
   /**
    * Groups diff results by entity type for organized output
    */
-  protected groupByEntityType(results: readonly DiffResult[]): ReadonlyMap<EntityType, readonly DiffResult[]> {
+  protected groupByEntityType(
+    results: readonly DiffResult[]
+  ): ReadonlyMap<EntityType, readonly DiffResult[]> {
     const grouped = new Map<EntityType, DiffResult[]>();
-    
+
     for (const result of results) {
       const entityType = result.entityType;
       if (!grouped.has(entityType)) {
@@ -18,7 +20,7 @@ export abstract class BaseDiffFormatter {
       }
       grouped.get(entityType)!.push(result);
     }
-    
+
     // Convert to readonly map
     return new Map(
       Array.from(grouped.entries()).map(([key, value]) => [key, Object.freeze(value)])
@@ -68,15 +70,15 @@ export abstract class BaseDiffFormatter {
     if (!summary) {
       throw new Error("Summary cannot be null or undefined");
     }
-    
+
     if (summary.totalChanges < 0) {
       throw new Error("Total changes cannot be negative");
     }
-    
+
     if (summary.creates < 0 || summary.updates < 0 || summary.deletes < 0) {
       throw new Error("Operation counts cannot be negative");
     }
-    
+
     const calculatedTotal = summary.creates + summary.updates + summary.deletes;
     if (calculatedTotal !== summary.totalChanges) {
       throw new Error("Total changes does not match sum of individual operations");
@@ -87,4 +89,4 @@ export abstract class BaseDiffFormatter {
    * Abstract method that subclasses must implement to format the summary
    */
   abstract format(summary: DiffSummary): string;
-} 
+}

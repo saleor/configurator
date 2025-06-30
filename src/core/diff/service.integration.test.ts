@@ -53,9 +53,7 @@ productTypes:
     });
 
     it("should handle missing config file gracefully", async () => {
-      await expect(
-        fs.readFile("nonexistent.yml", "utf-8")
-      ).rejects.toThrow();
+      await expect(fs.readFile("nonexistent.yml", "utf-8")).rejects.toThrow();
     });
 
     it("should handle complex configuration structures", async () => {
@@ -134,7 +132,7 @@ productTypes:
         configuration: {
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -160,7 +158,7 @@ productTypes:
         configuration: {
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -179,7 +177,7 @@ productTypes:
         configuration: {
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -204,7 +202,7 @@ productTypes:
         configuration: {
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
-        }
+        },
       } as any;
 
       // Test with custom configuration
@@ -213,7 +211,7 @@ productTypes:
         maxConcurrentComparisons: 10,
         remoteTimeoutMs: 5000,
       });
-      
+
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBe(0);
@@ -334,12 +332,14 @@ productTypes:
           retrieveWithoutSaving: async () => {
             throw new Error("Network error");
           },
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
 
-      await expect(diffService.compare()).rejects.toThrow("Failed to retrieve remote configuration");
+      await expect(diffService.compare()).rejects.toThrow(
+        "Failed to retrieve remote configuration"
+      );
     });
 
     it("should handle config loading errors", async () => {
@@ -353,7 +353,7 @@ productTypes:
         configuration: {
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -401,7 +401,7 @@ productTypes:
         configuration: {
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -411,7 +411,7 @@ productTypes:
       expect(summary.creates).toBeGreaterThan(0);
 
       // Should detect entities
-      const entityTypes = summary.results.map(r => r.entityType);
+      const entityTypes = summary.results.map((r) => r.entityType);
       expect(entityTypes.length).toBeGreaterThan(0);
     });
 
@@ -452,7 +452,7 @@ productTypes:
         configuration: {
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -461,7 +461,7 @@ productTypes:
       expect(summary.totalChanges).toBeGreaterThan(0);
 
       // Should detect deletions
-      const deleteOperations = summary.results.filter(r => r.operation === "DELETE");
+      const deleteOperations = summary.results.filter((r) => r.operation === "DELETE");
       expect(deleteOperations.length).toBeGreaterThan(0);
     });
   });
@@ -497,7 +497,7 @@ productTypes:
         configuration: {
           retrieve: async () => emptyConfig,
           retrieveWithoutSaving: async () => emptyConfig,
-        }
+        },
       } as any;
 
       const diffService = new DiffService(mockServices);
@@ -514,4 +514,4 @@ productTypes:
       expect(summary.creates).toBe(30);
     });
   });
-}); 
+});

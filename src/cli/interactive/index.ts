@@ -1,16 +1,16 @@
 /**
  * CLI Interactive Utilities
- * 
+ *
  * This module provides interactive prompt functionality for better CLI user experience,
  * including confirmation prompts, selection menus, and diff display.
  */
 
-import * as readline from 'readline';
+import * as readline from "readline";
 
 export interface PromptOptions {
   message: string;
   defaultValue?: boolean;
-  type?: 'confirm' | 'select';
+  type?: "confirm" | "select";
   choices?: string[];
 }
 
@@ -32,18 +32,18 @@ function createInterface() {
  */
 export async function confirmPrompt(message: string, defaultValue = false): Promise<boolean> {
   const rl = createInterface();
-  const defaultText = defaultValue ? '[Y/n]' : '[y/N]';
-  
+  const defaultText = defaultValue ? "[Y/n]" : "[y/N]";
+
   return new Promise((resolve) => {
     rl.question(`${message} ${defaultText}: `, (answer) => {
       rl.close();
-      
+
       const normalized = answer.toLowerCase().trim();
-      if (normalized === '') {
+      if (normalized === "") {
         resolve(defaultValue);
-      } else if (normalized === 'y' || normalized === 'yes') {
+      } else if (normalized === "y" || normalized === "yes") {
         resolve(true);
-      } else if (normalized === 'n' || normalized === 'no') {
+      } else if (normalized === "n" || normalized === "no") {
         resolve(false);
       } else {
         // Invalid input, use default
@@ -61,16 +61,16 @@ export async function confirmPrompt(message: string, defaultValue = false): Prom
  */
 export async function selectPrompt(message: string, choices: string[]): Promise<string> {
   const rl = createInterface();
-  
+
   console.log(`\n${message}`);
   choices.forEach((choice, index) => {
     console.log(`  ${index + 1}. ${choice}`);
   });
-  
+
   return new Promise((resolve) => {
-    rl.question('\nSelect an option (number): ', (answer) => {
+    rl.question("\nSelect an option (number): ", (answer) => {
       rl.close();
-      
+
       const index = parseInt(answer) - 1;
       if (index >= 0 && index < choices.length) {
         resolve(choices[index]);
@@ -104,7 +104,7 @@ export function displayDiffSummary(summary: DiffSummary): void {
 
   console.log(`\n📊 Configuration Differences Summary:`);
   console.log(`   Total Changes: ${summary.totalChanges}`);
-  
+
   if (summary.creates > 0) {
     console.log(`   🟢 Creates: ${summary.creates}`);
   }
@@ -115,4 +115,4 @@ export function displayDiffSummary(summary: DiffSummary): void {
     console.log(`   🔴 Deletes: ${summary.deletes}`);
   }
   console.log("");
-} 
+}

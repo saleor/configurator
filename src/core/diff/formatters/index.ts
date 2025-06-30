@@ -12,4 +12,4 @@ export function createDetailedFormatter() {
 
 export function createSummaryFormatter() {
   return new SummaryDiffFormatter();
-} 
+}

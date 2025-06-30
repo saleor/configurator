@@ -1,4 +1,8 @@
-import type { ProductTypeInput, ProductTypeCreateInput, ProductTypeUpdateInput } from "../config/schema";
+import type {
+  ProductTypeInput,
+  ProductTypeCreateInput,
+  ProductTypeUpdateInput,
+} from "../config/schema";
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import type { ProductTypeOperations, ProductType } from "./repository";
@@ -11,8 +15,7 @@ export class ProductTypeService {
 
   private async upsert(name: string) {
     logger.debug("Looking up product type", { name });
-    const existingProductType =
-      await this.repository.getProductTypeByName(name);
+    const existingProductType = await this.repository.getProductTypeByName(name);
     if (existingProductType) {
       logger.debug("Found existing product type", {
         id: existingProductType.id,
@@ -31,16 +34,11 @@ export class ProductTypeService {
     });
   }
 
-  private filterOutAssignedAttributes(
-    productType: ProductType,
-    attributeIds: string[]
-  ) {
+  private filterOutAssignedAttributes(productType: ProductType, attributeIds: string[]) {
     const existingAttributeIds = new Set(
       productType.productAttributes?.map((attr) => attr.id) ?? []
     );
-    const filteredIds = attributeIds.filter(
-      (id) => !existingAttributeIds.has(id)
-    );
+    const filteredIds = attributeIds.filter((id) => !existingAttributeIds.has(id));
 
     return filteredIds;
   }
@@ -57,42 +55,45 @@ export class ProductTypeService {
   }
 
   async updateProductType(productType: ProductType, input: ProductTypeUpdateInput) {
-    logger.debug("Updating product type", { 
-      id: productType.id, 
-      name: input.name 
+    logger.debug("Updating product type", {
+      id: productType.id,
+      name: input.name,
     });
 
     // Get existing attributes by name for this product type
-    const existingAttributeNames = productType.productAttributes?.map(attr => attr.name) || [];
-    
+    const existingAttributeNames = productType.productAttributes?.map((attr) => attr.name) || [];
+
     // Separate attributes into create vs update
     const attributesToCreate = input.attributes.filter(
       (a) => !existingAttributeNames.includes(a.name)
     );
-    
-    const attributesToUpdate = input.attributes.filter(
-      (a) => existingAttributeNames.includes(a.name)
+
+    const attributesToUpdate = input.attributes.filter((a) =>
+      existingAttributeNames.includes(a.name)
     );
 
     // Handle attribute updates
     const updatedAttributes = [];
     if (attributesToUpdate.length > 0) {
       logger.debug("Updating existing attributes", { count: attributesToUpdate.length });
-      
+
       // Get existing attributes from Saleor to compare values
       const existingAttributes = await this.attributeService.repo.getAttributesByNames({
-        names: attributesToUpdate.map(a => a.name),
+        names: attributesToUpdate.map((a) => a.name),
         type: "PRODUCT_TYPE",
       });
 
       if (existingAttributes) {
         for (const inputAttr of attributesToUpdate) {
-          const existingAttr = existingAttributes.find(attr => attr.name === inputAttr.name);
+          const existingAttr = existingAttributes.find((attr) => attr.name === inputAttr.name);
           if (existingAttr) {
-            const updated = await this.attributeService.updateAttribute({
-              ...inputAttr,
-              type: "PRODUCT_TYPE",
-            }, existingAttr);
+            const updated = await this.attributeService.updateAttribute(
+              {
+                ...inputAttr,
+                type: "PRODUCT_TYPE",
+              },
+              existingAttr
+            );
             updatedAttributes.push(updated);
           }
         }
@@ -162,7 +163,7 @@ export class ProductTypeService {
     const productType = await this.upsert(input.name);
 
     // Check if this is an update input (has attributes)
-    if ('attributes' in input) {
+    if ("attributes" in input) {
       return this.updateProductType(productType, input as ProductTypeUpdateInput);
     }
 

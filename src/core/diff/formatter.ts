@@ -26,4 +26,4 @@ export class DiffFormatter {
   static formatSummary(summary: DiffSummary): string {
     return this.summaryFormatter.format(summary);
   }
-} 
+}

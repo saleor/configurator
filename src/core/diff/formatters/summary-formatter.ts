@@ -11,7 +11,7 @@ export class SummaryDiffFormatter extends BaseDiffFormatter {
    */
   format(summary: DiffSummary): string {
     this.validateSummary(summary);
-    
+
     if (summary.totalChanges === 0) {
       return `${DIFF_ICONS.SUMMARY.SUCCESS} ${DIFF_MESSAGES.NO_CHANGES}`;
     }
@@ -20,7 +20,7 @@ export class SummaryDiffFormatter extends BaseDiffFormatter {
     this.addMainSummary(lines, summary);
     this.addOperationBreakdown(lines, summary);
     this.addEntityBreakdown(lines, summary);
-    
+
     return lines.join("\n");
   }
 
@@ -28,7 +28,9 @@ export class SummaryDiffFormatter extends BaseDiffFormatter {
    * Adds the main summary line
    */
   private addMainSummary(lines: string[], summary: DiffSummary): void {
-    lines.push(`${DIFF_ICONS.SUMMARY.RESULTS} ${DIFF_MESSAGES.FOUND_DIFFERENCES(summary.totalChanges)}`);
+    lines.push(
+      `${DIFF_ICONS.SUMMARY.RESULTS} ${DIFF_MESSAGES.FOUND_DIFFERENCES(summary.totalChanges)}`
+    );
   }
 
   /**
@@ -36,15 +38,21 @@ export class SummaryDiffFormatter extends BaseDiffFormatter {
    */
   private addOperationBreakdown(lines: string[], summary: DiffSummary): void {
     if (summary.creates > 0) {
-      lines.push(`${DIFF_ICONS.OPERATIONS.CREATE} ${DIFF_MESSAGES.ITEMS_TO_CREATE(summary.creates)}`);
+      lines.push(
+        `${DIFF_ICONS.OPERATIONS.CREATE} ${DIFF_MESSAGES.ITEMS_TO_CREATE(summary.creates)}`
+      );
     }
-    
+
     if (summary.updates > 0) {
-      lines.push(`${DIFF_ICONS.OPERATIONS.UPDATE} ${DIFF_MESSAGES.ITEMS_TO_UPDATE(summary.updates)}`);
+      lines.push(
+        `${DIFF_ICONS.OPERATIONS.UPDATE} ${DIFF_MESSAGES.ITEMS_TO_UPDATE(summary.updates)}`
+      );
     }
-    
+
     if (summary.deletes > 0) {
-      lines.push(`${DIFF_ICONS.OPERATIONS.DELETE} ${DIFF_MESSAGES.ITEMS_TO_DELETE(summary.deletes)}`);
+      lines.push(
+        `${DIFF_ICONS.OPERATIONS.DELETE} ${DIFF_MESSAGES.ITEMS_TO_DELETE(summary.deletes)}`
+      );
     }
   }
 
@@ -53,14 +61,14 @@ export class SummaryDiffFormatter extends BaseDiffFormatter {
    */
   private addEntityBreakdown(lines: string[], summary: DiffSummary): void {
     const grouped = this.groupByEntityType(summary.results);
-    
+
     if (grouped.size === 0) return;
-    
+
     lines.push("");
     lines.push("By entity type:");
-    
+
     for (const [entityType, results] of grouped) {
       lines.push(`• ${DIFF_MESSAGES.ENTITY_CHANGES(entityType, results.length)}`);
     }
   }
-} 
+}

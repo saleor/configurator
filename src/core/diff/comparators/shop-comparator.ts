@@ -24,28 +24,26 @@ interface ShopSettings {
  * List of shop settings fields to compare
  */
 const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
-  'defaultMailSenderName',
-  'defaultMailSenderAddress',
-  'displayGrossPrices',
-  'enableAccountConfirmationByEmail',
-  'limitQuantityPerCheckout',
-  'trackInventoryByDefault',
-  'reserveStockDurationAnonymousUser',
-  'reserveStockDurationAuthenticatedUser',
-  'defaultDigitalMaxDownloads',
-  'defaultDigitalUrlValidDays',
-  'defaultWeightUnit',
-  'allowLoginWithoutConfirmation',
+  "defaultMailSenderName",
+  "defaultMailSenderAddress",
+  "displayGrossPrices",
+  "enableAccountConfirmationByEmail",
+  "limitQuantityPerCheckout",
+  "trackInventoryByDefault",
+  "reserveStockDurationAnonymousUser",
+  "reserveStockDurationAuthenticatedUser",
+  "defaultDigitalMaxDownloads",
+  "defaultDigitalUrlValidDays",
+  "defaultWeightUnit",
+  "allowLoginWithoutConfirmation",
 ] as const;
 
 /**
  * Comparator for shop settings
  */
-export class ShopComparator implements EntityComparator<
-  SaleorConfig["shop"] | undefined,
-  SaleorConfig["shop"] | undefined
-> {
-  
+export class ShopComparator
+  implements EntityComparator<SaleorConfig["shop"] | undefined, SaleorConfig["shop"] | undefined>
+{
   /**
    * Compares local and remote shop settings
    */
@@ -60,22 +58,26 @@ export class ShopComparator implements EntityComparator<
 
     // Only remote exists - mark for deletion
     if (!local && remote) {
-      return [{
-        operation: "DELETE",
-        entityType: "Shop Settings",
-        entityName: "Shop Settings",
-        current: remote,
-      }];
+      return [
+        {
+          operation: "DELETE",
+          entityType: "Shop Settings",
+          entityName: "Shop Settings",
+          current: remote,
+        },
+      ];
     }
 
     // Only local exists - mark for creation
     if (local && !remote) {
-      return [{
-        operation: "CREATE",
-        entityType: "Shop Settings", 
-        entityName: "Shop Settings",
-        desired: local,
-      }];
+      return [
+        {
+          operation: "CREATE",
+          entityType: "Shop Settings",
+          entityName: "Shop Settings",
+          desired: local,
+        },
+      ];
     }
 
     // Both exist - compare fields
@@ -84,19 +86,21 @@ export class ShopComparator implements EntityComparator<
     }
 
     const changes = this.compareShopFields(local, remote);
-    
+
     if (changes.length === 0) {
       return [];
     }
 
-    return [{
-      operation: "UPDATE",
-      entityType: "Shop Settings",
-      entityName: "Shop Settings",
-      current: remote,
-      desired: local,
-      changes,
-    }];
+    return [
+      {
+        operation: "UPDATE",
+        entityType: "Shop Settings",
+        entityName: "Shop Settings",
+        current: remote,
+        desired: local,
+        changes,
+      },
+    ];
   }
 
   /**
@@ -111,10 +115,10 @@ export class ShopComparator implements EntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-         for (const field of SHOP_SETTINGS_FIELDS) {
-       const localValue = (local as any)[field];
-       const remoteValue = (remote as any)[field];
-      
+    for (const field of SHOP_SETTINGS_FIELDS) {
+      const localValue = (local as any)[field];
+      const remoteValue = (remote as any)[field];
+
       if (localValue !== remoteValue) {
         changes.push({
           field,
@@ -127,4 +131,4 @@ export class ShopComparator implements EntityComparator<
 
     return changes;
   }
-} 
+}

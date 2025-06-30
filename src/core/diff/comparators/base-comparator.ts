@@ -21,9 +21,9 @@ export interface EntityComparator<TLocal = unknown, TRemote = unknown> {
  * @template TRemote The type of remote entities (usually arrays)
  * @template TEntity The type of individual entities
  */
-export abstract class BaseEntityComparator<TLocal, TRemote, TEntity> 
-  implements EntityComparator<TLocal, TRemote> {
-  
+export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
+  implements EntityComparator<TLocal, TRemote>
+{
   /**
    * The entity type name for diff results
    */
@@ -55,7 +55,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
    * @returns Map of entity name to entity
    */
   protected createEntityMap(entities: readonly TEntity[]): ReadonlyMap<string, TEntity> {
-    return new Map(entities.map(entity => [this.getEntityName(entity), entity]));
+    return new Map(entities.map((entity) => [this.getEntityName(entity), entity]));
   }
 
   /**
@@ -66,7 +66,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
   protected validateUniqueNames(entities: readonly TEntity[]): void {
     const names = new Set<string>();
     const duplicates = new Set<string>();
-    
+
     for (const entity of entities) {
       const name = this.getEntityName(entity);
       if (names.has(name)) {
@@ -74,10 +74,10 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
       }
       names.add(name);
     }
-    
+
     if (duplicates.size > 0) {
       throw new Error(
-        `Duplicate entity names found in ${this.entityType}: ${Array.from(duplicates).join(', ')}`
+        `Duplicate entity names found in ${this.entityType}: ${Array.from(duplicates).join(", ")}`
       );
     }
   }
@@ -104,8 +104,8 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
    * @returns Diff result for update
    */
   protected createUpdateResult(
-    local: TEntity, 
-    remote: TEntity, 
+    local: TEntity,
+    remote: TEntity,
     changes: readonly DiffChange[]
   ): DiffResult {
     return {
@@ -153,4 +153,4 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
       description: description || `${field}: "${currentValue}" → "${desiredValue}"`,
     };
   }
-} 
+}

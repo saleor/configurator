@@ -2,11 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DiffService } from "./service";
 import type { ServiceContainer } from "../service-container";
 import type { SaleorConfig } from "../../modules/config/schema";
-import { 
-  ConfigurationLoadError, 
-  RemoteConfigurationError,
-  DiffComparisonError 
-} from "./errors";
+import { ConfigurationLoadError, RemoteConfigurationError, DiffComparisonError } from "./errors";
 
 describe("DiffService", () => {
   let diffService: DiffService;
@@ -232,12 +228,18 @@ describe("DiffService", () => {
         entityType: "Product Types",
         entityName: "Book",
       });
-      
+
       // Should have changes array with all 3 attributes
       expect(summary.results[0].changes).toHaveLength(3);
-      expect(summary.results[0].changes?.[0].description).toContain('Attribute "Author" will be created');
-      expect(summary.results[0].changes?.[1].description).toContain('Attribute "Genre" will be created');
-      expect(summary.results[0].changes?.[2].description).toContain('Attribute "Related Books" will be created');
+      expect(summary.results[0].changes?.[0].description).toContain(
+        'Attribute "Author" will be created'
+      );
+      expect(summary.results[0].changes?.[1].description).toContain(
+        'Attribute "Genre" will be created'
+      );
+      expect(summary.results[0].changes?.[2].description).toContain(
+        'Attribute "Related Books" will be created'
+      );
     });
   });
 
@@ -275,7 +277,9 @@ describe("DiffService", () => {
   describe("error handling", () => {
     it("should handle configuration loading errors", async () => {
       // Arrange: Config loading throws error
-      mockServices.configStorage.load = vi.fn().mockRejectedValue(new Error("Config file not found"));
+      mockServices.configStorage.load = vi
+        .fn()
+        .mockRejectedValue(new Error("Config file not found"));
 
       // Act & Assert
       await expect(diffService.compare()).rejects.toThrow(ConfigurationLoadError);
@@ -285,20 +289,24 @@ describe("DiffService", () => {
     it("should handle remote configuration retrieval errors", async () => {
       // Arrange: Remote config retrieval throws error
       mockServices.configStorage.load = vi.fn().mockResolvedValue({});
-      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockRejectedValue(new Error("Network error"));
+      mockServices.configuration.retrieveWithoutSaving = vi
+        .fn()
+        .mockRejectedValue(new Error("Network error"));
 
       // Act & Assert
       await expect(diffService.compare()).rejects.toThrow(RemoteConfigurationError);
-      await expect(diffService.compare()).rejects.toThrow("Failed to retrieve remote configuration");
+      await expect(diffService.compare()).rejects.toThrow(
+        "Failed to retrieve remote configuration"
+      );
     });
 
     it("should handle timeout for remote configuration", async () => {
       // Arrange: Create service with short timeout
       const serviceWithTimeout = new DiffService(mockServices, { remoteTimeoutMs: 100 });
-      
+
       mockServices.configStorage.load = vi.fn().mockResolvedValue({});
-      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 200)) // Takes longer than timeout
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 200)) // Takes longer than timeout
       );
 
       // Act & Assert
@@ -311,15 +319,19 @@ describe("DiffService", () => {
     it("should return empty summary when configs are identical", async () => {
       // Arrange: Identical configurations
       const config: SaleorConfig = {
-        channels: [{
-          name: "Default",
-          currencyCode: "USD",
-          defaultCountry: "US",
-          slug: "default",
-        }],
-        productTypes: [{
-          name: "Product",
-        }],
+        channels: [
+          {
+            name: "Default",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "default",
+          },
+        ],
+        productTypes: [
+          {
+            name: "Product",
+          },
+        ],
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
@@ -340,9 +352,9 @@ describe("DiffService", () => {
   describe("service configuration", () => {
     it("should use custom configuration", async () => {
       // Arrange: Create service with debug logging enabled
-      const serviceWithDebug = new DiffService(mockServices, { 
+      const serviceWithDebug = new DiffService(mockServices, {
         enableDebugLogging: true,
-        maxConcurrentComparisons: 2
+        maxConcurrentComparisons: 2,
       });
 
       const config: SaleorConfig = {};
@@ -381,11 +393,7 @@ describe("DiffService", () => {
               {
                 name: "Color",
                 inputType: "DROPDOWN",
-                values: [
-                  { name: "Red" },
-                  { name: "Blue" },
-                  { name: "Green" },
-                ],
+                values: [{ name: "Red" }, { name: "Blue" }, { name: "Green" }],
               },
             ],
           },
@@ -408,7 +416,7 @@ describe("DiffService", () => {
       expect(summary.deletes).toBe(0);
 
       // Verify entities are detected correctly
-      const entityTypes = summary.results.map(r => r.entityType);
+      const entityTypes = summary.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).toContain("Product Types");
@@ -467,8 +475,8 @@ describe("DiffService", () => {
 
       // Verify new channels are detected
       const newChannels = summary.results
-        .filter(r => r.operation === "CREATE" && r.entityType === "Channels")
-        .map(r => r.entityName);
+        .filter((r) => r.operation === "CREATE" && r.entityType === "Channels")
+        .map((r) => r.entityName);
       expect(newChannels).toContain("EU Store");
       expect(newChannels).toContain("UK Store");
     });
@@ -520,8 +528,8 @@ describe("DiffService", () => {
       expect(summary.deletes).toBe(2);
 
       const deletedChannels = summary.results
-        .filter(r => r.operation === "DELETE")
-        .map(r => r.entityName);
+        .filter((r) => r.operation === "DELETE")
+        .map((r) => r.entityName);
       expect(deletedChannels).toContain("Test Channel");
       expect(deletedChannels).toContain("Old Channel");
     });
@@ -612,4 +620,4 @@ describe("DiffService", () => {
       expect(summary.deletes).toBe(1); // Channel
     });
   });
-}); 
+});

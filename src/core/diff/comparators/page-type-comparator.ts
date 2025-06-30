@@ -36,7 +36,7 @@ export class PageTypeComparator extends BaseEntityComparator<
     // Validate unique names
     this.validateUniqueNames(local);
     this.validateUniqueNames(remote);
-    
+
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
     const localByName = this.createEntityMap(local);
@@ -44,7 +44,7 @@ export class PageTypeComparator extends BaseEntityComparator<
     // Check for creates and updates
     for (const localPT of local) {
       const remotePT = remoteByName.get(this.getEntityName(localPT));
-      
+
       if (!remotePT) {
         results.push(this.createCreateResult(localPT));
       } else {
@@ -70,8 +70,8 @@ export class PageTypeComparator extends BaseEntityComparator<
    * Gets the name of a page type entity
    */
   protected getEntityName(entity: PageTypeEntity): string {
-    if (!entity.name || typeof entity.name !== 'string') {
-      throw new Error('Page type entity must have a valid name');
+    if (!entity.name || typeof entity.name !== "string") {
+      throw new Error("Page type entity must have a valid name");
     }
     return entity.name;
   }
@@ -85,15 +85,15 @@ export class PageTypeComparator extends BaseEntityComparator<
     // Compare slug if it exists
     const localSlug = this.getSlug(local);
     const remoteSlug = this.getSlug(remote);
-    
+
     if (localSlug !== remoteSlug) {
-      changes.push(this.createFieldChange('slug', remoteSlug, localSlug));
+      changes.push(this.createFieldChange("slug", remoteSlug, localSlug));
     }
 
     // Compare attributes if they exist
     const localAttributes = this.getAttributes(local);
     const remoteAttributes = this.getAttributes(remote);
-    
+
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
       changes.push(...this.compareAttributes(localAttributes, remoteAttributes));
     }
@@ -126,34 +126,38 @@ export class PageTypeComparator extends BaseEntityComparator<
     remote: readonly PageTypeAttribute[]
   ): DiffChange[] {
     const changes: DiffChange[] = [];
-    
-    const localAttrMap = new Map(local.map(attr => [attr.name, attr]));
-    const remoteAttrMap = new Map(remote.map(attr => [attr.name, attr]));
-    
+
+    const localAttrMap = new Map(local.map((attr) => [attr.name, attr]));
+    const remoteAttrMap = new Map(remote.map((attr) => [attr.name, attr]));
+
     // Find added attributes
     for (const localAttr of local) {
       if (!remoteAttrMap.has(localAttr.name)) {
-        changes.push(this.createFieldChange(
-          'attributes',
-          null,
-          localAttr.name,
-          `Attribute "${localAttr.name}" added (in config, not on Saleor)`
-        ));
+        changes.push(
+          this.createFieldChange(
+            "attributes",
+            null,
+            localAttr.name,
+            `Attribute "${localAttr.name}" added (in config, not on Saleor)`
+          )
+        );
       }
     }
-    
+
     // Find removed attributes
     for (const remoteAttr of remote) {
       if (!localAttrMap.has(remoteAttr.name)) {
-        changes.push(this.createFieldChange(
-          'attributes',
-          remoteAttr.name,
-          null,
-          `Attribute "${remoteAttr.name}" removed (on Saleor, not in config)`
-        ));
+        changes.push(
+          this.createFieldChange(
+            "attributes",
+            remoteAttr.name,
+            null,
+            `Attribute "${remoteAttr.name}" removed (on Saleor, not in config)`
+          )
+        );
       }
     }
 
     return changes;
   }
-} 
+}

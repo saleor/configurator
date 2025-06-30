@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { 
-  DiffFormatter, 
-  DetailedDiffFormatter, 
-  SummaryDiffFormatter, 
+import {
+  DiffFormatter,
+  DetailedDiffFormatter,
+  SummaryDiffFormatter,
   calculateDiffStatistics,
   filterDiffByEntityType,
   filterDiffByOperation,
@@ -44,7 +44,7 @@ describe("DiffFormatter", () => {
       // Assert
       expect(output).toContain("📊 Configuration Diff Results");
       expect(output).toContain("🌐 Channels");
-      expect(output).toContain("➕ Create: \"Germany\"");
+      expect(output).toContain('➕ Create: "Germany"');
       expect(output).toContain("Currency: EUR");
       expect(output).toContain("Country: DE");
       expect(output).toContain("Total Changes: 1");
@@ -83,7 +83,7 @@ describe("DiffFormatter", () => {
       // Assert
       expect(output).toContain("📊 Configuration Diff Results");
       expect(output).toContain("📦 Product Types");
-      expect(output).toContain("🔄 Update: \"ProductTypeA\"");
+      expect(output).toContain('🔄 Update: "ProductTypeA"');
       expect(output).toContain('Attribute "Color" added (in config, not on Saleor)');
       expect(output).toContain("Total Changes: 1");
       expect(output).toContain("• 0 Creations");
@@ -203,8 +203,8 @@ describe("DetailedDiffFormatter", () => {
     expect(output).toContain("📊 Configuration Diff Results");
     expect(output).toContain("🌐 Channels");
     expect(output).toContain("📦 Product Types");
-    expect(output).toContain("➕ Create: \"Germany\"");
-    expect(output).toContain("🔄 Update: \"ProductA\"");
+    expect(output).toContain('➕ Create: "Germany"');
+    expect(output).toContain('🔄 Update: "ProductA"');
   });
 
   it("should throw error for invalid summary", () => {
@@ -327,7 +327,7 @@ describe("Diff Operations", () => {
       expect(filtered.creates).toBe(2);
       expect(filtered.updates).toBe(0);
       expect(filtered.results).toHaveLength(2);
-      expect(filtered.results.every(r => r.entityType === "Channels")).toBe(true);
+      expect(filtered.results.every((r) => r.entityType === "Channels")).toBe(true);
     });
   });
 
@@ -354,7 +354,7 @@ describe("Diff Operations", () => {
       expect(filtered.creates).toBe(2);
       expect(filtered.updates).toBe(0);
       expect(filtered.results).toHaveLength(2);
-      expect(filtered.results.every(r => r.operation === "CREATE")).toBe(true);
+      expect(filtered.results.every((r) => r.operation === "CREATE")).toBe(true);
     });
   });
 
@@ -438,4 +438,4 @@ describe("Factory Functions", () => {
     // Assert
     expect(formatter).toBeInstanceOf(SummaryDiffFormatter);
   });
-}); 
+});

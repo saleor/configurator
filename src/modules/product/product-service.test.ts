@@ -170,7 +170,7 @@ describe("ProductService", () => {
           variants: [{ name: "Default", sku: "B1", channelListings: [] }],
         },
         {
-          name: "Book 2", 
+          name: "Book 2",
           productType: "Book",
           category: "Fiction",
           variants: [{ name: "Default", sku: "B2", channelListings: [] }],
@@ -184,7 +184,7 @@ describe("ProductService", () => {
         name: "Book",
       });
       vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
-        id: "cat-1", 
+        id: "cat-1",
         name: "Fiction",
       });
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
