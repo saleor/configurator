@@ -60,35 +60,13 @@ export function environmentToCliArgs(
 }
 
 /**
- * Check if required environment variables are present
- * @param envVars - Environment variables to check
- * @param requiredVars - Array of required variable names
- * @returns Object indicating which variables are missing
- */
-export function validateEnvironmentVariables(
-  envVars: EnvironmentVariables,
-  requiredVars: Array<keyof EnvironmentVariables> = []
-): { isValid: boolean; missing: string[] } {
-  const missing: string[] = [];
-
-  for (const varName of requiredVars) {
-    if (!envVars[varName]) {
-      missing.push(varName);
-    }
-  }
-
-  return {
-    isValid: missing.length === 0,
-    missing,
-  };
-}
-
-/**
  * Get environment variable help text for documentation
  * @param config - Environment configuration
  * @returns Formatted help text explaining environment variables
  */
-export function getEnvironmentHelpText(config: EnvironmentConfig = DEFAULT_ENV_CONFIG): string {
+export function getEnvironmentHelpText(
+  config: EnvironmentConfig = DEFAULT_ENV_CONFIG
+): string {
   const lines = [
     "🌍 Environment Variables:",
     "  You can set these environment variables instead of using CLI arguments:",
