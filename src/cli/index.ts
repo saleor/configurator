@@ -56,11 +56,7 @@ export { displayHelp } from "./help/display";
 export { formatArgumentSection, generateHelpSections } from "./help/formatter";
 
 // Validation exports
-export {
-  validateConfigPath,
-  validateFormat,
-  validateSaleorUrl,
-} from "./validation";
+export { validateSaleorUrl } from "./validation";
 
 // Display exports
 export {

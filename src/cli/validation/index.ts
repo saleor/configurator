@@ -16,7 +16,9 @@ export function validateSaleorUrl(url: string, quiet: boolean = false): string {
     const urlObj = new URL(url);
 
     if (!urlObj.pathname.includes("/graphql")) {
-      const correctedUrl = url.endsWith("/") ? `${url}graphql/` : `${url}/graphql/`;
+      const correctedUrl = url.endsWith("/")
+        ? `${url}graphql/`
+        : `${url}/graphql/`;
 
       if (!quiet) {
         console.warn(`\n⚠️  Warning: URL missing GraphQL endpoint`);
@@ -31,24 +33,4 @@ export function validateSaleorUrl(url: string, quiet: boolean = false): string {
   } catch {
     throw new Error(`Invalid URL format: ${url}`);
   }
-}
-
-/**
- * Validates configuration file path format
- * @param configPath - Path to validate
- * @returns True if the path appears valid
- */
-export function validateConfigPath(configPath: string): boolean {
-  // Basic validation - could be enhanced
-  return configPath.length > 0 && !configPath.includes("\0");
-}
-
-/**
- * Validates command format options
- * @param format - Format string to validate
- * @param allowedFormats - Array of allowed format values
- * @returns True if format is valid
- */
-export function validateFormat(format: string, allowedFormats: string[]): boolean {
-  return allowedFormats.includes(format);
 }
