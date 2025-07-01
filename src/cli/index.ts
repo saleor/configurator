@@ -8,14 +8,20 @@
 import { z } from "zod";
 import type { ArgumentParsingOptions } from "./schemas/types";
 import { parseRawArguments, hasHelpRequest } from "./args/parser";
-import { extractEnvironmentDefaults, environmentToCliArgs } from "./args/environment";
+import {
+  extractEnvironmentDefaults,
+  environmentToCliArgs,
+} from "./args/environment";
 import { validateArguments, formatValidationErrors } from "./args/validator";
 import { displayHelp } from "./help/display";
 import { extendCommonArgs } from "./schemas/common";
 
 // Core functionality exports
 export { parseRawArguments, hasHelpRequest } from "./args/parser";
-export { extractEnvironmentDefaults, environmentToCliArgs } from "./args/environment";
+export {
+  extractEnvironmentDefaults,
+  environmentToCliArgs,
+} from "./args/environment";
 export {
   extractSchemaDescriptions,
   validateArguments,
@@ -24,8 +30,16 @@ export {
 } from "./args/validator";
 
 // Schema exports
-export { commandSchemas, getCommandSchema, isValidCommandName } from "./schemas/commands";
-export { commonArgsDefinition, createCommonArgsSchema, extendCommonArgs } from "./schemas/common";
+export {
+  commandSchemas,
+  getCommandSchema,
+  isValidCommandName,
+} from "./schemas/commands";
+export {
+  commonArgsDefinition,
+  createCommonArgsSchema,
+  extendCommonArgs,
+} from "./schemas/common";
 export type {
   ParsedArgs,
   EnvironmentVariables,
@@ -41,14 +55,26 @@ export {
   displayErrorWithContext,
 } from "./errors/handlers";
 export { isCliError, isValidationError } from "./errors/types";
-export type { CliError, ValidationError, HelpDisplayOptions } from "./errors/types";
+export type {
+  CliError,
+  ValidationError,
+  HelpDisplayOptions,
+} from "./errors/types";
 
 // Help system exports
-export { displayHelp, displayUsage, displayErrorWithHelp } from "./help/display";
+export {
+  displayHelp,
+  displayUsage,
+  displayErrorWithHelp,
+} from "./help/display";
 export { generateHelpSections, formatArgumentSection } from "./help/formatter";
 
 // Validation exports
-export { validateSaleorUrl, validateConfigPath, validateFormat } from "./validation";
+export {
+  validateSaleorUrl,
+  validateConfigPath,
+  validateFormat,
+} from "./validation";
 
 // Display exports
 export {
@@ -103,12 +129,16 @@ export function parseCliArgs<T extends z.ZodRawShape>(
     if (!validationResult.success) {
       console.error("❌ Invalid arguments provided:\n");
 
-      const errorMessages = formatValidationErrors(validationResult.error.issues);
+      const errorMessages = formatValidationErrors(
+        validationResult.error.issues
+      );
       errorMessages.forEach((msg: string) => {
         console.error(`  • ${msg}`);
       });
 
-      console.error(`\n💡 Run 'npm run ${commandName} -- --help' for usage information`);
+      console.error(
+        `\n💡 Run 'npm run ${commandName} -- --help' for usage information`
+      );
       process.exit(1);
     }
 
@@ -122,48 +152,17 @@ export function parseCliArgs<T extends z.ZodRawShape>(
         console.error(`\n💡 ${cliError.helpText}`);
       }
 
-      console.error(`\n🔍 Run 'npm run ${commandName} -- --help' for usage information`);
+      console.error(
+        `\n🔍 Run 'npm run ${commandName} -- --help' for usage information`
+      );
     } else {
       console.error(
-        `❌ Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+        `❌ Unexpected error: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
     }
 
     process.exit(1);
   }
-}
-
-/**
- * Utility function to create a command parser with pre-configured schema
- * This provides a more functional approach to command definition
- *
- * @param commandName - Name of the command
- * @param schema - Zod schema for the command
- * @returns Parser function that can be called with argv and env options
- */
-export function createCommandParser<T extends z.ZodRawShape>(
-  commandName: string,
-  schema: z.ZodObject<T>
-) {
-  return (options?: Partial<ArgumentParsingOptions>): z.infer<z.ZodObject<T>> => {
-    return parseCliArgs(schema, commandName, options);
-  };
-}
-
-/**
- * Utility function for quick command setup with common patterns
- * This is a convenience function that combines schema creation with parsing
- *
- * @param commandName - Name of the command
- * @param extensions - Additional schema fields beyond common args
- * @param options - Parsing options
- * @returns Parsed and validated arguments
- */
-export function setupCommand<T extends z.ZodRawShape>(
-  commandName: string,
-  extensions: T = {} as T,
-  options?: Partial<ArgumentParsingOptions>
-) {
-  const schema = extendCommonArgs(extensions);
-  return parseCliArgs(schema, commandName, options);
 }
