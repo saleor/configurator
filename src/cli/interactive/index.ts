@@ -7,13 +7,6 @@
 
 import * as readline from "readline";
 
-export interface PromptOptions {
-  message: string;
-  defaultValue?: boolean;
-  type?: "confirm" | "select";
-  choices?: string[];
-}
-
 /**
  * Creates a readline interface for user input
  */
@@ -30,7 +23,10 @@ function createInterface() {
  * @param defaultValue - Default value if user just presses enter
  * @returns Promise resolving to the user's choice
  */
-export async function confirmPrompt(message: string, defaultValue = false): Promise<boolean> {
+export async function confirmPrompt(
+  message: string,
+  defaultValue = false
+): Promise<boolean> {
   const rl = createInterface();
   const defaultText = defaultValue ? "[Y/n]" : "[y/N]";
 
@@ -59,7 +55,10 @@ export async function confirmPrompt(message: string, defaultValue = false): Prom
  * @param choices - Array of choices to select from
  * @returns Promise resolving to the selected choice
  */
-export async function selectPrompt(message: string, choices: string[]): Promise<string> {
+export async function selectPrompt(
+  message: string,
+  choices: string[]
+): Promise<string> {
   const rl = createInterface();
 
   console.log(`\n${message}`);
@@ -98,7 +97,9 @@ export interface DiffSummary {
  */
 export function displayDiffSummary(summary: DiffSummary): void {
   if (summary.totalChanges === 0) {
-    console.log("\n✅ No differences found - configurations are already in sync");
+    console.log(
+      "\n✅ No differences found - configurations are already in sync"
+    );
     return;
   }
 

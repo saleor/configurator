@@ -7,7 +7,6 @@
 
 import { z } from "zod";
 import type { ParsedArgs, SchemaValidationResult } from "../schemas/types";
-import { createValidationError } from "../errors/handlers";
 
 /**
  * Extract all field descriptions from a Zod object schema
@@ -39,7 +38,9 @@ export function extractSchemaDescriptions<T extends z.ZodRawShape>(
  * @param fieldSchema - The field schema to extract description from
  * @returns The description string if found
  */
-function extractFieldDescription(fieldSchema: z.ZodTypeAny): string | undefined {
+function extractFieldDescription(
+  fieldSchema: z.ZodTypeAny
+): string | undefined {
   let currentSchema = fieldSchema;
 
   // Check current level first for performance

@@ -39,33 +39,3 @@ export const commandSchemas = {
   // Diff command extends common arguments with diff-specific ones
   diff: extendCommonArgs(diffArgsDefinition),
 } as const;
-
-/**
- * Utility function to get a specific command schema
- * @param commandName - The name of the command
- * @returns The schema for the specified command
- */
-export function getCommandSchema<T extends keyof typeof commandSchemas>(
-  commandName: T
-): (typeof commandSchemas)[T] {
-  return commandSchemas[commandName];
-}
-
-/**
- * Utility function to validate if a string is a valid command name
- * @param commandName - The command name to validate
- * @returns Type predicate indicating if the command name is valid
- */
-export function isValidCommandName(
-  commandName: string
-): commandName is keyof typeof commandSchemas {
-  return commandName in commandSchemas;
-}
-
-/**
- * Get all available command names
- * @returns Array of all valid command names
- */
-export function getAvailableCommands(): Array<keyof typeof commandSchemas> {
-  return Object.keys(commandSchemas) as Array<keyof typeof commandSchemas>;
-}

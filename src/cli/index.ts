@@ -29,11 +29,7 @@ export {
 } from "./args/validator";
 
 // Schema exports
-export {
-  commandSchemas,
-  getCommandSchema,
-  isValidCommandName,
-} from "./schemas/commands";
+export { commandSchemas } from "./schemas/commands";
 export { commonArgsDefinition, extendCommonArgs } from "./schemas/common";
 export type {
   ArgumentParsingOptions,
@@ -46,7 +42,6 @@ export {
   createCliError,
   createValidationError,
   displayErrorWithContext,
-  handleCliError,
   handleCommandError,
 } from "./errors/handlers";
 export { isCliError, isValidationError } from "./errors/types";
@@ -57,11 +52,7 @@ export type {
 } from "./errors/types";
 
 // Help system exports
-export {
-  displayErrorWithHelp,
-  displayHelp,
-  displayUsage,
-} from "./help/display";
+export { displayHelp } from "./help/display";
 export { formatArgumentSection, generateHelpSections } from "./help/formatter";
 
 // Validation exports
@@ -83,7 +74,7 @@ export type { BaseCommandArgs } from "./display";
 
 // Interactive exports
 export { confirmPrompt, displayDiffSummary, selectPrompt } from "./interactive";
-export type { DiffSummary, PromptOptions } from "./interactive";
+export type { DiffSummary } from "./interactive";
 
 /**
  * Main CLI argument parsing function with comprehensive error handling and help support
