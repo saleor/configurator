@@ -1,69 +1,33 @@
-import {
-  parseCliArgs,
-  commandSchemas,
-  validateSaleorUrl,
-  setupLogger,
-  displayConfig,
-  handleCommandError,
-} from "../cli";
-import { createConfigurator } from "../core/factory";
+import { SaleorConfiguratorDiff } from "../cli/diff";
+import { cliConsole } from "../cli/lib/console";
+import { SaleorConfigurator } from "../core/configurator";
+import { ServiceComposer } from "../core/service-container";
+import { createClient } from "../lib/graphql/client";
+import { DiffCommand } from "./index";
 
-const argsSchema = commandSchemas.diff;
+try {
+  const {
+    url,
+    token,
+    config: configPath,
+    quiet,
+  } = DiffCommand.parseArgs(process.argv.slice(2));
 
-async function runDiff() {
-  try {
-    console.log("🔍 Saleor Configuration Diff\n");
+  cliConsole.setOptions({ quiet });
 
-    const args = parseCliArgs(argsSchema, "diff");
-    const { url, token, config: configPath, format, filter, quiet, verbose, dryRun } = args;
+  // Create a new client with the provided configuration
+  const client = createClient(token, url);
 
-    const validatedUrl = validateSaleorUrl(url, quiet);
-    setupLogger(verbose, quiet);
-    displayConfig({ ...args, url: validatedUrl }, quiet);
+  // Create new services with the client, passing the config path
+  const services = ServiceComposer.compose(client, configPath);
 
-    if (dryRun && !quiet) {
-      console.log("🔍 Dry-run mode: Analysis only, no changes will be made\n");
-    }
+  // Create a new configurator with the services
+  const configurator = new SaleorConfigurator(services);
 
-    if (!quiet) {
-      console.log("⚙️  Initializing...");
-    }
+  const diffCommand = new SaleorConfiguratorDiff(configurator, cliConsole);
 
-    const configurator = createConfigurator(token, validatedUrl, configPath);
-
-    if (!quiet) {
-      console.log("🔄 Running diff analysis...");
-    }
-
-    const summary = await configurator.diff({
-      format,
-      filter: filter?.split(","),
-      quiet,
-    });
-
-    if (summary.totalChanges > 0) {
-      if (!quiet) {
-        console.log(
-          `\n⚠️  Found ${summary.totalChanges} difference${
-            summary.totalChanges !== 1 ? "s" : ""
-          } that would be applied by 'push'`
-        );
-      }
-    } else {
-      if (!quiet) {
-        console.log("\n✅ No differences found - configurations are in sync");
-      }
-    }
-
-    // Exit with success code regardless of whether differences were found
-    // Finding differences is expected behavior, not an error
-    process.exit(0);
-  } catch (error) {
-    handleCommandError(error);
-  }
-}
-
-runDiff().catch((error) => {
-  console.error("Fatal error:", error);
+  await diffCommand.execute();
+} catch (error) {
+  cliConsole.error(error);
   process.exit(1);
-});
+}

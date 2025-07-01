@@ -1,12 +1,28 @@
 import z from "zod";
-import { CliCommand, type CliCommandDefinition } from "./cli-command";
+import { CliCommand } from "../cli/lib/command";
 
-export const commands = {
-  push: new CliCommand({
-    description: "Used to push the configuration to the Saleor instance",
-    schema: z.object({
-      url: z.string(),
-      token: z.string(),
-    }),
-  }),
-} satisfies Record<string, CliCommand<CliCommandDefinition<z.ZodRawShape>>>;
+const baseCommandSchema = z.object({
+  url: z.string({ required_error: "URL is required" }),
+  token: z.string({ required_error: "Token is required" }),
+  config: z.string().default("config.yml"),
+  quiet: z.boolean().default(false),
+});
+
+export const PushCommand = new CliCommand({
+  // TODO: start using name and description
+  name: "push",
+  description: "Use to push the configuration to the Saleor instance",
+  schema: baseCommandSchema,
+});
+
+export const DiffCommand = new CliCommand({
+  name: "diff",
+  description: "Use to diff the configuration to the Saleor instance",
+  schema: baseCommandSchema,
+});
+
+export const IntrospectCommand = new CliCommand({
+  name: "introspect",
+  description: "Use to introspect the Saleor instance",
+  schema: baseCommandSchema,
+});

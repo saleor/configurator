@@ -1,64 +1,33 @@
-import {
-  parseCliArgs,
-  commandSchemas,
-  validateSaleorUrl,
-  setupLogger,
-  displayConfig,
-  handleCommandError,
-} from "../cli";
-import { createConfigurator } from "../core/factory";
-import { ConsoleOutput } from "./cli-console";
+import { cliConsole } from "../cli/lib/console";
+import { SaleorConfiguratorPush } from "../cli/push";
+import { SaleorConfigurator } from "../core/configurator";
+import { ServiceComposer } from "../core/service-container";
+import { createClient } from "../lib/graphql/client";
+import { PushCommand } from "./index";
 
-const argsSchema = commandSchemas.push;
+try {
+  const {
+    url,
+    token,
+    config: configPath,
+    quiet,
+  } = PushCommand.parseArgs(process.argv.slice(2));
 
-async function runPush() {
-  try {
-    const args = parseCliArgs(argsSchema, "push");
-    const {
-      url,
-      token,
-      config: configPath,
-      quiet,
-      verbose,
-      dryRun,
-      skipValidation,
-    } = args;
+  cliConsole.setOptions({ quiet });
 
-    const cliConsole = new ConsoleOutput({ quiet });
-    cliConsole.status("🚀 Saleor Configuration Push\n");
+  // Create a new client with the provided configuration
+  const client = createClient(token, url);
 
-    const validatedUrl = validateSaleorUrl(url, quiet);
-    setupLogger(verbose, quiet);
-    displayConfig({ ...args, url: validatedUrl }, quiet);
+  // Create new services with the client, passing the config path
+  const services = ServiceComposer.compose(client, configPath);
 
-    if (dryRun) {
-      cliConsole.info("🔍 Dry-run mode: No changes will be made\n");
-    }
+  // Create a new configurator with the services
+  const configurator = new SaleorConfigurator(services);
 
-    if (skipValidation) {
-      cliConsole.info(
-        "⚠️  Validation skipped - proceeding without config validation\n"
-      );
-    }
+  const pushCommand = new SaleorConfiguratorPush(configurator, cliConsole);
 
-    const configurator = createConfigurator(token, validatedUrl, configPath);
-
-    if (dryRun) {
-      cliConsole.status("🔍 Dry-run complete.");
-      process.exit(0);
-    }
-
-    cliConsole.info("📤 Applying configuration to Saleor...");
-
-    // Note: force flag is available for future use (e.g., confirmation prompts)
-    await configurator.push();
-
-    cliConsole.status("\n✅ Configuration successfully applied to Saleor");
-    process.exit(0);
-  } catch (error) {
-    console.error(error);
-    handleCommandError(error);
-  }
+  await pushCommand.execute();
+} catch (error) {
+  cliConsole.error(error);
+  process.exit(1);
 }
-
-runPush();
