@@ -6,27 +6,26 @@
  */
 
 import { z } from "zod";
-import type { ArgumentParsingOptions } from "./schemas/types";
-import { parseRawArguments, hasHelpRequest } from "./args/parser";
 import {
-  extractEnvironmentDefaults,
   environmentToCliArgs,
+  extractEnvironmentDefaults,
 } from "./args/environment";
-import { validateArguments, formatValidationErrors } from "./args/validator";
+import { hasHelpRequest, parseRawArguments } from "./args/parser";
+import { formatValidationErrors, validateArguments } from "./args/validator";
 import { displayHelp } from "./help/display";
-import { extendCommonArgs } from "./schemas/common";
+import type { ArgumentParsingOptions } from "./schemas/types";
 
 // Core functionality exports
-export { parseRawArguments, hasHelpRequest } from "./args/parser";
 export {
-  extractEnvironmentDefaults,
   environmentToCliArgs,
+  extractEnvironmentDefaults,
 } from "./args/environment";
+export { hasHelpRequest, parseRawArguments } from "./args/parser";
 export {
-  extractSchemaDescriptions,
-  validateArguments,
-  formatValidationErrors,
   categorizeSchemaFields,
+  extractSchemaDescriptions,
+  formatValidationErrors,
+  validateArguments,
 } from "./args/validator";
 
 // Schema exports
@@ -35,60 +34,56 @@ export {
   getCommandSchema,
   isValidCommandName,
 } from "./schemas/commands";
-export {
-  commonArgsDefinition,
-  createCommonArgsSchema,
-  extendCommonArgs,
-} from "./schemas/common";
+export { commonArgsDefinition, extendCommonArgs } from "./schemas/common";
 export type {
-  ParsedArgs,
-  EnvironmentVariables,
   ArgumentParsingOptions,
+  EnvironmentVariables,
+  ParsedArgs,
 } from "./schemas/types";
 
 // Error handling exports
 export {
   createCliError,
   createValidationError,
+  displayErrorWithContext,
   handleCliError,
   handleCommandError,
-  displayErrorWithContext,
 } from "./errors/handlers";
 export { isCliError, isValidationError } from "./errors/types";
 export type {
   CliError,
-  ValidationError,
   HelpDisplayOptions,
+  ValidationError,
 } from "./errors/types";
 
 // Help system exports
 export {
+  displayErrorWithHelp,
   displayHelp,
   displayUsage,
-  displayErrorWithHelp,
 } from "./help/display";
-export { generateHelpSections, formatArgumentSection } from "./help/formatter";
+export { formatArgumentSection, generateHelpSections } from "./help/formatter";
 
 // Validation exports
 export {
-  validateSaleorUrl,
   validateConfigPath,
   validateFormat,
+  validateSaleorUrl,
 } from "./validation";
 
 // Display exports
 export {
-  setupLogger,
   displayConfig,
   displayProgress,
   displaySuccess,
   displayWarning,
+  setupLogger,
 } from "./display";
 export type { BaseCommandArgs } from "./display";
 
 // Interactive exports
-export { confirmPrompt, selectPrompt, displayDiffSummary } from "./interactive";
-export type { PromptOptions, DiffSummary } from "./interactive";
+export { confirmPrompt, displayDiffSummary, selectPrompt } from "./interactive";
+export type { DiffSummary, PromptOptions } from "./interactive";
 
 /**
  * Main CLI argument parsing function with comprehensive error handling and help support

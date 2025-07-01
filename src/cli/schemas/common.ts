@@ -13,14 +13,21 @@ export const commonArgsDefinition = {
   token: z
     .string({ required_error: "Saleor authentication token is required" })
     .min(1, "Token cannot be empty")
-    .describe("Saleor authentication token (staff user with proper permissions)"),
+    .describe(
+      "Saleor authentication token (staff user with proper permissions)"
+    ),
 
-  config: z.string().default("config.yml").describe("Path to configuration file"),
+  config: z
+    .string()
+    .default("config.yml")
+    .describe("Path to configuration file"),
 
   quiet: z
     .boolean()
     .default(false)
-    .describe("Suppress progress messages and output only essential information"),
+    .describe(
+      "Suppress progress messages and output only essential information"
+    ),
 
   verbose: z
     .boolean()
@@ -35,19 +42,17 @@ export const commonArgsDefinition = {
   dryRun: z
     .boolean()
     .default(false)
-    .describe("Preview changes without making any modifications (dry-run mode)"),
+    .describe(
+      "Preview changes without making any modifications (dry-run mode)"
+    ),
 
   skipValidation: z
     .boolean()
     .default(false)
-    .describe("Skip validation checks and diff comparison (advanced users only)"),
+    .describe(
+      "Skip validation checks and diff comparison (advanced users only)"
+    ),
 } as const;
-
-/**
- * Create a Zod object schema from the common arguments
- * This is used when a command only needs common arguments
- */
-export const createCommonArgsSchema = () => z.object(commonArgsDefinition);
 
 /**
  * Utility function to extend common args with command-specific arguments
