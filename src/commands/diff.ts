@@ -1,4 +1,4 @@
-import { SaleorConfiguratorDiff } from "../cli/diff";
+import { logger } from "../lib/logger";
 import { cliConsole } from "../cli/lib/console";
 import { SaleorConfigurator } from "../core/configurator";
 import { ServiceComposer } from "../core/service-container";
@@ -24,9 +24,30 @@ try {
   // Create a new configurator with the services
   const configurator = new SaleorConfigurator(services);
 
-  const diffCommand = new SaleorConfiguratorDiff(configurator, cliConsole);
+  cliConsole.info(
+    "⏳ Preparing a diff between the configuration and the Saleor instance..."
+  );
 
-  await diffCommand.execute();
+  const { summary, output } = await configurator.diff();
+
+  cliConsole.info(output);
+
+  logger.info("Diff process completed successfully", {
+    totalChanges: summary.totalChanges,
+    creates: summary.creates,
+    updates: summary.updates,
+    deletes: summary.deletes,
+  });
+
+  if (summary.totalChanges > 0) {
+    cliConsole.status(
+      `\n⚠️  Found ${summary.totalChanges} difference${
+        summary.totalChanges !== 1 ? "s" : ""
+      } that would be applied by 'push'`
+    );
+  } else {
+    cliConsole.status("\n✅ No differences found - configurations are in sync");
+  }
 } catch (error) {
   cliConsole.error(error);
   process.exit(1);

@@ -1,4 +1,3 @@
-import { SaleorConfiguratorIntrospect } from "../cli/introspect";
 import { cliConsole } from "../cli/lib/console";
 import { SaleorConfigurator } from "../core/configurator";
 import { ServiceComposer } from "../core/service-container";
@@ -24,12 +23,12 @@ try {
   // Create a new configurator with the services
   const configurator = new SaleorConfigurator(services);
 
-  const introspectCommand = new SaleorConfiguratorIntrospect(
-    configurator,
-    cliConsole
-  );
+  cliConsole.status("🚀 Saleor Configuration Introspect\n");
 
-  await introspectCommand.execute();
+  await configurator.introspect();
+
+  // TODO: bring back interactivity
+  cliConsole.status("✅ Introspected Saleor instance");
 } catch (error) {
   cliConsole.error(error);
   process.exit(1);

@@ -1,5 +1,4 @@
 import { cliConsole } from "../cli/lib/console";
-import { SaleorConfiguratorPush } from "../cli/push";
 import { SaleorConfigurator } from "../core/configurator";
 import { ServiceComposer } from "../core/service-container";
 import { createClient } from "../lib/graphql/client";
@@ -24,9 +23,11 @@ try {
   // Create a new configurator with the services
   const configurator = new SaleorConfigurator(services);
 
-  const pushCommand = new SaleorConfiguratorPush(configurator, cliConsole);
+  cliConsole.status("🚀 Saleor Configuration Push\n");
 
-  await pushCommand.execute();
+  await configurator.push();
+
+  cliConsole.status("✅ Configuration pushed to Saleor instance");
 } catch (error) {
   cliConsole.error(error);
   process.exit(1);

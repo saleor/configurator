@@ -1,6 +1,7 @@
 import { logger } from "../lib/logger";
 import type { ServiceContainer } from "./service-container";
 import { DiffService } from "./diff";
+import { DiffFormatter } from "./diff";
 
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
@@ -88,8 +89,12 @@ export class SaleorConfigurator {
       const diffService = new DiffService(this.services);
 
       const summary = await diffService.compare();
+      const output = DiffFormatter.format(summary);
 
-      return summary;
+      return {
+        summary,
+        output,
+      };
     } catch (error) {
       logger.error("Failed to diff configurations", { error });
       throw error;
