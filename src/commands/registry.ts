@@ -1,5 +1,5 @@
 import z from "zod";
-import { CliCommand } from "../cli/lib/command";
+import { CliCommand } from "../cli/command";
 
 const baseCommandSchema = z.object({
   url: z.string({ required_error: "URL is required" }),
@@ -7,6 +7,8 @@ const baseCommandSchema = z.object({
   config: z.string().default("config.yml"),
   quiet: z.boolean().default(false),
 });
+
+export type BaseCommandArgs = z.infer<typeof baseCommandSchema>;
 
 export const PushCommand = new CliCommand({
   // TODO: start using name and description

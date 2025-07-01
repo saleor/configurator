@@ -14,7 +14,7 @@ export class CliCommand<T extends CliCommandDefinition<z.ZodRawShape>> {
     this.schema = definition.schema;
   }
 
-  parseArgs(input: string[]) {
+  parseArgs(input: string[]): z.infer<T["schema"]> {
     const parsedArgs: Record<string, string> = {};
 
     for (let i = 0; i < input.length; i++) {

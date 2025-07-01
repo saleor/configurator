@@ -1,7 +1,7 @@
 // This class is a CLI wrapper around a SaleorConfigurator method
 
 import type { SaleorConfigurator } from "../../core/configurator";
-import type { ConsoleOutput } from "./console";
+import type { ConsoleOutput } from "../console";
 
 export class CommandHandler {
   constructor(

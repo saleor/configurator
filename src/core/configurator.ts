@@ -1,7 +1,9 @@
 import { logger } from "../lib/logger";
-import type { ServiceContainer } from "./service-container";
+import { ServiceComposer, type ServiceContainer } from "./service-container";
 import { DiffService } from "./diff";
 import { DiffFormatter } from "./diff";
+import type { BaseCommandArgs } from "../commands/registry";
+import { createClient } from "../lib/graphql/client";
 
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
@@ -100,4 +102,12 @@ export class SaleorConfigurator {
       throw error;
     }
   }
+}
+
+export function createConfigurator(baseArgs: BaseCommandArgs) {
+  const { url, token, config: configPath } = baseArgs;
+
+  const client = createClient(token, url);
+  const services = ServiceComposer.compose(client, configPath);
+  return new SaleorConfigurator(services);
 }
