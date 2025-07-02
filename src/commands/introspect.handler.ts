@@ -1,17 +1,12 @@
 import { z } from "zod";
-
-export const introspectCommandSchema = z.object({
-  url: z.string({ required_error: "URL is required" }),
-  token: z.string({ required_error: "Token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-});
-
-type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
-
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { fileExists, createBackup } from "../lib/utils/file";
+import { baseCommandArgsSchema } from "../cli/command";
+
+export const introspectCommandSchema = baseCommandArgsSchema.extend({});
+
+type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
 
 export async function introspectHandler(args: IntrospectCommandArgs) {
   cliConsole.setOptions({ quiet: args.quiet });

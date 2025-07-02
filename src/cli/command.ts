@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const baseCommandArgsSchema = z.object({
+  url: z.string({ required_error: "URL is required" }),
+  token: z.string({ required_error: "Token is required" }),
+  config: z.string().default("config.yml"),
+  quiet: z.boolean().default(false),
+});
+
+export type BaseCommandArgs = z.infer<typeof baseCommandArgsSchema>;
+
 type CliCommandDefinition<TSchema extends z.ZodRawShape> = {
   name: string;
   description: string;

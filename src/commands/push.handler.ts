@@ -1,16 +1,12 @@
 import { z } from "zod";
 
-export const pushCommandSchema = z.object({
-  url: z.string({ required_error: "URL is required" }),
-  token: z.string({ required_error: "Token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-});
+export const pushCommandSchema = baseCommandArgsSchema.extend({});
 
 type PushCommandArgs = z.infer<typeof pushCommandSchema>;
 
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
+import { baseCommandArgsSchema } from "../cli/command";
 
 export async function pushHandler(args: PushCommandArgs) {
   cliConsole.setOptions({ quiet: args.quiet });

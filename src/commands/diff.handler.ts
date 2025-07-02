@@ -2,13 +2,9 @@ import { z } from "zod";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { logger } from "../lib/logger";
+import { baseCommandArgsSchema } from "../cli/command";
 
-export const diffCommandSchema = z.object({
-  url: z.string({ required_error: "URL is required" }),
-  token: z.string({ required_error: "Token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-});
+export const diffCommandSchema = baseCommandArgsSchema.extend({});
 
 type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 
