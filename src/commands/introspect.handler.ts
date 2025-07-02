@@ -1,20 +1,14 @@
 import { z } from "zod";
-import { baseCommandArgsSchema, isHelp } from "../cli/command";
+import { baseCommandArgsSchema } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { createBackup, fileExists } from "../lib/utils/file";
-import { IntrospectCommand } from "./registry";
 
-export const introspectCommandSchema = baseCommandArgsSchema.and(z.object({}));
+export const introspectCommandSchema = baseCommandArgsSchema.extend({});
 
 type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
 
 export async function introspectHandler(args: IntrospectCommandArgs) {
-  if (isHelp(args)) {
-    cliConsole.info(IntrospectCommand.help());
-    process.exit(0);
-  }
-
   cliConsole.setOptions({ quiet: args.quiet });
   const configurator = createConfigurator(args);
   cliConsole.header("🔍 Saleor Configuration Introspect\n");

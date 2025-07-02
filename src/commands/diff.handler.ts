@@ -1,20 +1,14 @@
 import { z } from "zod";
+import { baseCommandArgsSchema } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { logger } from "../lib/logger";
-import { baseCommandArgsSchema, isHelp } from "../cli/command";
-import { DiffCommand } from "./registry";
 
-export const diffCommandSchema = baseCommandArgsSchema.and(z.object({}));
+export const diffCommandSchema = baseCommandArgsSchema.extend({});
 
 type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 
 export async function diffHandler(args: DiffCommandArgs) {
-  if (isHelp(args)) {
-    cliConsole.info(DiffCommand.help());
-    process.exit(0);
-  }
-
   cliConsole.setOptions({ quiet: args.quiet });
   cliConsole.header("🔍 Saleor Configuration Diff\n");
 

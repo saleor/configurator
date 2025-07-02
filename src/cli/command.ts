@@ -1,11 +1,8 @@
 import { z } from "zod";
 import { helpFormatter, type CliOption } from "./help-formatter";
+import { Console, cliConsole } from "./console";
 
-const helpSchema = z.object({
-  help: z.boolean().default(false),
-});
-
-const coreArgsSchema = z.object({
+export const baseCommandArgsSchema = z.object({
   url: z
     .string({ required_error: "URL is required" })
     .describe("Saleor instance URL"),
@@ -16,10 +13,7 @@ const coreArgsSchema = z.object({
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
 
-export const baseCommandArgsSchema = z.union([helpSchema, coreArgsSchema]);
-
 export type BaseCommandArgs = z.infer<typeof baseCommandArgsSchema>;
-export const isHelp = (args: BaseCommandArgs) => "help" in args;
 
 type CliCommandDefinition<TSchema extends z.ZodTypeAny> = {
   name: string;
@@ -35,13 +29,18 @@ export class CliCommand<TSchema extends z.ZodTypeAny> {
   schema: TSchema;
   handler: (args: z.infer<TSchema>) => Promise<void>;
   examples: string[];
+  console: Console;
 
-  constructor(definition: CliCommandDefinition<TSchema>) {
+  constructor(
+    definition: CliCommandDefinition<TSchema>,
+    console: Console = cliConsole
+  ) {
     this.name = definition.name;
     this.description = definition.description;
     this.schema = definition.schema;
     this.handler = definition.handler;
     this.examples = definition.examples || [];
+    this.console = console;
   }
 
   parseArgs(input: string[]): z.infer<TSchema> {
@@ -70,19 +69,7 @@ export class CliCommand<TSchema extends z.ZodTypeAny> {
     return this.schema.parse(parsedArgs);
   }
 
-  async run(argv: string[]) {
-    try {
-      const args = this.parseArgs(argv);
-      await this.handler(args);
-    } catch (error) {
-      // You may want to improve error formatting here
-      // eslint-disable-next-line no-console
-      console.error(error);
-      process.exit(1);
-    }
-  }
-
-  help(): string {
+  private getHelp(): string {
     const lines: string[] = [];
 
     // Usage line
@@ -124,5 +111,23 @@ export class CliCommand<TSchema extends z.ZodTypeAny> {
     }
 
     return lines.join("\n");
+  }
+
+  async run(argv: string[]) {
+    try {
+      // check if help flag is present
+      if (argv.includes("--help") || argv.includes("-h")) {
+        this.console.info(this.getHelp());
+        process.exit(0);
+      }
+
+      const args = this.parseArgs(argv);
+      await this.handler(args);
+    } catch (error) {
+      // You may want to improve error formatting here
+      // eslint-disable-next-line no-console
+      console.error(error);
+      process.exit(1);
+    }
   }
 }
