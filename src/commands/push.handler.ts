@@ -1,14 +1,20 @@
 import { z } from "zod";
 
-export const pushCommandSchema = baseCommandArgsSchema.extend({});
+import { cliConsole } from "../cli/console";
+import { createConfigurator } from "../core/configurator";
+import { baseCommandArgsSchema, isHelp } from "../cli/command";
+import { PushCommand } from "./registry";
+
+export const pushCommandSchema = baseCommandArgsSchema.and(z.object({}));
 
 type PushCommandArgs = z.infer<typeof pushCommandSchema>;
 
-import { cliConsole } from "../cli/console";
-import { createConfigurator } from "../core/configurator";
-import { baseCommandArgsSchema } from "../cli/command";
-
 export async function pushHandler(args: PushCommandArgs) {
+  if (isHelp(args)) {
+    cliConsole.info(PushCommand.help());
+    process.exit(0);
+  }
+
   cliConsole.setOptions({ quiet: args.quiet });
   const configurator = createConfigurator(args);
   cliConsole.header("🚀 Saleor Configuration Push\n");
