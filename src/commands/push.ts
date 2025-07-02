@@ -8,11 +8,11 @@ try {
   cliConsole.setOptions({ quiet: args.quiet });
 
   const configurator = createConfigurator(args);
-  cliConsole.status("🚀 Saleor Configuration Push\n");
+  cliConsole.header("🚀 Saleor Configuration Push\n");
 
   await configurator.push();
 
-  cliConsole.status("✅ Configuration pushed to Saleor instance");
+  cliConsole.success("✅ Configuration pushed to Saleor instance");
 } catch (error) {
   cliConsole.error(error);
   process.exit(1);

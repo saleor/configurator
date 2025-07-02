@@ -7,9 +7,10 @@ try {
   const args = DiffCommand.parseArgs(process.argv.slice(2));
 
   cliConsole.setOptions({ quiet: args.quiet });
+  cliConsole.header("🔍 Saleor Configuration Diff\n");
   const configurator = createConfigurator(args);
 
-  cliConsole.info(
+  cliConsole.processing(
     "⏳ Preparing a diff between the configuration and the Saleor instance..."
   );
 
