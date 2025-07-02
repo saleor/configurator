@@ -9,19 +9,19 @@ Saleor Configurator is a "commerce as code" tool that helps you automate the cre
 
 1. **Create an app token** with all permissions in your Saleor dashboard.
 
-2. **Introspect your current configuration** from Saleor to `config.yml`:
+2. **Introspect your current configuration** from your remote Saleor instance to `config.yml`:
 
 ```bash
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-3. **Review changes** with the diff command to see what will be updated:
+3. **Edit the configuration file** to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
+
+4. **Review changes** with the diff command to see what will be updated:
 
 ```bash
 pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
-
-4. **Edit the configuration file** to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
 
 5. **Push the changes** to Saleor:
 
