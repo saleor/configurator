@@ -1,20 +1,26 @@
 import { z } from "zod";
 
-export type CliCommandDefinition<TSchema extends z.ZodRawShape> = {
+type CliCommandDefinition<TSchema extends z.ZodRawShape> = {
   name: string;
   description: string;
   schema: z.ZodObject<TSchema>;
+  handler: (args: z.infer<z.ZodObject<TSchema>>) => Promise<void>;
 };
 
-// is this really needed?
-export class CliCommand<T extends CliCommandDefinition<z.ZodRawShape>> {
-  schema: T["schema"];
+export class CliCommand<TSchema extends z.ZodRawShape> {
+  name: string;
+  description: string;
+  schema: z.ZodObject<TSchema>;
+  handler: (args: z.infer<z.ZodObject<TSchema>>) => Promise<void>;
 
-  constructor(definition: T) {
+  constructor(definition: CliCommandDefinition<TSchema>) {
+    this.name = definition.name;
+    this.description = definition.description;
     this.schema = definition.schema;
+    this.handler = definition.handler;
   }
 
-  parseArgs(input: string[]): z.infer<T["schema"]> {
+  parseArgs(input: string[]): z.infer<z.ZodObject<TSchema>> {
     const parsedArgs: Record<string, string> = {};
 
     for (let i = 0; i < input.length; i++) {
@@ -38,5 +44,17 @@ export class CliCommand<T extends CliCommandDefinition<z.ZodRawShape>> {
     }
 
     return this.schema.parse(parsedArgs);
+  }
+
+  async run(argv: string[]) {
+    try {
+      const args = this.parseArgs(argv);
+      await this.handler(args);
+    } catch (error) {
+      // You may want to improve error formatting here
+      // eslint-disable-next-line no-console
+      console.error(error);
+      process.exit(1);
+    }
   }
 }

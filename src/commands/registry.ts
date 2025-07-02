@@ -1,30 +1,28 @@
-import z from "zod";
 import { CliCommand } from "../cli/command";
-
-const baseCommandSchema = z.object({
-  url: z.string({ required_error: "URL is required" }),
-  token: z.string({ required_error: "Token is required" }),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-});
-
-export type BaseCommandArgs = z.infer<typeof baseCommandSchema>;
+import { pushCommandSchema, pushHandler } from "./push.handler";
+import { diffCommandSchema, diffHandler } from "./diff.handler";
+import {
+  introspectCommandSchema,
+  introspectHandler,
+} from "./introspect.handler";
 
 export const PushCommand = new CliCommand({
-  // TODO: start using name and description
   name: "push",
   description: "Use to push the configuration to the Saleor instance",
-  schema: baseCommandSchema,
+  schema: pushCommandSchema,
+  handler: pushHandler,
 });
 
 export const DiffCommand = new CliCommand({
   name: "diff",
   description: "Use to diff the configuration to the Saleor instance",
-  schema: baseCommandSchema,
+  schema: diffCommandSchema,
+  handler: diffHandler,
 });
 
 export const IntrospectCommand = new CliCommand({
   name: "introspect",
   description: "Use to introspect the Saleor instance",
-  schema: baseCommandSchema,
+  schema: introspectCommandSchema,
+  handler: introspectHandler,
 });
