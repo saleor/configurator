@@ -41,10 +41,7 @@ export class CliCommand<TSchema extends z.ZodTypeAny> {
     this.description = definition.description;
     this.schema = definition.schema;
     this.handler = definition.handler;
-    this.examples = definition.examples || [
-      `saleor-configurator ${definition.name} --url https://my-shop.saleor.cloud --token my-token`,
-      `saleor-configurator ${definition.name} --url https://my-shop.saleor.cloud --token my-token --config my-config.yml`,
-    ];
+    this.examples = definition.examples || [];
   }
 
   parseArgs(input: string[]): z.infer<TSchema> {
