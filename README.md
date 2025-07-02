@@ -15,13 +15,13 @@ pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-a
 ```
 
 3. Edit the configuration file to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
-4. Push the changes to Saleor:
+4. Deploy the changes to Saleor:
 
 ```bash
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-The above will apply the changes to your Saleor instance.
+The above will show you a deployment plan and apply the changes to your Saleor instance after confirmation.
 
 ## Configuration
 
@@ -200,24 +200,35 @@ pnpm changeset
 
 ## Commands
 
-### `pnpm push`
+### `pnpm deploy`
 
-Reads the configuration file from a given path and creates/updates the data models in Saleor.
+Reads the configuration file from a given path and creates/updates the data models in Saleor. Provides a deployment plan and interactive confirmation for safe deployments.
 
 #### Options
 
 - `--url` (required): The URL of the Saleor instance
 - `--token` (required): App token with necessary permissions
 - `--config` (optional): Path to configuration file (defaults to `config.yml`)
+- `--plan` (optional): Show deployment plan without applying changes
+- `--auto-approve` (optional): Skip interactive approval and apply changes automatically
+- `--target` (optional): Target specific resource types (comma-separated)
+- `--parallelism` (optional): Number of parallel operations (1-10, default: 3)
+- `--continue-on-error` (optional): Continue deployment even if some resources fail
 
 #### Usage
 
 ```bash
-# Basic usage
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+# Basic usage with interactive confirmation
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
-# With custom config file
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+# Show deployment plan without applying changes
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --plan
+
+# Auto-approve for CI/CD environments
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --auto-approve
+
+# Target specific resources
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --target channels,shop
 ```
 
 Currently, it supports:

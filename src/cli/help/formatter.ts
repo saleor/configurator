@@ -168,11 +168,12 @@ function generateExamplesSection(commandName: string): string {
     );
   }
 
-  if (commandName === 'push') {
+  if (commandName === 'deploy') {
     examples.push(
-      "  # Push command specific examples", 
-      "  npm run push -- --url ... --token ... --config production.yml",
-      "  npm run push -- --url ... --token ... --verbose --config staging.yml",
+      "  # Deploy command specific examples", 
+      "  npm run deploy -- --url ... --token ... --config production.yml",
+      "  npm run deploy -- --url ... --token ... --plan --verbose",
+      "  npm run deploy -- --url ... --token ... --auto-approve --target channels,shop",
       ""
     );
   }
@@ -220,7 +221,7 @@ function wrapText(text: string, maxWidth: number, indent: number): string {
   let currentLine = indentStr;
 
   for (const word of words) {
-    const testLine = currentLine === indentStr ? currentLine + word : currentLine + ' ' + word;
+    const testLine = currentLine === indentStr ? `${currentLine}${word}` : `${currentLine} ${word}`;
     
     if (testLine.length <= maxWidth) {
       currentLine = testLine;
@@ -228,7 +229,7 @@ function wrapText(text: string, maxWidth: number, indent: number): string {
       if (currentLine !== indentStr) {
         lines.push(currentLine);
       }
-      currentLine = indentStr + word;
+      currentLine = `${indentStr}${word}`;
     }
   }
   

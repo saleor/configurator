@@ -49,7 +49,7 @@ export { setupLogger, displayConfig, displayProgress, displaySuccess, displayWar
 export type { BaseCommandArgs } from './display';
 
 // Interactive exports
-export { confirmPrompt, selectPrompt, displayDiffSummary } from './interactive';
+export { confirmPrompt, selectPrompt, displayDiffSummary, deploymentConfirmationPrompt, displayDeploymentSummary } from './interactive';
 export type { PromptOptions, DiffSummary } from './interactive';
 
 /**

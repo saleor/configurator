@@ -24,12 +24,55 @@ export const diffArgsDefinition = {
 } as const;
 
 /**
+ * Deploy command specific argument definitions
+ * Inspired by Pulumi and modern deployment tools for better DX
+ */
+export const deployArgsDefinition = {
+  plan: z
+    .boolean()
+    .default(false)
+    .describe("Show deployment plan without applying changes (similar to Terraform plan)"),
+    
+  autoApprove: z
+    .boolean()
+    .default(false)
+    .describe("Skip interactive approval and apply changes automatically"),
+    
+  target: z
+    .string()
+    .optional()
+    .describe("Target specific resource types (comma-separated: channels,shop,producttypes,pagetypes,categories)"),
+    
+  diff: z
+    .boolean()
+    .default(true)
+    .describe("Show diff before deployment (disable with --no-diff)"),
+    
+  continueOnError: z
+    .boolean()
+    .default(false)
+    .describe("Continue deployment even if some resources fail"),
+    
+  parallelism: z
+    .number()
+    .min(1)
+    .max(10)
+    .default(3)
+    .describe("Number of parallel resource operations (1-10)"),
+    
+  refreshOnly: z
+    .boolean()
+    .default(false)
+    .describe("Only refresh state without making changes"),
+} as const;
+
+/**
  * Pre-defined command schemas for type safety and reusability
  * Each command combines common arguments with command-specific ones
  */
 export const commandSchemas = {
-  // Push and Introspect commands use only common arguments
-  push: z.object(commonArgsDefinition),
+  // Deploy command with enhanced deployment features
+  deploy: extendCommonArgs(deployArgsDefinition),
   introspect: z.object(commonArgsDefinition),
   
   // Diff command extends common arguments with diff-specific ones

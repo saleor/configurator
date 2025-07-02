@@ -145,7 +145,9 @@ export class SaleorConfigurator {
           formattedOutput = DiffFormatter.format(filteredSummary);
       }
       
-      console.log(formattedOutput);
+      if (!quiet) {
+        console.log(formattedOutput);
+      }
       
       logger.info("Diff process completed successfully", {
         totalChanges: filteredSummary.totalChanges,

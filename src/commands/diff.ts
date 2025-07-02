@@ -43,7 +43,7 @@ async function runDiff() {
 
     if (summary.totalChanges > 0) {
       if (!quiet) {
-        console.log(`\n⚠️  Found ${summary.totalChanges} difference${summary.totalChanges !== 1 ? 's' : ''} that would be applied by 'push'`);
+        console.log(`\n⚠️  Found ${summary.totalChanges} difference${summary.totalChanges !== 1 ? 's' : ''} that would be applied by 'deploy'`);
       }
     } else {
       if (!quiet) {
