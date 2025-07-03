@@ -115,7 +115,9 @@ export async function selectOption<T extends string>(
   });
 }
 
-export interface CommandConfig<T extends z.ZodTypeAny> {
+export interface CommandConfig<
+  T extends z.ZodObject<Record<string, z.ZodTypeAny>>
+> {
   name: string;
   description: string;
   schema: T;
@@ -124,9 +126,17 @@ export interface CommandConfig<T extends z.ZodTypeAny> {
   requiresInteractive?: boolean;
 }
 
-/**
- * Dynamically generates Commander.js options from a Zod schema
- */
+function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
+  return {
+    flags: `--${key} <${key}>`,
+    description: field.description || key,
+    defaultValue:
+      "defaultValue" in field._def
+        ? (field._def as any).defaultValue
+        : undefined,
+  };
+}
+
 function generateOptionsFromSchema(
   command: Command,
   schema: z.ZodObject<Record<string, z.ZodTypeAny>>
@@ -134,54 +144,24 @@ function generateOptionsFromSchema(
   const shape = schema.shape;
 
   Object.entries(shape).forEach(([key, field]) => {
-    if (field instanceof z.ZodString) {
-      const description = field.description || key;
-      const shortFlag = key.charAt(0);
-
-      // Check if field has a default value by examining the field definition
-      const hasDefault = "defaultValue" in field._def;
-      const defaultValue = hasDefault
-        ? (field._def as { defaultValue: string }).defaultValue
-        : undefined;
-
-      if (hasDefault) {
-        // Optional field with default
-        command.option(
-          `-${shortFlag}, --${key} <${key}>`,
-          description,
-          defaultValue
-        );
-      } else {
-        // Required field
-        command.option(`-${shortFlag}, --${key} <${key}>`, description);
-      }
-    } else if (field instanceof z.ZodBoolean) {
-      const description = field.description || key;
-      const shortFlag = key.charAt(0);
-
-      // Check if field has a default value
-      const hasDefault = "defaultValue" in field._def;
-      const defaultValue = hasDefault
-        ? (field._def as { defaultValue: boolean }).defaultValue
-        : false;
-
-      command.option(`-${shortFlag}, --${key}`, description, defaultValue);
-    }
+    const { flags, description, defaultValue } =
+      getOptionConfigFromZodForCommander(key, field);
+    command.option(flags, description, defaultValue);
   });
 }
 
 /**
  * Creates a Commander.js command with enhanced TypeScript support and interactive prompts
  */
-export function createCommand<T extends z.ZodTypeAny>(
-  config: CommandConfig<T>
-): Command {
+export function createCommand<
+  T extends z.ZodObject<Record<string, z.ZodTypeAny>>
+>(config: CommandConfig<T>): Command {
   const command = new Command()
     .name(config.name)
     .description(config.description);
 
   // Dynamically generate options ("-u, --url <url>", etc) from baseCommandArgsSchema
-  generateOptionsFromSchema(command, baseCommandArgsSchema);
+  generateOptionsFromSchema(command, config.schema);
 
   // Add examples to help
   if (config.examples?.length) {
