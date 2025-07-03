@@ -1,35 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { runIntrospect } from "./introspect";
-import * as factory from "../core/factory";
-import * as cli from "../cli";
+import { introspectHandler } from "./introspect";
+import * as configurator from "../core/configurator";
+import * as fileUtils from "../lib/utils/file";
+import * as commandUtils from "../cli/command";
+import { cliConsole } from "../cli/console";
 
 // Mock dependencies
-vi.mock("../core/factory");
-vi.mock("../cli", async () => {
-  const actual = await vi.importActual("../cli");
-  return {
-    ...actual,
-    parseCliArgs: vi.fn(),
-    validateSaleorUrl: vi.fn(),
-    setupLogger: vi.fn(),
-    displayConfig: vi.fn(),
-    handleCommandError: vi.fn(),
-    confirmPrompt: vi.fn(),
-    displayIntrospectDiffSummary: vi.fn(),
-  };
-});
+vi.mock("../core/configurator");
 vi.mock("../lib/utils/file");
+vi.mock("../cli/command");
+vi.mock("../cli/console");
 
 describe("Introspect Command Integration Tests", () => {
   let mockConfigurator: any;
-  let consoleLogSpy: any;
-  let consoleWarnSpy: any;
   let processExitSpy: any;
 
   beforeEach(() => {
-    // Mock console methods
-    consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // Mock process.exit
     processExitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
 
     // Mock configurator
@@ -38,7 +25,17 @@ describe("Introspect Command Integration Tests", () => {
       diffForIntrospect: vi.fn(),
     };
 
-    vi.mocked(factory.createConfigurator).mockReturnValue(mockConfigurator);
+    vi.mocked(configurator.createConfigurator).mockReturnValue(mockConfigurator);
+
+    // Mock CLI console
+    vi.mocked(cliConsole.setOptions).mockImplementation(() => {});
+    vi.mocked(cliConsole.header).mockImplementation(() => "");
+    vi.mocked(cliConsole.info).mockImplementation(() => "");
+    vi.mocked(cliConsole.warn).mockImplementation(() => "");
+    vi.mocked(cliConsole.success).mockImplementation(() => "");
+    vi.mocked(cliConsole.cancelled).mockImplementation(() => "");
+    vi.mocked(cliConsole.processing).mockImplementation(() => "");
+    vi.mocked(cliConsole.important).mockImplementation((text) => text);
   });
 
   afterEach(() => {
@@ -54,14 +51,7 @@ describe("Introspect Command Integration Tests", () => {
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: false,
-        dryRun: false,
-        skipValidation: false,
       };
-
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
 
       // Mock diff showing local will be cleared
       const diffSummary = {
@@ -80,18 +70,17 @@ describe("Introspect Command Integration Tests", () => {
       };
 
       mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(cli.confirmPrompt).mockResolvedValue(true);
+      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
       
       // Mock empty config from remote
       mockConfigurator.introspect.mockResolvedValue({});
 
       // Mock file operations
-      const fileUtils = await import("../lib/utils/file");
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
       vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
       // Verify correct diff perspective was shown
@@ -100,11 +89,9 @@ describe("Introspect Command Integration Tests", () => {
         quiet: true,
       });
 
-      expect(cli.displayIntrospectDiffSummary).toHaveBeenCalledWith(diffSummary);
-
       // Verify warning message
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "⚠️  Introspecting will replace your local configuration file with the current state from Saleor."
+      expect(cliConsole.warn).toHaveBeenCalledWith(
+        "⚠️  Introspecting will overwrite your local configuration file."
       );
 
       // Verify introspect was called
@@ -123,14 +110,7 @@ describe("Introspect Command Integration Tests", () => {
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: false,
-        dryRun: false,
-        skipValidation: false,
       };
-
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
 
       const diffSummary = {
         totalChanges: 0,
@@ -141,15 +121,13 @@ describe("Introspect Command Integration Tests", () => {
       };
 
       mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-
-      const fileUtils = await import("../lib/utils/file");
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      expect(consoleLogSpy).toHaveBeenCalledWith("✅ Local configuration is already up to date!");
+      expect(cliConsole.success).toHaveBeenCalledWith("✅ Local configuration is already up to date!");
       expect(mockConfigurator.introspect).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
@@ -163,177 +141,136 @@ describe("Introspect Command Integration Tests", () => {
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: false,
-        dryRun: false,
-        skipValidation: false,
       };
-
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
 
       // Mock diff throwing validation error
       mockConfigurator.diffForIntrospect.mockRejectedValue(
         new Error("Invalid configuration file: Unknown field 'invalidField'")
       );
 
-      vi.mocked(cli.confirmPrompt).mockResolvedValue(true);
+      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
       mockConfigurator.introspect.mockResolvedValue({ shop: {} });
-
-      const fileUtils = await import("../lib/utils/file");
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
       vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "⚠️  Local configuration file has validation issues:"
-      );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        "🔧 Introspecting will fetch the latest valid configuration from Saleor."
-      );
+      expect(cliConsole.warn).toHaveBeenCalledWith("⚠️  Local configuration file has validation issues:");
+      expect(cliConsole.warn).toHaveBeenCalledWith("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
       expect(mockConfigurator.introspect).toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(0);
     });
   });
 
-  describe("Dry Run Mode", () => {
-    it("should not make any changes in dry-run mode", async () => {
+  describe("User Cancellation", () => {
+    it("should handle user cancellation gracefully", async () => {
       // Arrange
       const mockArgs = {
         url: "https://example.saleor.cloud/graphql/",
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: false,
-        dryRun: true,
-        skipValidation: false,
       };
 
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
+      const diffSummary = {
+        totalChanges: 3,
+        creates: 1,
+        updates: 1,
+        deletes: 1,
+        results: [
+          { operation: "CREATE", entityType: "Channels", entityName: "New Channel" },
+          { operation: "UPDATE", entityType: "Shop Settings", entityName: "Shop Settings" },
+          { operation: "DELETE", entityType: "Product Types", entityName: "Old Type" },
+        ],
+      };
 
-      const fileUtils = await import("../lib/utils/file");
-      vi.mocked(fileUtils.fileExists).mockReturnValue(false);
+      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
+      vi.mocked(commandUtils.confirmAction).mockResolvedValue(false);
+      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      expect(consoleLogSpy).toHaveBeenCalledWith("🔍 Dry-run mode: No changes will be made\n");
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        "🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes."
-      );
+      expect(cliConsole.cancelled).toHaveBeenCalledWith("Operation cancelled by user");
       expect(mockConfigurator.introspect).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
   });
 
-  describe("Force Mode", () => {
-    it("should skip confirmation with --force flag", async () => {
+  describe("New Configuration File", () => {
+    it("should handle creating new configuration file", async () => {
       // Arrange
       const mockArgs = {
         url: "https://example.saleor.cloud/graphql/",
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: true,
-        dryRun: false,
-        skipValidation: false,
       };
 
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
-      mockConfigurator.introspect.mockResolvedValue({ shop: {} });
+      const diffSummary = {
+        totalChanges: 3,
+        creates: 3,
+        updates: 0,
+        deletes: 0,
+        results: [
+          { operation: "CREATE", entityType: "Shop Settings", entityName: "Shop Settings" },
+          { operation: "CREATE", entityType: "Channels", entityName: "Default Channel" },
+          { operation: "CREATE", entityType: "Product Types", entityName: "Default Type" },
+        ],
+      };
 
-      const fileUtils = await import("../lib/utils/file");
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
-      vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
+      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
+      vi.mocked(fileUtils.fileExists).mockReturnValue(false);
+      mockConfigurator.introspect.mockResolvedValue({});
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      // Should not call confirmPrompt
-      expect(cli.confirmPrompt).not.toHaveBeenCalled();
+      expect(cliConsole.warn).toHaveBeenCalledWith(
+        "📊 No local configuration found. A new configuration will be created."
+      );
       expect(mockConfigurator.introspect).toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(0);
+      expect(fileUtils.createBackup).not.toHaveBeenCalled();
     });
   });
 
-  describe("User Cancellation", () => {
-    it("should handle user cancelling the operation", async () => {
+  describe("Backup Creation", () => {
+    it("should create backup before overwriting existing file", async () => {
       // Arrange
       const mockArgs = {
         url: "https://example.saleor.cloud/graphql/",
         token: "test-token",
         config: "config.yml",
         quiet: false,
-        verbose: false,
-        force: false,
-        dryRun: false,
-        skipValidation: false,
       };
-
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
 
       const diffSummary = {
         totalChanges: 1,
         creates: 0,
         updates: 1,
         deletes: 0,
-        results: [],
+        results: [
+          { operation: "UPDATE", entityType: "Shop Settings", entityName: "Shop Settings" },
+        ],
       };
 
       mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(cli.confirmPrompt).mockResolvedValue(false);
-
-      const fileUtils = await import("../lib/utils/file");
+      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
       vi.mocked(fileUtils.fileExists).mockReturnValue(true);
+      vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
+      mockConfigurator.introspect.mockResolvedValue({});
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      expect(consoleLogSpy).toHaveBeenCalledWith("❌ Operation cancelled by user");
-      expect(mockConfigurator.introspect).not.toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(0);
-    });
-  });
-
-  describe("Error Handling", () => {
-    it("should handle introspect errors gracefully", async () => {
-      // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-        verbose: false,
-        force: true,
-        dryRun: false,
-        skipValidation: false,
-      };
-
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
-      
-      const error = new Error("Network error");
-      mockConfigurator.introspect.mockRejectedValue(error);
-
-      const fileUtils = await import("../lib/utils/file");
-      vi.mocked(fileUtils.fileExists).mockReturnValue(false);
-
-      // Act
-      await runIntrospect();
-
-      // Assert
-      expect(cli.handleCommandError).toHaveBeenCalledWith(error);
+      expect(cliConsole.info).toHaveBeenCalledWith("💾 Creating backup of existing configuration...");
+      expect(cliConsole.info).toHaveBeenCalledWith("   Backup saved to: config.yml.backup");
+      expect(fileUtils.createBackup).toHaveBeenCalledWith("config.yml");
+      expect(mockConfigurator.introspect).toHaveBeenCalled();
     });
   });
 
@@ -345,27 +282,24 @@ describe("Introspect Command Integration Tests", () => {
         token: "test-token",
         config: "config.yml",
         quiet: true,
-        verbose: false,
-        force: true,
-        dryRun: false,
-        skipValidation: false,
       };
 
-      vi.mocked(cli.parseCliArgs).mockReturnValue(mockArgs);
-      vi.mocked(cli.validateSaleorUrl).mockReturnValue(mockArgs.url);
-      mockConfigurator.introspect.mockResolvedValue({});
+      const diffSummary = {
+        totalChanges: 0,
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+        results: [],
+      };
 
-      const fileUtils = await import("../lib/utils/file");
-      vi.mocked(fileUtils.fileExists).mockReturnValue(false);
+      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
+      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
 
       // Act
-      await runIntrospect();
+      await introspectHandler(mockArgs);
 
       // Assert
-      // Should not show most messages
-      expect(cli.displayConfig).toHaveBeenCalledWith(expect.anything(), true);
-      expect(consoleLogSpy).not.toHaveBeenCalledWith("⚙️  Initializing...");
-      expect(consoleLogSpy).not.toHaveBeenCalledWith("🌐 Introspecting configuration from Saleor...");
+      expect(cliConsole.setOptions).toHaveBeenCalledWith({ quiet: true });
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
   });

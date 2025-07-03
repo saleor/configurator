@@ -60,8 +60,20 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Parsed configuration", { data });
 
       if (!success) {
+        const uniqueMessages = Array.from(
+          new Set(
+            error.errors.map((issue) => {
+              const path =
+                issue.path && issue.path.length
+                  ? issue.path.join(".") + ": "
+                  : "";
+              return path + issue.message;
+            })
+          )
+        );
         const validationError = new Error(
-          "Invalid configuration file. " + error.errors.map((issue) => issue.message).join(", ")
+          "Invalid configuration file:\n" +
+            uniqueMessages.map((msg) => `  - ${msg}`).join("\n")
         );
         logger.error("Configuration validation failed", {
           errors: error.errors,
@@ -75,7 +87,9 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       return data;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        const fileNotFoundError = new Error(`Configuration file not found: ${this.configPath}`);
+        const fileNotFoundError = new Error(
+          `Configuration file not found: ${this.configPath}`
+        );
         logger.error("Configuration file not found", { path: this.configPath });
         throw fileNotFoundError;
       }

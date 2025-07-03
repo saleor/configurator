@@ -1,22 +1,20 @@
 import { logger } from "../lib/logger";
-import type { ServiceContainer } from "./service-container";
+import { ServiceComposer, type ServiceContainer } from "./service-container";
 import { DiffService } from "./diff";
 import { DiffFormatter, IntrospectDiffFormatter } from "./diff";
+import { createClient } from "../lib/graphql/client";
+import type { BaseCommandArgs } from "../cli/command";
 
-export interface DiffOptions {
+export type IntrospectDiffOptions = {
   format?: "table" | "json" | "summary";
   filter?: string[];
   quiet?: boolean;
-}
+};
 
-/**
- * @description Parsing the configuration and triggering the commands.
- */
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
   async push() {
-    logger.debug("Starting push process");
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
@@ -41,26 +39,34 @@ export class SaleorConfigurator {
     // Channels are added first to ensure they're ready before products (which reference them)
     if (config.channels) {
       logger.debug(`Bootstrapping ${config.channels.length} channels`);
-      bootstrapTasks.push(this.services.channel.bootstrapChannels(config.channels));
+      bootstrapTasks.push(
+        this.services.channel.bootstrapChannels(config.channels)
+      );
     }
 
     if (config.pageTypes) {
       logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
       bootstrapTasks.push(
         Promise.all(
-          config.pageTypes.map((pageType) => this.services.pageType.bootstrapPageType(pageType))
+          config.pageTypes.map((pageType) =>
+            this.services.pageType.bootstrapPageType(pageType)
+          )
         )
       );
     }
 
     if (config.categories) {
       logger.debug(`Bootstrapping ${config.categories.length} categories`);
-      bootstrapTasks.push(this.services.category.bootstrapCategories(config.categories));
+      bootstrapTasks.push(
+        this.services.category.bootstrapCategories(config.categories)
+      );
     }
 
     if (config.products) {
       logger.debug(`Bootstrapping ${config.products.length} products`);
-      bootstrapTasks.push(this.services.product.bootstrapProducts(config.products));
+      bootstrapTasks.push(
+        this.services.product.bootstrapProducts(config.products)
+      );
     }
 
     try {
@@ -84,78 +90,26 @@ export class SaleorConfigurator {
     }
   }
 
-  async diff(options: DiffOptions = {}) {
-    const { format = "table", filter, quiet = false } = options;
-
+  async diff() {
     logger.info("Starting diff process");
 
     try {
-      if (!quiet) {
-        console.log("📥 Loading local configuration...");
-      }
-
       const diffService = new DiffService(this.services);
 
-      if (!quiet) {
-        console.log("🌐 Fetching remote configuration...");
-      }
-
       const summary = await diffService.compare();
+      const output = DiffFormatter.format(summary);
 
-      if (!quiet) {
-        console.log("🔍 Analyzing differences...\n");
-      }
-
-      // Apply filter if specified
-      let filteredSummary = summary;
-      if (filter && filter.length > 0) {
-        const filterSet = new Set(filter.map((f) => f.toLowerCase()));
-        const filteredResults = summary.results.filter((result) =>
-          filterSet.has(result.entityType.toLowerCase().replace(/\s+/g, ""))
-        );
-
-        filteredSummary = {
-          ...summary,
-          results: filteredResults,
-          totalChanges: filteredResults.length,
-          creates: filteredResults.filter((r) => r.operation === "CREATE").length,
-          updates: filteredResults.filter((r) => r.operation === "UPDATE").length,
-          deletes: filteredResults.filter((r) => r.operation === "DELETE").length,
-        };
-      }
-
-      // Format and display output
-      let formattedOutput: string;
-
-      switch (format) {
-        case "json":
-          formattedOutput = JSON.stringify(filteredSummary, null, 2);
-          break;
-        case "summary":
-          formattedOutput = DiffFormatter.formatSummary(filteredSummary);
-          break;
-        case "table":
-        default:
-          formattedOutput = DiffFormatter.format(filteredSummary);
-      }
-
-      console.log(formattedOutput);
-
-      logger.info("Diff process completed successfully", {
-        totalChanges: filteredSummary.totalChanges,
-        creates: filteredSummary.creates,
-        updates: filteredSummary.updates,
-        deletes: filteredSummary.deletes,
-      });
-
-      return filteredSummary;
+      return {
+        summary,
+        output,
+      };
     } catch (error) {
       logger.error("Failed to diff configurations", { error });
       throw error;
     }
   }
 
-  async diffForIntrospect(options: DiffOptions = {}) {
+  async diffForIntrospect(options: IntrospectDiffOptions = {}) {
     const { format = "table", filter, quiet = false } = options;
 
     logger.info("Starting diff process for introspect");
@@ -180,7 +134,7 @@ export class SaleorConfigurator {
       // Apply filter if specified
       let filteredSummary = summary;
       if (filter && filter.length > 0) {
-        const filterSet = new Set(filter.map((f) => f.toLowerCase()));
+        const filterSet = new Set(filter.map((f: string) => f.toLowerCase()));
         const filteredResults = summary.results.filter((result) =>
           filterSet.has(result.entityType.toLowerCase().replace(/\s+/g, ""))
         );
@@ -226,4 +180,12 @@ export class SaleorConfigurator {
       throw error;
     }
   }
+}
+
+export function createConfigurator(baseArgs: BaseCommandArgs) {
+  const { url, token, config: configPath } = baseArgs;
+
+  const client = createClient(token, url);
+  const services = ServiceComposer.compose(client, configPath);
+  return new SaleorConfigurator(services);
 }

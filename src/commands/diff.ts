@@ -1,69 +1,68 @@
-import {
-  parseCliArgs,
-  commandSchemas,
-  validateSaleorUrl,
-  setupLogger,
-  displayConfig,
-  handleCommandError,
-} from "../cli";
-import { createConfigurator } from "../core/factory";
+import type { z } from "zod";
+import type { CommandConfig } from "../cli/command";
+import { baseCommandArgsSchema } from "../cli/command";
+import { cliConsole } from "../cli/console";
+import { createConfigurator } from "../core/configurator";
+import type { DiffSummary } from "../core/diff";
+import { logger } from "../lib/logger";
 
-const argsSchema = commandSchemas.diff;
+export const diffCommandSchema = baseCommandArgsSchema;
 
-async function runDiff() {
-  try {
-    console.log("🔍 Saleor Configuration Diff\n");
+export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 
-    const args = parseCliArgs(argsSchema, "diff");
-    const { url, token, config: configPath, format, filter, quiet, verbose, dryRun } = args;
-
-    const validatedUrl = validateSaleorUrl(url, quiet);
-    setupLogger(verbose, quiet);
-    displayConfig({ ...args, url: validatedUrl }, quiet);
-
-    if (dryRun && !quiet) {
-      console.log("🔍 Dry-run mode: Analysis only, no changes will be made\n");
-    }
-
-    if (!quiet) {
-      console.log("⚙️  Initializing...");
-    }
-
-    const configurator = createConfigurator(token, validatedUrl, configPath);
-
-    if (!quiet) {
-      console.log("🔄 Running diff analysis...");
-    }
-
-    const summary = await configurator.diff({
-      format,
-      filter: filter?.split(","),
-      quiet,
-    });
-
-    if (summary.totalChanges > 0) {
-      if (!quiet) {
-        console.log(
-          `\n⚠️  Found ${summary.totalChanges} difference${
-            summary.totalChanges !== 1 ? "s" : ""
-          } that would be applied by 'push'`
-        );
-      }
-    } else {
-      if (!quiet) {
-        console.log("\n✅ No differences found - configurations are in sync");
-      }
-    }
-
-    // Exit with success code regardless of whether differences were found
-    // Finding differences is expected behavior, not an error
-    process.exit(0);
-  } catch (error) {
-    handleCommandError(error);
+function formatDiffSummaryMessage(totalChanges: number): string {
+  if (totalChanges === 0) {
+    return "\n✅ No differences found - configurations are in sync";
   }
+
+  const changeText = totalChanges === 1 ? "difference" : "differences";
+  return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'push'`;
 }
 
-runDiff().catch((error) => {
-  console.error("Fatal error:", error);
-  process.exit(1);
-});
+function logDiffCompletion(summary: DiffSummary): void {
+  logger.info("Diff process completed successfully", {
+    totalChanges: summary.totalChanges,
+    creates: summary.creates,
+    updates: summary.updates,
+    deletes: summary.deletes,
+  });
+}
+
+async function performDiffOperation(args: DiffCommandArgs): Promise<void> {
+  const configurator = createConfigurator(args);
+
+  cliConsole.processing(
+    "⏳ Preparing a diff between the configuration and the Saleor instance..."
+  );
+
+  const { summary, output } = await configurator.diff();
+
+  cliConsole.status(output);
+  logDiffCompletion(summary);
+
+  const summaryMessage = formatDiffSummaryMessage(summary.totalChanges);
+  cliConsole.status(summaryMessage);
+
+  process.exit(0);
+}
+
+export async function diffHandler(args: DiffCommandArgs): Promise<void> {
+  cliConsole.setOptions({ quiet: args.quiet });
+  cliConsole.header("🔍 Saleor Configuration Diff\n");
+
+  await performDiffOperation(args);
+}
+
+export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
+  name: "diff",
+  description:
+    "Shows the differences between local and remote Saleor configurations",
+  schema: diffCommandSchema,
+  handler: diffHandler,
+  requiresInteractive: true,
+  examples: [
+    "configurator diff -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator diff --config custom-config.yml",
+    "configurator diff --quiet",
+  ],
+};

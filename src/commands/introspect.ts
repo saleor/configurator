@@ -1,149 +1,162 @@
-import {
-  parseCliArgs,
-  commandSchemas,
-  validateSaleorUrl,
-  setupLogger,
-  displayConfig,
-  handleCommandError,
-  confirmPrompt,
-  displayIntrospectDiffSummary,
-} from "../cli";
-import { createConfigurator } from "../core/factory";
+import type { z } from "zod";
+import type { CommandConfig } from "../cli/command";
+import { baseCommandArgsSchema, confirmAction } from "../cli/command";
+import { cliConsole } from "../cli/console";
+import { createConfigurator } from "../core/configurator";
 import { createBackup, fileExists } from "../lib/utils/file";
 
-const argsSchema = commandSchemas.introspect;
+export const introspectCommandSchema = baseCommandArgsSchema;
 
-async function runIntrospect() {
+export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
+
+async function analyzeConfigurationDifferences(
+  args: IntrospectCommandArgs
+): Promise<boolean> {
+  if (!fileExists(args.config)) {
+    cliConsole.warn(
+      "📊 No local configuration found. A new configuration will be created."
+    );
+    return true;
+  }
+
+  cliConsole.info(
+    "📊 Analyzing differences between remote and local configuration..."
+  );
+
   try {
-    console.log("🔍 Saleor Configuration Introspect\n");
+    const configurator = createConfigurator(args);
+    const diffSummary = await configurator.diffForIntrospect({
+      format: "table",
+      quiet: true,
+    });
 
-    const args = parseCliArgs(argsSchema, "introspect");
-    const { url, token, config: configPath, quiet, verbose, force, dryRun, skipValidation } = args;
-
-    const validatedUrl = validateSaleorUrl(url, quiet);
-    setupLogger(verbose, quiet);
-    displayConfig({ ...args, url: validatedUrl }, quiet);
-
-    if (dryRun && !quiet) {
-      console.log("🔍 Dry-run mode: No changes will be made\n");
+    if (diffSummary.totalChanges === 0) {
+      cliConsole.success("✅ Local configuration is already up to date!");
+      return false; // No need to proceed
     }
 
-    if (!quiet) {
-      console.log("⚙️  Initializing...");
-    }
+    // Display the diff summary
+    await configurator.diffForIntrospect({
+      format: "table",
+      quiet: false,
+    });
 
-    const configurator = createConfigurator(token, validatedUrl, configPath);
-
-    const hasLocalFile = fileExists(configPath);
-
-    if (hasLocalFile && !force && !dryRun && !skipValidation) {
-      if (!quiet) {
-        console.log("📊 Analyzing differences between remote and local configuration...");
-      }
-
-      try {
-        const diffSummary = await configurator.diffForIntrospect({
-          format: "table",
-          quiet: true,
-        });
-
-        displayIntrospectDiffSummary(diffSummary);
-
-        if (diffSummary.totalChanges === 0) {
-          if (!quiet) {
-            console.log("✅ Local configuration is already up to date!");
-          }
-          process.exit(0);
-        }
-
-        if (!quiet) {
-          console.log("⚠️  Introspecting will replace your local configuration file with the current state from Saleor.");
-          const confirmed = await confirmPrompt(
-            "Do you want to continue and overwrite the local file?",
-            false
-          );
-
-          if (!confirmed) {
-            console.log("❌ Operation cancelled by user");
-            process.exit(0);
-          }
-        }
-      } catch (diffError) {
-        if (
-          diffError instanceof Error &&
-          diffError.message.includes("Invalid configuration file")
-        ) {
-          if (!quiet) {
-            console.warn("⚠️  Local configuration file has validation issues:");
-            console.warn(`   ${diffError.message}`);
-            console.warn("");
-            console.warn("📋 This usually means:");
-            console.warn("   • Your local config uses unsupported values");
-            console.warn("   • The config format has changed since it was created");
-            console.warn("");
-            console.warn("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
-
-            const confirmed = await confirmPrompt(
-              "Do you want to proceed and replace the invalid local file?",
-              true
-            );
-
-            if (!confirmed) {
-              console.log("❌ Operation cancelled by user");
-              console.log(
-                "💡 You can fix the local file manually or use --force to skip this check"
-              );
-              process.exit(0);
-            }
-          }
-        } else {
-          if (!quiet) {
-            console.warn("⚠️  Could not compute diff, proceeding with introspect...");
-            if (verbose) {
-              console.warn(
-                `   Diff error: ${diffError instanceof Error ? diffError.message : "Unknown error"}`
-              );
-            }
-          }
-        }
-      }
-    }
-
-    if (dryRun) {
-      if (!quiet) {
-        console.log(
-          "🔍 Dry-run complete. Use --force to skip confirmation or remove --dry-run to apply changes."
-        );
-      }
-      process.exit(0);
-    }
-
-    if (hasLocalFile && !quiet) {
-      console.log("💾 Creating backup of existing configuration...");
-      const backupPath = await createBackup(configPath);
-      if (backupPath) {
-        console.log(`   Backup saved to: ${backupPath}`);
-      }
-    }
-
-    if (!quiet) {
-      console.log("🌐 Introspecting configuration from Saleor...");
-    }
-
-    await configurator.introspect();
-
-    if (!quiet) {
-      console.log(`\n✅ Configuration successfully saved to ${configPath}`);
-
-      if (hasLocalFile) {
-        console.log("💡 You can restore the previous version from the backup if needed");
-      }
-    }
-
-    process.exit(0);
+    return await confirmIntrospection();
   } catch (error) {
-    handleCommandError(error);
+    if (
+      error instanceof Error &&
+      error.message.includes("Invalid configuration file")
+    ) {
+      cliConsole.warn("⚠️  Local configuration file has validation issues:");
+      cliConsole.warn(`   ${error.message}`);
+      cliConsole.warn("");
+      cliConsole.warn("📋 This usually means:");
+      cliConsole.warn("   • Your local config uses unsupported values");
+      cliConsole.warn("   • The config format has changed since it was created");
+      cliConsole.warn("");
+      cliConsole.warn("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
+
+      const confirmed = await confirmAction(
+        "Do you want to proceed and replace the invalid local file?",
+        "This will overwrite your current local configuration with the remote state.",
+        true
+      );
+
+      if (!confirmed) {
+        cliConsole.cancelled("Operation cancelled by user");
+        cliConsole.info("💡 You can fix the local file manually or use different options");
+        return false;
+      }
+      return true;
+    } else {
+      cliConsole.warn("⚠️  Could not compute diff, proceeding with introspect...");
+      return true;
+    }
   }
 }
 
-export { runIntrospect };
+async function confirmIntrospection(): Promise<boolean> {
+  cliConsole.warn(
+    "⚠️  Introspecting will overwrite your local configuration file."
+  );
+
+  const userConfirmed = await confirmAction(
+    "Do you want to continue and update the local file?",
+    "This will overwrite your current local configuration with the remote state.",
+    false
+  );
+
+  if (!userConfirmed) {
+    cliConsole.cancelled("Operation cancelled by user");
+    return false;
+  }
+
+  return true;
+}
+
+async function createConfigurationBackup(configPath: string): Promise<void> {
+  cliConsole.info("💾 Creating backup of existing configuration...");
+
+  const backupPath = await createBackup(configPath);
+  if (backupPath) {
+    cliConsole.info(`   Backup saved to: ${backupPath}`);
+  }
+}
+
+async function executeIntrospection(
+  args: IntrospectCommandArgs
+): Promise<void> {
+  const configurator = createConfigurator(args);
+  cliConsole.processing("🌐 Introspecting configuration from Saleor...");
+
+  await configurator.introspect();
+
+  const configPath = cliConsole.important(args.config);
+  cliConsole.success(`\n✅ Configuration successfully saved to ${configPath}`);
+}
+
+export async function introspectHandler(
+  args: IntrospectCommandArgs
+): Promise<void> {
+  cliConsole.setOptions({ quiet: args.quiet });
+  cliConsole.header("🔍 Saleor Configuration Introspect\n");
+
+  const hasExistingFile = fileExists(args.config);
+
+  if (hasExistingFile) {
+    cliConsole.info(
+      `Local configuration file "${args.config}" already exists.`
+    );
+  }
+
+  const shouldProceed = await analyzeConfigurationDifferences(args);
+
+  if (!shouldProceed) {
+    process.exit(0);
+    return; // This return is necessary for testing when process.exit is mocked
+  }
+
+  // Only create backup if file actually exists
+  if (hasExistingFile) {
+    await createConfigurationBackup(args.config);
+  }
+
+  await executeIntrospection(args);
+  process.exit(0);
+}
+
+export const introspectCommandConfig: CommandConfig<
+  typeof introspectCommandSchema
+> = {
+  name: "introspect",
+  description:
+    "Downloads the current configuration from the remote Saleor instance",
+  schema: introspectCommandSchema,
+  handler: introspectHandler,
+  requiresInteractive: true,
+  examples: [
+    "configurator introspect -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator introspect --config output.yml",
+    "configurator introspect --quiet",
+  ],
+};
