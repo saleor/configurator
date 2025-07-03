@@ -478,49 +478,4 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
     });
   });
-
-  describe("createProductType", () => {
-    it("should create a new product type with minimal input", async () => {
-      const newProductType: ProductType = {
-        id: "1",
-        name: "Electronics",
-        productAttributes: [],
-        variantAttributes: [],
-      };
-
-      const mockProductTypeOperations = {
-        getProductTypeByName: vi.fn(),
-        createProductType: vi.fn().mockResolvedValue(newProductType),
-        assignAttributesToProductType: vi.fn(),
-      };
-
-      const mockAttributeOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn(),
-      };
-
-      const attributeService = new AttributeService(mockAttributeOperations);
-
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
-
-      // When
-      const result = await service.createProductType({
-        name: "Electronics",
-      });
-
-      // Then
-      expect(mockProductTypeOperations.createProductType).toHaveBeenCalledWith({
-        name: "Electronics",
-        kind: "NORMAL",
-        hasVariants: false,
-        isShippingRequired: false,
-        taxClass: null,
-      });
-      expect(result).toBe(newProductType);
-    });
-  });
 });

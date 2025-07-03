@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { PageTypeService } from "./page-type-service";
 import { AttributeService } from "../attribute/attribute-service";
+import { PageTypeService } from "./page-type-service";
 
 describe("PageTypeService", () => {
   describe("is idempotent", () => {
@@ -32,7 +32,10 @@ describe("PageTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+      const service = new PageTypeService(
+        mockPageTypeOperations,
+        attributeService
+      );
 
       // When
       await service.bootstrapPageType({

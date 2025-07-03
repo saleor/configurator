@@ -2,9 +2,8 @@ import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import type {
   AttributeInput,
-  ProductTypeCreateInput,
+  NoTypeAttribute,
   ProductTypeInput,
-  ProductTypeUpdateInput,
 } from "../config/schema";
 import type { ProductType, ProductTypeOperations } from "./repository";
 
@@ -19,6 +18,7 @@ export class ProductTypeService {
     const existingProductType = await this.repository.getProductTypeByName(
       name
     );
+
     if (existingProductType) {
       logger.debug("Found existing product type", {
         id: existingProductType.id,
@@ -28,47 +28,21 @@ export class ProductTypeService {
     }
 
     logger.debug("Creating new product type", { name });
+
     return this.repository.createProductType({
       name,
       kind: "NORMAL",
-      hasVariants: false,
+      hasVariants: true,
       isShippingRequired: false,
       taxClass: null,
     });
   }
 
-  private filterOutAssignedAttributes(
-    productType: ProductType,
-    attributeIds: string[]
-  ) {
-    const existingAttributeIds = new Set(
-      productType.productAttributes?.map((attr) => attr.id) ?? []
-    );
-    const filteredIds = attributeIds.filter(
-      (id) => !existingAttributeIds.has(id)
-    );
-
-    return filteredIds;
-  }
-
-  async createProductType(input: ProductTypeCreateInput) {
-    logger.debug("Creating new product type", { name: input.name });
-    return this.repository.createProductType({
-      name: input.name,
-      kind: "NORMAL",
-      hasVariants: false,
-      isShippingRequired: false,
-      taxClass: null,
-    });
-  }
-
-  async updateProductType(
-    productType: ProductType,
-    input: ProductTypeUpdateInput
-  ) {
+  async updateProductType(productType: ProductType, input: ProductTypeInput) {
     logger.debug("Updating product type", {
       id: productType.id,
       name: input.name,
+      input,
     });
 
     const {
@@ -76,7 +50,8 @@ export class ProductTypeService {
       updatedAttributes: updatedProductAttrs,
     } = await this.upsertAndAssignAttributes(
       productType,
-      input.productAttributes.map((a) => ({ ...a, type: "PRODUCT_TYPE" })),
+      input.productAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ??
+        [],
       "PRODUCT"
     );
 
@@ -85,7 +60,8 @@ export class ProductTypeService {
       updatedAttributes: updatedVariantAttrs,
     } = await this.upsertAndAssignAttributes(
       productType,
-      input.variantAttributes.map((a) => ({ ...a, type: "PRODUCT_TYPE" })),
+      input.variantAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ??
+        [],
       "VARIANT"
     );
 
@@ -100,6 +76,28 @@ export class ProductTypeService {
     return productType;
   }
 
+  private async getExistingAttributesToAssign(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ) {
+    const attributeNames = inputAttributes.filter((a) => "attribute" in a);
+
+    // check if the attribute is already assigned to the product type
+    const assignedAttributeNames =
+      productType.productAttributes?.map((a) => a.name) ?? [];
+    const unassignedAttributeNames = attributeNames.filter(
+      (a) => !assignedAttributeNames.includes(a.attribute)
+    );
+
+    const unassignedExistingAttributes =
+      await this.attributeService.repo.getAttributesByNames({
+        names: unassignedAttributeNames.map((a) => a.attribute),
+        type: "PRODUCT_TYPE",
+      });
+
+    return unassignedExistingAttributes ?? [];
+  }
+
   private async upsertAndAssignAttributes(
     productType: ProductType,
     inputAttributes: AttributeInput[],
@@ -109,17 +107,34 @@ export class ProductTypeService {
       productType,
       inputAttributes
     );
+
     const createdAttributes = await this.createAttributes(
       productType,
       inputAttributes
     );
 
-    if (createdAttributes.length > 0) {
-      await this.assignAttributesToProductType(
-        productType,
-        createdAttributes.map((a) => a.id),
-        type
-      );
+    const existingAttributesToAssign = await this.getExistingAttributesToAssign(
+      productType,
+      inputAttributes
+    );
+
+    logger.debug("Existing attributes to assign", {
+      inputAttributes,
+      existingAttributesToAssign: existingAttributesToAssign.length,
+      productTypeName: productType.name,
+    });
+
+    const attributeToAssignIds = [
+      ...createdAttributes.map((a) => a.id),
+      ...existingAttributesToAssign.map((a) => a.id),
+    ];
+
+    if (attributeToAssignIds.length > 0) {
+      await this.repository.assignAttributesToProductType({
+        productTypeId: productType.id,
+        attributeIds: attributeToAssignIds,
+        type,
+      });
     }
 
     return { createdAttributes, updatedAttributes };
@@ -129,12 +144,21 @@ export class ProductTypeService {
     productType: ProductType,
     inputAttributes: AttributeInput[]
   ) {
+    const updatedAttributes = [];
+
     const existingAttributeNames =
       productType.productAttributes?.map((attr) => attr.name) || [];
-    const attributesToUpdate = inputAttributes.filter((a) =>
-      existingAttributeNames.includes(a.name)
-    );
-    const updatedAttributes = [];
+
+    const attributesToUpdate = inputAttributes.filter((a) => {
+      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // TODO: improve, we shouldnt check by "attribute" in a
+      if ("attribute" in a) {
+        return false;
+      }
+
+      return existingAttributeNames.includes(a.name);
+    }) as NoTypeAttribute[];
+
     if (attributesToUpdate.length > 0) {
       logger.debug("Updating existing attributes", {
         count: attributesToUpdate.length,
@@ -166,43 +190,33 @@ export class ProductTypeService {
     productType: ProductType,
     inputAttributes: AttributeInput[]
   ) {
-    const existingAttributeNames =
+    const existingProductAttributeNames =
       productType.productAttributes?.map((attr) => attr.name) || [];
-    const attributesToCreate = inputAttributes.filter(
-      (a) => !existingAttributeNames.includes(a.name)
-    );
-    if (attributesToCreate.length === 0) return [];
-    logger.debug("Creating new attributes", {
-      count: attributesToCreate.length,
-    });
+
+    const existingVariantAttributeNames =
+      productType.variantAttributes?.map((attr) => attr.name) || [];
+
+    const attributesToCreate = inputAttributes.filter((a) => {
+      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // TODO: improve, we shouldnt check by "attribute" in a
+      if ("attribute" in a) {
+        return false;
+      }
+
+      return (
+        !existingProductAttributeNames.includes(a.name) &&
+        !existingVariantAttributeNames.includes(a.name)
+      );
+    }) as NoTypeAttribute[];
+
     const newAttributes = await this.attributeService.bootstrapAttributes({
       attributeInputs: attributesToCreate.map((a) => ({
         ...a,
         type: "PRODUCT_TYPE",
       })),
     });
-    return newAttributes;
-  }
 
-  private async assignAttributesToProductType(
-    productType: ProductType,
-    attributeIds: string[],
-    type: "PRODUCT" | "VARIANT"
-  ) {
-    const attributesToAssign = this.filterOutAssignedAttributes(
-      productType,
-      attributeIds
-    );
-    if (attributesToAssign.length > 0) {
-      logger.debug("Assigning new attributes", {
-        count: attributesToAssign.length,
-      });
-      await this.repository.assignAttributesToProductType({
-        productTypeId: productType.id,
-        attributeIds: attributesToAssign,
-        type: "PRODUCT",
-      });
-    }
+    return newAttributes;
   }
 
   async bootstrapProductType(input: ProductTypeInput) {
@@ -212,15 +226,6 @@ export class ProductTypeService {
 
     const productType = await this.upsert(input.name);
 
-    // Check if this is an update input (has attributes)
-    if ("attributes" in input) {
-      return this.updateProductType(
-        productType,
-        input as ProductTypeUpdateInput
-      );
-    }
-
-    // It's a create input, return the created/found product type
-    return productType;
+    await this.updateProductType(productType, input);
   }
 }

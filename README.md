@@ -91,6 +91,21 @@ productTypes:
           - name: Small
           - name: Medium
           - name: Large
+  - name: E-Book
+    productAttributes:
+      - attribute: author # Reference an existing attribute by slug
+      - attribute: genre # Reference an existing attribute by slug
+      - name: File Format # New attribute
+        inputType: DROPDOWN
+        values:
+          - name: PDF
+          - name: EPUB
+          - name: MOBI
+      - name: DRM Protected
+        inputType: BOOLEAN
+      - name: Page Count
+        inputType: NUMERIC
+
 
 pageTypes:
   - name: Blog Post
@@ -129,35 +144,10 @@ products:
         attributes:
           Size: "Large"
           Cover: "Hardcover"
-        # Note: Channel listings will be supported in a future release
         channelListings: []
       - name: "Paperback"
         sku: "BOOK-001-PB"
         weight: 0.8
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
-
-  - name: "Sample Non-Fiction Book"
-    productType: "Book"
-    category: "Non-Fiction/Science"
-    description: "Demonstrates subcategory assignment and reference attributes"
-    attributes:
-      Author: "Dr. John Smith"
-      Genre: "Non-Fiction"
-      Related Books: ["Sample Fiction Book"]  # Reference to other products
-    variants:
-      - name: "Digital"
-        sku: "BOOK-002-DIG"
-        digital: true
-        attributes:
-          Format: "PDF"
-          DRM: "None"
-        channelListings: []
-      - name: "Print"
-        sku: "BOOK-002-PRT"
-        weight: 0.9
         attributes:
           Size: "Standard"
           Cover: "Paperback"

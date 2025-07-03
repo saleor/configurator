@@ -1,5 +1,5 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
 
 const createAttributeMutation = graphql(`
@@ -52,12 +52,18 @@ const updateAttributeMutation = graphql(`
   }
 `);
 
-export type AttributeCreateInput = VariablesOf<typeof createAttributeMutation>["input"];
+export type AttributeCreateInput = VariablesOf<
+  typeof createAttributeMutation
+>["input"];
 
-export type AttributeUpdateInput = VariablesOf<typeof updateAttributeMutation>["input"];
+export type AttributeUpdateInput = VariablesOf<
+  typeof updateAttributeMutation
+>["input"];
 
 type AttributeFragment = NonNullable<
-  NonNullable<NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]>["attribute"]
+  NonNullable<
+    NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]
+  >["attribute"]
 >;
 
 export type Attribute = AttributeFragment;
@@ -88,24 +94,37 @@ const getAttributesByNamesQuery = graphql(`
   }
 `);
 
-export type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
+export type GetAttributesByNamesInput = VariablesOf<
+  typeof getAttributesByNamesQuery
+>;
 
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
-  updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
-  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[] | null | undefined>;
+  updateAttribute(
+    id: string,
+    attributeInput: AttributeUpdateInput
+  ): Promise<Attribute>;
+  getAttributesByNames(
+    input: GetAttributesByNamesInput
+  ): Promise<Attribute[] | null | undefined>;
 }
 
 export class AttributeRepository implements AttributeOperations {
   constructor(private client: Client) {}
 
-  async createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute> {
+  async createAttribute(
+    attributeInput: AttributeCreateInput
+  ): Promise<Attribute> {
     const result = await this.client.mutation(createAttributeMutation, {
       input: attributeInput,
     });
 
     if (!result.data?.attributeCreate?.attribute) {
-      throw new Error("Failed to create attribute");
+      throw new Error(
+        `Failed to create attribute: ${result.data?.attributeCreate?.errors
+          ?.map((e) => e.message)
+          .join(", ")}`
+      );
     }
 
     logger.info("Attribute created", {
@@ -115,7 +134,10 @@ export class AttributeRepository implements AttributeOperations {
     return result.data.attributeCreate.attribute as Attribute;
   }
 
-  async updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute> {
+  async updateAttribute(
+    id: string,
+    attributeInput: AttributeUpdateInput
+  ): Promise<Attribute> {
     const result = await this.client.mutation(updateAttributeMutation, {
       id,
       input: attributeInput,
@@ -139,6 +161,8 @@ export class AttributeRepository implements AttributeOperations {
       type: input.type,
     });
 
-    return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
+    return result.data?.attributes?.edges?.map(
+      (edge) => edge.node as Attribute
+    );
   }
 }

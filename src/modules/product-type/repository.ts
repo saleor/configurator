@@ -131,8 +131,9 @@ export class ProductTypeRepository implements ProductTypeOperations {
 
     if (!result.data?.productAttributeAssign?.productType) {
       throw new Error(
-        "Failed to assign attributes to product type",
-        result.error
+        `Failed to assign attributes to product type ${productTypeId}: ${result.data?.productAttributeAssign?.errors
+          ?.map((e) => e.message)
+          .join(", ")}`
       );
     }
 

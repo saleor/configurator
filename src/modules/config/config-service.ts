@@ -1,7 +1,12 @@
 import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
-import { type ConfigurationOperations, type RawSaleorConfig } from "./repository";
-import type { AttributeInput, CountryCode, CurrencyCode, SaleorConfig } from "./schema";
+import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
+import type {
+  CountryCode,
+  CurrencyCode,
+  FullAttribute,
+  SaleorConfig,
+} from "./schema";
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -23,7 +28,9 @@ export class ConfigurationService {
     return config;
   }
 
-  private mapChannels(rawChannels: RawSaleorConfig["channels"]): SaleorConfig["channels"] {
+  private mapChannels(
+    rawChannels: RawSaleorConfig["channels"]
+  ): SaleorConfig["channels"] {
     return (
       rawChannels?.map((channel) => ({
         name: channel.name,
@@ -35,16 +42,21 @@ export class ConfigurationService {
           useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
           automaticallyCompleteFullyPaidCheckouts:
             channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts,
-          defaultTransactionFlowStrategy: channel.paymentSettings.defaultTransactionFlowStrategy,
+          defaultTransactionFlowStrategy:
+            channel.paymentSettings.defaultTransactionFlowStrategy,
           allocationStrategy: channel.stockSettings.allocationStrategy,
-          automaticallyConfirmAllNewOrders: channel.orderSettings.automaticallyConfirmAllNewOrders,
+          automaticallyConfirmAllNewOrders:
+            channel.orderSettings.automaticallyConfirmAllNewOrders,
           automaticallyFulfillNonShippableGiftCard:
             channel.orderSettings.automaticallyFulfillNonShippableGiftCard,
           expireOrdersAfter: Number(channel.orderSettings.expireOrdersAfter),
-          deleteExpiredOrdersAfter: Number(channel.orderSettings.deleteExpiredOrdersAfter),
+          deleteExpiredOrdersAfter: Number(
+            channel.orderSettings.deleteExpiredOrdersAfter
+          ),
           markAsPaidStrategy: channel.orderSettings.markAsPaidStrategy,
           allowUnpaidOrders: channel.orderSettings.allowUnpaidOrders,
-          includeDraftOrderInVoucherUsage: channel.orderSettings.includeDraftOrderInVoucherUsage,
+          includeDraftOrderInVoucherUsage:
+            channel.orderSettings.includeDraftOrderInVoucherUsage,
         },
       })) ?? []
     );
@@ -53,7 +65,11 @@ export class ConfigurationService {
   private isMultipleChoiceAttribute(
     inputType: string | null
   ): inputType is "DROPDOWN" | "MULTISELECT" | "SWATCH" {
-    return inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH";
+    return (
+      inputType === "DROPDOWN" ||
+      inputType === "MULTISELECT" ||
+      inputType === "SWATCH"
+    );
   }
 
   private isBasicAttribute(
@@ -77,19 +93,24 @@ export class ConfigurationService {
     );
   }
 
-  private isReferenceAttribute(inputType: string | null): inputType is "REFERENCE" {
+  private isReferenceAttribute(
+    inputType: string | null
+  ): inputType is "REFERENCE" {
     return inputType === "REFERENCE";
   }
 
   private mapAttribute(
     attribute: RawAttribute,
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
-  ): AttributeInput {
+  ): FullAttribute {
     invariant(attribute.name, "Unable to retrieve attribute name");
     invariant(attribute.inputType, "Unable to retrieve attribute input type");
 
     if (this.isMultipleChoiceAttribute(attribute.inputType)) {
-      invariant(attribute.choices?.edges, "Unable to retrieve attribute choices");
+      invariant(
+        attribute.choices?.edges,
+        "Unable to retrieve attribute choices"
+      );
       return {
         name: attribute.name,
         inputType: attribute.inputType,
@@ -128,15 +149,22 @@ export class ConfigurationService {
   private mapAttributes(
     rawAttributes: RawAttribute[],
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
-  ): AttributeInput[] {
-    return rawAttributes?.map((attribute) => this.mapAttribute(attribute, attributeType)) ?? [];
+  ): FullAttribute[] {
+    return (
+      rawAttributes?.map((attribute) =>
+        this.mapAttribute(attribute, attributeType)
+      ) ?? []
+    );
   }
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]) {
     return (
       rawProductTypes?.edges?.map((edge) => ({
         name: edge.node.name,
-        attributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
+        attributes: this.mapAttributes(
+          edge.node.productAttributes ?? [],
+          "PRODUCT_TYPE"
+        ),
       })) ?? []
     );
   }
@@ -159,11 +187,14 @@ export class ConfigurationService {
       defaultMailSenderName: settings.defaultMailSenderName,
       defaultMailSenderAddress: settings.defaultMailSenderAddress,
       displayGrossPrices: settings.displayGrossPrices,
-      enableAccountConfirmationByEmail: settings.enableAccountConfirmationByEmail,
+      enableAccountConfirmationByEmail:
+        settings.enableAccountConfirmationByEmail,
       limitQuantityPerCheckout: settings.limitQuantityPerCheckout,
       trackInventoryByDefault: settings.trackInventoryByDefault,
-      reserveStockDurationAnonymousUser: settings.reserveStockDurationAnonymousUser,
-      reserveStockDurationAuthenticatedUser: settings.reserveStockDurationAuthenticatedUser,
+      reserveStockDurationAnonymousUser:
+        settings.reserveStockDurationAnonymousUser,
+      reserveStockDurationAuthenticatedUser:
+        settings.reserveStockDurationAuthenticatedUser,
       defaultDigitalMaxDownloads: settings.defaultDigitalMaxDownloads,
       defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
       defaultWeightUnit: settings.defaultWeightUnit,
@@ -182,7 +213,9 @@ export class ConfigurationService {
 }
 
 type RawAttribute = NonNullable<
-  NonNullable<RawSaleorConfig["productTypes"]>["edges"][number]["node"]["productAttributes"]
+  NonNullable<
+    RawSaleorConfig["productTypes"]
+  >["edges"][number]["node"]["productAttributes"]
 >[number] & {
   entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
 };

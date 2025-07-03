@@ -1,13 +1,13 @@
-import type { AttributeInput } from "../config/schema";
 import { logger } from "../../lib/logger";
+import type { FullAttribute } from "../config/schema";
 import type {
-  AttributeCreateInput,
-  AttributeUpdateInput,
-  AttributeOperations,
   Attribute,
+  AttributeCreateInput,
+  AttributeOperations,
+  AttributeUpdateInput,
 } from "./repository";
 
-const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
+const createAttributeInput = (input: FullAttribute): AttributeCreateInput => {
   const base = {
     name: input.name,
     type: input.type,
@@ -17,7 +17,9 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
 
   if (input.inputType === "REFERENCE") {
     if (!input.entityType) {
-      throw new Error(`Entity type is required for reference attribute ${input.name}`);
+      throw new Error(
+        `Entity type is required for reference attribute ${input.name}`
+      );
     }
 
     return {
@@ -39,7 +41,7 @@ const createAttributeInput = (input: AttributeInput): AttributeCreateInput => {
 };
 
 const createAttributeUpdateInput = (
-  input: AttributeInput,
+  input: FullAttribute,
   existingAttribute: Attribute
 ): AttributeUpdateInput => {
   const base: AttributeUpdateInput = {
@@ -48,11 +50,14 @@ const createAttributeUpdateInput = (
 
   // For attributes with values (dropdown, multiselect, swatch), compare and update values
   if ("values" in input && input.values) {
-    const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
+    const existingValues =
+      existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
     const newValues = input.values.map((v) => v.name);
 
     // Find values to add
-    const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
+    const valuesToAdd = newValues.filter(
+      (value) => !existingValues.includes(value)
+    );
 
     if (valuesToAdd.length > 0) {
       return {
@@ -72,7 +77,11 @@ export class AttributeService {
     return this.repository;
   }
 
-  async bootstrapAttributes({ attributeInputs }: { attributeInputs: AttributeInput[] }) {
+  async bootstrapAttributes({
+    attributeInputs,
+  }: {
+    attributeInputs: FullAttribute[];
+  }) {
     logger.debug("Bootstrapping attributes", {
       count: attributeInputs.length,
     });
@@ -88,13 +97,19 @@ export class AttributeService {
     return createdAttributes;
   }
 
-  async updateAttribute(attributeInput: AttributeInput, existingAttribute: Attribute) {
+  async updateAttribute(
+    attributeInput: FullAttribute,
+    existingAttribute: Attribute
+  ) {
     logger.debug("Updating attribute", {
       name: attributeInput.name,
       id: existingAttribute.id,
     });
 
-    const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
+    const updateInput = createAttributeUpdateInput(
+      attributeInput,
+      existingAttribute
+    );
 
     // Only update if there are actual changes
     if (Object.keys(updateInput).length > 1) {
@@ -102,7 +117,9 @@ export class AttributeService {
       return this.repository.updateAttribute(existingAttribute.id, updateInput);
     }
 
-    logger.debug("No changes detected for attribute", { name: attributeInput.name });
+    logger.debug("No changes detected for attribute", {
+      name: attributeInput.name,
+    });
     return existingAttribute;
   }
 }

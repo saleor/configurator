@@ -43,37 +43,42 @@ const noTypeAttributeSchema = z.discriminatedUnion("inputType", [
   simpleAttributeSchema,
 ]);
 
-const attributeSchema = noTypeAttributeSchema.and(
+export type NoTypeAttribute = z.infer<typeof noTypeAttributeSchema>;
+
+const attributeBySlugSchema = z
+  .object({
+    attribute: z.string(), // ? maybe should be called "slug"
+  })
+  .describe("Reference to an existing attribute by slug");
+
+const attributeInputSchema = z.union([
+  noTypeAttributeSchema,
+  attributeBySlugSchema,
+]);
+
+export type AttributeInput = z.infer<typeof attributeInputSchema>;
+
+const fullAttributeSchema = noTypeAttributeSchema.and(
   z.object({
     type: attributeTypeSchema,
   })
 );
 
-export type AttributeInput = z.infer<typeof attributeSchema>;
-export type AttributeInputType = AttributeInput["inputType"];
-
-// ProductType Create Schema - minimal fields for creation
-const productTypeCreateSchema = z.object({
-  name: z.string().describe("ProductType.name"),
-});
+export type FullAttribute = z.infer<typeof fullAttributeSchema>;
 
 // ProductType Update Schema - full state representation
-const productTypeUpdateSchema = z.object({
+const productTypeSchema = z.object({
   name: z.string().describe("ProductType.name"),
   productAttributes: z
-    .array(noTypeAttributeSchema)
-    .describe("ProductType.productAttributes"),
+    .array(attributeInputSchema)
+    .describe("ProductType.productAttributes")
+    .optional(),
   variantAttributes: z
-    .array(noTypeAttributeSchema)
-    .describe("ProductType.variantAttributes"),
+    .array(attributeInputSchema)
+    .describe("ProductType.variantAttributes")
+    .optional(),
 });
 
-// Union type that accepts either create or update input
-// Try update schema first (more specific) then create schema
-const productTypeSchema = productTypeUpdateSchema.or(productTypeCreateSchema);
-
-export type ProductTypeCreateInput = z.infer<typeof productTypeCreateSchema>;
-export type ProductTypeUpdateInput = z.infer<typeof productTypeUpdateSchema>;
 export type ProductTypeInput = z.infer<typeof productTypeSchema>;
 
 // PageType Create Schema - minimal fields for creation

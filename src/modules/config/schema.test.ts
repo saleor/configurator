@@ -4,8 +4,7 @@ import {
   type ChannelUpdateInput,
   type CountryCode,
   configSchema,
-  type ProductTypeCreateInput,
-  type ProductTypeUpdateInput,
+  type ProductTypeInput,
   type ShopCreateInput,
   type ShopUpdateInput,
 } from "./schema";
@@ -282,11 +281,11 @@ describe("Schema Union Types", () => {
   describe("Type Inference", () => {
     it("should correctly infer create vs update types", () => {
       // This test ensures TypeScript types work correctly
-      const createProductType: ProductTypeCreateInput = {
+      const createProductType: ProductTypeInput = {
         name: "Book",
       };
 
-      const updateProductType: ProductTypeUpdateInput = {
+      const updateProductType: ProductTypeInput = {
         name: "Book",
         productAttributes: [
           {
