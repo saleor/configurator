@@ -5,6 +5,12 @@ import { commandOptions, commands } from "../commands";
 import { type CommandConfig, createCommand, selectOption } from "./command";
 import { cliConsole } from "./console";
 
+export type CommandOption = {
+  flags: string;
+  description: string;
+  defaultValue: boolean | string;
+};
+
 const CLI_CONFIG = {
   name: "configurator",
   description: "🛒 Saleor Configuration Management Tool",
@@ -29,11 +35,9 @@ function registerCommands(program: Command): void {
     const commandName = commandConfig.name as keyof typeof commandOptions;
     const options = commandOptions[commandName];
 
-    if (options?.length > 0) {
-      options.forEach((option) => {
-        command.option(option.flags, option.description, option.defaultValue);
-      });
-    }
+    Object.entries(options).forEach(([_, option]) => {
+      command.option(option.flags, option.description, option.defaultValue);
+    });
 
     program.addCommand(command);
   }

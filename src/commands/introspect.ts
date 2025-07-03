@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import type { CommandOption } from "../cli/main";
 import { createConfigurator } from "../core/configurator";
 import { createBackup, fileExists } from "../lib/utils/file";
 
@@ -138,4 +139,31 @@ export const introspectCommandConfig: CommandConfig<
     "configurator introspect --config output.yml",
     "configurator introspect --quiet",
   ],
+};
+
+// TODO: refactor, it should be drawn from some centralized place
+export const introspectCommandOptions: Record<
+  keyof typeof introspectCommandSchema.shape,
+  CommandOption
+> = {
+  url: {
+    flags: "-u, --url <url>",
+    description: "",
+    defaultValue: "",
+  },
+  token: {
+    flags: "-t, --token <token>",
+    description: "",
+    defaultValue: "",
+  },
+  config: {
+    flags: "-c, --config <config>",
+    description: "",
+    defaultValue: "config.yml",
+  },
+  quiet: {
+    flags: "-q, --quiet",
+    description: "",
+    defaultValue: false,
+  },
 };

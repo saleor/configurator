@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import type { CommandOption } from "../cli/main";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { logger } from "../lib/logger";
@@ -63,4 +64,31 @@ export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
     "configurator diff --config custom-config.yml",
     "configurator diff --quiet",
   ],
+};
+
+// TODO: refactor, it should be drawn from some centralized place
+export const diffCommandOptions: Record<
+  keyof typeof diffCommandSchema.shape,
+  CommandOption
+> = {
+  url: {
+    flags: "-u, --url <url>",
+    description: "",
+    defaultValue: "",
+  },
+  token: {
+    flags: "-t, --token <token>",
+    description: "",
+    defaultValue: "",
+  },
+  config: {
+    flags: "-c, --config <config>",
+    description: "",
+    defaultValue: "config.yml",
+  },
+  quiet: {
+    flags: "-q, --quiet",
+    description: "",
+    defaultValue: false,
+  },
 };

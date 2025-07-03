@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import type { CommandOption } from "../cli/main";
 import { createConfigurator } from "../core/configurator";
 
 export const pushCommandSchema = baseCommandArgsSchema.extend({
@@ -83,15 +84,39 @@ export const pushCommandConfig: CommandConfig<typeof pushCommandSchema> = {
   ],
 };
 
-export const pushCommandOptions = [
-  {
+// TODO: refactor, it should be drawn from some centralized place
+export const pushCommandOptions: Record<
+  keyof typeof pushCommandSchema.shape,
+  CommandOption
+> = {
+  url: {
+    flags: "-u, --url <url>",
+    description: "",
+    defaultValue: "",
+  },
+  token: {
+    flags: "-t, --token <token>",
+    description: "",
+    defaultValue: "",
+  },
+  config: {
+    flags: "-c, --config <config>",
+    description: "",
+    defaultValue: "config.yml",
+  },
+  quiet: {
+    flags: "-q, --quiet",
+    description: "",
+    defaultValue: false,
+  },
+  force: {
     flags: "-f, --force",
     description: "Force push without confirmation",
     defaultValue: false,
   },
-  {
+  dryRun: {
     flags: "--dry-run",
     description: "Show what would be changed without applying",
     defaultValue: false,
   },
-];
+};
