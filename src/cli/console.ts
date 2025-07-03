@@ -22,6 +22,7 @@ export class Console {
 
   info(message: string) {
     const text = chalk.blue(message);
+
     if (!this.options.quiet) {
       global.console.log(text);
     }

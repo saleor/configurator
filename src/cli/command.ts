@@ -93,7 +93,7 @@ export async function confirmAction(
   defaultValue = false
 ): Promise<boolean> {
   if (details) {
-    cliConsole.warn(`\n${details}\n`);
+    cliConsole.warn(`\n⚠️  ${details}\n`);
   }
 
   return confirm({

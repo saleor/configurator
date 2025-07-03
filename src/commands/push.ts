@@ -51,13 +51,17 @@ async function shouldProceedWithPush(args: PushCommandArgs): Promise<boolean> {
 
 async function executePush(args: PushCommandArgs): Promise<void> {
   const configurator = createConfigurator(args);
-  cliConsole.header("🚀 Saleor Configuration Push\n");
 
   await configurator.push();
   cliConsole.success("✅ Configuration pushed to Saleor instance");
 }
 
 export async function pushHandler(args: PushCommandArgs): Promise<void> {
+  cliConsole.header("🚀 Saleor Configuration Push\n");
+  cliConsole.info(
+    `"push" will apply changes to the target Saleor instance according to the local configuration file under ${args.config} path.`
+  );
+
   cliConsole.setOptions({ quiet: args.quiet });
 
   const shouldProceed = await shouldProceedWithPush(args);
