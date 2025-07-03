@@ -1,3 +1,94 @@
-import { DiffCommand } from "./registry";
+import type { z } from "zod";
+import type { CommandConfig } from "../cli/command";
+import { baseCommandArgsSchema } from "../cli/command";
+import { cliConsole } from "../cli/console";
+import type { CommandOption } from "../cli/main";
+import { createConfigurator } from "../core/configurator";
+import type { DiffSummary } from "../core/diff";
+import { logger } from "../lib/logger";
 
-DiffCommand.run(process.argv.slice(2));
+export const diffCommandSchema = baseCommandArgsSchema;
+
+export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
+
+function formatDiffSummaryMessage(totalChanges: number): string {
+  if (totalChanges === 0) {
+    return "\n✅ No differences found - configurations are in sync";
+  }
+
+  const changeText = totalChanges === 1 ? "difference" : "differences";
+  return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'push'`;
+}
+
+function logDiffCompletion(summary: DiffSummary): void {
+  logger.info("Diff process completed successfully", {
+    totalChanges: summary.totalChanges,
+    creates: summary.creates,
+    updates: summary.updates,
+    deletes: summary.deletes,
+  });
+}
+
+async function performDiffOperation(args: DiffCommandArgs): Promise<void> {
+  const configurator = createConfigurator(args);
+
+  cliConsole.processing(
+    "⏳ Preparing a diff between the configuration and the Saleor instance..."
+  );
+
+  const { summary, output } = await configurator.diff();
+
+  cliConsole.info(output);
+  logDiffCompletion(summary);
+
+  const summaryMessage = formatDiffSummaryMessage(summary.totalChanges);
+  cliConsole.info(summaryMessage);
+}
+
+export async function diffHandler(args: DiffCommandArgs): Promise<void> {
+  cliConsole.setOptions({ quiet: args.quiet });
+  cliConsole.header("🔍 Saleor Configuration Diff\n");
+
+  await performDiffOperation(args);
+}
+
+export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
+  name: "diff",
+  description:
+    "Shows the differences between local and remote Saleor configurations",
+  schema: diffCommandSchema,
+  handler: diffHandler,
+  requiresInteractive: true,
+  examples: [
+    "configurator diff -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator diff --config custom-config.yml",
+    "configurator diff --quiet",
+  ],
+};
+
+// TODO: refactor, it should be drawn from some centralized place
+export const diffCommandOptions: Record<
+  keyof typeof diffCommandSchema.shape,
+  CommandOption
+> = {
+  url: {
+    flags: "-u, --url <url>",
+    description: "",
+    defaultValue: "",
+  },
+  token: {
+    flags: "-t, --token <token>",
+    description: "",
+    defaultValue: "",
+  },
+  config: {
+    flags: "-c, --config <config>",
+    description: "",
+    defaultValue: "config.yml",
+  },
+  quiet: {
+    flags: "-q, --quiet",
+    description: "",
+    defaultValue: false,
+  },
+};
