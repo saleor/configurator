@@ -7,6 +7,14 @@ export class Console {
     this.options = options;
   }
 
+  bold(message: string) {
+    return chalk.bold(message);
+  }
+
+  gray(message: string) {
+    return chalk.gray(message);
+  }
+
   status(message: string) {
     global.console.log(message);
   }
@@ -65,6 +73,7 @@ export class Console {
     return path;
   }
 
+  // TODO: replace with inquirer.confirm
   async confirm(message: string): Promise<boolean> {
     this.prompt(`${message} [y/N]: `);
     process.stdin.setEncoding("utf8");

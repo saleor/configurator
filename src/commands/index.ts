@@ -1,19 +1,19 @@
 /**
  * Command Registry
- * 
+ *
  * This file exports all available CLI commands and their configurations.
  * Commands are automatically registered in the CLI through this registry.
  */
 
+export { diffCommandConfig } from "./diff";
+export { introspectCommandConfig } from "./introspect";
 // Command exports
-export { pushCommandConfig, pushCommandOptions } from './push';
-export { diffCommandConfig } from './diff';
-export { introspectCommandConfig } from './introspect';
+export { pushCommandConfig, pushCommandOptions } from "./push";
 
+import { diffCommandConfig } from "./diff";
+import { introspectCommandConfig } from "./introspect";
 // Command imports for registry
-import { pushCommandConfig, pushCommandOptions } from './push';
-import { diffCommandConfig } from './diff';
-import { introspectCommandConfig } from './introspect';
+import { pushCommandConfig, pushCommandOptions } from "./push";
 
 /**
  * All available commands for the CLI
@@ -22,8 +22,8 @@ import { introspectCommandConfig } from './introspect';
 export const commands = [
   pushCommandConfig,
   diffCommandConfig,
-  introspectCommandConfig
-] as const;
+  introspectCommandConfig,
+];
 
 /**
  * Command-specific options that need to be added to Commander.js
@@ -32,5 +32,5 @@ export const commands = [
 export const commandOptions = {
   push: pushCommandOptions,
   diff: [],
-  introspect: []
-} as const; 
+  introspect: [],
+} as const;

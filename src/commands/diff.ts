@@ -1,9 +1,10 @@
-import { z } from 'zod';
-import { baseCommandArgsSchemaWithValidation } from '../cli/command';
-import type { CommandConfig } from '../cli/command';
-import { cliConsole } from '../cli/console';
-import { createConfigurator } from '../core/configurator';
-import { logger } from '../lib/logger';
+import type { z } from "zod";
+import type { CommandConfig } from "../cli/command";
+import { baseCommandArgsSchemaWithValidation } from "../cli/command";
+import { cliConsole } from "../cli/console";
+import { createConfigurator } from "../core/configurator";
+import type { DiffSummary } from "../core/diff";
+import { logger } from "../lib/logger";
 
 export const diffCommandSchema = baseCommandArgsSchemaWithValidation;
 
@@ -11,15 +12,15 @@ export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 
 function formatDiffSummaryMessage(totalChanges: number): string {
   if (totalChanges === 0) {
-    return '\n✅ No differences found - configurations are in sync';
+    return "\n✅ No differences found - configurations are in sync";
   }
-  
-  const changeText = totalChanges === 1 ? 'difference' : 'differences';
+
+  const changeText = totalChanges === 1 ? "difference" : "differences";
   return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'push'`;
 }
 
-function logDiffCompletion(summary: any): void {
-  logger.info('Diff process completed successfully', {
+function logDiffCompletion(summary: DiffSummary): void {
+  logger.info("Diff process completed successfully", {
     totalChanges: summary.totalChanges,
     creates: summary.creates,
     updates: summary.updates,
@@ -35,10 +36,10 @@ async function performDiffOperation(args: DiffCommandArgs): Promise<void> {
   );
 
   const { summary, output } = await configurator.diff();
-  
+
   cliConsole.info(output);
   logDiffCompletion(summary);
-  
+
   const summaryMessage = formatDiffSummaryMessage(summary.totalChanges);
   cliConsole.status(summaryMessage);
 }
@@ -51,14 +52,15 @@ export async function diffHandler(args: DiffCommandArgs): Promise<void> {
 }
 
 export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
-  name: 'diff',
-  description: 'Shows the differences between local and remote Saleor configurations',
+  name: "diff",
+  description:
+    "Shows the differences between local and remote Saleor configurations",
   schema: diffCommandSchema,
   handler: diffHandler,
   requiresInteractive: true,
   examples: [
-    'configurator diff -u https://my-shop.saleor.cloud/graphql/ -t <token>',
-    'configurator diff --config custom-config.yml',
-    'configurator diff --quiet'
-  ]
-}; 
+    "configurator diff -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator diff --config custom-config.yml",
+    "configurator diff --quiet",
+  ],
+};
