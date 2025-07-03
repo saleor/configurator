@@ -72,7 +72,7 @@ channels:
 
 productTypes:
   - name: Book
-    attributes:
+    productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
       - name: Genre
@@ -84,7 +84,13 @@ productTypes:
       - name: Related Books
         inputType: REFERENCE
         entityType: PRODUCT
-
+    variantAttributes:
+      - name: Size
+        inputType: DROPDOWN
+        values:
+          - name: Small
+          - name: Medium
+          - name: Large
 
 pageTypes:
   - name: Blog Post

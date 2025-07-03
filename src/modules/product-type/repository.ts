@@ -12,6 +12,10 @@ const createProductTypeMutation = graphql(`
           id
           name
         }
+        variantAttributes {
+          id
+          name
+        }
       }
     }
   }
@@ -56,6 +60,10 @@ const getProductTypeByNameQuery = graphql(`
             id
             name
           }
+          variantAttributes {
+            id
+            name
+          }
         }
       }
     }
@@ -68,6 +76,7 @@ export interface ProductTypeOperations {
   assignAttributesToProductType(input: {
     attributeIds: string[];
     productTypeId: string;
+    type: "PRODUCT" | "VARIANT";
   }): Promise<{ id: string }>;
 }
 
@@ -103,9 +112,11 @@ export class ProductTypeRepository implements ProductTypeOperations {
   async assignAttributesToProductType({
     attributeIds,
     productTypeId,
+    type,
   }: {
     attributeIds: string[];
     productTypeId: string;
+    type: "PRODUCT" | "VARIANT";
   }) {
     const result = await this.client.mutation(
       assignAttributesToProductTypeMutation,
@@ -113,7 +124,7 @@ export class ProductTypeRepository implements ProductTypeOperations {
         productTypeId,
         operations: attributeIds.map((id) => ({
           id,
-          type: "PRODUCT" as const,
+          type,
         })),
       }
     );

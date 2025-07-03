@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  type ChannelCreateInput,
+  type ChannelUpdateInput,
+  type CountryCode,
   configSchema,
   type ProductTypeCreateInput,
   type ProductTypeUpdateInput,
-  type ChannelCreateInput,
-  type ChannelUpdateInput,
   type ShopCreateInput,
   type ShopUpdateInput,
-  type CountryCode,
 } from "./schema";
 
 describe("Schema Union Types", () => {
@@ -288,13 +288,14 @@ describe("Schema Union Types", () => {
 
       const updateProductType: ProductTypeUpdateInput = {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
             values: [{ name: "Fiction" }],
           },
         ],
+        variantAttributes: [],
       };
 
       const createChannel: ChannelCreateInput = {
@@ -323,7 +324,7 @@ describe("Schema Union Types", () => {
 
       // If these compile without TypeScript errors, the types are working correctly
       expect(createProductType.name).toBe("Book");
-      expect(updateProductType.attributes).toHaveLength(1);
+      expect(updateProductType.productAttributes).toHaveLength(1);
       expect(createChannel.name).toBe("US");
       expect(updateChannel.settings?.useLegacyErrorFlow).toBe(false);
       expect(Object.keys(createShop)).toHaveLength(0);
@@ -623,7 +624,18 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
+      const originalCodes = [
+        "US",
+        "GB",
+        "DE",
+        "FR",
+        "IT",
+        "ES",
+        "PL",
+        "JP",
+        "IN",
+        "CA",
+      ];
 
       // Act & Assert
       originalCodes.forEach((code) => {
