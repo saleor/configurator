@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
-import chalk from "chalk";
 import { commandOptions, commands } from "../commands";
 import { type CommandConfig, createCommand, selectOption } from "./command";
+import { cliConsole } from "./console";
 
 const CLI_CONFIG = {
   name: "configurator",
@@ -50,16 +50,14 @@ function createInteractiveCommand(): Command {
 }
 
 async function runInteractiveSetup(): Promise<void> {
-  console.log(chalk.blue.bold("🔧 Welcome to Saleor Configurator Setup!\n"));
+  cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
 
   const selectedAction = await selectOption(
     "What would you like to do?",
     INTERACTIVE_CHOICES
   );
 
-  console.log(
-    chalk.green(`\n✨ Starting ${selectedAction} in interactive mode...\n`)
-  );
+  cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
 
   const program = createCLI();
   const targetCommand = program.commands.find(
@@ -74,11 +72,11 @@ async function runInteractiveSetup(): Promise<void> {
 function setupErrorHandling(program: Command): void {
   program.exitOverride((err) => {
     if (isHelpOrVersionRequest(err)) {
-      console.log(err.message);
+      cliConsole.error(err.message);
       process.exit(0);
     }
 
-    console.error(chalk.red(`❌ ${err.message}`));
+    cliConsole.error(err.message);
     process.exit(err.exitCode || 1);
   });
 }
@@ -90,26 +88,28 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
 function addHelpContent(program: Command): void {
   program.addHelpText(
     "before",
-    chalk.blue.bold("🛒 Saleor Configuration Management Tool\n")
+    cliConsole.important("🛒 Saleor Configuration Management Tool\n")
   );
   program.addHelpText("after", buildHelpText());
 }
 
 function buildHelpText(): string {
   return `
-${chalk.bold("Quick Start:")}
-  ${chalk.gray("# First time? Use the interactive setup:")}
-  ${chalk.cyan("configurator interactive")}
+${cliConsole.important("Quick Start:")}
+  ${cliConsole.hint("# First time? Use the interactive setup:")}
+  ${cliConsole.code("configurator interactive")}
   
-  ${chalk.gray("# Or run commands directly:")}
-  ${chalk.cyan("configurator push -u <url> -t <token>")}
+  ${cliConsole.hint("# Or run commands directly:")}
+  ${cliConsole.code("configurator push -u <url> -t <token>")}
   
-${chalk.bold("Tips:")}
-  ${chalk.gray("• Use short flags:")} ${chalk.cyan("-u")} for URL, ${chalk.cyan(
-    "-t"
-  )} for token, ${chalk.cyan("-c")} for config
-  ${chalk.gray("• Run without arguments for interactive prompts")}
-  ${chalk.gray("• Use")} ${chalk.cyan("--help")} ${chalk.gray(
+${cliConsole.important("Tips:")}
+  ${cliConsole.hint("• Use short flags:")} ${cliConsole.code(
+    "-u"
+  )} for URL, ${cliConsole.code("-t")} for token, ${cliConsole.code(
+    "-c"
+  )} for config
+  ${cliConsole.hint("• Run without arguments for interactive prompts")}
+  ${cliConsole.hint("• Use")} ${cliConsole.code("--help")} ${cliConsole.hint(
     "on any command for detailed options"
   )}
 `;
@@ -121,7 +121,7 @@ function createCLI(): Command {
     .description(CLI_CONFIG.description)
     .version(CLI_CONFIG.version)
     .configureOutput({
-      outputError: (str, write) => write(chalk.red(str)),
+      outputError: (str, write) => write(cliConsole.error(str)),
     });
 
   registerCommands(program);
@@ -134,12 +134,12 @@ function createCLI(): Command {
 
 async function handleCliError(error: unknown): Promise<void> {
   if (error instanceof Error && error.name === "ExitPromptError") {
-    console.log(chalk.yellow("\n👋 Goodbye!"));
+    cliConsole.info("\n👋 Goodbye!");
     process.exit(0);
   }
 
   const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  console.error(chalk.red(`❌ ${errorMessage}`));
+  cliConsole.error(errorMessage);
   process.exit(1);
 }
 

@@ -41,7 +41,7 @@ async function performDiffOperation(args: DiffCommandArgs): Promise<void> {
   logDiffCompletion(summary);
 
   const summaryMessage = formatDiffSummaryMessage(summary.totalChanges);
-  cliConsole.status(summaryMessage);
+  cliConsole.info(summaryMessage);
 }
 
 export async function diffHandler(args: DiffCommandArgs): Promise<void> {

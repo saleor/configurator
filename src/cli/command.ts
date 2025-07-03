@@ -188,9 +188,9 @@ export function createCommand<T extends z.ZodTypeAny>(
     const originalHelp = command.helpInformation.bind(command);
     command.helpInformation = () => {
       let help = originalHelp();
-      help += `\n${cliConsole.bold("Examples:")}\n`;
+      help += `\n${cliConsole.important("Examples:")}\n`;
       for (const example of config.examples ?? []) {
-        help += `${cliConsole.gray(`  ${example}`)}\n`;
+        help += `${cliConsole.hint(`  ${example}`)}\n`;
       }
       return help;
     };

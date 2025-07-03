@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
@@ -16,7 +15,7 @@ export const pushCommandSchema = baseCommandArgsSchema.extend({
 export type PushCommandArgs = z.infer<typeof pushCommandSchema>;
 
 async function handleDryRunMode(): Promise<boolean> {
-  cliConsole.info(chalk.blue("🧪 Running in dry-run mode...\n"));
+  cliConsole.info("🧪 Running in dry-run mode...\n");
   // TODO: Implement dry-run logic
   cliConsole.warn("Dry-run mode will be implemented in the next iteration");
   return false; // Don't proceed with actual push

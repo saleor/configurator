@@ -68,8 +68,10 @@ async function confirmIntrospection(): Promise<boolean> {
     "⚠️  Introspecting will overwrite your local configuration file."
   );
 
-  const userConfirmed = await cliConsole.confirm(
-    "Do you want to continue and update the local file?"
+  const userConfirmed = await confirmAction(
+    "Do you want to continue and update the local file?",
+    "This will overwrite your current local configuration with the remote state.",
+    false
   );
 
   if (!userConfirmed) {
@@ -97,7 +99,7 @@ async function executeIntrospection(
 
   await configurator.introspect();
 
-  const configPath = cliConsole.filePath(args.config);
+  const configPath = cliConsole.important(args.config);
   cliConsole.success(`\n✅ Configuration successfully saved to ${configPath}`);
   process.exit(0);
 }

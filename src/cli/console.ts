@@ -7,12 +7,13 @@ export class Console {
     this.options = options;
   }
 
-  bold(message: string) {
-    return chalk.bold(message);
-  }
+  hint(message: string) {
+    const text = chalk.gray(message);
+    if (!this.options.quiet) {
+      global.console.log(text);
+    }
 
-  gray(message: string) {
-    return chalk.gray(message);
+    return text;
   }
 
   status(message: string) {
@@ -20,71 +21,92 @@ export class Console {
   }
 
   info(message: string) {
+    const text = chalk.blue(message);
     if (!this.options.quiet) {
-      global.console.log(message);
+      global.console.log(text);
     }
+
+    return text;
   }
 
   warn(message: string) {
+    const text = chalk.yellow(message);
     if (!this.options.quiet) {
-      global.console.log(chalk.yellow(message));
+      global.console.log(text);
     }
+
+    return text;
   }
 
   success(message: string) {
+    const text = chalk.green(message);
     if (!this.options.quiet) {
-      global.console.log(chalk.green(message));
+      global.console.log(text);
     }
+
+    return text;
   }
 
   error(error: unknown) {
+    const text = chalk.red(error);
     // TODO: improve error formatting
-    global.console.error(chalk.red(error));
+    global.console.error(text);
+
+    return text;
   }
 
   prompt(message: string) {
+    const text = chalk.cyan(message);
     if (!this.options.quiet) {
-      process.stdout.write(chalk.cyan(message));
+      process.stdout.write(text);
     }
+
+    return text;
   }
 
   header(message: string) {
+    const text = chalk.bold.blue(message);
     if (!this.options.quiet) {
-      global.console.log(chalk.bold.blue(message));
+      global.console.log(text);
     }
+
+    return text;
   }
 
   processing(message: string) {
+    const text = chalk.blue(message);
     if (!this.options.quiet) {
-      global.console.log(chalk.blue(message));
+      global.console.log(text);
     }
+
+    return text;
   }
 
   cancelled(message: string) {
+    const text = chalk.red(message);
     if (!this.options.quiet) {
-      global.console.log(chalk.red(message));
+      global.console.log(text);
     }
+
+    return text;
   }
 
-  filePath(path: string) {
+  important(path: string) {
+    const text = chalk.bold(path);
     if (!this.options.quiet) {
-      return chalk.bold(path);
+      global.console.log(text);
     }
-    return path;
+
+    return text;
   }
 
-  // TODO: replace with inquirer.confirm
-  async confirm(message: string): Promise<boolean> {
-    this.prompt(`${message} [y/N]: `);
-    process.stdin.setEncoding("utf8");
-    process.stdin.resume();
-    return new Promise((resolve) => {
-      process.stdin.once("data", (data) => {
-        process.stdin.pause();
-        const answer = data.toString().trim();
-        resolve(/^y(es)?$/i.test(answer));
-      });
-    });
+  code(message: string) {
+    const text = chalk.cyan(message);
+    if (!this.options.quiet) {
+      global.console.log(text);
+    }
+
+    return text;
   }
 }
 
