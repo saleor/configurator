@@ -116,3 +116,28 @@ export function displayDiffSummary(summary: DiffSummary): void {
   }
   console.log("");
 }
+
+/**
+ * Displays a formatted diff summary for introspect operations
+ * @param summary - The diff summary data to display
+ */
+export function displayIntrospectDiffSummary(summary: DiffSummary): void {
+  if (summary.totalChanges === 0) {
+    console.log("\n✅ Local configuration is already up to date with Saleor!");
+    return;
+  }
+
+  console.log(`\n📊 Local Configuration Update Preview:`);
+  console.log(`   Total Changes: ${summary.totalChanges}`);
+
+  if (summary.creates > 0) {
+    console.log(`   🟢 Will add: ${summary.creates} ${summary.creates === 1 ? "item" : "items"} from Saleor`);
+  }
+  if (summary.updates > 0) {
+    console.log(`   🟡 Will update: ${summary.updates} ${summary.updates === 1 ? "item" : "items"} from Saleor`);
+  }
+  if (summary.deletes > 0) {
+    console.log(`   🔴 Will remove: ${summary.deletes} ${summary.deletes === 1 ? "item" : "items"} (not in Saleor)`);
+  }
+  console.log("");
+}

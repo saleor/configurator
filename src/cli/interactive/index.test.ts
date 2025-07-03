@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as readline from "readline";
-import { confirmPrompt, selectPrompt, displayDiffSummary } from "./index";
+import { 
+  confirmPrompt, 
+  selectPrompt, 
+  displayDiffSummary, 
+  displayIntrospectDiffSummary,
+  type DiffSummary 
+} from "./index";
 
 // Mock readline
 vi.mock("readline");
@@ -254,6 +260,94 @@ describe("CLI Interactive", () => {
 
       // Assert
       expect(consoleLogSpy).toHaveBeenCalledWith("");
+    });
+  });
+
+  describe("displayIntrospectDiffSummary", () => {
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+    });
+
+    it("should display introspect summary with changes", () => {
+      // Arrange
+      const summary: DiffSummary = {
+        totalChanges: 5,
+        creates: 2,
+        updates: 2,
+        deletes: 1,
+      };
+
+      // Act
+      displayIntrospectDiffSummary(summary);
+
+      // Assert
+      expect(consoleLogSpy).toHaveBeenCalled();
+      const output = consoleLogSpy.mock.calls.map((call: any) => call[0]).join("\n");
+      expect(output).toContain("📊 Local Configuration Update Preview:");
+      expect(output).toContain("Total Changes: 5");
+      expect(output).toContain("🟢 Will add: 2 items from Saleor");
+      expect(output).toContain("🟡 Will update: 2 items from Saleor");
+      expect(output).toContain("🔴 Will remove: 1 item (not in Saleor)");
+    });
+
+    it("should display no changes message when appropriate", () => {
+      // Arrange
+      const summary: DiffSummary = {
+        totalChanges: 0,
+        creates: 0,
+        updates: 0,
+        deletes: 0,
+      };
+
+      // Act
+      displayIntrospectDiffSummary(summary);
+
+      // Assert
+      expect(consoleLogSpy).toHaveBeenCalled();
+      const output = consoleLogSpy.mock.calls[0][0];
+      expect(output).toContain("✅ Local configuration is already up to date with Saleor!");
+    });
+
+    it("should use singular forms when count is 1", () => {
+      // Arrange
+      const summary: DiffSummary = {
+        totalChanges: 3,
+        creates: 1,
+        updates: 1,
+        deletes: 1,
+      };
+
+      // Act
+      displayIntrospectDiffSummary(summary);
+
+      // Assert
+      const output = consoleLogSpy.mock.calls.map((call: any) => call[0]).join("\n");
+      expect(output).toContain("🟢 Will add: 1 item from Saleor");
+      expect(output).toContain("🟡 Will update: 1 item from Saleor");
+      expect(output).toContain("🔴 Will remove: 1 item (not in Saleor)");
+    });
+
+    it("should only show relevant sections", () => {
+      // Arrange
+      const summary: DiffSummary = {
+        totalChanges: 2,
+        creates: 2,
+        updates: 0,
+        deletes: 0,
+      };
+
+      // Act
+      displayIntrospectDiffSummary(summary);
+
+      // Assert
+      const output = consoleLogSpy.mock.calls.map((call: any) => call[0]).join("\n");
+      expect(output).toContain("🟢 Will add: 2 items from Saleor");
+      expect(output).not.toContain("🟡 Will update");
+      expect(output).not.toContain("🔴 Will remove");
     });
   });
 });

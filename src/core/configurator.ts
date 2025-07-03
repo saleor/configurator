@@ -1,7 +1,7 @@
 import { logger } from "../lib/logger";
 import type { ServiceContainer } from "./service-container";
 import { DiffService } from "./diff";
-import { DiffFormatter } from "./diff";
+import { DiffFormatter, IntrospectDiffFormatter } from "./diff";
 
 export interface DiffOptions {
   format?: "table" | "json" | "summary";
@@ -151,6 +151,78 @@ export class SaleorConfigurator {
       return filteredSummary;
     } catch (error) {
       logger.error("Failed to diff configurations", { error });
+      throw error;
+    }
+  }
+
+  async diffForIntrospect(options: DiffOptions = {}) {
+    const { format = "table", filter, quiet = false } = options;
+
+    logger.info("Starting diff process for introspect");
+
+    try {
+      if (!quiet) {
+        console.log("📥 Loading local configuration...");
+      }
+
+      const diffService = new DiffService(this.services);
+
+      if (!quiet) {
+        console.log("🌐 Fetching remote configuration...");
+      }
+
+      const summary = await diffService.compareForIntrospect();
+
+      if (!quiet) {
+        console.log("🔍 Analyzing differences...\n");
+      }
+
+      // Apply filter if specified
+      let filteredSummary = summary;
+      if (filter && filter.length > 0) {
+        const filterSet = new Set(filter.map((f) => f.toLowerCase()));
+        const filteredResults = summary.results.filter((result) =>
+          filterSet.has(result.entityType.toLowerCase().replace(/\s+/g, ""))
+        );
+
+        filteredSummary = {
+          ...summary,
+          results: filteredResults,
+          totalChanges: filteredResults.length,
+          creates: filteredResults.filter((r) => r.operation === "CREATE").length,
+          updates: filteredResults.filter((r) => r.operation === "UPDATE").length,
+          deletes: filteredResults.filter((r) => r.operation === "DELETE").length,
+        };
+      }
+
+      // Format and display output
+      let formattedOutput: string;
+      const introspectFormatter = new IntrospectDiffFormatter();
+
+      switch (format) {
+        case "json":
+          formattedOutput = JSON.stringify(filteredSummary, null, 2);
+          break;
+        case "summary":
+          formattedOutput = DiffFormatter.formatSummary(filteredSummary);
+          break;
+        case "table":
+        default:
+          formattedOutput = introspectFormatter.format(filteredSummary);
+      }
+
+      console.log(formattedOutput);
+
+      logger.info("Introspect diff process completed successfully", {
+        totalChanges: filteredSummary.totalChanges,
+        creates: filteredSummary.creates,
+        updates: filteredSummary.updates,
+        deletes: filteredSummary.deletes,
+      });
+
+      return filteredSummary;
+    } catch (error) {
+      logger.error("Failed to diff configurations for introspect", { error });
       throw error;
     }
   }

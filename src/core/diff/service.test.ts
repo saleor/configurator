@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { DiffService } from "./service";
 import type { ServiceContainer } from "../service-container";
 import type { SaleorConfig } from "../../modules/config/schema";
-import { ConfigurationLoadError, RemoteConfigurationError, DiffComparisonError } from "./errors";
+import { ConfigurationLoadError, RemoteConfigurationError } from "./errors";
 
 describe("DiffService", () => {
   let diffService: DiffService;
@@ -618,6 +618,166 @@ describe("DiffService", () => {
       expect(summary.totalChanges).toBe(2); // 1 create + 1 delete
       expect(summary.creates).toBe(1); // Shop settings
       expect(summary.deletes).toBe(1); // Channel
+    });
+  });
+
+  describe("compareForIntrospect", () => {
+    it("should detect entities to add to local from remote", async () => {
+      // Arrange: Remote has entities that local doesn't have
+      const localConfig: SaleorConfig = {
+        channels: [],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        channels: [
+          {
+            name: "Default Channel",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "default",
+          },
+        ],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, this is a CREATE (will be added to local)
+      expect(summary.totalChanges).toBe(1);
+      expect(summary.creates).toBe(1);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(0);
+      expect(summary.results[0]).toMatchObject({
+        operation: "CREATE",
+        entityType: "Channels",
+        entityName: "Default Channel",
+      });
+    });
+
+    it("should detect entities to remove from local", async () => {
+      // Arrange: Local has entities that remote doesn't have
+      const localConfig: SaleorConfig = {
+        channels: [
+          {
+            name: "Old Channel",
+            currencyCode: "EUR",
+            defaultCountry: "DE",
+            slug: "old",
+          },
+        ],
+        productTypes: [
+          {
+            name: "Deprecated Type",
+            attributes: [],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        channels: [],
+        productTypes: [],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, these are DELETEs (will be removed from local)
+      expect(summary.totalChanges).toBe(2);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(2);
+      
+      const deletions = summary.results.filter(r => r.operation === "DELETE");
+      expect(deletions).toHaveLength(2);
+      expect(deletions.map(r => r.entityName)).toContain("Old Channel");
+      expect(deletions.map(r => r.entityName)).toContain("Deprecated Type");
+    });
+
+    it("should detect entities to update in local", async () => {
+      // Arrange: Both have entities but with different properties
+      const localConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "Local Shop",
+          displayGrossPrices: false,
+        },
+      };
+
+      const remoteConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "Remote Shop",
+          displayGrossPrices: true,
+        },
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, this is an UPDATE
+      expect(summary.totalChanges).toBe(1);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(1);
+      expect(summary.deletes).toBe(0);
+      expect(summary.results[0]).toMatchObject({
+        operation: "UPDATE",
+        entityType: "Shop Settings",
+        entityName: "Shop Settings",
+      });
+    });
+
+    it("should handle empty remote (will clear local)", async () => {
+      // Arrange: Local has everything, remote is empty
+      const localConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "My Shop",
+        },
+        channels: [
+          {
+            name: "Channel 1",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "ch1",
+          },
+        ],
+        productTypes: [
+          {
+            name: "Product Type 1",
+            attributes: [],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {};
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - everything will be deleted from local
+      expect(summary.totalChanges).toBe(3);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(3);
+    });
+
+    it("should handle error scenarios", async () => {
+      // Arrange: Config loading throws error
+      mockServices.configStorage.load = vi
+        .fn()
+        .mockRejectedValue(new Error("Config file not found"));
+
+      // Act & Assert
+      await expect(diffService.compareForIntrospect()).rejects.toThrow(ConfigurationLoadError);
     });
   });
 });

@@ -115,6 +115,73 @@ export class DiffService {
   }
 
   /**
+   * Compares configurations from introspect perspective (remote as source, local as target)
+   * Shows what will change in the local configuration when pulling from remote
+   * @returns Promise resolving to diff summary
+   * @throws {ConfigurationLoadError} When local configuration cannot be loaded
+   * @throws {RemoteConfigurationError} When remote configuration cannot be retrieved
+   * @throws {DiffComparisonError} When comparison fails
+   */
+  async compareForIntrospect(): Promise<DiffSummary> {
+    const startTime = Date.now();
+    logger.info("Starting diff comparison for introspect");
+
+    try {
+      // Load configurations concurrently for better performance
+      const [localConfig, remoteConfig] = await Promise.all([
+        this.loadLocalConfiguration(),
+        this.loadRemoteConfiguration(),
+      ]);
+
+      if (this.config.enableDebugLogging) {
+        logger.debug("Configurations loaded for introspect", {
+          localConfig: this.sanitizeConfig(localConfig),
+          remoteConfig: this.sanitizeConfig(remoteConfig),
+        });
+      }
+
+      // Perform comparisons with swapped order (remote as source, local as target)
+      // This shows what will be removed/added/updated in the local file
+      const results = await this.performComparisons(remoteConfig, localConfig);
+
+      // Calculate summary statistics
+      const summary = this.calculateSummary(results);
+
+      const duration = Date.now() - startTime;
+      logger.info("Introspect diff comparison completed", {
+        totalChanges: summary.totalChanges,
+        creates: summary.creates,
+        updates: summary.updates,
+        deletes: summary.deletes,
+        durationMs: duration,
+      });
+
+      return summary;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      logger.error("Failed to compare configurations for introspect", {
+        error: error instanceof Error ? error.message : String(error),
+        durationMs: duration,
+      });
+
+      // Re-throw with more context if it's not already a custom error
+      if (
+        error instanceof ConfigurationLoadError ||
+        error instanceof RemoteConfigurationError ||
+        error instanceof DiffComparisonError
+      ) {
+        throw error;
+      }
+
+      throw new DiffComparisonError(
+        `Introspect diff comparison failed: ${error instanceof Error ? error.message : String(error)}`,
+        undefined,
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  /**
    * Creates and configures entity comparators
    */
   private createComparators(): ReadonlyMap<string, EntityComparator> {

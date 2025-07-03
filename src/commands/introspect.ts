@@ -6,7 +6,7 @@ import {
   displayConfig,
   handleCommandError,
   confirmPrompt,
-  displayDiffSummary,
+  displayIntrospectDiffSummary,
 } from "../cli";
 import { createConfigurator } from "../core/factory";
 import { createBackup, fileExists } from "../lib/utils/file";
@@ -42,12 +42,12 @@ async function runIntrospect() {
       }
 
       try {
-        const diffSummary = await configurator.diff({
+        const diffSummary = await configurator.diffForIntrospect({
           format: "table",
           quiet: true,
         });
 
-        displayDiffSummary(diffSummary);
+        displayIntrospectDiffSummary(diffSummary);
 
         if (diffSummary.totalChanges === 0) {
           if (!quiet) {
@@ -57,9 +57,9 @@ async function runIntrospect() {
         }
 
         if (!quiet) {
-          console.log("⚠️  Introspecting will overwrite your local configuration file.");
+          console.log("⚠️  Introspecting will replace your local configuration file with the current state from Saleor.");
           const confirmed = await confirmPrompt(
-            "Do you want to continue and update the local file?",
+            "Do you want to continue and overwrite the local file?",
             false
           );
 

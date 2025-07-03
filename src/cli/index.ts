@@ -61,7 +61,7 @@ export {
 export type { BaseCommandArgs } from "./display";
 
 // Interactive exports
-export { confirmPrompt, selectPrompt, displayDiffSummary } from "./interactive";
+export { confirmPrompt, selectPrompt, displayDiffSummary, displayIntrospectDiffSummary } from "./interactive";
 export type { PromptOptions, DiffSummary } from "./interactive";
 
 /**
