@@ -3,10 +3,32 @@ import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
 import { cliConsole } from "./console";
 
+/**
+ * Validates and normalizes a Saleor URL
+ */
+function validateSaleorUrl(url: string): string {
+  try {
+    const parsedUrl = new URL(url);
+
+    // Auto-append /graphql/ if missing
+    if (!parsedUrl.pathname.endsWith("/graphql/")) {
+      if (parsedUrl.pathname.endsWith("/")) {
+        parsedUrl.pathname += "graphql/";
+      } else {
+        parsedUrl.pathname += "/graphql/";
+      }
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    throw new Error(
+      `Invalid URL format: ${url}. Expected format: https://your-store.saleor.cloud/graphql/`
+    );
+  }
+}
+
 export const baseCommandArgsSchema = z.object({
-  url: z
-    .string({ required_error: "URL is required" })
-    .describe("Saleor instance URL"),
+  url: z.string().describe("Saleor instance URL").transform(validateSaleorUrl),
   token: z
     .string({ required_error: "Token is required" })
     .describe("Saleor API token"),
@@ -223,43 +245,3 @@ export function createCommand<T extends z.ZodTypeAny>(
 
   return command;
 }
-
-/**
- * Validates and normalizes a Saleor URL
- */
-export function validateSaleorUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-
-    // Auto-append /graphql/ if missing
-    if (!parsedUrl.pathname.endsWith("/graphql/")) {
-      if (parsedUrl.pathname.endsWith("/")) {
-        parsedUrl.pathname += "graphql/";
-      } else {
-        parsedUrl.pathname += "/graphql/";
-      }
-    }
-
-    return parsedUrl.toString();
-  } catch {
-    throw new Error(
-      `Invalid URL format: ${url}. Expected format: https://your-store.saleor.cloud/graphql/`
-    );
-  }
-}
-
-/**
- * Enhanced schema with URL validation and normalization
- */
-export const baseCommandArgsSchemaWithValidation = baseCommandArgsSchema.extend(
-  {
-    url: z
-      .string()
-      .describe("Saleor instance URL")
-      .transform(validateSaleorUrl),
-  }
-);
-
-export type BaseCommandArgsWithValidation = z.infer<
-  typeof baseCommandArgsSchemaWithValidation
->;

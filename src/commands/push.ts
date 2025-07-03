@@ -1,14 +1,11 @@
 import chalk from "chalk";
 import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
-import {
-  baseCommandArgsSchemaWithValidation,
-  confirmAction,
-} from "../cli/command";
+import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 
-export const pushCommandSchema = baseCommandArgsSchemaWithValidation.extend({
+export const pushCommandSchema = baseCommandArgsSchema.extend({
   force: z.boolean().default(false).describe("Force push without confirmation"),
   dryRun: z
     .boolean()

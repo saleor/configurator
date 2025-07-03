@@ -1,14 +1,11 @@
 import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
-import {
-  baseCommandArgsSchemaWithValidation,
-  confirmAction,
-} from "../cli/command";
+import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { createBackup, fileExists } from "../lib/utils/file";
 
-export const introspectCommandSchema = baseCommandArgsSchemaWithValidation;
+export const introspectCommandSchema = baseCommandArgsSchema;
 
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
 

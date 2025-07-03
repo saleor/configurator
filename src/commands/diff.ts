@@ -1,12 +1,12 @@
 import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
-import { baseCommandArgsSchemaWithValidation } from "../cli/command";
+import { baseCommandArgsSchema } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { logger } from "../lib/logger";
 
-export const diffCommandSchema = baseCommandArgsSchemaWithValidation;
+export const diffCommandSchema = baseCommandArgsSchema;
 
 export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 
