@@ -82,72 +82,25 @@ categories:
       - name: "History"
 
 products:
-  - name: "The Lord of the Rings: The Fellowship of the Ring"
+  - name: "Sample Fiction Book"
     productType: "Book"
     category: "Fiction"
+    description: "A reference book product for testing the Book product type"
     attributes:
-      Author: "J.R.R. Tolkien"
-      Genre: "Fantasy"
-      Publisher: "Houghton Mifflin"
-      Publication Year: 1954
-      Language: "English"
-
+      Author: "Jane Doe"
+      Genre: "Fiction"
     variants:
-      - name: "Hardcover First Edition"
-        sku: "LOTR-FOTR-HC-1ST"
-        weight: 1.8
+      - name: "Hardcover"
+        sku: "BOOK-001-HC"
+        weight: 1.2
         attributes:
-          Format: "Hardcover"
-          Page Count: 479
-          ISBN: "978-0-395-08254-6"
-          Edition: "First Edition"
-        # Configure variant-level pricing per channel
-        channelListings:
-          - channel: "poland"
-            price: 89.99
-            costPrice: 45.00
+          Size: "Large"
+          Cover: "Hardcover"
+        channelListings: []
       - name: "Paperback"
-        sku: "LOTR-FOTR-PB"
-        weight: 0.6
-        attributes:
-          Format: "Paperback"
-          Page Count: 479
-          ISBN: "978-0-547-92822-7"
-          Edition: "Revised Edition"
-
-      - name: "E-book"
-        sku: "LOTR-FOTR-EBOOK"
-        weight: 0
-        digital: true
-        attributes:
-          Format: "E-book"
-          Page Count: 479
-          ISBN: "978-0-547-95154-6"
-          Edition: "Revised Edition"
-
-  - name: "Dune"
-    productType: "Book"
-    category: "Fiction"
-    attributes:
-      Author: "Frank Herbert"
-      Genre: "Science Fiction"
-      Publisher: "Chilton Books"
-      Publication Year: 1965
-      Language: "English"
-    variants:
-      - name: "Hardcover Anniversary Edition"
-        sku: "DUNE-HC-ANNIV"
-        weight: 2.1
-        attributes:
-          Format: "Hardcover"
-          Page Count: 688
-          ISBN: "978-0-441-01590-1"
-          Edition: "Anniversary Edition"
-      - name: "Paperback"
-        sku: "DUNE-PB"
+        sku: "BOOK-001-PB"
         weight: 0.8
         attributes:
-          Format: "Paperback"
-          Page Count: 688
-          ISBN: "978-0-441-17271-9"
-          Edition: "Revised Edition"
+          Size: "Standard"
+          Cover: "Paperback"
+        channelListings: []
