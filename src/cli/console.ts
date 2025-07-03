@@ -7,7 +7,6 @@ export class Console {
     this.options = options;
   }
 
-  // OUTPUT METHODS
   status(message: string) {
     global.console.log(message);
   }
@@ -66,7 +65,6 @@ export class Console {
     return path;
   }
 
-  // INPUT METHODS
   async confirm(message: string): Promise<boolean> {
     this.prompt(`${message} [y/N]: `);
     process.stdin.setEncoding("utf8");
@@ -81,5 +79,4 @@ export class Console {
   }
 }
 
-// Export a singleton instance
 export const cliConsole = new Console();
