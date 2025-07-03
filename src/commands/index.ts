@@ -8,15 +8,12 @@
 export { diffCommandConfig } from "./diff";
 export { introspectCommandConfig } from "./introspect";
 // Command exports
-export { pushCommandConfig, pushCommandOptions } from "./push";
+export { pushCommandConfig } from "./push";
 
-import { diffCommandConfig, diffCommandOptions } from "./diff";
-import {
-  introspectCommandConfig,
-  introspectCommandOptions,
-} from "./introspect";
+import { diffCommandConfig } from "./diff";
+import { introspectCommandConfig } from "./introspect";
 // Command imports for registry
-import { pushCommandConfig, pushCommandOptions } from "./push";
+import { pushCommandConfig } from "./push";
 
 /**
  * All available commands for the CLI
@@ -27,13 +24,3 @@ export const commands = [
   diffCommandConfig,
   introspectCommandConfig,
 ];
-
-/**
- * Command-specific options that need to be added to Commander.js
- * Maps command names to their additional option configurations
- */
-export const commandOptions = {
-  push: pushCommandOptions,
-  diff: diffCommandOptions,
-  introspect: introspectCommandOptions,
-} as const;

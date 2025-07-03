@@ -2,7 +2,6 @@ import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
-import type { CommandOption } from "../cli/main";
 import { createConfigurator } from "../core/configurator";
 import { createBackup, fileExists } from "../lib/utils/file";
 
@@ -18,26 +17,6 @@ async function checkFileExists(configPath: string): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-async function confirmFileOverwrite(configPath: string): Promise<boolean> {
-  const fileExists = await checkFileExists(configPath);
-  if (!fileExists) {
-    return true; // No file to overwrite, proceed
-  }
-
-  const shouldOverwrite = await confirmAction(
-    `Local configuration file "${configPath}" already exists. Overwrite it?`,
-    "This will replace your current local configuration with the remote state.",
-    false
-  );
-
-  if (!shouldOverwrite) {
-    cliConsole.cancelled("Introspect cancelled by user");
-    return false;
-  }
-
-  return true;
 }
 
 async function analyzeConfigurationDifferences(
@@ -111,14 +90,18 @@ export async function introspectHandler(
   cliConsole.setOptions({ quiet: args.quiet });
   cliConsole.header("🔍 Saleor Configuration Introspect\n");
 
-  const shouldOverwrite = await confirmFileOverwrite(args.config);
-  if (!shouldOverwrite) {
-    return;
+  const fileExists = await checkFileExists(args.config);
+
+  if (fileExists) {
+    cliConsole.warn(
+      `Local configuration file "${args.config}" already exists.`
+    );
   }
 
   const shouldProceed = await analyzeConfigurationDifferences(args);
+
   if (!shouldProceed) {
-    return;
+    process.exit(0);
   }
 
   await createConfigurationBackup(args.config);
@@ -139,31 +122,4 @@ export const introspectCommandConfig: CommandConfig<
     "configurator introspect --config output.yml",
     "configurator introspect --quiet",
   ],
-};
-
-// TODO: refactor, it should be drawn from some centralized place
-export const introspectCommandOptions: Record<
-  keyof typeof introspectCommandSchema.shape,
-  CommandOption
-> = {
-  url: {
-    flags: "-u, --url <url>",
-    description: "",
-    defaultValue: "",
-  },
-  token: {
-    flags: "-t, --token <token>",
-    description: "",
-    defaultValue: "",
-  },
-  config: {
-    flags: "-c, --config <config>",
-    description: "",
-    defaultValue: "config.yml",
-  },
-  quiet: {
-    flags: "-q, --quiet",
-    description: "",
-    defaultValue: false,
-  },
 };

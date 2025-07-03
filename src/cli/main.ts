@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
-import { commandOptions, commands } from "../commands";
+import { commands } from "../commands";
 import { type CommandConfig, createCommand, selectOption } from "./command";
 import { cliConsole } from "./console";
 
 export type CommandOption = {
   flags: string;
   description: string;
-  defaultValue: boolean | string;
+  defaultValue: boolean | string | undefined;
 };
 
 const CLI_CONFIG = {
@@ -19,11 +19,14 @@ const CLI_CONFIG = {
 
 const INTERACTIVE_CHOICES = [
   {
-    name: "📥 Download configuration from Saleor (introspect)",
+    name: "📥 Pull configuration from Saleor (`introspect`)",
     value: "introspect",
   },
-  { name: "📤 Upload configuration to Saleor (push)", value: "push" },
-  { name: "🔍 Compare local and remote configurations (diff)", value: "diff" },
+  { name: "📤 Deploy configuration to Saleor (`push`)", value: "push" },
+  {
+    name: "🔍 Compare local and remote configurations (`diff`)",
+    value: "diff",
+  },
 ];
 
 function registerCommands(program: Command): void {
@@ -31,13 +34,6 @@ function registerCommands(program: Command): void {
     const command = createCommand(
       commandConfig as CommandConfig<typeof commandConfig.schema>
     );
-
-    const commandName = commandConfig.name as keyof typeof commandOptions;
-    const options = commandOptions[commandName];
-
-    Object.entries(options).forEach(([_, option]) => {
-      command.option(option.flags, option.description, option.defaultValue);
-    });
 
     program.addCommand(command);
   }
@@ -92,7 +88,7 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
 function addHelpContent(program: Command): void {
   program.addHelpText(
     "before",
-    cliConsole.important("🛒 Saleor Configuration Management Tool\n")
+    cliConsole.important("✨ Saleor Configurator ✨\n")
   );
   program.addHelpText("after", buildHelpText());
 }
@@ -100,22 +96,11 @@ function addHelpContent(program: Command): void {
 function buildHelpText(): string {
   return `
 ${cliConsole.important("Quick Start:")}
-  ${cliConsole.hint("# First time? Use the interactive setup:")}
+  ${cliConsole.hint("‧ First time? Use the interactive setup:")}
   ${cliConsole.code("configurator interactive")}
   
-  ${cliConsole.hint("# Or run commands directly:")}
-  ${cliConsole.code("configurator push -u <url> -t <token>")}
-  
-${cliConsole.important("Tips:")}
-  ${cliConsole.hint("• Use short flags:")} ${cliConsole.code(
-    "-u"
-  )} for URL, ${cliConsole.code("-t")} for token, ${cliConsole.code(
-    "-c"
-  )} for config
-  ${cliConsole.hint("• Run without arguments for interactive prompts")}
-  ${cliConsole.hint("• Use")} ${cliConsole.code("--help")} ${cliConsole.hint(
-    "on any command for detailed options"
-  )}
+  ${cliConsole.hint("‧ Or run commands directly:")}
+  ${cliConsole.code("configurator push -u <url> -t <token> \n")}
 `;
 }
 

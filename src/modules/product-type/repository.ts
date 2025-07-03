@@ -1,5 +1,5 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
 
 const createProductTypeMutation = graphql(`
@@ -18,9 +18,13 @@ const createProductTypeMutation = graphql(`
 `);
 
 export type ProductType = NonNullable<
-  NonNullable<ResultOf<typeof createProductTypeMutation>["productTypeCreate"]>["productType"]
+  NonNullable<
+    ResultOf<typeof createProductTypeMutation>["productTypeCreate"]
+  >["productType"]
 >;
-export type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
+export type ProductTypeInput = VariablesOf<
+  typeof createProductTypeMutation
+>["input"];
 
 const assignAttributesToProductTypeMutation = graphql(`
   mutation AssignAttributesToProductType(
@@ -103,17 +107,22 @@ export class ProductTypeRepository implements ProductTypeOperations {
     attributeIds: string[];
     productTypeId: string;
   }) {
-    const result = await this.client.mutation(assignAttributesToProductTypeMutation, {
-      productTypeId,
-      operations: attributeIds.map((id) => ({
-        id,
-        type: "PRODUCT" as const,
-      })),
-    });
+    const result = await this.client.mutation(
+      assignAttributesToProductTypeMutation,
+      {
+        productTypeId,
+        operations: attributeIds.map((id) => ({
+          id,
+          type: "PRODUCT" as const,
+        })),
+      }
+    );
 
     if (!result.data?.productAttributeAssign?.productType) {
-      console.log(result.data?.productAttributeAssign?.errors);
-      throw new Error("Failed to assign attributes to product type", result.error);
+      throw new Error(
+        "Failed to assign attributes to product type",
+        result.error
+      );
     }
 
     return result.data?.productAttributeAssign?.productType;
