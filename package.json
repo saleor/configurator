@@ -18,7 +18,7 @@
     "build": "tsc",
     "dev": "tsx src/cli/main.ts",
     "push": "tsx src/cli/main.ts push",
-    "introspect": "tsx src/cli/main.ts introspect", 
+    "introspect": "tsx src/cli/main.ts introspect",
     "diff": "tsx src/cli/main.ts diff",
     "interactive": "tsx src/cli/main.ts interactive",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
@@ -56,6 +56,6 @@
     "tiny-invariant": "^1.3.3",
     "tslog": "^4.9.3",
     "yaml": "^2.7.0",
-    "zod": "^3.24.1"
+    "zod": "^3.25.71"
   }
 }
