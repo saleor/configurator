@@ -6,16 +6,16 @@
  */
 
 export { diffCommandConfig } from "./diff";
-export { interactiveCommandConfig } from "./interactive";
 export { introspectCommandConfig } from "./introspect";
 // Command exports
 export { pushCommandConfig } from "./push";
+export { startCommandConfig } from "./start";
 
 import { diffCommandConfig } from "./diff";
-import { interactiveCommandConfig } from "./interactive";
 import { introspectCommandConfig } from "./introspect";
 // Command imports for registry
 import { pushCommandConfig } from "./push";
+import { startCommandConfig } from "./start";
 
 /**
  * All available commands for the CLI
@@ -25,5 +25,5 @@ export const commands = [
   pushCommandConfig,
   diffCommandConfig,
   introspectCommandConfig,
-  interactiveCommandConfig,
+  startCommandConfig,
 ];

@@ -3,11 +3,11 @@ import type { CommandConfig } from "../cli/command";
 import { selectOption } from "../cli/command";
 import { cliConsole } from "../cli/console";
 
-export const interactiveCommandSchema = z.object({
+export const startCommandSchema = z.object({
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
 
-export type InteractiveCommandArgs = z.infer<typeof interactiveCommandSchema>;
+export type StartCommandArgs = z.infer<typeof startCommandSchema>;
 
 const INTERACTIVE_CHOICES = [
   {
@@ -49,20 +49,16 @@ async function runInteractiveSetup(): Promise<void> {
   }
 }
 
-export async function interactiveHandler(
-  args: InteractiveCommandArgs
-): Promise<void> {
+export async function startHandler(args: StartCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
   await runInteractiveSetup();
 }
 
-export const interactiveCommandConfig: CommandConfig<
-  typeof interactiveCommandSchema
-> = {
-  name: "interactive",
+export const startCommandConfig: CommandConfig<typeof startCommandSchema> = {
+  name: "start",
   description: "🔧 Interactive setup wizard for first-time users",
-  schema: interactiveCommandSchema,
-  handler: interactiveHandler,
+  schema: startCommandSchema,
+  handler: startHandler,
   requiresInteractive: false,
-  examples: ["configurator interactive", "configurator interactive --quiet"],
+  examples: ["configurator start", "configurator start --quiet"],
 };
