@@ -17,8 +17,10 @@ export {
   BaseDiffFormatter,
   DetailedDiffFormatter,
   SummaryDiffFormatter,
+  IntrospectDiffFormatter,
   createDetailedFormatter,
   createSummaryFormatter,
+  createIntrospectFormatter,
 } from "./formatters";
 
 // Diff operations

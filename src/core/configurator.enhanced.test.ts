@@ -211,4 +211,106 @@ describe("SaleorConfigurator enhanced functionality", () => {
       expect(result).toEqual(complexConfig);
     });
   });
+
+  describe("diffForIntrospect method", () => {
+    it("should successfully perform introspect diff comparison", async () => {
+      // Arrange
+      const mockLocalConfig = {
+        shop: { headerText: "Local Shop" },
+        channels: [
+          { name: "Local Channel", slug: "local", currencyCode: "USD", defaultCountry: "US" },
+        ],
+      };
+
+      const mockRemoteConfig = {
+        shop: { headerText: "Remote Shop" },
+        channels: [],
+      };
+
+      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+
+      // Act
+      const result = await configurator.diffForIntrospect({ quiet: true });
+
+      // Assert
+      expect(mockServices.configStorage!.load).toHaveBeenCalled();
+      expect(mockServices.configuration!.retrieveWithoutSaving).toHaveBeenCalled();
+      expect(result).toBeDefined();
+      expect(result.totalChanges).toBeGreaterThan(0);
+    });
+
+    it("should handle empty remote configuration", async () => {
+      // Arrange
+      const mockLocalConfig = {
+        shop: { headerText: "Local Shop" },
+        channels: [
+          { name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" },
+        ],
+        productTypes: [{ name: "Product Type 1", attributes: [] }],
+      };
+
+      const mockRemoteConfig = {};
+
+      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+
+      // Act
+      const result = await configurator.diffForIntrospect({ quiet: true });
+
+      // Assert
+      // All local entities should be marked for deletion when remote is empty
+      expect(result.deletes).toBeGreaterThan(0);
+      expect(result.creates).toBe(0);
+    });
+
+    it("should handle format options", async () => {
+      // Arrange
+      const mockConfig = {
+        shop: { headerText: "Shop" },
+      };
+
+      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockConfig);
+
+      // Act
+      const result = await configurator.diffForIntrospect({ 
+        format: "json",
+        quiet: true 
+      });
+
+      // Assert
+      expect(result.totalChanges).toBe(0);
+    });
+
+    it("should handle filter options", async () => {
+      // Arrange
+      const mockLocalConfig = {
+        shop: { headerText: "Local" },
+        channels: [{ name: "Channel", slug: "ch", currencyCode: "USD", defaultCountry: "US" }],
+      };
+
+      const mockRemoteConfig = {};
+
+      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+
+      // Act
+      const result = await configurator.diffForIntrospect({ 
+        filter: ["channels"],
+        quiet: true 
+      });
+
+      // Assert
+      expect(result.results.every(r => r.entityType === "Channels")).toBe(true);
+    });
+
+    it("should handle service errors gracefully", async () => {
+      // Arrange
+      mockServices.configStorage!.load = vi.fn().mockRejectedValue(new Error("Load error"));
+
+      // Act & Assert
+      await expect(configurator.diffForIntrospect({ quiet: true })).rejects.toThrow();
+    });
+  });
 });
