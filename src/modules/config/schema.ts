@@ -1,70 +1,8 @@
 import { z } from "zod";
-
-const attributeValueSchema = z.object({
-  name: z.string(),
-});
-
-const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);
-
-// Base attribute fields that are common to all types
-const baseAttributeSchema = z.object({
-  name: z.string(),
-});
-
-// Schema for attributes with multiple values (dropdown, multiselect, swatch)
-const multipleValuesAttributeSchema = baseAttributeSchema.extend({
-  inputType: z.enum(["DROPDOWN", "MULTISELECT", "SWATCH"]),
-  values: z.array(attributeValueSchema),
-});
-
-// Schema for reference type attributes
-const referenceAttributeSchema = baseAttributeSchema.extend({
-  inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]).optional(),
-});
-
-// Schema for simple value attributes
-const simpleAttributeSchema = baseAttributeSchema.extend({
-  inputType: z.enum([
-    "PLAIN_TEXT",
-    "NUMERIC",
-    "DATE",
-    "BOOLEAN",
-    "RICH_TEXT",
-    "DATE_TIME",
-    "FILE",
-  ]),
-});
-
-// Combined attribute schema using discriminted union based on inputType
-const noTypeAttributeSchema = z.discriminatedUnion("inputType", [
-  multipleValuesAttributeSchema,
-  referenceAttributeSchema,
+import {
+  attributeInputSchema,
   simpleAttributeSchema,
-]);
-
-export type NoTypeAttribute = z.infer<typeof noTypeAttributeSchema>;
-
-const attributeBySlugSchema = z
-  .object({
-    attribute: z.string(), // ? maybe should be called "slug"
-  })
-  .describe("Reference to an existing attribute by slug");
-
-const attributeInputSchema = z.union([
-  noTypeAttributeSchema,
-  attributeBySlugSchema,
-]);
-
-export type AttributeInput = z.infer<typeof attributeInputSchema>;
-
-const fullAttributeSchema = noTypeAttributeSchema.and(
-  z.object({
-    type: attributeTypeSchema,
-  })
-);
-
-export type FullAttribute = z.infer<typeof fullAttributeSchema>;
+} from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -89,7 +27,7 @@ const pageTypeCreateSchema = z.object({
 // PageType Update Schema - full state representation
 const pageTypeUpdateSchema = z.object({
   name: z.string().describe("PageType.name"),
-  attributes: z.array(noTypeAttributeSchema).describe("PageType.attributes"),
+  attributes: z.array(simpleAttributeSchema).describe("PageType.attributes"),
 });
 
 // Union type that accepts either create or update input
