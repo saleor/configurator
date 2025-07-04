@@ -1,6 +1,7 @@
 import { Command } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
+import { formatZodErrorForCLI } from "../lib/errors/zod-formatter";
 import { cliConsole } from "./console";
 
 /**
@@ -127,8 +128,13 @@ export interface CommandConfig<
 }
 
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
+  const isBoolean =
+    field._def.typeName === "ZodBoolean" ||
+    (field._def.typeName === "ZodDefault" &&
+      field._def.innerType._def.typeName === "ZodBoolean");
+
   return {
-    flags: `--${key} <${key}>`,
+    flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
     description: field.description || key,
     defaultValue:
       "defaultValue" in field._def
@@ -146,7 +152,17 @@ function generateOptionsFromSchema(
   Object.entries(shape).forEach(([key, field]) => {
     const { flags, description, defaultValue } =
       getOptionConfigFromZodForCommander(key, field);
-    command.option(flags, description, defaultValue);
+
+    const isBoolean =
+      field._def.typeName === "ZodBoolean" ||
+      (field._def.typeName === "ZodDefault" &&
+        field._def.innerType._def.typeName === "ZodBoolean");
+
+    if (isBoolean) {
+      command.option(flags, description);
+    } else {
+      command.option(flags, description, defaultValue);
+    }
   });
 }
 
@@ -196,25 +212,9 @@ export function createCommand<
       await config.handler(validatedArgs);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        cliConsole.error("❌ Invalid arguments:");
-        for (const issue of error.errors) {
-          const path = issue.path.length ? `${issue.path.join(".")}: ` : "";
-          cliConsole.error(`  • ${path}${issue.message}`);
-        }
+        const formattedError = formatZodErrorForCLI(error);
 
-        // Suggest interactive mode for missing required fields
-        const missingRequired = error.errors.some(
-          (e) =>
-            e.code === "invalid_type" &&
-            ["url", "token"].includes(e.path[0] as string)
-        );
-
-        if (missingRequired) {
-          cliConsole.warn(
-            "\n💡 Tip: Run without arguments for interactive mode"
-          );
-        }
-
+        cliConsole.error(formattedError);
         process.exit(1);
       } else {
         cliConsole.error(`❌ Unknown error: ${String(error)}`);

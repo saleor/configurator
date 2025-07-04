@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
+import { formatZodError } from "../../lib/errors/zod-formatter";
 import { logger } from "../../lib/logger";
 import { configSchema, type SaleorConfig } from "./schema/schema";
 
@@ -60,24 +61,26 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Parsed configuration", { data });
 
       if (!success) {
-        const uniqueMessages = Array.from(
-          new Set(
-            error.errors.map((issue) => {
-              const path =
-                issue.path && issue.path.length
-                  ? issue.path.join(".") + ": "
-                  : "";
-              return path + issue.message;
-            })
-          )
-        );
+        const formatted = formatZodError(error, {
+          showPath: true,
+          showSuggestions: true,
+          groupByPath: true,
+          colorize: false,
+        });
+
         const validationError = new Error(
-          "Invalid configuration file:\n" +
-            uniqueMessages.map((msg) => `  - ${msg}`).join("\n")
+          `Invalid configuration file (${this.configPath}):\n${formatted.message}` +
+            (formatted.suggestions?.length
+              ? `\n\nSuggestions:\n${formatted.suggestions
+                  .map((s) => `  • ${s}`)
+                  .join("\n")}`
+              : "")
         );
+
         logger.error("Configuration validation failed", {
           errors: error.errors,
           path: this.configPath,
+          formattedDetails: formatted.details,
         });
         throw validationError;
       }
