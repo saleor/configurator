@@ -6,11 +6,13 @@
  */
 
 export { diffCommandConfig } from "./diff";
+export { interactiveCommandConfig } from "./interactive";
 export { introspectCommandConfig } from "./introspect";
 // Command exports
 export { pushCommandConfig } from "./push";
 
 import { diffCommandConfig } from "./diff";
+import { interactiveCommandConfig } from "./interactive";
 import { introspectCommandConfig } from "./introspect";
 // Command imports for registry
 import { pushCommandConfig } from "./push";
@@ -23,4 +25,5 @@ export const commands = [
   pushCommandConfig,
   diffCommandConfig,
   introspectCommandConfig,
+  interactiveCommandConfig,
 ];

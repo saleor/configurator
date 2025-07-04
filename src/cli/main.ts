@@ -2,7 +2,7 @@
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import { commands } from "../commands";
-import { type CommandConfig, createCommand, selectOption } from "./command";
+import { type CommandConfig, createCommand } from "./command";
 import { cliConsole } from "./console";
 
 export type CommandOption = {
@@ -17,18 +17,6 @@ const CLI_CONFIG = {
   version: "0.3.0",
 } as const;
 
-const INTERACTIVE_CHOICES = [
-  {
-    name: "📥 Pull configuration from Saleor (`introspect`)",
-    value: "introspect",
-  },
-  { name: "📤 Deploy configuration to Saleor (`push`)", value: "push" },
-  {
-    name: "🔍 Compare local and remote configurations (`diff`)",
-    value: "diff",
-  },
-];
-
 function registerCommands(program: Command): void {
   for (const commandConfig of commands) {
     const command = createCommand(
@@ -36,36 +24,6 @@ function registerCommands(program: Command): void {
     );
 
     program.addCommand(command);
-  }
-}
-
-function createInteractiveCommand(): Command {
-  return new Command()
-    .name("interactive")
-    .alias("setup")
-    .description("🔧 Interactive setup wizard for first-time users")
-    .action(async () => {
-      await runInteractiveSetup();
-    });
-}
-
-async function runInteractiveSetup(): Promise<void> {
-  cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
-
-  const selectedAction = await selectOption(
-    "What would you like to do?",
-    INTERACTIVE_CHOICES
-  );
-
-  cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
-
-  const program = createCLI();
-  const targetCommand = program.commands.find(
-    (cmd) => cmd.name() === selectedAction
-  );
-
-  if (targetCommand) {
-    await targetCommand.parseAsync([], { from: "user" });
   }
 }
 
@@ -114,7 +72,6 @@ function createCLI(): Command {
     });
 
   registerCommands(program);
-  program.addCommand(createInteractiveCommand());
   setupErrorHandling(program);
   addHelpContent(program);
 
