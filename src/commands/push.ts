@@ -49,13 +49,6 @@ async function shouldProceedWithPush(args: PushCommandArgs): Promise<boolean> {
   return await requestUserConfirmation();
 }
 
-async function executePush(args: PushCommandArgs): Promise<void> {
-  const configurator = createConfigurator(args);
-
-  await configurator.push();
-  cliConsole.success("✅ Configuration pushed to Saleor instance");
-}
-
 export async function pushHandler(args: PushCommandArgs): Promise<void> {
   cliConsole.header("🚀 Saleor Configuration Push\n");
   cliConsole.info(
@@ -65,11 +58,15 @@ export async function pushHandler(args: PushCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
 
   const shouldProceed = await shouldProceedWithPush(args);
+
   if (!shouldProceed) {
-    return;
+    process.exit(0);
   }
 
-  await executePush(args);
+  const configurator = createConfigurator(args);
+
+  await configurator.push();
+  cliConsole.success("✅ Configuration pushed to Saleor instance");
 }
 
 export const pushCommandConfig: CommandConfig<typeof pushCommandSchema> = {

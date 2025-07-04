@@ -1,7 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { stringify, parse } from "yaml";
-import { configSchema, type SaleorConfig } from "./schema";
+import { parse, stringify } from "yaml";
 import { logger } from "../../lib/logger";
+import { configSchema, type SaleorConfig } from "./schema/schema";
 
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;

@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  configSchema,
-  type ProductTypeCreateInput,
-  type ProductTypeUpdateInput,
   type ChannelCreateInput,
   type ChannelUpdateInput,
+  type CountryCode,
+  configSchema,
+  type ProductTypeInput,
   type ShopCreateInput,
   type ShopUpdateInput,
-  type CountryCode,
 } from "./schema";
 
 describe("Schema Union Types", () => {
@@ -25,7 +24,7 @@ describe("Schema Union Types", () => {
 
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({ name: "Book" });
-      expect("attributes" in result.productTypes![0]).toBe(false);
+      expect("productAttributes" in result.productTypes![0]).toBe(false);
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -33,7 +32,7 @@ describe("Schema Union Types", () => {
         productTypes: [
           {
             name: "Book",
-            attributes: [
+            productAttributes: [
               {
                 name: "Genre",
                 inputType: "DROPDOWN",
@@ -49,7 +48,7 @@ describe("Schema Union Types", () => {
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
@@ -57,7 +56,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("attributes" in result.productTypes![0]).toBe(true);
+      expect("productAttributes" in result.productTypes![0]).toBe(true);
     });
 
     it("should prioritize update schema over create schema", () => {
@@ -66,7 +65,7 @@ describe("Schema Union Types", () => {
         productTypes: [
           {
             name: "Book",
-            attributes: [],
+            productAttributes: [],
           },
         ],
       };
@@ -75,9 +74,9 @@ describe("Schema Union Types", () => {
 
       expect(result.productTypes![0]).toEqual({
         name: "Book",
-        attributes: [],
+        productAttributes: [],
       });
-      expect("attributes" in result.productTypes![0]).toBe(true);
+      expect("productAttributes" in result.productTypes![0]).toBe(true);
     });
   });
 
@@ -185,7 +184,7 @@ describe("Schema Union Types", () => {
 
       expect(result.pageTypes).toHaveLength(1);
       expect(result.pageTypes![0]).toEqual({ name: "Article" });
-      expect("attributes" in result.pageTypes![0]).toBe(false);
+      expect("productAttributes" in result.pageTypes![0]).toBe(false);
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -282,19 +281,20 @@ describe("Schema Union Types", () => {
   describe("Type Inference", () => {
     it("should correctly infer create vs update types", () => {
       // This test ensures TypeScript types work correctly
-      const createProductType: ProductTypeCreateInput = {
+      const createProductType: ProductTypeInput = {
         name: "Book",
       };
 
-      const updateProductType: ProductTypeUpdateInput = {
+      const updateProductType: ProductTypeInput = {
         name: "Book",
-        attributes: [
+        productAttributes: [
           {
             name: "Genre",
             inputType: "DROPDOWN",
             values: [{ name: "Fiction" }],
           },
         ],
+        variantAttributes: [],
       };
 
       const createChannel: ChannelCreateInput = {
@@ -323,7 +323,7 @@ describe("Schema Union Types", () => {
 
       // If these compile without TypeScript errors, the types are working correctly
       expect(createProductType.name).toBe("Book");
-      expect(updateProductType.attributes).toHaveLength(1);
+      expect(updateProductType.productAttributes).toHaveLength(1);
       expect(createChannel.name).toBe("US");
       expect(updateChannel.settings?.useLegacyErrorFlow).toBe(false);
       expect(Object.keys(createShop)).toHaveLength(0);
@@ -332,30 +332,6 @@ describe("Schema Union Types", () => {
   });
 
   describe("Schema Validation Errors", () => {
-    it("should parse invalid attributes as create input (fallback behavior)", () => {
-      const invalidInput = {
-        productTypes: [
-          {
-            name: "Book",
-            attributes: [
-              {
-                name: "Genre",
-                inputType: "INVALID_TYPE", // Invalid input type
-                values: [{ name: "Fiction" }],
-              },
-            ],
-          },
-        ],
-      };
-
-      // Union schema behavior: when update schema fails, it falls back to create schema
-      // This results in attributes being stripped out and only the name being kept
-      const result = configSchema.parse(invalidInput);
-
-      expect(result.productTypes).toEqual([{ name: "Book" }]);
-      expect("attributes" in result.productTypes![0]).toBe(false);
-    });
-
     it("should reject invalid country codes", () => {
       const invalidInput = {
         channels: [
@@ -623,7 +599,18 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
+      const originalCodes = [
+        "US",
+        "GB",
+        "DE",
+        "FR",
+        "IT",
+        "ES",
+        "PL",
+        "JP",
+        "IN",
+        "CA",
+      ];
 
       // Act & Assert
       originalCodes.forEach((code) => {
@@ -739,7 +726,7 @@ describe("ShopConfigurationSchema", () => {
         productTypes: [
           {
             name: "Physical Product",
-            attributes: [
+            productAttributes: [
               {
                 name: "Color",
                 inputType: "DROPDOWN",

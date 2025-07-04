@@ -20,7 +20,7 @@
     "push": "tsx src/cli/main.ts push",
     "introspect": "tsx src/cli/main.ts introspect",
     "diff": "tsx src/cli/main.ts diff",
-    "interactive": "tsx src/cli/main.ts interactive",
+    "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema",

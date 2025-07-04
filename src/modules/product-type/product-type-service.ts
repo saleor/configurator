@@ -1,11 +1,11 @@
-import type {
-  ProductTypeInput,
-  ProductTypeCreateInput,
-  ProductTypeUpdateInput,
-} from "../config/schema";
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
-import type { ProductTypeOperations, ProductType } from "./repository";
+import type {
+  AttributeInput,
+  SimpleAttribute,
+} from "../config/schema/attribute.schema";
+import type { ProductTypeInput } from "../config/schema/schema";
+import type { ProductType, ProductTypeOperations } from "./repository";
 
 export class ProductTypeService {
   constructor(
@@ -15,7 +15,10 @@ export class ProductTypeService {
 
   private async upsert(name: string) {
     logger.debug("Looking up product type", { name });
-    const existingProductType = await this.repository.getProductTypeByName(name);
+    const existingProductType = await this.repository.getProductTypeByName(
+      name
+    );
+
     if (existingProductType) {
       logger.debug("Found existing product type", {
         id: existingProductType.id,
@@ -25,73 +28,157 @@ export class ProductTypeService {
     }
 
     logger.debug("Creating new product type", { name });
+
     return this.repository.createProductType({
       name,
       kind: "NORMAL",
-      hasVariants: false,
+      hasVariants: true,
       isShippingRequired: false,
       taxClass: null,
     });
   }
 
-  private filterOutAssignedAttributes(productType: ProductType, attributeIds: string[]) {
-    const existingAttributeIds = new Set(
-      productType.productAttributes?.map((attr) => attr.id) ?? []
-    );
-    const filteredIds = attributeIds.filter((id) => !existingAttributeIds.has(id));
-
-    return filteredIds;
-  }
-
-  async createProductType(input: ProductTypeCreateInput) {
-    logger.debug("Creating new product type", { name: input.name });
-    return this.repository.createProductType({
-      name: input.name,
-      kind: "NORMAL",
-      hasVariants: false,
-      isShippingRequired: false,
-      taxClass: null,
-    });
-  }
-
-  async updateProductType(productType: ProductType, input: ProductTypeUpdateInput) {
+  async updateProductType(productType: ProductType, input: ProductTypeInput) {
     logger.debug("Updating product type", {
       id: productType.id,
       name: input.name,
+      input,
     });
 
-    // Get existing attributes by name for this product type
-    const existingAttributeNames = productType.productAttributes?.map((attr) => attr.name) || [];
-
-    // Separate attributes into create vs update
-    const attributesToCreate = input.attributes.filter(
-      (a) => !existingAttributeNames.includes(a.name)
+    const {
+      createdAttributes: createdProductAttrs,
+      updatedAttributes: updatedProductAttrs,
+    } = await this.upsertAndAssignAttributes(
+      productType,
+      input.productAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ??
+        [],
+      "PRODUCT"
     );
 
-    const attributesToUpdate = input.attributes.filter((a) =>
-      existingAttributeNames.includes(a.name)
+    const {
+      createdAttributes: createdVariantAttrs,
+      updatedAttributes: updatedVariantAttrs,
+    } = await this.upsertAndAssignAttributes(
+      productType,
+      input.variantAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ??
+        [],
+      "VARIANT"
     );
 
-    // Handle attribute updates
-    const updatedAttributes = [];
-    if (attributesToUpdate.length > 0) {
-      logger.debug("Updating existing attributes", { count: attributesToUpdate.length });
+    logger.debug("Product type update completed", {
+      name: input.name,
+      createdAttributes:
+        createdProductAttrs.length + createdVariantAttrs.length,
+      updatedAttributes:
+        updatedProductAttrs.length + updatedVariantAttrs.length,
+    });
 
-      // Get existing attributes from Saleor to compare values
-      const existingAttributes = await this.attributeService.repo.getAttributesByNames({
-        names: attributesToUpdate.map((a) => a.name),
+    return productType;
+  }
+
+  private async getExistingAttributesToAssign(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ) {
+    const attributeNames = inputAttributes.filter((a) => "attribute" in a);
+
+    // check if the attribute is already assigned to the product type
+    const assignedAttributeNames =
+      productType.productAttributes?.map((a) => a.name) ?? [];
+
+    // filter out attributes that are already assigned to the product type
+    const unassignedAttributeNames = attributeNames.filter(
+      (a) => !assignedAttributeNames.includes(a.attribute)
+    );
+
+    // TODO: add validation to check if the number of unassigned attributes is the same as the number of fetched attributes
+    const unassignedExistingAttributes =
+      await this.attributeService.repo.getAttributesByNames({
+        names: unassignedAttributeNames.map((a) => a.attribute),
         type: "PRODUCT_TYPE",
       });
 
+    return unassignedExistingAttributes ?? [];
+  }
+
+  private async upsertAndAssignAttributes(
+    productType: ProductType,
+    inputAttributes: AttributeInput[],
+    type: "PRODUCT" | "VARIANT"
+  ) {
+    const updatedAttributes = await this.updateAttributes(
+      productType,
+      inputAttributes
+    );
+
+    const createdAttributes = await this.createAttributes(
+      productType,
+      inputAttributes
+    );
+
+    const existingAttributesToAssign = await this.getExistingAttributesToAssign(
+      productType,
+      inputAttributes
+    );
+
+    logger.debug("Existing attributes to assign", {
+      inputAttributes,
+      existingAttributesToAssign: existingAttributesToAssign.length,
+      productTypeName: productType.name,
+    });
+
+    const attributeToAssignIds = [
+      ...createdAttributes.map((a) => a.id),
+      ...existingAttributesToAssign.map((a) => a.id),
+    ];
+
+    if (attributeToAssignIds.length > 0) {
+      await this.repository.assignAttributesToProductType({
+        productTypeId: productType.id,
+        attributeIds: attributeToAssignIds,
+        type,
+      });
+    }
+
+    return { createdAttributes, updatedAttributes };
+  }
+
+  private async updateAttributes(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ) {
+    const updatedAttributes = [];
+
+    const existingAttributeNames =
+      productType.productAttributes?.map((attr) => attr.name) || [];
+
+    const attributesToUpdate = inputAttributes.filter((a) => {
+      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // TODO: improve, we shouldnt check by "attribute" in a
+      if ("attribute" in a) {
+        return false;
+      }
+
+      return existingAttributeNames.includes(a.name);
+    }) as SimpleAttribute[];
+
+    if (attributesToUpdate.length > 0) {
+      logger.debug("Updating existing attributes", {
+        count: attributesToUpdate.length,
+      });
+      const existingAttributes =
+        await this.attributeService.repo.getAttributesByNames({
+          names: attributesToUpdate.map((a) => a.name),
+          type: "PRODUCT_TYPE",
+        });
       if (existingAttributes) {
         for (const inputAttr of attributesToUpdate) {
-          const existingAttr = existingAttributes.find((attr) => attr.name === inputAttr.name);
+          const existingAttr = existingAttributes.find(
+            (attr) => attr.name === inputAttr.name
+          );
           if (existingAttr) {
             const updated = await this.attributeService.updateAttribute(
-              {
-                ...inputAttr,
-                type: "PRODUCT_TYPE",
-              },
+              { ...inputAttr, type: "PRODUCT_TYPE" },
               existingAttr
             );
             updatedAttributes.push(updated);
@@ -99,60 +186,40 @@ export class ProductTypeService {
         }
       }
     }
+    return updatedAttributes;
+  }
 
-    // Handle attribute creation
-    const createdAttributes = [];
-    if (attributesToCreate.length > 0) {
-      logger.debug("Creating new attributes", { count: attributesToCreate.length });
-      const newAttributes = await this.attributeService.bootstrapAttributes({
-        attributeInputs: attributesToCreate.map((a) => ({
-          ...a,
-          type: "PRODUCT_TYPE",
-        })),
-      });
-      createdAttributes.push(...newAttributes);
-    }
+  private async createAttributes(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ) {
+    const existingProductAttributeNames =
+      productType.productAttributes?.map((attr) => attr.name) || [];
 
-    // Assign new attributes to product type
-    if (createdAttributes.length > 0) {
-      const attributesToAssign = this.filterOutAssignedAttributes(
-        productType,
-        createdAttributes.map((attr) => attr.id)
-      );
+    const existingVariantAttributeNames =
+      productType.variantAttributes?.map((attr) => attr.name) || [];
 
-      if (attributesToAssign.length > 0) {
-        logger.debug("Assigning new attributes to product type", {
-          name: input.name,
-          count: attributesToAssign.length,
-        });
-
-        try {
-          await this.repository.assignAttributesToProductType({
-            productTypeId: productType.id,
-            attributeIds: attributesToAssign,
-          });
-          logger.debug("Successfully assigned attributes to product type", {
-            name: input.name,
-            count: attributesToAssign.length,
-          });
-        } catch (error) {
-          logger.error("Failed to assign attributes to product type", {
-            error: error instanceof Error ? error.message : "Unknown error",
-            name: input.name,
-            count: attributesToAssign.length,
-          });
-          throw error;
-        }
+    const attributesToCreate = inputAttributes.filter((a) => {
+      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // TODO: improve, we shouldnt check by "attribute" in a
+      if ("attribute" in a) {
+        return false;
       }
-    }
 
-    logger.debug("Product type update completed", {
-      name: input.name,
-      createdAttributes: createdAttributes.length,
-      updatedAttributes: updatedAttributes.length,
+      return (
+        !existingProductAttributeNames.includes(a.name) &&
+        !existingVariantAttributeNames.includes(a.name)
+      );
+    }) as SimpleAttribute[];
+
+    const newAttributes = await this.attributeService.bootstrapAttributes({
+      attributeInputs: attributesToCreate.map((a) => ({
+        ...a,
+        type: "PRODUCT_TYPE",
+      })),
     });
 
-    return productType;
+    return newAttributes;
   }
 
   async bootstrapProductType(input: ProductTypeInput) {
@@ -162,12 +229,6 @@ export class ProductTypeService {
 
     const productType = await this.upsert(input.name);
 
-    // Check if this is an update input (has attributes)
-    if ("attributes" in input) {
-      return this.updateProductType(productType, input as ProductTypeUpdateInput);
-    }
-
-    // It's a create input, return the created/found product type
-    return productType;
+    return this.updateProductType(productType, input);
   }
 }

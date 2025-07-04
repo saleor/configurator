@@ -45,17 +45,22 @@ export const FORMAT_CONFIG = {
  * Messages used in diff output
  */
 export const DIFF_MESSAGES = {
-  NO_CHANGES: "No differences found. Local configuration matches Saleor instance.",
+  NO_CHANGES:
+    "No differences found. Local configuration matches Saleor instance.",
   HEADER: "Configuration Diff Results",
   RECONCILE_INTRO:
     "The following changes would be applied to reconcile Saleor with your local configuration:",
   SUMMARY_HEADER: "Summary",
   DELETE_EXPLANATION: (entityType: string) =>
-    `The ${entityType.toLowerCase()} exists on Saleor but is missing from the local configuration.`,
-  FOUND_DIFFERENCES: (count: number) => `Found ${count} difference${count !== 1 ? "s" : ""}`,
-  ITEMS_TO_CREATE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to create`,
-  ITEMS_TO_UPDATE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to update`,
-  ITEMS_TO_DELETE: (count: number) => `${count} item${count !== 1 ? "s" : ""} to delete`,
+    `The ${entityType.toLowerCase()} exists in Saleor but is missing from the local configuration.`,
+  FOUND_DIFFERENCES: (count: number) =>
+    `Found ${count} difference${count !== 1 ? "s" : ""}`,
+  ITEMS_TO_CREATE: (count: number) =>
+    `${count} item${count !== 1 ? "s" : ""} to create`,
+  ITEMS_TO_UPDATE: (count: number) =>
+    `${count} item${count !== 1 ? "s" : ""} to update`,
+  ITEMS_TO_DELETE: (count: number) =>
+    `${count} item${count !== 1 ? "s" : ""} to delete`,
   TOTAL_CHANGES: (count: number) => `Total Changes: ${count}`,
   ENTITY_CHANGES: (entityType: string, count: number) =>
     `${entityType}: ${count} change${count !== 1 ? "s" : ""}`,

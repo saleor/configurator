@@ -1,4 +1,6 @@
-import type { SaleorConfig } from "../../../modules/config/schema";
+import type { SimpleAttribute } from "../../../modules/config/schema/attribute.schema";
+import { schemaHelpers } from "../../../modules/config/schema/helpers.schema";
+import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
@@ -10,11 +12,7 @@ type ProductTypeEntity = NonNullable<SaleorConfig["productTypes"]>[number];
 /**
  * Product type attribute structure
  */
-interface ProductTypeAttribute {
-  readonly name: string;
-  readonly inputType?: string;
-  readonly values?: readonly { readonly name: string }[];
-}
+type ProductTypeAttribute = SimpleAttribute;
 
 /**
  * Comparator for product type entities
@@ -47,19 +45,24 @@ export class ProductTypeComparator extends BaseEntityComparator<
 
       if (!remotePT) {
         // For new product types, analyze attributes that will be created
-        const localAttributes = this.getAttributes(localPT);
+        const { productAttributes, variantAttributes } =
+          this.getAttributes(localPT);
         const changes: DiffChange[] = [];
 
         // Compare against empty attributes array to show what will be created
-        if (localAttributes.length > 0) {
-          changes.push(...this.compareAttributes(localAttributes, [], true));
+        if (productAttributes.length > 0) {
+          changes.push(...this.compareAttributes(productAttributes, [], true));
+        }
+
+        if (variantAttributes.length > 0) {
+          changes.push(...this.compareAttributes(variantAttributes, [], true));
         }
 
         // Create result with changes if attributes exist, otherwise basic create
         if (changes.length > 0) {
           results.push({
             operation: "CREATE",
-            entityType: this.entityType as any,
+            entityType: this.entityType,
             entityName: this.getEntityName(localPT),
             desired: localPT,
             changes,
@@ -99,15 +102,46 @@ export class ProductTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote product type entities
    */
-  protected compareEntityFields(local: ProductTypeEntity, remote: ProductTypeEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: ProductTypeEntity,
+    remote: ProductTypeEntity
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare attributes if they exist
-    const localAttributes = this.getAttributes(local);
-    const remoteAttributes = this.getAttributes(remote);
+    const {
+      productAttributes: localProductAttributes,
+      variantAttributes: localVariantAttributes,
+    } = this.getAttributes(local);
+    const {
+      productAttributes: remoteProductAttributes,
+      variantAttributes: remoteVariantAttributes,
+    } = this.getAttributes(remote);
 
-    if (localAttributes.length > 0 || remoteAttributes.length > 0) {
-      changes.push(...this.compareAttributes(localAttributes, remoteAttributes, false));
+    if (
+      localProductAttributes.length > 0 ||
+      remoteProductAttributes.length > 0
+    ) {
+      changes.push(
+        ...this.compareAttributes(
+          localProductAttributes,
+          remoteProductAttributes,
+          false
+        )
+      );
+    }
+
+    if (
+      localVariantAttributes.length > 0 ||
+      remoteVariantAttributes.length > 0
+    ) {
+      changes.push(
+        ...this.compareAttributes(
+          localVariantAttributes,
+          remoteVariantAttributes,
+          false
+        )
+      );
     }
 
     return changes;
@@ -116,10 +150,19 @@ export class ProductTypeComparator extends BaseEntityComparator<
   /**
    * Safely extracts attributes from a product type entity
    */
-  private getAttributes(entity: ProductTypeEntity): readonly ProductTypeAttribute[] {
+  private getAttributes(productType: ProductTypeEntity): {
+    productAttributes: readonly ProductTypeAttribute[];
+    variantAttributes: readonly ProductTypeAttribute[];
+  } {
     // Type assertion is safe here since we're accessing a known property
-    const attributes = (entity as any).attributes;
-    return Array.isArray(attributes) ? attributes : [];
+    const productAttributes = (productType.productAttributes ?? []).filter(
+      (attr) => !("attribute" in attr)
+    ) as SimpleAttribute[];
+    const variantAttributes = (productType.variantAttributes ?? []).filter(
+      (attr) => !("attribute" in attr)
+    ) as SimpleAttribute[];
+
+    return { productAttributes, variantAttributes };
   }
 
   /**
@@ -143,7 +186,14 @@ export class ProductTypeComparator extends BaseEntityComparator<
           ? `Attribute "${localAttr.name}" will be created`
           : `Attribute "${localAttr.name}" added`;
 
-        changes.push(this.createFieldChange("attributes", null, localAttr.name, description));
+        changes.push(
+          this.createFieldChange(
+            "attributes",
+            null,
+            localAttr.name,
+            description
+          )
+        );
       }
     }
 
@@ -194,7 +244,10 @@ export class ProductTypeComparator extends BaseEntityComparator<
     }
 
     // Compare attribute values if they exist
-    if (local.values || remote.values) {
+    if (
+      schemaHelpers.isMultipleValuesAttribute(local) &&
+      schemaHelpers.isMultipleValuesAttribute(remote)
+    ) {
       changes.push(...this.compareAttributeValues(local, remote));
     }
 
@@ -209,8 +262,12 @@ export class ProductTypeComparator extends BaseEntityComparator<
     remote: ProductTypeAttribute
   ): DiffChange[] {
     const changes: DiffChange[] = [];
-    const localValues = local.values || [];
-    const remoteValues = remote.values || [];
+    const localValues = schemaHelpers.isMultipleValuesAttribute(local)
+      ? local.values
+      : [];
+    const remoteValues = schemaHelpers.isMultipleValuesAttribute(remote)
+      ? remote.values
+      : [];
 
     const localValueNames = new Set(localValues.map((v) => v.name));
     const remoteValueNames = new Set(remoteValues.map((v) => v.name));

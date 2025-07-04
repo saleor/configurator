@@ -1,9 +1,8 @@
-import { logger } from "../lib/logger";
-import { ServiceComposer, type ServiceContainer } from "./service-container";
-import { DiffService } from "./diff";
-import { DiffFormatter } from "./diff";
-import { createClient } from "../lib/graphql/client";
 import type { BaseCommandArgs } from "../cli/command";
+import { createClient } from "../lib/graphql/client";
+import { logger } from "../lib/logger";
+import { DiffFormatter, DiffService } from "./diff";
+import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
