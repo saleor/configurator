@@ -91,20 +91,12 @@ export class ProductTypeService {
       (a) => !assignedAttributeNames.includes(a.attribute)
     );
 
+    // TODO: add validation to check if the number of unassigned attributes is the same as the number of fetched attributes
     const unassignedExistingAttributes =
       await this.attributeService.repo.getAttributesByNames({
         names: unassignedAttributeNames.map((a) => a.attribute),
         type: "PRODUCT_TYPE",
       });
-
-    // if the number of unassigned attributes is not the same as the number of fetched attributes, it means that some of the attributes are not found and they must had been wrongfully referenced
-    if (
-      unassignedExistingAttributes?.length !== unassignedAttributeNames.length
-    ) {
-      throw new Error(
-        "Unable to fetch some of the referenced attributes. Please verify if you named them correctly."
-      );
-    }
 
     return unassignedExistingAttributes ?? [];
   }
@@ -237,6 +229,6 @@ export class ProductTypeService {
 
     const productType = await this.upsert(input.name);
 
-    await this.updateProductType(productType, input);
+    return this.updateProductType(productType, input);
   }
 }

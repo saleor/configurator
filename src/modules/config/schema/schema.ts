@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  attributeInputSchema,
-  simpleAttributeSchema,
-} from "./attribute.schema";
+import { attributeInputSchema } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -27,7 +24,7 @@ const pageTypeCreateSchema = z.object({
 // PageType Update Schema - full state representation
 const pageTypeUpdateSchema = z.object({
   name: z.string().describe("PageType.name"),
-  attributes: z.array(simpleAttributeSchema).describe("PageType.attributes"),
+  attributes: z.array(attributeInputSchema).describe("PageType.attributes"),
 });
 
 // Union type that accepts either create or update input

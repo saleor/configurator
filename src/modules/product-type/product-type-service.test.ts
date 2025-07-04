@@ -116,7 +116,7 @@ describe("ProductTypeService", () => {
       expect(mockProductTypeOperations.createProductType).toHaveBeenCalledWith({
         name: newProductType.name,
         kind: "NORMAL",
-        hasVariants: false,
+        hasVariants: true,
         isShippingRequired: false,
         taxClass: null,
       });
@@ -131,7 +131,15 @@ describe("ProductTypeService", () => {
         mockProductTypeOperations.assignAttributesToProductType
       ).toHaveBeenCalledWith({
         productTypeId: newProductType.id,
+        attributeIds: [newAttribute.id, newAttribute.id],
+        type: "PRODUCT",
+      });
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: newProductType.id,
         attributeIds: [newAttribute.id],
+        type: "VARIANT",
       });
     });
 
@@ -190,7 +198,18 @@ describe("ProductTypeService", () => {
       // Then
       expect(
         mockProductTypeOperations.assignAttributesToProductType
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["1"],
+        type: "PRODUCT",
+      });
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["1"],
+        type: "VARIANT",
+      });
     });
 
     it("should handle errors during attribute assignment", async () => {
@@ -352,7 +371,18 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
       expect(
         mockProductTypeOperations.assignAttributesToProductType
-      ).not.toHaveBeenCalled();
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-1", "attr-2"],
+        type: "PRODUCT",
+      });
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-1", "attr-2"],
+        type: "VARIANT",
+      });
     });
 
     it("should create new attributes and update existing ones", async () => {
@@ -436,7 +466,15 @@ describe("ProductTypeService", () => {
         mockProductTypeOperations.assignAttributesToProductType
       ).toHaveBeenCalledWith({
         productTypeId: "1",
-        attributeIds: ["attr-2"],
+        attributeIds: ["attr-2", "attr-1"],
+        type: "PRODUCT",
+      });
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-1"],
+        type: "VARIANT",
       });
     });
 
