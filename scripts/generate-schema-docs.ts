@@ -30,7 +30,7 @@
 
 import { writeFileSync } from "fs";
 import { z } from "zod";
-import { configSchema } from "../src/modules/config/schema.js";
+import { configSchema } from "../src/modules/config/schema/schema.js";
 
 interface SchemaDocumentation {
   name: string;

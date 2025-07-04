@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SaleorConfig } from "../../modules/config/schema";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { ServiceContainer } from "../service-container";
 import { ConfigurationLoadError, RemoteConfigurationError } from "./errors";
 import { DiffService } from "./service";

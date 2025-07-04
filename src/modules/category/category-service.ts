@@ -1,6 +1,6 @@
-import type { CategoryInput } from "../config/schema";
 import { logger } from "../../lib/logger";
-import type { CategoryOperations, Category } from "./repository";
+import type { CategoryInput } from "../config/schema/schema";
+import type { Category, CategoryOperations } from "./repository";
 
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
@@ -9,7 +9,10 @@ export class CategoryService {
     return this.repository.getCategoryByName(name);
   }
 
-  private async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
+  private async createCategory(
+    input: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -34,10 +37,14 @@ export class CategoryService {
   async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories");
 
-    return Promise.all(categories.map((category) => this.bootstrapCategory(category)));
+    return Promise.all(
+      categories.map((category) => this.bootstrapCategory(category))
+    );
   }
 
-  private async getOrCreateCategory(categoryInput: CategoryInput): Promise<Category> {
+  private async getOrCreateCategory(
+    categoryInput: CategoryInput
+  ): Promise<Category> {
     const existingCategory = await this.getExistingCategory(categoryInput.name);
 
     if (existingCategory) {
@@ -47,7 +54,9 @@ export class CategoryService {
     return this.createCategory(categoryInput);
   }
 
-  private async bootstrapCategory(categoryInput: CategoryInput): Promise<Category> {
+  private async bootstrapCategory(
+    categoryInput: CategoryInput
+  ): Promise<Category> {
     logger.debug("Bootstrapping category", { name: categoryInput.name });
 
     const category = await this.getOrCreateCategory(categoryInput);
@@ -60,7 +69,9 @@ export class CategoryService {
     if ("subcategories" in categoryInput && categoryInput.subcategories) {
       const subcategoriesToCreate = categoryInput.subcategories.filter(
         (subcategory) =>
-          !category?.children?.edges?.some((edge) => edge.node.name === subcategory.name)
+          !category?.children?.edges?.some(
+            (edge) => edge.node.name === subcategory.name
+          )
       );
 
       logger.debug("Subcategories to create", {

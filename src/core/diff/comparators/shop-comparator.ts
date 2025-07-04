@@ -1,5 +1,5 @@
-import type { SaleorConfig } from "../../../modules/config/schema";
-import type { DiffResult, DiffChange } from "../types";
+import type { SaleorConfig } from "../../../modules/config/schema/schema";
+import type { DiffChange, DiffResult } from "../types";
 import type { EntityComparator } from "./base-comparator";
 
 /**
@@ -42,7 +42,11 @@ const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
  * Comparator for shop settings
  */
 export class ShopComparator
-  implements EntityComparator<SaleorConfig["shop"] | undefined, SaleorConfig["shop"] | undefined>
+  implements
+    EntityComparator<
+      SaleorConfig["shop"] | undefined,
+      SaleorConfig["shop"] | undefined
+    >
 {
   /**
    * Compares local and remote shop settings

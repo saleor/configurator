@@ -17,6 +17,10 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
   values: z.array(attributeValueSchema),
 });
 
+export type MultipleValuesAttribute = z.infer<
+  typeof multipleValuesAttributeSchema
+>;
+
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),

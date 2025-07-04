@@ -1,5 +1,9 @@
+import type {
+  ShopCreateInput,
+  ShopInput,
+  ShopUpdateInput,
+} from "../config/schema/schema";
 import type { ShopOperations } from "./repository";
-import type { ShopInput, ShopCreateInput, ShopUpdateInput } from "../config/schema";
 
 export class ShopService {
   constructor(private repository: ShopOperations) {}

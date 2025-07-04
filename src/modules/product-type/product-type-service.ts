@@ -2,9 +2,9 @@ import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import type {
   AttributeInput,
-  NoTypeAttribute,
-  ProductTypeInput,
-} from "../config/schema";
+  SimpleAttribute,
+} from "../config/schema/attribute.schema";
+import type { ProductTypeInput } from "../config/schema/schema";
 import type { ProductType, ProductTypeOperations } from "./repository";
 
 export class ProductTypeService {
@@ -85,6 +85,8 @@ export class ProductTypeService {
     // check if the attribute is already assigned to the product type
     const assignedAttributeNames =
       productType.productAttributes?.map((a) => a.name) ?? [];
+
+    // filter out attributes that are already assigned to the product type
     const unassignedAttributeNames = attributeNames.filter(
       (a) => !assignedAttributeNames.includes(a.attribute)
     );
@@ -94,6 +96,15 @@ export class ProductTypeService {
         names: unassignedAttributeNames.map((a) => a.attribute),
         type: "PRODUCT_TYPE",
       });
+
+    // if the number of unassigned attributes is not the same as the number of fetched attributes, it means that some of the attributes are not found and they must had been wrongfully referenced
+    if (
+      unassignedExistingAttributes?.length !== unassignedAttributeNames.length
+    ) {
+      throw new Error(
+        "Unable to fetch some of the referenced attributes. Please verify if you named them correctly."
+      );
+    }
 
     return unassignedExistingAttributes ?? [];
   }
@@ -157,7 +168,7 @@ export class ProductTypeService {
       }
 
       return existingAttributeNames.includes(a.name);
-    }) as NoTypeAttribute[];
+    }) as SimpleAttribute[];
 
     if (attributesToUpdate.length > 0) {
       logger.debug("Updating existing attributes", {
@@ -207,7 +218,7 @@ export class ProductTypeService {
         !existingProductAttributeNames.includes(a.name) &&
         !existingVariantAttributeNames.includes(a.name)
       );
-    }) as NoTypeAttribute[];
+    }) as SimpleAttribute[];
 
     const newAttributes = await this.attributeService.bootstrapAttributes({
       attributeInputs: attributesToCreate.map((a) => ({

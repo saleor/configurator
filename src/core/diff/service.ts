@@ -1,16 +1,20 @@
 import { logger } from "../../lib/logger";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { ServiceContainer } from "../service-container";
-import type { SaleorConfig } from "../../modules/config/schema";
-import type { DiffSummary, DiffResult } from "./types";
 import {
-  ShopComparator,
-  ChannelComparator,
-  ProductTypeComparator,
-  PageTypeComparator,
   CategoryComparator,
+  ChannelComparator,
   type EntityComparator,
+  PageTypeComparator,
+  ProductTypeComparator,
+  ShopComparator,
 } from "./comparators";
-import { ConfigurationLoadError, RemoteConfigurationError, DiffComparisonError } from "./errors";
+import {
+  ConfigurationLoadError,
+  DiffComparisonError,
+  RemoteConfigurationError,
+} from "./errors";
+import type { DiffResult, DiffSummary } from "./types";
 
 /**
  * Configuration for the diff service
@@ -107,7 +111,9 @@ export class DiffService {
       }
 
       throw new DiffComparisonError(
-        `Diff comparison failed: ${error instanceof Error ? error.message : String(error)}`,
+        `Diff comparison failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         undefined,
         error instanceof Error ? error : undefined
       );
@@ -136,7 +142,9 @@ export class DiffService {
       return config || {};
     } catch (error) {
       throw new ConfigurationLoadError(
-        `Failed to load local configuration: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load local configuration: ${
+          error instanceof Error ? error.message : String(error)
+        }`
         // Could extract file path from error if available
       );
     }
@@ -164,7 +172,9 @@ export class DiffService {
       return config || {};
     } catch (error) {
       throw new RemoteConfigurationError(
-        `Failed to retrieve remote configuration: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to retrieve remote configuration: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         error instanceof Error ? error : undefined
       );
     }
@@ -181,11 +191,18 @@ export class DiffService {
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
-      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
+      comparisons.push(
+        this.performComparison("shop", localConfig.shop, remoteConfig.shop)
+      );
     }
 
     // Entity array comparisons
-    const entityTypes = ["channels", "productTypes", "pageTypes", "categories"] as const;
+    const entityTypes = [
+      "channels",
+      "productTypes",
+      "pageTypes",
+      "categories",
+    ] as const;
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
@@ -231,7 +248,9 @@ export class DiffService {
       return results;
     } catch (error) {
       throw new DiffComparisonError(
-        `Failed to compare ${entityType}: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to compare ${entityType}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         entityType,
         error instanceof Error ? error : undefined
       );
@@ -241,7 +260,9 @@ export class DiffService {
   /**
    * Executes promises with concurrency limit
    */
-  private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
+  private async executeConcurrently<T>(
+    promises: readonly Promise<T>[]
+  ): Promise<T[]> {
     const results: T[] = [];
     const executing = new Set<Promise<void>>();
 

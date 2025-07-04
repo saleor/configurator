@@ -1,6 +1,9 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
-import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema";
+import type {
+  PageTypeInput,
+  PageTypeUpdateInput,
+} from "../config/schema/schema";
 import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {

@@ -1,12 +1,8 @@
 import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type {
-  CountryCode,
-  CurrencyCode,
-  FullAttribute,
-  SaleorConfig,
-} from "./schema";
+import type { FullAttribute } from "./schema/attribute.schema";
+import type { CountryCode, CurrencyCode, SaleorConfig } from "./schema/schema";
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {

@@ -1,5 +1,5 @@
 import { logger } from "../../lib/logger";
-import type { FullAttribute } from "../config/schema";
+import type { FullAttribute } from "../config/schema/attribute.schema";
 import type {
   Attribute,
   AttributeCreateInput,

@@ -1,4 +1,4 @@
-import type { SaleorConfig } from "../../../modules/config/schema";
+import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
@@ -78,7 +78,10 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote category entities
    */
-  protected compareEntityFields(local: CategoryEntity, remote: CategoryEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: CategoryEntity,
+    remote: CategoryEntity
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
@@ -126,8 +129,12 @@ export class CategoryComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localSubcatMap = new Map(local.map((subcat) => [subcat.name, subcat]));
-    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.name, subcat]));
+    const localSubcatMap = new Map(
+      local.map((subcat) => [subcat.name, subcat])
+    );
+    const remoteSubcatMap = new Map(
+      remote.map((subcat) => [subcat.name, subcat])
+    );
 
     // Find added subcategories
     for (const localSubcat of local) {
