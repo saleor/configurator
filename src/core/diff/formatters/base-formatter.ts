@@ -1,5 +1,6 @@
 import type { DiffSummary, DiffResult, EntityType, DiffOperation } from "../types";
 import { DIFF_ICONS, OPERATION_LABELS, FORMAT_CONFIG } from "../constants";
+import chalk from "chalk";
 
 /**
  * Base formatter providing common formatting utilities
@@ -46,6 +47,22 @@ export abstract class BaseDiffFormatter {
    */
   protected getOperationText(operation: DiffOperation): string {
     return OPERATION_LABELS[operation];
+  }
+
+  /**
+   * Gets the appropriate color function for a diff operation
+   */
+  protected getOperationColor(operation: DiffOperation): (text: string) => string {
+    switch (operation) {
+      case "CREATE":
+        return chalk.green;
+      case "UPDATE":
+        return chalk.yellow;
+      case "DELETE":
+        return chalk.red;
+      default:
+        return chalk.reset;
+    }
   }
 
   /**

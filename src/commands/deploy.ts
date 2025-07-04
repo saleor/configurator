@@ -5,6 +5,7 @@ import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { DiffFormatter } from "../core/diff/formatter";
+import { ConfigurationValidationError } from "../core/diff/errors";
 import { logger } from "../lib/logger";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
@@ -154,7 +155,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       
       if (diffAnalysis.summary.totalChanges === 0) {
         cliConsole.status("✅ No changes detected - configuration is already in sync");
-        return;
+        process.exit(0);
       }
 
       cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
@@ -169,7 +170,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
 
     if (!shouldDeploy) {
       cliConsole.cancelled("Deployment cancelled by user");
-      return;
+      process.exit(0);
     }
 
     await executeDeployment(args);
@@ -180,6 +181,11 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
 }
 
 function handleDeploymentError(error: unknown): never {
+  if (error instanceof ConfigurationValidationError) {
+    handleValidationError(error);
+    process.exit(1);
+  }
+  
   logger.error("Deployment failed", { error });
   
   if (error instanceof Error) {
@@ -200,6 +206,48 @@ function handleDeploymentError(error: unknown): never {
     cliConsole.error("❌ An unexpected error occurred during deployment");
     throw new Error("An unexpected error occurred during deployment");
   }
+}
+
+function handleValidationError(error: ConfigurationValidationError): void {
+  // Clear visual separation
+  cliConsole.text("");
+  
+  // Main error header - clean and professional
+  cliConsole.title(`${cliConsole.icon('error')} Configuration Validation Failed`);
+  cliConsole.separator("═", 60);
+  
+  // File context with clean formatting
+  cliConsole.text("");
+  cliConsole.field("File", cliConsole.path(error.filePath));
+  cliConsole.field("Errors found", cliConsole.value(error.validationErrors.length.toString()));
+  cliConsole.text("");
+
+  // Display first few errors with clean formatting
+  const displayErrors = error.validationErrors.slice(0, 5);
+  
+  displayErrors.forEach((err, index) => {
+    const pathDisplay = `${cliConsole.type('Config')}.${err.path}`;
+    cliConsole.text(`  ${index + 1}. ${pathDisplay}`);
+    cliConsole.text(`     ● ${err.message}`);
+    cliConsole.text("");
+  });
+
+  if (error.validationErrors.length > 5) {
+    cliConsole.muted(`     ... and ${error.validationErrors.length - 5} more errors`);
+    cliConsole.text("");
+  }
+
+  // Action items section with clean styling
+  cliConsole.separator("═", 60);
+  cliConsole.subtitle("🔧 How to Fix These Issues");
+  cliConsole.text("");
+  
+  cliConsole.text("  1. Fix the validation errors shown above");
+  cliConsole.text("  2. Check SCHEMA.md for correct field formats");
+  cliConsole.text("  3. Ensure all required fields are present");
+  cliConsole.text("  4. Verify data types match schema requirements");
+  
+  cliConsole.text("");
 }
 
 export async function deployHandler(args: DeployCommandArgs): Promise<void> {

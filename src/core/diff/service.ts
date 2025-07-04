@@ -11,6 +11,7 @@ import {
 } from "./comparators";
 import {
   ConfigurationLoadError,
+  ConfigurationValidationError,
   DiffComparisonError,
   RemoteConfigurationError,
 } from "./errors";
@@ -141,6 +142,11 @@ export class DiffService {
       const config = await this.services.configStorage.load();
       return config || {};
     } catch (error) {
+      // Re-throw validation errors as-is to preserve their specific type
+      if (error instanceof ConfigurationValidationError) {
+        throw error;
+      }
+      
       throw new ConfigurationLoadError(
         `Failed to load local configuration: ${
           error instanceof Error ? error.message : String(error)

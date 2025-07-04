@@ -1,6 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
 import { logger } from "../../lib/logger";
+import { ConfigurationValidationError } from "../../core/diff/errors";
 import { configSchema, type SaleorConfig } from "./schema/schema";
 
 export interface FileSystem {
@@ -34,7 +35,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
   }
 
   async save(config: SaleorConfig) {
-    logger.info("Saving configuration to " + this.configPath);
+    logger.info(`Saving configuration to ${this.configPath}`);
     try {
       const yml = stringify(config);
       await this.fs.writeFile(this.configPath, yml);
@@ -60,29 +61,31 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Parsed configuration", { data });
 
       if (!success) {
-        const uniqueMessages = Array.from(
-          new Set(
-            error.errors.map((issue) => {
-              const path =
-                issue.path && issue.path.length
-                  ? issue.path.join(".") + ": "
-                  : "";
-              return path + issue.message;
-            })
-          )
-        );
-        const validationError = new Error(
-          "Invalid configuration file:\n" +
-            uniqueMessages.map((msg) => `  - ${msg}`).join("\n")
-        );
-        logger.error("Configuration validation failed", {
-          errors: error.errors,
-          path: this.configPath,
+        const validationErrors = error.errors.map((issue) => ({
+          path: issue.path?.length ? issue.path.join(".") : "root",
+          message: issue.message,
+        }));
+
+        const errorSummary = validationErrors
+          .map((err) => `${err.path}: ${err.message}`)
+          .join(", ");
+
+        logger.warn("Configuration validation failed", {
+          file: this.configPath,
+          errorCount: validationErrors.length,
+          summary: errorSummary,
         });
+
+        const validationError = new ConfigurationValidationError(
+          `Configuration file has ${validationErrors.length} validation error${validationErrors.length > 1 ? "s" : ""}`,
+          this.configPath,
+          validationErrors
+        );
+        
         throw validationError;
       }
 
-      logger.info("Loaded configuration from " + this.configPath);
+      logger.info(`Loaded configuration from ${this.configPath}`);
       logger.debug("Validated configuration", { config: data });
       return data;
     } catch (error) {
