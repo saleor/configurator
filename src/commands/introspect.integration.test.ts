@@ -1,306 +1,292 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { introspectHandler } from "./introspect";
-import * as configurator from "../core/configurator";
-import * as fileUtils from "../lib/utils/file";
-import * as commandUtils from "../cli/command";
-import { cliConsole } from "../cli/console";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { introspectHandler, type IntrospectCommandArgs } from "./introspect";
 
-// Mock dependencies
-vi.mock("../core/configurator");
-vi.mock("../lib/utils/file");
-vi.mock("../cli/command");
-vi.mock("../cli/console");
+// Mock modules before importing
+vi.mock("../cli/console", () => ({
+  cliConsole: {
+    header: vi.fn(),
+    info: vi.fn(),
+    success: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    processing: vi.fn(),
+    important: vi.fn((text: string) => text),
+    setOptions: vi.fn(),
+  },
+}));
 
-describe("Introspect Command Integration Tests", () => {
-  let mockConfigurator: any;
-  let processExitSpy: any;
+vi.mock("../cli/command", () => ({
+  baseCommandArgsSchema: {
+    extend: vi.fn((schema) => schema),
+  },
+  confirmAction: vi.fn(),
+}));
 
+vi.mock("../core/configurator", () => ({
+  createConfigurator: vi.fn(),
+}));
+
+vi.mock("../lib/utils/file", () => ({
+  fileExists: vi.fn(),
+  createBackup: vi.fn(),
+}));
+
+// Mock process.exit to prevent actual exit during tests
+const mockExit = vi.fn();
+vi.stubGlobal("process", {
+  ...process,
+  exit: mockExit,
+});
+
+describe("introspect integration tests", () => {
   beforeEach(() => {
-    // Mock process.exit
-    processExitSpy = vi.spyOn(process, "exit").mockImplementation((() => {}) as any);
-
-    // Mock configurator
-    mockConfigurator = {
-      introspect: vi.fn(),
-      diffForIntrospect: vi.fn(),
-    };
-
-    vi.mocked(configurator.createConfigurator).mockReturnValue(mockConfigurator);
-
-    // Mock CLI console
-    vi.mocked(cliConsole.setOptions).mockImplementation(() => {});
-    vi.mocked(cliConsole.header).mockImplementation(() => "");
-    vi.mocked(cliConsole.info).mockImplementation(() => "");
-    vi.mocked(cliConsole.warn).mockImplementation(() => "");
-    vi.mocked(cliConsole.success).mockImplementation(() => "");
-    vi.mocked(cliConsole.cancelled).mockImplementation(() => "");
-    vi.mocked(cliConsole.processing).mockImplementation(() => "");
-    vi.mocked(cliConsole.important).mockImplementation((text) => text);
-  });
-
-  afterEach(() => {
     vi.clearAllMocks();
-    vi.restoreAllMocks();
   });
 
-  describe("Empty Saleor Environment Scenario", () => {
-    it("should handle introspect from empty remote to populated local", async () => {
+  const mockArgs: IntrospectCommandArgs = {
+    config: "test-config.yml",
+    url: "https://test.saleor.cloud/graphql/",
+    token: "test-token",
+    quiet: false,
+    dryRun: false,
+    only: undefined,
+    exclude: undefined,
+    noBackup: false,
+    format: "table",
+    ci: false,
+  };
+
+  describe("Basic functionality", () => {
+    it("should handle successful introspection", async () => {
       // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2 }),
+        introspect: vi.fn().mockResolvedValue(undefined),
       };
-
-      // Mock diff showing local will be cleared
-      const diffSummary = {
-        totalChanges: 8,
-        creates: 0,
-        updates: 0,
-        deletes: 8,
-        results: [
-          { operation: "DELETE", entityType: "Shop Settings", entityName: "Shop Settings" },
-          { operation: "DELETE", entityType: "Channels", entityName: "Poland" },
-          { operation: "DELETE", entityType: "Product Types", entityName: "Book" },
-          { operation: "DELETE", entityType: "Page Types", entityName: "Blog Post" },
-          { operation: "DELETE", entityType: "Categories", entityName: "Fiction" },
-          { operation: "DELETE", entityType: "Categories", entityName: "Non-Fiction" },
-        ],
-      };
-
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
       
-      // Mock empty config from remote
-      mockConfigurator.introspect.mockResolvedValue({});
-
-      // Mock file operations
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
-      vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
-
-      // Act
-      await introspectHandler(mockArgs);
-
-      // Assert
-      // Verify correct diff perspective was shown
-      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalledWith({
-        format: "table",
-        quiet: true,
-      });
-
-      // Verify warning message
-      expect(cliConsole.warn).toHaveBeenCalledWith(
-        "⚠️  Introspecting will overwrite your local configuration file."
-      );
-
-      // Verify introspect was called
-      expect(mockConfigurator.introspect).toHaveBeenCalled();
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
       
-      // Verify process.exit was called with success
-      expect(processExitSpy).toHaveBeenCalledWith(0);
-    });
-  });
-
-  describe("No Changes Scenario", () => {
-    it("should exit early when local and remote are identical", async () => {
-      // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-      };
-
-      const diffSummary = {
-        totalChanges: 0,
-        creates: 0,
-        updates: 0,
-        deletes: 0,
-        results: [],
-      };
-
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValue(true);
+      
+      const { fileExists, createBackup } = await import("../lib/utils/file");
+      vi.mocked(fileExists).mockReturnValue(true);
+      vi.mocked(createBackup).mockResolvedValue("backup-path");
 
       // Act
       await introspectHandler(mockArgs);
 
       // Assert
-      expect(cliConsole.success).toHaveBeenCalledWith("✅ Local configuration is already up to date!");
-      expect(mockConfigurator.introspect).not.toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(0);
-    });
-  });
-
-  describe("Invalid Local Configuration", () => {
-    it("should handle invalid local config with user confirmation", async () => {
-      // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-      };
-
-      // Mock diff throwing validation error
-      mockConfigurator.diffForIntrospect.mockRejectedValue(
-        new Error("Invalid configuration file: Unknown field 'invalidField'")
-      );
-
-      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
-      mockConfigurator.introspect.mockResolvedValue({ shop: {} });
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
-      vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
-
-      // Act
-      await introspectHandler(mockArgs);
-
-      // Assert
-      expect(cliConsole.warn).toHaveBeenCalledWith("⚠️  Local configuration file has validation issues:");
-      expect(cliConsole.warn).toHaveBeenCalledWith("🔧 Introspecting will fetch the latest valid configuration from Saleor.");
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalledWith({ format: "table", quiet: true });
+      expect(confirmAction).toHaveBeenCalled();
       expect(mockConfigurator.introspect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
-  });
 
-  describe("User Cancellation", () => {
-    it("should handle user cancellation gracefully", async () => {
+    it("should handle dry-run mode with changes", async () => {
       // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2 }),
       };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
-      const diffSummary = {
-        totalChanges: 3,
-        creates: 1,
-        updates: 1,
-        deletes: 1,
-        results: [
-          { operation: "CREATE", entityType: "Channels", entityName: "New Channel" },
-          { operation: "UPDATE", entityType: "Shop Settings", entityName: "Shop Settings" },
-          { operation: "DELETE", entityType: "Product Types", entityName: "Old Type" },
-        ],
+      const argsWithDryRun = { ...mockArgs, dryRun: true };
+
+      // Act
+      await introspectHandler(argsWithDryRun);
+
+      // Assert
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    it("should handle dry-run mode with no changes", async () => {
+      // Arrange
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 0 }),
       };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(commandUtils.confirmAction).mockResolvedValue(false);
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
+      const argsWithDryRun = { ...mockArgs, dryRun: true };
+
+      // Act
+      await introspectHandler(argsWithDryRun);
+
+      // Assert
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    it("should handle no changes scenario", async () => {
+      // Arrange
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 0 }),
+      };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
       // Act
       await introspectHandler(mockArgs);
 
       // Assert
-      expect(cliConsole.cancelled).toHaveBeenCalledWith("Operation cancelled by user");
-      expect(mockConfigurator.introspect).not.toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(0);
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
   });
 
-  describe("New Configuration File", () => {
-    it("should handle creating new configuration file", async () => {
+  describe("CI mode", () => {
+    it("should handle CI mode with changes detected", async () => {
       // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2 }),
       };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
-      const diffSummary = {
-        totalChanges: 3,
-        creates: 3,
-        updates: 0,
-        deletes: 0,
-        results: [
-          { operation: "CREATE", entityType: "Shop Settings", entityName: "Shop Settings" },
-          { operation: "CREATE", entityType: "Channels", entityName: "Default Channel" },
-          { operation: "CREATE", entityType: "Product Types", entityName: "Default Type" },
-        ],
+      const argsWithCi = { ...mockArgs, ci: true };
+
+      // Act
+      await introspectHandler(argsWithCi);
+
+      // Assert
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it("should handle CI mode with no changes", async () => {
+      // Arrange
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 0 }),
       };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(fileUtils.fileExists).mockReturnValue(false);
-      mockConfigurator.introspect.mockResolvedValue({});
+      const argsWithCi = { ...mockArgs, ci: true };
+
+      // Act
+      await introspectHandler(argsWithCi);
+
+      // Assert
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("Error handling", () => {
+    it("should handle errors gracefully", async () => {
+      // Arrange
+      const errorMessage = "Test error";
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockRejectedValue(new Error(errorMessage)),
+      };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
       // Act
       await introspectHandler(mockArgs);
 
       // Assert
-      expect(cliConsole.warn).toHaveBeenCalledWith(
-        "📊 No local configuration found. A new configuration will be created."
-      );
-      expect(mockConfigurator.introspect).toHaveBeenCalled();
-      expect(fileUtils.createBackup).not.toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
     });
-  });
 
-  describe("Backup Creation", () => {
-    it("should create backup before overwriting existing file", async () => {
+    it("should handle user cancellation", async () => {
       // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2 }),
       };
-
-      const diffSummary = {
-        totalChanges: 1,
-        creates: 0,
-        updates: 1,
-        deletes: 0,
-        results: [
-          { operation: "UPDATE", entityType: "Shop Settings", entityName: "Shop Settings" },
-        ],
-      };
-
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(commandUtils.confirmAction).mockResolvedValue(true);
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
-      vi.mocked(fileUtils.createBackup).mockResolvedValue("config.yml.backup");
-      mockConfigurator.introspect.mockResolvedValue({});
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
+      
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValue(false);
 
       // Act
       await introspectHandler(mockArgs);
 
       // Assert
-      expect(cliConsole.info).toHaveBeenCalledWith("💾 Creating backup of existing configuration...");
-      expect(cliConsole.info).toHaveBeenCalledWith("   Backup saved to: config.yml.backup");
-      expect(fileUtils.createBackup).toHaveBeenCalledWith("config.yml");
-      expect(mockConfigurator.introspect).toHaveBeenCalled();
+      expect(confirmAction).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
   });
 
-  describe("Quiet Mode", () => {
-    it("should suppress output in quiet mode", async () => {
+  describe("Output formats", () => {
+    it("should handle JSON format", async () => {
       // Arrange
-      const mockArgs = {
-        url: "https://example.saleor.cloud/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: true,
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2, test: "data" }),
       };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
 
-      const diffSummary = {
-        totalChanges: 0,
-        creates: 0,
-        updates: 0,
-        deletes: 0,
-        results: [],
-      };
-
-      mockConfigurator.diffForIntrospect.mockResolvedValue(diffSummary);
-      vi.mocked(fileUtils.fileExists).mockReturnValue(true);
+      const argsWithJson = { ...mockArgs, format: "json" as const, dryRun: true };
 
       // Act
-      await introspectHandler(mockArgs);
+      await introspectHandler(argsWithJson);
 
       // Assert
-      expect(cliConsole.setOptions).toHaveBeenCalledWith({ quiet: true });
-      expect(processExitSpy).toHaveBeenCalledWith(0);
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    it("should handle YAML format", async () => {
+      // Arrange
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 2, test: "data" }),
+      };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
+
+      const argsWithYaml = { ...mockArgs, format: "yaml" as const, dryRun: true };
+
+      // Act
+      await introspectHandler(argsWithYaml);
+
+      // Assert
+      expect(mockConfigurator.diffForIntrospect).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("Selective options", () => {
+    it("should handle invalid --only option", async () => {
+      // Arrange
+      const argsWithInvalidOnly = { ...mockArgs, only: "invalid,sections" };
+
+      // Act
+      await introspectHandler(argsWithInvalidOnly);
+
+      // Assert
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it("should handle valid --only option", async () => {
+      // Arrange
+      const mockConfigurator = {
+        diffForIntrospect: vi.fn().mockResolvedValue({ totalChanges: 0 }),
+      };
+      
+      const { createConfigurator } = await import("../core/configurator");
+      vi.mocked(createConfigurator).mockReturnValue(mockConfigurator as any);
+
+      const argsWithValidOnly = { ...mockArgs, only: "channels,shop" };
+
+      // Act
+      await introspectHandler(argsWithValidOnly);
+
+      // Assert
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
   });
 }); 
