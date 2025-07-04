@@ -1,5 +1,47 @@
 # saleor-configurator
 
+## 0.5.0
+
+### Minor Changes
+
+- 110c477: Extend product type attributes to include variant attributes
+
+  Now, instead of one `attributes` key (which pointed to product attributes), you can define both `productAttributes` and `variantAttributes` in the config.
+
+- 110c477: Added referencing existing attributes by name
+
+  Instead of providing the same attribute input several times, you can now declare it once and reference it by name in the product type input.
+
+  **Example:**
+
+  ```yaml
+  productTypes:
+    - name: Book
+      productAttributes:
+        - name: Author
+          inputType: PLAIN_TEXT
+        - name: Genre
+          inputType: DROPDOWN
+          values:
+            - name: Fiction
+            - name: Non-Fiction
+            - name: Fantasy
+    - name: E-Book
+      productAttributes:
+        - attribute: Author # Reference an existing attribute by slug
+        - attribute: Genre # Reference an existing attribute by slug
+        - name: File Format # New attribute
+          inputType: DROPDOWN
+          values:
+            - name: PDF
+            - name: EPUB
+            - name: MOBI
+  ```
+
+### Patch Changes
+
+- bc3be7b: Rename `interactive` command to `start`.
+
 ## 0.4.0
 
 ### Minor Changes
