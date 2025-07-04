@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SaleorConfig } from "./schema";
-import { YamlConfigurationManager, type FileSystem } from "./yaml-manager";
+import type { SaleorConfig } from "./schema/schema";
+import { type FileSystem, YamlConfigurationManager } from "./yaml-manager";
 
 describe("YamlConfigurationManager", () => {
   let mockFs: FileSystem;
@@ -54,7 +54,9 @@ describe("YamlConfigurationManager", () => {
     (error as NodeJS.ErrnoException).code = "ENOENT";
     (mockFs.readFile as any).mockRejectedValue(error);
 
-    await expect(manager.load()).rejects.toThrow(`Configuration file not found: ${CONFIG_PATH}`);
+    await expect(manager.load()).rejects.toThrow(
+      `Configuration file not found: ${CONFIG_PATH}`
+    );
   });
 
   it("should throw error when YAML is invalid", async () => {

@@ -33,7 +33,7 @@ channels:
 
 productTypes:
   - name: Book
-    attributes:
+    productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
       - name: Genre
@@ -45,14 +45,27 @@ productTypes:
       - name: Related Books
         inputType: REFERENCE
         entityType: PRODUCT
+    variantAttributes:
+      - name: Size
+        inputType: DROPDOWN
+        values:
+          - name: Small
+          - name: Medium
+          - name: Large
+  - name: E-Book
+    productAttributes:
+      - attribute: Author # Reference an existing attribute by slug
+      - attribute: Genre # Reference an existing attribute by slug
+      - name: File Format # New attribute
+        inputType: DROPDOWN
+        values:
+          - name: PDF
+          - name: EPUB
+          - name: MOBI
 
 pageTypes:
   - name: Blog Post
     attributes:
-      - name: Title
-        inputType: PLAIN_TEXT
-      - name: Description
-        inputType: PLAIN_TEXT
       - name: Published Date
         inputType: DATE
       - name: Related Posts
@@ -67,3 +80,27 @@ categories:
     subcategories:
       - name: "Science"
       - name: "History"
+
+products:
+  - name: "Sample Fiction Book"
+    productType: "Book"
+    category: "Fiction"
+    description: "A reference book product for testing the Book product type"
+    attributes:
+      Author: "Jane Doe"
+      Genre: "Fiction"
+    variants:
+      - name: "Hardcover"
+        sku: "BOOK-001-HC"
+        weight: 1.2
+        attributes:
+          Size: "Large"
+          Cover: "Hardcover"
+        channelListings: []
+      - name: "Paperback"
+        sku: "BOOK-001-PB"
+        weight: 0.8
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
+        channelListings: []

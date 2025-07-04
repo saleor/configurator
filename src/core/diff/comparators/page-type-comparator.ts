@@ -1,4 +1,4 @@
-import type { SaleorConfig } from "../../../modules/config/schema";
+import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
@@ -79,7 +79,10 @@ export class PageTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote page type entities
    */
-  protected compareEntityFields(local: PageTypeEntity, remote: PageTypeEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: PageTypeEntity,
+    remote: PageTypeEntity
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
@@ -95,7 +98,9 @@ export class PageTypeComparator extends BaseEntityComparator<
     const remoteAttributes = this.getAttributes(remote);
 
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
-      changes.push(...this.compareAttributes(localAttributes, remoteAttributes));
+      changes.push(
+        ...this.compareAttributes(localAttributes, remoteAttributes)
+      );
     }
 
     return changes;
