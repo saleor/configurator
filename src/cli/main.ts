@@ -58,7 +58,7 @@ ${cliConsole.important("Quick Start:")}
   ${cliConsole.code("configurator interactive")}
   
   ${cliConsole.hint("‧ Or run commands directly:")}
-  ${cliConsole.code("configurator push -u <url> -t <token> \n")}
+  ${cliConsole.code("configurator deploy -u <url> -t <token> \n")}
 `;
 }
 

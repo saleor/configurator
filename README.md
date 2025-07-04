@@ -30,10 +30,10 @@ pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-a
 pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-5. Push the changes to Saleor:
+5. Deploy the changes to Saleor:
 
 ```bash
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
 > [!TIP]
@@ -176,22 +176,28 @@ Starts the interactive setup wizard that will guide you through the available op
 pnpm start
 ```
 
-### `pnpm push`
+### `pnpm deploy`
 
-Updates the remote Saleor instance according to the local configuration.
+Deploys the local configuration to the remote Saleor instance with mandatory diff preview and safety confirmations.
 
 ```bash
-# Basic usage
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+# Basic usage with diff preview and confirmation
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 
 # With custom config file
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
 
-# Quiet mode (suppress output)
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --quiet
+# CI mode (skip confirmations for automated environments)
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --ci
+
+# Force mode (skip all confirmations - use with extreme caution)
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --force
+
+# Skip diff preview (not recommended)
+pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --skip-diff
 
 # Show help
-pnpm push --help
+pnpm deploy --help
 ```
 
 **Arguments:**
@@ -199,6 +205,9 @@ pnpm push --help
 - `--url` (required): Saleor instance URL
 - `--token` (required): Saleor API token
 - `--config` (optional): Configuration file path (default: `config.yml`)
+- `--ci` (optional): CI mode - skip confirmations for automated environments
+- `--force` (optional): Force mode - skip all confirmations (use with extreme caution)
+- `--skip-diff` (optional): Skip diff preview (not recommended)
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 

@@ -14,7 +14,7 @@ const INTERACTIVE_CHOICES = [
     name: "📥 Pull configuration from Saleor (`introspect`)",
     value: "introspect",
   },
-  { name: "📤 Deploy configuration to Saleor (`push`)", value: "push" },
+  { name: "📤 Deploy configuration to Saleor (`deploy`)", value: "deploy" },
   {
     name: "🔍 Compare local and remote configurations (`diff`)",
     value: "diff",

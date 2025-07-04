@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli/main.ts",
-    "push": "tsx src/cli/main.ts push",
+    "deploy": "tsx src/cli/main.ts deploy",
     "introspect": "tsx src/cli/main.ts introspect",
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
@@ -40,6 +40,11 @@
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.4",
     "@types/node": "^20.0.0",
+    "execa": "^8.0.1",
+    "nock": "^13.5.0",
+    "strip-ansi": "^7.1.0",
+    "tmp": "^0.2.1",
+    "tree-kill": "^1.2.2",
     "tsx": "^4.7.0",
     "typescript": "^5.5.4",
     "vitest": "^3.0.4"

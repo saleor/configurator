@@ -16,7 +16,7 @@ function formatDiffSummaryMessage(totalChanges: number): string {
   }
 
   const changeText = totalChanges === 1 ? "difference" : "differences";
-  return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'push'`;
+  return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'deploy'`;
 }
 
 function logDiffCompletion(summary: DiffSummary): void {

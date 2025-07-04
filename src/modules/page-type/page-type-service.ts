@@ -65,9 +65,10 @@ export class PageTypeService {
       });
 
       // check if the page type has the attributes already
-      const attributesToCreate = updateInput.attributes.filter(
-        (a) => !pageType.attributes?.some((attr) => attr.name === a.name)
-      );
+      const attributesToCreate = updateInput.attributes.filter((a) => {
+        const attributeName = "name" in a ? a.name : a.attribute;
+        return !pageType.attributes?.some((attr) => attr.name === attributeName);
+      });
 
       logger.debug("Attributes to create", {
         attributesToCreate,
@@ -75,10 +76,12 @@ export class PageTypeService {
 
       // ? attribute service only creates attributes. we have loads of attribute methods here, maybe we should move them to the attribute service
       const attributes = await this.attributeService.bootstrapAttributes({
-        attributeInputs: attributesToCreate.map((a) => ({
-          ...a,
-          type: "PAGE_TYPE",
-        })),
+        attributeInputs: attributesToCreate
+          .filter((a) => "name" in a) // Only create new attributes, not referenced ones
+          .map((a) => ({
+            ...a,
+            type: "PAGE_TYPE" as const,
+          })),
       });
 
       const attributeIds = attributes.map((attr) => attr.id);

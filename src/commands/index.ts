@@ -7,14 +7,12 @@
 
 export { diffCommandConfig } from "./diff";
 export { introspectCommandConfig } from "./introspect";
-// Command exports
-export { pushCommandConfig } from "./push";
+export { deployCommandConfig } from "./deploy";
 export { startCommandConfig } from "./start";
 
 import { diffCommandConfig } from "./diff";
 import { introspectCommandConfig } from "./introspect";
-// Command imports for registry
-import { pushCommandConfig } from "./push";
+import { deployCommandConfig } from "./deploy";
 import { startCommandConfig } from "./start";
 
 /**
@@ -22,7 +20,7 @@ import { startCommandConfig } from "./start";
  * Add new commands here to automatically register them
  */
 export const commands = [
-  pushCommandConfig,
+  deployCommandConfig,
   diffCommandConfig,
   introspectCommandConfig,
   startCommandConfig,

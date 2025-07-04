@@ -7,6 +7,19 @@ import { ServiceComposer, type ServiceContainer } from "./service-container";
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
+  /**
+   * Validates the local configuration without making network calls
+   * @throws {Error} If the local configuration is invalid
+   */
+  async validateLocalConfiguration(): Promise<void> {
+    try {
+      await this.services.configStorage.load();
+    } catch (error) {
+      logger.error("Local configuration validation failed", { error });
+      throw error;
+    }
+  }
+
   async push() {
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
