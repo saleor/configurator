@@ -5,25 +5,32 @@
 
 Saleor Configurator is a "commerce as code" tool that helps you automate the creation and management of data models in Saleor. Instead of manually creating product types, attributes, products, and variants, you can define them in a configuration file and let the tool handle the synchronization with your Saleor instance.
 
+> [!TIP]
+> The best place to start is with the interactive setup wizard.
+
+```bash
+pnpm start
+```
+
 ## Quickstart
 
-1. **Create an app token** with all permissions in your Saleor dashboard.
+1. Create an app token with all permissions in your Saleor dashboard.
 
-2. **Introspect your current configuration** from your remote Saleor instance to `config.yml`:
+2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
 
 ```bash
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-3. **Edit the configuration file** to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
+3. Edit the configuration file to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
 
-4. **Review changes** with the diff command to see what will be updated:
+4. Review changes with the diff command to see what will be updated:
 
 ```bash
 pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-5. **Push the changes** to Saleor:
+5. Push the changes to Saleor:
 
 ```bash
 pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
@@ -157,6 +164,90 @@ products:
 > [!TIP]
 > See [SCHEMA.md](SCHEMA.md) for schema documentation with all the available properties.
 
+## Commands
+
+All commands support the `--help` flag to display detailed usage information with examples.
+
+### `pnpm start`
+
+Starts the interactive setup wizard that will guide you through the available operations.
+
+```bash
+pnpm start
+```
+
+### `pnpm push`
+
+Updates the remote Saleor instance according to the local configuration.
+
+```bash
+# Basic usage
+pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+
+# With custom config file
+pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+
+# Quiet mode (suppress output)
+pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --quiet
+
+# Show help
+pnpm push --help
+```
+
+**Arguments:**
+
+- `--url` (required): Saleor instance URL
+- `--token` (required): Saleor API token
+- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--quiet` (optional): Suppress output
+- `--help`: Show command help with examples
+
+### `pnpm diff`
+
+Shows the differences between the local and remote Saleor instances.
+
+```bash
+# Basic usage
+pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+
+# With custom config file
+pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+
+# Show help
+pnpm diff --help
+```
+
+**Arguments:**
+
+- `--url` (required): Saleor instance URL
+- `--token` (required): Saleor API token
+- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--quiet` (optional): Suppress output
+- `--help`: Show command help with examples
+
+### `pnpm introspect`
+
+Shows the current state of the remote Saleor instance and upon confirmation saves it to a configuration file.
+
+```bash
+# Basic usage (shows diff and asks for confirmation)
+pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
+
+# With custom config file
+pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
+
+# Show help
+pnpm introspect --help
+```
+
+**Arguments:**
+
+- `--url` (required): Saleor instance URL
+- `--token` (required): Saleor API token
+- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--quiet` (optional): Suppress output
+- `--help`: Show command help with examples
+
 ## Development
 
 ### Prerequisites
@@ -214,77 +305,3 @@ pnpm changeset
 ```
 
 **Skip changesets:** Add the `skip-changeset` label to PRs that don't need versioning (docs, tests, internal changes).
-
-## Commands
-
-All commands support the `--help` flag to display detailed usage information with examples.
-
-### Core Options
-
-All commands support these options:
-
-- `--url` (required): Saleor instance URL
-- `--token` (required): Saleor API token
-- `--config` (optional): Configuration file path (default: `config.yml`)
-- `--quiet` (optional): Suppress output
-- `--help`: Show command help with examples
-
-### `pnpm push`
-
-Updates the remote Saleor instance according to the local configuration.
-
-```bash
-# Basic usage
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
-
-# With custom config file
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
-
-# Quiet mode (suppress output)
-pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --quiet
-
-# Show help
-pnpm push --help
-```
-
-**Features:**
-
-- [x] Shop settings configuration
-- [x] Channels with settings (payment, stock, order, checkout)
-- [x] Attributes and product types
-- [x] Page types with attributes
-- [x] Categories and subcategories
-- [x] Products with variants, SKUs, and attributes
-- [ ] Product variants with channel pricing and inventory
-- [ ] Warehouses and shipping zones
-- [ ] Collections and discounts
-
-### `pnpm diff`
-
-Shows the differences between the local and remote Saleor instances.
-
-```bash
-# Basic usage
-pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
-
-# With custom config file
-pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
-
-# Show help
-pnpm diff --help
-```
-
-### `pnpm introspect`
-
-Shows the current state of the remote Saleor instance and upon confirmation saves it to a configuration file.
-
-```bash
-# Basic usage (shows diff and asks for confirmation)
-pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
-
-# With custom config file
-pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
-
-# Show help
-pnpm introspect --help
-```
