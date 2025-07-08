@@ -22,7 +22,7 @@ function validateSaleorUrl(url: string): string {
 
     return parsedUrl.toString();
   } catch {
-    throw new Error(
+    throw new CliArgumentError(
       `Invalid URL format: ${url}. Expected format: https://your-store.saleor.cloud/graphql/`
     );
   }

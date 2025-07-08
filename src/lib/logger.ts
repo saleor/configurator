@@ -1,5 +1,6 @@
 import { Logger } from "tslog";
 import { LOG_LEVEL } from "./env";
+import { EnvironmentVariableError } from "./errors/errors";
 
 // Map string log levels to numbers as required by tslog
 const logLevelMap = {
@@ -17,8 +18,10 @@ type LogLevel = keyof typeof logLevelMap;
 const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
 
 if (!mappedLogLevel) {
-  throw new Error(
-    `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(logLevelMap).join(", ")}`
+  throw new EnvironmentVariableError(
+    `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(
+      logLevelMap
+    ).join(", ")}`
   );
 }
 

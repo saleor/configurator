@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/errors";
 import { logger } from "../../lib/logger";
 
 const createProductMutation = graphql(`
@@ -35,7 +36,9 @@ const createProductMutation = graphql(`
   }
 `);
 
-export type ProductCreateInput = VariablesOf<typeof createProductMutation>["input"];
+export type ProductCreateInput = VariablesOf<
+  typeof createProductMutation
+>["input"];
 
 const updateProductMutation = graphql(`
   mutation UpdateProduct($id: ID!, $input: ProductInput!) {
@@ -70,7 +73,9 @@ const updateProductMutation = graphql(`
   }
 `);
 
-export type ProductUpdateInput = VariablesOf<typeof updateProductMutation>["input"];
+export type ProductUpdateInput = VariablesOf<
+  typeof updateProductMutation
+>["input"];
 
 const createProductVariantMutation = graphql(`
   mutation CreateProductVariant($input: ProductVariantCreateInput!) {
@@ -104,8 +109,12 @@ const createProductVariantMutation = graphql(`
   }
 `);
 
-export type ProductVariantCreateInput = VariablesOf<typeof createProductVariantMutation>["input"];
-export type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantMutation>["input"];
+export type ProductVariantCreateInput = VariablesOf<
+  typeof createProductVariantMutation
+>["input"];
+export type ProductVariantUpdateInput = VariablesOf<
+  typeof updateProductVariantMutation
+>["input"];
 
 // TODO: Add productChannelListingUpdate mutation in separate commit
 
@@ -254,11 +263,18 @@ export type ProductVariant = NonNullable<
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
   updateProduct(id: string, input: ProductUpdateInput): Promise<Product>;
-  createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
-  updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
+  createProductVariant(
+    input: ProductVariantCreateInput
+  ): Promise<ProductVariant>;
+  updateProductVariant(
+    id: string,
+    input: ProductVariantUpdateInput
+  ): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
-  getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
+  getProductTypeByName(
+    name: string
+  ): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
@@ -286,11 +302,29 @@ export class ProductRepository implements ProductOperations {
     });
 
     if (!result.data?.productCreate?.product) {
-      const errors = result.data?.productCreate?.errors
-        ?.map((e) => `${e.field}: ${e.message}`)
-        .join(", ");
-      const graphqlError = result.error?.message;
-      throw new Error(`Failed to create product: ${errors || graphqlError || "Unknown error"}`);
+      // Handle GraphQL errors from the response
+      if (
+        result.error?.graphQLErrors &&
+        result.error.graphQLErrors.length > 0
+      ) {
+        throw GraphQLError.fromGraphQLErrors(result.error.graphQLErrors);
+      }
+
+      // Handle network errors
+      if (result.error && !result.error.graphQLErrors) {
+        throw new GraphQLError(result.error.message);
+      }
+
+      // Handle business logic errors from the mutation response
+      const businessErrors = result.data?.productCreate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        const errorMessages = businessErrors
+          .map((e) => `${e.field}: ${e.message}`)
+          .join(", ");
+        throw new Error(`Failed to create product: ${errorMessages}`);
+      }
+
+      throw new Error("Failed to create product: Unknown error");
     }
 
     const product = result.data.productCreate.product;
@@ -322,7 +356,9 @@ export class ProductRepository implements ProductOperations {
         ?.map((e) => `${e.field}: ${e.message}`)
         .join(", ");
       const graphqlError = result.error?.message;
-      throw new Error(`Failed to update product: ${errors || graphqlError || "Unknown error"}`);
+      throw new Error(
+        `Failed to update product: ${errors || graphqlError || "Unknown error"}`
+      );
     }
 
     const product = result.data.productUpdate.product;
@@ -335,7 +371,9 @@ export class ProductRepository implements ProductOperations {
     return product;
   }
 
-  async createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant> {
+  async createProductVariant(
+    input: ProductVariantCreateInput
+  ): Promise<ProductVariant> {
     logger.debug("Creating product variant", {
       productId: input.product,
       name: input.name,
@@ -350,7 +388,9 @@ export class ProductRepository implements ProductOperations {
       const errors = result.data?.productVariantCreate?.errors
         ?.map((e) => `${e.field}: ${e.message}`)
         .join(", ");
-      throw new Error(`Failed to create product variant: ${errors || "Unknown error"}`);
+      throw new Error(
+        `Failed to create product variant: ${errors || "Unknown error"}`
+      );
     }
 
     const variant = result.data.productVariantCreate.productVariant;
@@ -386,7 +426,9 @@ export class ProductRepository implements ProductOperations {
         .join(", ");
       const graphqlError = result.error?.message;
       throw new Error(
-        `Failed to update product variant: ${errors || graphqlError || "Unknown error"}`
+        `Failed to update product variant: ${
+          errors || graphqlError || "Unknown error"
+        }`
       );
     }
 
@@ -404,7 +446,9 @@ export class ProductRepository implements ProductOperations {
   async getProductVariantBySku(sku: string): Promise<ProductVariant | null> {
     logger.debug("Looking up product variant by SKU", { sku });
 
-    const result = await this.client.query(getProductVariantBySkuQuery, { skus: [sku] });
+    const result = await this.client.query(getProductVariantBySkuQuery, {
+      skus: [sku],
+    });
 
     logger.debug("Variant query result", {
       variantCount: result.data?.productVariants?.edges?.length || 0,
@@ -414,12 +458,17 @@ export class ProductRepository implements ProductOperations {
     const variant = result.data?.productVariants?.edges?.[0]?.node;
 
     if (variant) {
-      logger.debug("Found existing variant", { id: variant.id, sku: variant.sku });
+      logger.debug("Found existing variant", {
+        id: variant.id,
+        sku: variant.sku,
+      });
     } else {
       logger.debug("No variant found with SKU", {
         sku,
         totalVariants: result.data?.productVariants?.edges?.length || 0,
-        allVariantSkus: result.data?.productVariants?.edges?.map((edge) => edge.node.sku) || [],
+        allVariantSkus:
+          result.data?.productVariants?.edges?.map((edge) => edge.node.sku) ||
+          [],
       });
     }
 
@@ -431,17 +480,23 @@ export class ProductRepository implements ProductOperations {
     return result.data?.products?.edges?.[0]?.node;
   }
 
-  async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
+  async getProductTypeByName(
+    name: string
+  ): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getProductTypeByNameQuery, { name });
     return result.data?.productTypes?.edges?.[0]?.node || null;
   }
 
-  async getCategoryByName(name: string): Promise<{ id: string; name: string } | null> {
+  async getCategoryByName(
+    name: string
+  ): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getCategoryByNameQuery, { name });
     return result.data?.categories?.edges?.[0]?.node || null;
   }
 
-  async getCategoryByPath(path: string): Promise<{ id: string; name: string } | null> {
+  async getCategoryByPath(
+    path: string
+  ): Promise<{ id: string; name: string } | null> {
     // Handle nested category paths like "Fiction/Fantasy"
     const parts = path.split("/");
 
@@ -469,7 +524,10 @@ export class ProductRepository implements ProductOperations {
     const attribute = result.data?.attributes?.edges?.[0]?.node;
 
     if (attribute) {
-      logger.debug("Found attribute", { id: attribute.id, name: attribute.name });
+      logger.debug("Found attribute", {
+        id: attribute.id,
+        name: attribute.name,
+      });
     } else {
       logger.debug("No attribute found", { name });
     }

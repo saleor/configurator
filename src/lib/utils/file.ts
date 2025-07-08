@@ -6,7 +6,22 @@
  */
 
 import * as fs from "fs";
+import { BaseError } from "../errors/errors";
 import { logger } from "../logger";
+
+class FileError extends BaseError {}
+
+class FileNotReadableError extends FileError {
+  constructor(message: string) {
+    super(message, "FILE_NOT_READABLE_ERROR");
+  }
+}
+
+class FileNotWritableError extends FileError {
+  constructor(message: string) {
+    super(message, "FILE_NOT_WRITABLE_ERROR");
+  }
+}
 
 /**
  * Checks if a file exists
@@ -77,8 +92,10 @@ export async function readFile(filePath: string): Promise<string> {
   try {
     return await fs.promises.readFile(filePath, "utf-8");
   } catch (error) {
-    throw new Error(
-      `Failed to read file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+    throw new FileNotReadableError(
+      `Failed to read file ${filePath}: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
     );
   }
 }
@@ -88,12 +105,17 @@ export async function readFile(filePath: string): Promise<string> {
  * @param filePath - Path to the file to write
  * @param content - Content to write
  */
-export async function writeFile(filePath: string, content: string): Promise<void> {
+export async function writeFile(
+  filePath: string,
+  content: string
+): Promise<void> {
   try {
     await fs.promises.writeFile(filePath, content, "utf-8");
   } catch (error) {
-    throw new Error(
-      `Failed to write file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
+    throw new FileNotWritableError(
+      `Failed to write file ${filePath}: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
     );
   }
 }

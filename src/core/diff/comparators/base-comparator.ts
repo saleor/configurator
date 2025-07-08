@@ -1,4 +1,5 @@
-import type { DiffResult, DiffChange } from "../types";
+import { EntityValidationError } from "../errors";
+import type { DiffChange, DiffResult } from "../types";
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle
@@ -12,7 +13,10 @@ export interface EntityComparator<TLocal = unknown, TRemote = unknown> {
    * @param remote Remote entities from Saleor
    * @returns Array of diff results
    */
-  compare(local: TLocal, remote: TRemote): Promise<readonly DiffResult[]> | readonly DiffResult[];
+  compare(
+    local: TLocal,
+    remote: TRemote
+  ): Promise<readonly DiffResult[]> | readonly DiffResult[];
 }
 
 /**
@@ -47,15 +51,22 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
    * @param remote Remote entity
    * @returns Array of field changes
    */
-  protected abstract compareEntityFields(local: TEntity, remote: TEntity): DiffChange[];
+  protected abstract compareEntityFields(
+    local: TEntity,
+    remote: TEntity
+  ): DiffChange[];
 
   /**
    * Creates a map of entities by their names for efficient lookup
    * @param entities Array of entities
    * @returns Map of entity name to entity
    */
-  protected createEntityMap(entities: readonly TEntity[]): ReadonlyMap<string, TEntity> {
-    return new Map(entities.map((entity) => [this.getEntityName(entity), entity]));
+  protected createEntityMap(
+    entities: readonly TEntity[]
+  ): ReadonlyMap<string, TEntity> {
+    return new Map(
+      entities.map((entity) => [this.getEntityName(entity), entity])
+    );
   }
 
   /**
@@ -76,8 +87,10 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
     }
 
     if (duplicates.size > 0) {
-      throw new Error(
-        `Duplicate entity names found in ${this.entityType}: ${Array.from(duplicates).join(", ")}`
+      throw new EntityValidationError(
+        `Duplicate entity names found in ${this.entityType}: ${Array.from(
+          duplicates
+        ).join(", ")}`
       );
     }
   }
@@ -150,7 +163,8 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
       field,
       currentValue,
       desiredValue,
-      description: description || `${field}: "${currentValue}" → "${desiredValue}"`,
+      description:
+        description || `${field}: "${currentValue}" → "${desiredValue}"`,
     };
   }
 }

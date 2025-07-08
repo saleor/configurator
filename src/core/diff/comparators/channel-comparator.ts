@@ -1,4 +1,5 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
+import { EntityValidationError } from "../errors";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
@@ -108,7 +109,7 @@ export class ChannelComparator extends BaseEntityComparator<
    */
   protected getEntityName(entity: ChannelEntity): string {
     if (!entity.name || typeof entity.name !== "string") {
-      throw new Error("Channel entity must have a valid name");
+      throw new EntityValidationError("Channel entity must have a valid name");
     }
     return entity.name;
   }

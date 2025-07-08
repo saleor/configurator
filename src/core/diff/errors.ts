@@ -44,3 +44,9 @@ export class DiffComparisonError extends DiffError {
     super(message, "DIFF_COMPARISON_ERROR");
   }
 }
+
+export class DiffSummaryError extends DiffError {
+  constructor(message: string) {
+    super(message, "DIFF_SUMMARY_ERROR");
+  }
+}
