@@ -38,7 +38,7 @@
         "useShorthandFunctionType": "error"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
+        "noExplicitAny": "error",
         "noArrayIndexKey": "warn",
         "noAssignInExpressions": "error",
         "noAsyncPromiseExecutor": "error",
