@@ -1,6 +1,19 @@
 import type { CombinedError } from "@urql/core";
 import { BaseError, errorFormatHelpers } from "./shared";
 
+// Type guards for error properties
+function hasStatus(obj: unknown): obj is { status: number } {
+  return typeof obj === 'object' && obj !== null && 'status' in obj && typeof (obj as Record<string, unknown>).status === 'number';
+}
+
+function hasStatusCode(obj: unknown): obj is { statusCode: number } {
+  return typeof obj === 'object' && obj !== null && 'statusCode' in obj && typeof (obj as Record<string, unknown>).statusCode === 'number';
+}
+
+function hasCode(obj: unknown): obj is { code: string } {
+  return typeof obj === 'object' && obj !== null && 'code' in obj && typeof (obj as Record<string, unknown>).code === 'string';
+}
+
 export class GraphQLError extends BaseError {
   constructor(message: string) {
     super(message, "GRAPHQL_ERROR");
@@ -134,11 +147,19 @@ export class GraphQLError extends BaseError {
    */
   static isForbiddenError(error: CombinedError): boolean {
     // Check response status first (most reliable)
-    if (error.response?.status === 403) return true;
+    if (hasStatus(error.response) && error.response.status === 403) {
+      return true;
+    }
     
-    // Check networkError properties
-    const networkError = error.networkError as any;
-    if (networkError?.status === 403 || networkError?.statusCode === 403) return true;
+    // Check networkError for HTTP status properties
+    if (error.networkError) {
+      if (hasStatus(error.networkError) && error.networkError.status === 403) {
+        return true;
+      }
+      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 403) {
+        return true;
+      }
+    }
     
     // Fallback to message checking (least reliable)
     const message = error.message.toLowerCase();
@@ -150,11 +171,19 @@ export class GraphQLError extends BaseError {
    */
   static isNotFoundError(error: CombinedError): boolean {
     // Check response status first (most reliable)
-    if (error.response?.status === 404) return true;
+    if (hasStatus(error.response) && error.response.status === 404) {
+      return true;
+    }
     
-    // Check networkError properties
-    const networkError = error.networkError as any;
-    if (networkError?.status === 404 || networkError?.statusCode === 404) return true;
+    // Check networkError for HTTP status properties
+    if (error.networkError) {
+      if (hasStatus(error.networkError) && error.networkError.status === 404) {
+        return true;
+      }
+      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 404) {
+        return true;
+      }
+    }
     
     // Fallback to message checking
     const message = error.message.toLowerCase();
@@ -165,17 +194,18 @@ export class GraphQLError extends BaseError {
    * Checks if the error is a connection/network error
    */
   static isConnectionError(error: CombinedError): boolean {
+    if (!error.networkError) return false;
+    
     // Check for network-related error codes
-    const networkError = error.networkError as any;
-    if (networkError?.code) {
-      const code = networkError.code.toUpperCase();
+    if (hasCode(error.networkError)) {
+      const code = error.networkError.code.toUpperCase();
       if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
         return true;
       }
     }
     
-    // Check error types
-    if (networkError?.name === "TypeError" && networkError?.message?.includes("fetch")) {
+    // Check error types for fetch failures
+    if (error.networkError.name === "TypeError" && error.networkError.message.includes("fetch")) {
       return true;
     }
     
@@ -195,11 +225,19 @@ export class GraphQLError extends BaseError {
    */
   static isUnauthorizedError(error: CombinedError): boolean {
     // Check response status first (most reliable)
-    if (error.response?.status === 401) return true;
+    if (hasStatus(error.response) && error.response.status === 401) {
+      return true;
+    }
     
-    // Check networkError properties
-    const networkError = error.networkError as any;
-    if (networkError?.status === 401 || networkError?.statusCode === 401) return true;
+    // Check networkError for HTTP status properties
+    if (error.networkError) {
+      if (hasStatus(error.networkError) && error.networkError.status === 401) {
+        return true;
+      }
+      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 401) {
+        return true;
+      }
+    }
     
     // Fallback to message checking
     const message = error.message.toLowerCase();
