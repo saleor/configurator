@@ -2,6 +2,7 @@ import type { BaseCommandArgs } from "../cli/command";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { DiffFormatter, DiffService, IntrospectDiffFormatter } from "./diff";
+import type { DiffSummary } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export type IntrospectDiffOptions = {
@@ -9,6 +10,11 @@ export type IntrospectDiffOptions = {
   filter?: string[];
   quiet?: boolean;
 };
+
+export interface IntrospectDiffResult {
+  summary: DiffSummary;
+  formattedOutput?: string;
+}
 
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
@@ -38,34 +44,26 @@ export class SaleorConfigurator {
     // Channels are added first to ensure they're ready before products (which reference them)
     if (config.channels) {
       logger.debug(`Bootstrapping ${config.channels.length} channels`);
-      bootstrapTasks.push(
-        this.services.channel.bootstrapChannels(config.channels)
-      );
+      bootstrapTasks.push(this.services.channel.bootstrapChannels(config.channels));
     }
 
     if (config.pageTypes) {
       logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
       bootstrapTasks.push(
         Promise.all(
-          config.pageTypes.map((pageType) =>
-            this.services.pageType.bootstrapPageType(pageType)
-          )
+          config.pageTypes.map((pageType) => this.services.pageType.bootstrapPageType(pageType))
         )
       );
     }
 
     if (config.categories) {
       logger.debug(`Bootstrapping ${config.categories.length} categories`);
-      bootstrapTasks.push(
-        this.services.category.bootstrapCategories(config.categories)
-      );
+      bootstrapTasks.push(this.services.category.bootstrapCategories(config.categories));
     }
 
     if (config.products) {
       logger.debug(`Bootstrapping ${config.products.length} products`);
-      bootstrapTasks.push(
-        this.services.product.bootstrapProducts(config.products)
-      );
+      bootstrapTasks.push(this.services.product.bootstrapProducts(config.products));
     }
 
     try {
@@ -108,26 +106,26 @@ export class SaleorConfigurator {
     }
   }
 
-  async diffForIntrospect(options: IntrospectDiffOptions = {}) {
+  async diffForIntrospect(options: IntrospectDiffOptions = {}): Promise<IntrospectDiffResult> {
     const { format = "table", filter, quiet = false } = options;
 
     logger.info("Starting diff process for introspect");
 
     try {
       if (!quiet) {
-        console.log("📥 Loading local configuration...");
+        logger.info("📥 Loading local configuration...");
       }
 
       const diffService = new DiffService(this.services);
 
       if (!quiet) {
-        console.log("🌐 Fetching remote configuration...");
+        logger.info("🌐 Fetching remote configuration...");
       }
 
       const summary = await diffService.compareForIntrospect();
 
       if (!quiet) {
-        console.log("🔍 Analyzing differences...\n");
+        logger.info("🔍 Analyzing differences...\n");
       }
 
       // Apply filter if specified
@@ -148,8 +146,8 @@ export class SaleorConfigurator {
         };
       }
 
-      // Format and display output
-      let formattedOutput: string;
+      // Format output
+      let formattedOutput: string | undefined;
       const introspectFormatter = new IntrospectDiffFormatter();
 
       switch (format) {
@@ -164,7 +162,9 @@ export class SaleorConfigurator {
           formattedOutput = introspectFormatter.format(filteredSummary);
       }
 
-      console.log(formattedOutput);
+      if (!quiet && formattedOutput) {
+        console.log(formattedOutput);
+      }
 
       logger.info("Introspect diff process completed successfully", {
         totalChanges: filteredSummary.totalChanges,
@@ -173,7 +173,10 @@ export class SaleorConfigurator {
         deletes: filteredSummary.deletes,
       });
 
-      return filteredSummary;
+      return {
+        summary: filteredSummary,
+        formattedOutput: quiet ? formattedOutput : undefined,
+      };
     } catch (error) {
       logger.error("Failed to diff configurations for introspect", { error });
       throw error;

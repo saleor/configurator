@@ -2,37 +2,4 @@
 "saleor-configurator": minor
 ---
 
-# Fixed introspect command showing changes backwards
-
-## Main Fix
-
-- **Fixed diff perspective bug**: Introspect was showing what would be pushed TO Saleor instead of what would happen to your local file when pulling FROM Saleor
-- Now correctly shows what will be added, updated, or removed in your local configuration
-
-## Additional Features
-
-- **Selective options**: Use `--only` and `--exclude` to filter which configuration sections to process
-- **CI mode**: Added `--ci` flag for non-interactive usage that exits with appropriate status codes
-- **Output formats**: Support for `--format json|yaml|table` output
-
-## Code Improvements
-
-- Refactored into small, focused functions following clean coding principles
-- Removed inline comments in favor of self-documenting code
-- Extracted selective options logic into reusable utility functions
-
-## Usage Examples
-
-```bash
-# Only update specific sections
-configurator introspect --only channels,shop
-
-# Exclude certain sections  
-configurator introspect --exclude products
-
-# CI mode (non-interactive)
-configurator introspect --ci
-
-# JSON output for scripts
-configurator introspect --format json --quiet
-```
+Fixed introspect command diff perspective to correctly show changes from remote to local configuration. Added selective filtering with --include/--exclude options, CI mode for automation, and multiple output formats (table, JSON, YAML). Enhanced user experience with actionable error messages, progress indicators, confirmation prompts with change summaries, and operation timing. Added --backup flag (defaults to true) and --verbose mode.

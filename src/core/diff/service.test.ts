@@ -43,9 +43,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -80,9 +78,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -124,9 +120,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -175,9 +169,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -191,9 +183,7 @@ describe("DiffService", () => {
         entityName: "ProductTypeA",
       });
       expect(summary.results[0].changes).toHaveLength(1);
-      expect(summary.results[0].changes?.[0].description).toContain(
-        'Attribute "Color" added'
-      );
+      expect(summary.results[0].changes?.[0].description).toContain('Attribute "Color" added');
     });
 
     it("should detect product type creation with attributes", async () => {
@@ -210,11 +200,7 @@ describe("DiffService", () => {
               {
                 name: "Genre",
                 inputType: "DROPDOWN",
-                values: [
-                  { name: "Fiction" },
-                  { name: "Non-Fiction" },
-                  { name: "Fantasy" },
-                ],
+                values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Fantasy" }],
               },
               {
                 name: "Related Books",
@@ -232,9 +218,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -280,9 +264,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -303,12 +285,8 @@ describe("DiffService", () => {
         .mockRejectedValue(new Error("Config file not found"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow(
-        ConfigurationLoadError
-      );
-      await expect(diffService.compare()).rejects.toThrow(
-        "Failed to load local configuration"
-      );
+      await expect(diffService.compare()).rejects.toThrow(ConfigurationLoadError);
+      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
 
     it("should handle remote configuration retrieval errors", async () => {
@@ -319,9 +297,7 @@ describe("DiffService", () => {
         .mockRejectedValue(new Error("Network error"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow(
-        RemoteConfigurationError
-      );
+      await expect(diffService.compare()).rejects.toThrow(RemoteConfigurationError);
       await expect(diffService.compare()).rejects.toThrow(
         "Failed to retrieve remote configuration"
       );
@@ -334,16 +310,12 @@ describe("DiffService", () => {
       });
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue({});
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 200)) // Takes longer than timeout
-        );
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 200)) // Takes longer than timeout
+      );
 
       // Act & Assert
-      await expect(serviceWithTimeout.compare()).rejects.toThrow(
-        RemoteConfigurationError
-      );
+      await expect(serviceWithTimeout.compare()).rejects.toThrow(RemoteConfigurationError);
       await expect(serviceWithTimeout.compare()).rejects.toThrow("timed out");
     });
   });
@@ -368,9 +340,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(config);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(config);
 
       // Act
       const summary = await diffService.compare();
@@ -394,9 +364,7 @@ describe("DiffService", () => {
 
       const config: SaleorConfig = {};
       mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(config);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(config);
 
       // Act
       const summary = await serviceWithDebug.compare();
@@ -442,9 +410,7 @@ describe("DiffService", () => {
       const remoteConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -502,9 +468,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -560,9 +524,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -601,9 +563,7 @@ describe("DiffService", () => {
       const emptyConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(largeConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(emptyConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(emptyConfig);
 
       // Act
       const startTime = Date.now();
@@ -625,9 +585,7 @@ describe("DiffService", () => {
       const emptyConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(emptyConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(emptyConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(emptyConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -657,9 +615,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -721,7 +677,8 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "Deprecated Type",
-            attributes: [],
+            productAttributes: [],
+            variantAttributes: [],
           },
         ],
       };
@@ -742,11 +699,11 @@ describe("DiffService", () => {
       expect(summary.creates).toBe(0);
       expect(summary.updates).toBe(0);
       expect(summary.deletes).toBe(2);
-      
-      const deletions = summary.results.filter(r => r.operation === "DELETE");
+
+      const deletions = summary.results.filter((r) => r.operation === "DELETE");
       expect(deletions).toHaveLength(2);
-      expect(deletions.map(r => r.entityName)).toContain("Old Channel");
-      expect(deletions.map(r => r.entityName)).toContain("Deprecated Type");
+      expect(deletions.map((r) => r.entityName)).toContain("Old Channel");
+      expect(deletions.map((r) => r.entityName)).toContain("Deprecated Type");
     });
 
     it("should detect entities to update in local", async () => {
@@ -800,7 +757,8 @@ describe("DiffService", () => {
         productTypes: [
           {
             name: "Product Type 1",
-            attributes: [],
+            productAttributes: [],
+            variantAttributes: [],
           },
         ],
       };

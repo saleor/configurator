@@ -1,6 +1,6 @@
-import type { DiffSummary, DiffResult } from "../types";
-import { BaseDiffFormatter } from "./base-formatter";
 import { DIFF_ICONS, FORMAT_CONFIG } from "../constants";
+import type { DiffResult, DiffSummary, EntityType } from "../types";
+import { BaseDiffFormatter } from "./base-formatter";
 
 /**
  * Formatter for introspect diff output - shows what will change in local config
@@ -63,7 +63,7 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
     entityType: string,
     results: readonly DiffResult[]
   ): void {
-    const icon = this.getEntityIcon(entityType as any);
+    const icon = this.getEntityIcon(entityType as EntityType);
     lines.push(`${icon} ${entityType}`);
     lines.push(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR));
 
@@ -134,7 +134,8 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
    * Adds specific details for entity creation
    */
   private addCreationDetails(lines: string[], entity: unknown): void {
-    const typedEntity = entity as any;
+    // Type guard for entity with known properties
+    const typedEntity = entity as Record<string, unknown>;
 
     if (typedEntity?.currencyCode) {
       lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Currency: ${typedEntity.currencyCode}`);
@@ -156,11 +157,36 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
    * Adds the summary statistics section
    */
   private addSummarySection(lines: string[], summary: DiffSummary): void {
-    lines.push(`${DIFF_ICONS.SUMMARY.CHART} Summary of Local File Changes`);
-    lines.push(this.createSeparator(25, FORMAT_CONFIG.SUB_SEPARATOR));
-    lines.push(`Total Changes: ${summary.totalChanges}`);
-    lines.push(`• ${summary.creates} ${this.formatPlural(summary.creates, "addition")}`);
-    lines.push(`• ${summary.updates} ${this.formatPlural(summary.updates, "update")}`);
-    lines.push(`• ${summary.deletes} ${this.formatPlural(summary.deletes, "removal")}`);
+    lines.push("");
+    lines.push(this.createSeparator(FORMAT_CONFIG.HEADER_WIDTH));
+
+    // Group changes by entity type for better overview
+    const entityCounts = new Map<EntityType, number>();
+    for (const result of summary.results) {
+      entityCounts.set(result.entityType, (entityCounts.get(result.entityType) || 0) + 1);
+    }
+
+    lines.push(`${DIFF_ICONS.SUMMARY.CHART} Summary by type:`);
+    for (const [entityType, count] of entityCounts) {
+      const icon = this.getEntityIcon(entityType);
+      lines.push(`  ${icon} ${entityType}: ${count} ${this.formatPlural(count, "change")}`);
+    }
+
+    lines.push("");
+    lines.push(`Total changes: ${summary.totalChanges}`);
+    const parts: string[] = [];
+    if (summary.creates > 0) {
+      parts.push(`${DIFF_ICONS.OPERATIONS.CREATE} ${summary.creates} new`);
+    }
+    if (summary.updates > 0) {
+      parts.push(`${DIFF_ICONS.OPERATIONS.UPDATE} ${summary.updates} modified`);
+    }
+    if (summary.deletes > 0) {
+      parts.push(`${DIFF_ICONS.OPERATIONS.DELETE} ${summary.deletes} removed`);
+    }
+
+    if (parts.length > 0) {
+      lines.push(`  ${parts.join(", ")}`);
+    }
   }
-} 
+}

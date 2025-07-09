@@ -1,18 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  DiffFormatter,
-  DetailedDiffFormatter,
-  SummaryDiffFormatter,
   calculateDiffStatistics,
+  createDetailedFormatter,
+  createSummaryFormatter,
+  DetailedDiffFormatter,
+  DiffFormatter,
+  type DiffStatistics,
+  type DiffSummary,
   filterDiffByEntityType,
   filterDiffByOperation,
   hasDiffChanges,
   hasSafeDiffChangesOnly,
-  createDetailedFormatter,
-  createSummaryFormatter,
-  type DiffSummary,
-  type DiffStatistics,
   IntrospectDiffFormatter,
+  SummaryDiffFormatter,
 } from "./index";
 
 describe("DiffFormatter", () => {
@@ -482,12 +482,14 @@ describe("IntrospectDiffFormatter", () => {
 
       // Assert
       expect(output).toContain("📊 Local Configuration Update Preview");
-      expect(output).toContain("The following changes will be made to your local configuration file");
+      expect(output).toContain(
+        "The following changes will be made to your local configuration file"
+      );
       expect(output).toContain('Will be added: "Default Channel"');
       expect(output).toContain('Will be added: "Shop Settings"');
       expect(output).toContain("Currency: USD");
       expect(output).toContain("Country: US");
-      expect(output).toContain("2 additions");
+      expect(output).toContain("2 new");
     });
 
     it("should format introspect diff with entities to remove", () => {
@@ -524,7 +526,7 @@ describe("IntrospectDiffFormatter", () => {
       // Assert
       expect(output).toContain('Will be removed: "Old Channel" (not present on Saleor)');
       expect(output).toContain('Will be removed: "Deprecated Type" (not present on Saleor)');
-      expect(output).toContain("2 removals");
+      expect(output).toContain("2 removed");
     });
 
     it("should format introspect diff with updates", () => {
@@ -563,7 +565,7 @@ describe("IntrospectDiffFormatter", () => {
       expect(output).toContain('Will be updated: "Shop Settings"');
       expect(output).toContain('defaultMailSenderName: "Local Shop" → "Remote Shop"');
       expect(output).toContain('displayGrossPrices: "false" → "true"');
-      expect(output).toContain("1 update");
+      expect(output).toContain("1 modified");
     });
 
     it("should handle no changes scenario", () => {
@@ -648,10 +650,10 @@ describe("IntrospectDiffFormatter", () => {
       const output = formatter.format(summary);
 
       // Assert
-      expect(output).toContain("Total Changes: 3");
-      expect(output).toContain("1 addition");
-      expect(output).toContain("1 update");
-      expect(output).toContain("1 removal");
+      expect(output).toContain("Total changes: 3");
+      expect(output).toContain("1 new");
+      expect(output).toContain("1 modified");
+      expect(output).toContain("1 removed");
     });
   });
 });

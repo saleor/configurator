@@ -1,4 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
+import type { CategoryService } from "../modules/category/category-service";
+import type { ChannelService } from "../modules/channel/channel-service";
+import type { ConfigurationService } from "../modules/config/config-service";
+import type { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import type { PageTypeService } from "../modules/page-type/page-type-service";
+import type { ProductService } from "../modules/product/product-service";
+import type { ProductTypeService } from "../modules/product-type/product-type-service";
+import type { ShopService } from "../modules/shop/shop-service";
 import { SaleorConfigurator } from "./configurator";
 import type { ServiceContainer } from "./service-container";
 
@@ -9,7 +17,7 @@ vi.mock("../lib/logger");
 
 describe("SaleorConfigurator enhanced functionality", () => {
   let configurator: SaleorConfigurator;
-  let mockServices: Partial<ServiceContainer>;
+  let mockServices: ServiceContainer;
 
   beforeEach(() => {
     // Reset all mocks
@@ -38,10 +46,11 @@ describe("SaleorConfigurator enhanced functionality", () => {
       category: {
         bootstrapCategories: vi.fn(),
       },
-    } as any;
+      product: {} as unknown as ProductService,
+    } as unknown as ServiceContainer;
 
     // Create configurator instance with mocked services
-    configurator = new SaleorConfigurator(mockServices as ServiceContainer);
+    configurator = new SaleorConfigurator(mockServices);
   });
 
   afterEach(() => {
@@ -228,7 +237,9 @@ describe("SaleorConfigurator enhanced functionality", () => {
       };
 
       mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi
+        .fn()
+        .mockResolvedValue(mockRemoteConfig);
 
       // Act
       const result = await configurator.diffForIntrospect({ quiet: true });
@@ -237,31 +248,31 @@ describe("SaleorConfigurator enhanced functionality", () => {
       expect(mockServices.configStorage!.load).toHaveBeenCalled();
       expect(mockServices.configuration!.retrieveWithoutSaving).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result.totalChanges).toBeGreaterThan(0);
+      expect(result.summary.totalChanges).toBeGreaterThan(0);
     });
 
     it("should handle empty remote configuration", async () => {
       // Arrange
       const mockLocalConfig = {
         shop: { headerText: "Local Shop" },
-        channels: [
-          { name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" },
-        ],
+        channels: [{ name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" }],
         productTypes: [{ name: "Product Type 1", attributes: [] }],
       };
 
       const mockRemoteConfig = {};
 
       mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi
+        .fn()
+        .mockResolvedValue(mockRemoteConfig);
 
       // Act
       const result = await configurator.diffForIntrospect({ quiet: true });
 
       // Assert
       // All local entities should be marked for deletion when remote is empty
-      expect(result.deletes).toBeGreaterThan(0);
-      expect(result.creates).toBe(0);
+      expect(result.summary.deletes).toBeGreaterThan(0);
+      expect(result.summary.creates).toBe(0);
     });
 
     it("should handle format options", async () => {
@@ -274,13 +285,13 @@ describe("SaleorConfigurator enhanced functionality", () => {
       mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockConfig);
 
       // Act
-      const result = await configurator.diffForIntrospect({ 
+      const result = await configurator.diffForIntrospect({
         format: "json",
-        quiet: true 
+        quiet: true,
       });
 
       // Assert
-      expect(result.totalChanges).toBe(0);
+      expect(result.summary.totalChanges).toBe(0);
     });
 
     it("should handle filter options", async () => {
@@ -293,16 +304,18 @@ describe("SaleorConfigurator enhanced functionality", () => {
       const mockRemoteConfig = {};
 
       mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockRemoteConfig);
+      mockServices.configuration!.retrieveWithoutSaving = vi
+        .fn()
+        .mockResolvedValue(mockRemoteConfig);
 
       // Act
-      const result = await configurator.diffForIntrospect({ 
+      const result = await configurator.diffForIntrospect({
         filter: ["channels"],
-        quiet: true 
+        quiet: true,
       });
 
       // Assert
-      expect(result.results.every(r => r.entityType === "Channels")).toBe(true);
+      expect(result.summary.results.every((r) => r.entityType === "Channels")).toBe(true);
     });
 
     it("should handle service errors gracefully", async () => {

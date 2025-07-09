@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { introspectCommandSchema, type IntrospectCommandArgs } from "./introspect";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { type IntrospectCommandArgs, introspectCommandSchema } from "./introspect";
 
 // Mock modules
 vi.mock("../cli/console", () => ({
@@ -37,9 +37,10 @@ describe("introspect command", () => {
       token: "test-token",
       quiet: false,
       dryRun: false,
-      only: undefined,
+      include: undefined,
       exclude: undefined,
-      noBackup: false,
+      backup: true,
+      verbose: false,
       format: "table",
       ci: false,
     };
@@ -71,7 +72,8 @@ describe("introspect command", () => {
       if (result.success) {
         expect(result.data.quiet).toBe(false);
         expect(result.data.dryRun).toBe(false);
-        expect(result.data.noBackup).toBe(false);
+        expect(result.data.backup).toBe(true);
+        expect(result.data.verbose).toBe(false);
         expect(result.data.format).toBe("table");
         expect(result.data.ci).toBe(false);
       }
@@ -100,19 +102,19 @@ describe("introspect command", () => {
 
     it("should handle selective options parsing", () => {
       // Arrange
-      const argsWithOnly = { ...validArgs, only: "channels,shop" };
+      const argsWithInclude = { ...validArgs, include: "channels,shop" };
       const argsWithExclude = { ...validArgs, exclude: "products,categories" };
 
       // Act
-      const onlyResult = introspectCommandSchema.safeParse(argsWithOnly);
+      const includeResult = introspectCommandSchema.safeParse(argsWithInclude);
       const excludeResult = introspectCommandSchema.safeParse(argsWithExclude);
 
       // Assert
-      expect(onlyResult.success).toBe(true);
+      expect(includeResult.success).toBe(true);
       expect(excludeResult.success).toBe(true);
-      
-      if (onlyResult.success) {
-        expect(onlyResult.data.only).toBe("channels,shop");
+
+      if (includeResult.success) {
+        expect(includeResult.data.include).toBe("channels,shop");
       }
       if (excludeResult.success) {
         expect(excludeResult.data.exclude).toBe("products,categories");
@@ -138,7 +140,8 @@ describe("introspect command", () => {
       const argsWithFlags = {
         ...validArgs,
         dryRun: true,
-        noBackup: true,
+        backup: false,
+        verbose: true,
         quiet: true,
         ci: true,
       };
@@ -150,10 +153,11 @@ describe("introspect command", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.dryRun).toBe(true);
-        expect(result.data.noBackup).toBe(true);
+        expect(result.data.backup).toBe(false);
+        expect(result.data.verbose).toBe(true);
         expect(result.data.quiet).toBe(true);
         expect(result.data.ci).toBe(true);
       }
     });
   });
-}); 
+});
