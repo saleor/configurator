@@ -128,6 +128,7 @@ export class DiffService {
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["categories", new CategoryComparator() as EntityComparator],
+      // TODO: add product comparator; also add types that force you to add newly introduced entities to the diff service
     ]);
   }
 
