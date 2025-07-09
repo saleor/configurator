@@ -36,7 +36,7 @@ pnpm install
 pnpm start
 ```
 
-## Quickstart
+**Quickstart:**
 
 1. Create an app token with all permissions in your Saleor dashboard.
 
