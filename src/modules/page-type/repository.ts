@@ -91,8 +91,8 @@ export class PageTypeRepository implements PageTypeOperations {
 
     if (!result.data?.pageTypeCreate?.pageType) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to create page type",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to create page type"
       );
     }
 
@@ -127,8 +127,8 @@ export class PageTypeRepository implements PageTypeOperations {
 
     if (!result.data?.pageAttributeAssign?.pageType) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to assign attributes to page type",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to assign attributes to page type"
       );
     }
 

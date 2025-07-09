@@ -1,4 +1,11 @@
-function formatGenericErrorMessage(message: string, error: string): string {
+function formatGenericErrorMessage(
+  message: string | undefined,
+  error: string
+): string {
+  if (!message) {
+    return error;
+  }
+
   return `${message}. ${error}`;
 }
 

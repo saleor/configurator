@@ -63,8 +63,8 @@ export class YamlConfigurationManager implements ConfigurationStorage {
 
       if (!success) {
         const validationError = ZodValidationError.fromZodError(
-          "Invalid configuration file",
-          error
+          error,
+          "Configuration file doesn't match the expected schema"
         );
 
         logger.error("Configuration validation failed", {
@@ -78,6 +78,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Validated configuration", { config: data });
       return data;
     } catch (error) {
+      // ? does this actually work?
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         // TODO: improve errors
         const fileNotFoundError = new Error(
@@ -85,15 +86,6 @@ export class YamlConfigurationManager implements ConfigurationStorage {
         );
         logger.error("Configuration file not found", { path: this.configPath });
         throw fileNotFoundError;
-      }
-
-      if (error instanceof ZodError) {
-        const zodError = ZodValidationError.fromZodError(
-          "Configuration file doesn't match the expected schema",
-          error
-        );
-
-        throw zodError;
       }
 
       throw error;

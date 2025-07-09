@@ -91,8 +91,8 @@ export class ProductTypeRepository implements ProductTypeOperations {
 
     if (!result.data?.productTypeCreate?.productType) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to create product type",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to create product type"
       );
     }
 

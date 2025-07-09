@@ -308,8 +308,8 @@ export class ProductRepository implements ProductOperations {
         result.error.graphQLErrors.length > 0
       ) {
         throw GraphQLError.fromGraphQLErrors(
-          "Failed to create product",
-          result.error.graphQLErrors
+          result.error.graphQLErrors,
+          "Failed to create product"
         );
       }
 
@@ -359,8 +359,8 @@ export class ProductRepository implements ProductOperations {
 
     if (!result.data?.productUpdate?.product) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to update product",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to update product"
       );
     }
 
@@ -389,8 +389,8 @@ export class ProductRepository implements ProductOperations {
 
     if (!result.data?.productVariantCreate?.productVariant) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to create product variant",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to create product variant"
       );
     }
 
@@ -423,8 +423,8 @@ export class ProductRepository implements ProductOperations {
 
     if (!result.data?.productVariantUpdate?.productVariant) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to update product variant",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to update product variant"
       );
     }
 

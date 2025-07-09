@@ -41,8 +41,8 @@ export class ShopRepository implements ShopOperations {
 
     if (result.error) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to update shop settings",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to update shop settings"
       );
     }
 

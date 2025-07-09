@@ -74,8 +74,8 @@ export class ChannelRepository implements ChannelOperations {
 
     if (!result.data?.channelCreate?.channel) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to create channel",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to create channel"
       );
     }
 
@@ -99,8 +99,8 @@ export class ChannelRepository implements ChannelOperations {
 
     if (result.error) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to update channel",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to update channel"
       );
     }
 

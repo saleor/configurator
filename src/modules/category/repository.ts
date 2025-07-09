@@ -79,8 +79,8 @@ export class CategoryRepository implements CategoryOperations {
 
     if (!result.data?.categoryCreate?.category) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to create category",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to create category"
       );
     }
 

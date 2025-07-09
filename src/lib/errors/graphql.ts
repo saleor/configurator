@@ -39,8 +39,8 @@ export class GraphQLError extends BaseError {
    * Creates a GraphQLError with automatically formatted GraphQL error messages
    */
   static fromGraphQLErrors(
-    message: string,
-    errors: CombinedError["graphQLErrors"]
+    errors: CombinedError["graphQLErrors"],
+    message?: string
   ): GraphQLError {
     const formattedErrors = errors.map((error) => {
       let errorMessage = error.message;
@@ -63,9 +63,10 @@ export class GraphQLError extends BaseError {
       return errorMessage;
     });
 
-    const combinedMessage = `${message}. GraphQL errors: ${formattedErrors.join(
-      "; "
-    )}`;
+    const combinedMessage = errorFormatHelpers.formatGenericErrorMessage(
+      message,
+      `GraphQL errors: ${formattedErrors.join("; ")}`
+    );
 
     return new GraphQLError(combinedMessage);
   }
@@ -151,17 +152,6 @@ export class GraphQLError extends BaseError {
       );
     }
 
-    if (GraphQLError.isConnectionError(error)) {
-      return new GraphQLError(
-        `${message}: Connection Failed\n\n` +
-          `This usually means:\n` +
-          `  • Network connectivity issues\n` +
-          `  • Invalid domain name in URL\n` +
-          `  • Firewall blocking the connection\n\n` +
-          `💡 Check your network connection and URL`
-      );
-    }
-
     if (GraphQLError.isUnauthorizedError(error)) {
       return new GraphQLError(
         `${message}: Unauthorized (401)\n\n` +
@@ -174,7 +164,7 @@ export class GraphQLError extends BaseError {
 
     // Handle GraphQL errors
     if (error.graphQLErrors?.length) {
-      return GraphQLError.fromGraphQLErrors(message, error.graphQLErrors);
+      return GraphQLError.fromGraphQLErrors(error.graphQLErrors, message);
     }
 
     // Fallback for other errors

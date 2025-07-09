@@ -127,8 +127,8 @@ export class AttributeRepository implements AttributeOperations {
         result.error.graphQLErrors.length > 0
       ) {
         throw GraphQLError.fromGraphQLErrors(
-          "Failed to create attribute",
-          result.error.graphQLErrors
+          result.error.graphQLErrors,
+          "Failed to create attribute"
         );
       }
 
@@ -160,8 +160,8 @@ export class AttributeRepository implements AttributeOperations {
 
     if (!result.data?.attributeUpdate?.attribute) {
       throw GraphQLError.fromGraphQLErrors(
-        "Failed to update attribute",
-        result.error?.graphQLErrors ?? []
+        result.error?.graphQLErrors ?? [],
+        "Failed to update attribute"
       );
     }
 

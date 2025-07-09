@@ -139,7 +139,7 @@ function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
     description: field.description || key,
     defaultValue:
       "defaultValue" in field._def
-        ? (field._def as any).defaultValue
+        ? (field._def as z.ZodDefault<z.ZodTypeAny>).defaultValue
         : undefined,
   };
 }
@@ -208,8 +208,8 @@ export function createCommand<
 
         if (!result.success) {
           throw ZodValidationError.fromZodError(
-            "Invalid arguments",
-            result.error
+            result.error,
+            "Invalid arguments"
           );
         }
 
@@ -219,8 +219,8 @@ export function createCommand<
 
         if (!result.success) {
           throw ZodValidationError.fromZodError(
-            "Invalid arguments",
-            result.error
+            result.error,
+            "Invalid arguments"
           );
         }
 

@@ -6,7 +6,7 @@ export class ZodValidationError extends BaseError {
     super(message, "ZOD_VALIDATION_ERROR");
   }
 
-  static fromZodError(message: string, error: z.ZodError): ZodValidationError {
+  static fromZodError(error: z.ZodError, message?: string): ZodValidationError {
     const formattedErrors = error.errors.map((issue) => {
       const path = issue.path.length > 0 ? issue.path.join(".") : "root";
       const errorMessage = formatZodIssue(issue);
