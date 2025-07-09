@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
+import { ZodError } from "zod";
 import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
 import { configSchema, type SaleorConfig } from "./schema/schema";
@@ -78,16 +79,23 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       return data;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        // TODO: improve errors
         const fileNotFoundError = new Error(
           `Configuration file not found: ${this.configPath}`
         );
         logger.error("Configuration file not found", { path: this.configPath });
         throw fileNotFoundError;
       }
-      logger.error("Failed to load configuration", {
-        error,
-        path: this.configPath,
-      });
+
+      if (error instanceof ZodError) {
+        const zodError = ZodValidationError.fromZodError(
+          "Configuration file doesn't match the expected schema",
+          error
+        );
+
+        throw zodError;
+      }
+
       throw error;
     }
   }
