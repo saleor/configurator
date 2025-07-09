@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createChannelMutation = graphql(`
@@ -15,7 +16,9 @@ const createChannelMutation = graphql(`
   }
 `);
 
-export type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
+export type ChannelCreateInput = VariablesOf<
+  typeof createChannelMutation
+>["input"];
 
 const getChannelsQuery = graphql(`
   query GetChannels {
@@ -26,7 +29,9 @@ const getChannelsQuery = graphql(`
   }
 `);
 
-export type Channel = NonNullable<ResultOf<typeof getChannelsQuery>["channels"]>[number];
+export type Channel = NonNullable<
+  ResultOf<typeof getChannelsQuery>["channels"]
+>[number];
 
 const updateChannelMutation = graphql(`
   mutation UpdateChannel($id: ID!, $input: ChannelUpdateInput!) {
@@ -53,7 +58,10 @@ type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 export interface ChannelOperations {
   createChannel(input: ChannelCreateInput): Promise<Channel>;
   getChannels(): Promise<Channel[] | null | undefined>;
-  updateChannel(id: string, input: ChannelUpdateInput): Promise<Channel | null | undefined>;
+  updateChannel(
+    id: string,
+    input: ChannelUpdateInput
+  ): Promise<Channel | null | undefined>;
 }
 
 export class ChannelRepository implements ChannelOperations {
@@ -65,7 +73,10 @@ export class ChannelRepository implements ChannelOperations {
     });
 
     if (!result.data?.channelCreate?.channel) {
-      throw new Error("Failed to create channel", result.error);
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to create channel",
+        result.error?.graphQLErrors ?? []
+      );
     }
 
     const channel = result.data.channelCreate.channel;
@@ -87,14 +98,16 @@ export class ChannelRepository implements ChannelOperations {
     });
 
     if (result.error) {
-      throw new Error(`Failed to update channel: ${result.error.message}`);
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to update channel",
+        result.error?.graphQLErrors ?? []
+      );
     }
 
     if (result.data?.channelUpdate?.errors.length) {
-      throw new Error(
-        `Failed to update channel: ${result.data.channelUpdate.errors
-          .map((e) => e.message)
-          .join(", ")}`
+      throw GraphQLError.fromDataErrors(
+        "Failed to update channel",
+        result.data.channelUpdate.errors
       );
     }
 

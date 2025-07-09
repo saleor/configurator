@@ -1,6 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
-import { GraphQLError } from "../../lib/errors/errors";
+import { GraphQLError, GraphQLUnknownError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createProductMutation = graphql(`
@@ -307,24 +307,30 @@ export class ProductRepository implements ProductOperations {
         result.error?.graphQLErrors &&
         result.error.graphQLErrors.length > 0
       ) {
-        throw GraphQLError.fromGraphQLErrors(result.error.graphQLErrors);
+        throw GraphQLError.fromGraphQLErrors(
+          "Failed to create product",
+          result.error.graphQLErrors
+        );
       }
 
       // Handle network errors
       if (result.error && !result.error.graphQLErrors) {
-        throw new GraphQLError(result.error.message);
+        throw GraphQLError.fromCombinedError(
+          "Failed to create product",
+          result.error
+        );
       }
 
       // Handle business logic errors from the mutation response
       const businessErrors = result.data?.productCreate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessages = businessErrors
-          .map((e) => `${e.field}: ${e.message}`)
-          .join(", ");
-        throw new Error(`Failed to create product: ${errorMessages}`);
+        throw GraphQLError.fromDataErrors(
+          "Failed to create product",
+          businessErrors
+        );
       }
 
-      throw new Error("Failed to create product: Unknown error");
+      throw new GraphQLUnknownError("Failed to create product");
     }
 
     const product = result.data.productCreate.product;
@@ -352,12 +358,9 @@ export class ProductRepository implements ProductOperations {
     });
 
     if (!result.data?.productUpdate?.product) {
-      const errors = result.data?.productUpdate?.errors
-        ?.map((e) => `${e.field}: ${e.message}`)
-        .join(", ");
-      const graphqlError = result.error?.message;
-      throw new Error(
-        `Failed to update product: ${errors || graphqlError || "Unknown error"}`
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to update product",
+        result.error?.graphQLErrors ?? []
       );
     }
 
@@ -385,11 +388,9 @@ export class ProductRepository implements ProductOperations {
     });
 
     if (!result.data?.productVariantCreate?.productVariant) {
-      const errors = result.data?.productVariantCreate?.errors
-        ?.map((e) => `${e.field}: ${e.message}`)
-        .join(", ");
-      throw new Error(
-        `Failed to create product variant: ${errors || "Unknown error"}`
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to create product variant",
+        result.error?.graphQLErrors ?? []
       );
     }
 
@@ -421,14 +422,9 @@ export class ProductRepository implements ProductOperations {
     });
 
     if (!result.data?.productVariantUpdate?.productVariant) {
-      const errors = result.data?.productVariantUpdate?.errors
-        ?.map((e) => `${e.field}: ${e.message}`)
-        .join(", ");
-      const graphqlError = result.error?.message;
-      throw new Error(
-        `Failed to update product variant: ${
-          errors || graphqlError || "Unknown error"
-        }`
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to update product variant",
+        result.error?.graphQLErrors ?? []
       );
     }
 

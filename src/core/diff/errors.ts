@@ -1,4 +1,4 @@
-import { BaseError } from "../../lib/errors/errors";
+import { BaseError } from "../../lib/errors/shared";
 
 /**
  * Base error class for diff-related errors

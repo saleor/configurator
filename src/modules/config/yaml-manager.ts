@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
-import { formatZodError } from "../../lib/errors/zod-formatter";
+import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
 import { configSchema, type SaleorConfig } from "./schema/schema";
 
@@ -35,7 +35,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
   }
 
   async save(config: SaleorConfig) {
-    logger.info("Saving configuration to " + this.configPath);
+    logger.info(`Saving configuration to ${this.configPath}`);
     try {
       const yml = stringify(config);
       await this.fs.writeFile(this.configPath, yml);
@@ -61,31 +61,19 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Parsed configuration", { data });
 
       if (!success) {
-        const formatted = formatZodError(error, {
-          showPath: true,
-          showSuggestions: true,
-          groupByPath: true,
-          colorize: false,
-        });
-
-        const validationError = new Error(
-          `Invalid configuration file (${this.configPath}):\n${formatted.message}` +
-            (formatted.suggestions?.length
-              ? `\n\nSuggestions:\n${formatted.suggestions
-                  .map((s) => `  • ${s}`)
-                  .join("\n")}`
-              : "")
+        const validationError = ZodValidationError.fromZodError(
+          "Invalid configuration file",
+          error
         );
 
         logger.error("Configuration validation failed", {
           errors: error.errors,
           path: this.configPath,
-          formattedDetails: formatted.details,
         });
         throw validationError;
       }
 
-      logger.info("Loaded configuration from " + this.configPath);
+      logger.info(`Loaded configuration from ${this.configPath}`);
       logger.debug("Validated configuration", { config: data });
       return data;
     } catch (error) {

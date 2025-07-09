@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const updateShopSettingsMutation = graphql(`
@@ -22,7 +23,9 @@ const updateShopSettingsMutation = graphql(`
   }
 `);
 
-export type ShopSettingsInput = VariablesOf<typeof updateShopSettingsMutation>["input"];
+export type ShopSettingsInput = VariablesOf<
+  typeof updateShopSettingsMutation
+>["input"];
 
 export interface ShopOperations {
   updateShopSettings(input: ShopSettingsInput): Promise<void>;
@@ -37,14 +40,16 @@ export class ShopRepository implements ShopOperations {
     });
 
     if (result.error) {
-      throw new Error(`Failed to update shop settings: ${result.error.message}`);
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to update shop settings",
+        result.error?.graphQLErrors ?? []
+      );
     }
 
     if (result.data?.shopSettingsUpdate?.errors?.length) {
-      throw new Error(
-        `Failed to update shop settings: ${result.data.shopSettingsUpdate.errors
-          .map((e) => e.message)
-          .join(", ")}`
+      throw GraphQLError.fromDataErrors(
+        "Failed to update shop settings",
+        result.data.shopSettingsUpdate.errors
       );
     }
 

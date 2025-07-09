@@ -113,9 +113,7 @@ export class DiffService {
       throw new DiffComparisonError(
         `Diff comparison failed: ${
           error instanceof Error ? error.message : String(error)
-        }`,
-        undefined,
-        error instanceof Error ? error : undefined
+        }`
       );
     }
   }
@@ -174,8 +172,7 @@ export class DiffService {
       throw new RemoteConfigurationError(
         `Failed to retrieve remote configuration: ${
           error instanceof Error ? error.message : String(error)
-        }`,
-        error instanceof Error ? error : undefined
+        }`
       );
     }
   }
@@ -187,7 +184,7 @@ export class DiffService {
     localConfig: SaleorConfig,
     remoteConfig: SaleorConfig
   ): Promise<readonly DiffResult[]> {
-    const comparisons: Array<Promise<readonly DiffResult[]>> = [];
+    const comparisons: Promise<readonly DiffResult[]>[] = [];
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
@@ -250,9 +247,7 @@ export class DiffService {
       throw new DiffComparisonError(
         `Failed to compare ${entityType}: ${
           error instanceof Error ? error.message : String(error)
-        }`,
-        entityType,
-        error instanceof Error ? error : undefined
+        }`
       );
     }
   }
@@ -309,8 +304,8 @@ export class DiffService {
 
     // Remove potentially sensitive shop settings
     if (sanitized.shop) {
-      delete sanitized.shop.defaultMailSenderAddress;
-      delete sanitized.shop.customerSetPasswordUrl;
+      sanitized.shop.defaultMailSenderAddress = undefined;
+      sanitized.shop.customerSetPasswordUrl = undefined;
     }
 
     return sanitized;

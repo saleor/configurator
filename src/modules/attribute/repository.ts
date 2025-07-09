@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createAttributeMutation = graphql(`
@@ -120,16 +121,30 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     if (!result.data?.attributeCreate?.attribute) {
-      throw new Error(
-        `Failed to create attribute: ${result.data?.attributeCreate?.errors
-          ?.map((e) => e.message)
-          .join(", ")}`
+      // Handle GraphQL errors with automatic formatting
+      if (
+        result.error?.graphQLErrors &&
+        result.error.graphQLErrors.length > 0
+      ) {
+        throw GraphQLError.fromGraphQLErrors(
+          "Failed to create attribute",
+          result.error.graphQLErrors
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new GraphQLError(`Network error: ${result.error.message}`);
+      }
+
+      // Handle business logic errors
+      const businessErrors = result.data?.attributeCreate?.errors ?? [];
+
+      throw GraphQLError.fromDataErrors(
+        "Failed to create attribute",
+        businessErrors
       );
     }
-
-    logger.info("Attribute created", {
-      name: result.data.attributeCreate.attribute.name,
-    });
 
     return result.data.attributeCreate.attribute as Attribute;
   }
@@ -144,7 +159,10 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     if (!result.data?.attributeUpdate?.attribute) {
-      throw new Error("Failed to update attribute");
+      throw GraphQLError.fromGraphQLErrors(
+        "Failed to update attribute",
+        result.error?.graphQLErrors ?? []
+      );
     }
 
     logger.info("Attribute updated", {

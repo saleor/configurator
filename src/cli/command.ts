@@ -1,8 +1,9 @@
 import { Command } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
-import { formatZodErrorForCLI } from "../lib/errors/zod-formatter";
+import { ZodValidationError } from "../lib/errors/zod";
 import { cliConsole } from "./console";
+import { CliArgumentError } from "./errors";
 
 /**
  * Validates and normalizes a Saleor URL
@@ -203,23 +204,34 @@ export function createCommand<
           "🔧 Interactive mode: Let's set up your configuration\n"
         );
         const interactiveArgs = await promptForMissingArgs(options);
-        validatedArgs = config.schema.parse(interactiveArgs);
+        const result = config.schema.safeParse(interactiveArgs);
+
+        if (!result.success) {
+          throw ZodValidationError.fromZodError(
+            "Invalid arguments",
+            result.error
+          );
+        }
+
+        validatedArgs = result.data;
       } else {
-        validatedArgs = config.schema.parse(options);
+        const result = config.schema.safeParse(options);
+
+        if (!result.success) {
+          throw ZodValidationError.fromZodError(
+            "Invalid arguments",
+            result.error
+          );
+        }
+
+        validatedArgs = result.data;
       }
 
       // Execute the command handler
       await config.handler(validatedArgs);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const formattedError = formatZodErrorForCLI(error);
-
-        cliConsole.error(formattedError);
-        process.exit(1);
-      } else {
-        cliConsole.error(`❌ Unknown error: ${String(error)}`);
-        process.exit(1);
-      }
+    } catch (error: unknown) {
+      cliConsole.error(error);
+      process.exit(1);
     }
   });
 

@@ -6,7 +6,7 @@
  */
 
 import * as fs from "fs";
-import { BaseError } from "../errors/errors";
+import { BaseError } from "../errors/shared";
 import { logger } from "../logger";
 
 class FileError extends BaseError {}

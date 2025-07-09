@@ -49,7 +49,8 @@ export class Console {
   }
 
   error(error: unknown) {
-    const text = chalk.red(error);
+    const message = error instanceof Error ? error.message : String(error);
+    const text = chalk.red(message);
     // TODO: improve error formatting
     global.console.error(text);
 

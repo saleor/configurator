@@ -11,12 +11,12 @@ import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import { PageTypeService } from "../modules/page-type/page-type-service";
 import { PageTypeRepository } from "../modules/page-type/repository";
-import { ProductTypeService } from "../modules/product-type/product-type-service";
-import { ProductTypeRepository } from "../modules/product-type/repository";
-import { ShopService } from "../modules/shop/shop-service";
-import { ShopRepository } from "../modules/shop/repository";
 import { ProductService } from "../modules/product/product-service";
 import { ProductRepository } from "../modules/product/repository";
+import { ProductTypeService } from "../modules/product-type/product-type-service";
+import { ProductTypeRepository } from "../modules/product-type/repository";
+import { ShopRepository } from "../modules/shop/repository";
+import { ShopService } from "../modules/shop/shop-service";
 
 export interface ServiceContainer {
   readonly channel: ChannelService;
@@ -29,6 +29,7 @@ export interface ServiceContainer {
   readonly product: ProductService;
 }
 
+// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
 export class ServiceComposer {
   static compose(client: Client, configPath?: string): ServiceContainer {
     logger.debug("Creating repositories");
@@ -54,7 +55,10 @@ export class ServiceComposer {
     return {
       channel: new ChannelService(repositories.channel),
       pageType: new PageTypeService(repositories.pageType, attributeService),
-      productType: new ProductTypeService(repositories.productType, attributeService),
+      productType: new ProductTypeService(
+        repositories.productType,
+        attributeService
+      ),
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,

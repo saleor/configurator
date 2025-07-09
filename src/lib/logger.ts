@@ -1,6 +1,6 @@
 import { Logger } from "tslog";
 import { LOG_LEVEL } from "./env";
-import { EnvironmentVariableError } from "./errors/errors";
+import { EnvironmentVariableError } from "./errors/shared";
 
 // Map string log levels to numbers as required by tslog
 const logLevelMap = {

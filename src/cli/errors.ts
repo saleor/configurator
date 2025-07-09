@@ -1,4 +1,4 @@
-import { BaseError } from "../lib/errors/errors";
+import { BaseError } from "../lib/errors/shared";
 
 class CliError extends BaseError {}
 

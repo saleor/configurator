@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
+import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { FullAttribute } from "./schema/attribute.schema";
 import type { CountryCode, CurrencyCode, SaleorConfig } from "./schema/schema";
@@ -139,7 +140,9 @@ export class ConfigurationService {
       };
     }
 
-    throw new Error(`Unsupported input type: ${attribute.inputType}`);
+    throw new UnsupportedInputTypeError(
+      `Unsupported input type: ${attribute.inputType}`
+    );
   }
 
   private mapAttributes(
