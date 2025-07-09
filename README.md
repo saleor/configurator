@@ -5,8 +5,32 @@
 
 Saleor Configurator is a "commerce as code" tool that helps you automate the creation and management of data models in Saleor. Instead of manually creating product types, attributes, products, and variants, you can define them in a configuration file and let the tool handle the synchronization with your Saleor instance.
 
-> [!TIP]
-> The best place to start is with the interactive setup wizard.
+## Usage
+
+> [!IMPORTANT]
+> Configurator is not currently published as an npm package. You need to clone the repository and install dependencies locally.
+
+**Prerequisites:**
+
+- Node.js 20+
+- pnpm 9+
+
+**Setup:**
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/saleor/saleor-configurator.git
+cd saleor-configurator
+```
+
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Start the interactive setup wizard:
 
 ```bash
 pnpm start
@@ -38,131 +62,6 @@ pnpm push --url="https://your-store.saleor.cloud/graphql/" --token="your-app-tok
 
 > [!TIP]
 > Use `--help` with any command to see all available options and examples.
-
-## Configuration
-
-```yaml
-// Example config.yml
-shop:
-  customerAllowedToSetExternalReference: false
-  defaultMailSenderName: "Saleor Store"
-  defaultMailSenderAddress: "store@example.com"
-  displayGrossPrices: true
-  enableAccountConfirmationByEmail: true
-  limitQuantityPerCheckout: 50
-  trackInventoryByDefault: true
-  reserveStockDurationAnonymousUser: 60
-  reserveStockDurationAuthenticatedUser: 120
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-  defaultWeightUnit: KG
-  allowLoginWithoutConfirmation: false
-
-channels:
-  - name: Poland
-    currencyCode: PLN
-    defaultCountry: PL
-    slug: poland
-    isActive: false  # Channels are inactive by default
-    settings:
-      allocationStrategy: PRIORITIZE_SORTING_ORDER
-      automaticallyConfirmAllNewOrders: true
-      automaticallyFulfillNonShippableGiftCard: true
-      expireOrdersAfter: 30
-      deleteExpiredOrdersAfter: 60
-      markAsPaidStrategy: TRANSACTION_FLOW
-      allowUnpaidOrders: false
-      includeDraftOrderInVoucherUsage: true
-      useLegacyErrorFlow: false
-      automaticallyCompleteFullyPaidCheckouts: true
-      defaultTransactionFlowStrategy: AUTHORIZATION
-
-productTypes:
-  - name: Book
-    productAttributes:
-      - name: Author
-        inputType: PLAIN_TEXT
-      - name: Genre
-        inputType: DROPDOWN
-        values:
-          - name: Fiction
-          - name: Non-Fiction
-          - name: Fantasy
-      - name: Related Books
-        inputType: REFERENCE
-        entityType: PRODUCT
-    variantAttributes:
-      - name: Size
-        inputType: DROPDOWN
-        values:
-          - name: Small
-          - name: Medium
-          - name: Large
-  - name: E-Book
-    productAttributes:
-      - attribute: author # Reference an existing attribute by slug
-      - attribute: genre # Reference an existing attribute by slug
-      - name: File Format # New attribute
-        inputType: DROPDOWN
-        values:
-          - name: PDF
-          - name: EPUB
-          - name: MOBI
-      - name: DRM Protected
-        inputType: BOOLEAN
-      - name: Page Count
-        inputType: NUMERIC
-
-
-pageTypes:
-  - name: Blog Post
-    attributes:
-      - name: Title
-        inputType: PLAIN_TEXT
-      - name: Description
-        inputType: PLAIN_TEXT
-      - name: Published Date
-        inputType: DATE
-      - name: Related Posts
-        inputType: REFERENCE
-        entityType: PAGE
-
-categories:
-  - name: "Fiction"
-    subcategories:
-      - name: "Fantasy"
-  - name: "Non-Fiction"
-    subcategories:
-      - name: "Science"
-      - name: "History"
-
-products:
-  - name: "Sample Fiction Book"
-    productType: "Book"
-    category: "Fiction"
-    description: "A reference book product for testing the Book product type"
-    attributes:
-      Author: "Jane Doe"
-      Genre: "Fiction"
-    variants:
-      - name: "Hardcover"
-        sku: "BOOK-001-HC"
-        weight: 1.2
-        attributes:
-          Size: "Large"
-          Cover: "Hardcover"
-        channelListings: []
-      - name: "Paperback"
-        sku: "BOOK-001-PB"
-        weight: 0.8
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
-```
-
-> [!TIP]
-> See [SCHEMA.md](SCHEMA.md) for schema documentation with all the available properties.
 
 ## Commands
 
@@ -248,27 +147,68 @@ pnpm introspect --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-## Development
+## Configuration
 
-### Prerequisites
+Define your Saleor configuration in a YAML file (default: `config.yml`):
 
-- Node.js 20+
-- pnpm 9+
+```yaml
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Saleor Store"
+  defaultMailSenderAddress: "store@example.com"
+  displayGrossPrices: true
 
-### Installing dependencies
+channels:
+  - name: Poland
+    currencyCode: PLN
+    defaultCountry: PL
+    slug: poland
+    isActive: false
 
-```bash
-pnpm install
+productTypes:
+  - name: Book
+    productAttributes:
+      - name: Author
+        inputType: PLAIN_TEXT
+      - name: Genre
+        inputType: DROPDOWN
+        values:
+          - name: Fiction
+          - name: Non-Fiction
+    variantAttributes:
+      - name: Size
+        inputType: DROPDOWN
+        values:
+          - name: Small
+          - name: Medium
+          - name: Large
+
+products:
+  - name: "Sample Fiction Book"
+    productType: "Book"
+    category: "Fiction"
+    description: "A reference book product for testing the Book product type"
+    attributes:
+      Author: "Jane Doe"
+      Genre: "Fiction"
+    variants:
+      - name: "Hardcover"
+        sku: "BOOK-001-HC"
+        weight: 1.2
+        attributes:
+          Size: "Large"
+        channelListings: []
 ```
 
-This will install the dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
+> [!TIP]
+> See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties.
 
-### Architecture
+## Development
 
-The project follows clean architecture principles with clear separation of concerns:
+For contributors and advanced users who want to modify the tool.
 
-- **Domain-specific repositories**: Each entity type (products, channels, categories, etc.) has its own repository
-- **Service layer**: Business logic is encapsulated in service classes, CLI logic is encapsulated in command handlers
+> [!NOTE]
+> The `pnpm install` command will install dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
 ### Schema Documentation
 
