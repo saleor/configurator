@@ -1,17 +1,33 @@
 import type { CombinedError } from "@urql/core";
+import { logger } from "../logger";
 import { BaseError, errorFormatHelpers } from "./shared";
 
 // Type guards for error properties
 function hasStatus(obj: unknown): obj is { status: number } {
-  return typeof obj === 'object' && obj !== null && 'status' in obj && typeof (obj as Record<string, unknown>).status === 'number';
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "status" in obj &&
+    typeof (obj as Record<string, unknown>).status === "number"
+  );
 }
 
 function hasStatusCode(obj: unknown): obj is { statusCode: number } {
-  return typeof obj === 'object' && obj !== null && 'statusCode' in obj && typeof (obj as Record<string, unknown>).statusCode === 'number';
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "statusCode" in obj &&
+    typeof (obj as Record<string, unknown>).statusCode === "number"
+  );
 }
 
 function hasCode(obj: unknown): obj is { code: string } {
-  return typeof obj === 'object' && obj !== null && 'code' in obj && typeof (obj as Record<string, unknown>).code === 'string';
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "code" in obj &&
+    typeof (obj as Record<string, unknown>).code === "string"
+  );
 }
 
 export class GraphQLError extends BaseError {
@@ -88,16 +104,39 @@ export class GraphQLError extends BaseError {
     message: string,
     error: CombinedError
   ): GraphQLError {
+    logger.error("GraphQL error", { error });
     const errorMessage = error.message;
 
     // Check for specific network error types
     if (GraphQLError.isForbiddenError(error)) {
+      // Extract required permissions from GraphQL errors for better messaging
+      const requiredPermissions = new Set<string>();
+      if (error.graphQLErrors?.length) {
+        error.graphQLErrors.forEach((graphQLError) => {
+          const match = graphQLError.message.match(
+            /need one of the following permissions: ([^,]+(?:, [^,]+)*)/
+          );
+          if (match) {
+            match[1]
+              .split(", ")
+              .forEach((perm) => requiredPermissions.add(perm.trim()));
+          }
+        });
+      }
+
+      const permissionList =
+        Array.from(requiredPermissions).length > 0
+          ? `\n\n  Required permissions: ${Array.from(requiredPermissions).join(
+              ", "
+            )}`
+          : "";
+
       return new GraphQLError(
-        `${message}: Forbidden (403)\n\n` +
+        `${message}: Permission Denied\n\n` +
           `This usually means:\n` +
-          `  • Your authentication token is invalid or expired\n` +
-          `  • Your token doesn't have the required permissions\n\n` +
-          `💡 Try generating a new token with all the required permissions`
+          `  • Your authentication token doesn't have the required permissions\n` +
+          `  • Your token has expired or is invalid\n\n` +
+          `💡 Generate a new token with the required permissions in your Saleor Dashboard${permissionList}`
       );
     }
 
@@ -143,48 +182,54 @@ export class GraphQLError extends BaseError {
   }
 
   /**
-   * Checks if the error is a 403 Forbidden error
+   * Checks if the error is a permission/forbidden error
    */
   static isForbiddenError(error: CombinedError): boolean {
-    // Check response status first (most reliable)
-    if (hasStatus(error.response) && error.response.status === 403) {
-      return true;
+    // Check GraphQL errors for permission denied (primary method for GraphQL APIs)
+    if (error.graphQLErrors?.length) {
+      const hasPermissionError = error.graphQLErrors.some((graphQLError) => {
+        const exceptionCode =
+          graphQLError.extensions?.exception &&
+          typeof graphQLError.extensions.exception === "object" &&
+          "code" in graphQLError.extensions.exception
+            ? (graphQLError.extensions.exception as { code: string }).code
+            : null;
+
+        return (
+          exceptionCode === "PermissionDenied" ||
+          graphQLError.message.includes("need one of the following permissions")
+        );
+      });
+      if (hasPermissionError) return true;
     }
-    
-    // Check networkError for HTTP status properties
-    if (error.networkError) {
-      if (hasStatus(error.networkError) && error.networkError.status === 403) {
-        return true;
-      }
-      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 403) {
-        return true;
-      }
-    }
-    
-    // Fallback to message checking (least reliable)
+
+    // Fallback to message checking for edge cases
     const message = error.message.toLowerCase();
     return message.includes("forbidden") || message.includes("403");
   }
 
   /**
-   * Checks if the error is a 404 Not Found error
+   * Checks if the error is a 404 Not Found error (transport-level only)
    */
   static isNotFoundError(error: CombinedError): boolean {
-    // Check response status first (most reliable)
+    // 404 errors are transport-level (invalid endpoint URL)
     if (hasStatus(error.response) && error.response.status === 404) {
       return true;
     }
-    
+
     // Check networkError for HTTP status properties
     if (error.networkError) {
       if (hasStatus(error.networkError) && error.networkError.status === 404) {
         return true;
       }
-      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 404) {
+      if (
+        hasStatusCode(error.networkError) &&
+        error.networkError.statusCode === 404
+      ) {
         return true;
       }
     }
-    
+
     // Fallback to message checking
     const message = error.message.toLowerCase();
     return message.includes("404") && message.includes("[network]");
@@ -195,20 +240,27 @@ export class GraphQLError extends BaseError {
    */
   static isConnectionError(error: CombinedError): boolean {
     if (!error.networkError) return false;
-    
+
     // Check for network-related error codes
     if (hasCode(error.networkError)) {
       const code = error.networkError.code.toUpperCase();
-      if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
+      if (
+        code === "ENOTFOUND" ||
+        code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT"
+      ) {
         return true;
       }
     }
-    
+
     // Check error types for fetch failures
-    if (error.networkError.name === "TypeError" && error.networkError.message.includes("fetch")) {
+    if (
+      error.networkError.name === "TypeError" &&
+      error.networkError.message.includes("fetch")
+    ) {
       return true;
     }
-    
+
     // Fallback to message checking
     const message = error.message.toLowerCase();
     return (
@@ -221,24 +273,27 @@ export class GraphQLError extends BaseError {
   }
 
   /**
-   * Checks if the error is a 401 Unauthorized error
+   * Checks if the error is a 401 Unauthorized error (transport-level only)
    */
   static isUnauthorizedError(error: CombinedError): boolean {
-    // Check response status first (most reliable)
+    // 401 errors are transport-level (missing/invalid Authorization header)
     if (hasStatus(error.response) && error.response.status === 401) {
       return true;
     }
-    
+
     // Check networkError for HTTP status properties
     if (error.networkError) {
       if (hasStatus(error.networkError) && error.networkError.status === 401) {
         return true;
       }
-      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 401) {
+      if (
+        hasStatusCode(error.networkError) &&
+        error.networkError.statusCode === 401
+      ) {
         return true;
       }
     }
-    
+
     // Fallback to message checking
     const message = error.message.toLowerCase();
     return message.includes("unauthorized") || message.includes("401");
