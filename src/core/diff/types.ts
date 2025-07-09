@@ -75,6 +75,50 @@ export interface DiffOptions {
 }
 
 /**
+ * Configuration sections for selective operations
+ */
+export type ConfigurationSection = 
+  | "shop" 
+  | "channels" 
+  | "productTypes" 
+  | "pageTypes" 
+  | "categories" 
+  | "products" 
+  | "attributes";
+
+/**
+ * Parsed selective options from command line
+ */
+export interface ParsedSelectiveOptions {
+  readonly includeSections: readonly ConfigurationSection[];
+  readonly excludeSections: readonly ConfigurationSection[];
+}
+
+/**
+ * Options for introspect-specific diff operations
+ */
+export interface IntrospectDiffOptions {
+  /** Output format for the diff */
+  readonly format?: "table" | "json" | "yaml";
+  /** Whether to suppress output messages */
+  readonly quiet?: boolean;
+  /** Sections to include (empty array means include all) */
+  readonly includeSections?: readonly ConfigurationSection[];
+  /** Sections to exclude */
+  readonly excludeSections?: readonly ConfigurationSection[];
+}
+
+/**
+ * Options for diff service when doing introspect comparison
+ */
+export interface DiffServiceIntrospectOptions {
+  /** Sections to include (empty array means include all) */
+  readonly includeSections?: readonly ConfigurationSection[];
+  /** Sections to exclude */
+  readonly excludeSections?: readonly ConfigurationSection[];
+}
+
+/**
  * Statistics about diff results grouped by entity type
  */
 export interface DiffStatistics {

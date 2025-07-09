@@ -14,7 +14,8 @@ import {
   DiffComparisonError,
   RemoteConfigurationError,
 } from "./errors";
-import type { DiffResult, DiffSummary } from "./types";
+import type { DiffResult, DiffSummary, DiffServiceIntrospectOptions, ConfigurationSection } from "./types";
+import { shouldIncludeSection } from "../../lib/utils/selective-options";
 
 /**
  * Configuration for the diff service
@@ -123,12 +124,14 @@ export class DiffService {
   /**
    * Compares configurations from introspect perspective (remote as source, local as target)
    * Shows what will change in the local configuration when pulling from remote
+   * @param options - Options for selective filtering
    * @returns Promise resolving to diff summary
    * @throws {ConfigurationLoadError} When local configuration cannot be loaded
    * @throws {RemoteConfigurationError} When remote configuration cannot be retrieved
    * @throws {DiffComparisonError} When comparison fails
    */
-  async compareForIntrospect(): Promise<DiffSummary> {
+  async compareForIntrospect(options: DiffServiceIntrospectOptions = {}): Promise<DiffSummary> {
+    const { includeSections, excludeSections } = options;
     const startTime = Date.now();
     logger.info("Starting diff comparison for introspect");
 
@@ -148,7 +151,11 @@ export class DiffService {
 
       // Perform comparisons with swapped order (remote as source, local as target)
       // This shows what will be removed/added/updated in the local file
-      const results = await this.performComparisons(remoteConfig, localConfig);
+      const results = await this.performSelectiveComparisons(
+        remoteConfig, 
+        localConfig, 
+        { includeSections, excludeSections }
+      );
 
       // Calculate summary statistics
       const summary = this.calculateSummary(results);
@@ -278,6 +285,54 @@ export class DiffService {
             entityType,
             localConfig[entityType] || [],
             remoteConfig[entityType] || []
+          )
+        );
+      }
+    }
+
+    // Execute comparisons with concurrency limit
+    const results = await this.executeConcurrently(comparisons);
+    return results.flat();
+  }
+
+  /**
+   * Performs selective entity comparisons based on include/exclude options
+   */
+  private async performSelectiveComparisons(
+    localConfig: SaleorConfig,
+    remoteConfig: SaleorConfig,
+    options: DiffServiceIntrospectOptions
+  ): Promise<readonly DiffResult[]> {
+    const { includeSections, excludeSections } = options;
+    const comparisons: Array<Promise<readonly DiffResult[]>> = [];
+
+    // Helper function to check if section should be included
+    const shouldInclude = (section: ConfigurationSection): boolean => {
+      return shouldIncludeSection(section, { includeSections: includeSections || [], excludeSections: excludeSections || [] });
+    };
+
+    // Shop settings comparison
+    if (shouldInclude("shop") && this.comparators.has("shop")) {
+      comparisons.push(
+        this.performComparison("shop", localConfig.shop, remoteConfig.shop)
+      );
+    }
+
+    // Entity array comparisons
+    const entityTypeMappings: Record<string, ConfigurationSection> = {
+      "channels": "channels",
+      "productTypes": "productTypes", 
+      "pageTypes": "pageTypes",
+      "categories": "categories",
+    };
+
+    for (const [entityType, section] of Object.entries(entityTypeMappings)) {
+      if (shouldInclude(section) && this.comparators.has(entityType)) {
+        comparisons.push(
+          this.performComparison(
+            entityType,
+            localConfig[entityType as keyof SaleorConfig] || [],
+            remoteConfig[entityType as keyof SaleorConfig] || []
           )
         );
       }

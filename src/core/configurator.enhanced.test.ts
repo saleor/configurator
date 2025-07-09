@@ -310,7 +310,7 @@ describe("SaleorConfigurator enhanced functionality", () => {
 
       // Act
       const result = await configurator.diffForIntrospect({
-        filter: ["channels"],
+        includeSections: ["channels"],
         quiet: true,
       });
 

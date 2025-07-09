@@ -1,16 +1,18 @@
 import { z } from "zod";
+import type { ConfigurationSection, ParsedSelectiveOptions } from "../../core/diff/types";
+
+// Re-export types for backwards compatibility
+export type { ConfigurationSection } from "../../core/diff/types";
 
 export const AVAILABLE_SECTIONS = [
   "shop",
-  "channels",
+  "channels", 
   "productTypes",
   "pageTypes",
   "categories",
   "products",
   "attributes",
-] as const;
-
-export type ConfigurationSection = (typeof AVAILABLE_SECTIONS)[number];
+] as const satisfies readonly ConfigurationSection[];
 
 export const selectiveOptionsSchema = z.object({
   only: z
@@ -37,10 +39,7 @@ export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
 
 export type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
 
-export interface ParsedSelectiveOptions {
-  includeSections: ConfigurationSection[];
-  excludeSections: ConfigurationSection[];
-}
+// Remove local interface definition since we import it from types
 
 const parseSectionString = (sectionString: string): string[] => {
   return sectionString
@@ -119,7 +118,7 @@ const isIncludedByOnlyFilter = (
 
 const isExcludedByExcludeFilter = (
   section: ConfigurationSection,
-  excludeSections: ConfigurationSection[]
+  excludeSections: readonly ConfigurationSection[]
 ): boolean => {
   return excludeSections.length > 0 && excludeSections.includes(section);
 };
@@ -130,10 +129,13 @@ export const shouldIncludeSection = (
 ): boolean => {
   const { includeSections, excludeSections } = options;
 
-  if (!isIncludedByOnlyFilter(section, includeSections)) {
-    return false;
+  // If includeSections is not empty, only include sections that are explicitly included
+  // (exclude filter is ignored when include filter is active)
+  if (includeSections.length > 0) {
+    return includeSections.includes(section);
   }
 
+  // If includeSections is empty, include all sections except those explicitly excluded
   if (isExcludedByExcludeFilter(section, excludeSections)) {
     return false;
   }
@@ -141,13 +143,13 @@ export const shouldIncludeSection = (
   return true;
 };
 
-const createIncludeMessage = (includeSections: ConfigurationSection[]): string | undefined => {
+const createIncludeMessage = (includeSections: readonly ConfigurationSection[]): string | undefined => {
   return includeSections.length > 0
     ? `📋 Including only: ${includeSections.join(", ")}`
     : undefined;
 };
 
-const createExcludeMessage = (excludeSections: ConfigurationSection[]): string | undefined => {
+const createExcludeMessage = (excludeSections: readonly ConfigurationSection[]): string | undefined => {
   return excludeSections.length > 0 ? `📋 Excluding: ${excludeSections.join(", ")}` : undefined;
 };
 

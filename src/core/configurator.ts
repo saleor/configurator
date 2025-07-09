@@ -1,15 +1,10 @@
 import type { BaseCommandArgs } from "../cli/command";
+import { cliConsole } from "../cli/console";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { DiffFormatter, DiffService, IntrospectDiffFormatter } from "./diff";
-import type { DiffSummary } from "./diff/types";
+import type { DiffSummary, IntrospectDiffOptions, DiffServiceIntrospectOptions } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
-
-export type IntrospectDiffOptions = {
-  format?: "table" | "json" | "summary";
-  filter?: string[];
-  quiet?: boolean;
-};
 
 export interface IntrospectDiffResult {
   summary: DiffSummary;
@@ -107,7 +102,7 @@ export class SaleorConfigurator {
   }
 
   async diffForIntrospect(options: IntrospectDiffOptions = {}): Promise<IntrospectDiffResult> {
-    const { format = "table", filter, quiet = false } = options;
+    const { format = "table", quiet = false, includeSections, excludeSections } = options;
 
     logger.info("Starting diff process for introspect");
 
@@ -122,59 +117,47 @@ export class SaleorConfigurator {
         logger.info("🌐 Fetching remote configuration...");
       }
 
-      const summary = await diffService.compareForIntrospect();
+      const summary = await diffService.compareForIntrospect({
+        includeSections,
+        excludeSections,
+      });
 
       if (!quiet) {
         logger.info("🔍 Analyzing differences...\n");
       }
 
-      // Apply filter if specified
-      let filteredSummary = summary;
-      if (filter && filter.length > 0) {
-        const filterSet = new Set(filter.map((f: string) => f.toLowerCase()));
-        const filteredResults = summary.results.filter((result) =>
-          filterSet.has(result.entityType.toLowerCase().replace(/\s+/g, ""))
-        );
-
-        filteredSummary = {
-          ...summary,
-          results: filteredResults,
-          totalChanges: filteredResults.length,
-          creates: filteredResults.filter((r) => r.operation === "CREATE").length,
-          updates: filteredResults.filter((r) => r.operation === "UPDATE").length,
-          deletes: filteredResults.filter((r) => r.operation === "DELETE").length,
-        };
-      }
-
-      // Format output
+      // Format output (filtering is now handled in diff service)
       let formattedOutput: string | undefined;
       const introspectFormatter = new IntrospectDiffFormatter();
 
       switch (format) {
         case "json":
-          formattedOutput = JSON.stringify(filteredSummary, null, 2);
+          formattedOutput = JSON.stringify(summary, null, 2);
           break;
-        case "summary":
-          formattedOutput = DiffFormatter.formatSummary(filteredSummary);
+        case "yaml":
+          const yaml = require("yaml");
+          formattedOutput = yaml.stringify(summary);
           break;
         case "table":
         default:
-          formattedOutput = introspectFormatter.format(filteredSummary);
+          if (summary.totalChanges > 0) {
+            formattedOutput = introspectFormatter.format(summary);
+          }
       }
 
       if (!quiet && formattedOutput) {
-        console.log(formattedOutput);
+        cliConsole.info(formattedOutput);
       }
 
       logger.info("Introspect diff process completed successfully", {
-        totalChanges: filteredSummary.totalChanges,
-        creates: filteredSummary.creates,
-        updates: filteredSummary.updates,
-        deletes: filteredSummary.deletes,
+        totalChanges: summary.totalChanges,
+        creates: summary.creates,
+        updates: summary.updates,
+        deletes: summary.deletes,
       });
 
       return {
-        summary: filteredSummary,
+        summary,
         formattedOutput: quiet ? formattedOutput : undefined,
       };
     } catch (error) {

@@ -242,9 +242,13 @@ export class IntrospectCommandHandler {
     }
 
     const outputFormat = this.getOutputFormat(context.args);
+    const { includeSections, excludeSections } = parseSelectiveOptions(context.args);
+    
     return await context.configurator.diffForIntrospect({
       format: outputFormat === "yaml" ? "table" : outputFormat,
       quiet: true,
+      includeSections,
+      excludeSections,
     });
   }
 
@@ -259,13 +263,13 @@ export class IntrospectCommandHandler {
     switch (format) {
       case "yaml": {
         const yaml = await import("yaml");
-        console.log(yaml.stringify(diffResult.summary));
+        cliConsole.info(yaml.stringify(diffResult.summary));
         break;
       }
       case "table":
       case "json":
         if (diffResult.formattedOutput) {
-          console.log(diffResult.formattedOutput);
+          cliConsole.info(diffResult.formattedOutput);
         }
         break;
     }
@@ -338,8 +342,8 @@ export class IntrospectCommandHandler {
 
     if (summary.totalChanges > 0) {
       cliConsole.info(INTROSPECT_MESSAGES.CHANGES_TO_APPLY);
-      console.log(this.formatDiffSummary(summary));
-      console.log("");
+      cliConsole.info(this.formatDiffSummary(summary));
+      cliConsole.info("");
     }
 
     const confirmed = await confirmAction(
