@@ -5,7 +5,6 @@ import {
   type CountryCode,
   configSchema,
   type ProductTypeInput,
-  type ShopCreateInput,
   type ShopUpdateInput,
 } from "./schema";
 
@@ -315,8 +314,6 @@ describe("Schema Union Types", () => {
         },
       };
 
-      const createShop: ShopCreateInput = {};
-
       const updateShop: ShopUpdateInput = {
         defaultMailSenderName: "Test Store",
       };
@@ -326,7 +323,6 @@ describe("Schema Union Types", () => {
       expect(updateProductType.productAttributes).toHaveLength(1);
       expect(createChannel.name).toBe("US");
       expect(updateChannel.settings?.useLegacyErrorFlow).toBe(false);
-      expect(Object.keys(createShop)).toHaveLength(0);
       expect(updateShop.defaultMailSenderName).toBe("Test Store");
     });
   });
