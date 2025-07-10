@@ -1,5 +1,5 @@
-import type { DiffSummary } from "./types";
 import { DetailedDiffFormatter, SummaryDiffFormatter } from "./formatters";
+import type { DiffSummary } from "./types";
 
 /**
  * Main diff formatter that provides a unified interface

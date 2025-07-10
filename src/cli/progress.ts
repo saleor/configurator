@@ -1,5 +1,5 @@
-import ora, { type Ora } from "ora";
 import chalk from "chalk";
+import ora, { type Ora } from "ora";
 
 export interface ProgressReporter {
   start(text: string): void;
@@ -19,7 +19,7 @@ export class OraProgressReporter implements ProgressReporter {
   start(text: string): void {
     this.spinner = ora({
       text,
-      spinner: "dots"
+      spinner: "dots",
     }).start();
   }
 
@@ -63,24 +63,12 @@ export class OraProgressReporter implements ProgressReporter {
 }
 
 /**
- * Silent progress reporter (for testing or when progress is not needed)
- */
-export class SilentProgressReporter implements ProgressReporter {
-  start(_text: string): void {}
-  update(_text: string): void {}
-  succeed(_text?: string): void {}
-  fail(_text?: string): void {}
-  info(_text: string): void {}
-  warn(_text: string): void {}
-}
-
-/**
  * Progress tracker for bulk operations
  */
 export class BulkOperationProgress {
   private current = 0;
   private failures: Array<{ item: string; error: Error }> = [];
-  
+
   constructor(
     private readonly total: number,
     private readonly operation: string,
@@ -93,7 +81,9 @@ export class BulkOperationProgress {
 
   increment(itemName?: string): void {
     this.current++;
-    const text = `${this.operation} (${this.current}/${this.total})${itemName ? `: ${itemName}` : ""}`;
+    const text = `${this.operation} (${this.current}/${this.total})${
+      itemName ? `: ${itemName}` : ""
+    }`;
     this.reporter.update(text);
   }
 
@@ -103,10 +93,14 @@ export class BulkOperationProgress {
 
   complete(): void {
     if (this.failures.length === 0) {
-      this.reporter.succeed(`${this.operation} completed (${this.current}/${this.total})`);
+      this.reporter.succeed(
+        `${this.operation} completed (${this.current}/${this.total})`
+      );
     } else {
-      this.reporter.fail(`${this.operation} completed with ${this.failures.length} failures`);
-      
+      this.reporter.fail(
+        `${this.operation} completed with ${this.failures.length} failures`
+      );
+
       // Report failures
       this.failures.forEach(({ item, error }) => {
         console.log(chalk.red(`  ❌ ${item}: ${error.message}`));

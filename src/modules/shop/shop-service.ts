@@ -1,4 +1,4 @@
-import type { ShopInput, ShopUpdateInput } from "../config/schema/schema";
+import type { ShopInput } from "../config/schema/schema";
 import type { ShopOperations } from "./repository";
 
 export class ShopService {
@@ -11,6 +11,6 @@ export class ShopService {
     }
 
     // TODO: check diff between current and new settings to avoid unnecessary updates
-    return this.repository.updateShopSettings(input as ShopUpdateInput);
+    return this.repository.updateShopSettings(input);
   }
 }

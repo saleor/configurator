@@ -210,8 +210,7 @@ export type ChannelInput = z.infer<typeof channelSchema>;
 
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
-// Shop Update Schema - full state representation
-const shopUpdateSchema = z.object({
+const shopSchema = z.object({
   headerText: z.string().optional().describe("Shop.headerText"),
   description: z.string().optional().describe("Shop.description"),
   trackInventoryByDefault: z
@@ -236,18 +235,22 @@ const shopUpdateSchema = z.object({
   defaultDigitalMaxDownloads: z
     .number()
     .optional()
+    .nullable()
     .describe("Shop.defaultDigitalMaxDownloads"),
   defaultDigitalUrlValidDays: z
     .number()
     .optional()
+    .nullable()
     .describe("Shop.defaultDigitalUrlValidDays"),
   defaultMailSenderName: z
     .string()
     .optional()
+    .nullable()
     .describe("Shop.defaultMailSenderName"),
   defaultMailSenderAddress: z
     .string()
     .optional()
+    .nullable()
     .describe("Shop.defaultMailSenderAddress"),
   customerSetPasswordUrl: z
     .string()
@@ -256,6 +259,7 @@ const shopUpdateSchema = z.object({
   reserveStockDurationAnonymousUser: z
     .number()
     .optional()
+    .nullable()
     .describe("Shop.reserveStockDurationAnonymousUser"),
   reserveStockDurationAuthenticatedUser: z
     .number()
@@ -279,11 +283,6 @@ const shopUpdateSchema = z.object({
     .describe("Shop.displayGrossPrices"),
 });
 
-// Union type that accepts either create or update input
-// Try update schema first (more specific) then create schema
-export const shopSchema = shopUpdateSchema;
-
-export type ShopUpdateInput = z.infer<typeof shopUpdateSchema>;
 export type ShopInput = z.infer<typeof shopSchema>;
 
 // Category Create Schema - minimal fields for creation
