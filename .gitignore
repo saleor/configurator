@@ -1,4 +1,7 @@
 .env
 node_modules
 config.yml
+CLAUDE.md
 .biome
+dist
+bin
