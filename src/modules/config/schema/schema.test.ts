@@ -5,7 +5,7 @@ import {
   type CountryCode,
   configSchema,
   type ProductTypeInput,
-  type ShopUpdateInput,
+  type ShopInput,
 } from "./schema";
 
 describe("Schema Union Types", () => {
@@ -314,7 +314,7 @@ describe("Schema Union Types", () => {
         },
       };
 
-      const updateShop: ShopUpdateInput = {
+      const updateShop: ShopInput = {
         defaultMailSenderName: "Test Store",
       };
 
