@@ -2,7 +2,7 @@
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import packageJson from "../../package.json";
-import { commands } from "../commands";
+import { commands } from "../commands/index.js";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
@@ -147,4 +147,7 @@ export async function runCLI(): Promise<void> {
   }
 }
 
-runCLI();
+// Only run CLI if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runCLI();
+}

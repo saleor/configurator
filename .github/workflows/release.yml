@@ -28,20 +28,25 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Git fetch tags
-        run: git fetch --tags origin
+      - name: Run tests
+        run: pnpm run test:ci
+
+      - name: Run linting
+        run: pnpm run lint
 
       - name: Create Release Pull Request or Publish
         uses: changesets/action@v1
         with:
           version: pnpm run version
-          publish: pnpm run release
+          publish: pnpm run publish:ci-prod
           title: "chore: release package"
           commit: "chore: release package"
           createGithubReleases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,12 +1,17 @@
 {
   "name": "saleor-configurator",
   "version": "0.7.0",
-  "private": true,
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "bin": {
-    "configurator": "dist/cli/main.js"
+    "saleor-configurator": "bin/saleor-configurator.js"
   },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
@@ -15,7 +20,6 @@
     "schemaVersion": "3.20"
   },
   "scripts": {
-    "build": "tsc",
     "dev": "tsx src/cli/main.ts",
     "deploy": "tsx src/cli/main.ts deploy",
     "introspect": "tsx src/cli/main.ts introspect",
@@ -25,9 +29,11 @@
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest",
+    "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm changeset tag && git push --follow-tags",
+    "publish:ci-prod": "pnpm publish && pnpm exec changeset tag && git push --follow-tags",
+    "publish:ci-dev": "pnpm exec changeset version --snapshot pr && pnpm publish --tag dev --no-git-checks",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format .",
@@ -62,6 +68,7 @@
     "ora": "^8.2.0",
     "tiny-invariant": "^1.3.3",
     "tslog": "^4.9.3",
+    "tsx": "^4.7.0",
     "yaml": "^2.7.0",
     "zod": "^3.25.71"
   }
