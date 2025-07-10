@@ -68,10 +68,7 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Gets the name of a category entity
    */
-  protected getEntityName(entity: CategoryEntity): string {
-    if (!entity.name || typeof entity.name !== "string") {
-      throw new Error("Category entity must have a valid name");
-    }
+  protected getEntityName(entity: CategoryEntity) {
     return entity.name;
   }
 

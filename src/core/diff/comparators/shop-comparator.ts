@@ -120,8 +120,8 @@ export class ShopComparator
     const changes: DiffChange[] = [];
 
     for (const field of SHOP_SETTINGS_FIELDS) {
-      const localValue = (local as any)[field];
-      const remoteValue = (remote as any)[field];
+      const localValue = local[field];
+      const remoteValue = remote[field];
 
       if (localValue !== remoteValue) {
         changes.push({

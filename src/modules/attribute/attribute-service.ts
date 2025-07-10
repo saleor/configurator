@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { FullAttribute } from "../config/schema/attribute.schema";
+import { AttributeValidationError } from "./errors";
 import type {
   Attribute,
   AttributeCreateInput,
@@ -17,7 +18,7 @@ const createAttributeInput = (input: FullAttribute): AttributeCreateInput => {
 
   if (input.inputType === "REFERENCE") {
     if (!input.entityType) {
-      throw new Error(
+      throw new AttributeValidationError(
         `Entity type is required for reference attribute ${input.name}`
       );
     }

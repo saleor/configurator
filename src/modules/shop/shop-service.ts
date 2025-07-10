@@ -1,8 +1,4 @@
-import type {
-  ShopCreateInput,
-  ShopInput,
-  ShopUpdateInput,
-} from "../config/schema/schema";
+import type { ShopInput, ShopUpdateInput } from "../config/schema/schema";
 import type { ShopOperations } from "./repository";
 
 export class ShopService {

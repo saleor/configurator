@@ -210,9 +210,6 @@ export type ChannelInput = z.infer<typeof channelSchema>;
 
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
-// Shop Create Schema - minimal fields for shop creation (can be empty)
-const shopCreateSchema = z.object({}).describe("Shop create input");
-
 // Shop Update Schema - full state representation
 const shopUpdateSchema = z.object({
   headerText: z.string().optional().describe("Shop.headerText"),
@@ -284,9 +281,8 @@ const shopUpdateSchema = z.object({
 
 // Union type that accepts either create or update input
 // Try update schema first (more specific) then create schema
-export const shopSchema = shopUpdateSchema.or(shopCreateSchema);
+export const shopSchema = shopUpdateSchema;
 
-export type ShopCreateInput = z.infer<typeof shopCreateSchema>;
 export type ShopUpdateInput = z.infer<typeof shopUpdateSchema>;
 export type ShopInput = z.infer<typeof shopSchema>;
 

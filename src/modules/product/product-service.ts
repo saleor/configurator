@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { EntityNotFoundError } from "../config/errors";
 import type {
   ProductInput,
   ProductVariantInput,
@@ -20,7 +21,7 @@ export class ProductService {
       productTypeName
     );
     if (!productType) {
-      throw new Error(
+      throw new EntityNotFoundError(
         `Product type "${productTypeName}" not found. Make sure it exists in your productTypes configuration.`
       );
     }
@@ -32,7 +33,7 @@ export class ProductService {
   ): Promise<string> {
     const category = await this.repository.getCategoryByPath(categoryPath);
     if (!category) {
-      throw new Error(
+      throw new EntityNotFoundError(
         `Category "${categoryPath}" not found. Make sure it exists in your categories configuration.`
       );
     }
