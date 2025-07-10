@@ -264,6 +264,7 @@ const shopSchema = z.object({
   reserveStockDurationAuthenticatedUser: z
     .number()
     .optional()
+    .nullable()
     .describe("Shop.reserveStockDurationAuthenticatedUser"),
   limitQuantityPerCheckout: z
     .number()
