@@ -27,7 +27,7 @@
     "test": "vitest",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset tag && git push --follow-tags",
+    "release": "pnpm changeset tag && git push --follow-tags",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "biome format .",
