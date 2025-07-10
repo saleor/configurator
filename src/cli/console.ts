@@ -1,7 +1,9 @@
 import chalk from "chalk";
+import { OraProgressReporter, type ProgressReporter } from "./progress";
 
 export class Console {
   private options: { quiet: boolean } = { quiet: false };
+  progress: ProgressReporter = new OraProgressReporter();
 
   setOptions(options: { quiet: boolean } = { quiet: false }) {
     this.options = options;
