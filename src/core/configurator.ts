@@ -1,6 +1,7 @@
 import type { BaseCommandArgs } from "../cli/command";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
+import { OraProgressReporter, BulkOperationProgress } from "../lib/progress";
 import { DiffFormatter, DiffService } from "./diff";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
@@ -8,88 +9,156 @@ export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
   async push() {
+    const reporter = new OraProgressReporter();
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
 
-    const bootstrapTasks = [];
+    reporter.info("Starting push operation");
 
+    // Shop settings
     if (config.shop) {
-      logger.debug("Bootstrapping shop settings");
-      bootstrapTasks.push(this.services.shop.updateSettings(config.shop));
+      reporter.start("Updating shop settings");
+      try {
+        await this.services.shop.updateSettings(config.shop);
+        reporter.succeed("Shop settings updated");
+      } catch (error) {
+        reporter.fail("Failed to update shop settings");
+        throw error;
+      }
     }
 
-    if (config.productTypes) {
-      logger.debug(`Bootstrapping ${config.productTypes.length} product types`);
-      bootstrapTasks.push(
-        Promise.all(
-          config.productTypes.map((productType) =>
-            this.services.productType.bootstrapProductType(productType)
-          )
-        )
+    // Channels (before products)
+    if (config.channels && config.channels.length > 0) {
+      const progress = new BulkOperationProgress(
+        config.channels.length,
+        "Creating channels",
+        reporter
       );
+      progress.start();
+      
+      try {
+        await this.services.channel.bootstrapChannels(config.channels);
+        progress.complete();
+      } catch (error) {
+        progress.complete();
+        throw error;
+      }
     }
 
-    // Channels are added first to ensure they're ready before products (which reference them)
-    if (config.channels) {
-      logger.debug(`Bootstrapping ${config.channels.length} channels`);
-      bootstrapTasks.push(
-        this.services.channel.bootstrapChannels(config.channels)
+    // Product types
+    if (config.productTypes && config.productTypes.length > 0) {
+      const progress = new BulkOperationProgress(
+        config.productTypes.length,
+        "Creating product types",
+        reporter
       );
+      progress.start();
+      
+      for (const productType of config.productTypes) {
+        try {
+          await this.services.productType.bootstrapProductType(productType);
+          progress.increment(productType.name);
+        } catch (error) {
+          progress.addFailure(productType.name, error as Error);
+          logger.error(`Failed to create product type: ${productType.name}`, { error });
+        }
+      }
+      
+      progress.complete();
+      if (progress.hasFailures()) {
+        throw new Error("Some product types failed to create. Check the logs for details.");
+      }
     }
 
-    if (config.pageTypes) {
-      logger.debug(`Bootstrapping ${config.pageTypes.length} page types`);
-      bootstrapTasks.push(
-        Promise.all(
-          config.pageTypes.map((pageType) =>
-            this.services.pageType.bootstrapPageType(pageType)
-          )
-        )
+    // Page types
+    if (config.pageTypes && config.pageTypes.length > 0) {
+      const progress = new BulkOperationProgress(
+        config.pageTypes.length,
+        "Creating page types",
+        reporter
       );
+      progress.start();
+      
+      for (const pageType of config.pageTypes) {
+        try {
+          await this.services.pageType.bootstrapPageType(pageType);
+          progress.increment(pageType.name);
+        } catch (error) {
+          progress.addFailure(pageType.name, error as Error);
+          logger.error(`Failed to create page type: ${pageType.name}`, { error });
+        }
+      }
+      
+      progress.complete();
+      if (progress.hasFailures()) {
+        throw new Error("Some page types failed to create. Check the logs for details.");
+      }
     }
 
-    if (config.categories) {
-      logger.debug(`Bootstrapping ${config.categories.length} categories`);
-      bootstrapTasks.push(
-        this.services.category.bootstrapCategories(config.categories)
+    // Categories
+    if (config.categories && config.categories.length > 0) {
+      const progress = new BulkOperationProgress(
+        config.categories.length,
+        "Creating categories",
+        reporter
       );
+      progress.start();
+      
+      try {
+        await this.services.category.bootstrapCategories(config.categories);
+        progress.complete();
+      } catch (error) {
+        progress.complete();
+        throw error;
+      }
     }
 
-    if (config.products) {
-      logger.debug(`Bootstrapping ${config.products.length} products`);
-      bootstrapTasks.push(
-        this.services.product.bootstrapProducts(config.products)
+    // Products
+    if (config.products && config.products.length > 0) {
+      const progress = new BulkOperationProgress(
+        config.products.length,
+        "Creating products",
+        reporter
       );
+      progress.start();
+      
+      try {
+        await this.services.product.bootstrapProducts(config.products);
+        progress.complete();
+      } catch (error) {
+        progress.complete();
+        throw error;
+      }
     }
 
-    try {
-      await Promise.all(bootstrapTasks);
-      logger.info("Bootstrap process completed successfully");
-    } catch (error) {
-      logger.error("Bootstrap process failed", { error });
-      throw error;
-    }
+    reporter.info("Push operation completed successfully");
   }
 
   async introspect() {
-    logger.info("Starting introspect process");
+    const reporter = new OraProgressReporter();
+    
+    reporter.start("Retrieving configuration from Saleor");
     try {
       const config = await this.services.configuration.retrieve();
-      logger.info("Configuration retrieved successfully");
+      reporter.succeed("Configuration retrieved successfully");
       return config;
     } catch (error) {
+      reporter.fail("Failed to retrieve configuration");
       logger.error("Failed to retrieve configuration", { error });
       throw error;
     }
   }
 
   async diff() {
-    logger.info("Starting diff process");
-
+    const reporter = new OraProgressReporter();
+    
+    reporter.start("Comparing local and remote configurations");
     try {
       const diffService = new DiffService(this.services);
 
       const summary = await diffService.compare();
+      reporter.succeed("Configuration comparison completed");
+      
       const output = DiffFormatter.format(summary);
 
       return {
@@ -97,6 +166,7 @@ export class SaleorConfigurator {
         output,
       };
     } catch (error) {
+      reporter.fail("Failed to compare configurations");
       logger.error("Failed to diff configurations", { error });
       throw error;
     }

@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
 import { configSchema, type SaleorConfig } from "./schema/schema";
+import { EntityNotFoundError } from "./errors";
 
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;
@@ -78,14 +79,11 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Validated configuration", { config: data });
       return data;
     } catch (error) {
-      // ? does this actually work?
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        // TODO: improve errors
-        const fileNotFoundError = new Error(
+        logger.error("Configuration file not found", { path: this.configPath });
+        throw new EntityNotFoundError(
           `Configuration file not found: ${this.configPath}`
         );
-        logger.error("Configuration file not found", { path: this.configPath });
-        throw fileNotFoundError;
       }
 
       throw error;

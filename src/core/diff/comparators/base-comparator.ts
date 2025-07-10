@@ -1,5 +1,5 @@
 import { EntityValidationError } from "../errors";
-import type { DiffChange, DiffResult } from "../types";
+import type { DiffChange, DiffResult, EntityType } from "../types";
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle
@@ -31,7 +31,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
   /**
    * The entity type name for diff results
    */
-  protected abstract readonly entityType: string;
+  protected abstract readonly entityType: EntityType;
 
   /**
    * Compares local and remote entity collections
@@ -103,7 +103,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
   protected createCreateResult(entity: TEntity): DiffResult {
     return {
       operation: "CREATE",
-      entityType: this.entityType as any,
+      entityType: this.entityType,
       entityName: this.getEntityName(entity),
       desired: entity,
     };
@@ -123,7 +123,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
   ): DiffResult {
     return {
       operation: "UPDATE",
-      entityType: this.entityType as any,
+      entityType: this.entityType,
       entityName: this.getEntityName(local),
       current: remote,
       desired: local,
@@ -139,7 +139,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
   protected createDeleteResult(entity: TEntity): DiffResult {
     return {
       operation: "DELETE",
-      entityType: this.entityType as any,
+      entityType: this.entityType,
       entityName: this.getEntityName(entity),
       current: entity,
     };

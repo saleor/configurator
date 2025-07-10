@@ -138,8 +138,8 @@ function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
     flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
     description: field.description || key,
     defaultValue:
-      "defaultValue" in field._def
-        ? (field._def as any).defaultValue
+      "defaultValue" in field._def && field._def.typeName === "ZodDefault"
+        ? (field._def as z.ZodDefaultDef<z.ZodTypeAny>).defaultValue()
         : undefined,
   };
 }

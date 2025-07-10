@@ -15,7 +15,7 @@ export class DiffFormatter {
    * @returns Formatted string with detailed diff information
    */
   static format(summary: DiffSummary): string {
-    return this.detailedFormatter.format(summary);
+    return DiffFormatter.detailedFormatter.format(summary);
   }
 
   /**
@@ -24,6 +24,6 @@ export class DiffFormatter {
    * @returns Formatted string with brief summary
    */
   static formatSummary(summary: DiffSummary): string {
-    return this.summaryFormatter.format(summary);
+    return DiffFormatter.summaryFormatter.format(summary);
   }
 }

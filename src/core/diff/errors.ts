@@ -3,11 +3,7 @@ import { BaseError } from "../../lib/errors/shared";
 /**
  * Base error class for diff-related errors
  */
-export class DiffError extends BaseError {
-  constructor(message: string, public readonly code: string) {
-    super(message, code);
-  }
-}
+export class DiffError extends BaseError {}
 
 /**
  * Error thrown when configuration loading fails
