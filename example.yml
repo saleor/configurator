@@ -33,6 +33,7 @@ channels:
 
 productTypes:
   - name: Book
+    isShippingRequired: true
     productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -53,6 +54,7 @@ productTypes:
           - name: Medium
           - name: Large
   - name: E-Book
+    isShippingRequired: false
     productAttributes:
       - attribute: Author # Reference an existing attribute by slug
       - attribute: Genre # Reference an existing attribute by slug
@@ -71,6 +73,15 @@ pageTypes:
       - name: Related Posts
         inputType: REFERENCE
         entityType: PAGE
+  - name: Article
+    attributes:
+      - attribute: Published Date # Reference existing attribute
+      - name: Tags
+        inputType: DROPDOWN
+        values:
+          - name: Technology
+          - name: Business
+          - name: Lifestyle
 
 categories:
   - name: "Fiction"
@@ -85,7 +96,6 @@ products:
   - name: "Sample Fiction Book"
     productType: "Book"
     category: "Fiction"
-    description: "A reference book product for testing the Book product type"
     attributes:
       Author: "Jane Doe"
       Genre: "Fiction"
