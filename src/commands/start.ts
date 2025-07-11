@@ -44,8 +44,28 @@ async function runInteractiveSetup(): Promise<void> {
     const command = createCommand(targetCommand as any);
     program.addCommand(command);
 
-    // Parse with the command name to simulate running it directly
-    await program.parseAsync([selectedAction], { from: "user" });
+    // For commands that need URL and token, prompt for them interactively
+    if (["introspect", "diff", "push"].includes(selectedAction)) {
+      const { promptForMissingArgs } = await import("../cli/command");
+      const interactiveArgs = await promptForMissingArgs({});
+
+      // Parse with the command name and interactive arguments
+      await program.parseAsync(
+        [
+          selectedAction,
+          "--url",
+          interactiveArgs.url,
+          "--token",
+          interactiveArgs.token,
+          "--config",
+          interactiveArgs.config,
+        ],
+        { from: "user" }
+      );
+    } else {
+      // Parse with the command name to simulate running it directly
+      await program.parseAsync([selectedAction], { from: "user" });
+    }
   }
 }
 

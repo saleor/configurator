@@ -7,7 +7,6 @@
 
 export { diffCommandConfig } from "./diff";
 export { introspectCommandConfig } from "./introspect";
-// Command exports
 export { pushCommandConfig } from "./push";
 export { startCommandConfig } from "./start";
 

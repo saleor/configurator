@@ -1,10 +1,7 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
-import type {
-  PageTypeInput,
-  PageTypeUpdateInput,
-} from "../config/schema/schema";
+import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
@@ -25,10 +22,7 @@ export class PageTypeService {
     return this.repository.createPageType({ name });
   }
 
-  private async filterOutAssignedAttributes(
-    pageTypeId: string,
-    attributeIds: string[]
-  ) {
+  private async filterOutAssignedAttributes(pageTypeId: string, attributeIds: string[]) {
     logger.debug("Checking for assigned attributes", {
       pageTypeId,
       attributeIds,
@@ -44,9 +38,7 @@ export class PageTypeService {
     const assignedAttributeIds = new Set(
       pageType.attributes.map((attr: { id: string }) => attr.id)
     );
-    const filteredIds = attributeIds.filter(
-      (id) => !assignedAttributeIds.has(id)
-    );
+    const filteredIds = attributeIds.filter((id) => !assignedAttributeIds.has(id));
 
     return filteredIds;
   }
@@ -82,15 +74,12 @@ export class PageTypeService {
       const attributes = await this.attributeService.bootstrapAttributes({
         attributeInputs: attributesToCreate.map((a) => ({
           ...a,
-          type: "PAGE_TYPE",
-        })),
+          type: "PAGE_TYPE" as const,
+        })) as any,
       });
 
       const attributeIds = attributes.map((attr) => attr.id);
-      const attributesToAssign = await this.filterOutAssignedAttributes(
-        pageType.id,
-        attributeIds
-      );
+      const attributesToAssign = await this.filterOutAssignedAttributes(pageType.id, attributeIds);
 
       if (attributesToAssign.length > 0) {
         logger.debug("Assigning attributes to page type", {
@@ -99,10 +88,7 @@ export class PageTypeService {
         });
 
         try {
-          await this.repository.assignAttributes(
-            pageType.id,
-            attributesToAssign
-          );
+          await this.repository.assignAttributes(pageType.id, attributesToAssign);
           logger.debug("Successfully assigned attributes to page type", {
             name: input.name,
           });

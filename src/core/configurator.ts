@@ -9,6 +9,14 @@ import { ServiceComposer, type ServiceContainer } from "./service-container";
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
 
+  /**
+   * Get the service container for advanced usage
+   * @internal
+   */
+  get serviceContainer(): ServiceContainer {
+    return this.services;
+  }
+
   async push() {
     const config = await this.services.configStorage.load();
     logger.debug("Configuration loaded", { config });
