@@ -76,18 +76,15 @@ export class PageTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote page type entities
    */
-  protected compareEntityFields(
-    local: PageTypeEntity,
-    remote: PageTypeEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: PageTypeEntity, remote: PageTypeEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
-    const localSlug = this.getSlug(local);
-    const remoteSlug = this.getSlug(remote);
+    const localName = this.getName(local);
+    const remoteName = this.getName(remote);
 
-    if (localSlug !== remoteSlug) {
-      changes.push(this.createFieldChange("slug", remoteSlug, localSlug));
+    if (localName !== remoteName) {
+      changes.push(this.createFieldChange("name", remoteName, localName));
     }
 
     // Compare attributes if they exist
@@ -95,9 +92,7 @@ export class PageTypeComparator extends BaseEntityComparator<
     const remoteAttributes = this.getAttributes(remote);
 
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
-      changes.push(
-        ...this.compareAttributes(localAttributes, remoteAttributes)
-      );
+      changes.push(...this.compareAttributes(localAttributes, remoteAttributes));
     }
 
     return changes;
@@ -106,18 +101,21 @@ export class PageTypeComparator extends BaseEntityComparator<
   /**
    * Safely extracts slug from a page type entity
    */
-  private getSlug(entity: PageTypeEntity): string | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (entity as any).slug;
+  private getName(entity: PageTypeEntity): string | undefined {
+    return entity.name;
   }
 
   /**
    * Safely extracts attributes from a page type entity
    */
   private getAttributes(entity: PageTypeEntity): readonly PageTypeAttribute[] {
-    // Type assertion is safe here since we're accessing a known property
-    const attributes = (entity as any).attributes;
-    return Array.isArray(attributes) ? attributes : [];
+    if (!("attributes" in entity)) {
+      return [];
+    }
+
+    const filteredAttributes = entity.attributes.filter((attribute) => !("name" in attribute));
+
+    return filteredAttributes as readonly PageTypeAttribute[];
   }
 
   /**

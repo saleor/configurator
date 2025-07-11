@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
-import {
-  DiffError,
-  ConfigurationLoadError,
-  RemoteConfigurationError,
-  EntityValidationError,
-  DiffComparisonError,
-  DiffSummaryError
-} from "../errors";
 import { BaseError } from "../../../lib/errors/shared";
+import {
+  ConfigurationLoadError,
+  DiffComparisonError,
+  DiffError,
+  DiffSummaryError,
+  EntityValidationError,
+  RemoteConfigurationError,
+} from "../errors";
 
 describe("Diff Errors", () => {
   describe("DiffError", () => {
     it("should be the base for all diff errors", () => {
       // DiffError is abstract, so we test with a concrete implementation
       const error = new ConfigurationLoadError("Test error");
-      
+
       expect(error).toBeInstanceOf(BaseError);
       expect(error).toBeInstanceOf(DiffError);
     });
@@ -23,7 +23,7 @@ describe("Diff Errors", () => {
   describe("ConfigurationLoadError", () => {
     it("should create configuration load errors", () => {
       const error = new ConfigurationLoadError("Failed to load config.yaml");
-      
+
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(ConfigurationLoadError);
       expect(error.message).toBe("Failed to load config.yaml");
@@ -35,7 +35,7 @@ describe("Diff Errors", () => {
   describe("RemoteConfigurationError", () => {
     it("should create remote configuration errors", () => {
       const error = new RemoteConfigurationError("Failed to fetch remote config");
-      
+
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(RemoteConfigurationError);
       expect(error.message).toBe("Failed to fetch remote config");
@@ -47,7 +47,7 @@ describe("Diff Errors", () => {
   describe("EntityValidationError", () => {
     it("should create entity validation errors", () => {
       const error = new EntityValidationError("Invalid product type");
-      
+
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(EntityValidationError);
       expect(error.message).toBe("Invalid product type");
@@ -59,7 +59,7 @@ describe("Diff Errors", () => {
   describe("DiffComparisonError", () => {
     it("should create diff comparison errors", () => {
       const error = new DiffComparisonError("Failed to compare entities");
-      
+
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(DiffComparisonError);
       expect(error.message).toBe("Failed to compare entities");
@@ -71,7 +71,7 @@ describe("Diff Errors", () => {
   describe("DiffSummaryError", () => {
     it("should create diff summary errors", () => {
       const error = new DiffSummaryError("Failed to generate summary");
-      
+
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(DiffSummaryError);
       expect(error.message).toBe("Failed to generate summary");
@@ -87,11 +87,11 @@ describe("Diff Errors", () => {
         new RemoteConfigurationError("remote"),
         new EntityValidationError("validation"),
         new DiffComparisonError("comparison"),
-        new DiffSummaryError("summary")
+        new DiffSummaryError("summary"),
       ];
 
       // All should be instances of the base classes
-      errors.forEach(error => {
+      errors.forEach((error) => {
         expect(error).toBeInstanceOf(Error);
         expect(error).toBeInstanceOf(BaseError);
         expect(error).toBeInstanceOf(DiffError);

@@ -120,9 +120,21 @@ describe("DiffFormatter", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test4" },
-          { operation: "DELETE", entityType: "Shop Settings", entityName: "Test5" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test4",
+          },
+          {
+            operation: "DELETE",
+            entityType: "Shop Settings",
+            entityName: "Test5",
+          },
         ],
       };
 
@@ -239,8 +251,16 @@ describe("SummaryDiffFormatter", () => {
       deletes: 1,
       results: [
         { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-        { operation: "UPDATE", entityType: "Product Types", entityName: "Test2" },
-        { operation: "DELETE", entityType: "Shop Settings", entityName: "Test3" },
+        {
+          operation: "UPDATE",
+          entityType: "Product Types",
+          entityName: "Test2",
+        },
+        {
+          operation: "DELETE",
+          entityType: "Shop Settings",
+          entityName: "Test3",
+        },
       ],
     };
 
@@ -267,8 +287,16 @@ describe("Diff Operations", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
-          { operation: "DELETE", entityType: "Shop Settings", entityName: "Test4" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
+          {
+            operation: "DELETE",
+            entityType: "Shop Settings",
+            entityName: "Test4",
+          },
         ],
       };
 
@@ -315,7 +343,11 @@ describe("Diff Operations", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
         ],
       };
 
@@ -341,8 +373,16 @@ describe("Diff Operations", () => {
         deletes: 0,
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-          { operation: "CREATE", entityType: "Product Types", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
+          {
+            operation: "CREATE",
+            entityType: "Product Types",
+            entityName: "Test2",
+          },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
         ],
       };
 
@@ -398,7 +438,11 @@ describe("Diff Operations", () => {
         deletes: 0,
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test2" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test2",
+          },
         ],
       };
 

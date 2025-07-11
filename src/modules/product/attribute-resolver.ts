@@ -8,8 +8,6 @@ const ATTRIBUTE_INPUT_TYPES = {
   REFERENCE: "REFERENCE",
 } as const;
 
-type AttributeInputType = keyof typeof ATTRIBUTE_INPUT_TYPES;
-
 // Types
 interface AttributeValue {
   id: string;
@@ -156,7 +154,7 @@ export class AttributeResolver {
         logger.warn(`Attribute "${attributeName}" has no input type`);
         return null;
       }
-      
+
       const handler = this.findHandler(attribute.inputType);
       if (!handler) {
         logger.warn(`Unsupported attribute input type: ${attribute.inputType}`);

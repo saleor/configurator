@@ -19,7 +19,7 @@ describe("DiffService", () => {
         retrieve: vi.fn(),
         retrieveWithoutSaving: vi.fn(),
       },
-    } as any;
+    } as unknown as ServiceContainer;
 
     diffService = new DiffService(mockServices);
   });

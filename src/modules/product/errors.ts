@@ -18,7 +18,10 @@ export class ProductNotFoundError extends ProductError {
  * Error thrown when product creation fails
  */
 export class ProductCreationError extends ProductError {
-  constructor(message: string, public readonly productName: string) {
+  constructor(
+    message: string,
+    public readonly productName: string
+  ) {
     super(message, "PRODUCT_CREATION_ERROR");
   }
 }
@@ -27,7 +30,10 @@ export class ProductCreationError extends ProductError {
  * Error thrown when product update fails
  */
 export class ProductUpdateError extends ProductError {
-  constructor(message: string, public readonly productId: string) {
+  constructor(
+    message: string,
+    public readonly productId: string
+  ) {
     super(message, "PRODUCT_UPDATE_ERROR");
   }
 }
@@ -36,7 +42,10 @@ export class ProductUpdateError extends ProductError {
  * Error thrown when product variant operation fails
  */
 export class ProductVariantError extends ProductError {
-  constructor(message: string, public readonly variantSku?: string) {
+  constructor(
+    message: string,
+    public readonly variantSku?: string
+  ) {
     super(message, "PRODUCT_VARIANT_ERROR");
   }
 }

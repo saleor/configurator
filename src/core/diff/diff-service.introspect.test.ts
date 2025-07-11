@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DiffService } from "./service";
-import type { IntrospectDiffResult } from "./types";
 import type { ServiceContainer } from "../service-container";
+import { DiffService } from "./service";
 
 // Mock the service container and its dependencies
 const mockServiceContainer = {
@@ -31,8 +30,8 @@ describe("DiffService - Introspect Functionality", () => {
         deletes: 0,
         results: [],
       };
-      
-      vi.spyOn(diffService, 'compareForIntrospect').mockResolvedValue(mockSummary);
+
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "table",
@@ -55,8 +54,8 @@ describe("DiffService - Introspect Functionality", () => {
         deletes: 0,
         results: [],
       };
-      
-      vi.spyOn(diffService, 'compareForIntrospect').mockResolvedValue(mockSummary);
+
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "json",
@@ -77,8 +76,8 @@ describe("DiffService - Introspect Functionality", () => {
         deletes: 0,
         results: [],
       };
-      
-      vi.spyOn(diffService, 'compareForIntrospect').mockResolvedValue(mockSummary);
+
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "table",
@@ -99,8 +98,10 @@ describe("DiffService - Introspect Functionality", () => {
         deletes: 0,
         results: [],
       };
-      
-      const compareForIntrospectSpy = vi.spyOn(diffService, 'compareForIntrospect').mockResolvedValue(mockSummary);
+
+      const compareForIntrospectSpy = vi
+        .spyOn(diffService, "compareForIntrospect")
+        .mockResolvedValue(mockSummary);
 
       await diffService.diffForIntrospectWithFormatting({
         format: "table",

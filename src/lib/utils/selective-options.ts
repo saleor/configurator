@@ -6,7 +6,7 @@ export type { ConfigurationSection } from "../../core/diff/types";
 
 export const AVAILABLE_SECTIONS = [
   "shop",
-  "channels", 
+  "channels",
   "productTypes",
   "pageTypes",
   "categories",
@@ -65,7 +65,9 @@ const validateSections = (
   );
   if (invalidSections.length > 0) {
     throw new Error(
-      `Invalid sections specified in ${optionName}: ${invalidSections.join(", ")}. Available sections: ${AVAILABLE_SECTIONS.join(", ")}`
+      `Invalid sections specified in ${optionName}: ${invalidSections.join(
+        ", "
+      )}. Available sections: ${AVAILABLE_SECTIONS.join(", ")}`
     );
   }
 };
@@ -109,13 +111,6 @@ export const parseSelectiveOptions = (
   };
 };
 
-const isIncludedByOnlyFilter = (
-  section: ConfigurationSection,
-  includeSections: ConfigurationSection[]
-): boolean => {
-  return includeSections.length === 0 || includeSections.includes(section);
-};
-
 const isExcludedByExcludeFilter = (
   section: ConfigurationSection,
   excludeSections: readonly ConfigurationSection[]
@@ -143,13 +138,17 @@ export const shouldIncludeSection = (
   return true;
 };
 
-const createIncludeMessage = (includeSections: readonly ConfigurationSection[]): string | undefined => {
+const createIncludeMessage = (
+  includeSections: readonly ConfigurationSection[]
+): string | undefined => {
   return includeSections.length > 0
     ? `📋 Including only: ${includeSections.join(", ")}`
     : undefined;
 };
 
-const createExcludeMessage = (excludeSections: readonly ConfigurationSection[]): string | undefined => {
+const createExcludeMessage = (
+  excludeSections: readonly ConfigurationSection[]
+): string | undefined => {
   return excludeSections.length > 0 ? `📋 Excluding: ${excludeSections.join(", ")}` : undefined;
 };
 

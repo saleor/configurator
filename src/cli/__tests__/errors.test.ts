@@ -1,16 +1,12 @@
 import { describe, expect, it } from "vitest";
-import {
-  CliArgumentError,
-  CliValidationError,
-  CliFileNotFoundError
-} from "../errors";
 import { BaseError } from "../../lib/errors/shared";
+import { CliArgumentError, CliFileNotFoundError, CliValidationError } from "../errors";
 
 describe("CLI Errors", () => {
   describe("CliArgumentError", () => {
     it("should create argument errors", () => {
       const error = new CliArgumentError("Invalid argument: --foo");
-      
+
       expect(error).toBeInstanceOf(BaseError);
       expect(error).toBeInstanceOf(CliArgumentError);
       expect(error.message).toBe("Invalid argument: --foo");
@@ -22,7 +18,7 @@ describe("CLI Errors", () => {
       const error = new CliArgumentError(
         "Invalid URL format: not-a-url. Expected format: https://your-store.saleor.cloud/graphql/"
       );
-      
+
       expect(error.message).toContain("Invalid URL format");
       expect(error.message).toContain("Expected format");
     });
@@ -31,7 +27,7 @@ describe("CLI Errors", () => {
   describe("CliValidationError", () => {
     it("should create validation errors", () => {
       const error = new CliValidationError("Token must be provided");
-      
+
       expect(error).toBeInstanceOf(BaseError);
       expect(error).toBeInstanceOf(CliValidationError);
       expect(error.message).toBe("Token must be provided");
@@ -43,7 +39,7 @@ describe("CLI Errors", () => {
   describe("CliFileNotFoundError", () => {
     it("should create file not found errors", () => {
       const error = new CliFileNotFoundError("Configuration file config.yaml not found");
-      
+
       expect(error).toBeInstanceOf(BaseError);
       expect(error).toBeInstanceOf(CliFileNotFoundError);
       expect(error.message).toBe("Configuration file config.yaml not found");
@@ -53,7 +49,7 @@ describe("CLI Errors", () => {
 
     it("should maintain error hierarchy", () => {
       const error = new CliFileNotFoundError("File missing");
-      
+
       // Check hierarchy
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(BaseError);
@@ -66,11 +62,11 @@ describe("CLI Errors", () => {
       const errors = [
         new CliArgumentError("arg error"),
         new CliValidationError("validation error"),
-        new CliFileNotFoundError("file error")
+        new CliFileNotFoundError("file error"),
       ];
 
       // All should be BaseError instances
-      errors.forEach(error => {
+      errors.forEach((error) => {
         expect(error).toBeInstanceOf(BaseError);
       });
 

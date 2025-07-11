@@ -595,18 +595,7 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = [
-        "US",
-        "GB",
-        "DE",
-        "FR",
-        "IT",
-        "ES",
-        "PL",
-        "JP",
-        "IN",
-        "CA",
-      ];
+      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
 
       // Act & Assert
       originalCodes.forEach((code) => {

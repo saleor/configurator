@@ -1,7 +1,4 @@
-import type {
-  MultipleValuesAttribute,
-  SimpleAttribute,
-} from "./attribute.schema";
+import type { MultipleValuesAttribute, SimpleAttribute } from "./attribute.schema";
 
 function isMultipleValuesAttribute(
   attribute: SimpleAttribute
