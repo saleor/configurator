@@ -45,8 +45,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
 
       if (!remotePT) {
         // For new product types, analyze attributes that will be created
-        const { productAttributes, variantAttributes } =
-          this.getAttributes(localPT);
+        const { productAttributes, variantAttributes } = this.getAttributes(localPT);
         const changes: DiffChange[] = [];
 
         // Compare against empty attributes array to show what will be created
@@ -99,45 +98,26 @@ export class ProductTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote product type entities
    */
-  protected compareEntityFields(
-    local: ProductTypeEntity,
-    remote: ProductTypeEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: ProductTypeEntity, remote: ProductTypeEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare attributes if they exist
-    const {
-      productAttributes: localProductAttributes,
-      variantAttributes: localVariantAttributes,
-    } = this.getAttributes(local);
+    const { productAttributes: localProductAttributes, variantAttributes: localVariantAttributes } =
+      this.getAttributes(local);
     const {
       productAttributes: remoteProductAttributes,
       variantAttributes: remoteVariantAttributes,
     } = this.getAttributes(remote);
 
-    if (
-      localProductAttributes.length > 0 ||
-      remoteProductAttributes.length > 0
-    ) {
+    if (localProductAttributes.length > 0 || remoteProductAttributes.length > 0) {
       changes.push(
-        ...this.compareAttributes(
-          localProductAttributes,
-          remoteProductAttributes,
-          false
-        )
+        ...this.compareAttributes(localProductAttributes, remoteProductAttributes, false)
       );
     }
 
-    if (
-      localVariantAttributes.length > 0 ||
-      remoteVariantAttributes.length > 0
-    ) {
+    if (localVariantAttributes.length > 0 || remoteVariantAttributes.length > 0) {
       changes.push(
-        ...this.compareAttributes(
-          localVariantAttributes,
-          remoteVariantAttributes,
-          false
-        )
+        ...this.compareAttributes(localVariantAttributes, remoteVariantAttributes, false)
       );
     }
 
@@ -183,14 +163,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
           ? `Attribute "${localAttr.name}" will be created`
           : `Attribute "${localAttr.name}" added`;
 
-        changes.push(
-          this.createFieldChange(
-            "attributes",
-            null,
-            localAttr.name,
-            description
-          )
-        );
+        changes.push(this.createFieldChange("attributes", null, localAttr.name, description));
       }
     }
 
@@ -259,12 +232,8 @@ export class ProductTypeComparator extends BaseEntityComparator<
     remote: ProductTypeAttribute
   ): DiffChange[] {
     const changes: DiffChange[] = [];
-    const localValues = schemaHelpers.isMultipleValuesAttribute(local)
-      ? local.values
-      : [];
-    const remoteValues = schemaHelpers.isMultipleValuesAttribute(remote)
-      ? remote.values
-      : [];
+    const localValues = schemaHelpers.isMultipleValuesAttribute(local) ? local.values : [];
+    const remoteValues = schemaHelpers.isMultipleValuesAttribute(remote) ? remote.values : [];
 
     const localValueNames = new Set(localValues.map((v) => v.name));
     const remoteValueNames = new Set(remoteValues.map((v) => v.name));

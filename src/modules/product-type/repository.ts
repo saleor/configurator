@@ -23,13 +23,9 @@ const createProductTypeMutation = graphql(`
 `);
 
 export type ProductType = NonNullable<
-  NonNullable<
-    ResultOf<typeof createProductTypeMutation>["productTypeCreate"]
-  >["productType"]
+  NonNullable<ResultOf<typeof createProductTypeMutation>["productTypeCreate"]>["productType"]
 >;
-export type ProductTypeInput = VariablesOf<
-  typeof createProductTypeMutation
->["input"];
+export type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
 
 const assignAttributesToProductTypeMutation = graphql(`
   mutation AssignAttributesToProductType(
@@ -122,16 +118,13 @@ export class ProductTypeRepository implements ProductTypeOperations {
     productTypeId: string;
     type: "PRODUCT" | "VARIANT";
   }) {
-    const result = await this.client.mutation(
-      assignAttributesToProductTypeMutation,
-      {
-        productTypeId,
-        operations: attributeIds.map((id) => ({
-          id,
-          type,
-        })),
-      }
-    );
+    const result = await this.client.mutation(assignAttributesToProductTypeMutation, {
+      productTypeId,
+      operations: attributeIds.map((id) => ({
+        id,
+        type,
+      })),
+    });
 
     if (!result.data?.productAttributeAssign?.productType) {
       throw GraphQLError.fromDataErrors(

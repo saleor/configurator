@@ -32,10 +32,7 @@ describe("PageTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new PageTypeService(
-        mockPageTypeOperations,
-        attributeService
-      );
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       // When
       await service.bootstrapPageType({

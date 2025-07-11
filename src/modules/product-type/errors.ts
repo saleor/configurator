@@ -18,7 +18,10 @@ export class ProductTypeNotFoundError extends ProductTypeError {
  * Error thrown when product type creation fails
  */
 export class ProductTypeCreationError extends ProductTypeError {
-  constructor(message: string, public readonly productTypeName: string) {
+  constructor(
+    message: string,
+    public readonly productTypeName: string
+  ) {
     super(message, "PRODUCT_TYPE_CREATION_ERROR");
   }
 }
@@ -27,7 +30,10 @@ export class ProductTypeCreationError extends ProductTypeError {
  * Error thrown when product type update fails
  */
 export class ProductTypeUpdateError extends ProductTypeError {
-  constructor(message: string, public readonly productTypeId: string) {
+  constructor(
+    message: string,
+    public readonly productTypeId: string
+  ) {
     super(message, "PRODUCT_TYPE_UPDATE_ERROR");
   }
 }
@@ -36,7 +42,10 @@ export class ProductTypeUpdateError extends ProductTypeError {
  * Error thrown when attribute assignment fails
  */
 export class ProductTypeAttributeError extends ProductTypeError {
-  constructor(message: string, public readonly productTypeId: string) {
+  constructor(
+    message: string,
+    public readonly productTypeId: string
+  ) {
     super(message, "PRODUCT_TYPE_ATTRIBUTE_ERROR");
   }
 }

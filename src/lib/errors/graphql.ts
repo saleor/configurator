@@ -38,21 +38,12 @@ export class GraphQLError extends BaseError {
   /**
    * Creates a GraphQLError with automatically formatted GraphQL error messages
    */
-  static fromGraphQLErrors(
-    errors: CombinedError["graphQLErrors"],
-    message?: string
-  ): GraphQLError {
+  static fromGraphQLErrors(errors: CombinedError["graphQLErrors"], message?: string): GraphQLError {
     const formattedErrors = errors.map((error) => {
       let errorMessage = error.message;
 
-      if (
-        error.locations &&
-        Array.isArray(error.locations) &&
-        error.locations.length > 0
-      ) {
-        const locations = error.locations
-          .map((loc) => `${loc.line}:${loc.column}`)
-          .join(", ");
+      if (error.locations && Array.isArray(error.locations) && error.locations.length > 0) {
+        const locations = error.locations.map((loc) => `${loc.line}:${loc.column}`).join(", ");
         errorMessage += ` at ${locations}`;
       }
 
@@ -101,10 +92,7 @@ export class GraphQLError extends BaseError {
   /**
    * Creates a GraphQLError with smart error detection and helpful messages
    */
-  static fromCombinedError(
-    message: string,
-    error: CombinedError
-  ): GraphQLError {
+  static fromCombinedError(message: string, error: CombinedError): GraphQLError {
     logger.error("GraphQL error", { error });
     const errorMessage = error.message;
 
@@ -118,18 +106,14 @@ export class GraphQLError extends BaseError {
             /need one of the following permissions: ([^,]+(?:, [^,]+)*)/
           );
           if (match) {
-            match[1]
-              .split(", ")
-              .forEach((perm) => requiredPermissions.add(perm.trim()));
+            match[1].split(", ").forEach((perm) => requiredPermissions.add(perm.trim()));
           }
         });
       }
 
       const permissionList =
         Array.from(requiredPermissions).length > 0
-          ? `\n\n  Required permissions: ${Array.from(requiredPermissions).join(
-              ", "
-            )}`
+          ? `\n\n  Required permissions: ${Array.from(requiredPermissions).join(", ")}`
           : "";
 
       return new GraphQLError(
@@ -212,10 +196,7 @@ export class GraphQLError extends BaseError {
       if (hasStatus(error.networkError) && error.networkError.status === 404) {
         return true;
       }
-      if (
-        hasStatusCode(error.networkError) &&
-        error.networkError.statusCode === 404
-      ) {
+      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 404) {
         return true;
       }
     }
@@ -234,20 +215,13 @@ export class GraphQLError extends BaseError {
     // Check for network-related error codes
     if (hasCode(error.networkError)) {
       const code = error.networkError.code.toUpperCase();
-      if (
-        code === "ENOTFOUND" ||
-        code === "ECONNREFUSED" ||
-        code === "ETIMEDOUT"
-      ) {
+      if (code === "ENOTFOUND" || code === "ECONNREFUSED" || code === "ETIMEDOUT") {
         return true;
       }
     }
 
     // Check error types for fetch failures
-    if (
-      error.networkError.name === "TypeError" &&
-      error.networkError.message.includes("fetch")
-    ) {
+    if (error.networkError.name === "TypeError" && error.networkError.message.includes("fetch")) {
       return true;
     }
 
@@ -276,10 +250,7 @@ export class GraphQLError extends BaseError {
       if (hasStatus(error.networkError) && error.networkError.status === 401) {
         return true;
       }
-      if (
-        hasStatusCode(error.networkError) &&
-        error.networkError.statusCode === 401
-      ) {
+      if (hasStatusCode(error.networkError) && error.networkError.statusCode === 401) {
         return true;
       }
     }
@@ -292,8 +263,6 @@ export class GraphQLError extends BaseError {
 
 export class GraphQLUnknownError extends GraphQLError {
   constructor(message: string) {
-    super(
-      errorFormatHelpers.formatGenericErrorMessage(message, "Unknown error")
-    );
+    super(errorFormatHelpers.formatGenericErrorMessage(message, "Unknown error"));
   }
 }

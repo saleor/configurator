@@ -25,9 +25,7 @@ export class ConfigurationService {
     return config;
   }
 
-  private mapChannels(
-    rawChannels: RawSaleorConfig["channels"]
-  ): SaleorConfig["channels"] {
+  private mapChannels(rawChannels: RawSaleorConfig["channels"]): SaleorConfig["channels"] {
     return (
       rawChannels?.map((channel) => ({
         name: channel.name,
@@ -39,21 +37,16 @@ export class ConfigurationService {
           useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
           automaticallyCompleteFullyPaidCheckouts:
             channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts,
-          defaultTransactionFlowStrategy:
-            channel.paymentSettings.defaultTransactionFlowStrategy,
+          defaultTransactionFlowStrategy: channel.paymentSettings.defaultTransactionFlowStrategy,
           allocationStrategy: channel.stockSettings.allocationStrategy,
-          automaticallyConfirmAllNewOrders:
-            channel.orderSettings.automaticallyConfirmAllNewOrders,
+          automaticallyConfirmAllNewOrders: channel.orderSettings.automaticallyConfirmAllNewOrders,
           automaticallyFulfillNonShippableGiftCard:
             channel.orderSettings.automaticallyFulfillNonShippableGiftCard,
           expireOrdersAfter: Number(channel.orderSettings.expireOrdersAfter),
-          deleteExpiredOrdersAfter: Number(
-            channel.orderSettings.deleteExpiredOrdersAfter
-          ),
+          deleteExpiredOrdersAfter: Number(channel.orderSettings.deleteExpiredOrdersAfter),
           markAsPaidStrategy: channel.orderSettings.markAsPaidStrategy,
           allowUnpaidOrders: channel.orderSettings.allowUnpaidOrders,
-          includeDraftOrderInVoucherUsage:
-            channel.orderSettings.includeDraftOrderInVoucherUsage,
+          includeDraftOrderInVoucherUsage: channel.orderSettings.includeDraftOrderInVoucherUsage,
         },
       })) ?? []
     );
@@ -62,11 +55,7 @@ export class ConfigurationService {
   private isMultipleChoiceAttribute(
     inputType: string | null
   ): inputType is "DROPDOWN" | "MULTISELECT" | "SWATCH" {
-    return (
-      inputType === "DROPDOWN" ||
-      inputType === "MULTISELECT" ||
-      inputType === "SWATCH"
-    );
+    return inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH";
   }
 
   private isBasicAttribute(
@@ -90,9 +79,7 @@ export class ConfigurationService {
     );
   }
 
-  private isReferenceAttribute(
-    inputType: string | null
-  ): inputType is "REFERENCE" {
+  private isReferenceAttribute(inputType: string | null): inputType is "REFERENCE" {
     return inputType === "REFERENCE";
   }
 
@@ -104,10 +91,7 @@ export class ConfigurationService {
     invariant(attribute.inputType, "Unable to retrieve attribute input type");
 
     if (this.isMultipleChoiceAttribute(attribute.inputType)) {
-      invariant(
-        attribute.choices?.edges,
-        "Unable to retrieve attribute choices"
-      );
+      invariant(attribute.choices?.edges, "Unable to retrieve attribute choices");
       return {
         name: attribute.name,
         inputType: attribute.inputType,
@@ -140,30 +124,21 @@ export class ConfigurationService {
       };
     }
 
-    throw new UnsupportedInputTypeError(
-      `Unsupported input type: ${attribute.inputType}`
-    );
+    throw new UnsupportedInputTypeError(`Unsupported input type: ${attribute.inputType}`);
   }
 
   private mapAttributes(
     rawAttributes: RawAttribute[],
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
   ): FullAttribute[] {
-    return (
-      rawAttributes?.map((attribute) =>
-        this.mapAttribute(attribute, attributeType)
-      ) ?? []
-    );
+    return rawAttributes?.map((attribute) => this.mapAttribute(attribute, attributeType)) ?? [];
   }
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]) {
     return (
       rawProductTypes?.edges?.map((edge) => ({
         name: edge.node.name,
-        attributes: this.mapAttributes(
-          edge.node.productAttributes ?? [],
-          "PRODUCT_TYPE"
-        ),
+        attributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
       })) ?? []
     );
   }
@@ -186,14 +161,11 @@ export class ConfigurationService {
       defaultMailSenderName: settings.defaultMailSenderName,
       defaultMailSenderAddress: settings.defaultMailSenderAddress,
       displayGrossPrices: settings.displayGrossPrices,
-      enableAccountConfirmationByEmail:
-        settings.enableAccountConfirmationByEmail,
+      enableAccountConfirmationByEmail: settings.enableAccountConfirmationByEmail,
       limitQuantityPerCheckout: settings.limitQuantityPerCheckout,
       trackInventoryByDefault: settings.trackInventoryByDefault,
-      reserveStockDurationAnonymousUser:
-        settings.reserveStockDurationAnonymousUser,
-      reserveStockDurationAuthenticatedUser:
-        settings.reserveStockDurationAuthenticatedUser,
+      reserveStockDurationAnonymousUser: settings.reserveStockDurationAnonymousUser,
+      reserveStockDurationAuthenticatedUser: settings.reserveStockDurationAuthenticatedUser,
       defaultDigitalMaxDownloads: settings.defaultDigitalMaxDownloads,
       defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
       defaultWeightUnit: settings.defaultWeightUnit,
@@ -213,9 +185,7 @@ export class ConfigurationService {
 }
 
 type RawAttribute = NonNullable<
-  NonNullable<
-    RawSaleorConfig["productTypes"]
-  >["edges"][number]["node"]["productAttributes"]
+  NonNullable<RawSaleorConfig["productTypes"]>["edges"][number]["node"]["productAttributes"]
 >[number] & {
   entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
 };

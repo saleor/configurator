@@ -42,11 +42,7 @@ const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
  * Comparator for shop settings
  */
 export class ShopComparator
-  implements
-    EntityComparator<
-      SaleorConfig["shop"] | undefined,
-      SaleorConfig["shop"] | undefined
-    >
+  implements EntityComparator<SaleorConfig["shop"] | undefined, SaleorConfig["shop"] | undefined>
 {
   /**
    * Compares local and remote shop settings

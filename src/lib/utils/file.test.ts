@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import * as fs from "fs";
+import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  fileExists,
-  createBackupPath,
   createBackup,
+  createBackupPath,
   ensureDirectory,
+  fileExists,
   readFile,
   writeFile,
 } from "./file";
@@ -172,8 +172,7 @@ describe("File Utilities", () => {
     it("should not throw when directory already exists", async () => {
       // Arrange
       const dirPath = "existing/directory";
-      const existsError = new Error("Directory exists") as any;
-      existsError.code = "EEXIST";
+      const existsError = Object.assign(new Error("Directory exists"), { code: "EEXIST" });
       mockFs.promises.mkdir = vi.fn().mockRejectedValue(existsError);
 
       // Act & Assert
@@ -183,8 +182,7 @@ describe("File Utilities", () => {
     it("should throw for other filesystem errors", async () => {
       // Arrange
       const dirPath = "path/to/directory";
-      const permissionError = new Error("Permission denied") as any;
-      permissionError.code = "EACCES";
+      const permissionError = Object.assign(new Error("Permission denied"), { code: "EACCES" });
       mockFs.promises.mkdir = vi.fn().mockRejectedValue(permissionError);
 
       // Act & Assert

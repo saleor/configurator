@@ -68,9 +68,7 @@ export class SaleorConfigurator {
 
       progress.complete();
       if (progress.hasFailures()) {
-        throw new Error(
-          "Some product types failed to create. Check the logs for details."
-        );
+        throw new Error("Some product types failed to create. Check the logs for details.");
       }
     }
 
@@ -97,9 +95,7 @@ export class SaleorConfigurator {
 
       progress.complete();
       if (progress.hasFailures()) {
-        throw new Error(
-          "Some page types failed to create. Check the logs for details."
-        );
+        throw new Error("Some page types failed to create. Check the logs for details.");
       }
     }
 

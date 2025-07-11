@@ -1,7 +1,4 @@
-function formatGenericErrorMessage(
-  message: string | undefined,
-  error: string
-): string {
+function formatGenericErrorMessage(message: string | undefined, error: string): string {
   if (!message) {
     return error;
   }
@@ -14,7 +11,10 @@ export const errorFormatHelpers = {
 };
 
 export abstract class BaseError extends Error {
-  constructor(message: string, public readonly code: string) {
+  constructor(
+    message: string,
+    public readonly code: string
+  ) {
     super(message);
     this.name = this.constructor.name;
 

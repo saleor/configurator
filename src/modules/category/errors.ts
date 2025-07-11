@@ -18,7 +18,10 @@ export class CategoryNotFoundError extends CategoryError {
  * Error thrown when category creation fails
  */
 export class CategoryCreationError extends CategoryError {
-  constructor(message: string, public readonly categoryName: string) {
+  constructor(
+    message: string,
+    public readonly categoryName: string
+  ) {
     super(message, "CATEGORY_CREATION_ERROR");
   }
 }
@@ -27,7 +30,10 @@ export class CategoryCreationError extends CategoryError {
  * Error thrown when category update fails
  */
 export class CategoryUpdateError extends CategoryError {
-  constructor(message: string, public readonly categoryId: string) {
+  constructor(
+    message: string,
+    public readonly categoryId: string
+  ) {
     super(message, "CATEGORY_UPDATE_ERROR");
   }
 }

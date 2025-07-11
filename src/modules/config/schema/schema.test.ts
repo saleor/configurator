@@ -22,8 +22,10 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0]).toEqual({ name: "Book" });
-      expect("productAttributes" in result.productTypes![0]).toBe(false);
+      expect(result.productTypes?.[0]).toEqual({ name: "Book" });
+      expect(result.productTypes?.[0] ? "productAttributes" in result.productTypes[0] : false).toBe(
+        false
+      );
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -45,7 +47,7 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(updateInput);
 
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0]).toEqual({
+      expect(result.productTypes?.[0]).toEqual({
         name: "Book",
         productAttributes: [
           {
@@ -55,7 +57,9 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("productAttributes" in result.productTypes![0]).toBe(true);
+      expect(result.productTypes?.[0] ? "productAttributes" in result.productTypes[0] : false).toBe(
+        true
+      );
     });
 
     it("should prioritize update schema over create schema", () => {
@@ -71,11 +75,13 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(ambiguousInput);
 
-      expect(result.productTypes![0]).toEqual({
+      expect(result.productTypes?.[0]).toEqual({
         name: "Book",
         productAttributes: [],
       });
-      expect("productAttributes" in result.productTypes![0]).toBe(true);
+      expect(result.productTypes?.[0] ? "productAttributes" in result.productTypes[0] : false).toBe(
+        true
+      );
     });
   });
 
@@ -95,14 +101,14 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.channels).toHaveLength(1);
-      expect(result.channels![0]).toEqual({
+      expect(result.channels?.[0]).toEqual({
         name: "Poland",
         currencyCode: "PLN",
         defaultCountry: "PL",
         slug: "poland",
         isActive: false,
       });
-      expect("settings" in result.channels![0]).toBe(false);
+      expect(result.channels?.[0] ? "settings" in result.channels[0] : false).toBe(false);
     });
 
     it("should parse update input (with settings)", () => {
@@ -123,7 +129,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.channels![0]).toEqual({
+      expect(result.channels?.[0]).toEqual({
         name: "Poland",
         currencyCode: "PLN",
         defaultCountry: "PL",
@@ -134,7 +140,7 @@ describe("Schema Union Types", () => {
           automaticallyCompleteFullyPaidCheckouts: true,
         },
       });
-      expect("settings" in result.channels![0]).toBe(true);
+      expect(result.channels?.[0] ? "settings" in result.channels[0] : false).toBe(true);
     });
   });
 
@@ -147,7 +153,7 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.shop).toEqual({});
-      expect(Object.keys(result.shop!)).toHaveLength(0);
+      expect(result.shop ? Object.keys(result.shop) : []).toHaveLength(0);
     });
 
     it("should parse update input (with settings)", () => {
@@ -182,8 +188,10 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.pageTypes).toHaveLength(1);
-      expect(result.pageTypes![0]).toEqual({ name: "Article" });
-      expect("productAttributes" in result.pageTypes![0]).toBe(false);
+      expect(result.pageTypes?.[0]).toEqual({ name: "Article" });
+      expect(result.pageTypes?.[0] ? "productAttributes" in result.pageTypes[0] : false).toBe(
+        false
+      );
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -203,7 +211,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.pageTypes![0]).toEqual({
+      expect(result.pageTypes?.[0]).toEqual({
         name: "Article",
         attributes: [
           {
@@ -212,7 +220,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("attributes" in result.pageTypes![0]).toBe(true);
+      expect(result.pageTypes?.[0] ? "attributes" in result.pageTypes[0] : false).toBe(true);
     });
   });
 
@@ -229,8 +237,8 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.categories).toHaveLength(1);
-      expect(result.categories![0]).toEqual({ name: "Electronics" });
-      expect("subcategories" in result.categories![0]).toBe(false);
+      expect(result.categories?.[0]).toEqual({ name: "Electronics" });
+      expect(result.categories?.[0] ? "subcategories" in result.categories[0] : false).toBe(false);
     });
 
     it("should parse update input (name + subcategories)", () => {
@@ -257,7 +265,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.categories![0]).toEqual({
+      expect(result.categories?.[0]).toEqual({
         name: "Electronics",
         subcategories: [
           {
@@ -273,7 +281,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("subcategories" in result.categories![0]).toBe(true);
+      expect(result.categories?.[0] ? "subcategories" in result.categories[0] : false).toBe(true);
     });
   });
 
@@ -595,18 +603,7 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = [
-        "US",
-        "GB",
-        "DE",
-        "FR",
-        "IT",
-        "ES",
-        "PL",
-        "JP",
-        "IN",
-        "CA",
-      ];
+      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
 
       // Act & Assert
       originalCodes.forEach((code) => {

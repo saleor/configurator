@@ -29,7 +29,7 @@ export interface ServiceContainer {
   readonly product: ProductService;
 }
 
-// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
+// biome-ignore lint/complexity/noStaticOnlyClass: This class provides a composition interface for dependency injection
 export class ServiceComposer {
   static compose(client: Client, configPath?: string): ServiceContainer {
     logger.debug("Creating repositories");
@@ -55,10 +55,7 @@ export class ServiceComposer {
     return {
       channel: new ChannelService(repositories.channel),
       pageType: new PageTypeService(repositories.pageType, attributeService),
-      productType: new ProductTypeService(
-        repositories.productType,
-        attributeService
-      ),
+      productType: new ProductTypeService(repositories.productType, attributeService),
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,

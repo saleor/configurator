@@ -1,10 +1,6 @@
 import { logger } from "../../lib/logger";
 import { object } from "../../lib/utils/object";
-import type {
-  ChannelCreateInput,
-  ChannelInput,
-  ChannelUpdateInput,
-} from "../config/schema/schema";
+import type { ChannelCreateInput, ChannelInput, ChannelUpdateInput } from "../config/schema/schema";
 import type { ChannelOperations } from "./repository";
 
 export class ChannelService {
@@ -62,10 +58,7 @@ export class ChannelService {
           id: existingChannel.id,
           name: input.name,
         });
-        return this.updateChannel(
-          existingChannel.id,
-          input as ChannelUpdateInput
-        );
+        return this.updateChannel(existingChannel.id, input as ChannelUpdateInput);
       } else {
         // It's a create input but channel exists, return existing
         logger.debug("Channel already exists, returning existing", {
@@ -91,17 +84,14 @@ export class ChannelService {
       orderSettings:
         Object.keys(settings).length > 0
           ? object.filterUndefinedValues({
-              automaticallyConfirmAllNewOrders:
-                settings.automaticallyConfirmAllNewOrders,
+              automaticallyConfirmAllNewOrders: settings.automaticallyConfirmAllNewOrders,
               automaticallyFulfillNonShippableGiftCard:
                 settings.automaticallyFulfillNonShippableGiftCard,
               expireOrdersAfter: settings.expireOrdersAfter?.toString(),
-              deleteExpiredOrdersAfter:
-                settings.deleteExpiredOrdersAfter?.toString(),
+              deleteExpiredOrdersAfter: settings.deleteExpiredOrdersAfter?.toString(),
               markAsPaidStrategy: settings.markAsPaidStrategy,
               allowUnpaidOrders: settings.allowUnpaidOrders,
-              includeDraftOrderInVoucherUsage:
-                settings.includeDraftOrderInVoucherUsage,
+              includeDraftOrderInVoucherUsage: settings.includeDraftOrderInVoucherUsage,
             })
           : undefined,
       checkoutSettings:
@@ -114,8 +104,7 @@ export class ChannelService {
           : undefined,
       paymentSettings: settings.defaultTransactionFlowStrategy
         ? {
-            defaultTransactionFlowStrategy:
-              settings.defaultTransactionFlowStrategy,
+            defaultTransactionFlowStrategy: settings.defaultTransactionFlowStrategy,
           }
         : undefined,
       stockSettings: settings.allocationStrategy
@@ -133,10 +122,7 @@ export class ChannelService {
     });
 
     try {
-      const updatedChannel = await this.repository.updateChannel(
-        id,
-        updateInput
-      );
+      const updatedChannel = await this.repository.updateChannel(id, updateInput);
       logger.debug("Successfully updated channel", {
         id,
         name: input.name,
@@ -155,9 +141,7 @@ export class ChannelService {
   async bootstrapChannels(inputs: ChannelInput[]) {
     logger.debug("Bootstrapping channels", { count: inputs.length });
     try {
-      const channels = await Promise.all(
-        inputs.map((input) => this.getOrCreate(input))
-      );
+      const channels = await Promise.all(inputs.map((input) => this.getOrCreate(input)));
       logger.debug("Successfully bootstrapped all channels", {
         count: channels.length,
       });

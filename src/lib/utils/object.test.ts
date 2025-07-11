@@ -1,5 +1,5 @@
+import { describe, expect, it } from "vitest";
 import { object } from "./object";
-import { describe, it, expect } from "vitest";
 
 describe("object", () => {
   describe("filterUndefinedValues", () => {

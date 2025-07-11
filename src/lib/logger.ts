@@ -19,9 +19,7 @@ const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
 
 if (!mappedLogLevel) {
   throw new EnvironmentVariableError(
-    `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(
-      logLevelMap
-    ).join(", ")}`
+    `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(logLevelMap).join(", ")}`
   );
 }
 

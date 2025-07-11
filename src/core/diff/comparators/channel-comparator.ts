@@ -87,9 +87,7 @@ export class ChannelComparator extends BaseEntityComparator<
         // Check for updates
         const changes = this.compareEntityFields(localChannel, remoteChannel);
         if (changes.length > 0) {
-          results.push(
-            this.createUpdateResult(localChannel, remoteChannel, changes)
-          );
+          results.push(this.createUpdateResult(localChannel, remoteChannel, changes));
         }
       }
     }
@@ -117,10 +115,7 @@ export class ChannelComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote channel entities
    */
-  protected compareEntityFields(
-    local: ChannelEntity,
-    remote: ChannelEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: ChannelEntity, remote: ChannelEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic channel fields
@@ -138,9 +133,7 @@ export class ChannelComparator extends BaseEntityComparator<
     const remoteSettings = this.getChannelSettings(remote);
 
     if (localSettings || remoteSettings) {
-      changes.push(
-        ...this.compareChannelSettings(localSettings, remoteSettings)
-      );
+      changes.push(...this.compareChannelSettings(localSettings, remoteSettings));
     }
 
     return changes;
@@ -149,11 +142,9 @@ export class ChannelComparator extends BaseEntityComparator<
   /**
    * Safely extracts channel settings from a channel entity
    */
-  private getChannelSettings(
-    channel: ChannelEntity
-  ): ChannelSettings | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (channel as any).settings;
+  private getChannelSettings(channel: ChannelEntity): ChannelSettings | undefined {
+    // Type guard for accessing settings property
+    return "settings" in channel ? channel.settings : undefined;
   }
 
   /**
@@ -172,9 +163,7 @@ export class ChannelComparator extends BaseEntityComparator<
       const remoteValue = remoteSettings[field];
 
       if (localValue !== remoteValue) {
-        changes.push(
-          this.createFieldChange(`settings.${field}`, remoteValue, localValue)
-        );
+        changes.push(this.createFieldChange(`settings.${field}`, remoteValue, localValue));
       }
     }
 

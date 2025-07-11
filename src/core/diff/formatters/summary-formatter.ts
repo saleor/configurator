@@ -1,6 +1,6 @@
+import { DIFF_ICONS, DIFF_MESSAGES } from "../constants";
 import type { DiffSummary } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
-import { DIFF_ICONS, DIFF_MESSAGES } from "../constants";
 
 /**
  * Formatter for brief diff summaries

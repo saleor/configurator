@@ -9,11 +9,7 @@ import {
   ProductTypeComparator,
   ShopComparator,
 } from "./comparators";
-import {
-  ConfigurationLoadError,
-  DiffComparisonError,
-  RemoteConfigurationError,
-} from "./errors";
+import { ConfigurationLoadError, DiffComparisonError, RemoteConfigurationError } from "./errors";
 import type { DiffResult, DiffSummary } from "./types";
 
 /**
@@ -111,9 +107,7 @@ export class DiffService {
       }
 
       throw new DiffComparisonError(
-        `Diff comparison failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Diff comparison failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -189,18 +183,11 @@ export class DiffService {
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
-      comparisons.push(
-        this.performComparison("shop", localConfig.shop, remoteConfig.shop)
-      );
+      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
     }
 
     // Entity array comparisons
-    const entityTypes = [
-      "channels",
-      "productTypes",
-      "pageTypes",
-      "categories",
-    ] as const;
+    const entityTypes = ["channels", "productTypes", "pageTypes", "categories"] as const;
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
@@ -246,9 +233,7 @@ export class DiffService {
       return results;
     } catch (error) {
       throw new DiffComparisonError(
-        `Failed to compare ${entityType}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to compare ${entityType}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -256,9 +241,7 @@ export class DiffService {
   /**
    * Executes promises with concurrency limit
    */
-  private async executeConcurrently<T>(
-    promises: readonly Promise<T>[]
-  ): Promise<T[]> {
+  private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
     const results: T[] = [];
     const executing = new Set<Promise<void>>();
 

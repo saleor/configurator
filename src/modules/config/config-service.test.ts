@@ -168,10 +168,7 @@ describe("ConfigurationService", () => {
                     type: "PRODUCT_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Red" } },
-                        { node: { name: "Blue" } },
-                      ],
+                      edges: [{ node: { name: "Red" } }, { node: { name: "Blue" } }],
                     },
                   },
                 ],
@@ -192,10 +189,7 @@ describe("ConfigurationService", () => {
                     type: "PAGE_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Full Width" } },
-                        { node: { name: "Sidebar" } },
-                      ],
+                      edges: [{ node: { name: "Full Width" } }, { node: { name: "Sidebar" } }],
                     },
                   },
                 ],
@@ -211,10 +205,22 @@ describe("ConfigurationService", () => {
       );
       const result = service.mapConfig(completeConfig);
 
-      expect((result.shop as any)?.defaultMailSenderName).toBe("Test Store");
+      expect(
+        result.shop && "defaultMailSenderName" in result.shop
+          ? result.shop.defaultMailSenderName
+          : undefined
+      ).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
-      expect((result.productTypes?.[0] as any)?.attributes).toHaveLength(1);
-      expect((result.pageTypes?.[0] as any)?.attributes).toHaveLength(1);
+      expect(
+        result.productTypes?.[0] && "attributes" in result.productTypes[0]
+          ? result.productTypes[0].attributes
+          : undefined
+      ).toHaveLength(1);
+      expect(
+        result.pageTypes?.[0] && "attributes" in result.pageTypes[0]
+          ? result.pageTypes[0].attributes
+          : undefined
+      ).toHaveLength(1);
     });
 
     it("should handle different attribute input types", () => {
@@ -252,17 +258,21 @@ describe("ConfigurationService", () => {
         pageTypes: { edges: [] },
       };
 
-      const service = new ConfigurationService(
-        new MockRepository(rawConfig),
-        createMockStorage()
-      );
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
       const result = service.mapConfig(rawConfig);
-      const attributes = (result.productTypes?.[0] as any)?.attributes;
+      const attributes =
+        result.productTypes?.[0] && "attributes" in result.productTypes[0]
+          ? result.productTypes[0].attributes
+          : undefined;
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);
-      expect(attributes?.[0]).toHaveProperty("values");
-      expect(attributes?.[1]).not.toHaveProperty("values");
+      expect(
+        attributes && Array.isArray(attributes) && attributes.length > 0 && attributes[0]
+      ).toHaveProperty("values");
+      expect(
+        attributes && Array.isArray(attributes) && attributes.length > 1 && attributes[1]
+      ).not.toHaveProperty("values");
     });
   });
 

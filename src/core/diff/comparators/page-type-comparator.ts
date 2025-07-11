@@ -8,13 +8,9 @@ import { BaseEntityComparator } from "./base-comparator";
 type PageTypeEntity = NonNullable<SaleorConfig["pageTypes"]>[number];
 
 /**
- * Page type attribute structure
+ * Page type attribute structure - matches AttributeInput from schema
  */
-interface PageTypeAttribute {
-  readonly name: string;
-  readonly inputType?: string;
-  readonly values?: readonly { readonly name: string }[];
-}
+type PageTypeAttribute = import("../../../modules/config/schema/attribute.schema").AttributeInput;
 
 /**
  * Comparator for page type entities
@@ -76,10 +72,7 @@ export class PageTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote page type entities
    */
-  protected compareEntityFields(
-    local: PageTypeEntity,
-    remote: PageTypeEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: PageTypeEntity, remote: PageTypeEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
@@ -95,9 +88,7 @@ export class PageTypeComparator extends BaseEntityComparator<
     const remoteAttributes = this.getAttributes(remote);
 
     if (localAttributes.length > 0 || remoteAttributes.length > 0) {
-      changes.push(
-        ...this.compareAttributes(localAttributes, remoteAttributes)
-      );
+      changes.push(...this.compareAttributes(localAttributes, remoteAttributes));
     }
 
     return changes;
@@ -107,17 +98,33 @@ export class PageTypeComparator extends BaseEntityComparator<
    * Safely extracts slug from a page type entity
    */
   private getSlug(entity: PageTypeEntity): string | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (entity as any).slug;
+    // Type guard for accessing slug property
+    return "slug" in entity && typeof entity.slug === "string" ? entity.slug : undefined;
   }
 
   /**
    * Safely extracts attributes from a page type entity
    */
   private getAttributes(entity: PageTypeEntity): readonly PageTypeAttribute[] {
-    // Type assertion is safe here since we're accessing a known property
-    const attributes = (entity as any).attributes;
+    // Type guard for accessing attributes property
+    const attributes = "attributes" in entity ? entity.attributes : undefined;
     return Array.isArray(attributes) ? attributes : [];
+  }
+
+  /**
+   * Gets the identifier for an attribute (either 'name' or 'attribute' property)
+   */
+  private getAttributeIdentifier(attr: PageTypeAttribute): string {
+    // Check if it's a referenced attribute (has 'attribute' property)
+    if ("attribute" in attr) {
+      return attr.attribute;
+    }
+    // Otherwise it's a simple attribute (has 'name' property)
+    if ("name" in attr) {
+      return attr.name;
+    }
+    // Fallback - should not happen with proper types
+    return "unknown";
   }
 
   /**
@@ -129,18 +136,19 @@ export class PageTypeComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localAttrMap = new Map(local.map((attr) => [attr.name, attr]));
-    const remoteAttrMap = new Map(remote.map((attr) => [attr.name, attr]));
+    const localAttrMap = new Map(local.map((attr) => [this.getAttributeIdentifier(attr), attr]));
+    const remoteAttrMap = new Map(remote.map((attr) => [this.getAttributeIdentifier(attr), attr]));
 
     // Find added attributes
     for (const localAttr of local) {
-      if (!remoteAttrMap.has(localAttr.name)) {
+      const identifier = this.getAttributeIdentifier(localAttr);
+      if (!remoteAttrMap.has(identifier)) {
         changes.push(
           this.createFieldChange(
             "attributes",
             null,
-            localAttr.name,
-            `Attribute "${localAttr.name}" added (in config, not on Saleor)`
+            identifier,
+            `Attribute "${identifier}" added (in config, not on Saleor)`
           )
         );
       }
@@ -148,13 +156,14 @@ export class PageTypeComparator extends BaseEntityComparator<
 
     // Find removed attributes
     for (const remoteAttr of remote) {
-      if (!localAttrMap.has(remoteAttr.name)) {
+      const identifier = this.getAttributeIdentifier(remoteAttr);
+      if (!localAttrMap.has(identifier)) {
         changes.push(
           this.createFieldChange(
             "attributes",
-            remoteAttr.name,
+            identifier,
             null,
-            `Attribute "${remoteAttr.name}" removed (on Saleor, not in config)`
+            `Attribute "${identifier}" removed (on Saleor, not in config)`
           )
         );
       }

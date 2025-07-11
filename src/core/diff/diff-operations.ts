@@ -1,4 +1,4 @@
-import type { DiffSummary, DiffResult, DiffStatistics, EntityType, DiffOperation } from "./types";
+import type { DiffOperation, DiffResult, DiffStatistics, DiffSummary, EntityType } from "./types";
 
 /**
  * Calculates statistics from a diff summary

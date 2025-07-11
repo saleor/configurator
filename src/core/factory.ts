@@ -6,8 +6,8 @@
  */
 
 import { createClient } from "../lib/graphql/client";
-import { ServiceComposer } from "./service-container";
 import { SaleorConfigurator } from "./configurator";
+import { ServiceComposer } from "./service-container";
 
 /**
  * Creates and configures a Saleor configurator with all dependencies

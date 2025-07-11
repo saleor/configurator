@@ -17,9 +17,7 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
   values: z.array(attributeValueSchema),
 });
 
-export type MultipleValuesAttribute = z.infer<
-  typeof multipleValuesAttributeSchema
->;
+export type MultipleValuesAttribute = z.infer<typeof multipleValuesAttributeSchema>;
 
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
@@ -29,15 +27,7 @@ const referenceAttributeSchema = baseAttributeSchema.extend({
 
 // Schema for simple value attributes
 const singleAttributeSchema = baseAttributeSchema.extend({
-  inputType: z.enum([
-    "PLAIN_TEXT",
-    "NUMERIC",
-    "DATE",
-    "BOOLEAN",
-    "RICH_TEXT",
-    "DATE_TIME",
-    "FILE",
-  ]),
+  inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
 });
 
 // Combined attribute schema using discriminted union based on inputType
@@ -55,10 +45,7 @@ const referencedAttributeSchema = z
   })
   .describe("Reference to an existing attribute by slug");
 
-export const attributeInputSchema = z.union([
-  simpleAttributeSchema,
-  referencedAttributeSchema,
-]);
+export const attributeInputSchema = z.union([simpleAttributeSchema, referencedAttributeSchema]);
 
 export type AttributeInput = z.infer<typeof attributeInputSchema>;
 
