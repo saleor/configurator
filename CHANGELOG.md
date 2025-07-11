@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.6.0
+
+### Minor Changes
+
+- a42da43: Fixed introspect command diff perspective to correctly show changes from remote to local configuration. Added selective filtering with --include/--exclude options, CI mode for automation, and multiple output formats (table, JSON, YAML). Enhanced user experience with actionable error messages, progress indicators, confirmation prompts with change summaries, and operation timing. Added --backup flag (defaults to true) and --verbose mode.
+
 ## 0.5.1
 
 ### Patch Changes
