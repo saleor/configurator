@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Post-merge hook: Quality of life improvements after merging changes
+# Automatically handles common maintenance tasks
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[POST-MERGE]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Don't exit on errors for post-merge (quality of life, not critical)
+set +e
+
+print_info "Running post-merge automation..."
+
+# 1. Check if package.json or pnpm-lock.yaml changed and install dependencies
+if git diff-tree -r --name-only --no-commit-id HEAD^ HEAD | grep -E "package\.json|pnpm-lock\.yaml" > /dev/null; then
+    print_info "Package files changed, installing dependencies..."
+    if pnpm install; then
+        print_success "Dependencies updated successfully"
+    else
+        print_warning "Failed to install dependencies. You may need to run 'pnpm install' manually."
+    fi
+fi
+
+# 2. Check if GraphQL-related files changed and refresh schema
+if git diff-tree -r --name-only --no-commit-id HEAD^ HEAD | grep -E "fetch-schema|graphql" > /dev/null; then
+    print_info "GraphQL-related files changed, refreshing schema..."
+    if pnpm fetch-schema; then
+        print_success "GraphQL schema refreshed"
+    else
+        print_warning "Failed to fetch GraphQL schema. You may need to run 'pnpm fetch-schema' manually."
+    fi
+fi
+
+# 3. Clean up any stale build artifacts (if dist directory exists)
+if [ -d "dist" ]; then
+    print_info "Cleaning stale build artifacts..."
+    rm -rf dist
+    print_success "Build artifacts cleaned"
+fi
+
+# 4. Clean up any TypeScript build cache
+if [ -f "tsconfig.tsbuildinfo" ]; then
+    print_info "Cleaning TypeScript build cache..."
+    rm -f tsconfig.tsbuildinfo
+    print_success "TypeScript cache cleaned"
+fi
+
+# 5. Check if there are any new/changed test files and suggest running tests
+if git diff-tree -r --name-only --no-commit-id HEAD^ HEAD | grep -E "\.test\.|\.spec\." > /dev/null; then
+    print_info "Test files were modified. Consider running:"
+    echo "  💡 pnpm test - to run all tests"
+    echo "  💡 pnpm test:watch - to run tests in watch mode"
+fi
+
+print_success "Post-merge automation completed! 🎉"

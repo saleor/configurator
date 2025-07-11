@@ -1,0 +1,2 @@
+# Validate commit message format using commitlint
+npx commitlint --edit "$1"

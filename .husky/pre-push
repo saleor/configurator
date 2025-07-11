@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Pre-push hook: Comprehensive quality gate before pushing to remote
+# This prevents broken code from reaching the remote repository
+
+echo "🔍 Running pre-push quality checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[PRE-PUSH]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Exit on any error
+set -e
+
+# 1. Run full test suite
+print_status "Running full test suite..."
+if pnpm test; then
+    print_success "All tests passed"
+else
+    print_error "Tests failed. Please fix failing tests before pushing."
+    exit 1
+fi
+
+# 2. Verify project builds successfully
+print_status "Verifying project builds..."
+if pnpm build; then
+    print_success "Build successful"
+else
+    print_error "Build failed. Please fix build errors before pushing."
+    exit 1
+fi
+
+# 3. Run security audit
+print_status "Running security audit..."
+if pnpm audit --audit-level high; then
+    print_success "No high-severity vulnerabilities found"
+else
+    print_warning "Security vulnerabilities detected. Consider reviewing before pushing."
+    echo "💡 Run 'pnpm audit --fix' to automatically fix issues"
+    echo "💡 Use 'git push --no-verify' to bypass this check if necessary"
+    
+    # Ask user if they want to continue
+    read -p "Continue with push despite vulnerabilities? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Push cancelled. Please fix security issues first."
+        exit 1
+    fi
+fi
+
+# 4. Type checking (redundant with pre-commit but good safety net)
+print_status "Running TypeScript type checking..."
+if pnpm typecheck; then
+    print_success "Type checking passed"
+else
+    print_error "Type checking failed. Please fix type errors before pushing."
+    exit 1
+fi
+
+print_success "All pre-push checks passed! 🚀"
+echo "💡 Your code is ready for the remote repository."
