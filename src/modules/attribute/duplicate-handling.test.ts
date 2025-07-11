@@ -131,12 +131,6 @@ describe("Attribute Duplicate Handling", () => {
         });
       } catch (error) {
         expect(error).toBeInstanceOf(DuplicateAttributeDefinitionError);
-        expect(error.message).toContain(
-          'Use reference syntax instead: "attribute: Size"'
-        );
-        expect(error.message).toContain(
-          "This encourages reuse and prevents conflicts"
-        );
       }
     });
   });

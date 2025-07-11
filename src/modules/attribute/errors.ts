@@ -9,11 +9,7 @@ export class AttributeValidationError extends AttributeError {
 }
 
 export class DuplicateAttributeDefinitionError extends AttributeError {
-  constructor(
-    message: string,
-    public readonly attributeName: string,
-    public readonly productTypeName: string
-  ) {
+  constructor(message: string) {
     super(message, "DUPLICATE_ATTRIBUTE_DEFINITION_ERROR");
   }
 }
