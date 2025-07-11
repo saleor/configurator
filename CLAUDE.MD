@@ -462,11 +462,21 @@ if (!result.success) {
 
 ## Core Principles
 
-1. **Type Safety First**: Never use `any`, always provide proper types
-2. **GraphQL Backbone**: All data operations go through GraphQL - no direct database access
-3. **User Experience**: CLI output should be clear, helpful, and actionable
-4. **Test Everything**: Comprehensive tests for all scenarios
-5. **Follow Patterns**: Repository → Service → Configurator flow
+1. **🚨 RESEARCH FIRST**: Never build what already exists - use best-in-class tools from TypeScript/Node.js ecosystem
+2. **High-Quality Code**: Clean, concise, direct solutions only - no over-engineering
+3. **Type Safety First**: Never use `any`, always provide proper types
+4. **GraphQL Backbone**: All data operations go through GraphQL - no direct database access
+5. **User Experience**: CLI output should be clear, helpful, and actionable
+6. **Test Everything**: Comprehensive tests for all scenarios
+7. **Follow Patterns**: Repository → Service → Configurator flow
+
+### Examples - Use These Tools, Don't Recreate:
+- **HTTP/GraphQL**: `@urql/core`, `fetch` ✅ | Custom wrappers ❌
+- **Validation**: `zod` ✅ | Custom validators ❌  
+- **Logging**: `tslog` ✅ | Custom loggers ❌
+- **CLI**: `commander` ✅ | Manual argv parsing ❌
+- **Testing**: `vitest` ✅ | Custom test runners ❌
+- **Code Quality**: `@biomejs/biome` ✅ | Custom linters ❌
 
 ## Essential Commands
 

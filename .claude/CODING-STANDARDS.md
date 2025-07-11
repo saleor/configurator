@@ -1,8 +1,37 @@
 # Saleor Configurator - Coding Standards
 
-This document outlines the coding standards, best practices, and conventions for the Saleor Configurator project. Following these guidelines ensures code quality, maintainability, and consistency across the codebase.
+This document outlines the coding standards, best practices, and conventions for the Saleor Configurator project. Following these guidelines ensures **high-quality, clean, concise code** and proper use of industry-standard tools.
+
+## 🚨 CORE RULE: Research First, Build Second
+
+**NEVER create custom implementations without first researching existing solutions.**
+
+Before writing ANY new functionality:
+1. **Check our existing stack** - We already have tools for most needs
+2. **Research npm ecosystem** - Use established, well-maintained libraries
+3. **Verify TypeScript support** - First-class TS support required
+4. **Check maintenance status** - Active development, recent updates
+5. **Consider bundle size** - Use bundlephobia.com to compare options
+
+### Examples - Use These, Don't Recreate:
+
+| Need | ✅ Use This | ❌ Don't Create |
+|------|-------------|-----------------|
+| **HTTP Clients** | `@urql/core`, `fetch` | Custom HTTP wrappers |
+| **Validation** | `zod` | Custom validators |
+| **Logging** | `tslog` | Custom loggers |
+| **CLI Framework** | `commander` | Manual argv parsing |
+| **Date/Time** | Native `Date`, `date-fns` | Custom date utilities |
+| **Error Classes** | Extend `Error` | Custom error systems |
+| **Testing** | `vitest` ecosystem | Custom test runners |
+| **Code Quality** | `@biomejs/biome` | Custom linters |
+| **File Operations** | `fs/promises` | Custom file handlers |
+| **Path Operations** | `node:path` | Custom path utils |
+| **Environment Variables** | `process.env`, `dotenv` | Custom config loaders |
+| **Process Management** | `node:child_process` | Custom process spawners |
 
 ## Table of Contents
+- [Code Quality Philosophy](#code-quality-philosophy)
 - [TypeScript Best Practices](#typescript-best-practices)
 - [Clean Code Principles](#clean-code-principles)
 - [Logger vs cliConsole Usage](#logger-vs-cliconsole-usage)
@@ -10,6 +39,16 @@ This document outlines the coding standards, best practices, and conventions for
 - [Code Quality Tools](#code-quality-tools)
 - [Error Handling Standards](#error-handling-standards)
 - [Performance Guidelines](#performance-guidelines)
+
+## Code Quality Philosophy
+
+### High-Quality Code Means:
+- **Concise**: No unnecessary complexity or verbosity
+- **Clean**: Easy to read, understand, and modify
+- **Direct**: Solves the problem without over-engineering
+- **Well-tooled**: Uses best-in-class libraries appropriately
+- **Type-safe**: Leverages TypeScript's full potential
+- **Tested**: Comprehensive test coverage
 
 ## TypeScript Best Practices
 
@@ -1138,9 +1177,13 @@ export class CachedProductRepository extends ProductRepository {
 ## TypeScript Development Checklist
 
 ### ✅ Before Writing Code
+- [ ] **RESEARCH FIRST** - Check if solution already exists in our stack or npm
+- [ ] **Use existing tools** - Never recreate what we already have
+- [ ] **Verify tool quality** - Check maintenance status, TypeScript support, bundle size
 - [ ] Understand the existing pattern (Repository → Service → Configurator)
 - [ ] Review similar modules for consistency
 - [ ] Plan types first (Zod schemas, GraphQL types, interfaces)
+- [ ] **Keep it concise** - Simple, direct solutions only
 
 ### ✅ Type Safety Checklist
 - [ ] **No `any` types** - Use specific types, generics, or `unknown` with type guards
