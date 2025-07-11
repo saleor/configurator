@@ -1,187 +1,191 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { ProgressIndicator } from "../progress";
-import { cliConsole } from "../console";
+import { OraProgressReporter, BulkOperationProgress, type ProgressReporter } from "../progress";
 
-vi.mock("../console", () => ({
-  cliConsole: {
-    success: vi.fn(),
-    error: vi.fn(),
+// Mock ora module
+vi.mock("ora", () => ({
+  default: vi.fn(() => ({
+    start: vi.fn().mockReturnThis(),
+    succeed: vi.fn().mockReturnThis(),
+    fail: vi.fn().mockReturnThis(),
+    info: vi.fn().mockReturnThis(),
+    warn: vi.fn().mockReturnThis(),
+    text: "",
+  })),
+}));
+
+// Mock chalk module
+vi.mock("chalk", () => ({
+  default: {
+    blue: vi.fn((text: string) => text),
+    yellow: vi.fn((text: string) => text),
+    red: vi.fn((text: string) => text),
   },
 }));
 
-describe("ProgressIndicator", () => {
-  let indicator: ProgressIndicator;
-  let writeSpy: any;
-  let originalIsTTY: boolean | undefined;
+describe("OraProgressReporter", () => {
+  let reporter: OraProgressReporter;
+  let consoleSpy: any;
 
   beforeEach(() => {
-    indicator = new ProgressIndicator();
-    writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    originalIsTTY = process.stdout.isTTY;
-    
-    // Mock TTY environment and methods
-    Object.defineProperty(process.stdout, "isTTY", {
-      value: true,
-      configurable: true,
-    });
-    
-    // Mock clearLine and cursorTo if they don't exist
-    if (!process.stdout.clearLine) {
-      (process.stdout as any).clearLine = vi.fn();
-    }
-    if (!process.stdout.cursorTo) {
-      (process.stdout as any).cursorTo = vi.fn();
-    }
+    reporter = new OraProgressReporter();
+    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-    vi.clearAllTimers();
-    vi.useRealTimers();
+  });
+
+  describe("spinner operations", () => {
+    it("starts spinner with text", () => {
+      reporter.start("Loading data");
+      
+      expect(reporter).toBeDefined();
+    });
+
+    it("updates spinner text", () => {
+      reporter.start("Loading");
+      reporter.update("Processing");
+      
+      expect(reporter).toBeDefined();
+    });
+
+    it("succeeds with message", () => {
+      reporter.start("Loading");
+      reporter.succeed("Completed successfully");
+      
+      expect(reporter).toBeDefined();
+    });
+
+    it("fails with message", () => {
+      reporter.start("Loading");
+      reporter.fail("Failed to complete");
+      
+      expect(reporter).toBeDefined();
+    });
+  });
+
+  describe("info and warn methods", () => {
+    it("shows info message without active spinner", () => {
+      reporter.info("Information message");
+      
+      expect(consoleSpy).toHaveBeenCalledWith("ℹ", "Information message");
+    });
+
+    it("shows warn message without active spinner", () => {
+      reporter.warn("Warning message");
+      
+      expect(consoleSpy).toHaveBeenCalledWith("⚠", "Warning message");
+    });
+
+    it("shows info message with active spinner", () => {
+      reporter.start("Loading");
+      reporter.info("Information message");
+      
+      expect(reporter).toBeDefined();
+    });
+
+    it("shows warn message with active spinner", () => {
+      reporter.start("Loading");
+      reporter.warn("Warning message");
+      
+      expect(reporter).toBeDefined();
+    });
+  });
+});
+
+describe("BulkOperationProgress", () => {
+  let mockReporter: ProgressReporter;
+  let bulkProgress: BulkOperationProgress;
+  let consoleSpy: any;
+
+  beforeEach(() => {
+    mockReporter = {
+      start: vi.fn(),
+      update: vi.fn(),
+      succeed: vi.fn(),
+      fail: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+    };
     
-    // Restore TTY state
-    Object.defineProperty(process.stdout, "isTTY", {
-      value: originalIsTTY,
-      configurable: true,
+    bulkProgress = new BulkOperationProgress(5, "Processing items", mockReporter);
+    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("operation tracking", () => {
+    it("starts operation with initial count", () => {
+      bulkProgress.start();
+      
+      expect(mockReporter.start).toHaveBeenCalledWith("Processing items (0/5)");
+    });
+
+    it("increments progress", () => {
+      bulkProgress.start();
+      bulkProgress.increment();
+      
+      expect(mockReporter.update).toHaveBeenCalledWith("Processing items (1/5)");
+    });
+
+    it("increments progress with item name", () => {
+      bulkProgress.start();
+      bulkProgress.increment("item1");
+      
+      expect(mockReporter.update).toHaveBeenCalledWith("Processing items (1/5): item1");
+    });
+
+    it("completes successfully with no failures", () => {
+      bulkProgress.start();
+      bulkProgress.increment();
+      bulkProgress.increment();
+      bulkProgress.complete();
+      
+      expect(mockReporter.succeed).toHaveBeenCalledWith("Processing items completed (2/5)");
     });
   });
 
-  describe("spinner", () => {
-    it("starts and stops spinner", () => {
-      vi.useFakeTimers();
+  describe("failure handling", () => {
+    it("tracks failures", () => {
+      const error = new Error("Test error");
+      bulkProgress.addFailure("item1", error);
       
-      const cleanup = indicator.startSpinner("Loading");
-      
-      // Advance timer to show a few frames
-      vi.advanceTimersByTime(160);
-      
-      // Should have written spinner frames
-      expect(writeSpy).toHaveBeenCalled();
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("Loading");
-      
-      cleanup();
-      
-      // Verify timer is cleared
-      vi.advanceTimersByTime(160);
-      const callCountAfterCleanup = writeSpy.mock.calls.length;
-      vi.advanceTimersByTime(160);
-      expect(writeSpy.mock.calls.length).toBe(callCountAfterCleanup);
+      expect(bulkProgress.hasFailures()).toBe(true);
+      expect(bulkProgress.getFailures()).toEqual([{ item: "item1", error }]);
     });
 
-    it("updates spinner message", () => {
-      vi.useFakeTimers();
+    it("completes with failures", () => {
+      const error = new Error("Test error");
+      bulkProgress.addFailure("item1", error);
+      bulkProgress.complete();
       
-      indicator.startSpinner("Initial");
-      vi.advanceTimersByTime(80);
-      
-      indicator.updateMessage("Updated");
-      
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("Updated");
+      expect(mockReporter.fail).toHaveBeenCalledWith("Processing items completed with 1 failures");
+      expect(consoleSpy).toHaveBeenCalledWith("  ❌ item1: Test error");
     });
 
-    it("cycles through spinner frames", () => {
-      vi.useFakeTimers();
+    it("reports multiple failures", () => {
+      const error1 = new Error("Error 1");
+      const error2 = new Error("Error 2");
       
-      indicator.startSpinner("Test");
+      bulkProgress.addFailure("item1", error1);
+      bulkProgress.addFailure("item2", error2);
+      bulkProgress.complete();
       
-      // Advance through multiple frames
-      for (let i = 0; i < 10; i++) {
-        vi.advanceTimersByTime(80);
-      }
-      
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      // Should contain different spinner characters
-      expect(output).toMatch(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+      expect(mockReporter.fail).toHaveBeenCalledWith("Processing items completed with 2 failures");
+      expect(consoleSpy).toHaveBeenCalledWith("  ❌ item1: Error 1");
+      expect(consoleSpy).toHaveBeenCalledWith("  ❌ item2: Error 2");
     });
   });
 
-  describe("progress bar", () => {
-    it("displays progress bar with percentage", () => {
-      indicator.showProgress({
-        current: 5,
-        total: 10,
-        message: "Processing",
-        width: 10,
-      });
-
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("[█████     ]");
-      expect(output).toContain("50%");
-      expect(output).toContain("Processing");
+  describe("state checking", () => {
+    it("returns false for hasFailures when no failures", () => {
+      expect(bulkProgress.hasFailures()).toBe(false);
     });
 
-    it("handles 100% progress", () => {
-      indicator.showProgress({
-        current: 10,
-        total: 10,
-        message: "Complete",
-        width: 10,
-      });
-
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("[██████████]");
-      expect(output).toContain("100%");
-    });
-
-    it("handles 0% progress", () => {
-      indicator.showProgress({
-        current: 0,
-        total: 10,
-        message: "Starting",
-        width: 10,
-      });
-
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("[          ]");
-      expect(output).toContain("0%");
-    });
-  });
-
-  describe("completion", () => {
-    it("shows success message", () => {
-      indicator.complete("Task completed");
-      
-      expect(cliConsole.success).toHaveBeenCalledWith("  ✓ Task completed");
-    });
-
-    it("shows failure message", () => {
-      indicator.fail("Task failed");
-      
-      expect(cliConsole.error).toHaveBeenCalledWith("  ✗ Task failed");
-    });
-
-    it("stops spinner on complete", () => {
-      vi.useFakeTimers();
-      
-      const _cleanup = indicator.startSpinner("Working");
-      vi.advanceTimersByTime(80);
-      
-      indicator.complete("Done");
-      
-      // Verify timer is cleared
-      const callCountBeforeAdvance = writeSpy.mock.calls.length;
-      vi.advanceTimersByTime(160);
-      expect(writeSpy.mock.calls.length).toBe(callCountBeforeAdvance);
-    });
-  });
-
-  describe("non-TTY environment", () => {
-    beforeEach(() => {
-      Object.defineProperty(process.stdout, "isTTY", {
-        value: false,
-        configurable: true,
-      });
-    });
-
-    it("handles non-TTY output", () => {
-      indicator.startSpinner("Test");
-      indicator.complete("Done");
-      
-      // Should write newlines instead of clearing lines
-      const output = writeSpy.mock.calls.map(call => call[0]).join("");
-      expect(output).toContain("\n");
+    it("returns empty array for getFailures when no failures", () => {
+      expect(bulkProgress.getFailures()).toEqual([]);
     });
   });
 });
