@@ -1135,6 +1135,81 @@ export class CachedProductRepository extends ProductRepository {
 }
 ```
 
+## TypeScript Development Checklist
+
+### ✅ Before Writing Code
+- [ ] Understand the existing pattern (Repository → Service → Configurator)
+- [ ] Review similar modules for consistency
+- [ ] Plan types first (Zod schemas, GraphQL types, interfaces)
+
+### ✅ Type Safety Checklist
+- [ ] **No `any` types** - Use specific types, generics, or `unknown` with type guards
+- [ ] **Explicit return types** on all functions
+- [ ] **Handle nullable values** with optional chaining and nullish coalescing
+- [ ] **Use type guards** for runtime type checking
+- [ ] **Leverage utility types** (Result, DeepPartial, RequireFields)
+
+### ✅ Function Design Checklist
+- [ ] **Single responsibility** - One function, one purpose
+- [ ] **Small functions** - Under 20 lines ideally
+- [ ] **Descriptive names** - `createProduct`, not `create` or `proc`
+- [ ] **Parameter objects** for 3+ parameters
+- [ ] **Result pattern** for operations that can fail
+
+### ✅ Error Handling Checklist
+- [ ] **Custom error classes** with error codes and context
+- [ ] **Rich error information** for debugging
+- [ ] **User-friendly messages** in cliConsole
+- [ ] **Detailed logging** with logger
+- [ ] **Handle all error paths** (network, validation, business logic)
+
+### ✅ GraphQL Integration Checklist
+- [ ] **Extract types** using `ResultOf` and `VariablesOf`
+- [ ] **Handle nullable responses** with NonNullable
+- [ ] **Check mutation errors** array before using data
+- [ ] **Wrap GraphQL errors** with context
+- [ ] **Provide retry information** for transient failures
+
+### ✅ Code Organization Checklist
+- [ ] **Follow module structure** (repository, service, errors, types)
+- [ ] **Order imports** (built-ins → external → internal → relative)
+- [ ] **Export only public API** through index.ts
+- [ ] **Document complex logic** with JSDoc
+- [ ] **Keep related code together**
+
+### ✅ Final Review Checklist
+- [ ] No TypeScript errors (`pnpm typecheck`)
+- [ ] Passes Biome linting and formatting (`pnpm check`)
+- [ ] Fix any Biome issues (`pnpm check:fix`)
+- [ ] Builds successfully (`pnpm build`)
+- [ ] No unused imports or variables (Biome will catch these)
+- [ ] Follows existing patterns
+- [ ] Complex types are documented
+- [ ] Error handling is comprehensive
+
+**Always run before committing:**
+```bash
+# 1. Run Biome for linting and formatting
+pnpm check      # Check for issues
+pnpm check:fix  # Auto-fix issues (if any)
+
+# 2. Verify TypeScript compilation
+pnpm typecheck  
+
+# 3. Ensure project builds
+pnpm build      
+
+# 4. Run all tests
+pnpm test       
+```
+
+**Biome catches:**
+- Formatting issues (replaces Prettier)
+- Linting issues (replaces ESLint)
+- Unused imports and variables
+- Code complexity issues
+- Suspicious patterns (like `any` usage)
+
 ## Summary
 
 Following these coding standards ensures:
