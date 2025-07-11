@@ -93,9 +93,7 @@ export async function readFile(filePath: string): Promise<string> {
     return await fs.promises.readFile(filePath, "utf-8");
   } catch (error) {
     throw new FileNotReadableError(
-      `Failed to read file ${filePath}: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
+      `Failed to read file ${filePath}: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -105,10 +103,7 @@ export async function readFile(filePath: string): Promise<string> {
  * @param filePath - Path to the file to write
  * @param content - Content to write
  */
-export async function writeFile(
-  filePath: string,
-  content: string
-): Promise<void> {
+export async function writeFile(filePath: string, content: string): Promise<void> {
   try {
     await fs.promises.writeFile(filePath, content, "utf-8");
   } catch (error) {

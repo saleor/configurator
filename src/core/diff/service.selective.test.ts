@@ -112,7 +112,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).not.toContain("Channels");
       expect(entityTypes).not.toContain("Product Types");
@@ -131,7 +131,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).not.toContain("Shop Settings");
       expect(entityTypes).not.toContain("Product Types");
@@ -150,7 +150,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).not.toContain("Product Types");
@@ -169,7 +169,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Product Types");
       expect(entityTypes).not.toContain("Shop Settings");
       expect(entityTypes).not.toContain("Channels");
@@ -188,7 +188,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Page Types");
       expect(entityTypes).not.toContain("Shop Settings");
       expect(entityTypes).not.toContain("Channels");
@@ -209,7 +209,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).not.toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).toContain("Product Types");
@@ -228,7 +228,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).not.toContain("Channels");
       expect(entityTypes).toContain("Product Types");
@@ -247,7 +247,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).not.toContain("Product Types");
@@ -269,7 +269,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       // Based on shouldIncludeSection logic, when includeSections is not empty,
       // it should only include those sections regardless of exclude
       expect(entityTypes).toContain("Shop Settings");
@@ -290,7 +290,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).not.toContain("Product Types");
@@ -308,7 +308,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).toContain("Product Types");
@@ -327,7 +327,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.results).toBeDefined();
-      const entityTypes = result.results.map(r => r.entityType);
+      const entityTypes = result.results.map((r) => r.entityType);
       expect(entityTypes).toContain("Shop Settings");
       expect(entityTypes).toContain("Channels");
       expect(entityTypes).toContain("Product Types");
@@ -340,7 +340,7 @@ describe("DiffService - Selective Options", () => {
       // This test verifies that we're not fetching/processing data for excluded sections
       // Note: In a real implementation, we would mock the individual comparators
       // and verify they're not called for excluded sections
-      
+
       // Arrange
       const options: DiffServiceIntrospectOptions = {
         includeSections: ["shop"], // Only include shop
@@ -372,10 +372,10 @@ describe("DiffService - Selective Options", () => {
       // Assert
       expect(result.totalChanges).toBeGreaterThanOrEqual(0);
       expect(result.creates + result.updates + result.deletes).toBe(result.totalChanges);
-      
+
       // All results should be from Shop Settings only
-      const entityTypes = result.results.map(r => r.entityType);
-      expect(entityTypes.every(type => type === "Shop Settings")).toBe(true);
+      const entityTypes = result.results.map((r) => r.entityType);
+      expect(entityTypes.every((type) => type === "Shop Settings")).toBe(true);
     });
   });
 });

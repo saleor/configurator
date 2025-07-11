@@ -10,11 +10,7 @@ import {
   ProductTypeComparator,
   ShopComparator,
 } from "./comparators";
-import {
-  ConfigurationLoadError,
-  DiffComparisonError,
-  RemoteConfigurationError,
-} from "./errors";
+import { ConfigurationLoadError, DiffComparisonError, RemoteConfigurationError } from "./errors";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,
@@ -120,9 +116,7 @@ export class DiffService {
       }
 
       throw new DiffComparisonError(
-        `Diff comparison failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Diff comparison failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -136,9 +130,7 @@ export class DiffService {
    * @throws {RemoteConfigurationError} When remote configuration cannot be retrieved
    * @throws {DiffComparisonError} When comparison fails
    */
-  async compareForIntrospect(
-    options: DiffServiceIntrospectOptions = {}
-  ): Promise<DiffSummary> {
+  async compareForIntrospect(options: DiffServiceIntrospectOptions = {}): Promise<DiffSummary> {
     const { includeSections, excludeSections } = options;
     const startTime = Date.now();
     logger.info("Starting diff comparison for introspect");
@@ -159,14 +151,10 @@ export class DiffService {
 
       // Perform comparisons with swapped order (remote as source, local as target)
       // This shows what will be removed/added/updated in the local file
-      const results = await this.performSelectiveComparisons(
-        remoteConfig,
-        localConfig,
-        {
-          includeSections,
-          excludeSections,
-        }
-      );
+      const results = await this.performSelectiveComparisons(remoteConfig, localConfig, {
+        includeSections,
+        excludeSections,
+      });
 
       // Calculate summary statistics
       const summary = this.calculateSummary(results);
@@ -213,12 +201,7 @@ export class DiffService {
   async diffForIntrospectWithFormatting(
     options: IntrospectDiffOptions = {}
   ): Promise<IntrospectDiffResult> {
-    const {
-      format = "table",
-      quiet = false,
-      includeSections,
-      excludeSections,
-    } = options;
+    const { format = "table", quiet = false, includeSections, excludeSections } = options;
 
     logger.info("Starting diff process for introspect");
 
@@ -352,18 +335,11 @@ export class DiffService {
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
-      comparisons.push(
-        this.performComparison("shop", localConfig.shop, remoteConfig.shop)
-      );
+      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
     }
 
     // Entity array comparisons
-    const entityTypes = [
-      "channels",
-      "productTypes",
-      "pageTypes",
-      "categories",
-    ] as const;
+    const entityTypes = ["channels", "productTypes", "pageTypes", "categories"] as const;
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
@@ -403,9 +379,7 @@ export class DiffService {
 
     // Shop settings comparison
     if (shouldInclude("shop") && this.comparators.has("shop")) {
-      comparisons.push(
-        this.performComparison("shop", localConfig.shop, remoteConfig.shop)
-      );
+      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
     }
 
     // Entity array comparisons
@@ -460,9 +434,7 @@ export class DiffService {
       return results;
     } catch (error) {
       throw new DiffComparisonError(
-        `Failed to compare ${entityType}: ${
-          error instanceof Error ? error.message : String(error)
-        }`
+        `Failed to compare ${entityType}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -470,9 +442,7 @@ export class DiffService {
   /**
    * Executes promises with concurrency limit
    */
-  private async executeConcurrently<T>(
-    promises: readonly Promise<T>[]
-  ): Promise<T[]> {
+  private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
     const results: T[] = [];
     const executing = new Set<Promise<void>>();
 

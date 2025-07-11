@@ -211,10 +211,19 @@ describe("ConfigurationService", () => {
       );
       const result = service.mapConfig(completeConfig);
 
-      expect((result.shop as any)?.defaultMailSenderName).toBe("Test Store");
+      expect(
+        (result.shop as unknown as { defaultMailSenderName: string })
+          ?.defaultMailSenderName
+      ).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
-      expect((result.productTypes?.[0] as any)?.attributes).toHaveLength(1);
-      expect((result.pageTypes?.[0] as any)?.attributes).toHaveLength(1);
+      expect(
+        (result.productTypes?.[0] as unknown as { attributes: unknown[] })
+          ?.attributes
+      ).toHaveLength(1);
+      expect(
+        (result.pageTypes?.[0] as unknown as { attributes: unknown[] })
+          ?.attributes
+      ).toHaveLength(1);
     });
 
     it("should handle different attribute input types", () => {
@@ -257,7 +266,7 @@ describe("ConfigurationService", () => {
         createMockStorage()
       );
       const result = service.mapConfig(rawConfig);
-      const attributes = (result.productTypes?.[0] as any)?.attributes;
+      const attributes = result.productTypes?.[0]?.productAttributes;
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);

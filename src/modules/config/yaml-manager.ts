@@ -1,10 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
-import { ZodError } from "zod";
 import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
-import { configSchema, type SaleorConfig } from "./schema/schema";
 import { EntityNotFoundError } from "./errors";
+import { configSchema, type SaleorConfig } from "./schema/schema";
 
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;

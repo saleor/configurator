@@ -69,9 +69,7 @@ describe("ProductService", () => {
       };
 
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
-      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(
-        mockVariant
-      );
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant);
 
       const result = await service.bootstrapProduct(mockProductInput);
 
@@ -105,9 +103,7 @@ describe("ProductService", () => {
       };
 
       // Set up all required mocks
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(
-        existingProduct
-      );
+      vi.mocked(mockRepository.getProductByName).mockResolvedValue(existingProduct);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -126,12 +122,8 @@ describe("ProductService", () => {
         channelListings: [],
       };
 
-      vi.mocked(mockRepository.updateProduct).mockResolvedValue(
-        existingProduct
-      );
-      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(
-        mockVariant
-      );
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant);
 
       const result = await service.bootstrapProduct(mockProductInput);
 

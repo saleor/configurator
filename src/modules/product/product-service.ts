@@ -1,6 +1,9 @@
 import { logger } from "../../lib/logger";
 import { EntityNotFoundError } from "../config/errors";
-import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
+import type {
+  ProductInput,
+  ProductVariantInput,
+} from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import type { Product, ProductOperations, ProductVariant } from "./repository";
 
@@ -11,8 +14,12 @@ export class ProductService {
     this.attributeResolver = new AttributeResolver(repository);
   }
 
-  private async resolveProductTypeReference(productTypeName: string): Promise<string> {
-    const productType = await this.repository.getProductTypeByName(productTypeName);
+  private async resolveProductTypeReference(
+    productTypeName: string
+  ): Promise<string> {
+    const productType = await this.repository.getProductTypeByName(
+      productTypeName
+    );
     if (!productType) {
       throw new EntityNotFoundError(
         `Product type "${productTypeName}" not found. Make sure it exists in your productTypes configuration.`
@@ -21,7 +28,9 @@ export class ProductService {
     return productType.id;
   }
 
-  private async resolveCategoryReference(categoryPath: string): Promise<string> {
+  private async resolveCategoryReference(
+    categoryPath: string
+  ): Promise<string> {
     const category = await this.repository.getCategoryByPath(categoryPath);
     if (!category) {
       throw new EntityNotFoundError(
@@ -50,15 +59,23 @@ export class ProductService {
     logger.debug("Looking up existing product", { name: productInput.name });
 
     // Resolve references first
-    const productTypeId = await this.resolveProductTypeReference(productInput.productType);
-    const categoryId = await this.resolveCategoryReference(productInput.category);
+    const productTypeId = await this.resolveProductTypeReference(
+      productInput.productType
+    );
+    const categoryId = await this.resolveCategoryReference(
+      productInput.category
+    );
     const slug = productInput.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
-    const attributes = await this.resolveAttributeValues(productInput.attributes);
+    const attributes = await this.resolveAttributeValues(
+      productInput.attributes
+    );
 
-    const existingProduct = await this.repository.getProductByName(productInput.name);
+    const existingProduct = await this.repository.getProductByName(
+      productInput.name
+    );
 
     if (existingProduct) {
       logger.debug("Found existing product, updating", {
@@ -111,7 +128,9 @@ export class ProductService {
         let variant: ProductVariant;
 
         // Check if variant with this SKU already exists
-        const existingVariant = await this.repository.getProductVariantBySku(variantInput.sku);
+        const existingVariant = await this.repository.getProductVariantBySku(
+          variantInput.sku
+        );
 
         if (existingVariant) {
           logger.debug("Updating existing variant", {
@@ -120,17 +139,22 @@ export class ProductService {
           });
 
           // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
+          const variantAttributes = await this.resolveAttributeValues(
+            variantInput.attributes
+          );
 
           // Update existing variant (note: can't change product association during update)
-          variant = await this.repository.updateProductVariant(existingVariant.id, {
-            name: variantInput.name,
-            sku: variantInput.sku,
-            trackInventory: true,
-            weight: variantInput.weight,
-            attributes: variantAttributes,
-            // TODO: Handle channelListings in separate commit
-          });
+          variant = await this.repository.updateProductVariant(
+            existingVariant.id,
+            {
+              name: variantInput.name,
+              sku: variantInput.sku,
+              trackInventory: true,
+              weight: variantInput.weight,
+              attributes: variantAttributes,
+              // TODO: Handle channelListings in separate commit
+            }
+          );
 
           logger.info("Updated existing product variant", {
             variantId: variant.id,
@@ -141,7 +165,9 @@ export class ProductService {
           logger.debug("Creating new variant", { sku: variantInput.sku });
 
           // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
+          const variantAttributes = await this.resolveAttributeValues(
+            variantInput.attributes
+          );
 
           // Create new variant
           variant = await this.repository.createProductVariant({
@@ -187,7 +213,10 @@ export class ProductService {
       const product = await this.upsertProduct(productInput);
 
       // 2. Create variants
-      const variants = await this.createProductVariants(product, productInput.variants);
+      const variants = await this.createProductVariants(
+        product,
+        productInput.variants
+      );
 
       logger.info("Successfully bootstrapped product", {
         productId: product.id,

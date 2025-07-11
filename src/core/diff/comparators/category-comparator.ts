@@ -82,11 +82,11 @@ export class CategoryComparator extends BaseEntityComparator<
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
-    const localSlug = this.getSlug(local);
-    const remoteSlug = this.getSlug(remote);
+    const localName = this.getName(local);
+    const remoteName = this.getName(remote);
 
-    if (localSlug && remoteSlug && localSlug !== remoteSlug) {
-      changes.push(this.createFieldChange("slug", remoteSlug, localSlug));
+    if (localName && remoteName && localName !== remoteName) {
+      changes.push(this.createFieldChange("name", remoteName, localName));
     }
 
     // Compare subcategories if they exist
@@ -103,18 +103,22 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Safely extracts slug from a category entity
    */
-  private getSlug(entity: CategoryEntity): string | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (entity as any).slug;
+  private getName(entity: CategoryEntity): string | undefined {
+    return entity.name;
   }
 
   /**
    * Safely extracts subcategories from a category entity
    */
   private getSubcategories(entity: CategoryEntity): readonly Subcategory[] {
-    // Type assertion is safe here since we're accessing a known property
-    const subcategories = (entity as any).subcategories;
-    return Array.isArray(subcategories) ? subcategories : [];
+    if (
+      typeof entity === "object" &&
+      entity !== null &&
+      "subcategories" in entity
+    ) {
+      return entity.subcategories ?? [];
+    }
+    return [];
   }
 
   /**

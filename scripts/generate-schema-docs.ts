@@ -28,7 +28,7 @@
  * Output: SCHEMA.md (auto-generated, gitignored)
  */
 
-import { writeFileSync } from "fs";
+import { writeFileSync } from "node:fs";
 import { z } from "zod";
 import { configSchema } from "../src/modules/config/schema/schema.js";
 
@@ -39,6 +39,7 @@ interface SchemaDocumentation {
   description?: string;
   enum?: string[];
   properties?: SchemaDocumentation[];
+  // biome-ignore lint/suspicious/noExplicitAny: utility script
   example?: any;
 }
 
@@ -53,7 +54,9 @@ function analyzeZodSchema(
   };
 
   // Extract description from Zod schema
+  // biome-ignore lint/suspicious/noExplicitAny: utility script
   if (schema && (schema as any)._def?.description) {
+    // biome-ignore lint/suspicious/noExplicitAny: utility script
     doc.description = (schema as any)._def.description;
   }
 
@@ -107,6 +110,7 @@ function analyzeZodSchema(
 
   // Handle records (like z.record(z.string()))
   if (schema instanceof z.ZodRecord) {
+    // biome-ignore lint/suspicious/noExplicitAny: utility script
     const valueType = analyzeZodSchema((schema as any)._def.valueType, "value");
     doc.type = `Record<string, ${valueType.type}>`;
     return doc;

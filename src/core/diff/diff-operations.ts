@@ -1,4 +1,10 @@
-import type { DiffSummary, DiffResult, DiffStatistics, EntityType, DiffOperation } from "./types";
+import type {
+  DiffOperation,
+  DiffResult,
+  DiffStatistics,
+  DiffSummary,
+  EntityType,
+} from "./types";
 
 /**
  * Calculates statistics from a diff summary
@@ -60,7 +66,9 @@ export function filterDiffByOperation(
   summary: DiffSummary,
   operations: readonly DiffOperation[]
 ): DiffSummary {
-  const filteredResults = summary.results.filter((result) => operations.includes(result.operation));
+  const filteredResults = summary.results.filter((result) =>
+    operations.includes(result.operation)
+  );
 
   return recalculateDiffSummary(filteredResults);
 }

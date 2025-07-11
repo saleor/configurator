@@ -66,9 +66,7 @@ describe("SaleorConfigurator enhanced functionality", () => {
         ],
       };
 
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockResolvedValue(mockRemoteConfig);
+      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(mockRemoteConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -84,17 +82,13 @@ describe("SaleorConfigurator enhanced functionality", () => {
       mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(error);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow(
-        "GraphQL composition failed"
-      );
+      await expect(configurator.introspect()).rejects.toThrow("GraphQL composition failed");
     });
 
     it("should introspect with empty configuration", async () => {
       // Arrange
       const emptyConfig = {};
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockResolvedValue(emptyConfig);
+      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(emptyConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -128,9 +122,7 @@ describe("SaleorConfigurator enhanced functionality", () => {
         productTypes: [{ name: "Product Type 1", attributes: [] }],
       };
 
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockResolvedValue(complexConfig);
+      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(complexConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -144,10 +136,7 @@ describe("SaleorConfigurator enhanced functionality", () => {
       const config1 = { shop: { headerText: "Shop 1" } };
       const config2 = { shop: { headerText: "Shop 2" } };
 
-      const mockRetrieve = vi
-        .fn()
-        .mockResolvedValueOnce(config1)
-        .mockResolvedValueOnce(config2);
+      const mockRetrieve = vi.fn().mockResolvedValueOnce(config1).mockResolvedValueOnce(config2);
 
       mockServices.configuration!.retrieve = mockRetrieve;
 
@@ -168,27 +157,19 @@ describe("SaleorConfigurator enhanced functionality", () => {
     it("should handle network errors gracefully", async () => {
       // Arrange
       const networkError = new Error("Network request failed");
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockRejectedValue(networkError);
+      mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(networkError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow(
-        "Network request failed"
-      );
+      await expect(configurator.introspect()).rejects.toThrow("Network request failed");
     });
 
     it("should handle authentication errors", async () => {
       // Arrange
       const authError = new Error("GraphQL Error: Unauthorized (401)");
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockRejectedValue(authError);
+      mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(authError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow(
-        "GraphQL Error: Unauthorized (401)"
-      );
+      await expect(configurator.introspect()).rejects.toThrow("GraphQL Error: Unauthorized (401)");
     });
   });
 
@@ -239,9 +220,7 @@ describe("SaleorConfigurator enhanced functionality", () => {
         ],
       };
 
-      mockServices.configuration!.retrieve = vi
-        .fn()
-        .mockResolvedValue(complexConfig);
+      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(complexConfig);
 
       // Act
       const result = await configurator.introspect();

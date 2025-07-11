@@ -1,12 +1,15 @@
 import { z } from "zod";
-import type { ConfigurationSection, ParsedSelectiveOptions } from "../../core/diff/types";
+import type {
+  ConfigurationSection,
+  ParsedSelectiveOptions,
+} from "../../core/diff/types";
 
 // Re-export types for backwards compatibility
 export type { ConfigurationSection } from "../../core/diff/types";
 
 export const AVAILABLE_SECTIONS = [
   "shop",
-  "channels", 
+  "channels",
   "productTypes",
   "pageTypes",
   "categories",
@@ -18,12 +21,19 @@ export const selectiveOptionsSchema = z.object({
   only: z
     .string()
     .optional()
-    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
+    .describe(
+      "Comma-separated list of sections to include (e.g., 'channels,shop')"
+    ),
   include: z
     .string()
     .optional()
-    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
-  exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
+    .describe(
+      "Comma-separated list of sections to include (e.g., 'channels,shop')"
+    ),
+  exclude: z
+    .string()
+    .optional()
+    .describe("Comma-separated list of sections to exclude"),
 });
 
 export type SelectiveOptions = z.infer<typeof selectiveOptionsSchema>;
@@ -37,7 +47,9 @@ export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
   })
 );
 
-export type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
+export type SelectiveOptionsWithOnly = z.infer<
+  typeof selectiveOptionsWithOnlySchema
+>;
 
 // Remove local interface definition since we import it from types
 
@@ -65,12 +77,17 @@ const validateSections = (
   );
   if (invalidSections.length > 0) {
     throw new Error(
-      `Invalid sections specified in ${optionName}: ${invalidSections.join(", ")}. Available sections: ${AVAILABLE_SECTIONS.join(", ")}`
+      `Invalid sections specified in ${optionName}: ${invalidSections.join(
+        ", "
+      )}. Available sections: ${AVAILABLE_SECTIONS.join(", ")}`
     );
   }
 };
 
-const parseIncludeSections = (only?: string, include?: string): ConfigurationSection[] => {
+const parseIncludeSections = (
+  only?: string,
+  include?: string
+): ConfigurationSection[] => {
   const includeString = include || only;
   if (!includeString) return [];
 
@@ -100,20 +117,14 @@ export const parseSelectiveOptions = (
 
   // Type-safe access to properties
   const only = "only" in validatedOptions ? validatedOptions.only : undefined;
-  const include = "include" in validatedOptions ? validatedOptions.include : undefined;
+  const include =
+    "include" in validatedOptions ? validatedOptions.include : undefined;
   const exclude = validatedOptions.exclude;
 
   return {
     includeSections: parseIncludeSections(only, include),
     excludeSections: parseExcludeSections(exclude),
   };
-};
-
-const isIncludedByOnlyFilter = (
-  section: ConfigurationSection,
-  includeSections: ConfigurationSection[]
-): boolean => {
-  return includeSections.length === 0 || includeSections.includes(section);
 };
 
 const isExcludedByExcludeFilter = (
@@ -143,14 +154,20 @@ export const shouldIncludeSection = (
   return true;
 };
 
-const createIncludeMessage = (includeSections: readonly ConfigurationSection[]): string | undefined => {
+const createIncludeMessage = (
+  includeSections: readonly ConfigurationSection[]
+): string | undefined => {
   return includeSections.length > 0
     ? `📋 Including only: ${includeSections.join(", ")}`
     : undefined;
 };
 
-const createExcludeMessage = (excludeSections: readonly ConfigurationSection[]): string | undefined => {
-  return excludeSections.length > 0 ? `📋 Excluding: ${excludeSections.join(", ")}` : undefined;
+const createExcludeMessage = (
+  excludeSections: readonly ConfigurationSection[]
+): string | undefined => {
+  return excludeSections.length > 0
+    ? `📋 Excluding: ${excludeSections.join(", ")}`
+    : undefined;
 };
 
 export const getSelectiveOptionsSummary = (

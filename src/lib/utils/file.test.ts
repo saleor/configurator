@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fs from "fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  fileExists,
-  createBackupPath,
   createBackup,
+  createBackupPath,
   ensureDirectory,
+  fileExists,
   readFile,
   writeFile,
 } from "./file";

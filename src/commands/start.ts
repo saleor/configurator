@@ -24,10 +24,7 @@ const INTERACTIVE_CHOICES = [
 async function runInteractiveSetup(): Promise<void> {
   cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
 
-  const selectedAction = await selectOption(
-    "What would you like to do?",
-    INTERACTIVE_CHOICES
-  );
+  const selectedAction = await selectOption("What would you like to do?", INTERACTIVE_CHOICES);
 
   cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
 

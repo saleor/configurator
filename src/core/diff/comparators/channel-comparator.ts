@@ -152,8 +152,14 @@ export class ChannelComparator extends BaseEntityComparator<
   private getChannelSettings(
     channel: ChannelEntity
   ): ChannelSettings | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (channel as any).settings;
+    if (
+      typeof channel === "object" &&
+      channel !== null &&
+      "settings" in channel
+    ) {
+      return channel.settings ?? undefined;
+    }
+    return undefined;
   }
 
   /**

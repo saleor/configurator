@@ -1,5 +1,5 @@
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
-import type { DiffResult, DiffSummary } from "../types";
+import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
 /**
@@ -58,10 +58,10 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   private addEntitySection(
     lines: string[],
-    entityType: string,
+    entityType: EntityType,
     results: readonly DiffResult[]
   ): void {
-    const icon = this.getEntityIcon(entityType as any);
+    const icon = this.getEntityIcon(entityType);
     lines.push(`${icon} ${entityType}`);
     lines.push(
       this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR)
@@ -128,8 +128,11 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds specific details for entity creation
    */
-  private addCreationDetails(lines: string[], entity: unknown): void {
-    const typedEntity = entity as any;
+  private addCreationDetails(
+    lines: string[],
+    entity: Record<string, unknown>
+  ): void {
+    const typedEntity = entity;
 
     if (typedEntity?.currencyCode) {
       lines.push(

@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { ServiceContainer } from "../service-container";
+import { type DiffChange, DiffFormatter, type DiffSummary } from ".";
 import { DiffService } from "./service";
-import { DiffFormatter, type DiffSummary, type DiffChange } from ".";
 
 /**
  * Integration Tests for Diff Functionality
@@ -133,7 +134,7 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
       const summary = await diffService.compare();
@@ -159,7 +160,7 @@ productTypes:
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
       const summary = await diffService.compare();
@@ -178,7 +179,7 @@ productTypes:
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
       const summary = await diffService.compare();
@@ -203,7 +204,7 @@ productTypes:
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       // Test with custom configuration
       const diffService = new DiffService(mockServices, {
@@ -333,7 +334,7 @@ productTypes:
             throw new Error("Network error");
           },
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
 
@@ -354,11 +355,13 @@ productTypes:
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
 
-      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
+      await expect(diffService.compare()).rejects.toThrow(
+        "Failed to load local configuration"
+      );
     });
   });
 
@@ -402,7 +405,7 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
       const summary = await diffService.compare();
@@ -453,7 +456,7 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
       const summary = await diffService.compare();
@@ -461,7 +464,9 @@ productTypes:
       expect(summary.totalChanges).toBeGreaterThan(0);
 
       // Should detect deletions
-      const deleteOperations = summary.results.filter((r) => r.operation === "DELETE");
+      const deleteOperations = summary.results.filter(
+        (r) => r.operation === "DELETE"
+      );
       expect(deleteOperations.length).toBeGreaterThan(0);
     });
   });
@@ -498,7 +503,7 @@ productTypes:
           retrieve: async () => emptyConfig,
           retrieveWithoutSaving: async () => emptyConfig,
         },
-      } as any;
+      } as unknown as ServiceContainer;
 
       const diffService = new DiffService(mockServices);
 

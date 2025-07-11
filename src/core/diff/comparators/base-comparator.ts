@@ -25,8 +25,11 @@ export interface EntityComparator<TLocal = unknown, TRemote = unknown> {
  * @template TRemote The type of remote entities (usually arrays)
  * @template TEntity The type of individual entities
  */
-export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
-  implements EntityComparator<TLocal, TRemote>
+export abstract class BaseEntityComparator<
+  TLocal,
+  TRemote,
+  TEntity extends Record<string, unknown>
+> implements EntityComparator<TLocal, TRemote>
 {
   /**
    * The entity type name for diff results
@@ -100,7 +103,7 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity>
    * @param entity The entity to create
    * @returns Diff result for creation
    */
-  protected createCreateResult(entity: TEntity): DiffResult {
+  protected createCreateResult(entity: TEntity): DiffResult<TEntity> {
     return {
       operation: "CREATE",
       entityType: this.entityType,

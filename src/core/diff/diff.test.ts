@@ -70,7 +70,8 @@ describe("DiffFormatter", () => {
                 field: "attributes",
                 currentValue: [],
                 desiredValue: ["Color"],
-                description: 'Attribute "Color" added (in config, not on Saleor)',
+                description:
+                  'Attribute "Color" added (in config, not on Saleor)',
               },
             ],
           },
@@ -84,7 +85,9 @@ describe("DiffFormatter", () => {
       expect(output).toContain("📊 Configuration Diff Results");
       expect(output).toContain("📦 Product Types");
       expect(output).toContain('🔄 Update: "ProductTypeA"');
-      expect(output).toContain('Attribute "Color" added (in config, not on Saleor)');
+      expect(output).toContain(
+        'Attribute "Color" added (in config, not on Saleor)'
+      );
       expect(output).toContain("Total Changes: 1");
       expect(output).toContain("• 0 Creations");
       expect(output).toContain("• 1 Update");
@@ -120,9 +123,21 @@ describe("DiffFormatter", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test4" },
-          { operation: "DELETE", entityType: "Shop Settings", entityName: "Test5" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test4",
+          },
+          {
+            operation: "DELETE",
+            entityType: "Shop Settings",
+            entityName: "Test5",
+          },
         ],
       };
 
@@ -218,7 +233,9 @@ describe("DetailedDiffFormatter", () => {
     } as DiffSummary;
 
     // Act & Assert
-    expect(() => formatter.format(invalidSummary)).toThrow("Total changes cannot be negative");
+    expect(() => formatter.format(invalidSummary)).toThrow(
+      "Total changes cannot be negative"
+    );
   });
 });
 
@@ -239,8 +256,16 @@ describe("SummaryDiffFormatter", () => {
       deletes: 1,
       results: [
         { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-        { operation: "UPDATE", entityType: "Product Types", entityName: "Test2" },
-        { operation: "DELETE", entityType: "Shop Settings", entityName: "Test3" },
+        {
+          operation: "UPDATE",
+          entityType: "Product Types",
+          entityName: "Test2",
+        },
+        {
+          operation: "DELETE",
+          entityType: "Shop Settings",
+          entityName: "Test3",
+        },
       ],
     };
 
@@ -267,8 +292,16 @@ describe("Diff Operations", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
-          { operation: "DELETE", entityType: "Shop Settings", entityName: "Test4" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
+          {
+            operation: "DELETE",
+            entityType: "Shop Settings",
+            entityName: "Test4",
+          },
         ],
       };
 
@@ -315,7 +348,11 @@ describe("Diff Operations", () => {
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
           { operation: "CREATE", entityType: "Channels", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
         ],
       };
 
@@ -327,7 +364,9 @@ describe("Diff Operations", () => {
       expect(filtered.creates).toBe(2);
       expect(filtered.updates).toBe(0);
       expect(filtered.results).toHaveLength(2);
-      expect(filtered.results.every((r) => r.entityType === "Channels")).toBe(true);
+      expect(filtered.results.every((r) => r.entityType === "Channels")).toBe(
+        true
+      );
     });
   });
 
@@ -341,8 +380,16 @@ describe("Diff Operations", () => {
         deletes: 0,
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-          { operation: "CREATE", entityType: "Product Types", entityName: "Test2" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test3" },
+          {
+            operation: "CREATE",
+            entityType: "Product Types",
+            entityName: "Test2",
+          },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test3",
+          },
         ],
       };
 
@@ -354,7 +401,9 @@ describe("Diff Operations", () => {
       expect(filtered.creates).toBe(2);
       expect(filtered.updates).toBe(0);
       expect(filtered.results).toHaveLength(2);
-      expect(filtered.results.every((r) => r.operation === "CREATE")).toBe(true);
+      expect(filtered.results.every((r) => r.operation === "CREATE")).toBe(
+        true
+      );
     });
   });
 
@@ -366,7 +415,9 @@ describe("Diff Operations", () => {
         creates: 1,
         updates: 0,
         deletes: 0,
-        results: [{ operation: "CREATE", entityType: "Channels", entityName: "Test" }],
+        results: [
+          { operation: "CREATE", entityType: "Channels", entityName: "Test" },
+        ],
       };
 
       // Act & Assert
@@ -398,7 +449,11 @@ describe("Diff Operations", () => {
         deletes: 0,
         results: [
           { operation: "CREATE", entityType: "Channels", entityName: "Test1" },
-          { operation: "UPDATE", entityType: "Product Types", entityName: "Test2" },
+          {
+            operation: "UPDATE",
+            entityType: "Product Types",
+            entityName: "Test2",
+          },
         ],
       };
 
@@ -413,7 +468,9 @@ describe("Diff Operations", () => {
         creates: 0,
         updates: 0,
         deletes: 1,
-        results: [{ operation: "DELETE", entityType: "Channels", entityName: "Test" }],
+        results: [
+          { operation: "DELETE", entityType: "Channels", entityName: "Test" },
+        ],
       };
 
       // Act & Assert
@@ -524,8 +581,12 @@ describe("IntrospectDiffFormatter", () => {
       const output = formatter.format(summary);
 
       // Assert
-      expect(output).toContain('Will be removed: "Old Channel" (not present on Saleor)');
-      expect(output).toContain('Will be removed: "Deprecated Type" (not present on Saleor)');
+      expect(output).toContain(
+        'Will be removed: "Old Channel" (not present on Saleor)'
+      );
+      expect(output).toContain(
+        'Will be removed: "Deprecated Type" (not present on Saleor)'
+      );
       expect(output).toContain("2 removed");
     });
 
@@ -563,7 +624,9 @@ describe("IntrospectDiffFormatter", () => {
 
       // Assert
       expect(output).toContain('Will be updated: "Shop Settings"');
-      expect(output).toContain('defaultMailSenderName: "Local Shop" → "Remote Shop"');
+      expect(output).toContain(
+        'defaultMailSenderName: "Local Shop" → "Remote Shop"'
+      );
       expect(output).toContain('displayGrossPrices: "false" → "true"');
       expect(output).toContain("1 modified");
     });
@@ -582,7 +645,9 @@ describe("IntrospectDiffFormatter", () => {
       const output = formatter.format(summary);
 
       // Assert
-      expect(output).toContain("✅ Local configuration is already up to date with Saleor!");
+      expect(output).toContain(
+        "✅ Local configuration is already up to date with Saleor!"
+      );
     });
 
     it("should format product types with attributes", () => {
@@ -635,7 +700,9 @@ describe("IntrospectDiffFormatter", () => {
             operation: "UPDATE",
             entityType: "Shop Settings",
             entityName: "Shop Settings",
-            changes: [{ field: "name", currentValue: "Remote", desiredValue: "Local" }],
+            changes: [
+              { field: "name", currentValue: "Remote", desiredValue: "Local" },
+            ],
           },
           {
             operation: "DELETE",
