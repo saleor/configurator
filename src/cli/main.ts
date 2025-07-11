@@ -2,6 +2,8 @@
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import { commands } from "../commands";
+import { logger } from "../lib/logger";
+import { BaseError } from "../lib/errors/shared";
 import { type CommandConfig, createCommand } from "./command";
 import { cliConsole } from "./console";
 
@@ -84,10 +86,50 @@ async function handleCliError(error: unknown): Promise<void> {
     process.exit(0);
   }
 
-  const errorMessage = error instanceof Error ? error.message : "Unknown error";
-  cliConsole.error(errorMessage);
+  // Log the full error for debugging
+  logger.error("CLI error occurred", { error });
+
+  // Display user-friendly error message
+  if (error instanceof BaseError) {
+    cliConsole.error(error);
+  } else if (error instanceof Error) {
+    cliConsole.error(error.message);
+  } else {
+    cliConsole.error("An unexpected error occurred");
+  }
+  
   process.exit(1);
 }
+
+// Global error handlers
+process.on("uncaughtException", (error: Error) => {
+  logger.fatal("Uncaught Exception:", error);
+  cliConsole.error("💥 An unexpected error occurred. Please report this issue.");
+  
+  if (process.env.NODE_ENV === "development") {
+    console.error(error.stack);
+  }
+  
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason: unknown) => {
+  logger.fatal("Unhandled Promise Rejection:", reason);
+  
+  if (reason instanceof BaseError) {
+    cliConsole.error(reason);
+  } else if (reason instanceof Error) {
+    cliConsole.error(`💥 Unhandled error: ${reason.message}`);
+  } else {
+    cliConsole.error("💥 An unhandled promise rejection occurred");
+  }
+  
+  if (process.env.NODE_ENV === "development") {
+    console.error(reason);
+  }
+  
+  process.exit(1);
+});
 
 export async function runCLI(): Promise<void> {
   const program = createCLI();

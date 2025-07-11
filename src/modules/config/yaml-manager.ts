@@ -1,8 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
+import { ZodError } from "zod";
+import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
 import { ConfigurationValidationError } from "../../core/diff/errors";
 import { configSchema, type SaleorConfig } from "./schema/schema";
+import { EntityNotFoundError } from "./errors";
 
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;
@@ -61,27 +64,15 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       logger.debug("Parsed configuration", { data });
 
       if (!success) {
-        const validationErrors = error.errors.map((issue) => ({
-          path: issue.path?.length ? issue.path.join(".") : "root",
-          message: issue.message,
-        }));
-
-        const errorSummary = validationErrors
-          .map((err) => `${err.path}: ${err.message}`)
-          .join(", ");
-
-        logger.warn("Configuration validation failed", {
-          file: this.configPath,
-          errorCount: validationErrors.length,
-          summary: errorSummary,
-        });
-
-        const validationError = new ConfigurationValidationError(
-          `Configuration file has ${validationErrors.length} validation error${validationErrors.length > 1 ? "s" : ""}`,
-          this.configPath,
-          validationErrors
+        const validationError = ZodValidationError.fromZodError(
+          error,
+          "Configuration file doesn't match the expected schema"
         );
-        
+
+        logger.error("Configuration validation failed", {
+          errors: error.errors,
+          path: this.configPath,
+        });
         throw validationError;
       }
 
@@ -90,16 +81,12 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       return data;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        const fileNotFoundError = new Error(
+        logger.error("Configuration file not found", { path: this.configPath });
+        throw new EntityNotFoundError(
           `Configuration file not found: ${this.configPath}`
         );
-        logger.error("Configuration file not found", { path: this.configPath });
-        throw fileNotFoundError;
       }
-      logger.error("Failed to load configuration", {
-        error,
-        path: this.configPath,
-      });
+
       throw error;
     }
   }

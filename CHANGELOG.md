@@ -1,5 +1,12 @@
 # saleor-configurator
 
+## 0.5.1
+
+### Patch Changes
+
+- 4b9a651: Improved error messages. Now, Configurator should provide helpful error messages when distinguishing different types of errors (schema validation, GraphQL, configuration logic etc.).
+- da7641e: Fixed the error when schema validation didn't see `null` as a correct value for some of the shop settings.
+
 ## 0.5.0
 
 ### Minor Changes

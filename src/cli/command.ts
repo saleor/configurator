@@ -1,7 +1,9 @@
 import { Command } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
+import { ZodValidationError } from "../lib/errors/zod";
 import { cliConsole } from "./console";
+import { CliArgumentError } from "./errors";
 
 /**
  * Validates and normalizes a Saleor URL
@@ -21,7 +23,7 @@ function validateSaleorUrl(url: string): string {
 
     return parsedUrl.toString();
   } catch {
-    throw new Error(
+    throw new CliArgumentError(
       `Invalid URL format: ${url}. Expected format: https://your-store.saleor.cloud/graphql/`
     );
   }
@@ -127,12 +129,17 @@ export interface CommandConfig<
 }
 
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
+  const isBoolean =
+    field._def.typeName === "ZodBoolean" ||
+    (field._def.typeName === "ZodDefault" &&
+      field._def.innerType._def.typeName === "ZodBoolean");
+
   return {
-    flags: `--${key} <${key}>`,
+    flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
     description: field.description || key,
     defaultValue:
-      "defaultValue" in field._def
-        ? (field._def as any).defaultValue
+      "defaultValue" in field._def && field._def.typeName === "ZodDefault"
+        ? (field._def as z.ZodDefaultDef<z.ZodTypeAny>).defaultValue()
         : undefined,
   };
 }
@@ -146,7 +153,17 @@ function generateOptionsFromSchema(
   Object.entries(shape).forEach(([key, field]) => {
     const { flags, description, defaultValue } =
       getOptionConfigFromZodForCommander(key, field);
-    command.option(flags, description, defaultValue);
+
+    const isBoolean =
+      field._def.typeName === "ZodBoolean" ||
+      (field._def.typeName === "ZodDefault" &&
+        field._def.innerType._def.typeName === "ZodBoolean");
+
+    if (isBoolean) {
+      command.option(flags, description);
+    } else {
+      command.option(flags, description, defaultValue);
+    }
   });
 }
 
@@ -187,39 +204,34 @@ export function createCommand<
           "🔧 Interactive mode: Let's set up your configuration\n"
         );
         const interactiveArgs = await promptForMissingArgs(options);
-        validatedArgs = config.schema.parse(interactiveArgs);
+        const result = config.schema.safeParse(interactiveArgs);
+
+        if (!result.success) {
+          throw ZodValidationError.fromZodError(
+            result.error,
+            "Invalid arguments"
+          );
+        }
+
+        validatedArgs = result.data;
       } else {
-        validatedArgs = config.schema.parse(options);
+        const result = config.schema.safeParse(options);
+
+        if (!result.success) {
+          throw ZodValidationError.fromZodError(
+            result.error,
+            "Invalid arguments"
+          );
+        }
+
+        validatedArgs = result.data;
       }
 
       // Execute the command handler
       await config.handler(validatedArgs);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        cliConsole.error("❌ Invalid arguments:");
-        for (const issue of error.errors) {
-          const path = issue.path.length ? `${issue.path.join(".")}: ` : "";
-          cliConsole.error(`  • ${path}${issue.message}`);
-        }
-
-        // Suggest interactive mode for missing required fields
-        const missingRequired = error.errors.some(
-          (e) =>
-            e.code === "invalid_type" &&
-            ["url", "token"].includes(e.path[0] as string)
-        );
-
-        if (missingRequired) {
-          cliConsole.warn(
-            "\n💡 Tip: Run without arguments for interactive mode"
-          );
-        }
-
-        process.exit(1);
-      } else {
-        cliConsole.error(`❌ Unknown error: ${String(error)}`);
-        process.exit(1);
-      }
+    } catch (error: unknown) {
+      cliConsole.error(error);
+      process.exit(1);
     }
   });
 

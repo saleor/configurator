@@ -93,9 +93,6 @@ export class ProductTypeComparator extends BaseEntityComparator<
    * Gets the name of a product type entity
    */
   protected getEntityName(entity: ProductTypeEntity): string {
-    if (!entity.name || typeof entity.name !== "string") {
-      throw new Error("Product type entity must have a valid name");
-    }
     return entity.name;
   }
 

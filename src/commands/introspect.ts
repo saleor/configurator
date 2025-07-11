@@ -2,6 +2,7 @@ import type { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import { CliFileNotFoundError } from "../cli/errors";
 import { createConfigurator } from "../core/configurator";
 import { ConfigurationValidationError } from "../core/diff/errors";
 import { createBackup, fileExists } from "../lib/utils/file";
@@ -24,7 +25,7 @@ async function analyzeConfigurationDifferences(
   args: IntrospectCommandArgs
 ): Promise<boolean> {
   if (!fileExists(args.config)) {
-    throw new Error("Local configuration file not found");
+    throw new CliFileNotFoundError("Local configuration file not found");
   }
 
   cliConsole.warn(

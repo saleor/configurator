@@ -1,84 +1,118 @@
-import { cliConsole } from "./console";
+import chalk from "chalk";
+import ora, { type Ora } from "ora";
 
-interface ProgressOptions {
-  readonly current: number;
-  readonly total: number;
-  readonly message: string;
-  readonly width?: number;
+export interface ProgressReporter {
+  start(text: string): void;
+  update(text: string): void;
+  succeed(text?: string): void;
+  fail(text?: string): void;
+  info(text: string): void;
+  warn(text: string): void;
 }
 
-export class ProgressIndicator {
-  private static readonly SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-  private spinnerTimer?: NodeJS.Timer;
-  private frameIndex = 0;
-  private lastMessage = "";
+/**
+ * Progress reporter using ora spinner
+ */
+export class OraProgressReporter implements ProgressReporter {
+  private spinner: Ora | null = null;
 
-  startSpinner(message: string): () => void {
-    this.stopSpinner();
-    this.lastMessage = message;
-    this.frameIndex = 0;
-
-    this.spinnerTimer = setInterval(() => {
-      this.renderSpinner();
-    }, 80);
-
-    // Return cleanup function
-    return () => this.stopSpinner();
+  start(text: string): void {
+    this.spinner = ora({
+      text,
+      spinner: "dots",
+    }).start();
   }
 
-  updateMessage(message: string): void {
-    this.lastMessage = message;
-    this.renderSpinner();
-  }
-
-  showProgress({ current, total, message, width = 30 }: ProgressOptions): void {
-    const percentage = Math.round((current / total) * 100);
-    const filled = Math.round((current / total) * width);
-    const empty = width - filled;
-
-    const bar = `[${"█".repeat(filled)}${" ".repeat(empty)}]`;
-    const output = `  ${bar} ${percentage}% - ${message}`;
-
-    this.clearLine();
-    process.stdout.write(output);
-  }
-
-  complete(message: string): void {
-    this.stopSpinner();
-    this.clearLine();
-    cliConsole.success(`  ✓ ${message}`);
-  }
-
-  fail(message: string): void {
-    this.stopSpinner();
-    this.clearLine();
-    cliConsole.error(`  ✗ ${message}`);
-  }
-
-  private renderSpinner(): void {
-    if (!this.spinnerTimer) return;
-
-    const frame = ProgressIndicator.SPINNER_FRAMES[this.frameIndex];
-    this.frameIndex = (this.frameIndex + 1) % ProgressIndicator.SPINNER_FRAMES.length;
-
-    this.clearLine();
-    process.stdout.write(`  ${frame} ${this.lastMessage}`);
-  }
-
-  private stopSpinner(): void {
-    if (this.spinnerTimer) {
-      clearInterval(this.spinnerTimer as any);
-      this.spinnerTimer = undefined;
-      this.clearLine();
+  update(text: string): void {
+    if (this.spinner) {
+      this.spinner.text = text;
     }
   }
 
-  private clearLine(): void {
-    if (process.stdout.isTTY) {
-      process.stdout.clearLine(0);
-      process.stdout.cursorTo(0);
+  succeed(text?: string): void {
+    if (this.spinner) {
+      this.spinner.succeed(text);
+      this.spinner = null;
+    }
+  }
+
+  fail(text?: string): void {
+    if (this.spinner) {
+      this.spinner.fail(text);
+      this.spinner = null;
+    }
+  }
+
+  info(text: string): void {
+    if (this.spinner) {
+      this.spinner.info(text);
+      this.spinner = null;
     } else {
-      process.stdout.write("\n");
+      console.log(chalk.blue("ℹ"), text);
     }
+  }
+
+  warn(text: string): void {
+    if (this.spinner) {
+      this.spinner.warn(text);
+      this.spinner = null;
+    } else {
+      console.log(chalk.yellow("⚠"), text);
+    }
+  }
+}
+
+/**
+ * Progress tracker for bulk operations
+ */
+export class BulkOperationProgress {
+  private current = 0;
+  private failures: Array<{ item: string; error: Error }> = [];
+
+  constructor(
+    private readonly total: number,
+    private readonly operation: string,
+    private readonly reporter: ProgressReporter
+  ) {}
+
+  start(): void {
+    this.reporter.start(`${this.operation} (0/${this.total})`);
+  }
+
+  increment(itemName?: string): void {
+    this.current++;
+    const text = `${this.operation} (${this.current}/${this.total})${
+      itemName ? `: ${itemName}` : ""
+    }`;
+    this.reporter.update(text);
+  }
+
+  addFailure(item: string, error: Error): void {
+    this.failures.push({ item, error });
+  }
+
+  complete(): void {
+    if (this.failures.length === 0) {
+      this.reporter.succeed(
+        `${this.operation} completed (${this.current}/${this.total})`
+      );
+    } else {
+      this.reporter.fail(
+        `${this.operation} completed with ${this.failures.length} failures`
+      );
+
+      // Report failures
+      this.failures.forEach(({ item, error }) => {
+        console.log(chalk.red(`  ❌ ${item}: ${error.message}`));
+      });
+    }
+  }
+
+  getFailures(): Array<{ item: string; error: Error }> {
+    return this.failures;
+  }
+
+  hasFailures(): boolean {
+    return this.failures.length > 0;
   }
 }
