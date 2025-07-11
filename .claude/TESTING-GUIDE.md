@@ -1096,6 +1096,97 @@ class Service {
 }
 ```
 
+## Test Development Checklist
+
+### ✅ Pre-Test Planning
+- [ ] **Create scenario table** before writing any test
+- [ ] **Identify all test cases**: Happy path, errors, edge cases, boundaries
+- [ ] **Document expected behavior** for each scenario
+- [ ] **Plan test data** using factories or builders
+
+### ✅ Test Scenario Planning Table
+Before writing tests, fill out this table:
+
+| Scenario | Description | Input | Expected Output | Validates |
+|----------|-------------|-------|-----------------|-----------|
+| Happy Path | Normal success case | Valid complete data | Success result | Core functionality |
+| Missing Required | Required field absent | Input without required field | ValidationError | Validation rules |
+| Invalid Format | Wrong data type/format | Invalid data | Type/Format error | Type validation |
+| Duplicate Entry | Already exists | Existing identifier | Idempotent result | No duplicates |
+| External Error | API/Network failure | Valid input + failed service | ServiceError | Error handling |
+| Edge Case | Boundary condition | Empty/null/max values | Graceful handling | Robustness |
+
+### ✅ Type-Safe Testing Checklist
+- [ ] **No `any` in tests** - All mocks must use existing types
+- [ ] **Type mock factories** properly using `MockedObject<T>`
+- [ ] **Use existing interfaces** for mock definitions
+- [ ] **Create reusable test data builders** with proper types
+- [ ] **Mock only at boundaries** (repositories, external services)
+
+### ✅ Test Structure Checklist
+- [ ] **Use AAA pattern** - Arrange, Act, Assert clearly separated
+- [ ] **Descriptive test names** that explain what and why
+- [ ] **Nested describes** for logical grouping
+- [ ] **Independent tests** - No shared state between tests
+- [ ] **Fast unit tests** - Mock all I/O operations
+
+### ✅ Test Implementation Checklist
+- [ ] **Test behavior, not implementation**
+- [ ] **Cover all error paths** explicitly
+- [ ] **Test edge cases** (null, undefined, empty, max values)
+- [ ] **Test async behavior** (timeouts, concurrency)
+- [ ] **Use specific assertions** - Avoid toBeTruthy()
+- [ ] **Document complex test scenarios** with comments
+
+### ✅ Mock Best Practices Checklist
+- [ ] **Create typed mock factories** for reuse
+- [ ] **Reset mocks in beforeEach** for isolation
+- [ ] **Mock GraphQL responses** with realistic data
+- [ ] **Use vi.fn()** with proper types
+- [ ] **Avoid mocking internal utilities**
+
+### ✅ CLI Testing Checklist
+- [ ] **Test actual CLI output** using CLITestRunner
+- [ ] **Mock stdin** for interactive prompts
+- [ ] **Verify exit codes** and error output
+- [ ] **Test progress indicators** and formatting
+- [ ] **Cover all command variations**
+
+### ✅ Final Test Review Checklist
+- [ ] All scenarios from planning table covered
+- [ ] No `any` types anywhere in tests
+- [ ] Tests can run in any order
+- [ ] Clear test descriptions
+- [ ] No magic numbers/strings
+- [ ] Comprehensive error coverage
+- [ ] Tests run fast (< 100ms for unit tests)
+- [ ] Complex logic is documented
+- [ ] All tests pass (`pnpm test`)
+- [ ] Code builds without errors (`pnpm build`)
+- [ ] No Biome linting/formatting issues (`pnpm check`)
+
+**Always verify before committing tests:**
+```bash
+# 1. Run all tests
+pnpm test       
+
+# 2. Check code quality with Biome
+pnpm check      # Check for linting/formatting issues
+pnpm check:fix  # Auto-fix any issues
+
+# 3. Verify TypeScript types
+pnpm typecheck  
+
+# 4. Ensure project builds
+pnpm build      
+```
+
+**Note**: Biome will automatically check test files for:
+- Proper formatting (indentation, semicolons, etc.)
+- Unused imports in test files
+- Suspicious patterns like `any` usage
+- Consistent code style
+
 ## Summary
 
 This testing guide ensures:
