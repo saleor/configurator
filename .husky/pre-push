@@ -88,7 +88,7 @@ if [[ "$current_branch" == "main" ]] || [[ "$current_branch" == "master" ]] || [
     print_success "Changeset check skipped for $current_branch branch"
 elif git diff --name-only origin/main...HEAD | grep -E "^(src/|scripts/)" > /dev/null; then
     # Only check for changeset if source code files changed
-    if ls .changeset/*.md &> /dev/null && [ "$(ls -1 .changeset/*.md | wc -l)" -gt 0 ] && ! ls .changeset/*.md | grep -q "README.md"; then
+    if ls .changeset/*.md &> /dev/null && [ "$(ls -1 .changeset/*.md | grep -v "README.md" | wc -l)" -gt 0 ]; then
         print_success "Changeset found for code changes"
     else
         print_warning "No changeset found for source code changes"
