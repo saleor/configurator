@@ -85,7 +85,7 @@ export const INTROSPECT_MESSAGES = {
   // First-time user messages
   FIRST_TIME_WELCOME: "🎉 Welcome! No local configuration found.",
   FIRST_TIME_FETCH:
-    "📥 Fetching your Saleor configuration for the first time...",
+    "Configurator will download the current configuration from the remote Saleor instance.",
   FIRST_TIME_SUCCESS:
     "✨ Your configuration has been initialized successfully!",
   FIRST_TIME_NEXT_STEPS: `
@@ -220,7 +220,6 @@ export class IntrospectCommandHandler {
   ): Promise<CommandResult> {
     if (!isQuiet) {
       cliConsole.info(INTROSPECT_MESSAGES.FIRST_TIME_WELCOME);
-      cliConsole.info(INTROSPECT_MESSAGES.FIRST_TIME_FETCH);
     }
 
     // Create configurator
