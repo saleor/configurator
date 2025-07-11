@@ -109,6 +109,16 @@ export interface IntrospectDiffOptions {
 }
 
 /**
+ * Result of introspect diff operation with formatted output
+ */
+export interface IntrospectDiffResult {
+  /** Summary of the diff operation */
+  readonly summary: DiffSummary;
+  /** Formatted output string (if not in quiet mode) */
+  readonly formattedOutput?: string;
+}
+
+/**
  * Options for diff service when doing introspect comparison
  */
 export interface DiffServiceIntrospectOptions {

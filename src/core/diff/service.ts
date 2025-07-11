@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { ServiceContainer } from "../service-container";
 import {
@@ -14,8 +15,15 @@ import {
   DiffComparisonError,
   RemoteConfigurationError,
 } from "./errors";
-import type { DiffResult, DiffSummary, DiffServiceIntrospectOptions, ConfigurationSection } from "./types";
-import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { IntrospectDiffFormatter } from "./formatters";
+import type {
+  ConfigurationSection,
+  DiffResult,
+  DiffServiceIntrospectOptions,
+  DiffSummary,
+  IntrospectDiffOptions,
+  IntrospectDiffResult,
+} from "./types";
 
 /**
  * Configuration for the diff service
@@ -128,7 +136,9 @@ export class DiffService {
    * @throws {RemoteConfigurationError} When remote configuration cannot be retrieved
    * @throws {DiffComparisonError} When comparison fails
    */
-  async compareForIntrospect(options: DiffServiceIntrospectOptions = {}): Promise<DiffSummary> {
+  async compareForIntrospect(
+    options: DiffServiceIntrospectOptions = {}
+  ): Promise<DiffSummary> {
     const { includeSections, excludeSections } = options;
     const startTime = Date.now();
     logger.info("Starting diff comparison for introspect");
@@ -150,9 +160,12 @@ export class DiffService {
       // Perform comparisons with swapped order (remote as source, local as target)
       // This shows what will be removed/added/updated in the local file
       const results = await this.performSelectiveComparisons(
-        remoteConfig, 
-        localConfig, 
-        { includeSections, excludeSections }
+        remoteConfig,
+        localConfig,
+        {
+          includeSections,
+          excludeSections,
+        }
       );
 
       // Calculate summary statistics
@@ -185,10 +198,86 @@ export class DiffService {
       }
 
       throw new DiffComparisonError(
-        `Introspect diff comparison failed: ${error instanceof Error ? error.message : String(error)}`,
-        undefined,
-        error instanceof Error ? error : undefined
+        `Introspect diff comparison failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
       );
+    }
+  }
+
+  /**
+   * Performs diff for introspect with formatting and output handling
+   * @param options - Options for diff formatting and filtering
+   * @returns Promise resolving to diff result with formatted output
+   */
+  async diffForIntrospectWithFormatting(
+    options: IntrospectDiffOptions = {}
+  ): Promise<IntrospectDiffResult> {
+    const {
+      format = "table",
+      quiet = false,
+      includeSections,
+      excludeSections,
+    } = options;
+
+    logger.info("Starting diff process for introspect");
+
+    try {
+      if (!quiet) {
+        logger.info("📥 Loading local configuration...");
+      }
+
+      if (!quiet) {
+        logger.info("🌐 Fetching remote configuration...");
+      }
+
+      const summary = await this.compareForIntrospect({
+        includeSections,
+        excludeSections,
+      });
+
+      if (!quiet) {
+        logger.info("🔍 Analyzing differences...\n");
+      }
+
+      // Format output (filtering is now handled in diff service)
+      let formattedOutput: string | undefined;
+      const introspectFormatter = new IntrospectDiffFormatter();
+
+      switch (format) {
+        case "json":
+          formattedOutput = JSON.stringify(summary, null, 2);
+          break;
+        case "yaml": {
+          const yaml = require("yaml");
+          formattedOutput = yaml.stringify(summary);
+          break;
+        }
+        default:
+          if (summary.totalChanges > 0) {
+            formattedOutput = introspectFormatter.format(summary);
+          }
+      }
+
+      if (!quiet && formattedOutput) {
+        const { cliConsole } = await import("../../cli/console");
+        cliConsole.info(formattedOutput);
+      }
+
+      logger.info("Introspect diff process completed successfully", {
+        totalChanges: summary.totalChanges,
+        creates: summary.creates,
+        updates: summary.updates,
+        deletes: summary.deletes,
+      });
+
+      return {
+        summary,
+        formattedOutput: quiet ? formattedOutput : undefined,
+      };
+    } catch (error) {
+      logger.error("Failed to perform introspect diff", { error });
+      throw error;
     }
   }
 
@@ -302,11 +391,14 @@ export class DiffService {
     options: DiffServiceIntrospectOptions
   ): Promise<readonly DiffResult[]> {
     const { includeSections, excludeSections } = options;
-    const comparisons: Array<Promise<readonly DiffResult[]>> = [];
+    const comparisons: Promise<readonly DiffResult[]>[] = [];
 
     // Helper function to check if section should be included
     const shouldInclude = (section: ConfigurationSection): boolean => {
-      return shouldIncludeSection(section, { includeSections: includeSections || [], excludeSections: excludeSections || [] });
+      return shouldIncludeSection(section, {
+        includeSections: includeSections || [],
+        excludeSections: excludeSections || [],
+      });
     };
 
     // Shop settings comparison
@@ -318,10 +410,10 @@ export class DiffService {
 
     // Entity array comparisons
     const entityTypeMappings: Record<string, ConfigurationSection> = {
-      "channels": "channels",
-      "productTypes": "productTypes", 
-      "pageTypes": "pageTypes",
-      "categories": "categories",
+      channels: "channels",
+      productTypes: "productTypes",
+      pageTypes: "pageTypes",
+      categories: "categories",
     };
 
     for (const [entityType, section] of Object.entries(entityTypeMappings)) {

@@ -1,20 +1,21 @@
 import type { BaseCommandArgs } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { BulkOperationProgress } from "../cli/progress";
-import { cliConsole } from "../cli/console";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
-import { DiffFormatter, DiffService, IntrospectDiffFormatter } from "./diff";
-import type { DiffSummary, IntrospectDiffOptions, DiffServiceIntrospectOptions } from "./diff/types";
+import { DiffFormatter, DiffService } from "./diff";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
-
-export interface IntrospectDiffResult {
-  summary: DiffSummary;
-  formattedOutput?: string;
-}
 
 export class SaleorConfigurator {
   constructor(private readonly services: ServiceContainer) {}
+
+  /**
+   * Get the service container for advanced usage
+   * @internal
+   */
+  get serviceContainer(): ServiceContainer {
+    return this.services;
+  }
 
   async push() {
     const config = await this.services.configStorage.load();
@@ -179,71 +180,6 @@ export class SaleorConfigurator {
     } catch (error) {
       cliConsole.progress.fail("Failed to compare configurations");
       logger.error("Failed to diff configurations", { error });
-      throw error;
-    }
-  }
-
-  async diffForIntrospect(options: IntrospectDiffOptions = {}): Promise<IntrospectDiffResult> {
-    const { format = "table", quiet = false, includeSections, excludeSections } = options;
-
-    logger.info("Starting diff process for introspect");
-
-    try {
-      if (!quiet) {
-        logger.info("📥 Loading local configuration...");
-      }
-
-      const diffService = new DiffService(this.services);
-
-      if (!quiet) {
-        logger.info("🌐 Fetching remote configuration...");
-      }
-
-      const summary = await diffService.compareForIntrospect({
-        includeSections,
-        excludeSections,
-      });
-
-      if (!quiet) {
-        logger.info("🔍 Analyzing differences...\n");
-      }
-
-      // Format output (filtering is now handled in diff service)
-      let formattedOutput: string | undefined;
-      const introspectFormatter = new IntrospectDiffFormatter();
-
-      switch (format) {
-        case "json":
-          formattedOutput = JSON.stringify(summary, null, 2);
-          break;
-        case "yaml":
-          const yaml = require("yaml");
-          formattedOutput = yaml.stringify(summary);
-          break;
-        case "table":
-        default:
-          if (summary.totalChanges > 0) {
-            formattedOutput = introspectFormatter.format(summary);
-          }
-      }
-
-      if (!quiet && formattedOutput) {
-        cliConsole.info(formattedOutput);
-      }
-
-      logger.info("Introspect diff process completed successfully", {
-        totalChanges: summary.totalChanges,
-        creates: summary.creates,
-        updates: summary.updates,
-        deletes: summary.deletes,
-      });
-
-      return {
-        summary,
-        formattedOutput: quiet ? formattedOutput : undefined,
-      };
-    } catch (error) {
-      logger.error("Failed to diff configurations for introspect", { error });
       throw error;
     }
   }
