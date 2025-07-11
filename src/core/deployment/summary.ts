@@ -3,6 +3,8 @@ import type { DeploymentMetrics } from "./types";
 import type { DiffSummary } from "../diff";
 
 export class DeploymentSummaryReport {
+  private readonly maxLineWidth = 57; // Box width (60) minus padding and borders
+  
   constructor(
     private readonly metrics: DeploymentMetrics,
     private readonly summary: DiffSummary
@@ -11,6 +13,13 @@ export class DeploymentSummaryReport {
   display(): void {
     const lines = this.buildSummaryLines();
     cliConsole.box(lines, "📊 Deployment Summary");
+  }
+
+  private truncateLine(line: string): string {
+    if (line.length <= this.maxLineWidth) {
+      return line;
+    }
+    return line.substring(0, this.maxLineWidth - 3) + "...";
   }
 
   private buildSummaryLines(): string[] {
@@ -26,7 +35,8 @@ export class DeploymentSummaryReport {
     if (this.metrics.stageDurations.size > 0) {
       lines.push("Stage Timing:");
       for (const [stage, duration] of this.metrics.stageDurations) {
-        lines.push(`• ${stage}: ${this.formatDuration(duration)}`);
+        const line = `• ${stage}: ${this.formatDuration(duration)}`;
+        lines.push(this.truncateLine(line));
       }
       lines.push("");
     }
@@ -58,7 +68,8 @@ export class DeploymentSummaryReport {
         if (counts.deleted > 0) parts.push(`${counts.deleted} deleted`);
         
         if (parts.length > 0) {
-          lines.push(`• ${type}: ${parts.join(", ")}`);
+          const line = `• ${type}: ${parts.join(", ")}`;
+          lines.push(this.truncateLine(line));
         }
       }
     }

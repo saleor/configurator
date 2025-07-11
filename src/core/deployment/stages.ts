@@ -4,20 +4,28 @@ import { logger } from "../../lib/logger";
 export const validationStage: DeploymentStage = {
   name: "Validating configuration",
   async execute(context) {
-    await context.configurator.validateLocalConfiguration();
+    try {
+      await context.configurator.validateLocalConfiguration();
+    } catch (error) {
+      throw new Error(`Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
 };
 
 export const shopSettingsStage: DeploymentStage = {
   name: "Updating shop settings",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.shop) {
-      logger.debug("No shop settings to update");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.shop) {
+        logger.debug("No shop settings to update");
+        return;
+      }
 
-    await context.configurator.services.shop.updateSettings(config.shop);
+      await context.configurator.services.shop.updateSettings(config.shop);
+    } catch (error) {
+      throw new Error(`Failed to update shop settings: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
   skip(context) {
     return context.summary.results.every(r => r.entityType !== "Shop Settings");
@@ -27,17 +35,32 @@ export const shopSettingsStage: DeploymentStage = {
 export const productTypesStage: DeploymentStage = {
   name: "Managing product types",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.productTypes?.length) {
-      logger.debug("No product types to manage");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.productTypes?.length) {
+        logger.debug("No product types to manage");
+        return;
+      }
 
-    await Promise.all(
-      config.productTypes.map(productType =>
-        context.configurator.services.productType.bootstrapProductType(productType)
-      )
-    );
+      const results = await Promise.allSettled(
+        config.productTypes.map(productType =>
+          context.configurator.services.productType.bootstrapProductType(productType)
+            .catch(error => {
+              throw new Error(`Failed to manage product type '${productType.name}': ${error instanceof Error ? error.message : String(error)}`);
+            })
+        )
+      );
+      
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        throw new Error(`Failed to manage ${failures.length} product type(s)`);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to manage product type')) {
+        throw error;
+      }
+      throw new Error(`Failed to manage product types: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
   skip(context) {
     return context.summary.results.every(r => r.entityType !== "Product Types");
@@ -47,13 +70,17 @@ export const productTypesStage: DeploymentStage = {
 export const channelsStage: DeploymentStage = {
   name: "Managing channels",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.channels?.length) {
-      logger.debug("No channels to manage");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.channels?.length) {
+        logger.debug("No channels to manage");
+        return;
+      }
 
-    await context.configurator.services.channel.bootstrapChannels(config.channels);
+      await context.configurator.services.channel.bootstrapChannels(config.channels);
+    } catch (error) {
+      throw new Error(`Failed to manage channels: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
   skip(context) {
     return context.summary.results.every(r => r.entityType !== "Channels");
@@ -63,17 +90,32 @@ export const channelsStage: DeploymentStage = {
 export const pageTypesStage: DeploymentStage = {
   name: "Managing page types",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.pageTypes?.length) {
-      logger.debug("No page types to manage");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.pageTypes?.length) {
+        logger.debug("No page types to manage");
+        return;
+      }
 
-    await Promise.all(
-      config.pageTypes.map(pageType =>
-        context.configurator.services.pageType.bootstrapPageType(pageType)
-      )
-    );
+      const results = await Promise.allSettled(
+        config.pageTypes.map(pageType =>
+          context.configurator.services.pageType.bootstrapPageType(pageType)
+            .catch(error => {
+              throw new Error(`Failed to manage page type '${pageType.name}': ${error instanceof Error ? error.message : String(error)}`);
+            })
+        )
+      );
+      
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        throw new Error(`Failed to manage ${failures.length} page type(s)`);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Failed to manage page type')) {
+        throw error;
+      }
+      throw new Error(`Failed to manage page types: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
   skip(context) {
     return context.summary.results.every(r => r.entityType !== "Page Types");
@@ -83,13 +125,17 @@ export const pageTypesStage: DeploymentStage = {
 export const categoriesStage: DeploymentStage = {
   name: "Managing categories",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.categories?.length) {
-      logger.debug("No categories to manage");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.categories?.length) {
+        logger.debug("No categories to manage");
+        return;
+      }
 
-    await context.configurator.services.category.bootstrapCategories(config.categories);
+      await context.configurator.services.category.bootstrapCategories(config.categories);
+    } catch (error) {
+      throw new Error(`Failed to manage categories: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
   skip(context) {
     return context.summary.results.every(r => r.entityType !== "Categories");
@@ -99,16 +145,21 @@ export const categoriesStage: DeploymentStage = {
 export const productsStage: DeploymentStage = {
   name: "Managing products",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    if (!config.products?.length) {
-      logger.debug("No products to manage");
-      return;
-    }
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.products?.length) {
+        logger.debug("No products to manage");
+        return;
+      }
 
-    await context.configurator.services.product.bootstrapProducts(config.products);
+      await context.configurator.services.product.bootstrapProducts(config.products);
+    } catch (error) {
+      throw new Error(`Failed to manage products: ${error instanceof Error ? error.message : String(error)}`);
+    }
   },
-  skip(context) {
-    return context.summary.results.every(r => r.entityType !== "Product Types");
+  // Products are not yet included in the diff system, so always run this stage
+  skip() {
+    return false;
   },
 };
 

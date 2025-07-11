@@ -274,6 +274,21 @@ export async function deployHandler(args: DeployCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
   cliConsole.header("🚀 Saleor Configuration Deploy\n");
 
+  // Validate mutually exclusive flags
+  if (args.force && args.ci) {
+    cliConsole.error("Error: Cannot use --force and --ci flags together");
+    cliConsole.text("  • --force: Skips all confirmations in interactive mode");
+    cliConsole.text("  • --ci: Designed for automated environments");
+    cliConsole.text("");
+    throw new Error("Mutually exclusive flags: --force and --ci");
+  }
+
+  if (args.ci && args.skipDiff) {
+    cliConsole.warn("Warning: Using --skip-diff with --ci mode is dangerous!");
+    cliConsole.text("  Consider removing --skip-diff to see what changes will be applied.");
+    cliConsole.text("");
+  }
+
   await performDeploymentFlow(args);
 }
 

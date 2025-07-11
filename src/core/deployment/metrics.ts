@@ -27,10 +27,14 @@ export class MetricsCollector {
       deleted: 0,
     };
 
+    // Map operation to property name
+    const propertyName = operation === "create" ? "created" 
+                      : operation === "update" ? "updated" 
+                      : "deleted";
+    
     this.entityCounts.set(type, {
       ...current,
-      [operation === "create" ? "created" : operation === "update" ? "updated" : "deleted"]:
-        current[operation === "create" ? "created" : operation === "update" ? "updated" : "deleted"] + 1,
+      [propertyName]: current[propertyName] + 1,
     });
   }
 
