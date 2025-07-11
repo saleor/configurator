@@ -66,6 +66,7 @@ User Input (YAML) → Zod Validation → Service Layer → Repository → GraphQ
   - Build verification  
   - Security audit
   - Type checking
+  - Changeset validation (for release management)
 - **Commit-msg**: Conventional commits validation
 - **Post-merge/checkout**: Automatic maintenance
   - Dependency updates

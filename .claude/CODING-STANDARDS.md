@@ -904,6 +904,11 @@ pnpm audit --audit-level high
 
 # Type checking
 pnpm typecheck
+
+# Changeset validation (for release management)
+# - Checks if source code changed without corresponding changeset
+# - Skips check for main/master/dependabot branches
+# - Prompts user to create changeset or continue without
 ```
 
 #### Commit Message Validation
