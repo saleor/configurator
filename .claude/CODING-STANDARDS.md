@@ -860,41 +860,118 @@ Biome is our all-in-one tool for linting and formatting (replacing ESLint + Pret
 }
 ```
 
-### 2. **Pre-commit Hooks**
+### 2. **Git Hooks for Quality Assurance**
 
-Using Husky and lint-staged for automatic quality checks:
+Using Husky for comprehensive quality gates at different stages:
 
 ```json
 // package.json
 {
   "scripts": {
-    "prepare": "husky install",
-    "check": "biome check --write",
-    "check:ci": "biome ci",
+    "prepare": "husky || true",
+    "lint": "biome check --write",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json}": [
-      "biome check --write --no-errors-on-unmatched",
-      "biome check --no-errors-on-unmatched"
+    "**/*.{ts,tsx,js,jsx,json}": [
+      "pnpm lint --no-errors-on-unmatched"
     ]
   }
 }
 ```
 
+#### Pre-commit Hook (Fast Quality Check)
 ```bash
 # .husky/pre-commit
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-# Run lint-staged
+# Run lint-staged (formatting + linting on staged files)
 pnpm lint-staged
 
 # Run type checking
 pnpm typecheck
 ```
 
-### 3. **VSCode Integration**
+#### Pre-push Hook (Comprehensive Quality Gate)
+```bash
+# .husky/pre-push
+# Full test suite
+pnpm test
+
+# Build verification
+pnpm build
+
+# Security audit
+pnpm audit --audit-level high
+
+# Type checking
+pnpm typecheck
+
+# Changeset validation (for release management)
+# - Checks if source code changed without corresponding changeset
+# - Skips check for main/master/dependabot branches
+# - Prompts user to create changeset or continue without
+```
+
+#### Commit Message Validation
+```bash
+# .husky/commit-msg
+npx commitlint --edit "$1"
+```
+
+#### Post-merge/Post-checkout (Quality of Life)
+- Auto-installs dependencies if package.json changed
+- Refreshes GraphQL schema if needed  
+- Cleans build artifacts on branch switches
+- Provides helpful suggestions based on branch type
+
+### 3. **Commit Message Conventions**
+
+We enforce [Conventional Commits](https://www.conventionalcommits.org/) format for better changelog generation and release automation:
+
+#### Format
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+#### Allowed Types
+- **feat**: New feature for users
+- **fix**: Bug fix for users  
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, etc.)
+- **refactor**: Code refactoring (no functional changes)
+- **test**: Adding or updating tests
+- **chore**: Maintenance tasks (deps, build, etc.)
+- **ci**: CI/CD pipeline changes
+- **perf**: Performance improvements
+- **build**: Build system changes
+- **revert**: Reverting previous commits
+
+#### Examples
+```bash
+# Good commit messages
+feat: add GraphQL schema validation
+fix(api): resolve timeout issue in product mutations
+docs: update installation guide with Node.js requirements
+test(product): add unit tests for product service
+chore: update dependencies to latest versions
+
+# Bad commit messages (will be rejected)
+update stuff
+fix bug
+WIP
+Added new feature
+```
+
+#### Benefits
+- **Automated changelogs**: Tools can generate release notes
+- **Semantic versioning**: Automatic version bumping based on commit types
+- **Better collaboration**: Clear communication about changes
+- **Release automation**: CI/CD can determine release type from commits
+
+### 4. **VSCode Integration**
 
 ```json
 // .vscode/settings.json
@@ -934,9 +1011,9 @@ jobs:
           cache: 'pnpm'
       
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:ci
+      - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test:ci
+      - run: pnpm test
       - run: pnpm build
 ```
 
@@ -1232,9 +1309,8 @@ export class CachedProductRepository extends ProductRepository {
 
 **Always run before committing:**
 ```bash
-# 1. Run Biome for linting and formatting
-pnpm check      # Check for issues
-pnpm check:fix  # Auto-fix issues (if any)
+# 1. Run Biome for linting and formatting (auto-fixes issues)
+pnpm lint
 
 # 2. Verify TypeScript compilation
 pnpm typecheck  

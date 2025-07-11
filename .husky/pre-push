@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# Pre-push hook: Comprehensive quality gate before pushing to remote
+# This prevents broken code from reaching the remote repository
+
+echo "🔍 Running pre-push quality checks..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[PRE-PUSH]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Exit on any error
+set -e
+
+# 1. Run full test suite
+print_status "Running full test suite..."
+if pnpm test; then
+    print_success "All tests passed"
+else
+    print_error "Tests failed. Please fix failing tests before pushing."
+    exit 1
+fi
+
+# 2. Verify project builds successfully
+print_status "Verifying project builds..."
+if pnpm build; then
+    print_success "Build successful"
+else
+    print_error "Build failed. Please fix build errors before pushing."
+    exit 1
+fi
+
+# 3. Run security audit
+print_status "Running security audit..."
+if pnpm audit --audit-level high; then
+    print_success "No high-severity vulnerabilities found"
+else
+    print_warning "Security vulnerabilities detected. Consider reviewing before pushing."
+    echo "💡 Run 'pnpm audit --fix' to automatically fix issues"
+    echo "💡 Use 'git push --no-verify' to bypass this check if necessary"
+    
+    # Ask user if they want to continue
+    read -p "Continue with push despite vulnerabilities? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_error "Push cancelled. Please fix security issues first."
+        exit 1
+    fi
+fi
+
+# 4. Type checking (redundant with pre-commit but good safety net)
+print_status "Running TypeScript type checking..."
+if pnpm typecheck; then
+    print_success "Type checking passed"
+else
+    print_error "Type checking failed. Please fix type errors before pushing."
+    exit 1
+fi
+
+# 5. Check for changeset (for release management)
+print_status "Checking for changeset..."
+
+# Get the current branch name
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# Skip changeset check for main/master branch and dependabot branches
+if [[ "$current_branch" == "main" ]] || [[ "$current_branch" == "master" ]] || [[ "$current_branch" == dependabot/* ]]; then
+    print_success "Changeset check skipped for $current_branch branch"
+elif git diff --name-only origin/main...HEAD | grep -E "^(src/|scripts/)" > /dev/null; then
+    # Only check for changeset if source code files changed
+    if ls .changeset/*.md &> /dev/null && [ "$(ls -1 .changeset/*.md | wc -l)" -gt 0 ] && ! ls .changeset/*.md | grep -q "README.md"; then
+        print_success "Changeset found for code changes"
+    else
+        print_warning "No changeset found for source code changes"
+        echo ""
+        echo "This push contains changes to source code but no changeset was created."
+        echo "Changesets help track changes for release notes and version bumping."
+        echo ""
+        echo "To create a changeset:"
+        echo "  📝 Run: pnpm changeset"
+        echo "  📝 Describe your changes and select version bump type"
+        echo "  📝 Commit the generated changeset file"
+        echo ""
+        echo "To skip this check:"
+        echo "  🚀 Use: git push --no-verify"
+        echo ""
+        
+        # Ask user if they want to continue
+        read -p "Continue push without changeset? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_error "Push cancelled. Please create a changeset first."
+            echo "💡 Run 'pnpm changeset' to create one"
+            exit 1
+        fi
+    fi
+else
+    print_success "No source code changes detected, changeset not required"
+fi
+
+print_success "All pre-push checks passed! 🚀"
+echo "💡 Your code is ready for the remote repository."

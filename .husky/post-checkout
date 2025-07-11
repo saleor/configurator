@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Post-checkout hook: Quality of life improvements after checking out branches
+# Automatically handles common maintenance tasks when switching branches
+
+# Arguments: previous HEAD, new HEAD, branch checkout flag (1 = branch checkout, 0 = file checkout)
+previous_head=$1
+new_head=$2
+branch_checkout=$3
+
+# Only run for branch checkouts, not file checkouts
+if [ "$branch_checkout" = "0" ]; then
+    exit 0
+fi
+
+# Colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to print colored output
+print_info() {
+    echo -e "${BLUE}[POST-CHECKOUT]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Don't exit on errors for post-checkout (quality of life, not critical)
+set +e
+
+print_info "Running post-checkout automation..."
+
+# 1. Check if package.json or pnpm-lock.yaml changed between branches
+if git diff --name-only "$previous_head" "$new_head" | grep -E "package\.json|pnpm-lock\.yaml" > /dev/null; then
+    print_info "Package files differ between branches, updating dependencies..."
+    if pnpm install; then
+        print_success "Dependencies updated for new branch"
+    else
+        print_warning "Failed to install dependencies. You may need to run 'pnpm install' manually."
+    fi
+fi
+
+# 2. Check if GraphQL schema files changed
+if git diff --name-only "$previous_head" "$new_head" | grep -E "fetch-schema|graphql" > /dev/null; then
+    print_info "GraphQL-related files differ, refreshing schema..."
+    if pnpm fetch-schema; then
+        print_success "GraphQL schema refreshed for new branch"
+    else
+        print_warning "Failed to fetch GraphQL schema. You may need to run 'pnpm fetch-schema' manually."
+    fi
+fi
+
+# 3. Clean up build artifacts when switching branches
+if [ -d "dist" ]; then
+    print_info "Cleaning build artifacts for clean branch state..."
+    rm -rf dist
+    print_success "Build artifacts cleaned"
+fi
+
+# 4. Clean up TypeScript build cache
+if [ -f "tsconfig.tsbuildinfo" ]; then
+    rm -f tsconfig.tsbuildinfo
+fi
+
+# 5. Helpful suggestions based on branch name
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+if [[ "$current_branch" == feature/* ]] || [[ "$current_branch" == feat/* ]]; then
+    print_info "Working on a feature branch. Consider:"
+    echo "  💡 pnpm test:watch - for test-driven development"
+    echo "  💡 pnpm dev - to run the CLI in development mode"
+elif [[ "$current_branch" == fix/* ]] || [[ "$current_branch" == bugfix/* ]]; then
+    print_info "Working on a bug fix. Consider:"
+    echo "  💡 pnpm test - to verify the fix works"
+    echo "  💡 pnpm lint - to ensure code quality"
+fi
+
+print_success "Post-checkout automation completed! 🎉"

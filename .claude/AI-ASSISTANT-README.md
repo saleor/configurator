@@ -47,6 +47,44 @@ User Input (YAML) → Zod Validation → Service Layer → Repository → GraphQ
 4. **Test Everything**: Unit, integration, and CLI tests
 5. **Follow Patterns**: Repository/Service/Module structure
 
+## 🔄 Git Workflow & Quality Gates
+
+### Commit Flow
+1. **Stage changes**: `git add .`
+2. **Pre-commit runs**: Automatic linting + type checking on staged files
+3. **Commit with conventional format**: `git commit -m "feat: add new feature"`
+4. **Commit message validated**: Enforces conventional commits format
+5. **Push changes**: `git push`
+6. **Pre-push runs**: Full test suite + build + security audit
+
+### Quality Gates Overview
+- **Pre-commit** (< 10s): Fast feedback on staged files
+  - Biome linting/formatting
+  - TypeScript type checking
+- **Pre-push** (< 30s): Comprehensive safety net
+  - Full test suite
+  - Build verification  
+  - Security audit
+  - Type checking
+  - Changeset validation (for release management)
+- **Commit-msg**: Conventional commits validation
+- **Post-merge/checkout**: Automatic maintenance
+  - Dependency updates
+  - Schema refresh
+  - Build cleanup
+
+### Bypassing Hooks (When Necessary)
+```bash
+# Skip pre-commit checks
+git commit --no-verify -m "fix: emergency hotfix"
+
+# Skip pre-push checks  
+git push --no-verify
+
+# Skip all hooks
+git -c core.hooksPath=/dev/null commit -m "bypass all"
+```
+
 ## 🛠️ Common Tasks
 
 ### Adding a New Entity Type:
@@ -124,8 +162,7 @@ describe('EntityService', () => {
 - ✅ **Always run quality checks before committing**:
   ```bash
   # 1. Biome - linting and formatting (replaces ESLint + Prettier)
-  pnpm check      # Check for issues
-  pnpm check:fix  # Auto-fix issues
+  pnpm lint       # Auto-fixes all issues
   
   # 2. TypeScript validation
   pnpm typecheck  
@@ -154,7 +191,7 @@ describe('EntityService', () => {
 pnpm dev              # Run in development
 pnpm test            # Run tests
 pnpm test:watch      # Watch mode
-pnpm check           # Lint & format
+pnpm lint            # Lint & format (auto-fix)
 pnpm build           # Build for production
 
 # Testing specific files

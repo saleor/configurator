@@ -30,15 +30,15 @@ AI assistants should:
 1. **Never use `any` type** - TypeScript strict mode always
 2. **Test everything** - Plan scenarios before writing tests
 3. **Follow patterns** - Repository → Service → Configurator
-4. **Quality checks** - Always run `pnpm check`, `pnpm test`, `pnpm build`
-5. **User first** - Clear error messages and helpful output
+4. **Quality gates** - Automated checks via Git hooks prevent issues
+5. **Conventional commits** - Use standardized commit message format
+6. **User first** - Clear error messages and helpful output
 
 ## 🛠️ Essential Commands
 
 ```bash
 # Before ANY commit
-pnpm check      # Biome linting/formatting
-pnpm check:fix  # Auto-fix issues
+pnpm lint       # Biome linting/formatting (auto-fix)
 pnpm typecheck  # Verify types
 pnpm test       # Run tests
 pnpm build      # Ensure it builds
@@ -46,6 +46,31 @@ pnpm build      # Ensure it builds
 # Development
 pnpm dev        # Run in dev mode
 pnpm test:watch # Watch mode for tests
+```
+
+## 🔄 Git Hooks & Quality Gates
+
+The project uses comprehensive Git hooks for quality assurance:
+
+### Automatic Quality Checks
+- **Pre-commit**: Fast linting + type checking (< 10s)
+- **Pre-push**: Full test suite + build + audit (< 30s)  
+- **Commit-msg**: Conventional commits validation
+- **Post-merge/checkout**: Auto-maintenance (dependencies, schema, cleanup)
+
+### Commit Message Format
+```bash
+# Required format: type(scope): description
+feat: add new product import feature
+fix(api): resolve GraphQL timeout issue
+docs: update installation guide
+test(product): add unit tests for product service
+```
+
+### Bypass When Needed
+```bash
+git commit --no-verify    # Skip pre-commit
+git push --no-verify      # Skip pre-push
 ```
 
 ## 📋 Quick Checklists
