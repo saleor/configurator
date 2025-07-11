@@ -63,9 +63,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   ): void {
     const icon = this.getEntityIcon(entityType);
     lines.push(`${icon} ${entityType}`);
-    lines.push(
-      this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR)
-    );
+    lines.push(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR));
 
     for (const result of results) {
       this.addResultDetails(lines, result);
@@ -108,15 +106,10 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds operation-specific additional details
    */
-  private addOperationSpecificDetails(
-    lines: string[],
-    result: DiffResult
-  ): void {
+  private addOperationSpecificDetails(lines: string[], result: DiffResult): void {
     if (result.operation === "DELETE" && result.current) {
       lines.push(
-        `    ${FORMAT_CONFIG.TREE_BRANCH} ${DIFF_MESSAGES.DELETE_EXPLANATION(
-          result.entityType
-        )}`
+        `    ${FORMAT_CONFIG.TREE_BRANCH} ${DIFF_MESSAGES.DELETE_EXPLANATION(result.entityType)}`
       );
     }
 
@@ -128,22 +121,15 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds specific details for entity creation
    */
-  private addCreationDetails(
-    lines: string[],
-    entity: Record<string, unknown>
-  ): void {
+  private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
     const typedEntity = entity;
 
     if (typedEntity?.currencyCode) {
-      lines.push(
-        `    ${FORMAT_CONFIG.TREE_BRANCH} Currency: ${typedEntity.currencyCode}`
-      );
+      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Currency: ${typedEntity.currencyCode}`);
     }
 
     if (typedEntity?.defaultCountry) {
-      lines.push(
-        `    ${FORMAT_CONFIG.TREE_BRANCH} Country: ${typedEntity.defaultCountry}`
-      );
+      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Country: ${typedEntity.defaultCountry}`);
     }
   }
 
@@ -152,19 +138,10 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    */
   private addSummarySection(lines: string[], summary: DiffSummary): void {
     lines.push(`${DIFF_ICONS.SUMMARY.CHART} ${DIFF_MESSAGES.SUMMARY_HEADER}`);
-    lines.push(
-      this.createSeparator(
-        FORMAT_CONFIG.SUMMARY_WIDTH,
-        FORMAT_CONFIG.SUB_SEPARATOR
-      )
-    );
+    lines.push(this.createSeparator(FORMAT_CONFIG.SUMMARY_WIDTH, FORMAT_CONFIG.SUB_SEPARATOR));
     lines.push(DIFF_MESSAGES.TOTAL_CHANGES(summary.totalChanges));
-    lines.push(
-      `• ${DIFF_MESSAGES.OPERATION_COUNT(summary.creates, "Creation")}`
-    );
+    lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.creates, "Creation")}`);
     lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.updates, "Update")}`);
-    lines.push(
-      `• ${DIFF_MESSAGES.OPERATION_COUNT(summary.deletes, "Deletion")}`
-    );
+    lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.deletes, "Deletion")}`);
   }
 }

@@ -22,31 +22,22 @@ describe("GraphQLError", () => {
         },
       ] as unknown as CombinedError["graphQLErrors"];
 
-      const error = GraphQLError.fromGraphQLErrors(
-        graphQLErrors,
-        "Failed to create product"
-      );
+      const error = GraphQLError.fromGraphQLErrors(graphQLErrors, "Failed to create product");
 
       expect(error.message).toContain("Failed to create product");
-      expect(error.message).toContain(
-        "You need one of the following permissions: MANAGE_PRODUCTS"
-      );
+      expect(error.message).toContain("You need one of the following permissions: MANAGE_PRODUCTS");
       expect(error.code).toBe("GRAPHQL_ERROR");
     });
 
     it("should handle multiple permissions", () => {
       const graphQLErrors = [
         {
-          message:
-            "You need one of the following permissions: MANAGE_PRODUCTS, MANAGE_STAFF",
+          message: "You need one of the following permissions: MANAGE_PRODUCTS, MANAGE_STAFF",
           extensions: { code: "FORBIDDEN" },
         },
       ] as unknown as CombinedError["graphQLErrors"];
 
-      const error = GraphQLError.fromGraphQLErrors(
-        graphQLErrors,
-        "Failed to update"
-      );
+      const error = GraphQLError.fromGraphQLErrors(graphQLErrors, "Failed to update");
 
       expect(error.message).toContain(
         "You need one of the following permissions: MANAGE_PRODUCTS, MANAGE_STAFF"
@@ -67,10 +58,7 @@ describe("GraphQLError", () => {
         },
       ] as unknown as CombinedError["graphQLErrors"];
 
-      const error = GraphQLError.fromGraphQLErrors(
-        graphQLErrors,
-        "Failed to create product"
-      );
+      const error = GraphQLError.fromGraphQLErrors(graphQLErrors, "Failed to create product");
 
       expect(error.message).toContain("Failed to create product");
       expect(error.message).toContain("Invalid input");
@@ -82,15 +70,11 @@ describe("GraphQLError", () => {
     it("should extract field from error message if not in extensions", () => {
       const graphQLErrors = [
         {
-          message:
-            'Variable "$name" of required type "String!" was not provided.',
+          message: 'Variable "$name" of required type "String!" was not provided.',
         },
       ] as unknown as CombinedError["graphQLErrors"];
 
-      const error = GraphQLError.fromGraphQLErrors(
-        graphQLErrors,
-        "Failed to create"
-      );
+      const error = GraphQLError.fromGraphQLErrors(graphQLErrors, "Failed to create");
 
       expect(error.message).toContain(
         'Variable "$name" of required type "String!" was not provided.'
@@ -105,19 +89,12 @@ describe("GraphQLError", () => {
         networkError: { statusCode: 404 },
       } as unknown as CombinedError;
 
-      const error = GraphQLError.fromCombinedError(
-        "Failed to fetch",
-        combinedError
-      );
+      const error = GraphQLError.fromCombinedError("Failed to fetch", combinedError);
 
       expect(error.message).toContain("Failed to fetch: Not Found (404)");
       expect(error.message).toContain("This usually means:");
-      expect(error.message).toContain(
-        "Your URL is incorrect or missing the /graphql/ endpoint"
-      );
-      expect(error.message).toContain(
-        "Check your URL and ensure it ends with /graphql/"
-      );
+      expect(error.message).toContain("Your URL is incorrect or missing the /graphql/ endpoint");
+      expect(error.message).toContain("Check your URL and ensure it ends with /graphql/");
       expect(error.code).toBe("GRAPHQL_ERROR");
     });
 
@@ -127,10 +104,7 @@ describe("GraphQLError", () => {
         networkError: { statusCode: 403 },
       } as unknown as CombinedError;
 
-      const error = GraphQLError.fromCombinedError(
-        "Failed to fetch",
-        combinedError
-      );
+      const error = GraphQLError.fromCombinedError("Failed to fetch", combinedError);
 
       expect(error.message).toContain("Failed to fetch: Permission Denied");
       expect(error.message).toContain(
@@ -144,15 +118,10 @@ describe("GraphQLError", () => {
         networkError: { statusCode: 401 },
       } as unknown as CombinedError;
 
-      const error = GraphQLError.fromCombinedError(
-        "Failed to fetch",
-        combinedError
-      );
+      const error = GraphQLError.fromCombinedError("Failed to fetch", combinedError);
 
       expect(error.message).toContain("Failed to fetch: Unauthorized (401)");
-      expect(error.message).toContain(
-        "Your authentication token is missing or invalid"
-      );
+      expect(error.message).toContain("Your authentication token is missing or invalid");
     });
 
     it("should detect connection errors", () => {
@@ -164,10 +133,7 @@ describe("GraphQLError", () => {
         },
       } as unknown as CombinedError;
 
-      const error = GraphQLError.fromCombinedError(
-        "Failed to connect",
-        combinedError
-      );
+      const error = GraphQLError.fromCombinedError("Failed to connect", combinedError);
 
       expect(error.message).toContain("Failed to connect: Connection error");
     });
@@ -183,10 +149,7 @@ describe("GraphQLError", () => {
         ],
       } as unknown as CombinedError;
 
-      const error = GraphQLError.fromCombinedError(
-        "Failed to process",
-        combinedError
-      );
+      const error = GraphQLError.fromCombinedError("Failed to process", combinedError);
 
       expect(error.message).toContain("Failed to process");
       expect(error.message).toContain("Field error");
@@ -200,10 +163,7 @@ describe("GraphQLError", () => {
         { message: "Invalid SKU format", field: "sku" },
       ];
 
-      const error = GraphQLError.fromDataErrors(
-        "Failed to create product",
-        dataErrors
-      );
+      const error = GraphQLError.fromDataErrors("Failed to create product", dataErrors);
 
       expect(error.message).toContain("Failed to create product");
       expect(error.message).toContain("[slug] Slug already exists");

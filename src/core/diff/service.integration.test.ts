@@ -359,9 +359,7 @@ productTypes:
 
       const diffService = new DiffService(mockServices);
 
-      await expect(diffService.compare()).rejects.toThrow(
-        "Failed to load local configuration"
-      );
+      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
   });
 
@@ -464,9 +462,7 @@ productTypes:
       expect(summary.totalChanges).toBeGreaterThan(0);
 
       // Should detect deletions
-      const deleteOperations = summary.results.filter(
-        (r) => r.operation === "DELETE"
-      );
+      const deleteOperations = summary.results.filter((r) => r.operation === "DELETE");
       expect(deleteOperations.length).toBeGreaterThan(0);
     });
   });

@@ -1,8 +1,5 @@
 import { z } from "zod";
-import type {
-  ConfigurationSection,
-  ParsedSelectiveOptions,
-} from "../../core/diff/types";
+import type { ConfigurationSection, ParsedSelectiveOptions } from "../../core/diff/types";
 
 // Re-export types for backwards compatibility
 export type { ConfigurationSection } from "../../core/diff/types";
@@ -21,19 +18,12 @@ export const selectiveOptionsSchema = z.object({
   only: z
     .string()
     .optional()
-    .describe(
-      "Comma-separated list of sections to include (e.g., 'channels,shop')"
-    ),
+    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
   include: z
     .string()
     .optional()
-    .describe(
-      "Comma-separated list of sections to include (e.g., 'channels,shop')"
-    ),
-  exclude: z
-    .string()
-    .optional()
-    .describe("Comma-separated list of sections to exclude"),
+    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
+  exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
 });
 
 export type SelectiveOptions = z.infer<typeof selectiveOptionsSchema>;
@@ -47,9 +37,7 @@ export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
   })
 );
 
-export type SelectiveOptionsWithOnly = z.infer<
-  typeof selectiveOptionsWithOnlySchema
->;
+export type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
 
 // Remove local interface definition since we import it from types
 
@@ -84,10 +72,7 @@ const validateSections = (
   }
 };
 
-const parseIncludeSections = (
-  only?: string,
-  include?: string
-): ConfigurationSection[] => {
+const parseIncludeSections = (only?: string, include?: string): ConfigurationSection[] => {
   const includeString = include || only;
   if (!includeString) return [];
 
@@ -117,8 +102,7 @@ export const parseSelectiveOptions = (
 
   // Type-safe access to properties
   const only = "only" in validatedOptions ? validatedOptions.only : undefined;
-  const include =
-    "include" in validatedOptions ? validatedOptions.include : undefined;
+  const include = "include" in validatedOptions ? validatedOptions.include : undefined;
   const exclude = validatedOptions.exclude;
 
   return {
@@ -165,9 +149,7 @@ const createIncludeMessage = (
 const createExcludeMessage = (
   excludeSections: readonly ConfigurationSection[]
 ): string | undefined => {
-  return excludeSections.length > 0
-    ? `📋 Excluding: ${excludeSections.join(", ")}`
-    : undefined;
+  return excludeSections.length > 0 ? `📋 Excluding: ${excludeSections.join(", ")}` : undefined;
 };
 
 export const getSelectiveOptionsSummary = (

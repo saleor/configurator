@@ -31,9 +31,7 @@ export interface DiffChange {
  * Represents the result of comparing a single entity
  * @template T The type of the entity being compared
  */
-export interface DiffResult<
-  T extends Record<string, unknown> = Record<string, unknown>
-> {
+export interface DiffResult<T extends Record<string, unknown> = Record<string, unknown>> {
   /** The operation that needs to be performed */
   readonly operation: DiffOperation;
   /** The type of entity being compared */

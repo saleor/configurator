@@ -31,9 +31,7 @@ describe("DiffService - Introspect Functionality", () => {
         results: [],
       };
 
-      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(
-        mockSummary
-      );
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "table",
@@ -57,9 +55,7 @@ describe("DiffService - Introspect Functionality", () => {
         results: [],
       };
 
-      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(
-        mockSummary
-      );
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "json",
@@ -81,9 +77,7 @@ describe("DiffService - Introspect Functionality", () => {
         results: [],
       };
 
-      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(
-        mockSummary
-      );
+      vi.spyOn(diffService, "compareForIntrospect").mockResolvedValue(mockSummary);
 
       const result = await diffService.diffForIntrospectWithFormatting({
         format: "table",

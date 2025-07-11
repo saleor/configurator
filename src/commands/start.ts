@@ -24,10 +24,7 @@ const INTERACTIVE_CHOICES = [
 async function runInteractiveSetup(): Promise<void> {
   cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
 
-  const selectedAction = await selectOption(
-    "What would you like to do?",
-    INTERACTIVE_CHOICES
-  );
+  const selectedAction = await selectOption("What would you like to do?", INTERACTIVE_CHOICES);
 
   cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
 
@@ -41,9 +38,7 @@ async function runInteractiveSetup(): Promise<void> {
     const { createCommand } = await import("../cli/command");
 
     const program = new Command();
-    const command = createCommand(
-      targetCommand as CommandConfig<typeof targetCommand.schema>
-    );
+    const command = createCommand(targetCommand as CommandConfig<typeof targetCommand.schema>);
     program.addCommand(command);
 
     // For commands that need URL and token, prompt for them interactively

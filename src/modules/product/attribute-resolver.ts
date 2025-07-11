@@ -8,8 +8,6 @@ const ATTRIBUTE_INPUT_TYPES = {
   REFERENCE: "REFERENCE",
 } as const;
 
-type AttributeInputType = keyof typeof ATTRIBUTE_INPUT_TYPES;
-
 // Types
 interface AttributeValue {
   id: string;

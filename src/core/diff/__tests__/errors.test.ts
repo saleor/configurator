@@ -34,9 +34,7 @@ describe("Diff Errors", () => {
 
   describe("RemoteConfigurationError", () => {
     it("should create remote configuration errors", () => {
-      const error = new RemoteConfigurationError(
-        "Failed to fetch remote config"
-      );
+      const error = new RemoteConfigurationError("Failed to fetch remote config");
 
       expect(error).toBeInstanceOf(DiffError);
       expect(error).toBeInstanceOf(RemoteConfigurationError);

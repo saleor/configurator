@@ -75,10 +75,7 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote category entities
    */
-  protected compareEntityFields(
-    local: CategoryEntity,
-    remote: CategoryEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: CategoryEntity, remote: CategoryEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
@@ -111,11 +108,7 @@ export class CategoryComparator extends BaseEntityComparator<
    * Safely extracts subcategories from a category entity
    */
   private getSubcategories(entity: CategoryEntity): readonly Subcategory[] {
-    if (
-      typeof entity === "object" &&
-      entity !== null &&
-      "subcategories" in entity
-    ) {
+    if (typeof entity === "object" && entity !== null && "subcategories" in entity) {
       return entity.subcategories ?? [];
     }
     return [];
@@ -130,12 +123,8 @@ export class CategoryComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localSubcatMap = new Map(
-      local.map((subcat) => [subcat.name, subcat])
-    );
-    const remoteSubcatMap = new Map(
-      remote.map((subcat) => [subcat.name, subcat])
-    );
+    const localSubcatMap = new Map(local.map((subcat) => [subcat.name, subcat]));
+    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.name, subcat]));
 
     // Find added subcategories
     for (const localSubcat of local) {
