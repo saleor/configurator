@@ -71,6 +71,15 @@ pageTypes:
       - name: Related Posts
         inputType: REFERENCE
         entityType: PAGE
+  - name: Article
+    attributes:
+      - attribute: Published Date # Reference existing attribute
+      - name: Tags
+        inputType: DROPDOWN
+        values:
+          - name: Technology
+          - name: Business
+          - name: Lifestyle
 
 categories:
   - name: "Fiction"
