@@ -5,7 +5,7 @@ import { DiffFormatter, DiffService } from "./diff";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
-  constructor(private readonly services: ServiceContainer) {}
+  constructor(public readonly services: ServiceContainer) {}
 
   /**
    * Validates the local configuration without making network calls

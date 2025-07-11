@@ -7,6 +7,8 @@ import type { DiffSummary } from "../core/diff";
 import { DiffFormatter } from "../core/diff/formatter";
 import { ConfigurationValidationError } from "../core/diff/errors";
 import { logger } from "../lib/logger";
+import { DeploymentPipeline, DeploymentSummaryReport, getAllStages } from "../core/deployment";
+import type { DeploymentContext } from "../core/deployment";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z.boolean().default(false).describe("CI mode - skip confirmations for automated environments"),
@@ -119,14 +121,32 @@ async function confirmDeployment(
   return await confirmSafeOperations(summary);
 }
 
-async function executeDeployment(args: DeployCommandArgs): Promise<void> {
+async function executeDeployment(args: DeployCommandArgs, summary: DiffSummary): Promise<void> {
   const configurator = createConfigurator(args);
+  const startTime = new Date();
   
   cliConsole.processing("🚀 Deploying configuration to Saleor...");
+  cliConsole.text(""); // Add spacing for progress indicators
   
-  await configurator.push();
+  const context: DeploymentContext = {
+    configurator,
+    args,
+    summary,
+    startTime,
+  };
   
+  const pipeline = new DeploymentPipeline();
+  getAllStages().forEach(stage => pipeline.addStage(stage));
+  
+  const metrics = await pipeline.execute(context);
+  
+  cliConsole.text(""); // Add spacing before summary
   cliConsole.success("✅ Configuration deployed successfully!");
+  cliConsole.text("");
+  
+  // Display deployment summary
+  const summaryReport = new DeploymentSummaryReport(metrics, summary);
+  summaryReport.display();
 }
 
 function logDeploymentCompletion(summary: DiffSummary): void {
@@ -173,7 +193,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       process.exit(0);
     }
 
-    await executeDeployment(args);
+    await executeDeployment(args, diffAnalysis.summary);
     logDeploymentCompletion(diffAnalysis.summary);
   } catch (error) {
     handleDeploymentError(error);
