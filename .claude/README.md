@@ -37,8 +37,7 @@ AI assistants should:
 
 ```bash
 # Before ANY commit
-pnpm check      # Biome linting/formatting
-pnpm check:fix  # Auto-fix issues
+pnpm lint       # Biome linting/formatting (auto-fix)
 pnpm typecheck  # Verify types
 pnpm test       # Run tests
 pnpm build      # Ensure it builds

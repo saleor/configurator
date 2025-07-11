@@ -28,12 +28,7 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "pnpm changeset tag && git push --follow-tags",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint --write .",
-    "format": "biome format .",
-    "format:fix": "biome format --write .",
-    "check": "biome check .",
-    "check:fix": "biome check --write .",
+    "lint": "biome check --write",
     "typecheck": "tsc --noEmit",
     "prepare": "husky || true"
   },
@@ -65,7 +60,7 @@
   },
   "lint-staged": {
     "**/*.{ts,tsx,js,jsx,json}": [
-      "pnpm biome check --write --no-errors-on-unmatched"
+      "pnpm lint --no-errors-on-unmatched"
     ]
   }
 }

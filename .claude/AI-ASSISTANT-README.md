@@ -124,8 +124,7 @@ describe('EntityService', () => {
 - ✅ **Always run quality checks before committing**:
   ```bash
   # 1. Biome - linting and formatting (replaces ESLint + Prettier)
-  pnpm check      # Check for issues
-  pnpm check:fix  # Auto-fix issues
+  pnpm lint       # Auto-fixes all issues
   
   # 2. TypeScript validation
   pnpm typecheck  
@@ -154,7 +153,7 @@ describe('EntityService', () => {
 pnpm dev              # Run in development
 pnpm test            # Run tests
 pnpm test:watch      # Watch mode
-pnpm check           # Lint & format
+pnpm lint            # Lint & format (auto-fix)
 pnpm build           # Build for production
 
 # Testing specific files

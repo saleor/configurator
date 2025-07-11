@@ -868,15 +868,13 @@ Using Husky and lint-staged for automatic quality checks:
 // package.json
 {
   "scripts": {
-    "prepare": "husky install",
-    "check": "biome check --write",
-    "check:ci": "biome ci",
+    "prepare": "husky || true",
+    "lint": "biome check --write",
     "typecheck": "tsc --noEmit"
   },
   "lint-staged": {
-    "*.{js,ts,jsx,tsx,json}": [
-      "biome check --write --no-errors-on-unmatched",
-      "biome check --no-errors-on-unmatched"
+    "**/*.{ts,tsx,js,jsx,json}": [
+      "pnpm lint --no-errors-on-unmatched"
     ]
   }
 }
@@ -884,9 +882,6 @@ Using Husky and lint-staged for automatic quality checks:
 
 ```bash
 # .husky/pre-commit
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Run lint-staged
 pnpm lint-staged
 
@@ -934,9 +929,9 @@ jobs:
           cache: 'pnpm'
       
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check:ci
+      - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test:ci
+      - run: pnpm test
       - run: pnpm build
 ```
 
@@ -1232,9 +1227,8 @@ export class CachedProductRepository extends ProductRepository {
 
 **Always run before committing:**
 ```bash
-# 1. Run Biome for linting and formatting
-pnpm check      # Check for issues
-pnpm check:fix  # Auto-fix issues (if any)
+# 1. Run Biome for linting and formatting (auto-fixes issues)
+pnpm lint
 
 # 2. Verify TypeScript compilation
 pnpm typecheck  
