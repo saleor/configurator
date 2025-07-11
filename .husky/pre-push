@@ -34,7 +34,7 @@ set -e
 
 # 1. Run full test suite
 print_status "Running full test suite..."
-if pnpm test; then
+if pnpm test:ci; then
     print_success "All tests passed"
 else
     print_error "Tests failed. Please fix failing tests before pushing."
