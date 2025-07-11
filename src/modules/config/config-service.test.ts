@@ -175,6 +175,17 @@ describe("ConfigurationService", () => {
                     },
                   },
                 ],
+                assignedVariantAttributes: [
+                  {
+                    attribute: {
+                      id: "attr-2",
+                      name: "Size",
+                      type: "PRODUCT_TYPE",
+                      inputType: "PLAIN_TEXT",
+                      choices: null,
+                    },
+                  },
+                ],
               },
             },
           ],
@@ -217,8 +228,11 @@ describe("ConfigurationService", () => {
       ).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
       expect(
-        (result.productTypes?.[0] as unknown as { attributes: unknown[] })
-          ?.attributes
+        (
+          result.productTypes?.[0] as unknown as {
+            productAttributes: unknown[];
+          }
+        )?.productAttributes
       ).toHaveLength(1);
       expect(
         (result.pageTypes?.[0] as unknown as { attributes: unknown[] })
@@ -254,6 +268,17 @@ describe("ConfigurationService", () => {
                     choices: null,
                   },
                 ],
+                assignedVariantAttributes: [
+                  {
+                    attribute: {
+                      id: "attr-3",
+                      name: "Size",
+                      type: "PRODUCT_TYPE",
+                      inputType: "PLAIN_TEXT",
+                      choices: null,
+                    },
+                  },
+                ],
               },
             },
           ],
@@ -267,6 +292,7 @@ describe("ConfigurationService", () => {
       );
       const result = service.mapConfig(rawConfig);
       const attributes = result.productTypes?.[0]?.productAttributes;
+      console.log(result.productTypes?.[0]);
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);
