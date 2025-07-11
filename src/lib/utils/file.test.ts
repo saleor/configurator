@@ -92,7 +92,9 @@ describe("File Utilities", () => {
       const result = createBackupPath(originalPath);
 
       // Assert
-      expect(result).toBe("my.config.file.backup.2023-12-01T10-30-00-000Z.yaml");
+      expect(result).toBe(
+        "my.config.file.backup.2023-12-01T10-30-00-000Z.yaml"
+      );
     });
 
     it("should handle file with no extension", () => {
@@ -146,7 +148,9 @@ describe("File Utilities", () => {
       // Arrange
       const filePath = "config.yml";
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.promises.copyFile = vi.fn().mockRejectedValue(new Error("Permission denied"));
+      mockFs.promises.copyFile = vi
+        .fn()
+        .mockRejectedValue(new Error("Permission denied"));
 
       // Act
       const result = await createBackup(filePath);
@@ -166,13 +170,17 @@ describe("File Utilities", () => {
       await ensureDirectory(dirPath);
 
       // Assert
-      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(dirPath, { recursive: true });
+      expect(mockFs.promises.mkdir).toHaveBeenCalledWith(dirPath, {
+        recursive: true,
+      });
     });
 
     it("should not throw when directory already exists", async () => {
       // Arrange
       const dirPath = "existing/directory";
-      const existsError = new Error("Directory exists") as any;
+      const existsError = new Error("Directory exists") as Error & {
+        code: string;
+      };
       existsError.code = "EEXIST";
       mockFs.promises.mkdir = vi.fn().mockRejectedValue(existsError);
 
@@ -183,12 +191,16 @@ describe("File Utilities", () => {
     it("should throw for other filesystem errors", async () => {
       // Arrange
       const dirPath = "path/to/directory";
-      const permissionError = new Error("Permission denied") as any;
+      const permissionError = new Error("Permission denied") as Error & {
+        code: string;
+      };
       permissionError.code = "EACCES";
       mockFs.promises.mkdir = vi.fn().mockRejectedValue(permissionError);
 
       // Act & Assert
-      await expect(ensureDirectory(dirPath)).rejects.toThrow("Permission denied");
+      await expect(ensureDirectory(dirPath)).rejects.toThrow(
+        "Permission denied"
+      );
     });
   });
 
@@ -231,7 +243,11 @@ describe("File Utilities", () => {
       await writeFile(filePath, content);
 
       // Assert
-      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(filePath, content, "utf-8");
+      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
+        filePath,
+        content,
+        "utf-8"
+      );
     });
 
     it("should throw formatted error when writing fails", async () => {

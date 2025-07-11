@@ -1,9 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
-import type {
-  AttributeInput,
-  SimpleAttribute,
-} from "../config/schema/attribute.schema";
+import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type {
   PageTypeInput,
   PageTypeUpdateInput,
