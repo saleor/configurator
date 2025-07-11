@@ -1,29 +1,15 @@
+import { BaseError } from "../../lib/errors/shared";
+
 /**
  * Base error class for diff-related errors
  */
-export abstract class DiffError extends Error {
-  constructor(
-    message: string,
-    public readonly code: string
-  ) {
-    super(message);
-    this.name = this.constructor.name;
-
-    // Maintains proper stack trace for where our error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
-  }
-}
+export class DiffError extends BaseError {}
 
 /**
  * Error thrown when configuration loading fails
  */
 export class ConfigurationLoadError extends DiffError {
-  constructor(
-    message: string,
-    public readonly filePath?: string
-  ) {
+  constructor(message: string) {
     super(message, "CONFIG_LOAD_ERROR");
   }
 }
@@ -32,10 +18,7 @@ export class ConfigurationLoadError extends DiffError {
  * Error thrown when remote configuration retrieval fails
  */
 export class RemoteConfigurationError extends DiffError {
-  constructor(
-    message: string,
-    public readonly originalError?: Error
-  ) {
+  constructor(message: string) {
     super(message, "REMOTE_CONFIG_ERROR");
   }
 }
@@ -44,11 +27,7 @@ export class RemoteConfigurationError extends DiffError {
  * Error thrown when entity validation fails
  */
 export class EntityValidationError extends DiffError {
-  constructor(
-    message: string,
-    public readonly entityType: string,
-    public readonly entityName?: string
-  ) {
+  constructor(message: string) {
     super(message, "ENTITY_VALIDATION_ERROR");
   }
 }
@@ -57,11 +36,13 @@ export class EntityValidationError extends DiffError {
  * Error thrown when diff comparison fails
  */
 export class DiffComparisonError extends DiffError {
-  constructor(
-    message: string,
-    public readonly entityType?: string,
-    public readonly originalError?: Error
-  ) {
+  constructor(message: string) {
     super(message, "DIFF_COMPARISON_ERROR");
+  }
+}
+
+export class DiffSummaryError extends DiffError {
+  constructor(message: string) {
+    super(message, "DIFF_SUMMARY_ERROR");
   }
 }

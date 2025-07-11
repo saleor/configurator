@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createCategoryMutation = graphql(`
@@ -60,7 +61,10 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
+  async createCategory(
+    input: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -74,11 +78,9 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (!result.data?.categoryCreate?.category) {
-      throw new Error(
-        `Failed to create category: ${
-          result.data?.categoryCreate?.errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ||
-          "Unknown error"
-        }`
+      throw GraphQLError.fromGraphQLErrors(
+        result.error?.graphQLErrors ?? [],
+        "Failed to create category"
       );
     }
 

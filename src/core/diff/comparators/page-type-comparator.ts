@@ -70,9 +70,6 @@ export class PageTypeComparator extends BaseEntityComparator<
    * Gets the name of a page type entity
    */
   protected getEntityName(entity: PageTypeEntity): string {
-    if (!entity.name || typeof entity.name !== "string") {
-      throw new Error("Page type entity must have a valid name");
-    }
     return entity.name;
   }
 

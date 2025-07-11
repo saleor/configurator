@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import { CliFileNotFoundError } from "../cli/errors";
 import {
   createConfigurator,
   type IntrospectDiffResult,

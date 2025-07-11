@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createProductTypeMutation = graphql(`
@@ -89,7 +90,10 @@ export class ProductTypeRepository implements ProductTypeOperations {
     });
 
     if (!result.data?.productTypeCreate?.productType) {
-      throw new Error("Failed to create product type", result.error);
+      throw GraphQLError.fromGraphQLErrors(
+        result.error?.graphQLErrors ?? [],
+        "Failed to create product type"
+      );
     }
 
     const productType = result.data.productTypeCreate.productType;
@@ -130,10 +134,9 @@ export class ProductTypeRepository implements ProductTypeOperations {
     );
 
     if (!result.data?.productAttributeAssign?.productType) {
-      throw new Error(
-        `Failed to assign attributes to product type ${productTypeId}: ${result.data?.productAttributeAssign?.errors
-          ?.map((e) => e.message)
-          .join(", ")}`
+      throw GraphQLError.fromDataErrors(
+        `Failed to assign attributes to product type ${productTypeId}`,
+        result.data?.productAttributeAssign?.errors ?? []
       );
     }
 

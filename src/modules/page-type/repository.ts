@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createPageTypeMutation = graphql(`
@@ -20,7 +21,9 @@ const createPageTypeMutation = graphql(`
 type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
 
 export type PageType = NonNullable<
-  NonNullable<ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]>["pageType"]
+  NonNullable<
+    ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]
+  >["pageType"]
 >;
 
 const getPageTypeByNameQuery = graphql(`
@@ -72,7 +75,10 @@ export interface PageTypeOperations {
   createPageType(pageTypeInput: PageTypeCreateInput): Promise<PageType>;
   getPageTypeByName(name: string): Promise<PageType | null | undefined>;
   getPageType(id: string): Promise<PageType | null | undefined>;
-  assignAttributes(pageTypeId: string, attributeIds: string[]): Promise<{ id: string }>;
+  assignAttributes(
+    pageTypeId: string,
+    attributeIds: string[]
+  ): Promise<{ id: string }>;
 }
 
 export class PageTypeRepository implements PageTypeOperations {
@@ -84,7 +90,10 @@ export class PageTypeRepository implements PageTypeOperations {
     });
 
     if (!result.data?.pageTypeCreate?.pageType) {
-      throw new Error("Failed to create page type", result.error);
+      throw GraphQLError.fromGraphQLErrors(
+        result.error?.graphQLErrors ?? [],
+        "Failed to create page type"
+      );
     }
 
     const pageType = result.data.pageTypeCreate.pageType;
@@ -117,7 +126,10 @@ export class PageTypeRepository implements PageTypeOperations {
     });
 
     if (!result.data?.pageAttributeAssign?.pageType) {
-      throw new Error("Failed to assign attributes to page type", result.error);
+      throw GraphQLError.fromGraphQLErrors(
+        result.error?.graphQLErrors ?? [],
+        "Failed to assign attributes to page type"
+      );
     }
 
     return result.data?.pageAttributeAssign?.pageType;

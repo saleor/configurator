@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
+import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import type { PageTypeOperations } from "./repository";
 
@@ -59,12 +60,11 @@ export class PageTypeService {
       // check if the page type has the attributes already
       const attributesToCreate = updateInput.attributes.filter((a) => {
         if ("attribute" in a) {
-          // This is a reference to an existing attribute, skip it
           return false;
         }
-        // This is a new attribute definition
+
         return !pageType.attributes?.some((attr) => attr.name === a.name);
-      });
+      }) as SimpleAttribute[];
 
       logger.debug("Attributes to create", {
         attributesToCreate,

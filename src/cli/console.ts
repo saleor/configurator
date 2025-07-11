@@ -1,7 +1,9 @@
 import chalk from "chalk";
+import { OraProgressReporter, type ProgressReporter } from "./progress";
 
 export class Console {
   private options: { quiet: boolean } = { quiet: false };
+  progress: ProgressReporter = new OraProgressReporter();
 
   setOptions(options: { quiet: boolean } = { quiet: false }) {
     this.options = options;
@@ -49,8 +51,8 @@ export class Console {
   }
 
   error(error: unknown) {
-    const text = chalk.red(error);
-    // TODO: improve error formatting
+    const message = error instanceof Error ? error.message : String(error);
+    const text = chalk.red(message);
     global.console.error(text);
 
     return text;
