@@ -272,6 +272,8 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - No unused locals/parameters allowed
 - Strict null checks enabled
 - gql.tada plugin for GraphQL types
+- **NEVER use `as any` in production code** - only allowed in test files for mocking
+- Use proper type guards, union types, or generic constraints instead
 
 ## Memory & Implementation Details
 
