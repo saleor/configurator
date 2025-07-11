@@ -33,13 +33,17 @@
     "format": "biome format .",
     "format:fix": "biome format --write .",
     "check": "biome check .",
-    "check:fix": "biome check --write ."
+    "check:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
     "@changesets/changelog-github": "^0.5.1",
     "@changesets/cli": "^2.29.4",
     "@types/node": "^20.17.16",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "tsx": "^4.7.0",
     "typescript": "^5.5.4",
     "vitest": "^3.0.4"
@@ -58,5 +62,10 @@
     "tslog": "^4.9.3",
     "yaml": "^2.7.0",
     "zod": "^3.25.71"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx,js,jsx,json}": [
+      "pnpm biome check --write --no-errors-on-unmatched"
+    ]
   }
 }
