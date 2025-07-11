@@ -6,10 +6,7 @@ import { createConfigurator } from "../core/configurator";
 
 export const pushCommandSchema = baseCommandArgsSchema.extend({
   force: z.boolean().default(false).describe("Force push without confirmation"),
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Show what would be changed without applying"),
+  dryRun: z.boolean().default(false).describe("Show what would be changed without applying"),
 });
 
 export type PushCommandArgs = z.infer<typeof pushCommandSchema>;
@@ -71,8 +68,7 @@ export async function pushHandler(args: PushCommandArgs): Promise<void> {
 
 export const pushCommandConfig: CommandConfig<typeof pushCommandSchema> = {
   name: "push",
-  description:
-    "Updates the remote Saleor instance according to the local configuration",
+  description: "Updates the remote Saleor instance according to the local configuration",
   schema: pushCommandSchema,
   handler: pushHandler,
   requiresInteractive: true,

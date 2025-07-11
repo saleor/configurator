@@ -1,18 +1,17 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  DiffFormatter,
-  DetailedDiffFormatter,
-  SummaryDiffFormatter,
   calculateDiffStatistics,
+  createDetailedFormatter,
+  createSummaryFormatter,
+  DetailedDiffFormatter,
+  DiffFormatter,
+  type DiffStatistics,
+  type DiffSummary,
   filterDiffByEntityType,
   filterDiffByOperation,
   hasDiffChanges,
   hasSafeDiffChangesOnly,
-  createDetailedFormatter,
-  createSummaryFormatter,
-  type DiffSummary,
-  type DiffResult,
-  type DiffStatistics,
+  SummaryDiffFormatter,
 } from "./index";
 
 describe("DiffFormatter", () => {

@@ -75,10 +75,7 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote category entities
    */
-  protected compareEntityFields(
-    local: CategoryEntity,
-    remote: CategoryEntity
-  ): DiffChange[] {
+  protected compareEntityFields(local: CategoryEntity, remote: CategoryEntity): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists
@@ -104,16 +101,16 @@ export class CategoryComparator extends BaseEntityComparator<
    * Safely extracts slug from a category entity
    */
   private getSlug(entity: CategoryEntity): string | undefined {
-    // Type assertion is safe here since we're accessing a known property
-    return (entity as any).slug;
+    // Type guard for accessing slug property
+    return "slug" in entity && typeof entity.slug === "string" ? entity.slug : undefined;
   }
 
   /**
    * Safely extracts subcategories from a category entity
    */
   private getSubcategories(entity: CategoryEntity): readonly Subcategory[] {
-    // Type assertion is safe here since we're accessing a known property
-    const subcategories = (entity as any).subcategories;
+    // Type guard for accessing subcategories property
+    const subcategories = "subcategories" in entity ? entity.subcategories : undefined;
     return Array.isArray(subcategories) ? subcategories : [];
   }
 
@@ -126,12 +123,8 @@ export class CategoryComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localSubcatMap = new Map(
-      local.map((subcat) => [subcat.name, subcat])
-    );
-    const remoteSubcatMap = new Map(
-      remote.map((subcat) => [subcat.name, subcat])
-    );
+    const localSubcatMap = new Map(local.map((subcat) => [subcat.name, subcat]));
+    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.name, subcat]));
 
     // Find added subcategories
     for (const localSubcat of local) {

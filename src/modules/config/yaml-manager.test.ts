@@ -37,7 +37,7 @@ describe("YamlConfigurationManager", () => {
         defaultMailSenderName: Test Store
         defaultMailSenderAddress: test@example.com
     `;
-    (mockFs.readFile as any).mockResolvedValue(yamlContent);
+    (mockFs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue(yamlContent);
 
     const config = await manager.load();
 
@@ -52,15 +52,13 @@ describe("YamlConfigurationManager", () => {
   it("should throw error when file not found", async () => {
     const error = new Error("File not found");
     (error as NodeJS.ErrnoException).code = "ENOENT";
-    (mockFs.readFile as any).mockRejectedValue(error);
+    (mockFs.readFile as ReturnType<typeof vi.fn>).mockRejectedValue(error);
 
-    await expect(manager.load()).rejects.toThrow(
-      `Configuration file not found: ${CONFIG_PATH}`
-    );
+    await expect(manager.load()).rejects.toThrow(`Configuration file not found: ${CONFIG_PATH}`);
   });
 
   it("should throw error when YAML is invalid", async () => {
-    (mockFs.readFile as any).mockResolvedValue("invalid: yaml: content:");
+    (mockFs.readFile as ReturnType<typeof vi.fn>).mockResolvedValue("invalid: yaml: content:");
 
     await expect(manager.load()).rejects.toThrow();
   });

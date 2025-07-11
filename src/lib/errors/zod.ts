@@ -27,32 +27,24 @@ function formatZodIssue(issue: z.ZodIssue): string {
       return `Expected ${issue.expected}, but received ${issue.received}`;
     case "too_small":
       if (issue.type === "string") {
-        return `Must be at least ${issue.minimum} character${
-          issue.minimum === 1 ? "" : "s"
-        } long`;
+        return `Must be at least ${issue.minimum} character${issue.minimum === 1 ? "" : "s"} long`;
       }
       if (issue.type === "number") {
         return `Must be at least ${issue.minimum}`;
       }
       if (issue.type === "array") {
-        return `Must contain at least ${issue.minimum} item${
-          issue.minimum === 1 ? "" : "s"
-        }`;
+        return `Must contain at least ${issue.minimum} item${issue.minimum === 1 ? "" : "s"}`;
       }
       return issue.message;
     case "too_big":
       if (issue.type === "string") {
-        return `Must be at most ${issue.maximum} character${
-          issue.maximum === 1 ? "" : "s"
-        } long`;
+        return `Must be at most ${issue.maximum} character${issue.maximum === 1 ? "" : "s"} long`;
       }
       if (issue.type === "number") {
         return `Must be at most ${issue.maximum}`;
       }
       if (issue.type === "array") {
-        return `Must contain at most ${issue.maximum} item${
-          issue.maximum === 1 ? "" : "s"
-        }`;
+        return `Must contain at most ${issue.maximum} item${issue.maximum === 1 ? "" : "s"}`;
       }
       return issue.message;
     case "invalid_string":
@@ -69,9 +61,7 @@ function formatZodIssue(issue: z.ZodIssue): string {
     case "invalid_enum_value":
       return `Must be one of: ${issue.options.join(", ")}`;
     case "unrecognized_keys":
-      return `Unrecognized key${
-        issue.keys.length === 1 ? "" : "s"
-      }: ${issue.keys.join(", ")}`;
+      return `Unrecognized key${issue.keys.length === 1 ? "" : "s"}: ${issue.keys.join(", ")}`;
     case "invalid_literal":
       return `Must be exactly "${issue.expected}"`;
     case "invalid_union":

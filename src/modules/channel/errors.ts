@@ -18,7 +18,10 @@ export class ChannelNotFoundError extends ChannelError {
  * Error thrown when channel creation fails
  */
 export class ChannelCreationError extends ChannelError {
-  constructor(message: string, public readonly channelSlug: string) {
+  constructor(
+    message: string,
+    public readonly channelSlug: string
+  ) {
     super(message, "CHANNEL_CREATION_ERROR");
   }
 }
@@ -27,7 +30,10 @@ export class ChannelCreationError extends ChannelError {
  * Error thrown when channel update fails
  */
 export class ChannelUpdateError extends ChannelError {
-  constructor(message: string, public readonly channelId: string) {
+  constructor(
+    message: string,
+    public readonly channelId: string
+  ) {
     super(message, "CHANNEL_UPDATE_ERROR");
   }
 }

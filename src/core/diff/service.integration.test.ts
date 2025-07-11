@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { type DiffChange, DiffFormatter, type DiffSummary } from ".";
 import { DiffService } from "./service";
-import { DiffFormatter, type DiffSummary, type DiffChange } from ".";
 
 /**
  * Integration Tests for Diff Functionality
@@ -133,9 +133,11 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBeGreaterThan(0);
@@ -159,9 +161,11 @@ productTypes:
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBe(0);
@@ -178,9 +182,11 @@ productTypes:
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBe(0);
@@ -203,14 +209,17 @@ productTypes:
           retrieve: async () => identicalConfig,
           retrieveWithoutSaving: async () => identicalConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
       // Test with custom configuration
-      const diffService = new DiffService(mockServices, {
-        enableDebugLogging: true,
-        maxConcurrentComparisons: 10,
-        remoteTimeoutMs: 5000,
-      });
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer,
+        {
+          enableDebugLogging: true,
+          maxConcurrentComparisons: 10,
+          remoteTimeoutMs: 5000,
+        }
+      );
 
       const summary = await diffService.compare();
 
@@ -333,9 +342,11 @@ productTypes:
             throw new Error("Network error");
           },
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
 
       await expect(diffService.compare()).rejects.toThrow(
         "Failed to retrieve remote configuration"
@@ -354,9 +365,11 @@ productTypes:
           retrieve: async () => ({}),
           retrieveWithoutSaving: async () => ({}),
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
 
       await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
@@ -402,9 +415,11 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBeGreaterThan(0);
@@ -453,9 +468,11 @@ productTypes:
           retrieve: async () => remoteConfig,
           retrieveWithoutSaving: async () => remoteConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
       const summary = await diffService.compare();
 
       expect(summary.totalChanges).toBeGreaterThan(0);
@@ -498,9 +515,11 @@ productTypes:
           retrieve: async () => emptyConfig,
           retrieveWithoutSaving: async () => emptyConfig,
         },
-      } as any;
+      } as unknown as Partial<import("../service-container").ServiceContainer>;
 
-      const diffService = new DiffService(mockServices);
+      const diffService = new DiffService(
+        mockServices as import("../service-container").ServiceContainer
+      );
 
       const startTime = Date.now();
       const summary = await diffService.compare();

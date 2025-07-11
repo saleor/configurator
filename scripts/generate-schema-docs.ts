@@ -28,7 +28,7 @@
  * Output: SCHEMA.md (auto-generated, gitignored)
  */
 
-import { writeFileSync } from "fs";
+import { writeFileSync } from "node:fs";
 import { z } from "zod";
 import { configSchema } from "../src/modules/config/schema/schema.js";
 
@@ -39,13 +39,10 @@ interface SchemaDocumentation {
   description?: string;
   enum?: string[];
   properties?: SchemaDocumentation[];
-  example?: any;
+  example?: unknown;
 }
 
-function analyzeZodSchema(
-  schema: z.ZodTypeAny,
-  name: string = "root"
-): SchemaDocumentation {
+function analyzeZodSchema(schema: z.ZodTypeAny, name: string = "root"): SchemaDocumentation {
   const doc: SchemaDocumentation = {
     name,
     type: "unknown",
@@ -53,8 +50,14 @@ function analyzeZodSchema(
   };
 
   // Extract description from Zod schema
-  if (schema && (schema as any)._def?.description) {
-    doc.description = (schema as any)._def.description;
+  if (
+    schema &&
+    "_def" in schema &&
+    typeof schema._def === "object" &&
+    schema._def &&
+    "description" in schema._def
+  ) {
+    doc.description = String(schema._def.description);
   }
 
   // Handle optional schemas
@@ -107,7 +110,13 @@ function analyzeZodSchema(
 
   // Handle records (like z.record(z.string()))
   if (schema instanceof z.ZodRecord) {
-    const valueType = analyzeZodSchema((schema as any)._def.valueType, "value");
+    const valueType =
+      "_def" in schema &&
+      typeof schema._def === "object" &&
+      schema._def &&
+      "valueType" in schema._def
+        ? analyzeZodSchema(schema._def.valueType as z.ZodTypeAny, "value")
+        : { type: "unknown" };
     doc.type = `Record<string, ${valueType.type}>`;
     return doc;
   }
@@ -139,10 +148,7 @@ function analyzeZodSchema(
   return doc;
 }
 
-function generateMarkdownDocs(
-  schema: SchemaDocumentation,
-  level: number = 1
-): string {
+function generateMarkdownDocs(schema: SchemaDocumentation, level: number = 1): string {
   // Skip root level "Configuration" wrapper
   if (level === 1 && schema.name === "Configuration") {
     let markdown = "";
@@ -173,9 +179,7 @@ function generateMarkdownDocs(
     markdown += `| **Required** | ${schema.optional ? "No" : "Yes"} |\n`;
 
     if (schema.enum) {
-      markdown += `| **Values** | ${schema.enum
-        .map((v) => `\`${v}\``)
-        .join(", ")} |\n`;
+      markdown += `| **Values** | ${schema.enum.map((v) => `\`${v}\``).join(", ")} |\n`;
     }
 
     if (schema.example !== undefined) {
@@ -185,9 +189,7 @@ function generateMarkdownDocs(
     markdown += "\n";
   } else {
     // For objects with properties, show type info inline
-    markdown += `**Type**: \`${schema.type}\` ${
-      schema.optional ? "(optional)" : "(required)"
-    }\n\n`;
+    markdown += `**Type**: \`${schema.type}\` ${schema.optional ? "(optional)" : "(required)"}\n\n`;
 
     if (
       schema.description &&
@@ -210,8 +212,7 @@ function generateMarkdownDocs(
 // Add descriptions and examples to make documentation richer
 const enhancedDescriptions = {
   shop: "Global shop settings that apply to the entire Saleor instance",
-  channels:
-    "Sales channels for different markets, regions, or customer segments",
+  channels: "Sales channels for different markets, regions, or customer segments",
   productTypes: "Product type definitions with their associated attributes",
   pageTypes: "Page type definitions for CMS content",
   categories: "Product category hierarchy",
@@ -221,8 +222,7 @@ const enhancedDescriptions = {
 function addDescriptions(doc: SchemaDocumentation): SchemaDocumentation {
   // Only add enhanced descriptions for top-level sections
   if (enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions]) {
-    doc.description =
-      enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions];
+    doc.description = enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions];
   }
 
   // Recursively process properties

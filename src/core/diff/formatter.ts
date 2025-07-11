@@ -5,6 +5,7 @@ import type { DiffSummary } from "./types";
  * Main diff formatter that provides a unified interface
  * Maintains backward compatibility with the original DiffFormatter
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: This class provides a unified interface for multiple formatters
 export class DiffFormatter {
   private static readonly detailedFormatter = new DetailedDiffFormatter();
   private static readonly summaryFormatter = new SummaryDiffFormatter();
