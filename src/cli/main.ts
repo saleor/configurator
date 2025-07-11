@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
-import { commands } from "../commands";
+import { commands } from "../commands/index.js";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
 import { type CommandConfig, createCommand } from "./command";
@@ -21,7 +21,9 @@ const CLI_CONFIG = {
 
 function registerCommands(program: Command): void {
   for (const commandConfig of commands) {
-    const command = createCommand(commandConfig as CommandConfig<typeof commandConfig.schema>);
+    const command = createCommand(
+      commandConfig as CommandConfig<typeof commandConfig.schema>
+    );
 
     program.addCommand(command);
   }
@@ -44,7 +46,10 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
 }
 
 function addHelpContent(program: Command): void {
-  program.addHelpText("before", cliConsole.important("✨ Saleor Configurator ✨\n"));
+  program.addHelpText(
+    "before",
+    cliConsole.important("✨ Saleor Configurator ✨\n")
+  );
   program.addHelpText("after", buildHelpText());
 }
 
@@ -99,7 +104,9 @@ async function handleCliError(error: unknown): Promise<void> {
 // Global error handlers
 process.on("uncaughtException", (error: Error) => {
   logger.fatal("Uncaught Exception:", error);
-  cliConsole.error("💥 An unexpected error occurred. Please report this issue.");
+  cliConsole.error(
+    "💥 An unexpected error occurred. Please report this issue."
+  );
 
   if (process.env.NODE_ENV === "development") {
     console.error(error.stack);
@@ -136,4 +143,7 @@ export async function runCLI(): Promise<void> {
   }
 }
 
-runCLI();
+// Only run CLI if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  runCLI();
+}
