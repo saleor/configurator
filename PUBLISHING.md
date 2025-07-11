@@ -105,6 +105,24 @@ Ensure these secrets are configured in your GitHub repository:
 
 Before publishing to production, thoroughly test all publishing-related functionality:
 
+### Quick Local Verification
+
+```bash
+# 1. Verify CLI works locally
+./bin/saleor-configurator.js --help
+
+# 2. Test package contents
+npm pack --dry-run
+
+# 3. Run tests and linting
+pnpm run test:ci && pnpm run lint
+
+# 4. Test publishing dry run
+npm publish --dry-run
+```
+
+If all these pass, you're ready for detailed testing:
+
 ### 1. Verify Package Configuration
 
 ```bash
@@ -143,15 +161,24 @@ Expected contents:
 ### 3. Test CLI Functionality
 
 ```bash
+# Verify the bin file exists and is executable
+ls -la bin/saleor-configurator.js
+
 # Test basic CLI functionality
 ./bin/saleor-configurator.js --help
 ./bin/saleor-configurator.js --version
 
-# Test commands work
+# Test all commands work
 ./bin/saleor-configurator.js push --help
 ./bin/saleor-configurator.js diff --help
 ./bin/saleor-configurator.js introspect --help
 ./bin/saleor-configurator.js start --help
+
+# Test that tsx dependency is accessible
+node -e "console.log(require.resolve('tsx'))"
+
+# Test TypeScript compilation works
+./bin/saleor-configurator.js --version | grep -q "0\." && echo "✓ CLI works" || echo "✗ CLI failed"
 ```
 
 ### 4. Test Publishing Scripts
@@ -262,17 +289,36 @@ src/                    # Source TypeScript files (included for tsx execution)
 ## Key Features
 
 - **CLI-only**: Focused on command-line usage
+- **No build step**: Ships TypeScript source, uses `tsx` for execution
 - **Automated releases**: Powered by Changesets and GitHub Actions
 - **TypeScript**: Full TypeScript development experience
 - **ES Modules**: Modern module system
-- **tsx execution**: Development-friendly CLI execution without compilation
 - **Scoped package**: Published under `@saleor/` namespace
 - **Git tagging**: Automatic release tagging and GitHub releases
 
+## How It Works
+
+This package uses a **no-build approach**:
+
+1. **`bin/saleor-configurator.js`**: A lightweight wrapper script that:
+   - Spawns `tsx` to run the TypeScript source directly
+   - Passes all command-line arguments through
+   - No compilation or build step required
+
+2. **TypeScript source**: All source files in `src/` are included in the npm package
+
+3. **Runtime execution**: `tsx` compiles and runs TypeScript on-the-fly
+
+This approach provides:
+- ✅ **Faster development**: No build step needed
+- ✅ **Simpler publishing**: Just ship the source
+- ✅ **Better debugging**: Source maps work perfectly
+- ✅ **Type safety**: Full TypeScript experience
+
 ## Dependencies
 
-The package includes source files and uses `tsx` for execution:
-- CLI requires `tsx` and source files for execution
-- All dependencies are properly declared in package.json
-- No build step required for publishing
-- Follows Saleor's established patterns for consistency
+The package requires:
+- `tsx`: Runtime TypeScript execution (in `dependencies`)
+- TypeScript source files in `src/` directory
+- All runtime dependencies properly declared
+- No build tools or compilation needed for publishing
