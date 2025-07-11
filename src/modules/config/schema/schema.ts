@@ -5,6 +5,7 @@ import { attributeInputSchema } from "./attribute.schema";
 const productTypeSchema = z
   .object({
     name: z.string().describe("ProductType.name"),
+    isShippingRequired: z.boolean().optional().default(false).describe("ProductType.isShippingRequired"),
     productAttributes: z
       .array(attributeInputSchema)
       .describe("ProductType.productAttributes")

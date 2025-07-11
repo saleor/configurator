@@ -33,6 +33,7 @@ channels:
 
 productTypes:
   - name: Book
+    isShippingRequired: true
     productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -53,6 +54,7 @@ productTypes:
           - name: Medium
           - name: Large
   - name: E-Book
+    isShippingRequired: false
     productAttributes:
       - attribute: Author # Reference an existing attribute by slug
       - attribute: Genre # Reference an existing attribute by slug

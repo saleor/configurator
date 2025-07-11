@@ -10,7 +10,7 @@ export class ProductTypeService {
     private attributeService: AttributeService
   ) {}
 
-  private async upsert(name: string) {
+  private async upsert({ name, isShippingRequired = false }: { name: string; isShippingRequired?: boolean }) {
     logger.debug("Looking up product type", { name });
     const existingProductType = await this.repository.getProductTypeByName(name);
 
@@ -22,13 +22,13 @@ export class ProductTypeService {
       return existingProductType;
     }
 
-    logger.debug("Creating new product type", { name });
+    logger.debug("Creating new product type", { name, isShippingRequired });
 
     return this.repository.createProductType({
       name,
       kind: "NORMAL",
       hasVariants: true,
-      isShippingRequired: false,
+      isShippingRequired,
       taxClass: null,
     });
   }
@@ -194,9 +194,13 @@ export class ProductTypeService {
   async bootstrapProductType(input: ProductTypeInput) {
     logger.debug("Bootstrapping product type", {
       name: input.name,
+      isShippingRequired: input.isShippingRequired,
     });
 
-    const productType = await this.upsert(input.name);
+    const productType = await this.upsert({ 
+      name: input.name, 
+      isShippingRequired: input.isShippingRequired 
+    });
 
     return this.updateProductType(productType, input);
   }
