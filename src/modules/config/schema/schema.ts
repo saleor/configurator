@@ -312,7 +312,6 @@ const productSchema = z.object({
   name: z.string(),
   productType: z.string(),
   category: z.string(),
-  description: z.string().optional(),
   attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
   channelListings: z.array(productChannelListingSchema).optional(),
   variants: z.array(productVariantSchema),
