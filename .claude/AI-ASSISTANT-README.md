@@ -112,6 +112,8 @@ describe('EntityService', () => {
 ## 💡 Tips for Success
 
 ### DO:
+- ✅ **RESEARCH FIRST** - Always check existing tools before building custom solutions
+- ✅ **High-quality code only** - Clean, concise, direct implementations
 - ✅ Read existing code before implementing
 - ✅ Follow established patterns religiously
 - ✅ Write meaningful test descriptions
@@ -136,6 +138,8 @@ describe('EntityService', () => {
   ```
 
 ### DON'T:
+- ❌ **Create custom solutions** when good tools exist
+- ❌ **Over-engineer** - keep solutions simple and direct
 - ❌ Use `any` type (ever!)
 - ❌ Skip tests
 - ❌ Ignore error handling
