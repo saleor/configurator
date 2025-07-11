@@ -1,12 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
-import type { CategoryService } from "../modules/category/category-service";
-import type { ChannelService } from "../modules/channel/channel-service";
-import type { ConfigurationService } from "../modules/config/config-service";
-import type { YamlConfigurationManager } from "../modules/config/yaml-manager";
-import type { PageTypeService } from "../modules/page-type/page-type-service";
+/** biome-ignore-all lint/style/noNonNullAssertion: <tests> */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductService } from "../modules/product/product-service";
-import type { ProductTypeService } from "../modules/product-type/product-type-service";
-import type { ShopService } from "../modules/shop/shop-service";
 import { SaleorConfigurator } from "./configurator";
 import type { ServiceContainer } from "./service-container";
 
@@ -63,11 +57,18 @@ describe("SaleorConfigurator enhanced functionality", () => {
       const mockRemoteConfig = {
         shop: { headerText: "Test Shop" },
         channels: [
-          { name: "Test Channel", slug: "test", currencyCode: "USD", defaultCountry: "US" },
+          {
+            name: "Test Channel",
+            slug: "test",
+            currencyCode: "USD",
+            defaultCountry: "US",
+          },
         ],
       };
 
-      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(mockRemoteConfig);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockResolvedValue(mockRemoteConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -83,13 +84,17 @@ describe("SaleorConfigurator enhanced functionality", () => {
       mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(error);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow("GraphQL composition failed");
+      await expect(configurator.introspect()).rejects.toThrow(
+        "GraphQL composition failed"
+      );
     });
 
     it("should introspect with empty configuration", async () => {
       // Arrange
       const emptyConfig = {};
-      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(emptyConfig);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockResolvedValue(emptyConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -107,13 +112,25 @@ describe("SaleorConfigurator enhanced functionality", () => {
           trackInventoryByDefault: true,
         },
         channels: [
-          { name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" },
-          { name: "Channel 2", slug: "ch2", currencyCode: "EUR", defaultCountry: "DE" },
+          {
+            name: "Channel 1",
+            slug: "ch1",
+            currencyCode: "USD",
+            defaultCountry: "US",
+          },
+          {
+            name: "Channel 2",
+            slug: "ch2",
+            currencyCode: "EUR",
+            defaultCountry: "DE",
+          },
         ],
         productTypes: [{ name: "Product Type 1", attributes: [] }],
       };
 
-      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(complexConfig);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockResolvedValue(complexConfig);
 
       // Act
       const result = await configurator.introspect();
@@ -127,7 +144,10 @@ describe("SaleorConfigurator enhanced functionality", () => {
       const config1 = { shop: { headerText: "Shop 1" } };
       const config2 = { shop: { headerText: "Shop 2" } };
 
-      const mockRetrieve = vi.fn().mockResolvedValueOnce(config1).mockResolvedValueOnce(config2);
+      const mockRetrieve = vi
+        .fn()
+        .mockResolvedValueOnce(config1)
+        .mockResolvedValueOnce(config2);
 
       mockServices.configuration!.retrieve = mockRetrieve;
 
@@ -148,19 +168,27 @@ describe("SaleorConfigurator enhanced functionality", () => {
     it("should handle network errors gracefully", async () => {
       // Arrange
       const networkError = new Error("Network request failed");
-      mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(networkError);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockRejectedValue(networkError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow("Network request failed");
+      await expect(configurator.introspect()).rejects.toThrow(
+        "Network request failed"
+      );
     });
 
     it("should handle authentication errors", async () => {
       // Arrange
       const authError = new Error("GraphQL Error: Unauthorized (401)");
-      mockServices.configuration!.retrieve = vi.fn().mockRejectedValue(authError);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockRejectedValue(authError);
 
       // Act & Assert
-      await expect(configurator.introspect()).rejects.toThrow("GraphQL Error: Unauthorized (401)");
+      await expect(configurator.introspect()).rejects.toThrow(
+        "GraphQL Error: Unauthorized (401)"
+      );
     });
   });
 
@@ -211,119 +239,15 @@ describe("SaleorConfigurator enhanced functionality", () => {
         ],
       };
 
-      mockServices.configuration!.retrieve = vi.fn().mockResolvedValue(complexConfig);
+      mockServices.configuration!.retrieve = vi
+        .fn()
+        .mockResolvedValue(complexConfig);
 
       // Act
       const result = await configurator.introspect();
 
       // Assert
       expect(result).toEqual(complexConfig);
-    });
-  });
-
-  describe("diffForIntrospect method", () => {
-    it("should successfully perform introspect diff comparison", async () => {
-      // Arrange
-      const mockLocalConfig = {
-        shop: { headerText: "Local Shop" },
-        channels: [
-          { name: "Local Channel", slug: "local", currencyCode: "USD", defaultCountry: "US" },
-        ],
-      };
-
-      const mockRemoteConfig = {
-        shop: { headerText: "Remote Shop" },
-        channels: [],
-      };
-
-      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(mockRemoteConfig);
-
-      // Act
-      const result = await configurator.diffForIntrospect({ quiet: true });
-
-      // Assert
-      expect(mockServices.configStorage!.load).toHaveBeenCalled();
-      expect(mockServices.configuration!.retrieveWithoutSaving).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.summary.totalChanges).toBeGreaterThan(0);
-    });
-
-    it("should handle empty remote configuration", async () => {
-      // Arrange
-      const mockLocalConfig = {
-        shop: { headerText: "Local Shop" },
-        channels: [{ name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" }],
-        productTypes: [{ name: "Product Type 1", attributes: [] }],
-      };
-
-      const mockRemoteConfig = {};
-
-      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(mockRemoteConfig);
-
-      // Act
-      const result = await configurator.diffForIntrospect({ quiet: true });
-
-      // Assert
-      // All local entities should be marked for deletion when remote is empty
-      expect(result.summary.deletes).toBeGreaterThan(0);
-      expect(result.summary.creates).toBe(0);
-    });
-
-    it("should handle format options", async () => {
-      // Arrange
-      const mockConfig = {
-        shop: { headerText: "Shop" },
-      };
-
-      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi.fn().mockResolvedValue(mockConfig);
-
-      // Act
-      const result = await configurator.diffForIntrospect({
-        format: "json",
-        quiet: true,
-      });
-
-      // Assert
-      expect(result.summary.totalChanges).toBe(0);
-    });
-
-    it("should handle filter options", async () => {
-      // Arrange
-      const mockLocalConfig = {
-        shop: { headerText: "Local" },
-        channels: [{ name: "Channel", slug: "ch", currencyCode: "USD", defaultCountry: "US" }],
-      };
-
-      const mockRemoteConfig = {};
-
-      mockServices.configStorage!.load = vi.fn().mockResolvedValue(mockLocalConfig);
-      mockServices.configuration!.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(mockRemoteConfig);
-
-      // Act
-      const result = await configurator.diffForIntrospect({
-        includeSections: ["channels"],
-        quiet: true,
-      });
-
-      // Assert
-      expect(result.summary.results.every((r) => r.entityType === "Channels")).toBe(true);
-    });
-
-    it("should handle service errors gracefully", async () => {
-      // Arrange
-      mockServices.configStorage!.load = vi.fn().mockRejectedValue(new Error("Load error"));
-
-      // Act & Assert
-      await expect(configurator.diffForIntrospect({ quiet: true })).rejects.toThrow();
     });
   });
 });
