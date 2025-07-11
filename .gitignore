@@ -4,4 +4,3 @@ config.yml
 .biome
 deployment-report-*.json
 CLAUDE.md
-bin
