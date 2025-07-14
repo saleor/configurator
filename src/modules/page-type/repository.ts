@@ -21,7 +21,9 @@ const createPageTypeMutation = graphql(`
 type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
 
 export type PageType = NonNullable<
-  NonNullable<ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]>["pageType"]
+  NonNullable<
+    ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]
+  >["pageType"]
 >;
 
 const getPageTypeByNameQuery = graphql(`
@@ -73,7 +75,10 @@ export interface PageTypeOperations {
   createPageType(pageTypeInput: PageTypeCreateInput): Promise<PageType>;
   getPageTypeByName(name: string): Promise<PageType | null | undefined>;
   getPageType(id: string): Promise<PageType | null | undefined>;
-  assignAttributes(pageTypeId: string, attributeIds: string[]): Promise<{ id: string }>;
+  assignAttributes(
+    pageTypeId: string,
+    attributeIds: string[]
+  ): Promise<{ id: string }>;
 }
 
 export class PageTypeRepository implements PageTypeOperations {
@@ -87,7 +92,7 @@ export class PageTypeRepository implements PageTypeOperations {
     if (!result.data?.pageTypeCreate?.pageType) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
-        "Failed to create page type"
+        `Failed to create page type ${pageTypeInput.name}`
       );
     }
 
@@ -123,7 +128,7 @@ export class PageTypeRepository implements PageTypeOperations {
     if (!result.data?.pageAttributeAssign?.pageType) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
-        "Failed to assign attributes to page type"
+        `Failed to assign attributes to page type ${pageTypeId}`
       );
     }
 
