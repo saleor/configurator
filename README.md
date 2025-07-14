@@ -211,6 +211,16 @@ products:
 > [!TIP]
 > See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties and [example.yml](example.yml) for an example configuration.
 
+### Limitations
+
+> [!NOTE]
+> The following features are not yet supported in the current version:
+
+- **Attribute Values**: Cannot add attribute values directly to products or variants
+- **Variant Channel Listings**: Cannot add channel listings to individual variants
+
+These limitations will be addressed in future releases.
+
 ## Development
 
 For contributors and advanced users who want to modify the tool.
