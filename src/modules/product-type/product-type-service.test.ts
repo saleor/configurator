@@ -546,7 +546,7 @@ describe("ProductTypeService", () => {
           variantAttributes: [],
         })
       ).rejects.toThrow(
-        'Attribute "Author" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: Author". This encourages reuse and prevents conflicts.'
+        'Attribute "Author" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: Author".'
       );
 
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();

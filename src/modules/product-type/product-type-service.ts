@@ -223,7 +223,7 @@ export class ProductTypeService {
       if (existingAttributes && existingAttributes.length > 0) {
         // Attribute already exists globally, suggest using reference syntax
         throw new DuplicateAttributeDefinitionError(
-          `Attribute "${attributeInput.name}" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: ${attributeInput.name}". This encourages reuse and prevents conflicts.`
+          `Attribute "${attributeInput.name}" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: ${attributeInput.name}".`
         );
       }
 
