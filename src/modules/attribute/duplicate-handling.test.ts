@@ -29,6 +29,7 @@ describe("Attribute Duplicate Handling", () => {
       },
       bootstrapAttributes: vi.fn(),
       updateAttribute: vi.fn(),
+      resolveReferencedAttributes: vi.fn().mockResolvedValue([]), // <-- Add this line
     } as unknown as AttributeService;
 
     mockProductType = {
@@ -71,6 +72,7 @@ describe("Attribute Duplicate Handling", () => {
       await expect(
         productTypeService.updateProductType(mockProductType, {
           name: "Test Product Type",
+          isShippingRequired: false,
           productAttributes: inputAttributes,
         })
       ).rejects.toThrow(DuplicateAttributeDefinitionError);
@@ -100,6 +102,7 @@ describe("Attribute Duplicate Handling", () => {
       await expect(
         productTypeService.updateProductType(mockProductType, {
           name: "Test Product Type",
+          isShippingRequired: false,
           productAttributes: inputAttributes,
         })
       ).resolves.not.toThrow();
@@ -127,6 +130,7 @@ describe("Attribute Duplicate Handling", () => {
       try {
         await productTypeService.updateProductType(mockProductType, {
           name: "Test Product Type",
+          isShippingRequired: false,
           productAttributes: inputAttributes,
         });
       } catch (error) {

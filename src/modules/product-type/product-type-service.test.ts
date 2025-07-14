@@ -40,6 +40,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Color",
@@ -97,6 +98,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: newProductType.name,
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Color",
@@ -173,6 +175,7 @@ describe("ProductTypeService", () => {
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Color",
@@ -183,21 +186,10 @@ describe("ProductTypeService", () => {
         variantAttributes: [],
       });
 
-      // Then
+      // Then - Since the attribute is already assigned, no new assignment should be made
       expect(
         mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
-        productTypeId: "1",
-        attributeIds: ["1"],
-        type: "PRODUCT",
-      });
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
-        productTypeId: "1",
-        attributeIds: ["1"],
-        type: "VARIANT",
-      });
+      ).not.toHaveBeenCalled();
     });
 
     it("should handle errors during attribute assignment", async () => {
@@ -240,6 +232,7 @@ describe("ProductTypeService", () => {
       await expect(
         service.bootstrapProductType({
           name: newProductType.name,
+          isShippingRequired: false,
           productAttributes: [
             {
               name: "Color",
@@ -324,6 +317,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Genre",
@@ -350,7 +344,7 @@ describe("ProductTypeService", () => {
           values: [
             { name: "Fiction" },
             { name: "Non-Fiction" },
-            { name: "Romance" },
+            { name: "Romance" }, // New value
           ],
           type: "PRODUCT_TYPE",
         },
@@ -359,18 +353,7 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
       expect(
         mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
-        productTypeId: "1",
-        attributeIds: ["attr-1", "attr-2"],
-        type: "PRODUCT",
-      });
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
-        productTypeId: "1",
-        attributeIds: ["attr-1", "attr-2"],
-        type: "VARIANT",
-      });
+      ).not.toHaveBeenCalled();
     });
 
     it("should create new attributes and update existing ones", async () => {
@@ -428,6 +411,7 @@ describe("ProductTypeService", () => {
       // When
       await service.updateProductType(existingProductType, {
         name: "Book",
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Genre",
@@ -496,6 +480,7 @@ describe("ProductTypeService", () => {
       // When
       const result = await service.bootstrapProductType({
         name: "Book", // Create input - name only
+        isShippingRequired: false,
       });
 
       // Then
@@ -551,6 +536,7 @@ describe("ProductTypeService", () => {
       await expect(
         service.updateProductType(existingProductType, {
           name: "Book",
+          isShippingRequired: false,
           productAttributes: [
             {
               name: "Author", // This attribute already exists globally

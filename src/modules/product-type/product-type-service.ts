@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
+import { isReferencedAttribute } from "../attribute/attribute-service";
 import { DuplicateAttributeDefinitionError } from "../attribute/errors";
 import type {
   AttributeInput,
@@ -87,25 +88,19 @@ export class ProductTypeService {
     productType: ProductType,
     inputAttributes: AttributeInput[]
   ) {
-    const attributeNames = inputAttributes.filter((a) => "attribute" in a);
+    const existingAttributeNames = [
+      ...(productType.productAttributes?.map((a) => a.name) ?? []),
+      ...(productType.variantAttributes?.map((a) => a.name) ?? []),
+    ].filter((name): name is string => name !== null);
 
-    // check if the attribute is already assigned to the product type
-    const assignedAttributeNames =
-      productType.productAttributes?.map((a) => a.name) ?? [];
+    const referencedAttributeIds =
+      await this.attributeService.resolveReferencedAttributes(
+        inputAttributes,
+        "PRODUCT_TYPE",
+        existingAttributeNames
+      );
 
-    // filter out attributes that are already assigned to the product type
-    const unassignedAttributeNames = attributeNames.filter(
-      (a) => !assignedAttributeNames.includes(a.attribute)
-    );
-
-    // TODO: add validation to check if the number of unassigned attributes is the same as the number of fetched attributes
-    const unassignedExistingAttributes =
-      await this.attributeService.repo.getAttributesByNames({
-        names: unassignedAttributeNames.map((a) => a.attribute),
-        type: "PRODUCT_TYPE",
-      });
-
-    return unassignedExistingAttributes ?? [];
+    return referencedAttributeIds;
   }
 
   private async upsertAndAssignAttributes(
@@ -123,20 +118,18 @@ export class ProductTypeService {
       inputAttributes
     );
 
-    const existingAttributesToAssign = await this.getExistingAttributesToAssign(
-      productType,
-      inputAttributes
-    );
+    const existingAttributeIdsToAssign =
+      await this.getExistingAttributesToAssign(productType, inputAttributes);
 
     logger.debug("Existing attributes to assign", {
       inputAttributes,
-      existingAttributesToAssign: existingAttributesToAssign.length,
+      existingAttributeIdsToAssign: existingAttributeIdsToAssign.length,
       productTypeName: productType.name,
     });
 
     const attributeToAssignIds = [
       ...createdAttributes.map((a) => a.id),
-      ...existingAttributesToAssign.map((a) => a.id),
+      ...existingAttributeIdsToAssign,
     ];
 
     if (attributeToAssignIds.length > 0) {
@@ -161,8 +154,7 @@ export class ProductTypeService {
 
     const attributesToUpdate = inputAttributes.filter((a) => {
       // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
-      // TODO: improve, we shouldnt check by "attribute" in a
-      if ("attribute" in a) {
+      if (isReferencedAttribute(a)) {
         return false;
       }
 
@@ -208,7 +200,7 @@ export class ProductTypeService {
 
     const attributesToProcess = inputAttributes.filter((a) => {
       // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
-      if ("attribute" in a) {
+      if (isReferencedAttribute(a)) {
         return false;
       }
 
