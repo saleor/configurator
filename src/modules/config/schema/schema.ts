@@ -6,8 +6,8 @@ const productTypeSchema = z.object({
   name: z.string().describe("ProductType.name"),
   isShippingRequired: z
     .boolean()
-    .default(false)
     .optional()
+    .default(false)
     .describe("ProductType.isShippingRequired"),
   productAttributes: z
     .array(attributeInputSchema)

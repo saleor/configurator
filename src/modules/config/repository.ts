@@ -51,6 +51,7 @@ const getConfigQuery = graphql(`
         node {
           id
           name
+          isShippingRequired
           productAttributes {
             id
             name
@@ -119,11 +120,16 @@ export class ConfigurationRepository implements ConfigurationOperations {
     const result = await this.client.query(getConfigQuery, {});
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError("Failed to fetch config", result.error);
+      throw GraphQLError.fromCombinedError(
+        "Failed to fetch config",
+        result.error
+      );
     }
 
     if (!result.data) {
-      throw new GraphQLError("Failed to fetch config: No data returned from GraphQL query");
+      throw new GraphQLError(
+        "Failed to fetch config: No data returned from GraphQL query"
+      );
     }
 
     return result.data;

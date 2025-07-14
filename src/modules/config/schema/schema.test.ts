@@ -289,10 +289,12 @@ describe("Schema Union Types", () => {
       // This test ensures TypeScript types work correctly
       const createProductType: ProductTypeInput = {
         name: "Book",
+        isShippingRequired: false,
       };
 
       const updateProductType: ProductTypeInput = {
         name: "Book",
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Genre",
