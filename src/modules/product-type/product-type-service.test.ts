@@ -9,7 +9,12 @@ describe("ProductTypeService", () => {
       const existingProductType: ProductType = {
         id: "1",
         name: "Product Type 1",
-        productAttributes: [],
+        productAttributes: [
+          {
+            id: "1",
+            name: "Color",
+          },
+        ],
         variantAttributes: [],
       };
 
@@ -19,22 +24,18 @@ describe("ProductTypeService", () => {
         assignAttributesToProductType: vi.fn(),
       };
 
-      const existingAttribute = {
-        id: "1",
-        name: "Color",
-        inputType: "DROPDOWN" as const,
-        values: [{ name: "Red" }],
-      };
-
       const mockAttributeOperations = {
-        createAttribute: vi.fn().mockResolvedValue(existingAttribute),
+        createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([existingAttribute]),
+        getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not matter, but return empty
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When
       await service.bootstrapProductType({
@@ -50,19 +51,18 @@ describe("ProductTypeService", () => {
       });
 
       // Then
-      expect(mockProductTypeOperations.createProductType).not.toHaveBeenCalled();
-      expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
-        name: "Color",
-        type: "PRODUCT_TYPE",
-        slug: "color",
-        inputType: "DROPDOWN",
-        values: [{ name: "Red" }],
-      });
+      expect(
+        mockProductTypeOperations.createProductType
+      ).not.toHaveBeenCalled();
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).not.toHaveBeenCalled();
     });
 
     it("should create a new product type and assign attributes when it doesn't exist", async () => {
       const newProductType: ProductType = {
-        id: "1",
+        id: "2",
         name: "New Product Type",
         productAttributes: [],
         variantAttributes: [],
@@ -71,7 +71,7 @@ describe("ProductTypeService", () => {
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(null),
         createProductType: vi.fn().mockResolvedValue(newProductType),
-        assignAttributesToProductType: vi.fn().mockResolvedValue({ id: "1" }),
+        assignAttributesToProductType: vi.fn(),
       };
 
       const newAttribute = {
@@ -84,12 +84,15 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
+        getAttributesByNames: vi.fn().mockResolvedValue([]), // Color doesn't exist globally
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When
       await service.bootstrapProductType({
@@ -119,15 +122,12 @@ describe("ProductTypeService", () => {
         inputType: "DROPDOWN",
         values: [{ name: "Red" }],
       });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
-        productTypeId: newProductType.id,
-        attributeIds: [newAttribute.id, newAttribute.id],
-        type: "PRODUCT",
-      });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: newProductType.id,
         attributeIds: [newAttribute.id],
-        type: "VARIANT",
+        type: "PRODUCT",
       });
     });
 
@@ -165,7 +165,10 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When
       await service.bootstrapProductType({
@@ -181,12 +184,16 @@ describe("ProductTypeService", () => {
       });
 
       // Then
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["1"],
         type: "PRODUCT",
       });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["1"],
         type: "VARIANT",
@@ -204,7 +211,9 @@ describe("ProductTypeService", () => {
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(null),
         createProductType: vi.fn().mockResolvedValue(newProductType),
-        assignAttributesToProductType: vi.fn().mockRejectedValue(new Error("Assignment failed")),
+        assignAttributesToProductType: vi
+          .fn()
+          .mockRejectedValue(new Error("Assignment failed")),
       };
 
       const newAttribute = {
@@ -217,12 +226,15 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([newAttribute]),
+        getAttributesByNames: vi.fn().mockResolvedValue([]), // Color doesn't exist globally
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When/Then
       await expect(
@@ -266,7 +278,10 @@ describe("ProductTypeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { name: "Fiction" } },
+            { node: { name: "Non-Fiction" } },
+          ],
         },
       };
 
@@ -301,7 +316,10 @@ describe("ProductTypeService", () => {
       const attributeService = new AttributeService(mockAttributeOperations);
       const updateAttributeSpy = vi.spyOn(attributeService, "updateAttribute");
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When
       await service.updateProductType(existingProductType, {
@@ -329,18 +347,26 @@ describe("ProductTypeService", () => {
         {
           name: "Genre",
           inputType: "DROPDOWN",
-          values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Romance" }],
+          values: [
+            { name: "Fiction" },
+            { name: "Non-Fiction" },
+            { name: "Romance" },
+          ],
           type: "PRODUCT_TYPE",
         },
         existingGenreAttribute
       );
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["attr-1", "attr-2"],
         type: "PRODUCT",
       });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["attr-1", "attr-2"],
         type: "VARIANT",
@@ -384,12 +410,20 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(newAuthorAttribute),
         updateAttribute: vi.fn().mockResolvedValue(existingGenreAttribute),
-        getAttributesByNames: vi.fn().mockResolvedValue([existingGenreAttribute]),
+        getAttributesByNames: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // Set up the mock to return existing attributes only for "Genre"
+      vi.mocked(mockAttributeOperations.getAttributesByNames)
+        .mockResolvedValueOnce([existingGenreAttribute]) // For updateAttributes call
+        .mockResolvedValueOnce([]); // For createAttributes call (Author doesn't exist)
 
       // When
       await service.updateProductType(existingProductType, {
@@ -419,16 +453,17 @@ describe("ProductTypeService", () => {
         slug: "author",
         inputType: "PLAIN_TEXT",
       });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
         productTypeId: "1",
-        attributeIds: ["attr-2", "attr-1"],
+        attributeIds: ["attr-2"],
         type: "PRODUCT",
       });
-      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
-        productTypeId: "1",
-        attributeIds: ["attr-1"],
-        type: "VARIANT",
-      });
+      // Only one call should be made since variantAttributes is empty
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledTimes(1);
     });
 
     it("should handle create input (name only)", async () => {
@@ -453,7 +488,10 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
 
       // When
       const result = await service.bootstrapProductType({
@@ -464,6 +502,69 @@ describe("ProductTypeService", () => {
       expect(result).toBe(existingProductType);
       expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+    });
+
+    it("should throw DuplicateAttributeDefinitionError when trying to create an attribute that already exists globally", async () => {
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Book",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const existingAuthorAttribute = {
+        id: "attr-1",
+        name: "Author",
+        type: "PRODUCT_TYPE",
+        inputType: "PLAIN_TEXT",
+        entityType: null,
+        choices: null,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockImplementation(({ names }) => {
+          // Return existing attribute when "Author" is requested
+          if (names.includes("Author")) {
+            return [existingAuthorAttribute];
+          }
+          // Return empty array for other attributes
+          return [];
+        }),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+
+      const service = new ProductTypeService(
+        mockProductTypeOperations,
+        attributeService
+      );
+
+      // When/Then
+      await expect(
+        service.updateProductType(existingProductType, {
+          name: "Book",
+          productAttributes: [
+            {
+              name: "Author", // This attribute already exists globally
+              inputType: "PLAIN_TEXT",
+            },
+          ],
+          variantAttributes: [],
+        })
+      ).rejects.toThrow(
+        'Attribute "Author" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: Author". This encourages reuse and prevents conflicts.'
+      );
+
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
     });
   });
 });
