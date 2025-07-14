@@ -344,7 +344,7 @@ const productVariantSchema = z.object({
   weight: z.number().optional(),
   digital: z.boolean().optional(),
   attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
-  channelListings: z.array(productVariantChannelListingSchema),
+  channelListings: z.array(productVariantChannelListingSchema).optional(),
 });
 
 const productSchema = z.object({
