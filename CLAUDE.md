@@ -1,19 +1,21 @@
 # Saleor Configurator - AI Assistant Guide
 
-## Overview
-This is the main reference guide for AI assistants working with the Saleor Configurator project. For detailed guidelines, refer to:
-- **[CODING-STANDARDS.md](./CODING-STANDARDS.md)** - TypeScript best practices, clean code, and development standards
-- **[TESTING-GUIDE.md](./TESTING-GUIDE.md)** - Comprehensive testing strategies, patterns, and examples
+This is the main entry point for AI assistants working with the Saleor Configurator project. This file provides core project understanding and imports detailed guidelines.
 
-## Table of Contents
-- [Project Deep Dive](#project-deep-dive)
-- [Architecture Analysis](#architecture-analysis)
-- [Quick Reference](#quick-reference)
-- [Key Patterns to Follow](#key-patterns-to-follow)
+## 📚 Additional Documentation
 
-## Project Deep Dive
+@.claude/CODING-STANDARDS.md
+@.claude/TESTING-GUIDE.md
+@.claude/GRAPHQL-GUIDE.md
 
-### Overview
+## 🚀 Quick Start
+
+1. **New to project?** Read this file first, then check imported guides
+2. **Writing code?** See CODING-STANDARDS.md (imported above)
+3. **Writing tests?** See TESTING-GUIDE.md (imported above)
+4. **GraphQL work?** See GRAPHQL-GUIDE.md (imported above)
+
+## Project Overview
 Saleor Configurator is a "commerce as code" tool that implements Infrastructure-as-Code principles for e-commerce configuration. It enables teams to:
 - Define Saleor instance configurations declaratively in YAML
 - Version control e-commerce configurations
@@ -458,12 +460,47 @@ if (!result.success) {
 }
 ```
 
-## Important Notes
+## Core Principles
 
-1. **Refer to Guidelines**: Always check [CODING-STANDARDS.md](./CODING-STANDARDS.md) for detailed TypeScript and clean code practices
-2. **Testing Requirements**: See [TESTING-GUIDE.md](./TESTING-GUIDE.md) for comprehensive testing strategies
-3. **GraphQL First**: All data operations go through GraphQL - no direct database access
-4. **Type Safety**: Never use `any`, always provide proper types
+1. **🚨 RESEARCH FIRST**: Never build what already exists - use best-in-class tools from TypeScript/Node.js ecosystem
+2. **High-Quality Code**: Clean, concise, direct solutions only - no over-engineering
+3. **Type Safety First**: Never use `any`, always provide proper types
+4. **GraphQL Backbone**: All data operations go through GraphQL - no direct database access
 5. **User Experience**: CLI output should be clear, helpful, and actionable
+6. **Test Everything**: Comprehensive tests for all scenarios
+7. **Follow Patterns**: Repository → Service → Configurator flow
 
-This guide provides the essential information for understanding and working with the Saleor Configurator codebase. For detailed implementation guidelines, refer to the specialized documentation files.
+### Examples - Use These Tools, Don't Recreate:
+- **HTTP/GraphQL**: `@urql/core`, `fetch` ✅ | Custom wrappers ❌
+- **Validation**: `zod` ✅ | Custom validators ❌  
+- **Logging**: `tslog` ✅ | Custom loggers ❌
+- **CLI**: `commander` ✅ | Manual argv parsing ❌
+- **Testing**: `vitest` ✅ | Custom test runners ❌
+- **Code Quality**: `@biomejs/biome` ✅ | Custom linters ❌
+
+## Essential Commands
+
+```bash
+# Quality Checks (ALWAYS run before committing)
+pnpm check      # Biome linting/formatting
+pnpm check:fix  # Auto-fix issues
+pnpm typecheck  # TypeScript validation
+pnpm test       # Run all tests
+pnpm build      # Ensure it builds
+
+# Development
+pnpm dev        # Run in development mode
+pnpm test:watch # Watch mode for tests
+
+# GraphQL
+pnpm fetch-schema # Update Saleor schema
+```
+
+## Key Takeaways
+
+- **Imported guides** contain detailed patterns and examples
+- **Follow checklists** in CODING-STANDARDS.md and TESTING-GUIDE.md
+- **GraphQL-first** - See GRAPHQL-GUIDE.md for adding entities
+- **Quality matters** - Always run checks before committing
+
+Remember: The imported documentation files contain comprehensive details. This file provides the essential context and quick reference.
