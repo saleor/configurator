@@ -175,6 +175,7 @@ channels:
 
 productTypes:
   - name: Book
+    isShippingRequired: false
     productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -195,7 +196,6 @@ products:
   - name: "Sample Fiction Book"
     productType: "Book"
     category: "Fiction"
-    description: "A reference book product for testing the Book product type"
     attributes:
       Author: "Jane Doe"
       Genre: "Fiction"
