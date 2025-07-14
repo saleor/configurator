@@ -2,20 +2,22 @@ import { z } from "zod";
 import { attributeInputSchema } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
-const productTypeSchema = z
-  .object({
-    name: z.string().describe("ProductType.name"),
-    isShippingRequired: z.boolean().optional().default(false).describe("ProductType.isShippingRequired"),
-    productAttributes: z
-      .array(attributeInputSchema)
-      .describe("ProductType.productAttributes")
-      .optional(),
-    variantAttributes: z
-      .array(attributeInputSchema)
-      .describe("ProductType.variantAttributes")
-      .optional(),
-  })
-  .strict();
+const productTypeSchema = z.object({
+  name: z.string().describe("ProductType.name"),
+  isShippingRequired: z
+    .boolean()
+    .default(false)
+    .optional()
+    .describe("ProductType.isShippingRequired"),
+  productAttributes: z
+    .array(attributeInputSchema)
+    .describe("ProductType.productAttributes")
+    .optional(),
+  variantAttributes: z
+    .array(attributeInputSchema)
+    .describe("ProductType.variantAttributes")
+    .optional(),
+});
 
 export type ProductTypeInput = z.infer<typeof productTypeSchema>;
 
@@ -161,8 +163,13 @@ const channelUpdateSchema = z.object({
       automaticallyFulfillNonShippableGiftCard: z
         .boolean()
         .optional()
-        .describe("Channel.orderSettings.automaticallyFulfillNonShippableGiftCard"),
-      expireOrdersAfter: z.number().optional().describe("Channel.orderSettings.expireOrdersAfter"),
+        .describe(
+          "Channel.orderSettings.automaticallyFulfillNonShippableGiftCard"
+        ),
+      expireOrdersAfter: z
+        .number()
+        .optional()
+        .describe("Channel.orderSettings.expireOrdersAfter"),
       deleteExpiredOrdersAfter: z
         .number()
         .optional()
@@ -171,7 +178,10 @@ const channelUpdateSchema = z.object({
         .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
         .optional()
         .describe("Channel.orderSettings.markAsPaidStrategy"),
-      allowUnpaidOrders: z.boolean().optional().describe("Channel.orderSettings.allowUnpaidOrders"),
+      allowUnpaidOrders: z
+        .boolean()
+        .optional()
+        .describe("Channel.orderSettings.allowUnpaidOrders"),
       includeDraftOrderInVoucherUsage: z
         .boolean()
         .optional()
@@ -183,7 +193,9 @@ const channelUpdateSchema = z.object({
       automaticallyCompleteFullyPaidCheckouts: z
         .boolean()
         .optional()
-        .describe("Channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts"),
+        .describe(
+          "Channel.checkoutSettings.automaticallyCompleteFullyPaidCheckouts"
+        ),
       defaultTransactionFlowStrategy: z
         .enum(["AUTHORIZATION", "CHARGE"])
         .optional()
@@ -206,14 +218,25 @@ const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 const shopSchema = z.object({
   headerText: z.string().optional().describe("Shop.headerText"),
   description: z.string().optional().describe("Shop.description"),
-  trackInventoryByDefault: z.boolean().optional().describe("Shop.trackInventoryByDefault"),
-  defaultWeightUnit: weightUnitEnum.optional().describe("Shop.defaultWeightUnit"),
+  trackInventoryByDefault: z
+    .boolean()
+    .optional()
+    .describe("Shop.trackInventoryByDefault"),
+  defaultWeightUnit: weightUnitEnum
+    .optional()
+    .describe("Shop.defaultWeightUnit"),
   automaticFulfillmentDigitalProducts: z
     .boolean()
     .optional()
     .describe("Shop.automaticFulfillmentDigitalProducts"),
-  fulfillmentAutoApprove: z.boolean().optional().describe("Shop.fulfillmentAutoApprove"),
-  fulfillmentAllowUnpaid: z.boolean().optional().describe("Shop.fulfillmentAllowUnpaid"),
+  fulfillmentAutoApprove: z
+    .boolean()
+    .optional()
+    .describe("Shop.fulfillmentAutoApprove"),
+  fulfillmentAllowUnpaid: z
+    .boolean()
+    .optional()
+    .describe("Shop.fulfillmentAllowUnpaid"),
   defaultDigitalMaxDownloads: z
     .number()
     .optional()
@@ -224,13 +247,20 @@ const shopSchema = z.object({
     .optional()
     .nullable()
     .describe("Shop.defaultDigitalUrlValidDays"),
-  defaultMailSenderName: z.string().optional().nullable().describe("Shop.defaultMailSenderName"),
+  defaultMailSenderName: z
+    .string()
+    .optional()
+    .nullable()
+    .describe("Shop.defaultMailSenderName"),
   defaultMailSenderAddress: z
     .string()
     .optional()
     .nullable()
     .describe("Shop.defaultMailSenderAddress"),
-  customerSetPasswordUrl: z.string().optional().describe("Shop.customerSetPasswordUrl"),
+  customerSetPasswordUrl: z
+    .string()
+    .optional()
+    .describe("Shop.customerSetPasswordUrl"),
   reserveStockDurationAnonymousUser: z
     .number()
     .optional()
@@ -241,7 +271,10 @@ const shopSchema = z.object({
     .optional()
     .nullable()
     .describe("Shop.reserveStockDurationAuthenticatedUser"),
-  limitQuantityPerCheckout: z.number().optional().describe("Shop.limitQuantityPerCheckout"),
+  limitQuantityPerCheckout: z
+    .number()
+    .optional()
+    .describe("Shop.limitQuantityPerCheckout"),
   enableAccountConfirmationByEmail: z
     .boolean()
     .optional()
@@ -250,7 +283,10 @@ const shopSchema = z.object({
     .boolean()
     .optional()
     .describe("Shop.allowLoginWithoutConfirmation"),
-  displayGrossPrices: z.boolean().optional().describe("Shop.displayGrossPrices"),
+  displayGrossPrices: z
+    .boolean()
+    .optional()
+    .describe("Shop.displayGrossPrices"),
 });
 
 export type ShopInput = z.infer<typeof shopSchema>;
@@ -269,18 +305,20 @@ type CategoryUpdate = z.infer<typeof baseCategoryUpdateSchema> & {
   subcategories?: CategoryUpdate[];
 };
 
-const categoryUpdateSchema: z.ZodType<CategoryUpdate> = baseCategoryUpdateSchema.extend({
-  subcategories: z
-    .lazy(() => categoryUpdateSchema.array())
-    .optional()
-    .describe("Category.children"),
-});
+const categoryUpdateSchema: z.ZodType<CategoryUpdate> =
+  baseCategoryUpdateSchema.extend({
+    subcategories: z
+      .lazy(() => categoryUpdateSchema.array())
+      .optional()
+      .describe("Category.children"),
+  });
 
 // Union type that accepts either create or update input
 type CategoryCreate = z.infer<typeof categoryCreateSchema>;
 type Category = CategoryCreate | CategoryUpdate;
 
-const categorySchema: z.ZodType<Category> = categoryUpdateSchema.or(categoryCreateSchema);
+const categorySchema: z.ZodType<Category> =
+  categoryUpdateSchema.or(categoryCreateSchema);
 
 export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
 export type CategoryUpdateInput = CategoryUpdate;
