@@ -45,9 +45,10 @@ pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-a
 
 3. Modify the pulled configuration according to your needs.
 
-> [!TIP]
+> [!NOTE]
 >
 > Here are a bunch of tips for working with the configuration file:
+> 
 > 👉🏻 **Schema Documentation**: You can find the schema documentation in [SCHEMA.md](SCHEMA.md) and the example configuration in [example.yml](example.yml).
 >
 > 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm diff` to see what would be applied, and then push it.
@@ -213,8 +214,7 @@ products:
 
 ### Limitations
 
-> [!NOTE]
-> The following features are not yet supported in the current version:
+The following features are not yet supported in the current version:
 
 - **Attribute Values**: Cannot add attribute values directly to products or variants
 - **Variant Channel Listings**: Cannot add channel listings to individual variants
