@@ -4,19 +4,27 @@ import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
-import { DiffFormatter } from "../core/diff/formatter";
+import { DeployDiffFormatter } from "../core/diff/formatters";
 import { ConfigurationValidationError } from "../core/diff/errors";
 import { logger } from "../lib/logger";
-import { DeploymentPipeline, DeploymentSummaryReport, getAllStages } from "../core/deployment";
-import type { DeploymentContext } from "../core/deployment";
+import { DeploymentPipeline, DeploymentSummaryReport, DeploymentReportGenerator, getAllStages } from "../core/deployment";
+import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z.boolean().default(false).describe("CI mode - skip confirmations for automated environments"),
-  force: z.boolean().default(false).describe("Force mode - skip all confirmations (use with extreme caution)"),
   skipDiff: z.boolean().default(false).describe("Skip diff preview (not recommended)"),
+  reportPath: z.string().optional().describe("Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
+
+function generateDefaultReportPath(): string {
+  const timestamp = new Date().toISOString()
+    .replace(/:/g, '-')  // Replace colons for Windows compatibility
+    .replace(/\..+/, '') // Remove milliseconds
+    .replace('T', '_');  // Replace T with underscore for readability
+  return `deployment-report-${timestamp}.json`;
+}
 
 async function analyzeDifferences(args: DeployCommandArgs): Promise<{
   summary: DiffSummary;
@@ -108,7 +116,6 @@ async function confirmDeployment(
   hasDestructiveOperations: boolean,
   args: DeployCommandArgs
 ): Promise<boolean> {
-  if (args.force) return true;
   if (args.ci) return true;
 
   if (hasDestructiveOperations) {
@@ -118,7 +125,7 @@ async function confirmDeployment(
   return await confirmSafeOperations(summary);
 }
 
-async function executeDeployment(args: DeployCommandArgs, summary: DiffSummary): Promise<void> {
+async function executeDeployment(args: DeployCommandArgs, summary: DiffSummary): Promise<DeploymentMetrics> {
   const configurator = createConfigurator(args);
   const startTime = new Date();
   
@@ -144,6 +151,19 @@ async function executeDeployment(args: DeployCommandArgs, summary: DiffSummary):
   // Display deployment summary
   const summaryReport = new DeploymentSummaryReport(metrics, summary);
   summaryReport.display();
+  
+  // Generate and save report (always save with default filename if not specified)
+  try {
+    const reportGenerator = new DeploymentReportGenerator(metrics, summary);
+    const reportPath = args.reportPath || generateDefaultReportPath();
+    await reportGenerator.saveToFile(reportPath);
+    cliConsole.text("");
+    cliConsole.success(`📄 Deployment report saved to: ${reportPath}`);
+  } catch (error) {
+    cliConsole.warn(`⚠️  Failed to save deployment report: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
+  return metrics;
 }
 
 function logDeploymentCompletion(summary: DiffSummary): void {
@@ -176,7 +196,9 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       }
 
       cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
-      cliConsole.status(`\n${DiffFormatter.format(diffAnalysis.summary)}`);
+      
+      const deployFormatter = new DeployDiffFormatter();
+      cliConsole.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
     }
 
     const shouldDeploy = await confirmDeployment(
@@ -190,7 +212,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       process.exit(0);
     }
 
-    await executeDeployment(args, diffAnalysis.summary);
+    const metrics = await executeDeployment(args, diffAnalysis.summary);
     logDeploymentCompletion(diffAnalysis.summary);
   } catch (error) {
     handleDeploymentError(error);
@@ -271,15 +293,6 @@ export async function deployHandler(args: DeployCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
   cliConsole.header("🚀 Saleor Configuration Deploy\n");
 
-  // Validate mutually exclusive flags
-  if (args.force && args.ci) {
-    cliConsole.error("Error: Cannot use --force and --ci flags together");
-    cliConsole.text("  • --force: Skips all confirmations in interactive mode");
-    cliConsole.text("  • --ci: Designed for automated environments");
-    cliConsole.text("");
-    throw new Error("Mutually exclusive flags: --force and --ci");
-  }
-
   if (args.ci && args.skipDiff) {
     cliConsole.warn("Warning: Using --skip-diff with --ci mode is dangerous!");
     cliConsole.text("  Consider removing --skip-diff to see what changes will be applied.");
@@ -298,7 +311,8 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
   examples: [
     "configurator deploy -u https://my-shop.saleor.cloud/graphql/ -t <token>",
     "configurator deploy --config custom-config.yml --ci",
-    "configurator deploy --force",
+    "configurator deploy --report-path custom-report.json",
     "configurator deploy --skip-diff --quiet",
+    "configurator deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json",
   ],
 }; 
