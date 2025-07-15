@@ -93,13 +93,9 @@ export class BulkOperationProgress {
 
   complete(): void {
     if (this.failures.length === 0) {
-      this.reporter.succeed(
-        `${this.operation} completed (${this.current}/${this.total})`
-      );
+      this.reporter.succeed(`${this.operation} completed (${this.current}/${this.total})`);
     } else {
-      this.reporter.fail(
-        `${this.operation} completed with ${this.failures.length} failures`
-      );
+      this.reporter.fail(`${this.operation} completed with ${this.failures.length} failures`);
 
       // Report failures
       this.failures.forEach(({ item, error }) => {

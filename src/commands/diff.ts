@@ -31,9 +31,7 @@ function logDiffCompletion(summary: DiffSummary): void {
 async function performDiffOperation(args: DiffCommandArgs): Promise<void> {
   const configurator = createConfigurator(args);
 
-  cliConsole.processing(
-    "⏳ Preparing a diff between the configuration and the Saleor instance..."
-  );
+  cliConsole.processing("⏳ Preparing a diff between the configuration and the Saleor instance...");
 
   const { summary, output } = await configurator.diff();
 
@@ -55,8 +53,7 @@ export async function diffHandler(args: DiffCommandArgs): Promise<void> {
 
 export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
   name: "diff",
-  description:
-    "Shows the differences between local and remote Saleor configurations",
+  description: "Shows the differences between local and remote Saleor configurations",
   schema: diffCommandSchema,
   handler: diffHandler,
   requiresInteractive: true,

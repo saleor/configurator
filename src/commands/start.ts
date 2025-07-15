@@ -24,10 +24,7 @@ const INTERACTIVE_CHOICES = [
 async function runInteractiveSetup(): Promise<void> {
   cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
 
-  const selectedAction = await selectOption(
-    "What would you like to do?",
-    INTERACTIVE_CHOICES
-  );
+  const selectedAction = await selectOption("What would you like to do?", INTERACTIVE_CHOICES);
 
   cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
 
@@ -41,11 +38,31 @@ async function runInteractiveSetup(): Promise<void> {
     const { createCommand } = await import("../cli/command");
 
     const program = new Command();
-    const command = createCommand(targetCommand as any);
+    const command = createCommand(targetCommand as CommandConfig<typeof targetCommand.schema>);
     program.addCommand(command);
 
-    // Parse with the command name to simulate running it directly
-    await program.parseAsync([selectedAction], { from: "user" });
+    // For commands that need URL and token, prompt for them interactively
+    if (["introspect", "diff", "push"].includes(selectedAction)) {
+      const { promptForMissingArgs } = await import("../cli/command");
+      const interactiveArgs = await promptForMissingArgs({});
+
+      // Parse with the command name and interactive arguments
+      await program.parseAsync(
+        [
+          selectedAction,
+          "--url",
+          interactiveArgs.url,
+          "--token",
+          interactiveArgs.token,
+          "--config",
+          interactiveArgs.config,
+        ],
+        { from: "user" }
+      );
+    } else {
+      // Parse with the command name to simulate running it directly
+      await program.parseAsync([selectedAction], { from: "user" });
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 import { DIFF_ICONS, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
 import { DiffSummaryError } from "../errors";
+<<<<<<< HEAD
 import type {
   DiffOperation,
   DiffResult,
@@ -7,6 +8,9 @@ import type {
   EntityType,
 } from "../types";
 import chalk from "chalk";
+=======
+import type { DiffOperation, DiffResult, DiffSummary, EntityType } from "../types";
+>>>>>>> main
 
 /**
  * Base formatter providing common formatting utilities
@@ -30,10 +34,7 @@ export abstract class BaseDiffFormatter {
 
     // Convert to readonly map
     return new Map(
-      Array.from(grouped.entries()).map(([key, value]) => [
-        key,
-        Object.freeze(value),
-      ])
+      Array.from(grouped.entries()).map(([key, value]) => [key, Object.freeze(value)])
     );
   }
 
@@ -77,21 +78,14 @@ export abstract class BaseDiffFormatter {
   /**
    * Creates a separator line of specified width and character
    */
-  protected createSeparator(
-    width: number,
-    char: string = FORMAT_CONFIG.SEPARATOR
-  ): string {
+  protected createSeparator(width: number, char: string = FORMAT_CONFIG.SEPARATOR): string {
     return "".padEnd(width, char);
   }
 
   /**
    * Formats plural forms correctly based on count
    */
-  protected formatPlural(
-    count: number,
-    singular: string,
-    plural?: string
-  ): string {
+  protected formatPlural(count: number, singular: string, plural?: string): string {
     if (count === 1) return singular;
     return plural || `${singular}s`;
   }
@@ -110,9 +104,7 @@ export abstract class BaseDiffFormatter {
 
     const calculatedTotal = summary.creates + summary.updates + summary.deletes;
     if (calculatedTotal !== summary.totalChanges) {
-      throw new DiffSummaryError(
-        "Total changes does not match sum of individual operations"
-      );
+      throw new DiffSummaryError("Total changes does not match sum of individual operations");
     }
   }
 

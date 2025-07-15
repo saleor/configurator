@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+/** biome-ignore-all lint/style/noNonNullAssertion: <tests> */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProductService } from "../modules/product/product-service";
 import { SaleorConfigurator } from "./configurator";
 import type { ServiceContainer } from "./service-container";
 
@@ -9,7 +11,7 @@ vi.mock("../lib/logger");
 
 describe("SaleorConfigurator enhanced functionality", () => {
   let configurator: SaleorConfigurator;
-  let mockServices: Partial<ServiceContainer>;
+  let mockServices: ServiceContainer;
 
   beforeEach(() => {
     // Reset all mocks
@@ -38,10 +40,11 @@ describe("SaleorConfigurator enhanced functionality", () => {
       category: {
         bootstrapCategories: vi.fn(),
       },
-    } as any;
+      product: {} as unknown as ProductService,
+    } as unknown as ServiceContainer;
 
     // Create configurator instance with mocked services
-    configurator = new SaleorConfigurator(mockServices as ServiceContainer);
+    configurator = new SaleorConfigurator(mockServices);
   });
 
   afterEach(() => {
@@ -54,7 +57,12 @@ describe("SaleorConfigurator enhanced functionality", () => {
       const mockRemoteConfig = {
         shop: { headerText: "Test Shop" },
         channels: [
-          { name: "Test Channel", slug: "test", currencyCode: "USD", defaultCountry: "US" },
+          {
+            name: "Test Channel",
+            slug: "test",
+            currencyCode: "USD",
+            defaultCountry: "US",
+          },
         ],
       };
 
@@ -98,8 +106,18 @@ describe("SaleorConfigurator enhanced functionality", () => {
           trackInventoryByDefault: true,
         },
         channels: [
-          { name: "Channel 1", slug: "ch1", currencyCode: "USD", defaultCountry: "US" },
-          { name: "Channel 2", slug: "ch2", currencyCode: "EUR", defaultCountry: "DE" },
+          {
+            name: "Channel 1",
+            slug: "ch1",
+            currencyCode: "USD",
+            defaultCountry: "US",
+          },
+          {
+            name: "Channel 2",
+            slug: "ch2",
+            currencyCode: "EUR",
+            defaultCountry: "DE",
+          },
         ],
         productTypes: [{ name: "Product Type 1", attributes: [] }],
       };

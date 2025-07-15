@@ -19,7 +19,7 @@ describe("DiffService", () => {
         retrieve: vi.fn(),
         retrieveWithoutSaving: vi.fn(),
       },
-    } as any;
+    } as unknown as ServiceContainer;
 
     diffService = new DiffService(mockServices);
   });
@@ -43,9 +43,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -80,9 +78,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -124,9 +120,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -175,9 +169,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -191,9 +183,7 @@ describe("DiffService", () => {
         entityName: "ProductTypeA",
       });
       expect(summary.results[0].changes).toHaveLength(1);
-      expect(summary.results[0].changes?.[0].description).toContain(
-        'Attribute "Color" added'
-      );
+      expect(summary.results[0].changes?.[0].description).toContain('Attribute "Color" added');
     });
 
     it("should detect product type creation with attributes", async () => {
@@ -210,11 +200,7 @@ describe("DiffService", () => {
               {
                 name: "Genre",
                 inputType: "DROPDOWN",
-                values: [
-                  { name: "Fiction" },
-                  { name: "Non-Fiction" },
-                  { name: "Fantasy" },
-                ],
+                values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Fantasy" }],
               },
               {
                 name: "Related Books",
@@ -232,9 +218,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -280,9 +264,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -303,12 +285,8 @@ describe("DiffService", () => {
         .mockRejectedValue(new Error("Config file not found"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow(
-        ConfigurationLoadError
-      );
-      await expect(diffService.compare()).rejects.toThrow(
-        "Failed to load local configuration"
-      );
+      await expect(diffService.compare()).rejects.toThrow(ConfigurationLoadError);
+      await expect(diffService.compare()).rejects.toThrow("Failed to load local configuration");
     });
 
     it("should handle remote configuration retrieval errors", async () => {
@@ -319,9 +297,7 @@ describe("DiffService", () => {
         .mockRejectedValue(new Error("Network error"));
 
       // Act & Assert
-      await expect(diffService.compare()).rejects.toThrow(
-        RemoteConfigurationError
-      );
+      await expect(diffService.compare()).rejects.toThrow(RemoteConfigurationError);
       await expect(diffService.compare()).rejects.toThrow(
         "Failed to retrieve remote configuration"
       );
@@ -334,16 +310,12 @@ describe("DiffService", () => {
       });
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue({});
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 200)) // Takes longer than timeout
-        );
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 200)) // Takes longer than timeout
+      );
 
       // Act & Assert
-      await expect(serviceWithTimeout.compare()).rejects.toThrow(
-        RemoteConfigurationError
-      );
+      await expect(serviceWithTimeout.compare()).rejects.toThrow(RemoteConfigurationError);
       await expect(serviceWithTimeout.compare()).rejects.toThrow("timed out");
     });
   });
@@ -368,9 +340,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(config);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(config);
 
       // Act
       const summary = await diffService.compare();
@@ -394,9 +364,7 @@ describe("DiffService", () => {
 
       const config: SaleorConfig = {};
       mockServices.configStorage.load = vi.fn().mockResolvedValue(config);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(config);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(config);
 
       // Act
       const summary = await serviceWithDebug.compare();
@@ -442,9 +410,7 @@ describe("DiffService", () => {
       const remoteConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -502,9 +468,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -560,9 +524,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -601,9 +563,7 @@ describe("DiffService", () => {
       const emptyConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(largeConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(emptyConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(emptyConfig);
 
       // Act
       const startTime = Date.now();
@@ -625,9 +585,7 @@ describe("DiffService", () => {
       const emptyConfig: SaleorConfig = {};
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(emptyConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(emptyConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(emptyConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -657,9 +615,7 @@ describe("DiffService", () => {
       };
 
       mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
-      mockServices.configuration.retrieveWithoutSaving = vi
-        .fn()
-        .mockResolvedValue(remoteConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
 
       // Act
       const summary = await diffService.compare();
@@ -668,6 +624,168 @@ describe("DiffService", () => {
       expect(summary.totalChanges).toBe(2); // 1 create + 1 delete
       expect(summary.creates).toBe(1); // Shop settings
       expect(summary.deletes).toBe(1); // Channel
+    });
+  });
+
+  describe("compareForIntrospect", () => {
+    it("should detect entities to add to local from remote", async () => {
+      // Arrange: Remote has entities that local doesn't have
+      const localConfig: SaleorConfig = {
+        channels: [],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        channels: [
+          {
+            name: "Default Channel",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "default",
+          },
+        ],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, this is a CREATE (will be added to local)
+      expect(summary.totalChanges).toBe(1);
+      expect(summary.creates).toBe(1);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(0);
+      expect(summary.results[0]).toMatchObject({
+        operation: "CREATE",
+        entityType: "Channels",
+        entityName: "Default Channel",
+      });
+    });
+
+    it("should detect entities to remove from local", async () => {
+      // Arrange: Local has entities that remote doesn't have
+      const localConfig: SaleorConfig = {
+        channels: [
+          {
+            name: "Old Channel",
+            currencyCode: "EUR",
+            defaultCountry: "DE",
+            slug: "old",
+          },
+        ],
+        productTypes: [
+          {
+            name: "Deprecated Type",
+            productAttributes: [],
+            variantAttributes: [],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {
+        channels: [],
+        productTypes: [],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, these are DELETEs (will be removed from local)
+      expect(summary.totalChanges).toBe(2);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(2);
+
+      const deletions = summary.results.filter((r) => r.operation === "DELETE");
+      expect(deletions).toHaveLength(2);
+      expect(deletions.map((r) => r.entityName)).toContain("Old Channel");
+      expect(deletions.map((r) => r.entityName)).toContain("Deprecated Type");
+    });
+
+    it("should detect entities to update in local", async () => {
+      // Arrange: Both have entities but with different properties
+      const localConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "Local Shop",
+          displayGrossPrices: false,
+        },
+      };
+
+      const remoteConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "Remote Shop",
+          displayGrossPrices: true,
+        },
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - from introspect perspective, this is an UPDATE
+      expect(summary.totalChanges).toBe(1);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(1);
+      expect(summary.deletes).toBe(0);
+      expect(summary.results[0]).toMatchObject({
+        operation: "UPDATE",
+        entityType: "Shop Settings",
+        entityName: "Shop Settings",
+      });
+    });
+
+    it("should handle empty remote (will clear local)", async () => {
+      // Arrange: Local has everything, remote is empty
+      const localConfig: SaleorConfig = {
+        shop: {
+          defaultMailSenderName: "My Shop",
+        },
+        channels: [
+          {
+            name: "Channel 1",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "ch1",
+          },
+        ],
+        productTypes: [
+          {
+            name: "Product Type 1",
+            productAttributes: [],
+            variantAttributes: [],
+          },
+        ],
+      };
+
+      const remoteConfig: SaleorConfig = {};
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert - everything will be deleted from local
+      expect(summary.totalChanges).toBe(3);
+      expect(summary.creates).toBe(0);
+      expect(summary.updates).toBe(0);
+      expect(summary.deletes).toBe(3);
+    });
+
+    it("should handle error scenarios", async () => {
+      // Arrange: Config loading throws error
+      mockServices.configStorage.load = vi
+        .fn()
+        .mockRejectedValue(new Error("Config file not found"));
+
+      // Act & Assert
+      await expect(diffService.compareForIntrospect()).rejects.toThrow(ConfigurationLoadError);
     });
   });
 });

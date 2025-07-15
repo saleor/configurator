@@ -20,7 +20,7 @@ Saleor Configurator is a "commerce as code" tool that helps you automate the cre
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/saleor/saleor-configurator.git
+git clone git@github.com:saleor/configurator.git
 cd saleor-configurator
 ```
 
@@ -30,15 +30,12 @@ cd saleor-configurator
 pnpm install
 ```
 
-3. Start the interactive setup wizard:
-
-```bash
-pnpm start
-```
-
 **Quickstart:**
 
 1. Create an app token with all permissions in your Saleor dashboard.
+
+> [!TIP]
+> You can also use the `start` command to explore the features interactively.
 
 2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
 
@@ -46,15 +43,26 @@ pnpm start
 pnpm introspect --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-3. Edit the configuration file to your needs. You can find the schema documentation in [SCHEMA.md](SCHEMA.md).
+3. Modify the pulled configuration according to your needs.
 
-4. Review changes with the diff command to see what will be updated:
+> [!TIP]
+>
+> Here are a bunch of tips for working with the configuration file:
+> 👉🏻 **Schema Documentation**: You can find the schema documentation in [SCHEMA.md](SCHEMA.md) and the example configuration in [example.yml](example.yml).
+>
+> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm diff` to see what would be applied, and then push it.
+>
+> 👉🏻 **Backup Your Data**: Before applying changes, make sure to back up your database or snapshot your instance in Saleor Cloud.
+>
+> 👉🏻 **Configuration as Source of Truth**: Configurator treats your local configuration file as the authoritative source for your Saleor instance. This means any entities (channels, product types, attributes, etc.) that exist in your Saleor instance but are not defined in your configuration will be flagged for removal during the push operation.
+
+4. Review changes with the diff command to see what changes would be applied to your Saleor instance:
 
 ```bash
 pnpm diff --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
 ```
 
-5. Deploy the changes to Saleor:
+5. If you're happy with the changes, push them to your Saleor instance:
 
 ```bash
 pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token"
@@ -210,7 +218,7 @@ products:
 ```
 
 > [!TIP]
-> See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties.
+> See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties and [example.yml](example.yml) for an example configuration.
 
 ## Development
 

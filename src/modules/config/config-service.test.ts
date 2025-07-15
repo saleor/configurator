@@ -168,10 +168,18 @@ describe("ConfigurationService", () => {
                     type: "PRODUCT_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Red" } },
-                        { node: { name: "Blue" } },
-                      ],
+                      edges: [{ node: { name: "Red" } }, { node: { name: "Blue" } }],
+                    },
+                  },
+                ],
+                assignedVariantAttributes: [
+                  {
+                    attribute: {
+                      id: "attr-2",
+                      name: "Size",
+                      type: "PRODUCT_TYPE",
+                      inputType: "PLAIN_TEXT",
+                      choices: null,
                     },
                   },
                 ],
@@ -192,10 +200,7 @@ describe("ConfigurationService", () => {
                     type: "PAGE_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Full Width" } },
-                        { node: { name: "Sidebar" } },
-                      ],
+                      edges: [{ node: { name: "Full Width" } }, { node: { name: "Sidebar" } }],
                     },
                   },
                 ],
@@ -211,10 +216,20 @@ describe("ConfigurationService", () => {
       );
       const result = service.mapConfig(completeConfig);
 
-      expect((result.shop as any)?.defaultMailSenderName).toBe("Test Store");
+      expect(
+        (result.shop as unknown as { defaultMailSenderName: string })?.defaultMailSenderName
+      ).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
-      expect((result.productTypes?.[0] as any)?.attributes).toHaveLength(1);
-      expect((result.pageTypes?.[0] as any)?.attributes).toHaveLength(1);
+      expect(
+        (
+          result.productTypes?.[0] as unknown as {
+            productAttributes: unknown[];
+          }
+        )?.productAttributes
+      ).toHaveLength(1);
+      expect(
+        (result.pageTypes?.[0] as unknown as { attributes: unknown[] })?.attributes
+      ).toHaveLength(1);
     });
 
     it("should handle different attribute input types", () => {
@@ -245,6 +260,17 @@ describe("ConfigurationService", () => {
                     choices: null,
                   },
                 ],
+                assignedVariantAttributes: [
+                  {
+                    attribute: {
+                      id: "attr-3",
+                      name: "Size",
+                      type: "PRODUCT_TYPE",
+                      inputType: "PLAIN_TEXT",
+                      choices: null,
+                    },
+                  },
+                ],
               },
             },
           ],
@@ -252,12 +278,10 @@ describe("ConfigurationService", () => {
         pageTypes: { edges: [] },
       };
 
-      const service = new ConfigurationService(
-        new MockRepository(rawConfig),
-        createMockStorage()
-      );
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
       const result = service.mapConfig(rawConfig);
-      const attributes = (result.productTypes?.[0] as any)?.attributes;
+      const attributes = result.productTypes?.[0]?.productAttributes;
+      console.log(result.productTypes?.[0]);
 
       expect(attributes).toBeDefined();
       expect(attributes).toHaveLength(2);

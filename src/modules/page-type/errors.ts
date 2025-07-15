@@ -18,7 +18,10 @@ export class PageTypeNotFoundError extends PageTypeError {
  * Error thrown when page type creation fails
  */
 export class PageTypeCreationError extends PageTypeError {
-  constructor(message: string, public readonly pageTypeName: string) {
+  constructor(
+    message: string,
+    public readonly pageTypeName: string
+  ) {
     super(message, "PAGE_TYPE_CREATION_ERROR");
   }
 }
@@ -27,7 +30,10 @@ export class PageTypeCreationError extends PageTypeError {
  * Error thrown when page type update fails
  */
 export class PageTypeUpdateError extends PageTypeError {
-  constructor(message: string, public readonly pageTypeId: string) {
+  constructor(
+    message: string,
+    public readonly pageTypeId: string
+  ) {
     super(message, "PAGE_TYPE_UPDATE_ERROR");
   }
 }

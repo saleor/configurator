@@ -31,7 +31,7 @@ export interface DiffChange {
  * Represents the result of comparing a single entity
  * @template T The type of the entity being compared
  */
-export interface DiffResult<T = unknown> {
+export interface DiffResult<T extends Record<string, unknown> = Record<string, unknown>> {
   /** The operation that needs to be performed */
   readonly operation: DiffOperation;
   /** The type of entity being compared */
@@ -72,6 +72,60 @@ export interface DiffOptions {
   readonly includeDetails?: boolean;
   /** Entity types to include in the diff (all by default) */
   readonly entityTypes?: readonly EntityType[];
+}
+
+/**
+ * Configuration sections for selective operations
+ */
+export type ConfigurationSection =
+  | "shop"
+  | "channels"
+  | "productTypes"
+  | "pageTypes"
+  | "categories"
+  | "products"
+  | "attributes";
+
+/**
+ * Parsed selective options from command line
+ */
+export interface ParsedSelectiveOptions {
+  readonly includeSections: readonly ConfigurationSection[];
+  readonly excludeSections: readonly ConfigurationSection[];
+}
+
+/**
+ * Options for introspect-specific diff operations
+ */
+export interface IntrospectDiffOptions {
+  /** Output format for the diff */
+  readonly format?: "table" | "json" | "yaml";
+  /** Whether to suppress output messages */
+  readonly quiet?: boolean;
+  /** Sections to include (empty array means include all) */
+  readonly includeSections?: readonly ConfigurationSection[];
+  /** Sections to exclude */
+  readonly excludeSections?: readonly ConfigurationSection[];
+}
+
+/**
+ * Result of introspect diff operation with formatted output
+ */
+export interface IntrospectDiffResult {
+  /** Summary of the diff operation */
+  readonly summary: DiffSummary;
+  /** Formatted output string (if not in quiet mode) */
+  readonly formattedOutput?: string;
+}
+
+/**
+ * Options for diff service when doing introspect comparison
+ */
+export interface DiffServiceIntrospectOptions {
+  /** Sections to include (empty array means include all) */
+  readonly includeSections?: readonly ConfigurationSection[];
+  /** Sections to exclude */
+  readonly excludeSections?: readonly ConfigurationSection[];
 }
 
 /**

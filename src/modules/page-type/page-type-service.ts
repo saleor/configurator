@@ -80,12 +80,19 @@ export class PageTypeService {
 
       // ? attribute service only creates attributes. we have loads of attribute methods here, maybe we should move them to the attribute service
       const attributes = await this.attributeService.bootstrapAttributes({
+<<<<<<< HEAD
         attributeInputs: attributesToCreate
           .filter((a) => "name" in a) // Only create new attributes, not referenced ones
           .map((a) => ({
             ...a,
             type: "PAGE_TYPE" as const,
           })),
+=======
+        attributeInputs: attributesToCreate.map((a) => ({
+          ...a,
+          type: "PAGE_TYPE" as const,
+        })),
+>>>>>>> main
       });
 
       const attributeIds = attributes.map((attr) => attr.id);
