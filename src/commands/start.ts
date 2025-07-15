@@ -11,7 +11,7 @@ export type StartCommandArgs = z.infer<typeof startCommandSchema>;
 
 const INTERACTIVE_CHOICES = [
   {
-    name: "⬇️ Download your store's current configuration to a local file (`introspect`)",
+    name: "⬇️  Download your store's current configuration to a local file (`introspect`)",
     value: "introspect",
   },
   {
