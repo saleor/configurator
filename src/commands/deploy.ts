@@ -25,9 +25,6 @@ async function analyzeDifferences(args: DeployCommandArgs): Promise<{
 }> {
   const configurator = createConfigurator(args);
   
-  // Validate local configuration first before making any network calls
-  await configurator.validateLocalConfiguration();
-  
   const { summary, output } = await configurator.diff();
   
   return {

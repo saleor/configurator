@@ -2,11 +2,6 @@ import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
 import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
-<<<<<<< HEAD
-import { ConfigurationValidationError } from "../../core/diff/errors";
-import { configSchema, type SaleorConfig } from "./schema/schema";
-=======
->>>>>>> main
 import { EntityNotFoundError } from "./errors";
 import { configSchema, type SaleorConfig } from "./schema/schema";
 

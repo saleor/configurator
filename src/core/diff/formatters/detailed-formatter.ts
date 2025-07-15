@@ -62,17 +62,11 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     entityType: EntityType,
     results: readonly DiffResult[]
   ): void {
-<<<<<<< HEAD
     const icon = this.getEntityIcon(entityType as any);
     lines.push(chalk.bold.white(`${icon} ${entityType}`));
     lines.push(
       chalk.gray(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR))
     );
-=======
-    const icon = this.getEntityIcon(entityType);
-    lines.push(`${icon} ${entityType}`);
-    lines.push(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR));
->>>>>>> main
 
     for (const result of results) {
       this.addResultDetails(lines, result);
@@ -134,13 +128,9 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   private addOperationSpecificDetails(lines: string[], result: DiffResult): void {
     if (result.operation === "DELETE" && result.current) {
       lines.push(
-<<<<<<< HEAD
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.gray(DIFF_MESSAGES.DELETE_EXPLANATION(
           result.entityType
         ))}`
-=======
-        `    ${FORMAT_CONFIG.TREE_BRANCH} ${DIFF_MESSAGES.DELETE_EXPLANATION(result.entityType)}`
->>>>>>> main
       );
     }
 
@@ -156,7 +146,6 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     const typedEntity = entity;
 
     if (typedEntity?.currencyCode) {
-<<<<<<< HEAD
       lines.push(
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} Currency: ${chalk.cyan(typedEntity.currencyCode)}`
       );
@@ -166,13 +155,6 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
       lines.push(
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} Country: ${chalk.cyan(typedEntity.defaultCountry)}`
       );
-=======
-      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Currency: ${typedEntity.currencyCode}`);
-    }
-
-    if (typedEntity?.defaultCountry) {
-      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} Country: ${typedEntity.defaultCountry}`);
->>>>>>> main
     }
   }
 
@@ -180,7 +162,6 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    * Adds the summary statistics section
    */
   private addSummarySection(lines: string[], summary: DiffSummary): void {
-<<<<<<< HEAD
     lines.push(chalk.bold.white(`${DIFF_ICONS.SUMMARY.CHART} ${DIFF_MESSAGES.SUMMARY_HEADER}`));
     lines.push(
       chalk.gray(this.createSeparator(
@@ -196,13 +177,5 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     lines.push(
       `• ${chalk.red(summary.deletes.toString())} ${this.formatPlural(summary.deletes, "Deletion")}`
     );
-=======
-    lines.push(`${DIFF_ICONS.SUMMARY.CHART} ${DIFF_MESSAGES.SUMMARY_HEADER}`);
-    lines.push(this.createSeparator(FORMAT_CONFIG.SUMMARY_WIDTH, FORMAT_CONFIG.SUB_SEPARATOR));
-    lines.push(DIFF_MESSAGES.TOTAL_CHANGES(summary.totalChanges));
-    lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.creates, "Creation")}`);
-    lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.updates, "Update")}`);
-    lines.push(`• ${DIFF_MESSAGES.OPERATION_COUNT(summary.deletes, "Deletion")}`);
->>>>>>> main
   }
 }

@@ -1,6 +1,5 @@
 import { DIFF_ICONS, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
 import { DiffSummaryError } from "../errors";
-<<<<<<< HEAD
 import type {
   DiffOperation,
   DiffResult,
@@ -8,9 +7,6 @@ import type {
   EntityType,
 } from "../types";
 import chalk from "chalk";
-=======
-import type { DiffOperation, DiffResult, DiffSummary, EntityType } from "../types";
->>>>>>> main
 
 /**
  * Base formatter providing common formatting utilities

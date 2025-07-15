@@ -1,5 +1,6 @@
 import type { BaseCommandArgs } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { DiffFormatter, DiffService } from "./diff";
@@ -9,18 +10,6 @@ export class SaleorConfigurator {
   constructor(public readonly services: ServiceContainer) {}
 
   /**
-<<<<<<< HEAD
-   * Validates the local configuration without making network calls
-   * @throws {Error} If the local configuration is invalid
-   */
-  async validateLocalConfiguration(): Promise<void> {
-    try {
-      await this.services.configStorage.load();
-    } catch (error) {
-      logger.error("Local configuration validation failed", { error });
-      throw error;
-    }
-=======
    * Get the service container for advanced usage
    * @internal
    */
@@ -155,7 +144,6 @@ export class SaleorConfigurator {
     }
 
     cliConsole.progress.info("Push operation completed successfully");
->>>>>>> main
   }
 
 

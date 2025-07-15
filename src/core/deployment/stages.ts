@@ -5,7 +5,8 @@ export const validationStage: DeploymentStage = {
   name: "Validating configuration",
   async execute(context) {
     try {
-      await context.configurator.validateLocalConfiguration();
+      // Load the configuration to validate it
+      await context.configurator.services.configStorage.load();
     } catch (error) {
       throw new Error(`Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`);
     }

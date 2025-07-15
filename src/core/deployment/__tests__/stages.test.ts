@@ -28,7 +28,6 @@ describe("Deployment Stages", () => {
     };
 
     const mockConfigurator = {
-      validateLocalConfiguration: vi.fn().mockResolvedValue(undefined),
       services: mockServices,
     } as unknown as SaleorConfigurator;
 
@@ -61,7 +60,7 @@ describe("Deployment Stages", () => {
       
       await validationStage.execute(context);
       
-      expect(context.configurator.validateLocalConfiguration).toHaveBeenCalled();
+      expect(context.configurator.services.configStorage.load).toHaveBeenCalled();
     });
   });
 
