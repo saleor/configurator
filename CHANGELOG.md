@@ -1,5 +1,42 @@
 # saleor-configurator
 
+## 0.7.0
+
+### Minor Changes
+
+- ea1a819: Add `isShippingRequired` field to product type
+
+  Product types now support the `isShippingRequired` boolean field to control whether products of this type require shipping. This defaults to `false` (unshippable by default).
+
+  **Example:**
+
+  ```yaml
+  productTypes:
+    - name: Book
+      isShippingRequired: true
+    - name: E-Book
+      isShippingRequired: false
+  ```
+
+- ea1a819: Improve attribute duplicate handling
+
+  Enhanced attribute handling to prevent duplicate definitions and encourage the use of reference syntax:
+
+  - Added `DuplicateAttributeDefinitionError` for better error messaging when attributes are defined multiple times
+  - Check for existing attributes globally before creating new ones
+  - Suggest using reference syntax (`attribute: "AttributeName"`) when attributes already exist elsewhere
+  - Allow full attribute input once, but encourage references for reuse
+
+  This prevents conflicts and promotes better configuration practices by encouraging attribute reuse through the reference syntax.
+
+### Patch Changes
+
+- 7bfe8d9: Fixed the issue where channelListings are required for a variant.
+- eeb25d3: Fixed the issue where the reference attribute syntax didn't work for page types. From now on, you can reference existing attributes in page types the same way as in product types.
+- ea1a819: Remove support for description field in products
+
+  The description field has been removed from the product schema as it was not being used by the product service. This simplifies the product configuration and removes unused fields.
+
 ## 0.6.0
 
 ### Minor Changes
