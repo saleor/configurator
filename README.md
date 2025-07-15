@@ -175,6 +175,7 @@ channels:
 
 productTypes:
   - name: Book
+    isShippingRequired: false
     productAttributes:
       - name: Author
         inputType: PLAIN_TEXT
@@ -195,7 +196,6 @@ products:
   - name: "Sample Fiction Book"
     productType: "Book"
     category: "Fiction"
-    description: "A reference book product for testing the Book product type"
     attributes:
       Author: "Jane Doe"
       Genre: "Fiction"
@@ -210,6 +210,16 @@ products:
 
 > [!TIP]
 > See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties and [example.yml](example.yml) for an example configuration.
+
+### Limitations
+
+> [!NOTE]
+> The following features are not yet supported in the current version:
+
+- **Attribute Values**: Cannot add attribute values directly to products or variants
+- **Variant Channel Listings**: Cannot add channel listings to individual variants
+
+These limitations will be addressed in future releases.
 
 ## Development
 

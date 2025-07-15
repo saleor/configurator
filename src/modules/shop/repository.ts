@@ -23,7 +23,9 @@ const updateShopSettingsMutation = graphql(`
   }
 `);
 
-export type ShopSettingsInput = VariablesOf<typeof updateShopSettingsMutation>["input"];
+export type ShopSettingsInput = VariablesOf<
+  typeof updateShopSettingsMutation
+>["input"];
 
 export interface ShopOperations {
   updateShopSettings(input: ShopSettingsInput): Promise<void>;
