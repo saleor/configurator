@@ -278,7 +278,10 @@ export class ConfigFileBuilder {
     let yaml = '';
 
     for (const [key, value] of Object.entries(obj)) {
-      if (value === null || value === undefined) {
+      if (value === undefined) {
+        // Skip undefined values
+        continue;
+      } else if (value === null) {
         yaml += `${spaces}${key}: null\n`;
       } else if (Array.isArray(value)) {
         if (value.length === 0) {
@@ -315,7 +318,10 @@ export class ConfigFileBuilder {
     let yaml = '';
 
     for (const [key, value] of Object.entries(obj)) {
-      if (value === null || value === undefined) {
+      if (value === undefined) {
+        // Skip undefined values
+        continue;
+      } else if (value === null) {
         yaml += `${spaces}${key}: null\n`;
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         yaml += `${spaces}${key}:\n`;
@@ -435,8 +441,8 @@ export function createMatchingCurrentStateConfig(): ConfigFileBuilder {
       trackInventoryByDefault: true,
       reserveStockDurationAnonymousUser: 10,
       reserveStockDurationAuthenticatedUser: 10,
-      defaultDigitalMaxDownloads: null,
-      defaultDigitalUrlValidDays: null,
+      defaultDigitalMaxDownloads: undefined,
+      defaultDigitalUrlValidDays: undefined,
       defaultWeightUnit: "KG",
       allowLoginWithoutConfirmation: false
     })

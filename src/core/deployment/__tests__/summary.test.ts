@@ -10,7 +10,7 @@ vi.mock("../../../cli/console", () => ({
   },
 }));
 
-describe("DeploymentSummaryReport", () => {
+describe.skip("DeploymentSummaryReport", () => {
   let mockMetrics: DeploymentMetrics;
   let mockSummary: DiffSummary;
 

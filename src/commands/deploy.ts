@@ -5,7 +5,7 @@ import { cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
-import { ConfigurationValidationError } from "../core/diff/errors";
+import { ConfigurationValidationError, ConfigurationLoadError } from "../core/diff/errors";
 import { logger } from "../lib/logger";
 import { DeploymentPipeline, DeploymentSummaryReport, DeploymentReportGenerator, getAllStages } from "../core/deployment";
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
@@ -24,6 +24,23 @@ function generateDefaultReportPath(): string {
     .replace(/\..+/, '') // Remove milliseconds
     .replace('T', '_');  // Replace T with underscore for readability
   return `deployment-report-${timestamp}.json`;
+}
+
+async function validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
+  const configurator = createConfigurator(args);
+  
+  try {
+    // Try to load the configuration to validate it
+    await configurator.services.configStorage.load();
+  } catch (error) {
+    // Re-throw with proper error type
+    if (error instanceof Error) {
+      throw new ConfigurationLoadError(
+        `Failed to load local configuration: ${error.message}`
+      );
+    }
+    throw error;
+  }
 }
 
 async function analyzeDifferences(args: DeployCommandArgs): Promise<{
@@ -207,10 +224,27 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
   let diffAnalysis: Awaited<ReturnType<typeof analyzeDifferences>>;
 
   try {
+    // Validate local configuration first before making any network requests
+    await validateLocalConfiguration(args);
     if (args.skipDiff) {
       cliConsole.warn("⚠️  Skipping diff preview as requested");
+      // When skipDiff is true, we assume ALL entities need updating
+      // This is a dangerous mode intended for CI/CD where changes are known
       diffAnalysis = {
-        summary: { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] },
+        summary: { 
+          totalChanges: 1, 
+          creates: 0, 
+          updates: 1, 
+          deletes: 0, 
+          results: [
+            // Add dummy results to trigger all stages
+            { entityType: "Shop Settings", entityName: "Shop", operation: "UPDATE" },
+            { entityType: "Channels", entityName: "Channels", operation: "UPDATE" },
+            { entityType: "Product Types", entityName: "Product Types", operation: "UPDATE" },
+            { entityType: "Page Types", entityName: "Page Types", operation: "UPDATE" },
+            { entityType: "Categories", entityName: "Categories", operation: "UPDATE" },
+          ] 
+        },
         output: "",
         hasDestructiveOperations: false
       };
@@ -220,7 +254,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       
       if (diffAnalysis.summary.totalChanges === 0) {
         cliConsole.status("✅ No changes detected - configuration is already in sync");
-        process.exit(0);
+        return; // Exit gracefully without changes
       }
 
       cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
@@ -240,7 +274,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
 
     if (!shouldDeploy) {
       cliConsole.cancelled("Deployment cancelled by user");
-      process.exit(0);
+      return; // Exit gracefully when cancelled
     }
 
     const metrics = await executeDeployment(args, diffAnalysis.summary);
