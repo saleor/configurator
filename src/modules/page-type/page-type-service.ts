@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
+import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type {
   PageTypeInput,
@@ -67,7 +68,7 @@ export class PageTypeService {
 
       // check if the page type has the attributes already
       const attributesToCreate = updateInput.attributes.filter((a) => {
-        if ("attribute" in a) {
+        if (isReferencedAttribute(a)) {
           return false;
         }
 
@@ -78,7 +79,7 @@ export class PageTypeService {
         attributesToCreate,
       });
 
-      // ? attribute service only creates attributes. we have loads of attribute methods here, maybe we should move them to the attribute service
+      // Create new attributes
       const attributes = await this.attributeService.bootstrapAttributes({
         attributeInputs: attributesToCreate
           .filter((a) => "name" in a) // Only create new attributes, not referenced ones
@@ -88,16 +89,36 @@ export class PageTypeService {
           })),
       });
 
-      const attributeIds = attributes.map((attr) => attr.id);
+      // Resolve referenced attributes
+      const existingAttributeNames =
+        pageType.attributes
+          ?.map((attr) => attr.name)
+          .filter((name): name is string => name !== null) ?? [];
+      const referencedAttributeIds =
+        await this.attributeService.resolveReferencedAttributes(
+          updateInput.attributes,
+          "PAGE_TYPE",
+          existingAttributeNames
+        );
+
+      // Combine new and referenced attribute IDs
+      const allAttributeIds = [
+        ...attributes.map((attr) => attr.id),
+        ...referencedAttributeIds,
+      ];
+
+      // Filter out already assigned attributes
       const attributesToAssign = await this.filterOutAssignedAttributes(
         pageType.id,
-        attributeIds
+        allAttributeIds
       );
 
       if (attributesToAssign.length > 0) {
         logger.debug("Assigning attributes to page type", {
           pageType: input.name,
           attributeCount: attributesToAssign.length,
+          newAttributes: attributes.length,
+          referencedAttributes: referencedAttributeIds.length,
         });
 
         try {

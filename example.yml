@@ -1,0 +1,116 @@
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Saleor Store"
+  defaultMailSenderAddress: "store@example.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: false
+
+channels:
+  - name: Poland
+    currencyCode: PLN
+    defaultCountry: PL
+    slug: poland
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 60
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+
+productTypes:
+  - name: Book
+    isShippingRequired: true
+    productAttributes:
+      - name: Author
+        inputType: PLAIN_TEXT
+      - name: Genre
+        inputType: DROPDOWN
+        values:
+          - name: Fiction
+          - name: Non-Fiction
+          - name: Fantasy
+      - name: Related Books
+        inputType: REFERENCE
+        entityType: PRODUCT
+    variantAttributes:
+      - name: Size
+        inputType: DROPDOWN
+        values:
+          - name: Small
+          - name: Medium
+          - name: Large
+  - name: E-Book
+    isShippingRequired: false
+    productAttributes:
+      - attribute: Author # Reference an existing attribute by slug
+      - attribute: Genre # Reference an existing attribute by slug
+      - name: File Format # New attribute
+        inputType: DROPDOWN
+        values:
+          - name: PDF
+          - name: EPUB
+          - name: MOBI
+
+pageTypes:
+  - name: Blog Post
+    attributes:
+      - name: Published Date
+        inputType: DATE
+      - name: Related Posts
+        inputType: REFERENCE
+        entityType: PAGE
+  - name: Article
+    attributes:
+      - attribute: Published Date # Reference existing attribute
+      - name: Tags
+        inputType: DROPDOWN
+        values:
+          - name: Technology
+          - name: Business
+          - name: Lifestyle
+
+categories:
+  - name: "Fiction"
+    subcategories:
+      - name: "Fantasy"
+  - name: "Non-Fiction"
+    subcategories:
+      - name: "Science"
+      - name: "History"
+
+products:
+  - name: "Sample Fiction Book"
+    productType: "Book"
+    category: "Fiction"
+    attributes:
+      Author: "Jane Doe"
+      Genre: "Fiction"
+    variants:
+      - name: "Hardcover"
+        sku: "BOOK-001-HC"
+        weight: 1.2
+        attributes:
+          Size: "Large"
+          Cover: "Hardcover"
+        channelListings: []
+      - name: "Paperback"
+        sku: "BOOK-001-PB"
+        weight: 0.8
+        attributes:
+          Size: "Standard"
+          Cover: "Paperback"
+        channelListings: []

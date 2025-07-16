@@ -22,7 +22,10 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0]).toEqual({ name: "Book" });
+      expect(result.productTypes![0]).toEqual({
+        name: "Book",
+        isShippingRequired: false,
+      });
       expect("productAttributes" in result.productTypes![0]).toBe(false);
     });
 
@@ -47,6 +50,7 @@ describe("Schema Union Types", () => {
       expect(result.productTypes).toHaveLength(1);
       expect(result.productTypes![0]).toEqual({
         name: "Book",
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Genre",
@@ -65,6 +69,7 @@ describe("Schema Union Types", () => {
           {
             name: "Book",
             productAttributes: [],
+            isShippingRequired: false,
           },
         ],
       };
@@ -74,6 +79,7 @@ describe("Schema Union Types", () => {
       expect(result.productTypes![0]).toEqual({
         name: "Book",
         productAttributes: [],
+        isShippingRequired: false,
       });
       expect("productAttributes" in result.productTypes![0]).toBe(true);
     });
@@ -191,6 +197,7 @@ describe("Schema Union Types", () => {
         pageTypes: [
           {
             name: "Article",
+
             attributes: [
               {
                 name: "Author",
@@ -282,10 +289,12 @@ describe("Schema Union Types", () => {
       // This test ensures TypeScript types work correctly
       const createProductType: ProductTypeInput = {
         name: "Book",
+        isShippingRequired: false,
       };
 
       const updateProductType: ProductTypeInput = {
         name: "Book",
+        isShippingRequired: false,
         productAttributes: [
           {
             name: "Genre",
@@ -354,6 +363,39 @@ describe("Schema Union Types", () => {
       };
 
       expect(() => configSchema.parse(invalidInput)).toThrow();
+    });
+
+    it("should validate duplicate attribute references in product types", () => {
+      const validInput = {
+        productTypes: [
+          {
+            name: "Book",
+            productAttributes: [
+              {
+                name: "Genre",
+                inputType: "DROPDOWN",
+                values: [{ name: "Fiction" }, { name: "Non-Fiction" }],
+              },
+              {
+                attribute: "Genre", // Reference to existing attribute
+              },
+            ],
+          },
+        ],
+      };
+
+      // This should pass validation as it uses reference syntax
+      const result = configSchema.parse(validInput);
+      expect(result.productTypes).toHaveLength(1);
+      expect(result.productTypes![0].productAttributes).toHaveLength(2);
+      expect(result.productTypes![0].productAttributes![0]).toEqual({
+        name: "Genre",
+        inputType: "DROPDOWN",
+        values: [{ name: "Fiction" }, { name: "Non-Fiction" }],
+      });
+      expect(result.productTypes![0].productAttributes![1]).toEqual({
+        attribute: "Genre",
+      });
     });
   });
 });
@@ -595,7 +637,18 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
+      const originalCodes = [
+        "US",
+        "GB",
+        "DE",
+        "FR",
+        "IT",
+        "ES",
+        "PL",
+        "JP",
+        "IN",
+        "CA",
+      ];
 
       // Act & Assert
       originalCodes.forEach((code) => {

@@ -11,12 +11,15 @@ export type StartCommandArgs = z.infer<typeof startCommandSchema>;
 
 const INTERACTIVE_CHOICES = [
   {
-    name: "📥 Pull configuration from Saleor (`introspect`)",
+    name: "⬇️  Download your store's current configuration to a local file (`introspect`)",
     value: "introspect",
   },
-  { name: "📤 Deploy configuration to Saleor (`deploy`)", value: "deploy" },
   {
-    name: "🔍 Compare local and remote configurations (`diff`)",
+    name: "🚀 Apply changes from your local file to your Saleor store (`deploy`)",
+    value: "deploy",
+  },
+  {
+    name: "🔍 See differences between your local file and your live Saleor store (`diff`)",
     value: "diff",
   },
 ];
@@ -24,7 +27,10 @@ const INTERACTIVE_CHOICES = [
 async function runInteractiveSetup(): Promise<void> {
   cliConsole.header("🔧 Welcome to Saleor Configurator Setup!\n");
 
-  const selectedAction = await selectOption("What would you like to do?", INTERACTIVE_CHOICES);
+  const selectedAction = await selectOption(
+    "What would you like to do?",
+    INTERACTIVE_CHOICES
+  );
 
   cliConsole.info(`\n✨ Starting ${selectedAction} in interactive mode...\n`);
 
@@ -38,7 +44,9 @@ async function runInteractiveSetup(): Promise<void> {
     const { createCommand } = await import("../cli/command");
 
     const program = new Command();
-    const command = createCommand(targetCommand as CommandConfig<typeof targetCommand.schema>);
+    const command = createCommand(
+      targetCommand as CommandConfig<typeof targetCommand.schema>
+    );
     program.addCommand(command);
 
     // For commands that need URL and token, prompt for them interactively

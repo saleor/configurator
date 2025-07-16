@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { AttributeInput } from "../config/schema/attribute.schema";
 import { AttributeService } from "./attribute-service";
 import type { Attribute } from "./repository";
 
@@ -36,6 +37,164 @@ describe("AttributeService", () => {
     });
   });
 
+  describe("resolveReferencedAttributes", () => {
+    it("should resolve referenced attributes for product types", async () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([
+          {
+            id: "attr-1",
+            name: "Author",
+            type: "PRODUCT_TYPE",
+            inputType: "PLAIN_TEXT",
+          },
+        ]),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "Author" }, // Reference to existing attribute
+        { name: "New Attribute", inputType: "PLAIN_TEXT" }, // New attribute
+      ];
+
+      // When
+      const result = await service.resolveReferencedAttributes(
+        inputAttributes,
+        "PRODUCT_TYPE"
+      );
+
+      // Then
+      expect(result).toEqual(["attr-1"]);
+      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["Author"],
+        type: "PRODUCT_TYPE",
+      });
+    });
+
+    it("should resolve referenced attributes for page types", async () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([
+          {
+            id: "attr-2",
+            name: "Published Date",
+            type: "PAGE_TYPE",
+            inputType: "DATE",
+          },
+        ]),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "Published Date" }, // Reference to existing attribute
+      ];
+
+      // When
+      const result = await service.resolveReferencedAttributes(
+        inputAttributes,
+        "PAGE_TYPE"
+      );
+
+      // Then
+      expect(result).toEqual(["attr-2"]);
+      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["Published Date"],
+        type: "PAGE_TYPE",
+      });
+    });
+
+    it("should filter out already assigned attributes", async () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not be called
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "Author" }, // Already assigned
+        { attribute: "Genre" }, // Not assigned
+      ];
+
+      const existingAttributeNames = ["Author"]; // Author is already assigned
+
+      // When
+      const result = await service.resolveReferencedAttributes(
+        inputAttributes,
+        "PRODUCT_TYPE",
+        existingAttributeNames
+      );
+
+      // Then
+      expect(result).toEqual([]);
+      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["Genre"], // Only Genre should be looked up
+        type: "PRODUCT_TYPE",
+      });
+    });
+
+    it("should return empty array when no referenced attributes", async () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(), // Should not be called
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const inputAttributes: AttributeInput[] = [
+        { name: "New Attribute", inputType: "PLAIN_TEXT" }, // No references
+      ];
+
+      // When
+      const result = await service.resolveReferencedAttributes(
+        inputAttributes,
+        "PRODUCT_TYPE"
+      );
+
+      // Then
+      expect(result).toEqual([]);
+      expect(mockOperations.getAttributesByNames).not.toHaveBeenCalled();
+    });
+
+    it("should handle case when referenced attributes are not found", async () => {
+      // Given
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]), // No attributes found
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "NonExistent" }, // Reference to non-existent attribute
+      ];
+
+      // When
+      const result = await service.resolveReferencedAttributes(
+        inputAttributes,
+        "PRODUCT_TYPE"
+      );
+
+      // Then
+      expect(result).toEqual([]);
+      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["NonExistent"],
+        type: "PRODUCT_TYPE",
+      });
+    });
+  });
+
   describe("updateAttribute", () => {
     it("should update attribute with new values", async () => {
       // Given
@@ -46,7 +205,10 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { name: "Fiction" } },
+            { node: { name: "Non-Fiction" } },
+          ],
         },
       };
 
@@ -79,7 +241,10 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(updatedAttributeInput, existingAttribute);
+      const result = await service.updateAttribute(
+        updatedAttributeInput,
+        existingAttribute
+      );
 
       // Then
       expect(mockOperations.updateAttribute).toHaveBeenCalledWith("attr-1", {
@@ -98,7 +263,10 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { name: "Fiction" } },
+            { node: { name: "Non-Fiction" } },
+          ],
         },
       };
 
@@ -118,7 +286,10 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(sameAttributeInput, existingAttribute);
+      const result = await service.updateAttribute(
+        sameAttributeInput,
+        existingAttribute
+      );
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
@@ -151,7 +322,10 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(attributeInput, existingAttribute);
+      const result = await service.updateAttribute(
+        attributeInput,
+        existingAttribute
+      );
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
@@ -185,7 +359,10 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(attributeInput, existingAttribute);
+      const result = await service.updateAttribute(
+        attributeInput,
+        existingAttribute
+      );
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();

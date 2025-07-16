@@ -61,7 +61,10 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
+  async createCategory(
+    input: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -77,7 +80,7 @@ export class CategoryRepository implements CategoryOperations {
     if (!result.data?.categoryCreate?.category) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
-        "Failed to create category"
+        `Failed to create category ${input.name}`
       );
     }
 

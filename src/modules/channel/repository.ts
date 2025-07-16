@@ -16,7 +16,9 @@ const createChannelMutation = graphql(`
   }
 `);
 
-export type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
+export type ChannelCreateInput = VariablesOf<
+  typeof createChannelMutation
+>["input"];
 
 const getChannelsQuery = graphql(`
   query GetChannels {
@@ -27,7 +29,9 @@ const getChannelsQuery = graphql(`
   }
 `);
 
-export type Channel = NonNullable<ResultOf<typeof getChannelsQuery>["channels"]>[number];
+export type Channel = NonNullable<
+  ResultOf<typeof getChannelsQuery>["channels"]
+>[number];
 
 const updateChannelMutation = graphql(`
   mutation UpdateChannel($id: ID!, $input: ChannelUpdateInput!) {
@@ -54,7 +58,10 @@ type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 export interface ChannelOperations {
   createChannel(input: ChannelCreateInput): Promise<Channel>;
   getChannels(): Promise<Channel[] | null | undefined>;
-  updateChannel(id: string, input: ChannelUpdateInput): Promise<Channel | null | undefined>;
+  updateChannel(
+    id: string,
+    input: ChannelUpdateInput
+  ): Promise<Channel | null | undefined>;
 }
 
 export class ChannelRepository implements ChannelOperations {
@@ -68,7 +75,7 @@ export class ChannelRepository implements ChannelOperations {
     if (!result.data?.channelCreate?.channel) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
-        "Failed to create channel"
+        `Failed to create channel ${input.name}`
       );
     }
 
@@ -93,13 +100,13 @@ export class ChannelRepository implements ChannelOperations {
     if (result.error) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
-        "Failed to update channel"
+        `Failed to update channel ${input.name}`
       );
     }
 
     if (result.data?.channelUpdate?.errors.length) {
       throw GraphQLError.fromDataErrors(
-        "Failed to update channel",
+        `Failed to update channel ${input.name}`,
         result.data.channelUpdate.errors
       );
     }
