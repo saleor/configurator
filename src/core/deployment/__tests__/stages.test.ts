@@ -39,7 +39,6 @@ describe("Deployment Stages", () => {
         config: "test.yml", 
         quiet: false,
         ci: false,
-        skipDiff: false,
       },
       summary: {
         totalChanges: 1,

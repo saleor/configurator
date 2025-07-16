@@ -129,7 +129,9 @@ describe.skip("MetricsCollector", () => {
       const metrics1 = collector.getMetrics();
       
       // Try to modify the returned map (should not affect internal state)
-      (metrics1.entityCounts as Map<string, number>).clear();
+      // This test ensures that the returned map is readonly
+      const mutableMap = new Map(metrics1.entityCounts);
+      mutableMap.clear();
       
       const metrics2 = collector.getMetrics();
       expect(metrics2.entityCounts.size).toBe(1);

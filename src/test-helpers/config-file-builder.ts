@@ -182,6 +182,7 @@ export class ConfigFileBuilder {
     for (let i = 0; i < productTypeCount; i++) {
       productTypes.push({
         name: `Product Type ${i + 1}`,
+        isShippingRequired: true,
       });
     }
     this.withProductTypes(productTypes);
@@ -226,9 +227,11 @@ export class ConfigFileBuilder {
       productTypes: [
         {
           name: "", // Empty name
+          isShippingRequired: true,
         },
         {
           // Missing name field
+          isShippingRequired: true,
         } as ProductTypeInput
       ]
     };
@@ -304,7 +307,7 @@ export class ConfigFileBuilder {
         }
       } else if (typeof value === 'object' && value !== null) {
         yaml += `${spaces}${key}:\n`;
-        yaml += this.generateYaml(value, indent + 1);
+        yaml += this.generateYaml(value as Record<string, unknown>, indent + 1);
       } else {
         yaml += `${spaces}${key}: ${this.formatYamlValue(value)}\n`;
       }
@@ -325,7 +328,7 @@ export class ConfigFileBuilder {
         yaml += `${spaces}${key}: null\n`;
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
         yaml += `${spaces}${key}:\n`;
-        yaml += this.generateYaml(value, indent + 1);
+        yaml += this.generateYaml(value as Record<string, unknown>, indent + 1);
       } else {
         yaml += `${spaces}${key}: ${this.formatYamlValue(value)}\n`;
       }
@@ -377,6 +380,7 @@ export function createStandardConfig(): ConfigFileBuilder {
     })
     .withProductType({
       name: "Standard Product",
+      isShippingRequired: true,
     });
 }
 
@@ -410,9 +414,11 @@ export function createComplexConfig(): ConfigFileBuilder {
     .withProductTypes([
       {
         name: "Electronics",
+        isShippingRequired: true,
       },
       {
         name: "Books",
+        isShippingRequired: true,
       }
     ])
     .withPageTypes([

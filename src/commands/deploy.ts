@@ -304,7 +304,7 @@ function handleValidationError(error: ConfigurationValidationError): void {
   cliConsole.text("");
   
   // Main error header - clean and professional
-  cliConsole.title(`${cliConsole.icon('error')} Configuration Validation Failed`);
+  cliConsole.header(`${cliConsole.icon('error')} Configuration Validation Failed`);
   cliConsole.separator("═", 60);
   
   // File context with clean formatting

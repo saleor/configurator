@@ -22,7 +22,6 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       config: configPath,
       quiet: true,
       ci: true,
-      skipDiff: false,
     };
 
     // Mock console methods to capture output
@@ -49,6 +48,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
         })
         .withProductType({
           name: "Test Product Type",
+          isShippingRequired: true,
           productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }, { name: "Blue" }] }],
         })
         .withPageType({ name: "Test Page Type" })
@@ -119,6 +119,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       const config = new ConfigFileBuilder()
         .withProductType({
           name: "Test Product Type",
+          isShippingRequired: true,
           productAttributes: [{ name: "Test Attr", inputType: "PLAIN_TEXT" }],
         })
         .toYaml();

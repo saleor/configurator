@@ -158,9 +158,12 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
 
   private formatFieldChange(change: DiffChange | ArrayChangeGroup): string {
     // Handle array changes specially
-    if (change.isArrayChange) {
+    if ('isArrayChange' in change && change.isArrayChange) {
       return this.formatArrayChange(change);
     }
+
+    // Now TypeScript knows change is DiffChange
+    const diffChange = change as DiffChange;
 
     const formatValue = (value: unknown): string => {
       if (value === null || value === undefined) {
@@ -175,9 +178,9 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       return chalk.white(`"${String(value)}"`);
     };
 
-    const field = chalk.yellow(change.field);
-    const oldValue = formatValue(change.currentValue);
-    const newValue = formatValue(change.desiredValue);
+    const field = chalk.yellow(diffChange.field);
+    const oldValue = formatValue(diffChange.currentValue);
+    const newValue = formatValue(diffChange.desiredValue);
     
     return `${field}: ${oldValue} ${chalk.gray("→")} ${newValue}`;
   }

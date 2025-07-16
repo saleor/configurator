@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
-import type { DiffResult, DiffSummary, EntityType } from "../types";
+import type { DiffResult, DiffSummary, EntityType, DiffChange } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
 /**

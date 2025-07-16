@@ -48,6 +48,7 @@ describe("ConfigFileBuilder", () => {
         })
         .withProductType({
           name: "Electronics",
+          isShippingRequired: true,
         });
 
       const yaml = config.toYaml();

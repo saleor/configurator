@@ -11,7 +11,7 @@ describe("DeploymentPipeline", () => {
     pipeline = new DeploymentPipeline();
     mockContext = {
       configurator: {} as SaleorConfigurator,
-      args: { url: "test", token: "test", config: "test.yml", quiet: false, ci: false, skipDiff: false },
+      args: { url: "test", token: "test", config: "test.yml", quiet: false, ci: false },
       summary: { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] },
       startTime: new Date(),
     };
