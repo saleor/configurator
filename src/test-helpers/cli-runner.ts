@@ -34,7 +34,7 @@ export class CliRunner {
     this.cliPath = cliPath;
   }
 
-  async run(args: string[], options: CliRunnerOptions = {}): Promise<CliResult> {
+  async run(_args: string[], options: CliRunnerOptions = {}): Promise<CliResult> {
     const _execaOptions: ExecaOptions = {
       timeout: options.timeout || this.defaultTimeout,
       env: {

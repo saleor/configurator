@@ -84,7 +84,7 @@ export class GraphQLMockServer {
     this.scope = nock(this.baseUrl);
   }
 
-  mockOperation(operationName: string, response: GraphQLMockResponse): this {
+  mockOperation(_operationName: string, response: GraphQLMockResponse): this {
     this.scope
       .post(this.endpoint)
       .reply(200, response)
@@ -124,7 +124,7 @@ export class GraphQLMockServer {
     return this;
   }
 
-  mockMutation(mutationName: string, response: GraphQLMockResponse): this {
+  mockMutation(_mutationName: string, response: GraphQLMockResponse): this {
     this.scope
       .post(this.endpoint)
       .reply(200, response)
@@ -257,7 +257,7 @@ export function mockSuccessfulDeployment(baseUrl: string): GraphQLMockServer {
 
 // Enhanced fetch mock for vitest tests
 export function createFetchMock() {
-  return async (url: string | URL | Request, options?: RequestInit): Promise<Response> => {
+  return async (_url: string | URL | Request, options?: RequestInit): Promise<Response> => {
     try {
       // Parse the GraphQL request to determine what to mock
       const body = options?.body ? JSON.parse(options.body as string) : {};

@@ -58,7 +58,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       await fs.writeFile(configPath, config);
 
       // Mock fetch to return successful responses
-      vi.spyOn(global, 'fetch').mockImplementation(async (url, options) => {
+      vi.spyOn(global, 'fetch').mockImplementation(async (_url, options) => {
         const fetchOptions = options as RequestInit;
         const body = JSON.parse(fetchOptions.body as string);
         

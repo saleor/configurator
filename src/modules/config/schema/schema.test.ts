@@ -22,11 +22,11 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0]).toEqual({
+      expect(result.productTypes?.[0]).toEqual({
         name: "Book",
         isShippingRequired: false,
       });
-      expect("productAttributes" in result.productTypes![0]).toBe(false);
+      expect(result.productTypes?.[0] && "productAttributes" in result.productTypes[0]).toBe(false);
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -48,7 +48,7 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(updateInput);
 
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0]).toEqual({
+      expect(result.productTypes?.[0]).toEqual({
         name: "Book",
         isShippingRequired: false,
         productAttributes: [
@@ -59,7 +59,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("productAttributes" in result.productTypes![0]).toBe(true);
+      expect(result.productTypes?.[0] && "productAttributes" in result.productTypes[0]).toBe(true);
     });
 
     it("should prioritize update schema over create schema", () => {
@@ -76,12 +76,12 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(ambiguousInput);
 
-      expect(result.productTypes![0]).toEqual({
+      expect(result.productTypes?.[0]).toEqual({
         name: "Book",
         productAttributes: [],
         isShippingRequired: false,
       });
-      expect("productAttributes" in result.productTypes![0]).toBe(true);
+      expect(result.productTypes?.[0] && "productAttributes" in result.productTypes[0]).toBe(true);
     });
   });
 
@@ -101,14 +101,14 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.channels).toHaveLength(1);
-      expect(result.channels![0]).toEqual({
+      expect(result.channels?.[0]).toEqual({
         name: "Poland",
         currencyCode: "PLN",
         defaultCountry: "PL",
         slug: "poland",
         isActive: false,
       });
-      expect("settings" in result.channels![0]).toBe(false);
+      expect(result.channels?.[0] && "settings" in result.channels[0]).toBe(false);
     });
 
     it("should parse update input (with settings)", () => {
@@ -129,7 +129,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.channels![0]).toEqual({
+      expect(result.channels?.[0]).toEqual({
         name: "Poland",
         currencyCode: "PLN",
         defaultCountry: "PL",
@@ -140,7 +140,7 @@ describe("Schema Union Types", () => {
           automaticallyCompleteFullyPaidCheckouts: true,
         },
       });
-      expect("settings" in result.channels![0]).toBe(true);
+      expect(result.channels?.[0] && "settings" in result.channels[0]).toBe(true);
     });
   });
 
@@ -188,8 +188,8 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.pageTypes).toHaveLength(1);
-      expect(result.pageTypes![0]).toEqual({ name: "Article" });
-      expect("productAttributes" in result.pageTypes![0]).toBe(false);
+      expect(result.pageTypes?.[0]).toEqual({ name: "Article" });
+      expect(result.pageTypes?.[0] && "productAttributes" in result.pageTypes[0]).toBe(false);
     });
 
     it("should parse update input (name + attributes)", () => {
@@ -210,7 +210,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.pageTypes![0]).toEqual({
+      expect(result.pageTypes?.[0]).toEqual({
         name: "Article",
         attributes: [
           {
@@ -219,7 +219,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("attributes" in result.pageTypes![0]).toBe(true);
+      expect(result.pageTypes?.[0] && "attributes" in result.pageTypes[0]).toBe(true);
     });
   });
 
@@ -236,8 +236,8 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.categories).toHaveLength(1);
-      expect(result.categories![0]).toEqual({ name: "Electronics" });
-      expect("subcategories" in result.categories![0]).toBe(false);
+      expect(result.categories?.[0]).toEqual({ name: "Electronics" });
+      expect(result.categories?.[0] && "subcategories" in result.categories[0]).toBe(false);
     });
 
     it("should parse update input (name + subcategories)", () => {
@@ -264,7 +264,7 @@ describe("Schema Union Types", () => {
 
       const result = configSchema.parse(updateInput);
 
-      expect(result.categories![0]).toEqual({
+      expect(result.categories?.[0]).toEqual({
         name: "Electronics",
         subcategories: [
           {
@@ -280,7 +280,7 @@ describe("Schema Union Types", () => {
           },
         ],
       });
-      expect("subcategories" in result.categories![0]).toBe(true);
+      expect(result.categories?.[0] && "subcategories" in result.categories[0]).toBe(true);
     });
   });
 
@@ -387,13 +387,13 @@ describe("Schema Union Types", () => {
       // This should pass validation as it uses reference syntax
       const result = configSchema.parse(validInput);
       expect(result.productTypes).toHaveLength(1);
-      expect(result.productTypes![0].productAttributes).toHaveLength(2);
-      expect(result.productTypes![0].productAttributes![0]).toEqual({
+      expect(result.productTypes?.[0].productAttributes).toHaveLength(2);
+      expect(result.productTypes?.[0].productAttributes?.[0]).toEqual({
         name: "Genre",
         inputType: "DROPDOWN",
         values: [{ name: "Fiction" }, { name: "Non-Fiction" }],
       });
-      expect(result.productTypes![0].productAttributes![1]).toEqual({
+      expect(result.productTypes?.[0].productAttributes?.[1]).toEqual({
         attribute: "Genre",
       });
     });

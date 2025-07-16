@@ -25,7 +25,7 @@ export abstract class BaseDiffFormatter {
       if (!grouped.has(entityType)) {
         grouped.set(entityType, []);
       }
-      grouped.get(entityType)!.push(result);
+      grouped.get(entityType)?.push(result);
     }
 
     // Convert to readonly map

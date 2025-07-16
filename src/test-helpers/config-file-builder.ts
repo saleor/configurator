@@ -282,8 +282,6 @@ export class ConfigFileBuilder {
 
     for (const [key, value] of Object.entries(obj)) {
       if (value === undefined) {
-        // Skip undefined values
-        continue;
       } else if (value === null) {
         yaml += `${spaces}${key}: null\n`;
       } else if (Array.isArray(value)) {
@@ -322,8 +320,6 @@ export class ConfigFileBuilder {
 
     for (const [key, value] of Object.entries(obj)) {
       if (value === undefined) {
-        // Skip undefined values
-        continue;
       } else if (value === null) {
         yaml += `${spaces}${key}: null\n`;
       } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {

@@ -5,7 +5,7 @@
  * backup creation, and path manipulation utilities.
  */
 
-import * as fs from "fs";
+import * as fs from "node:fs";
 import { BaseError } from "../errors/shared";
 import { logger } from "../logger";
 

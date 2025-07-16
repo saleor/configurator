@@ -6,7 +6,7 @@ import {
   getAllStages 
 } from "../stages";
 import type { DeploymentContext } from "../types";
-import { SaleorConfigurator } from "../../configurator";
+import type { SaleorConfigurator } from "../../configurator";
 
 describe("Deployment Stages", () => {
   const createMockContext = (overrides?: Partial<DeploymentContext>): DeploymentContext => {

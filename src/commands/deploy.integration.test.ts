@@ -58,7 +58,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Verify GraphQL queries were called for diff (fetching current config)
-      const configFetchCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
         return body && (
           body.includes('GetConfig') ||
@@ -69,9 +69,9 @@ describe("Deploy Command - Integration Tests", () => {
       expect(configFetchCalls.length).toBeGreaterThan(0);
       
       // Verify shop update mutation was called
-      const shopUpdateCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const shopUpdateCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('shopSettingsUpdate');
+        return body?.includes('shopSettingsUpdate');
       });
       expect(shopUpdateCalls.length).toBeGreaterThan(0);
       
@@ -80,7 +80,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(shopUpdateBody).toContain("Updated Shop Name");
       
       // Verify authentication header
-      expect((fetchSpy!.mock.calls as FetchMockCall[])[0]?.[1]?.headers).toMatchObject({
+      expect((fetchSpy?.mock.calls as FetchMockCall[])[0]?.[1]?.headers).toMatchObject({
         'authorization': `Bearer ${TEST_TOKEN}`,
         'content-type': 'application/json'
       });
@@ -93,7 +93,7 @@ describe("Deploy Command - Integration Tests", () => {
         .saveToFile(tempDir);
         
       // Use custom mock that exactly matches the config
-      fetchSpy!.mockImplementation(async (url: string | URL | Request, options?: RequestInit) => {
+      fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
         const body = JSON.parse((options as RequestInit | undefined)?.body as string || '{}');
         if (body.operationName === 'GetConfig' || body.query?.includes('shop')) {
           return new Response(JSON.stringify({
@@ -135,7 +135,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Should have called GraphQL to fetch current config for diff
-      const configFetchCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
         return body && (
           body.includes('GetConfig') ||
@@ -146,7 +146,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(configFetchCalls.length).toBeGreaterThan(0);
       
       // Should NOT have called any mutations (no changes)
-      const mutationCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
         return body && (
           body.includes('shopSettingsUpdate') ||
@@ -180,23 +180,23 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Verify shop update
-      const shopCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('shopSettingsUpdate');
+        return body?.includes('shopSettingsUpdate');
       });
       expect(shopCalls.length).toBeGreaterThan(0);
       
       // Verify channel operations
-      const channelCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const channelCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('channel');
+        return body?.includes('channel');
       });
       expect(channelCalls.length).toBeGreaterThan(0);
       
       // Verify product type operations
-      const productTypeCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const productTypeCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('productType');
+        return body?.includes('productType');
       });
       expect(productTypeCalls.length).toBeGreaterThan(0);
       
@@ -234,9 +234,9 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // In force mode, should still compute diff and execute mutations
-      const mutationCalls = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('shopSettingsUpdate');
+        return body?.includes('shopSettingsUpdate');
       });
       expect(mutationCalls.length).toBeGreaterThan(0);
     });
@@ -246,7 +246,7 @@ describe("Deploy Command - Integration Tests", () => {
   describe("Expected Failure Scenarios", () => {
     it("should fail gracefully with authentication errors", async () => {
       // Arrange: Mock auth error response
-      fetchSpy!.mockResolvedValueOnce(new Response(
+      fetchSpy?.mockResolvedValueOnce(new Response(
         JSON.stringify({
           errors: [{ message: "Authentication required" }]
         }),
@@ -298,7 +298,7 @@ describe("Deploy Command - Integration Tests", () => {
 
     it("should fail gracefully with network errors", async () => {
       // Arrange: Mock network error
-      fetchSpy!.mockRejectedValueOnce(new Error("Network connection failed"));
+      fetchSpy?.mockRejectedValueOnce(new Error("Network connection failed"));
 
       const configPath = createConfigFile()
         .withShop({ defaultMailSenderName: "Test Shop" })
@@ -468,9 +468,9 @@ invalid_yaml: [
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
       
       // Verify multiple mutations were sent for different entity types
-      const allMutations = (fetchSpy!.mock.calls as FetchMockCall[]).filter((call) => {
+      const allMutations = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
         const body = call[1]?.body?.toString();
-        return body && body.includes('mutation');
+        return body?.includes('mutation');
       });
       expect(allMutations.length).toBeGreaterThan(5); // Should have multiple mutations
     });

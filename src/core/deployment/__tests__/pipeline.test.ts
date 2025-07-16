@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { DeploymentPipeline } from "../pipeline";
 import type { DeploymentContext, DeploymentStage } from "../types";
-import { SaleorConfigurator } from "../../configurator";
+import type { SaleorConfigurator } from "../../configurator";
 
 describe("DeploymentPipeline", () => {
   let pipeline: DeploymentPipeline;
