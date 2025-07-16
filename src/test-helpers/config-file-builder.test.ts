@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createTempDirectory } from "./filesystem";
 import { createMinimalConfig, createStandardConfig, createComplexConfig, createInvalidConfig, createLargeConfig, createConfigFile } from "./config-file-builder";
 import type { TempDirectory } from "./filesystem";
-import type { ShopUpdateInput } from "../modules/config/schema/schema";
+import type { ShopInput } from "../modules/config/schema/schema";
 
 describe("ConfigFileBuilder", () => {
   let tempDir: TempDirectory;
@@ -18,7 +18,7 @@ describe("ConfigFileBuilder", () => {
   describe("Basic Builder Functionality", () => {
     it("should create a simple configuration", () => {
       const config = createConfigFile()
-        .withShop({ defaultMailSenderName: "Test Shop" } as ShopUpdateInput)
+        .withShop({ defaultMailSenderName: "Test Shop" })
         .withChannel({
           name: "Test Channel",
           slug: "test-channel",
@@ -34,7 +34,7 @@ describe("ConfigFileBuilder", () => {
 
     it("should support fluent API chaining", () => {
       const config = createConfigFile()
-        .withShop({ defaultMailSenderName: "Fluent Shop" } as ShopUpdateInput)
+        .withShop({ defaultMailSenderName: "Fluent Shop" })
         .withChannel({
           name: "Channel 1",
           slug: "channel-1",
@@ -60,7 +60,7 @@ describe("ConfigFileBuilder", () => {
 
     it("should save files to temp directory", () => {
       const config = createConfigFile()
-        .withShop({ defaultMailSenderName: "File Test" } as ShopUpdateInput);
+        .withShop({ defaultMailSenderName: "File Test" });
 
       const filePath = config.saveToFile(tempDir, "test-config.yml");
       const fileContent = tempDir.readFile("test-config.yml");
@@ -72,7 +72,7 @@ describe("ConfigFileBuilder", () => {
     it("should support JSON format", () => {
       const config = createConfigFile()
         .setFormat('json')
-        .withShop({ defaultMailSenderName: "JSON Shop" } as ShopUpdateInput);
+        .withShop({ defaultMailSenderName: "JSON Shop" });
 
       const json = config.toJson();
       const parsed = JSON.parse(json);
@@ -144,7 +144,7 @@ describe("ConfigFileBuilder", () => {
           defaultMailSenderName: "YAML Test",
           displayGrossPrices: true,
           trackInventoryByDefault: false
-        } as ShopUpdateInput)
+        })
         .withChannels([
           {
             name: "US Channel",
@@ -181,7 +181,7 @@ describe("ConfigFileBuilder", () => {
       const config = createConfigFile()
         .withShop({
           defaultMailSenderName: "Shop: With Special Characters & Numbers 123"
-        } as ShopUpdateInput)
+        })
         .withCategory({
           name: "Category with: colons",
         });
@@ -197,7 +197,7 @@ describe("ConfigFileBuilder", () => {
   describe("Builder Reset", () => {
     it("should reset builder state", () => {
       const builder = createConfigFile()
-        .withShop({ defaultMailSenderName: "Initial Shop" } as ShopUpdateInput)
+        .withShop({ defaultMailSenderName: "Initial Shop" })
         .withChannel({
           name: "Initial Channel",
           slug: "initial",
@@ -207,7 +207,7 @@ describe("ConfigFileBuilder", () => {
 
       // Reset and build different config
       builder.reset()
-        .withShop({ defaultMailSenderName: "Reset Shop" } as ShopUpdateInput);
+        .withShop({ defaultMailSenderName: "Reset Shop" });
 
       const yaml = builder.toYaml();
       expect(yaml).toContain("defaultMailSenderName: Reset Shop");

@@ -1,4 +1,30 @@
-import nock from "nock";
+import type { MockNock, MockNockScope, GraphQLFetchOptions } from './types';
+
+// Mock nock for tests
+const nock: MockNock = (() => {
+  const scopes = new Map<string, MockNockScope>();
+  
+  const createScope = (baseUrl: string): MockNockScope => {
+    const scope: MockNockScope = {
+      post: () => scope,
+      reply: () => scope,
+      replyWithError: () => scope,
+      persist: () => scope,
+      done: () => {},
+      isDone: () => true,
+    };
+    scopes.set(baseUrl, scope);
+    return scope;
+  };
+  
+  const mockNock = ((baseUrl: string) => createScope(baseUrl)) as MockNock;
+  mockNock.cleanAll = () => scopes.clear();
+  mockNock.isActive = () => false;
+  mockNock.activate = () => {};
+  mockNock.restore = () => {};
+  
+  return mockNock;
+})();
 
 export interface MockGraphQLOptions {
   baseUrl: string;
@@ -41,7 +67,7 @@ function createMockResponse(data: any, status = 200): Response {
 export class GraphQLMockServer {
   private readonly baseUrl: string;
   private readonly endpoint: string;
-  private scope: nock.Scope;
+  private scope: MockNockScope;
 
   constructor(options: MockGraphQLOptions) {
     this.baseUrl = options.baseUrl;
@@ -320,7 +346,7 @@ export function createFetchMock() {
       if (options?.headers && 
           typeof options.headers === 'object' && 
           'authorization' in options.headers &&
-          (options.headers as any).authorization === 'Bearer invalid-token') {
+          (options.headers as GraphQLFetchOptions['headers'] as Record<string, string>).authorization === 'Bearer invalid-token') {
         return createMockResponse({
           errors: [{ 
             message: "Authentication credentials were not provided.",

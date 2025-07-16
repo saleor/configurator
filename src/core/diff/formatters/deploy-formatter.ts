@@ -48,7 +48,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     entityType: EntityType,
     results: readonly DiffResult[]
   ): void {
-    const icon = this.getEntityIcon(entityType as any);
+    const icon = this.getEntityIcon(entityType);
     lines.push(chalk.bold.white(`${icon} ${entityType}`));
     lines.push(chalk.gray(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR)));
 

@@ -44,7 +44,6 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           quiet: false,
           ci: false,
           skipDiff: false,
@@ -93,7 +92,6 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           quiet: false,
           ci: false,
           skipDiff: false,
@@ -134,7 +132,6 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           quiet: false,
           ci: false,
           skipDiff: false,
@@ -187,7 +184,6 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           ci: true,
           quiet: false,
           skipDiff: false,
@@ -227,7 +223,6 @@ describe("Deploy Command - Integration Tests", () => {
           skipDiff: true,
           ci: true,
           quiet: false,
-          force: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -286,7 +281,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           ci: true,
           quiet: false,
-          force: false,
           skipDiff: false,
         });
       } catch (error) {
@@ -331,7 +325,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           ci: true,
           quiet: false,
-          force: false,
           skipDiff: false,
         });
       } catch (error) {
@@ -364,7 +357,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: "non-existent-config.yml",
           ci: true,
           quiet: false,
-          force: false,
           skipDiff: false,
         });
       } catch (error) {
@@ -400,7 +392,6 @@ invalid_yaml: [
           config: configPath,
           ci: true,
           quiet: false,
-          force: false,
           skipDiff: false,
         });
       } catch (error) {
@@ -431,7 +422,6 @@ invalid_yaml: [
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           quiet: false,
           ci: false,
           skipDiff: false,
@@ -473,7 +463,6 @@ invalid_yaml: [
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          force: true,
           quiet: false,
           ci: false,
           skipDiff: false,

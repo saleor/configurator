@@ -431,7 +431,7 @@ export function createMatchingCurrentStateConfig(): ConfigFileBuilder {
       defaultMailSenderAddress: "noreply@test.com",
       displayGrossPrices: true,
       enableAccountConfirmationByEmail: true,
-      limitQuantityPerCheckout: null,
+      limitQuantityPerCheckout: undefined,
       trackInventoryByDefault: true,
       reserveStockDurationAnonymousUser: 10,
       reserveStockDurationAuthenticatedUser: 10,
