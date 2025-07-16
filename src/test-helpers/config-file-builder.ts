@@ -219,7 +219,7 @@ export class ConfigFileBuilder {
         {
           name: "Invalid Channel",
           slug: "invalid-channel",
-          currencyCode: "INVALID" as any, // Invalid currency code
+          currencyCode: "INVALID" as CurrencyCode, // Invalid currency code
           defaultCountry: "US", // Valid, but the currency is invalid
         }
       ],
@@ -229,7 +229,7 @@ export class ConfigFileBuilder {
         },
         {
           // Missing name field
-        } as any
+        } as ProductTypeInput
       ]
     };
     return this;
@@ -273,7 +273,7 @@ export class ConfigFileBuilder {
     return { ...this.content };
   }
 
-  private generateYaml(obj: any, indent = 0): string {
+  private generateYaml(obj: Record<string, unknown>, indent = 0): string {
     const spaces = '  '.repeat(indent);
     let yaml = '';
 
@@ -313,7 +313,7 @@ export class ConfigFileBuilder {
     return yaml;
   }
 
-  private generateYamlObject(obj: any, indent: number): string {
+  private generateYamlObject(obj: Record<string, unknown>, indent: number): string {
     const spaces = '  '.repeat(indent);
     let yaml = '';
 
@@ -334,7 +334,7 @@ export class ConfigFileBuilder {
     return yaml;
   }
 
-  private formatYamlValue(value: any): string {
+  private formatYamlValue(value: unknown): string {
     if (typeof value === 'string') {
       // Quote strings that contain special characters or look like other types
       if (value.includes(':') || value.includes('"') || value.includes('\n') || 

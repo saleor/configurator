@@ -108,7 +108,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Formats a field change with proper value handling and colors
    */
-  private formatFieldChange(change: any): string {
+  private formatFieldChange(change: DiffChange): string {
     const formatValue = (value: unknown): string => {
       if (value === null || value === undefined) {
         return chalk.white("(not set)");

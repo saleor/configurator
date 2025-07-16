@@ -3,8 +3,8 @@
 // Mock nock types for testing
 export interface MockNockScope {
   post(path: string): MockNockScope;
-  reply(status: number, response: any): MockNockScope;
-  replyWithError(error: any): MockNockScope;
+  reply(status: number, response: unknown): MockNockScope;
+  replyWithError(error: unknown): MockNockScope;
   persist(value?: boolean): MockNockScope;
   done(): void;
   isDone(): boolean;

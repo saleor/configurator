@@ -277,7 +277,7 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
       return; // Exit gracefully when cancelled
     }
 
-    const metrics = await executeDeployment(args, diffAnalysis.summary);
+    const _metrics = await executeDeployment(args, diffAnalysis.summary);
     logDeploymentCompletion(diffAnalysis.summary);
   } catch (error) {
     handleDeploymentError(error);

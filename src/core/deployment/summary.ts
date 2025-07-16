@@ -19,7 +19,7 @@ export class DeploymentSummaryReport {
     if (line.length <= this.maxLineWidth) {
       return line;
     }
-    return line.substring(0, this.maxLineWidth - 3) + "...";
+    return `${line.substring(0, this.maxLineWidth - 3)}...`;
   }
 
   private buildSummaryLines(): string[] {

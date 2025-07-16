@@ -1348,7 +1348,6 @@ export type introspection = {
   types: introspection_types;
 };
 
-import * as gqlTada from 'gql.tada';
 
 declare module 'gql.tada' {
   interface setupSchema {

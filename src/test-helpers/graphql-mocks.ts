@@ -32,7 +32,7 @@ export interface MockGraphQLOptions {
 }
 
 export interface GraphQLMockResponse {
-  data?: any;
+  data?: unknown;
   errors?: {
     message: string;
     locations?: { line: number; column: number }[];
@@ -41,7 +41,7 @@ export interface GraphQLMockResponse {
 }
 
 // Helper to create proper Response objects for urql compatibility
-function createMockResponse(data: any, status = 200): Response {
+function createMockResponse(data: unknown, status = 200): Response {
   const responseText = JSON.stringify(data);
   return {
     ok: status >= 200 && status < 300,
@@ -96,9 +96,9 @@ export class GraphQLMockServer {
   mockIntrospection(mockData: {
     shop?: { defaultMailSenderName?: string };
     channels?: { name: string; slug: string; currencyCode: string; defaultCountry?: string }[];
-    productTypes?: { edges: any[] };
-    pageTypes?: { edges: any[] };
-    categories?: { edges: any[] };
+    productTypes?: { edges: unknown[] };
+    pageTypes?: { edges: unknown[] };
+    categories?: { edges: unknown[] };
   }): this {
     // Mock all GraphQL requests with the introspection response initially
     this.scope

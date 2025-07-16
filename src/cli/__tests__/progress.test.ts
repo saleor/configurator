@@ -24,7 +24,7 @@ vi.mock("chalk", () => ({
 
 describe("OraProgressReporter", () => {
   let reporter: OraProgressReporter;
-  let consoleSpy: any;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     reporter = new OraProgressReporter();
@@ -96,7 +96,7 @@ describe("OraProgressReporter", () => {
 describe("BulkOperationProgress", () => {
   let mockReporter: ProgressReporter;
   let bulkProgress: BulkOperationProgress;
-  let consoleSpy: any;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     mockReporter = {

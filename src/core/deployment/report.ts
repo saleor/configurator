@@ -92,14 +92,23 @@ export class DeploymentReportGenerator {
     fields?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   }> {
     return this.summary.results.map((result: DiffResult) => {
-      const change: any = {
+      const change: {
+        entityType: string;
+        entityName: string;
+        operation: "CREATE" | "UPDATE" | "DELETE";
+        fields?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
+      } = {
         entityType: result.entityType,
         entityName: result.entityName,
         operation: result.operation,
       };
 
       if (result.changes && result.changes.length > 0) {
-        change.fields = result.changes.map((fieldChange: any) => ({
+        change.fields = result.changes.map((fieldChange: {
+          field: string;
+          currentValue: unknown;
+          desiredValue: unknown;
+        }) => ({
           field: fieldChange.field,
           oldValue: fieldChange.currentValue ?? null,
           newValue: fieldChange.desiredValue ?? null,

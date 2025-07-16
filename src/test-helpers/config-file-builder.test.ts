@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import { createTempDirectory } from "./filesystem";
 import { createMinimalConfig, createStandardConfig, createComplexConfig, createInvalidConfig, createLargeConfig, createConfigFile } from "./config-file-builder";
 import type { TempDirectory } from "./filesystem";
-import type { ShopInput } from "../modules/config/schema/schema";
 
 describe("ConfigFileBuilder", () => {
   let tempDir: TempDirectory;

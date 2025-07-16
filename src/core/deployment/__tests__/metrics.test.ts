@@ -129,7 +129,7 @@ describe.skip("MetricsCollector", () => {
       const metrics1 = collector.getMetrics();
       
       // Try to modify the returned map (should not affect internal state)
-      (metrics1.entityCounts as any).clear();
+      (metrics1.entityCounts as Map<string, number>).clear();
       
       const metrics2 = collector.getMetrics();
       expect(metrics2.entityCounts.size).toBe(1);

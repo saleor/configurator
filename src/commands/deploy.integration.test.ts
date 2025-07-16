@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { createTempDirectory } from "../test-helpers/filesystem";
 import { createFetchMock } from "../test-helpers/graphql-mocks";
-import { createComplexConfig, createInvalidConfig, createLargeConfig, createMatchingCurrentStateConfig, createConfigFile } from "../test-helpers/config-file-builder";
+import { createComplexConfig, createInvalidConfig, createLargeConfig, createConfigFile } from "../test-helpers/config-file-builder";
 import type { TempDirectory } from "../test-helpers/filesystem";
 import { deployHandler } from "./deploy";
 
@@ -10,7 +10,7 @@ const TEST_TOKEN = "test-token";
 
 describe("Deploy Command - Integration Tests", () => {
   let tempDir: TempDirectory;
-  let fetchSpy: any;
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     tempDir = createTempDirectory();
@@ -56,7 +56,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Verify GraphQL queries were called for diff (fetching current config)
-      const configFetchCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const configFetchCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('GetConfig') ||
         call[1]?.body?.toString().includes('shop') ||
         call[1]?.body?.toString().includes('channels')
@@ -64,7 +64,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(configFetchCalls.length).toBeGreaterThan(0);
       
       // Verify shop update mutation was called
-      const shopUpdateCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const shopUpdateCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('shopSettingsUpdate')
       );
       expect(shopUpdateCalls.length).toBeGreaterThan(0);
@@ -130,7 +130,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Should have called GraphQL to fetch current config for diff
-      const configFetchCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const configFetchCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('GetConfig') ||
         call[1]?.body?.toString().includes('shop') ||
         call[1]?.body?.toString().includes('channels')
@@ -138,7 +138,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(configFetchCalls.length).toBeGreaterThan(0);
       
       // Should NOT have called any mutations (no changes)
-      const mutationCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const mutationCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('shopSettingsUpdate') ||
         call[1]?.body?.toString().includes('channelCreate') ||
         call[1]?.body?.toString().includes('channelUpdate')
@@ -170,19 +170,19 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Verify shop update
-      const shopCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const shopCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('shopSettingsUpdate')
       );
       expect(shopCalls.length).toBeGreaterThan(0);
       
       // Verify channel operations
-      const channelCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const channelCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('channel')
       );
       expect(channelCalls.length).toBeGreaterThan(0);
       
       // Verify product type operations
-      const productTypeCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const productTypeCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('productType')
       );
       expect(productTypeCalls.length).toBeGreaterThan(0);
@@ -222,7 +222,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // In force mode, should still compute diff and execute mutations
-      const mutationCalls = fetchSpy.mock.calls.filter((call: any) => 
+      const mutationCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('shopSettingsUpdate')
       );
       expect(mutationCalls.length).toBeGreaterThan(0);
@@ -252,7 +252,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(deployError).toBeUndefined();
       
       // Should NOT have called diff queries (GetConfig for comparison)
-      const diffCalls = fetchSpy.mock.calls.filter((call: any) => {
+      const diffCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => {
         const body = call[1]?.body?.toString() || '';
         return body.includes('GetConfig') || body.includes('query GetConfig') || 
                (body.includes('shop') && body.includes('channels') && body.includes('query'));
@@ -260,7 +260,7 @@ describe("Deploy Command - Integration Tests", () => {
       expect(diffCalls.length).toBe(0);
       
       // Should have called mutations for deployment (at least shopSettingsUpdate)
-      const mutationCalls = fetchSpy.mock.calls.filter((call: any) => {
+      const mutationCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => {
         const body = call[1]?.body?.toString() || '';
         return body.includes('mutation') || body.includes('shopSettingsUpdate');
       });
@@ -502,7 +502,7 @@ invalid_yaml: [
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
       
       // Verify multiple mutations were sent for different entity types
-      const allMutations = fetchSpy.mock.calls.filter((call: any) => 
+      const allMutations = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => 
         call[1]?.body?.toString().includes('mutation')
       );
       expect(allMutations.length).toBeGreaterThan(5); // Should have multiple mutations

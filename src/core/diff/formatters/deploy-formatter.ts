@@ -3,6 +3,14 @@ import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
 import type { DiffResult, DiffSummary, EntityType, DiffChange } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
+interface ArrayChangeGroup {
+  field: string;
+  isArrayChange: true;
+  added: string[];
+  removed: string[];
+  entityName: string;
+}
+
 /**
  * Formatter for deploy command with enhanced change visualization
  */
@@ -101,10 +109,10 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     lines.push("");
   }
 
-  private groupArrayChanges(changes: readonly DiffChange[]): any[] {
+  private groupArrayChanges(changes: readonly DiffChange[]): (DiffChange | ArrayChangeGroup)[] {
     // Group changes by field name
-    const fieldGroups = new Map<string, any[]>();
-    const nonArrayChanges: any[] = [];
+    const fieldGroups = new Map<string, DiffChange[]>();
+    const nonArrayChanges: DiffChange[] = [];
     
     for (const change of changes) {
       // Check if this is an array value change (ends with .values)
@@ -118,7 +126,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     }
     
     // Convert grouped array changes into single entries
-    const consolidatedChanges: any[] = [...nonArrayChanges];
+    const consolidatedChanges: (DiffChange | ArrayChangeGroup)[] = [...nonArrayChanges];
     
     for (const [field, fieldChanges] of fieldGroups) {
       const added: string[] = [];
@@ -148,7 +156,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     return consolidatedChanges;
   }
 
-  private formatFieldChange(change: any): string {
+  private formatFieldChange(change: DiffChange | ArrayChangeGroup): string {
     // Handle array changes specially
     if (change.isArrayChange) {
       return this.formatArrayChange(change);
@@ -174,7 +182,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     return `${field}: ${oldValue} ${chalk.gray("→")} ${newValue}`;
   }
 
-  private formatArrayChange(change: any): string {
+  private formatArrayChange(change: ArrayChangeGroup): string {
     const field = chalk.yellow(change.field);
     const parts: string[] = [];
     

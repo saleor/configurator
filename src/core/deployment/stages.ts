@@ -1,4 +1,4 @@
-import type { DeploymentContext, DeploymentStage } from "./types";
+import type { DeploymentStage } from "./types";
 import { logger } from "../../lib/logger";
 
 export const validationStage: DeploymentStage = {
