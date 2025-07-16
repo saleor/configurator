@@ -272,14 +272,14 @@ function handleDeploymentError(error: unknown): never {
     cliConsole.error(`❌ Deployment failed: ${error.message}`);
     
     // Provide helpful context based on error content
-    if (error.message.includes("Network")) {
+    if (error.message.includes("Network") || error.message.includes("ENOTFOUND")) {
       cliConsole.warn("💡 Check your internet connection and Saleor instance URL");
-    } else if (error.message.includes("Authentication") || error.message.includes("Unauthorized")) {
+    } else if (error.message.includes("Authentication") || error.message.includes("Unauthorized") || error.message.includes("401")) {
       cliConsole.warn("💡 Verify your API token has the required permissions");
-    } else if (error.message.includes("Configuration")) {
+    } else if (error.message.includes("Configuration") || error.message.includes("validation")) {
       cliConsole.warn("💡 Check your configuration file for syntax errors");
-    } else if (error.message.includes("product type") && error.message.includes("'Sweatshirt'")) {
-      // Specific help for product type deletion failures
+    } else if (error.message.includes("product type") && error.message.includes("delete")) {
+      // Generic product type deletion failure
       cliConsole.warn("\n💡 Product type deletion failed. Common reasons:");
       cliConsole.warn("  • The product type has products associated with it");
       cliConsole.warn("  • You need to delete all products using this type first");
@@ -290,6 +290,11 @@ function handleDeploymentError(error: unknown): never {
       cliConsole.warn("  • Attribute value changes (they can't be renamed, only added/removed)");
       cliConsole.warn("  • Product types with associated products can't be deleted");
       cliConsole.warn("  • Ensure all referenced attributes exist");
+    } else if (error.message.includes("attribute") && error.message.includes("delete")) {
+      // Attribute deletion failure
+      cliConsole.warn("\n💡 Attribute deletion failed. Common reasons:");
+      cliConsole.warn("  • The attribute is used by existing products or variants");
+      cliConsole.warn("  • Remove attribute assignments before deleting the attribute");
     }
     
     throw error;
