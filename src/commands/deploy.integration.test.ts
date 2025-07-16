@@ -46,7 +46,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           quiet: false,
           ci: true,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -120,7 +119,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           quiet: false,
           ci: true, // Use CI mode to avoid confirmation prompt
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -160,7 +158,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           quiet: false,
           ci: true,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -212,7 +209,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           ci: true,
           quiet: false,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -228,44 +224,6 @@ describe("Deploy Command - Integration Tests", () => {
       expect(mutationCalls.length).toBeGreaterThan(0);
     });
 
-    it("should skip diff computation when skipDiff is true", async () => {
-      const configPath = createConfigFile()
-        .withShop({ defaultMailSenderName: "Test Shop" })
-        .saveToFile(tempDir);
-
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
-          url: TEST_URL,
-          token: TEST_TOKEN,
-          config: configPath,
-          skipDiff: true,
-          ci: true,
-          quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
-
-      // Assert - Verify deployment was attempted
-      expect(deployError).toBeUndefined();
-      
-      // Should NOT have called diff queries (GetConfig for comparison)
-      const diffCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => {
-        const body = call[1]?.body?.toString() || '';
-        return body.includes('GetConfig') || body.includes('query GetConfig') || 
-               (body.includes('shop') && body.includes('channels') && body.includes('query'));
-      });
-      expect(diffCalls.length).toBe(0);
-      
-      // Should have called mutations for deployment (at least shopSettingsUpdate)
-      const mutationCalls = fetchSpy.mock.calls.filter((call: Parameters<typeof fetch>) => {
-        const body = call[1]?.body?.toString() || '';
-        return body.includes('mutation') || body.includes('shopSettingsUpdate');
-      });
-      expect(mutationCalls.length).toBeGreaterThan(0);
-    });
   });
 
   describe("Expected Failure Scenarios", () => {
@@ -304,7 +262,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           ci: true,
           quiet: false,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -348,7 +305,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: configPath,
           ci: true,
           quiet: false,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -380,7 +336,6 @@ describe("Deploy Command - Integration Tests", () => {
           config: "non-existent-config.yml",
           ci: true,
           quiet: false,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -415,7 +370,6 @@ invalid_yaml: [
           config: configPath,
           ci: true,
           quiet: false,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -447,7 +401,6 @@ invalid_yaml: [
           config: configPath,
           quiet: false,
           ci: true,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;
@@ -488,7 +441,6 @@ invalid_yaml: [
           config: configPath,
           quiet: false,
           ci: true,
-          skipDiff: false,
         });
       } catch (error) {
         deployError = error as Error;

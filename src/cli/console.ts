@@ -113,13 +113,6 @@ export class Console {
   }
 
   // Enhanced styling methods for better DX with consistent colors
-  title(message: string) {
-    const text = chalk.bold.white(message);
-    if (!this.options.quiet) {
-      global.console.log(text);
-    }
-    return text;
-  }
 
   subtitle(message: string) {
     const text = chalk.bold(message); // No color, just bold

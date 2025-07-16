@@ -10,8 +10,6 @@ const testDeploySchema = z.object({
   config: z.string().default("config.yml"),
   quiet: z.boolean().default(false),
   ci: z.boolean().default(false),
-  force: z.boolean().default(false),
-  skipDiff: z.boolean().default(false),
 });
 
 describe("Deploy Command Schema Validation", () => {
@@ -28,8 +26,6 @@ describe("Deploy Command Schema Validation", () => {
       expect(result.data.config).toBe("config.yml");
       expect(result.data.quiet).toBe(false);
       expect(result.data.ci).toBe(false);
-      expect(result.data.force).toBe(false);
-      expect(result.data.skipDiff).toBe(false);
     }
   });
 
@@ -40,8 +36,6 @@ describe("Deploy Command Schema Validation", () => {
       config: "custom.yml",
       quiet: true,
       ci: true,
-      force: true,
-      skipDiff: true,
     };
 
     const result = testDeploySchema.safeParse(customArgs);
@@ -51,8 +45,6 @@ describe("Deploy Command Schema Validation", () => {
       expect(result.data.config).toBe("custom.yml");
       expect(result.data.quiet).toBe(true);
       expect(result.data.ci).toBe(true);
-      expect(result.data.force).toBe(true);
-      expect(result.data.skipDiff).toBe(true);
     }
   });
 
@@ -150,13 +142,11 @@ describe("Diff Summary Analysis", () => {
 describe("Deployment Mode Logic", () => {
   type DeploymentMode = {
     ci: boolean;
-    force: boolean;
-    skipDiff: boolean;
   };
 
   const testModeLogic = (mode: DeploymentMode, hasDestructiveOps: boolean) => {
-    const shouldSkipConfirmation = mode.force || mode.ci;
-    const shouldShowDiff = !mode.skipDiff;
+    const shouldSkipConfirmation = mode.ci;
+    const shouldShowDiff = true; // Always show diff now
     const requiresExtraWarning = hasDestructiveOps && !shouldSkipConfirmation;
     
     return {
@@ -167,7 +157,7 @@ describe("Deployment Mode Logic", () => {
   };
 
   it("should handle normal interactive mode", () => {
-    const mode = { ci: false, force: false, skipDiff: false };
+    const mode = { ci: false };
     const result = testModeLogic(mode, false);
     
     expect(result.shouldSkipConfirmation).toBe(false);
@@ -176,7 +166,7 @@ describe("Deployment Mode Logic", () => {
   });
 
   it("should handle CI mode", () => {
-    const mode = { ci: true, force: false, skipDiff: false };
+    const mode = { ci: true };
     const result = testModeLogic(mode, true);
     
     expect(result.shouldSkipConfirmation).toBe(true);
@@ -184,17 +174,9 @@ describe("Deployment Mode Logic", () => {
     expect(result.requiresExtraWarning).toBe(false);
   });
 
-  it("should handle force mode", () => {
-    const mode = { ci: false, force: true, skipDiff: false };
-    const result = testModeLogic(mode, true);
-    
-    expect(result.shouldSkipConfirmation).toBe(true);
-    expect(result.shouldShowDiff).toBe(true);
-    expect(result.requiresExtraWarning).toBe(false);
-  });
 
   it("should require extra warning for destructive operations in interactive mode", () => {
-    const mode = { ci: false, force: false, skipDiff: false };
+    const mode = { ci: false };
     const result = testModeLogic(mode, true);
     
     expect(result.shouldSkipConfirmation).toBe(false);
@@ -202,12 +184,6 @@ describe("Deployment Mode Logic", () => {
     expect(result.requiresExtraWarning).toBe(true);
   });
 
-  it("should skip diff when requested", () => {
-    const mode = { ci: false, force: false, skipDiff: true };
-    const result = testModeLogic(mode, false);
-    
-    expect(result.shouldShowDiff).toBe(false);
-  });
 });
 
 describe("Error Handling Categories", () => {

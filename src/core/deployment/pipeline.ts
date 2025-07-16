@@ -1,4 +1,4 @@
-import { ProgressIndicator } from "../../cli/progress";
+import { ProgressIndicator } from "./progress";
 import { logger } from "../../lib/logger";
 import { MetricsCollector } from "./metrics";
 import type { DeploymentContext, DeploymentMetrics, DeploymentStage } from "./types";

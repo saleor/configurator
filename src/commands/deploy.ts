@@ -11,8 +11,7 @@ import { DeploymentPipeline, DeploymentSummaryReport, DeploymentReportGenerator,
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
-  ci: z.boolean().default(false).describe("CI mode - skip confirmations for automated environments"),
-  skipDiff: z.boolean().default(false).describe("Skip diff preview (not recommended)"),
+  ci: z.boolean().default(false).describe("CI mode - skip all confirmations for automated environments"),
   reportPath: z.string().optional().describe("Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"),
 });
 
@@ -226,45 +225,22 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
   try {
     // Validate local configuration first before making any network requests
     await validateLocalConfiguration(args);
-    if (args.skipDiff) {
-      cliConsole.warn("⚠️  Skipping diff preview as requested");
-      // When skipDiff is true, we assume ALL entities need updating
-      // This is a dangerous mode intended for CI/CD where changes are known
-      diffAnalysis = {
-        summary: { 
-          totalChanges: 1, 
-          creates: 0, 
-          updates: 1, 
-          deletes: 0, 
-          results: [
-            // Add dummy results to trigger all stages
-            { entityType: "Shop Settings", entityName: "Shop", operation: "UPDATE" },
-            { entityType: "Channels", entityName: "Channels", operation: "UPDATE" },
-            { entityType: "Product Types", entityName: "Product Types", operation: "UPDATE" },
-            { entityType: "Page Types", entityName: "Page Types", operation: "UPDATE" },
-            { entityType: "Categories", entityName: "Categories", operation: "UPDATE" },
-          ] 
-        },
-        output: "",
-        hasDestructiveOperations: false
-      };
-    } else {
-      cliConsole.processing("⏳ Analyzing configuration differences...");
-      diffAnalysis = await analyzeDifferences(args);
-      
-      if (diffAnalysis.summary.totalChanges === 0) {
-        cliConsole.status("✅ No changes detected - configuration is already in sync");
-        return; // Exit gracefully without changes
-      }
-
-      cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
-      
-      // TEMPORARY FEATURE FLAG: Remove after A/B testing
-      // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
-      const compactArrays = process.env.SALEOR_COMPACT_ARRAYS !== "false";
-      const deployFormatter = new DeployDiffFormatter(compactArrays);
-      cliConsole.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
+    
+    cliConsole.processing("⏳ Analyzing configuration differences...");
+    diffAnalysis = await analyzeDifferences(args);
+    
+    if (diffAnalysis.summary.totalChanges === 0) {
+      cliConsole.status("✅ No changes detected - configuration is already in sync");
+      return; // Exit gracefully without changes
     }
+
+    cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
+    
+    // TEMPORARY FEATURE FLAG: Remove after A/B testing
+    // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
+    const compactArrays = process.env.SALEOR_COMPACT_ARRAYS !== "false";
+    const deployFormatter = new DeployDiffFormatter(compactArrays);
+    cliConsole.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
 
     const shouldDeploy = await confirmDeployment(
       diffAnalysis.summary,
@@ -369,12 +345,6 @@ export async function deployHandler(args: DeployCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
   cliConsole.header("🚀 Saleor Configuration Deploy\n");
 
-  if (args.ci && args.skipDiff) {
-    cliConsole.warn("Warning: Using --skip-diff with --ci mode is dangerous!");
-    cliConsole.text("  Consider removing --skip-diff to see what changes will be applied.");
-    cliConsole.text("");
-  }
-
   await performDeploymentFlow(args);
 }
 
@@ -388,7 +358,7 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
     "configurator deploy -u https://my-shop.saleor.cloud/graphql/ -t <token>",
     "configurator deploy --config custom-config.yml --ci",
     "configurator deploy --report-path custom-report.json",
-    "configurator deploy --skip-diff --quiet",
+    "configurator deploy --quiet",
     "configurator deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json",
   ],
 }; 

@@ -95,14 +95,8 @@ pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-t
 # With custom config file
 pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --config="production.yml"
 
-# CI mode (skip confirmations for automated environments)
+# CI mode (skip all confirmations for automated environments)
 pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --ci
-
-# Force mode (skip all confirmations - use with extreme caution)
-pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --force
-
-# Skip diff preview (not recommended)
-pnpm deploy --url="https://your-store.saleor.cloud/graphql/" --token="your-app-token" --skip-diff
 
 # Show help
 pnpm deploy --help
@@ -113,9 +107,7 @@ pnpm deploy --help
 - `--url` (required): Saleor instance URL
 - `--token` (required): Saleor API token
 - `--config` (optional): Configuration file path (default: `config.yml`)
-- `--ci` (optional): CI mode - skip confirmations for automated environments
-- `--force` (optional): Force mode - skip all confirmations (use with extreme caution)
-- `--skip-diff` (optional): Skip diff preview (not recommended)
+- `--ci` (optional): CI mode - skip all confirmations for automated environments
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
