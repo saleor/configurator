@@ -1,12 +1,16 @@
 import chalk from "chalk";
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
-import type { DiffResult, DiffSummary, EntityType } from "../types";
+import type { DiffResult, DiffSummary, EntityType, DiffChange } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
 /**
  * Formatter for deploy command with enhanced change visualization
  */
 export class DeployDiffFormatter extends BaseDiffFormatter {
+  constructor(private compactArrays: boolean = true) {
+    super();
+  }
+
   /**
    * Formats a diff summary optimized for deployment preview
    */
@@ -65,9 +69,20 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
 
     // Add detailed changes for updates
     if (result.operation === "UPDATE" && result.changes && result.changes.length > 0) {
-      for (const change of result.changes) {
-        const changeDescription = this.formatFieldChange(change);
-        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`);
+      if (this.compactArrays) {
+        // Group changes by field for array values
+        const groupedChanges = this.groupArrayChanges(result.changes);
+        
+        for (const change of groupedChanges) {
+          const changeDescription = this.formatFieldChange(change);
+          lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`);
+        }
+      } else {
+        // Show individual changes (original format)
+        for (const change of result.changes) {
+          const changeDescription = this.formatFieldChange(change);
+          lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`);
+        }
       }
     }
 
@@ -86,7 +101,59 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     lines.push("");
   }
 
+  private groupArrayChanges(changes: readonly DiffChange[]): any[] {
+    // Group changes by field name
+    const fieldGroups = new Map<string, any[]>();
+    const nonArrayChanges: any[] = [];
+    
+    for (const change of changes) {
+      // Check if this is an array value change (ends with .values)
+      if (change.field.endsWith('.values')) {
+        const existingChanges = fieldGroups.get(change.field) || [];
+        existingChanges.push(change);
+        fieldGroups.set(change.field, existingChanges);
+      } else {
+        nonArrayChanges.push(change);
+      }
+    }
+    
+    // Convert grouped array changes into single entries
+    const consolidatedChanges: any[] = [...nonArrayChanges];
+    
+    for (const [field, fieldChanges] of fieldGroups) {
+      const added: string[] = [];
+      const removed: string[] = [];
+      
+      for (const change of fieldChanges) {
+        if (change.currentValue === null && change.desiredValue !== null) {
+          added.push(String(change.desiredValue));
+        } else if (change.currentValue !== null && change.desiredValue === null) {
+          removed.push(String(change.currentValue));
+        }
+      }
+      
+      // Create a consolidated change entry
+      if (added.length > 0 || removed.length > 0) {
+        consolidatedChanges.push({
+          field,
+          currentValue: removed.length > 0 ? removed : null,
+          desiredValue: added.length > 0 ? added : null,
+          isArrayChange: true,
+          added,
+          removed
+        });
+      }
+    }
+    
+    return consolidatedChanges;
+  }
+
   private formatFieldChange(change: any): string {
+    // Handle array changes specially
+    if (change.isArrayChange) {
+      return this.formatArrayChange(change);
+    }
+
     const formatValue = (value: unknown): string => {
       if (value === null || value === undefined) {
         return chalk.gray("(not set)");
@@ -105,6 +172,23 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     const newValue = formatValue(change.desiredValue);
     
     return `${field}: ${oldValue} ${chalk.gray("→")} ${newValue}`;
+  }
+
+  private formatArrayChange(change: any): string {
+    const field = chalk.yellow(change.field);
+    const parts: string[] = [];
+    
+    if (change.removed.length > 0) {
+      const removedStr = change.removed.map((v: string) => chalk.red(`-${v}`)).join(", ");
+      parts.push(removedStr);
+    }
+    
+    if (change.added.length > 0) {
+      const addedStr = change.added.map((v: string) => chalk.green(`+${v}`)).join(", ");
+      parts.push(addedStr);
+    }
+    
+    return `${field}: [${parts.join(", ")}]`;
   }
 
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
@@ -136,5 +220,16 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     }
     
     lines.push(`Total: ${summary.totalChanges} changes (${changes.join(", ")})`);
+    
+    // Add note about attribute value removals
+    const hasAttributeValueRemovals = summary.results.some(r => 
+      r.operation === "UPDATE" && 
+      r.changes?.some(c => c.field.includes("values") && c.currentValue && !c.desiredValue)
+    );
+    
+    if (hasAttributeValueRemovals) {
+      lines.push("");
+      lines.push(chalk.gray("Note: Attribute value removals may fail if values are in use by products"));
+    }
   }
 }

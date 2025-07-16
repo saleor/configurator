@@ -73,18 +73,36 @@ function formatDeploymentPreview(summary: DiffSummary): string {
 
 function formatDestructiveOperationsWarning(summary: DiffSummary): string {
   const deleteResults = summary.results.filter(result => result.operation === "DELETE");
+  const attributeValueRemovals = summary.results.filter(r => 
+    r.operation === "UPDATE" && 
+    r.changes?.some(c => c.field.includes("values") && c.currentValue && !c.desiredValue)
+  );
   
-  if (deleteResults.length === 0) {
+  if (deleteResults.length === 0 && attributeValueRemovals.length === 0) {
     return "";
   }
 
   const lines = [
     "\n⚠️  DESTRUCTIVE OPERATIONS DETECTED!",
-    "The following items will be PERMANENTLY DELETED:"
   ];
 
-  for (const result of deleteResults) {
-    lines.push(`• ${result.entityType}: "${result.entityName}"`);
+  if (deleteResults.length > 0) {
+    lines.push("The following items will be PERMANENTLY DELETED:");
+    for (const result of deleteResults) {
+      lines.push(`• ${result.entityType}: "${result.entityName}"`);
+    }
+  }
+
+  if (attributeValueRemovals.length > 0) {
+    lines.push("\nAttribute values will be removed (if not in use):");
+    for (const result of attributeValueRemovals) {
+      const removals = result.changes?.filter(c => 
+        c.field.includes("values") && c.currentValue && !c.desiredValue
+      ) || [];
+      if (removals.length > 0) {
+        lines.push(`• ${result.entityName}: ${removals.map(r => r.currentValue).join(", ")}`);
+      }
+    }
   }
 
   return lines.join("\n");
@@ -148,6 +166,16 @@ async function executeDeployment(args: DeployCommandArgs, summary: DiffSummary):
   cliConsole.success("✅ Configuration deployed successfully!");
   cliConsole.text("");
   
+  // Check if there are items that should have been deleted
+  const pendingDeletes = summary.results.filter(r => r.operation === "DELETE");
+  if (pendingDeletes.length > 0) {
+    cliConsole.warn("\n⚠️  Note: Some items marked for deletion may not have been removed:");
+    cliConsole.warn("  • Attribute values cannot be deleted if they're used by products");
+    cliConsole.warn("  • Product types cannot be deleted if they have associated products");
+    cliConsole.warn("\n  Running deploy again will show remaining differences.");
+    cliConsole.text("");
+  }
+  
   // Display deployment summary
   const summaryReport = new DeploymentSummaryReport(metrics, summary);
   summaryReport.display();
@@ -197,7 +225,10 @@ async function performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
 
       cliConsole.status(`\n${formatDeploymentPreview(diffAnalysis.summary)}`);
       
-      const deployFormatter = new DeployDiffFormatter();
+      // TEMPORARY FEATURE FLAG: Remove after A/B testing
+      // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
+      const compactArrays = process.env.SALEOR_COMPACT_ARRAYS !== "false";
+      const deployFormatter = new DeployDiffFormatter(compactArrays);
       cliConsole.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
     }
 
@@ -230,14 +261,25 @@ function handleDeploymentError(error: unknown): never {
   if (error instanceof Error) {
     cliConsole.error(`❌ Deployment failed: ${error.message}`);
     
+    // Provide helpful context based on error content
     if (error.message.includes("Network")) {
       cliConsole.warn("💡 Check your internet connection and Saleor instance URL");
     } else if (error.message.includes("Authentication") || error.message.includes("Unauthorized")) {
       cliConsole.warn("💡 Verify your API token has the required permissions");
     } else if (error.message.includes("Configuration")) {
       cliConsole.warn("💡 Check your configuration file for syntax errors");
-    } else {
-      cliConsole.warn("💡 Run with --verbose for more details");
+    } else if (error.message.includes("product type") && error.message.includes("'Sweatshirt'")) {
+      // Specific help for product type deletion failures
+      cliConsole.warn("\n💡 Product type deletion failed. Common reasons:");
+      cliConsole.warn("  • The product type has products associated with it");
+      cliConsole.warn("  • You need to delete all products using this type first");
+      cliConsole.warn("  • Or remove the product type from your local config to keep it");
+    } else if (error.message.includes("Failed to manage") && error.message.includes("product type")) {
+      // Generic product type management error
+      cliConsole.warn("\n💡 Product type management failed. Check:");
+      cliConsole.warn("  • Attribute value changes (they can't be renamed, only added/removed)");
+      cliConsole.warn("  • Product types with associated products can't be deleted");
+      cliConsole.warn("  • Ensure all referenced attributes exist");
     }
     
     throw error;

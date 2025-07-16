@@ -22,6 +22,6 @@ export function createIntrospectFormatter() {
   return new IntrospectDiffFormatter();
 }
 
-export function createDeployFormatter() {
-  return new DeployDiffFormatter();
+export function createDeployFormatter(compactArrays: boolean = true) {
+  return new DeployDiffFormatter(compactArrays);
 }

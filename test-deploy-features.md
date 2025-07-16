@@ -19,7 +19,6 @@ channels:
 
 productTypes:
   - name: "Digital Product"
-    slug: "digital-product"
     isShippingRequired: false
     hasVariants: true
 ```
@@ -41,7 +40,6 @@ channels:
 
 productTypes:
   - name: "Digital Product"
-    slug: "digital-product"
     isShippingRequired: true  # Changed from false to true
     hasVariants: true
 ```
