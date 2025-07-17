@@ -1,5 +1,5 @@
 {
-  "name": "saleor-configurator",
+  "name": "@saleor/configurator",
   "version": "0.8.0",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
