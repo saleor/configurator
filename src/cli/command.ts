@@ -183,6 +183,7 @@ export function createCommand<
     .description(config.description);
 
   // Dynamically generate options ("-u, --url <url>", etc) from baseCommandArgsSchema
+  // ! shorthands (e.g. -u) are not generated properly
   generateOptionsFromSchema(command, config.schema);
 
   // Add examples to help

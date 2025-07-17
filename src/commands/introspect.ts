@@ -513,7 +513,7 @@ export const introspectCommandConfig: CommandConfig<
   handler: introspectHandler,
   requiresInteractive: false,
   examples: [
-    "configurator introspect -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator introspect --url https://my-shop.saleor.cloud/graphql/ --token token123",
     "configurator introspect --config output.yml",
     "configurator introspect --dry-run",
     "configurator introspect --ci",

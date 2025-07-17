@@ -5,6 +5,7 @@
 ## New Deploy Command
 
 ### Breaking Change
+
 - Renamed `push` to `deploy` for better clarity
 - Simplified flags: removed `--skip-diff` and `--force`, added `--ci` for automation
 
@@ -16,7 +17,8 @@ See exactly what's happening during deployment with visual progress indicators a
 **📊 Enhanced Diff Preview**  
 Always see what will change before deployment with improved formatting and grouped changes by entity type.
 
-**🛡️ Safety First**  
+**🛡️ Safety First**
+
 - Mandatory diff preview prevents surprises
 - Two-tier confirmation (extra warning for deletions)
 - CI mode (`--ci`) for automated deployments
@@ -31,16 +33,17 @@ Context-aware guidance for common issues like network, authentication, or config
 
 ```bash
 # Interactive deployment
-pnpm deploy --url="https://store.saleor.cloud/graphql/" --token="<token>"
+pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
 
 # CI/CD deployment
-pnpm deploy --url="https://store.saleor.cloud/graphql/" --token="<token>" --ci
+pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
 
 # Custom report location
-pnpm deploy --url="https://store.saleor.cloud/graphql/" --token="<token>" --report-path="./deploy-report.json"
+pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
 ```
 
 ### Migration
+
 - Change `push` → `deploy`
 - Remove `--skip-diff` (diff always shown)
 - Replace `--force` with `--ci`

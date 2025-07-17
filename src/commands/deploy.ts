@@ -461,7 +461,7 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
   handler: deployHandler,
   requiresInteractive: true,
   examples: [
-    "configurator deploy -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator deploy --url https://my-shop.saleor.cloud/graphql/ --token token123",
     "configurator deploy --config custom-config.yml --ci",
     "configurator deploy --report-path custom-report.json",
     "configurator deploy --quiet",

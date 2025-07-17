@@ -70,7 +70,7 @@ export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
   handler: handleDiff,
   requiresInteractive: true,
   examples: [
-    "configurator diff -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
     "configurator diff --config custom-config.yml",
     "configurator diff --quiet",
   ],

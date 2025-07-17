@@ -86,7 +86,7 @@ export const pushCommandConfig: CommandConfig<typeof pushCommandSchema> = {
   handler: handlePush,
   requiresInteractive: true,
   examples: [
-    "configurator push -u https://my-shop.saleor.cloud/graphql/ -t <token>",
+    "configurator push --url https://my-shop.saleor.cloud/graphql/ --token token123",
     "configurator push --config custom-config.yml --force",
     "configurator push --dry-run",
     "configurator push --quiet",
