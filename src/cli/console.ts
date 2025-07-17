@@ -201,4 +201,8 @@ export class Console {
   }
 }
 
+// TODO: Remove this once we implement it everywhere
+/**
+ * @deprecated
+ */
 export const cliConsole = new Console();

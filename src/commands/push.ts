@@ -1,76 +1,89 @@
 import { z } from "zod";
-import type { CommandConfig } from "../cli/command";
+import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
-import { cliConsole } from "../cli/console";
+import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 
 export const pushCommandSchema = baseCommandArgsSchema.extend({
   force: z.boolean().default(false).describe("Force push without confirmation"),
-  dryRun: z.boolean().default(false).describe("Show what would be changed without applying"),
+  dryRun: z
+    .boolean()
+    .default(false)
+    .describe("Show what would be changed without applying"),
 });
 
 export type PushCommandArgs = z.infer<typeof pushCommandSchema>;
 
-async function handleDryRunMode(): Promise<boolean> {
-  cliConsole.info("🧪 Running in dry-run mode...\n");
-  // TODO: Implement dry-run logic
-  cliConsole.warn("Dry-run mode will be implemented in the next iteration");
-  return false; // Don't proceed with actual push
-}
+class PushCommandHandler implements CommandHandler<PushCommandArgs, void> {
+  console = new Console();
 
-async function requestUserConfirmation(): Promise<boolean> {
-  const userConfirmed = await confirmAction(
-    "Are you sure you want to push changes to the remote Saleor instance?",
-    "This will modify your production environment. Make sure you have a backup."
-  );
-
-  if (!userConfirmed) {
-    cliConsole.cancelled("Push cancelled by user");
-    return false;
+  private async handleDryRunMode(): Promise<boolean> {
+    this.console.info("🧪 Running in dry-run mode...\n");
+    // TODO: Implement dry-run logic
+    this.console.warn("Dry-run mode will be implemented in the next iteration");
+    return false; // Don't proceed with actual push
   }
 
-  return true;
-}
+  private async requestUserConfirmation(): Promise<boolean> {
+    const userConfirmed = await confirmAction(
+      "Are you sure you want to push changes to the remote Saleor instance?",
+      "This will modify your production environment. Make sure you have a backup."
+    );
 
-async function shouldProceedWithPush(args: PushCommandArgs): Promise<boolean> {
-  const { force, dryRun } = args;
+    if (!userConfirmed) {
+      this.console.cancelled("Push cancelled by user");
+      return false;
+    }
 
-  if (dryRun) {
-    return await handleDryRunMode();
-  }
-
-  if (force) {
     return true;
   }
 
-  return await requestUserConfirmation();
-}
+  private async shouldProceedWithPush(args: PushCommandArgs): Promise<boolean> {
+    const { force, dryRun } = args;
 
-export async function pushHandler(args: PushCommandArgs): Promise<void> {
-  cliConsole.header("🚀 Saleor Configuration Push\n");
-  cliConsole.info(
-    `"push" will apply changes to the target Saleor instance according to the local configuration file under ${args.config} path.`
-  );
+    if (dryRun) {
+      return await this.handleDryRunMode();
+    }
 
-  cliConsole.setOptions({ quiet: args.quiet });
+    if (force) {
+      return true;
+    }
 
-  const shouldProceed = await shouldProceedWithPush(args);
-
-  if (!shouldProceed) {
-    process.exit(0);
+    return await this.requestUserConfirmation();
   }
 
-  const configurator = createConfigurator(args);
+  async execute(args: PushCommandArgs): Promise<void> {
+    this.console.header("🚀 Saleor Configuration Push\n");
+    this.console.info(
+      `"push" will apply changes to the target Saleor instance according to the local configuration file under ${args.config} path.`
+    );
 
-  await configurator.push();
-  cliConsole.success("✅ Configuration pushed to Saleor instance");
+    this.console.setOptions({ quiet: args.quiet });
+
+    const shouldProceed = await this.shouldProceedWithPush(args);
+
+    if (!shouldProceed) {
+      process.exit(0);
+    }
+
+    const configurator = createConfigurator(args);
+
+    await configurator.push();
+    this.console.success("✅ Configuration pushed to Saleor instance");
+  }
+}
+
+export async function handlePush(args: PushCommandArgs): Promise<void> {
+  const handler = new PushCommandHandler();
+  await handler.execute(args);
 }
 
 export const pushCommandConfig: CommandConfig<typeof pushCommandSchema> = {
   name: "push",
-  description: "Updates the remote Saleor instance according to the local configuration",
+  description:
+    "Updates the remote Saleor instance according to the local configuration",
   schema: pushCommandSchema,
-  handler: pushHandler,
+  handler: handlePush,
   requiresInteractive: true,
   examples: [
     "configurator push -u https://my-shop.saleor.cloud/graphql/ -t <token>",
