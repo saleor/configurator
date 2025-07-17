@@ -81,10 +81,12 @@ export class PageTypeService {
 
       // Create new attributes
       const attributes = await this.attributeService.bootstrapAttributes({
-        attributeInputs: attributesToCreate.map((a) => ({
-          ...a,
-          type: "PAGE_TYPE" as const,
-        })),
+        attributeInputs: attributesToCreate
+          .filter((a) => "name" in a) // Only create new attributes, not referenced ones
+          .map((a) => ({
+            ...a,
+            type: "PAGE_TYPE" as const,
+          })),
       });
 
       // Resolve referenced attributes

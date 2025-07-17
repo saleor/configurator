@@ -15,8 +15,8 @@ const INTERACTIVE_CHOICES = [
     value: "introspect",
   },
   {
-    name: "🚀 Apply changes from your local file to your Saleor store (`push`)",
-    value: "push",
+    name: "🚀 Apply changes from your local file to your Saleor store (`deploy`)",
+    value: "deploy",
   },
   {
     name: "🔍 See differences between your local file and your live Saleor store (`diff`)",

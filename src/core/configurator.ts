@@ -7,7 +7,7 @@ import { DiffFormatter, DiffService } from "./diff";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
-  constructor(private readonly services: ServiceContainer) {}
+  constructor(public readonly services: ServiceContainer) {}
 
   /**
    * Get the service container for advanced usage
@@ -145,6 +145,7 @@ export class SaleorConfigurator {
 
     cliConsole.progress.info("Push operation completed successfully");
   }
+
 
   async introspect() {
     cliConsole.progress.start("Retrieving configuration from Saleor");

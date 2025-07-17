@@ -1,7 +1,7 @@
 import { z } from "zod";
-import type { CommandConfig } from "../cli/command";
+import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
-import { cliConsole } from "../cli/console";
+import { Console } from "../cli/console";
 import {
   createConfigurator,
   type SaleorConfigurator,
@@ -14,6 +14,7 @@ import {
   getSelectiveOptionsSummary,
   parseSelectiveOptions,
 } from "../lib/utils/selective-options";
+import { COMMAND_NAME } from "../meta";
 
 // CLI Command result types
 export const commandResultSchema = z.discriminatedUnion("type", [
@@ -74,14 +75,14 @@ export const INTROSPECT_MESSAGES = {
   SUCCESS_BACKUP: (path: string) => `✅ Backup created: ${path}`,
   PROCESSING_FETCH: "🌐 Fetching configuration from Saleor...",
   SUCCESS_SAVE: (path: string) =>
-    `✅ Configuration successfully saved to ${path}`,
+    `✅ Configuration successfully saved to ${path}\n`,
   PROCESSING_DIFF:
-    "🔍 Analyzing differences between remote and local configuration...",
+    "🔍 Analyzing differences between remote and local configuration...\n",
   TOTAL_TIME: (time: string) => `\n⏱️  Total time: ${time}s`,
-  TIP_VERBOSE: "💡 Tip: Use --verbose to see detailed changes for all items",
+  TIP_VERBOSE: "💡 Tip: Use --verbose to see detailed changes for all items\n",
   CHANGES_TO_APPLY: "\nChanges to be applied:",
   FILE_EXISTS: (path: string) =>
-    `Local configuration file "${path}" already exists.`,
+    `Local configuration file "${path}" already exists.\n`,
   // First-time user messages
   FIRST_TIME_WELCOME: "🎉 Welcome! No local configuration found.",
   FIRST_TIME_FETCH:
@@ -157,7 +158,15 @@ export interface IntrospectContext {
   startTime: number;
 }
 
-export class IntrospectCommandHandler {
+export class IntrospectCommandHandler
+  implements CommandHandler<IntrospectCommandArgs, CommandResult>
+{
+  console: Console = new Console();
+
+  private setupConsole(isQuiet: boolean): void {
+    this.console.setOptions({ quiet: isQuiet });
+  }
+
   async execute(args: IntrospectCommandArgs): Promise<CommandResult> {
     const startTime = Date.now();
     const isQuiet = args.quiet || args.ci;
@@ -165,13 +174,13 @@ export class IntrospectCommandHandler {
     try {
       // Initialize
       this.setupConsole(isQuiet);
-      this.displayHeader(isQuiet);
+      this.console.header(INTROSPECT_MESSAGES.HEADER);
 
       // Check if this is a first-time user
       const isFirstTime = !fileExists(args.config);
 
       if (isFirstTime) {
-        return await this.handleFirstTimeUser(args, isQuiet, startTime);
+        return await this.handleFirstTimeUser(args, startTime);
       }
 
       // Existing user flow
@@ -215,47 +224,29 @@ export class IntrospectCommandHandler {
 
   private async handleFirstTimeUser(
     args: IntrospectCommandArgs,
-    isQuiet: boolean,
     startTime: number
   ): Promise<CommandResult> {
-    if (!isQuiet) {
-      cliConsole.info(INTROSPECT_MESSAGES.FIRST_TIME_WELCOME);
-    }
+    this.console.info(INTROSPECT_MESSAGES.FIRST_TIME_WELCOME);
 
     // Create configurator
     const configurator = createConfigurator(args);
 
     try {
       // Fetch and save configuration directly
-      if (!isQuiet) {
-        cliConsole.processing(INTROSPECT_MESSAGES.PROCESSING_FETCH);
-      }
+      this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
       await configurator.introspect();
 
-      if (!isQuiet) {
-        const configPath = cliConsole.important(args.config);
-        cliConsole.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
-        cliConsole.success(INTROSPECT_MESSAGES.FIRST_TIME_SUCCESS);
-        cliConsole.info(INTROSPECT_MESSAGES.NEXT_STEPS(args.config));
+      this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(args.config));
+      this.console.success(INTROSPECT_MESSAGES.FIRST_TIME_SUCCESS);
+      this.console.info(INTROSPECT_MESSAGES.NEXT_STEPS(args.config));
 
-        const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-        cliConsole.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
-      }
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      this.console.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
 
       return CommandResult.success();
     } catch (error) {
       return this.handleError(error);
-    }
-  }
-
-  private setupConsole(isQuiet: boolean): void {
-    cliConsole.setOptions({ quiet: isQuiet });
-  }
-
-  private displayHeader(isQuiet: boolean): void {
-    if (!isQuiet) {
-      cliConsole.header(INTROSPECT_MESSAGES.HEADER);
     }
   }
 
@@ -267,7 +258,7 @@ export class IntrospectCommandHandler {
 
     // Show existing file info
     if (fileExists(args.config)) {
-      cliConsole.info(INTROSPECT_MESSAGES.FILE_EXISTS(args.config));
+      this.console.muted(INTROSPECT_MESSAGES.FILE_EXISTS(args.config));
     }
 
     // Show selective options
@@ -279,20 +270,18 @@ export class IntrospectCommandHandler {
 
     [selectiveSummary.includeMessage, selectiveSummary.excludeMessage]
       .filter((message): message is string => Boolean(message))
-      .forEach((message) => cliConsole.info(message));
+      .forEach((message) => this.console.info(message));
 
     // Show tips
     if (!args.verbose && args.format === "table") {
-      cliConsole.info(INTROSPECT_MESSAGES.TIP_VERBOSE);
+      this.console.info(INTROSPECT_MESSAGES.TIP_VERBOSE);
     }
   }
 
   private async analyzeDifferences(
     context: IntrospectContext
   ): Promise<IntrospectDiffResult> {
-    if (!context.isQuiet) {
-      cliConsole.processing(INTROSPECT_MESSAGES.PROCESSING_DIFF);
-    }
+    this.console.muted(INTROSPECT_MESSAGES.PROCESSING_DIFF);
 
     const outputFormat = this.getOutputFormat(context.args);
     const { includeSections, excludeSections } = parseSelectiveOptions(
@@ -321,13 +310,13 @@ export class IntrospectCommandHandler {
     switch (format) {
       case "yaml": {
         const yaml = await import("yaml");
-        cliConsole.info(yaml.stringify(diffResult.summary));
+        this.console.info(yaml.stringify(diffResult.summary));
         break;
       }
       case "table":
       case "json":
         if (diffResult.formattedOutput) {
-          cliConsole.info(diffResult.formattedOutput);
+          this.console.info(diffResult.formattedOutput);
         }
         break;
     }
@@ -361,12 +350,12 @@ export class IntrospectCommandHandler {
   ): CommandResult {
     if (totalChanges === 0) {
       if (!context.args.ci) {
-        cliConsole.success(INTROSPECT_MESSAGES.DRY_RUN_NO_CHANGES);
+        this.console.success(INTROSPECT_MESSAGES.DRY_RUN_NO_CHANGES);
       }
     } else {
       if (!context.args.ci) {
-        cliConsole.info(INTROSPECT_MESSAGES.DRY_RUN_CHANGES(totalChanges));
-        cliConsole.info(INTROSPECT_MESSAGES.DRY_RUN_HINT);
+        this.console.info(INTROSPECT_MESSAGES.DRY_RUN_CHANGES(totalChanges));
+        this.console.info(INTROSPECT_MESSAGES.DRY_RUN_HINT);
       }
     }
     return CommandResult.success();
@@ -379,7 +368,7 @@ export class IntrospectCommandHandler {
   }
 
   private handleNoChanges(): CommandResult {
-    cliConsole.success(INTROSPECT_MESSAGES.NO_CHANGES);
+    this.console.success(INTROSPECT_MESSAGES.NO_CHANGES);
     return CommandResult.success();
   }
 
@@ -403,12 +392,12 @@ export class IntrospectCommandHandler {
   private async requestConfirmation(
     summary: DiffSummary
   ): Promise<CommandResult | null> {
-    cliConsole.warn(INTROSPECT_MESSAGES.WARNING_OVERWRITE);
+    this.console.warn(INTROSPECT_MESSAGES.WARNING_OVERWRITE);
 
     if (summary.totalChanges > 0) {
-      cliConsole.info(INTROSPECT_MESSAGES.CHANGES_TO_APPLY);
-      cliConsole.info(this.formatDiffSummary(summary));
-      cliConsole.info("");
+      this.console.info(INTROSPECT_MESSAGES.CHANGES_TO_APPLY);
+      this.console.info(this.formatDiffSummary(summary));
+      this.console.info("");
     }
 
     const confirmed = await confirmAction(
@@ -418,7 +407,7 @@ export class IntrospectCommandHandler {
     );
 
     if (!confirmed) {
-      cliConsole.info(INTROSPECT_MESSAGES.OPERATION_CANCELLED);
+      this.console.info(INTROSPECT_MESSAGES.OPERATION_CANCELLED);
       return CommandResult.cancelled();
     }
 
@@ -447,36 +436,30 @@ export class IntrospectCommandHandler {
   private async createBackup(context: IntrospectContext): Promise<void> {
     if (!context.args.backup) return;
 
-    if (!context.isQuiet) {
-      cliConsole.processing(INTROSPECT_MESSAGES.PROCESSING_BACKUP);
-    }
+    this.console.muted(INTROSPECT_MESSAGES.PROCESSING_BACKUP);
 
     const backupPath = await createBackup(context.args.config);
 
-    if (!context.isQuiet && backupPath) {
-      cliConsole.success(INTROSPECT_MESSAGES.SUCCESS_BACKUP(backupPath));
+    if (backupPath) {
+      this.console.success(INTROSPECT_MESSAGES.SUCCESS_BACKUP(backupPath));
     }
   }
 
   private async executeIntrospection(
     context: IntrospectContext
   ): Promise<void> {
-    if (!context.isQuiet) {
-      cliConsole.processing(INTROSPECT_MESSAGES.PROCESSING_FETCH);
-    }
+    this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
     await context.configurator.introspect();
 
-    const configPath = cliConsole.important(context.args.config);
-    cliConsole.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
-    cliConsole.info(INTROSPECT_MESSAGES.NEXT_STEPS(configPath));
+    const configPath = this.console.important(context.args.config);
+    this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
+    this.console.info(INTROSPECT_MESSAGES.NEXT_STEPS(configPath));
   }
 
   private displayExecutionTime(context: IntrospectContext): void {
-    if (!context.isQuiet) {
-      const totalTime = ((Date.now() - context.startTime) / 1000).toFixed(1);
-      cliConsole.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
-    }
+    const totalTime = ((Date.now() - context.startTime) / 1000).toFixed(1);
+    this.console.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
   }
 
   private getOutputFormat(
@@ -515,7 +498,7 @@ export async function introspectHandler(
   const result = await handler.execute(args);
 
   if (result.type === "error" && result.message) {
-    cliConsole.error(`❌ ${result.message}`);
+    handler.console.error(`❌ ${result.message}`);
   }
 
   process.exit(result.exitCode);
@@ -531,14 +514,14 @@ export const introspectCommandConfig: CommandConfig<
   handler: introspectHandler,
   requiresInteractive: false,
   examples: [
-    "configurator introspect -u https://my-shop.saleor.cloud/graphql/ -t <token>",
-    "configurator introspect --config output.yml",
-    "configurator introspect --dry-run",
-    "configurator introspect --ci",
-    "configurator introspect --include channels,shop",
-    "configurator introspect --exclude products",
-    "configurator introspect --format json --quiet",
-    "configurator introspect --backup=false",
-    "configurator introspect --verbose",
+    `${COMMAND_NAME} introspect --url https://my-shop.saleor.cloud/graphql/ --token token123`,
+    `${COMMAND_NAME} introspect --config output.yml`,
+    `${COMMAND_NAME} introspect --dry-run`,
+    `${COMMAND_NAME} introspect --ci`,
+    `${COMMAND_NAME} introspect --include channels,shop`,
+    `${COMMAND_NAME} introspect --exclude products`,
+    `${COMMAND_NAME} introspect --format json --quiet`,
+    `${COMMAND_NAME} introspect --backup=false`,
+    `${COMMAND_NAME} introspect --verbose`,
   ],
 };

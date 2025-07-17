@@ -6,6 +6,19 @@ import { BaseError } from "../../lib/errors/shared";
 export class DiffError extends BaseError {}
 
 /**
+ * Error thrown when configuration validation fails
+ */
+export class ConfigurationValidationError extends DiffError {
+  constructor(
+    message: string,
+    public readonly filePath: string,
+    public readonly validationErrors: { path: string; message: string }[]
+  ) {
+    super(message, "CONFIG_VALIDATION_ERROR");
+  }
+}
+
+/**
  * Error thrown when configuration loading fails
  */
 export class ConfigurationLoadError extends DiffError {

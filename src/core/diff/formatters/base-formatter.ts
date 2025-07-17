@@ -1,6 +1,12 @@
 import { DIFF_ICONS, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
 import { DiffSummaryError } from "../errors";
-import type { DiffOperation, DiffResult, DiffSummary, EntityType } from "../types";
+import type {
+  DiffOperation,
+  DiffResult,
+  DiffSummary,
+  EntityType,
+} from "../types";
+import chalk from "chalk";
 
 /**
  * Base formatter providing common formatting utilities
@@ -19,7 +25,7 @@ export abstract class BaseDiffFormatter {
       if (!grouped.has(entityType)) {
         grouped.set(entityType, []);
       }
-      grouped.get(entityType)!.push(result);
+      grouped.get(entityType)?.push(result);
     }
 
     // Convert to readonly map
@@ -47,6 +53,22 @@ export abstract class BaseDiffFormatter {
    */
   protected getOperationText(operation: DiffOperation): string {
     return OPERATION_LABELS[operation];
+  }
+
+  /**
+   * Gets the appropriate color function for a diff operation
+   */
+  protected getOperationColor(operation: DiffOperation): (text: string) => string {
+    switch (operation) {
+      case "CREATE":
+        return chalk.green;
+      case "UPDATE":
+        return chalk.yellow;
+      case "DELETE":
+        return chalk.red;
+      default:
+        return chalk.reset;
+    }
   }
 
   /**

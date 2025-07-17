@@ -355,9 +355,9 @@ describe("DiffService - Selective Options", () => {
       // Assert
       // We should have fetched the configurations (since we need them for comparison)
       // but only compared the shop section
-      expect(mockServices.configStorage!.load).toHaveBeenCalled();
+      expect(mockServices.configStorage?.load).toHaveBeenCalled();
       expect(
-        mockServices.configuration!.retrieveWithoutSaving
+        mockServices.configuration?.retrieveWithoutSaving
       ).toHaveBeenCalled();
     });
   });

@@ -55,9 +55,9 @@ const filterValidSections = (sections: string[]): ConfigurationSection[] => {
 };
 
 const validateSections = (
-  originalString: string,
+  _originalString: string,
   sections: string[],
-  validSections: ConfigurationSection[],
+  _validSections: ConfigurationSection[],
   optionName: string
 ): void => {
   const invalidSections = sections.filter(
