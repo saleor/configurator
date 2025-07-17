@@ -201,14 +201,16 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       return "";
     }
 
-    const lines = ["\n⚠️  DESTRUCTIVE OPERATIONS DETECTED!"];
+    // TODO: bring it back once we actually support destructive operations
+    // const lines = ["\n⚠️  DESTRUCTIVE OPERATIONS DETECTED!"];
+    // if (deleteResults.length > 0) {
+    //   lines.push("The following items will be PERMANENTLY DELETED:");
+    //   for (const result of deleteResults) {
+    //     lines.push(`• ${result.entityType}: "${result.entityName}"`);
+    //   }
+    // }
 
-    if (deleteResults.length > 0) {
-      lines.push("The following items will be PERMANENTLY DELETED:");
-      for (const result of deleteResults) {
-        lines.push(`• ${result.entityType}: "${result.entityName}"`);
-      }
-    }
+    const lines = [];
 
     if (attributeValueRemovals.length > 0) {
       lines.push("\nAttribute values will be removed (if not in use):");
@@ -243,9 +245,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       this.console.warn(warningMessage);
 
       return await confirmAction(
-        "Are you sure you want to continue? This action cannot be undone.",
-        "These items will be permanently deleted from your Saleor instance.",
-        false
+        "Are you sure you want to continue? This action cannot be undone."
+        // "These items will be permanently deleted from your Saleor instance.",
       );
     }
 
@@ -413,8 +414,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       // TEMPORARY FEATURE FLAG: Remove after A/B testing
       // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
-      const compactArrays = process.env.SALEOR_COMPACT_ARRAYS !== "false";
-      const deployFormatter = new DeployDiffFormatter(compactArrays);
+      const deployFormatter = new DeployDiffFormatter();
       this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
 
       const shouldDeploy = await this.confirmDeployment(
@@ -436,6 +436,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         updates: diffAnalysis.summary.updates,
         deletes: diffAnalysis.summary.deletes,
       });
+
+      process.exit(0);
     } catch (error) {
       this.handleDeploymentError(error);
     }
