@@ -76,15 +76,6 @@ export class Console {
     return text;
   }
 
-  processing(message: string) {
-    const text = chalk.white(message);
-    if (!this.options.quiet) {
-      global.console.log(text);
-    }
-
-    return text;
-  }
-
   cancelled(message: string) {
     const text = chalk.red(message);
     if (!this.options.quiet) {
@@ -171,28 +162,40 @@ export class Console {
     // Simple box without complex width calculations
     const maxWidth = 60; // Fixed width for consistency
     const border = "─".repeat(maxWidth - 2);
-    
+
     const lines = [
       chalk.gray(`╭${border}╮`),
-      ...(title ? [chalk.gray(`│ ${chalk.bold(title)}${" ".repeat(maxWidth - title.length - 3)}│`)] : []),
+      ...(title
+        ? [
+            chalk.gray(
+              `│ ${chalk.bold(title)}${" ".repeat(
+                maxWidth - title.length - 3
+              )}│`
+            ),
+          ]
+        : []),
       ...(title ? [chalk.gray(`├${border}┤`)] : []),
-      ...content.map(line => chalk.gray(`│ ${line}${" ".repeat(Math.max(0, maxWidth - line.length - 3))}│`)),
-      chalk.gray(`╰${border}╯`)
+      ...content.map((line) =>
+        chalk.gray(
+          `│ ${line}${" ".repeat(Math.max(0, maxWidth - line.length - 3))}│`
+        )
+      ),
+      chalk.gray(`╰${border}╯`),
     ];
 
     if (!this.options.quiet) {
-      lines.forEach(line => global.console.log(line));
+      lines.forEach((line) => global.console.log(line));
     }
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
-  icon(name: 'error' | 'warning' | 'info' | 'success' | 'fix') {
+  icon(name: "error" | "warning" | "info" | "success" | "fix") {
     const icons = {
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️',
-      success: '✅',
-      fix: '🔧'
+      error: "❌",
+      warning: "⚠️",
+      info: "ℹ️",
+      success: "✅",
+      fix: "🔧",
     };
     return icons[name];
   }
