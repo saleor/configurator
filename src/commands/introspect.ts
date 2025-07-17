@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CommandConfig } from "../cli/command";
+import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console } from "../cli/console";
 import {
@@ -157,7 +157,9 @@ export interface IntrospectContext {
   startTime: number;
 }
 
-export class IntrospectCommandHandler {
+export class IntrospectCommandHandler
+  implements CommandHandler<IntrospectCommandArgs, CommandResult>
+{
   console: Console = new Console();
 
   private setupConsole(isQuiet: boolean): void {
@@ -177,7 +179,7 @@ export class IntrospectCommandHandler {
       const isFirstTime = !fileExists(args.config);
 
       if (isFirstTime) {
-        return await this.handleFirstTimeUser(args, isQuiet, startTime);
+        return await this.handleFirstTimeUser(args, startTime);
       }
 
       // Existing user flow
