@@ -5,6 +5,7 @@ import packageJson from "../../package.json";
 import { commands } from "../commands";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
+import { COMMAND_NAME } from "../meta";
 import { type CommandConfig, createCommand } from "./command";
 import { cliConsole } from "./console";
 
@@ -58,11 +59,11 @@ function buildHelpText(): string {
   return `
 ${cliConsole.important("Quick Start:")}
   ${cliConsole.hint("‧ First time? Use the interactive setup:")}
-  ${cliConsole.code("pnpm run start")}
+  ${cliConsole.code(`${COMMAND_NAME} start`)}
   
   ${cliConsole.hint("‧ Or run commands directly:")}
   ${cliConsole.code(
-    "pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token \n"
+    `${COMMAND_NAME} deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token \n`
   )}
 `;
 }

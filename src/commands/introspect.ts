@@ -14,6 +14,7 @@ import {
   getSelectiveOptionsSummary,
   parseSelectiveOptions,
 } from "../lib/utils/selective-options";
+import { COMMAND_NAME } from "../meta";
 
 // CLI Command result types
 export const commandResultSchema = z.discriminatedUnion("type", [
@@ -513,14 +514,14 @@ export const introspectCommandConfig: CommandConfig<
   handler: introspectHandler,
   requiresInteractive: false,
   examples: [
-    "pnpm run introspect --url https://my-shop.saleor.cloud/graphql/ --token token123",
-    "pnpm run introspect --config output.yml",
-    "pnpm run introspect --dry-run",
-    "pnpm run introspect --ci",
-    "pnpm run introspect --include channels,shop",
-    "pnpm run introspect --exclude products",
-    "pnpm run introspect --format json --quiet",
-    "pnpm run introspect --backup=false",
-    "pnpm run introspect --verbose",
+    `${COMMAND_NAME} introspect --url https://my-shop.saleor.cloud/graphql/ --token token123`,
+    `${COMMAND_NAME} introspect --config output.yml`,
+    `${COMMAND_NAME} introspect --dry-run`,
+    `${COMMAND_NAME} introspect --ci`,
+    `${COMMAND_NAME} introspect --include channels,shop`,
+    `${COMMAND_NAME} introspect --exclude products`,
+    `${COMMAND_NAME} introspect --format json --quiet`,
+    `${COMMAND_NAME} introspect --backup=false`,
+    `${COMMAND_NAME} introspect --verbose`,
   ],
 };

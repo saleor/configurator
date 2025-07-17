@@ -17,6 +17,7 @@ import {
 } from "../core/diff/errors";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import { logger } from "../lib/logger";
+import { COMMAND_NAME } from "../meta";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -463,10 +464,10 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
   handler: deployHandler,
   requiresInteractive: true,
   examples: [
-    "pnpm run deploy --url https://my-shop.saleor.cloud/graphql/ --token token123",
-    "pnpm run deploy --config custom-config.yml --ci",
-    "pnpm run deploy --report-path custom-report.json",
-    "pnpm run deploy --quiet",
-    "pnpm run deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json",
+    `${COMMAND_NAME} deploy --url https://my-shop.saleor.cloud/graphql/ --token token123`,
+    `${COMMAND_NAME} deploy --config custom-config.yml --ci`,
+    `${COMMAND_NAME} deploy --report-path custom-report.json`,
+    `${COMMAND_NAME} deploy --quiet`,
+    `${COMMAND_NAME} deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json`,
   ],
 };

@@ -5,6 +5,7 @@ import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { logger } from "../lib/logger";
+import { COMMAND_NAME } from "../meta";
 
 export const diffCommandSchema = baseCommandArgsSchema;
 
@@ -70,8 +71,8 @@ export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
   handler: handleDiff,
   requiresInteractive: true,
   examples: [
-    "pnpm run diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
-    "pnpm run diff --config custom-config.yml",
-    "pnpm run diff --quiet",
+    `${COMMAND_NAME} diff --url https://my-shop.saleor.cloud/graphql/ --token token123`,
+    `${COMMAND_NAME} diff --config custom-config.yml`,
+    `${COMMAND_NAME} diff --quiet`,
   ],
 };
