@@ -33,13 +33,13 @@ Context-aware guidance for common issues like network, authentication, or config
 
 ```bash
 # Interactive deployment
-pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
+pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
 
 # CI/CD deployment
-pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
+pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
 
 # Custom report location
-pnpm deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
+pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
 ```
 
 ### Migration

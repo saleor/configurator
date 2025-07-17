@@ -40,7 +40,7 @@ pnpm install
 2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
 
 ```bash
-pnpm introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 3. Modify the pulled configuration according to your needs.
@@ -51,7 +51,7 @@ pnpm introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-
 >
 > 👉🏻 **Schema Documentation**: You can find the schema documentation in [SCHEMA.md](SCHEMA.md) and the example configuration in [example.yml](example.yml).
 >
-> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm diff` to see what would be applied, and then push it.
+> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm run diff` to see what would be applied, and then push it.
 >
 > 👉🏻 **Backup Your Data**: Before applying changes, make sure to back up your database or snapshot your instance in Saleor Cloud.
 >
@@ -60,13 +60,13 @@ pnpm introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-
 4. Review changes with the diff command to see what changes would be applied to your Saleor instance:
 
 ```bash
-pnpm diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 5. If you're happy with the changes, push them to your Saleor instance:
 
 ```bash
-pnpm deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 > [!TIP]
@@ -76,30 +76,30 @@ pnpm deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-toke
 
 All commands support the `--help` flag to display detailed usage information with examples.
 
-### `pnpm start`
+### `pnpm run start`
 
 Starts the interactive setup wizard that will guide you through the available operations.
 
 ```bash
-pnpm start
+pnpm run start
 ```
 
-### `pnpm deploy`
+### `pnpm run deploy`
 
 Deploys the local configuration to the remote Saleor instance with mandatory diff preview and safety confirmations.
 
 ```bash
 # Basic usage with diff preview and confirmation
-pnpm deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # CI mode (skip all confirmations for automated environments)
-pnpm deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --ci
+pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --ci
 
 # Show help
-pnpm deploy --help
+pnpm run deploy --help
 ```
 
 **Arguments:**
@@ -111,19 +111,19 @@ pnpm deploy --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm diff`
+### `pnpm run diff`
 
 Shows the differences between the local and remote Saleor instances.
 
 ```bash
 # Basic usage
-pnpm diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # Show help
-pnpm diff --help
+pnpm run diff --help
 ```
 
 **Arguments:**
@@ -134,19 +134,19 @@ pnpm diff --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm introspect`
+### `pnpm run introspect`
 
 Shows the current state of the remote Saleor instance and upon confirmation saves it to a configuration file.
 
 ```bash
 # Basic usage (shows diff and asks for confirmation)
-pnpm introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # Show help
-pnpm introspect --help
+pnpm run introspect --help
 ```
 
 **Arguments:**

@@ -58,11 +58,11 @@ function buildHelpText(): string {
   return `
 ${cliConsole.important("Quick Start:")}
   ${cliConsole.hint("‧ First time? Use the interactive setup:")}
-  ${cliConsole.code("configurator interactive")}
+  ${cliConsole.code("pnpm run start")}
   
   ${cliConsole.hint("‧ Or run commands directly:")}
   ${cliConsole.code(
-    "configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token \n"
+    "pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token \n"
   )}
 `;
 }
