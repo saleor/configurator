@@ -49,7 +49,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   private handleDeploymentError(error: unknown): never {
     if (error instanceof ConfigurationValidationError) {
       this.handleValidationError(error);
-      process.exit(1);
     }
 
     logger.error("Deployment failed", { error });
@@ -465,9 +464,9 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
   requiresInteractive: true,
   examples: [
     `${COMMAND_NAME} deploy --url https://my-shop.saleor.cloud/graphql/ --token token123`,
-    `${COMMAND_NAME} deploy --config custom-config.yml --ci`,
-    `${COMMAND_NAME} deploy --report-path custom-report.json`,
-    `${COMMAND_NAME} deploy --quiet`,
-    `${COMMAND_NAME} deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json`,
+    "pnpm run deploy --config custom-config.yml --ci",
+    "pnpm run deploy --report-path custom-report.json",
+    "pnpm run deploy --quiet",
+    "pnpm run deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json",
   ],
 };

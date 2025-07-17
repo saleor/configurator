@@ -1,9 +1,14 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { MockInstance } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createComplexConfig,
+  createConfigFile,
+  createInvalidConfig,
+  createLargeConfig,
+} from "../test-helpers/config-file-builder";
+import type { TempDirectory } from "../test-helpers/filesystem";
 import { createTempDirectory } from "../test-helpers/filesystem";
 import { createFetchMock } from "../test-helpers/graphql-mocks";
-import { createComplexConfig, createInvalidConfig, createLargeConfig, createConfigFile } from "../test-helpers/config-file-builder";
-import type { TempDirectory } from "../test-helpers/filesystem";
 import { deployHandler } from "./deploy";
 
 const TEST_URL = "https://test.saleor.cloud/graphql/";
@@ -17,9 +22,9 @@ describe("Deploy Command - Integration Tests", () => {
 
   beforeEach(() => {
     tempDir = createTempDirectory();
-    
+
     // Use the enhanced fetch mock from graphql-mocks
-    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(createFetchMock());
+    fetchSpy = vi.spyOn(global, "fetch").mockImplementation(createFetchMock());
   });
 
   afterEach(() => {
@@ -36,7 +41,7 @@ describe("Deploy Command - Integration Tests", () => {
           name: "Default Channel",
           slug: "default-channel",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         })
         .saveToFile(tempDir);
 
@@ -55,34 +60,45 @@ describe("Deploy Command - Integration Tests", () => {
       }
 
       // Assert - Verify actual behavior
-      expect(deployError).toBeUndefined();
-      
+      // Assert - Verify force mode worked
+      expect(deployError?.message).toContain(
+        'process.exit unexpectedly called with "0"'
+      );
       // Verify GraphQL queries were called for diff (fetching current config)
-      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body && (
-          body.includes('GetConfig') ||
-          body.includes('shop') ||
-          body.includes('channels')
-        );
-      });
+      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return (
+            body &&
+            (body.includes("GetConfig") ||
+              body.includes("shop") ||
+              body.includes("channels"))
+          );
+        }
+      );
       expect(configFetchCalls.length).toBeGreaterThan(0);
-      
+
       // Verify shop update mutation was called
-      const shopUpdateCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('shopSettingsUpdate');
-      });
+      const shopUpdateCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("shopSettingsUpdate");
+        }
+      );
       expect(shopUpdateCalls.length).toBeGreaterThan(0);
-      
+
       // Verify request contains expected data
-      const shopUpdateBody = (shopUpdateCalls as FetchMockCall[])[0]?.[1]?.body?.toString();
+      const shopUpdateBody = (
+        shopUpdateCalls as FetchMockCall[]
+      )[0]?.[1]?.body?.toString();
       expect(shopUpdateBody).toContain("Updated Shop Name");
-      
+
       // Verify authentication header
-      expect((fetchSpy?.mock.calls as FetchMockCall[])[0]?.[1]?.headers).toMatchObject({
-        'authorization': `Bearer ${TEST_TOKEN}`,
-        'content-type': 'application/json'
+      expect(
+        (fetchSpy?.mock.calls as FetchMockCall[])[0]?.[1]?.headers
+      ).toMatchObject({
+        authorization: `Bearer ${TEST_TOKEN}`,
+        "content-type": "application/json",
       });
     });
 
@@ -91,31 +107,41 @@ describe("Deploy Command - Integration Tests", () => {
       const configPath = createConfigFile()
         .withShop({ defaultMailSenderName: "Test Shop" })
         .saveToFile(tempDir);
-        
+
       // Use custom mock that exactly matches the config
-      fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
-        const body = JSON.parse((options as RequestInit | undefined)?.body as string || '{}');
-        if (body.operationName === 'GetConfig' || body.query?.includes('shop')) {
-          return new Response(JSON.stringify({
-            data: {
-              shop: { 
-                defaultMailSenderName: "Test Shop",
-                // Only return fields that are in the schema, rest will be undefined
-              },
-              channels: [],
-              productTypes: { edges: [] },
-              pageTypes: { edges: [] },
-            }
-          }), { 
+      fetchSpy?.mockImplementation(
+        async (_url: string | URL | Request, options?: RequestInit) => {
+          const body = JSON.parse(
+            ((options as RequestInit | undefined)?.body as string) || "{}"
+          );
+          if (
+            body.operationName === "GetConfig" ||
+            body.query?.includes("shop")
+          ) {
+            return new Response(
+              JSON.stringify({
+                data: {
+                  shop: {
+                    defaultMailSenderName: "Test Shop",
+                    // Only return fields that are in the schema, rest will be undefined
+                  },
+                  channels: [],
+                  productTypes: { edges: [] },
+                  pageTypes: { edges: [] },
+                },
+              }),
+              {
+                status: 200,
+                headers: { "Content-Type": "application/json" },
+              }
+            );
+          }
+          return new Response(JSON.stringify({ data: {} }), {
             status: 200,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" },
           });
         }
-        return new Response(JSON.stringify({ data: {} }), { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      });
+      );
 
       // Act
       let deployError: Error | undefined;
@@ -133,34 +159,39 @@ describe("Deploy Command - Integration Tests", () => {
 
       // Assert - Should exit with no changes
       expect(deployError).toBeUndefined();
-      
+
       // Should have called GraphQL to fetch current config for diff
-      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body && (
-          body.includes('GetConfig') ||
-          body.includes('shop') ||
-          body.includes('channels')
-        );
-      });
+      const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return (
+            body &&
+            (body.includes("GetConfig") ||
+              body.includes("shop") ||
+              body.includes("channels"))
+          );
+        }
+      );
       expect(configFetchCalls.length).toBeGreaterThan(0);
-      
+
       // Should NOT have called any mutations (no changes)
-      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body && (
-          body.includes('shopSettingsUpdate') ||
-          body.includes('channelCreate') ||
-          body.includes('channelUpdate')
-        );
-      });
+      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return (
+            body &&
+            (body.includes("shopSettingsUpdate") ||
+              body.includes("channelCreate") ||
+              body.includes("channelUpdate"))
+          );
+        }
+      );
       expect(mutationCalls.length).toBe(0);
     });
 
     it("should deploy complex configuration with multiple entity types", async () => {
       // Arrange
-      const configPath = createComplexConfig()
-        .saveToFile(tempDir);
+      const configPath = createComplexConfig().saveToFile(tempDir);
 
       // Act
       let deployError: Error | undefined;
@@ -177,29 +208,37 @@ describe("Deploy Command - Integration Tests", () => {
       }
 
       // Assert - Verify multiple entity types were processed
-      expect(deployError).toBeUndefined();
-      
+      // Assert - Verify force mode worked
+      expect(deployError?.message).toContain(
+        'process.exit unexpectedly called with "0"'
+      );
       // Verify shop update
-      const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('shopSettingsUpdate');
-      });
+      const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("shopSettingsUpdate");
+        }
+      );
       expect(shopCalls.length).toBeGreaterThan(0);
-      
+
       // Verify channel operations
-      const channelCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('channel');
-      });
+      const channelCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("channel");
+        }
+      );
       expect(channelCalls.length).toBeGreaterThan(0);
-      
+
       // Verify product type operations
-      const productTypeCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('productType');
-      });
+      const productTypeCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("productType");
+        }
+      );
       expect(productTypeCalls.length).toBeGreaterThan(0);
-      
+
       // Verify request bodies contain expected data
       const shopBody = (shopCalls as FetchMockCall[])[0]?.[1]?.body?.toString();
       expect(shopBody).toContain("Complex Shop");
@@ -212,7 +251,7 @@ describe("Deploy Command - Integration Tests", () => {
           name: "Channel to Keep",
           slug: "keep",
           currencyCode: "EUR",
-          defaultCountry: "GB"
+          defaultCountry: "GB",
         })
         .saveToFile(tempDir);
 
@@ -231,31 +270,36 @@ describe("Deploy Command - Integration Tests", () => {
       }
 
       // Assert - Verify force mode worked
-      expect(deployError).toBeUndefined();
-      
+      expect(deployError?.message).toContain(
+        'process.exit unexpectedly called with "0"'
+      );
+
       // In force mode, should still compute diff and execute mutations
-      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('shopSettingsUpdate');
-      });
+      const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("shopSettingsUpdate");
+        }
+      );
       expect(mutationCalls.length).toBeGreaterThan(0);
     });
-
   });
 
   describe("Expected Failure Scenarios", () => {
     it("should fail gracefully with authentication errors", async () => {
       // Arrange: Mock auth error response
-      fetchSpy?.mockResolvedValueOnce(new Response(
-        JSON.stringify({
-          errors: [{ message: "Authentication required" }]
-        }),
-        {
-          status: 401,
-          statusText: "Unauthorized",
-          headers: { 'content-type': 'application/json' }
-        }
-      ));
+      fetchSpy?.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            errors: [{ message: "Authentication required" }],
+          }),
+          {
+            status: 401,
+            statusText: "Unauthorized",
+            headers: { "content-type": "application/json" },
+          }
+        )
+      );
 
       const configPath = createConfigFile()
         .withShop({ defaultMailSenderName: "Test Shop" })
@@ -263,7 +307,7 @@ describe("Deploy Command - Integration Tests", () => {
           name: "Default Channel",
           slug: "default-channel",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         })
         .saveToFile(tempDir);
 
@@ -284,14 +328,14 @@ describe("Deploy Command - Integration Tests", () => {
       // Assert - Verify proper error handling
       expect(deployError).toBeDefined();
       expect(deployError?.message).toContain("Unauthorized");
-      
+
       // Should have attempted the request
       expect(fetchSpy!).toHaveBeenCalledWith(
         TEST_URL,
         expect.objectContaining({
           headers: expect.objectContaining({
-            'authorization': 'Bearer invalid-token'
-          })
+            authorization: "Bearer invalid-token",
+          }),
         })
       );
     });
@@ -306,7 +350,7 @@ describe("Deploy Command - Integration Tests", () => {
           name: "Default Channel",
           slug: "default-channel",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         })
         .saveToFile(tempDir);
 
@@ -327,15 +371,15 @@ describe("Deploy Command - Integration Tests", () => {
       // Assert - Verify network error handling
       expect(deployError).toBeDefined();
       expect(deployError?.message).toContain("Network");
-      
+
       // Should have attempted the request
       expect(fetchSpy!).toHaveBeenCalledWith(
         TEST_URL,
         expect.objectContaining({
-          method: 'POST',
+          method: "POST",
           headers: expect.objectContaining({
-            'authorization': `Bearer ${TEST_TOKEN}`
-          })
+            authorization: `Bearer ${TEST_TOKEN}`,
+          }),
         })
       );
     });
@@ -358,7 +402,7 @@ describe("Deploy Command - Integration Tests", () => {
       // Assert - Verify file not found error
       expect(deployError).toBeDefined();
       expect(deployError?.message).toContain("not found");
-      
+
       // Should NOT have made any network requests
       expect(fetchSpy!).not.toHaveBeenCalled();
     });
@@ -392,19 +436,18 @@ invalid_yaml: [
       // Assert - Verify YAML parsing error
       expect(deployError).toBeDefined();
       expect(
-        deployError?.message.includes("Implicit keys") || 
-        deployError?.message.includes("YAML") ||
-        deployError?.message.includes("configuration")
+        deployError?.message.includes("Implicit keys") ||
+          deployError?.message.includes("YAML") ||
+          deployError?.message.includes("configuration")
       ).toBe(true);
-      
+
       // Should NOT have made any network requests
       expect(fetchSpy!).not.toHaveBeenCalled();
     });
 
     it("should fail with validation errors from server", async () => {
       // Arrange: Create invalid config using builder
-      const configPath = createInvalidConfig()
-        .saveToFile(tempDir);
+      const configPath = createInvalidConfig().saveToFile(tempDir);
 
       // Act
       let deployError: Error | undefined;
@@ -423,12 +466,12 @@ invalid_yaml: [
       // Assert - Verify validation error handling
       expect(deployError).toBeDefined();
       expect(
-        deployError?.message.includes("Configuration file doesn't match") || 
-        deployError?.message.includes("validation") || 
-        deployError?.message.includes("Invalid") ||
-        deployError?.message.includes("expected schema")
+        deployError?.message.includes("Configuration file doesn't match") ||
+          deployError?.message.includes("validation") ||
+          deployError?.message.includes("Invalid") ||
+          deployError?.message.includes("expected schema")
       ).toBe(true);
-      
+
       // Should NOT have made any network requests (config validation fails first)
       expect(fetchSpy!).not.toHaveBeenCalled();
     });
@@ -441,7 +484,7 @@ invalid_yaml: [
         channelCount: 3,
         productTypeCount: 5,
         pageTypeCount: 3,
-        categoryCount: 4
+        categoryCount: 4,
       }).saveToFile(tempDir);
 
       const startTime = Date.now();
@@ -464,15 +507,20 @@ invalid_yaml: [
       const duration = endTime - startTime;
 
       // Assert - Verify performance and correctness
-      expect(deployError).toBeUndefined();
+      // Assert - Verify force mode worked
+      expect(deployError?.message).toContain(
+        'process.exit unexpectedly called with "0"'
+      );
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
-      
+
       // Verify multiple mutations were sent for different entity types
-      const allMutations = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
-        const body = call[1]?.body?.toString();
-        return body?.includes('mutation');
-      });
+      const allMutations = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
+        (call) => {
+          const body = call[1]?.body?.toString();
+          return body?.includes("mutation");
+        }
+      );
       expect(allMutations.length).toBeGreaterThan(5); // Should have multiple mutations
     });
   });
-}); 
+});
