@@ -68,14 +68,14 @@ productTypes:
 pageTypes:
   - name: Blog Post
     attributes:
-      - name: Published Date
+      - name: Published Date # Define a new attribute
         inputType: DATE
       - name: Related Posts
         inputType: REFERENCE
         entityType: PAGE
   - name: Article
     attributes:
-      - attribute: Published Date # Reference existing attribute
+      - attribute: Published Date # Reference the existing attribute
       - name: Tags
         inputType: DROPDOWN
         values:

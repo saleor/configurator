@@ -210,8 +210,22 @@ products:
         channelListings: []
 ```
 
-> [!TIP]
-> See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties and [example.yml](example.yml) for an example configuration.
+**Tips:**
+
+1. See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties.
+2. See [example.yml](example.yml) for an example configuration.
+3. If you need to reuse an attribute across multiple product or page types, you can define it once and reference with the `attribute: <attribute-name>` property. Here is an example:
+
+```yaml
+pageTypes:
+  - name: Blog Post
+    attributes:
+      - name: Published Date # Define a new attribute
+        inputType: DATE
+  - name: Article
+    attributes:
+      - attribute: Published Date # Reference the existing attribute
+```
 
 ### Limitations
 
