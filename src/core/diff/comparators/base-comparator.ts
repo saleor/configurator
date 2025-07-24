@@ -84,6 +84,34 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
   }
 
   /**
+   * Deduplicates entities by name, keeping the first occurrence
+   * Logs warnings about duplicates found
+   */
+  protected deduplicateEntities(entities: readonly TEntity[]): readonly TEntity[] {
+    const seen = new Set<string>();
+    const duplicateNames = new Set<string>();
+    const deduplicatedEntities: TEntity[] = [];
+
+    for (const entity of entities) {
+      const name = this.getEntityName(entity);
+      if (seen.has(name)) {
+        duplicateNames.add(name);
+      } else {
+        seen.add(name);
+        deduplicatedEntities.push(entity);
+      }
+    }
+
+    if (duplicateNames.size > 0) {
+      console.warn(
+        `⚠️  Warning: Found duplicate ${this.entityType.toLowerCase()} names: ${Array.from(duplicateNames).join(", ")}. Using first occurrence only.`
+      );
+    }
+
+    return deduplicatedEntities;
+  }
+
+  /**
    * Creates a CREATE diff result
    * @param entity The entity to create
    * @returns Diff result for creation
