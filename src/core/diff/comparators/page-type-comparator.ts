@@ -109,11 +109,12 @@ export class PageTypeComparator extends BaseEntityComparator<
    * Safely extracts attributes from a page type entity
    */
   private getAttributes(entity: PageTypeEntity): readonly PageTypeAttribute[] {
-    if (!("attributes" in entity)) {
+    if (!("attributes" in entity) || !entity.attributes) {
       return [];
     }
 
-    const filteredAttributes = entity.attributes.filter((attribute) => !("name" in attribute));
+    // Keep attributes that have a name property (fix: was filtering them out incorrectly)
+    const filteredAttributes = entity.attributes.filter((attribute) => "name" in attribute && attribute.name);
 
     return filteredAttributes as readonly PageTypeAttribute[];
   }
