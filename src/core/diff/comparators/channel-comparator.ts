@@ -32,6 +32,7 @@ const CHANNEL_FIELDS: ReadonlyArray<keyof ChannelEntity> = [
   "currencyCode",
   "defaultCountry",
   "slug",
+  "isActive", // ADD MISSING FIELD
 ] as const;
 
 /**
