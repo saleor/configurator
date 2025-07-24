@@ -1,5 +1,7 @@
 import invariant from "tiny-invariant";
+import type { ParsedSelectiveOptions } from "../../core/diff/types";
 import { object } from "../../lib/utils/object";
+import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { FullAttribute } from "./schema/attribute.schema";
@@ -17,16 +19,16 @@ export class ConfigurationService {
     private storage: ConfigurationStorage
   ) {}
 
-  async retrieve(): Promise<SaleorConfig> {
+  async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
-    const config = this.mapConfig(rawConfig);
+    const config = this.mapConfig(rawConfig, selectiveOptions);
     await this.storage.save(config);
     return config;
   }
 
-  async retrieveWithoutSaving(): Promise<SaleorConfig> {
+  async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
-    const config = this.mapConfig(rawConfig);
+    const config = this.mapConfig(rawConfig, selectiveOptions);
     return config;
   }
 
@@ -215,14 +217,34 @@ export class ConfigurationService {
     });
   }
 
-  mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
-    return {
-      shop: this.mapShopSettings(rawConfig),
-      channels: this.mapChannels(rawConfig.channels),
-      productTypes: this.mapProductTypes(rawConfig.productTypes),
-      pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      // TODO: add categories
-    };
+  mapConfig(rawConfig: RawSaleorConfig, selectiveOptions?: ParsedSelectiveOptions): SaleorConfig {
+    // Default to include all sections if no selective options provided
+    const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
+    
+    const config: Partial<SaleorConfig> = {};
+
+    if (shouldIncludeSection("shop", options)) {
+      config.shop = this.mapShopSettings(rawConfig);
+    }
+
+    if (shouldIncludeSection("channels", options)) {
+      config.channels = this.mapChannels(rawConfig.channels);
+    }
+
+    if (shouldIncludeSection("productTypes", options)) {
+      config.productTypes = this.mapProductTypes(rawConfig.productTypes);
+    }
+
+    if (shouldIncludeSection("pageTypes", options)) {
+      config.pageTypes = this.mapPageTypes(rawConfig.pageTypes);
+    }
+
+    // TODO: add categories section when implemented
+    // if (shouldIncludeSection("categories", options)) {
+    //   config.categories = this.mapCategories(rawConfig.categories);
+    // }
+
+    return config as SaleorConfig;
   }
 }
 

@@ -4,6 +4,7 @@ import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { DiffFormatter, DiffService } from "./diff";
+import type { ParsedSelectiveOptions } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
@@ -147,10 +148,10 @@ export class SaleorConfigurator {
   }
 
 
-  async introspect() {
+  async introspect(selectiveOptions?: ParsedSelectiveOptions) {
     cliConsole.progress.start("Retrieving configuration from Saleor");
     try {
-      const config = await this.services.configuration.retrieve();
+      const config = await this.services.configuration.retrieve(selectiveOptions);
       cliConsole.progress.succeed("Configuration retrieved successfully");
       return config;
     } catch (error) {
