@@ -235,7 +235,11 @@ export class IntrospectCommandHandler
       // Fetch and save configuration directly
       this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
-      await configurator.introspect();
+      // Parse selective options from args
+      const { includeSections, excludeSections } = parseSelectiveOptions(args);
+      const selectiveOptions = { includeSections, excludeSections };
+
+      await configurator.introspect(selectiveOptions);
 
       this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(args.config));
       this.console.success(INTROSPECT_MESSAGES.FIRST_TIME_SUCCESS);
@@ -450,7 +454,11 @@ export class IntrospectCommandHandler
   ): Promise<void> {
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
-    await context.configurator.introspect();
+    // Parse selective options from args
+    const { includeSections, excludeSections } = parseSelectiveOptions(context.args);
+    const selectiveOptions = { includeSections, excludeSections };
+
+    await context.configurator.introspect(selectiveOptions);
 
     const configPath = this.console.important(context.args.config);
     this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));

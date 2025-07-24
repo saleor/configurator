@@ -23,13 +23,9 @@ const createProductTypeMutation = graphql(`
 `);
 
 export type ProductType = NonNullable<
-  NonNullable<
-    ResultOf<typeof createProductTypeMutation>["productTypeCreate"]
-  >["productType"]
+  NonNullable<ResultOf<typeof createProductTypeMutation>["productTypeCreate"]>["productType"]
 >;
-export type ProductTypeInput = VariablesOf<
-  typeof createProductTypeMutation
->["input"];
+export type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
 
 const assignAttributesToProductTypeMutation = graphql(`
   mutation AssignAttributesToProductType(
@@ -52,7 +48,7 @@ const assignAttributesToProductTypeMutation = graphql(`
 
 const getProductTypeByNameQuery = graphql(`
   query GetProductTypeByName($name: String!) {
-    productTypes(filter: { search: $name }, first: 1) {
+    productTypes(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -110,7 +106,10 @@ export class ProductTypeRepository implements ProductTypeOperations {
       name,
     });
 
-    return result.data?.productTypes?.edges?.[0]?.node;
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.productTypes?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
   }
 
   async assignAttributesToProductType({
@@ -122,16 +121,13 @@ export class ProductTypeRepository implements ProductTypeOperations {
     productTypeId: string;
     type: "PRODUCT" | "VARIANT";
   }) {
-    const result = await this.client.mutation(
-      assignAttributesToProductTypeMutation,
-      {
-        productTypeId,
-        operations: attributeIds.map((id) => ({
-          id,
-          type,
-        })),
-      }
-    );
+    const result = await this.client.mutation(assignAttributesToProductTypeMutation, {
+      productTypeId,
+      operations: attributeIds.map((id) => ({
+        id,
+        type,
+      })),
+    });
 
     if (!result.data?.productAttributeAssign?.productType) {
       throw GraphQLError.fromDataErrors(
