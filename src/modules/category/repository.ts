@@ -49,6 +49,29 @@ const getCategoryByNameQuery = graphql(`
   }
 `);
 
+const getAllCategoriesQuery = graphql(`
+  query GetAllCategories {
+    categories(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          children(first: 100) {
+            edges {
+              node {
+                id
+                name
+                slug
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 export type Category = NonNullable<
   NonNullable<ResultOf<typeof getCategoryByNameQuery>["categories"]>["edges"]
 >[number]["node"];
@@ -56,6 +79,7 @@ export type Category = NonNullable<
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
+  getAllCategories(): Promise<Category[]>;
 }
 
 export class CategoryRepository implements CategoryOperations {
@@ -99,5 +123,26 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     return result.data?.categories?.edges?.[0]?.node;
+  }
+
+  async getAllCategories(): Promise<Category[]> {
+    logger.debug("Fetching all categories");
+
+    const result = await this.client.query(getAllCategoriesQuery, {});
+
+    if (!result.data?.categories?.edges) {
+      logger.debug("No categories found");
+      return [];
+    }
+
+    const categories = result.data.categories.edges
+      .map((edge) => edge.node)
+      .filter((node): node is Category => node !== null);
+
+    logger.debug("Retrieved categories", {
+      count: categories.length,
+    });
+
+    return categories;
   }
 }

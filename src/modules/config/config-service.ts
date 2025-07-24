@@ -215,13 +215,30 @@ export class ConfigurationService {
     });
   }
 
+  private mapCategories(
+    rawCategories: RawSaleorConfig["categories"]
+  ): SaleorConfig["categories"] {
+    if (!rawCategories?.edges) {
+      return [];
+    }
+
+    return rawCategories.edges
+      .map((edge) => edge.node)
+      .filter((node) => node !== null)
+      .map((category) => ({
+        name: category.name,
+        slug: category.slug,
+        // TODO: Handle subcategories/children if needed
+      }));
+  }
+
   mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
     return {
       shop: this.mapShopSettings(rawConfig),
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      // TODO: add categories
+      categories: this.mapCategories(rawConfig.categories),
     };
   }
 }

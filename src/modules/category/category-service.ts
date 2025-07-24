@@ -5,6 +5,11 @@ import type { Category, CategoryOperations } from "./repository";
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
 
+  async getAllCategories() {
+    logger.debug("Getting all categories for introspection");
+    return this.repository.getAllCategories();
+  }
+
   private async getExistingCategory(name: string) {
     return this.repository.getCategoryByName(name);
   }
