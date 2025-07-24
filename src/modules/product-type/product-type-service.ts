@@ -1,7 +1,6 @@
 import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
-import { DuplicateAttributeDefinitionError } from "../attribute/errors";
 import type {
   AttributeInput,
   SimpleAttribute,
@@ -221,10 +220,19 @@ export class ProductTypeService {
         });
 
       if (existingAttributes && existingAttributes.length > 0) {
-        // Attribute already exists globally, suggest using reference syntax
-        throw new DuplicateAttributeDefinitionError(
-          `Attribute "${attributeInput.name}" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: ${attributeInput.name}".`
-        );
+        // Attribute exists globally from a previous deployment or another product type
+        // We should reuse the existing attribute rather than trying to create a duplicate
+        const existingAttribute = existingAttributes[0];
+        
+        logger.debug("Reusing existing global attribute", {
+          attributeName: attributeInput.name,
+          attributeId: existingAttribute.id,
+          productTypeName: productType.name,
+        });
+        
+        // Use the existing attribute
+        newAttributes.push(existingAttribute);
+        continue;
       }
 
       // Create the attribute since it doesn't exist
