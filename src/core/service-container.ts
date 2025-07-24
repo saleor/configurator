@@ -10,6 +10,7 @@ import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import { PageTypeService } from "../modules/page-type/page-type-service";
+import { DiffService } from "./diff";
 import { PageTypeRepository } from "../modules/page-type/repository";
 import { ProductService } from "../modules/product/product-service";
 import { ProductRepository } from "../modules/product/repository";
@@ -27,6 +28,7 @@ export interface ServiceContainer {
   readonly configStorage: YamlConfigurationManager;
   readonly category: CategoryService;
   readonly product: ProductService;
+  readonly diffService: DiffService;
 }
 
 // biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
@@ -52,7 +54,8 @@ export class ServiceComposer {
       configStorage
     );
 
-    return {
+    // Create service container first (without diffService to avoid circular dependency)
+    const services = {
       channel: new ChannelService(repositories.channel),
       pageType: new PageTypeService(repositories.pageType, attributeService),
       productType: new ProductTypeService(repositories.productType, attributeService),
@@ -61,6 +64,14 @@ export class ServiceComposer {
       configStorage,
       category: new CategoryService(repositories.category),
       product: new ProductService(repositories.product),
+    } as Omit<ServiceContainer, 'diffService'>;
+
+    // Create diff service with the services container
+    const diffService = new DiffService(services as ServiceContainer);
+
+    return {
+      ...services,
+      diffService,
     };
   }
 }
