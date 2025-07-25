@@ -24,7 +24,7 @@ vi.mock("../core/diff/formatters", () => ({
 
 describe("Deploy Command", () => {
   let mockCreateConfigurator: ReturnType<typeof vi.fn>;
-  let mockExit: ReturnType<typeof vi.spyOn>;
+  let mockExit: any;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   let mockDeploymentPipeline: any;
   let mockDiffService: any;
@@ -116,7 +116,19 @@ describe("Deploy Command", () => {
   describe("Error handling", () => {
     it("should handle network errors with exit code 3", async () => {
       const networkError = new Error("fetch failed: ECONNREFUSED");
-      mockDeploymentPipeline.execute.mockRejectedValue(networkError);
+      
+      // Mock the configurator's diff method to throw network error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(networkError)
+      };
+      
+      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -134,7 +146,19 @@ describe("Deploy Command", () => {
     
     it("should handle authentication errors with exit code 2", async () => {
       const authError = new Error("GraphQL error: Unauthorized");
-      mockDeploymentPipeline.execute.mockRejectedValue(authError);
+      
+      // Mock the configurator's diff method to throw auth error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(authError)
+      };
+      
+      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -192,7 +216,19 @@ describe("Deploy Command", () => {
         "Failed to connect to Saleor",
         { url: "https://test.saleor.cloud", timeout: 30000 }
       );
-      mockDeploymentPipeline.execute.mockRejectedValue(deploymentError);
+      
+      // Mock the configurator's diff method to throw deployment error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(deploymentError)
+      };
+      
+      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -215,7 +251,19 @@ describe("Deploy Command", () => {
         { url: "https://test.saleor.cloud" },
         originalError
       );
-      mockDeploymentPipeline.execute.mockRejectedValue(networkError);
+      
+      // Mock the configurator's diff method to throw network error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(networkError)
+      };
+      
+      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",

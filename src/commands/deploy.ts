@@ -38,6 +38,7 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     ),
   verbose: z
     .boolean()
+    .optional()
     .default(false)
     .describe("Show detailed error information"),
 });
@@ -75,7 +76,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         error
       );
       
-      this.console.error(deploymentError.getUserMessage(args.verbose));
+      this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
       process.exit(deploymentError.getExitCode());
     }
 
@@ -83,7 +84,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     const deploymentError = toDeploymentError(error, "deployment");
     
     // Display user-friendly error message
-    this.console.error(deploymentError.getUserMessage(args.verbose));
+    this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
     
     // Exit with appropriate code
     process.exit(deploymentError.getExitCode());
