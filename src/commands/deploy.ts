@@ -16,6 +16,12 @@ import {
   ConfigurationValidationError,
 } from "../core/diff/errors";
 import { DeployDiffFormatter } from "../core/diff/formatters";
+import {
+  DeploymentError,
+  toDeploymentError,
+  ValidationDeploymentError,
+  PartialDeploymentError,
+} from "../core/errors/deployment-errors";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 
@@ -30,6 +36,10 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .describe(
       "Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
     ),
+  verbose: z
+    .boolean()
+    .default(false)
+    .describe("Show detailed error information"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -46,84 +56,37 @@ function generateDefaultReportPath(): string {
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
-  private handleDeploymentError(error: unknown): never {
-    if (error instanceof ConfigurationValidationError) {
-      this.handleValidationError(error);
-    }
-
+  private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
     logger.error("Deployment failed", { error });
 
-    if (error instanceof Error) {
-      this.console.error(`❌ Deployment failed: ${error.message}`);
-
-      // Provide helpful context based on error content
-      if (
-        error.message.includes("Network") ||
-        error.message.includes("ENOTFOUND")
-      ) {
-        this.console.warn(
-          "💡 Check your internet connection and Saleor instance URL"
-        );
-      } else if (
-        error.message.includes("Authentication") ||
-        error.message.includes("Unauthorized") ||
-        error.message.includes("401")
-      ) {
-        this.console.warn(
-          "💡 Verify your API token has the required permissions"
-        );
-      } else if (
-        error.message.includes("Configuration") ||
-        error.message.includes("validation")
-      ) {
-        this.console.warn("💡 Check your configuration file for syntax errors");
-      } else if (
-        error.message.includes("product type") &&
-        error.message.includes("delete")
-      ) {
-        // Generic product type deletion failure
-        this.console.warn("\n💡 Product type deletion failed. Common reasons:");
-        this.console.warn(
-          "  • The product type has products associated with it"
-        );
-        this.console.warn(
-          "  • You need to delete all products using this type first"
-        );
-        this.console.warn(
-          "  • Or remove the product type from your local config to keep it"
-        );
-      } else if (
-        error.message.includes("Failed to manage") &&
-        error.message.includes("product type")
-      ) {
-        // Generic product type management error
-        this.console.warn("\n💡 Product type management failed. Check:");
-        this.console.warn(
-          "  • Attribute value changes (they can't be renamed, only added/removed)"
-        );
-        this.console.warn(
-          "  • Product types with associated products can't be deleted"
-        );
-        this.console.warn("  • Ensure all referenced attributes exist");
-      } else if (
-        error.message.includes("attribute") &&
-        error.message.includes("delete")
-      ) {
-        // Attribute deletion failure
-        this.console.warn("\n💡 Attribute deletion failed. Common reasons:");
-        this.console.warn(
-          "  • The attribute is used by existing products or variants"
-        );
-        this.console.warn(
-          "  • Remove attribute assignments before deleting the attribute"
-        );
-      }
-
-      throw error;
-    } else {
-      this.console.error("❌ An unexpected error occurred during deployment");
-      throw new Error("An unexpected error occurred during deployment");
+    // Handle ConfigurationValidationError specially for backwards compatibility
+    if (error instanceof ConfigurationValidationError) {
+      const validationErrors = error.validationErrors.map(err => 
+        `${err.path}: ${err.message}`
+      );
+      
+      const deploymentError = new ValidationDeploymentError(
+        "Configuration validation failed",
+        validationErrors,
+        {
+          file: error.filePath,
+          errorCount: error.validationErrors.length,
+        },
+        error
+      );
+      
+      this.console.error(deploymentError.getUserMessage(args.verbose));
+      process.exit(deploymentError.getExitCode());
     }
+
+    // Convert to DeploymentError for consistent handling
+    const deploymentError = toDeploymentError(error, "deployment");
+    
+    // Display user-friendly error message
+    this.console.error(deploymentError.getUserMessage(args.verbose));
+    
+    // Exit with appropriate code
+    process.exit(deploymentError.getExitCode());
   }
 
   private handleValidationError(error: ConfigurationValidationError): void {
@@ -439,7 +402,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       process.exit(0);
     } catch (error) {
-      this.handleDeploymentError(error);
+      this.handleDeploymentError(error, args);
     }
   }
 

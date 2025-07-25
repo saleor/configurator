@@ -4,6 +4,7 @@ import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { DiffFormatter, DiffService } from "./diff";
+import { PartialDeploymentError } from "./errors/deployment-errors";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
@@ -23,15 +24,30 @@ export class SaleorConfigurator {
 
     cliConsole.progress.info("Starting push operation");
 
+    // Track completed and failed operations for better error reporting
+    const completedOperations: string[] = [];
+    const failedOperations: { operation: string; error: string }[] = [];
+
     // Shop settings
     if (config.shop) {
       cliConsole.progress.start("Updating shop settings");
       try {
         await this.services.shop.updateSettings(config.shop);
         cliConsole.progress.succeed("Shop settings updated");
+        completedOperations.push("Shop settings updated");
       } catch (error) {
         cliConsole.progress.fail("Failed to update shop settings");
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        failedOperations.push({ operation: "Update shop settings", error: errorMessage });
+        
+        // For critical operations like shop settings, fail immediately
+        throw new PartialDeploymentError(
+          "Push operation failed",
+          completedOperations,
+          failedOperations,
+          { stage: "shop settings" },
+          error
+        );
       }
     }
 
@@ -47,9 +63,19 @@ export class SaleorConfigurator {
       try {
         await this.services.channel.bootstrapChannels(config.channels);
         progress.complete();
+        completedOperations.push(`Created ${config.channels.length} channels`);
       } catch (error) {
         progress.complete();
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        failedOperations.push({ operation: "Create channels", error: errorMessage });
+        
+        throw new PartialDeploymentError(
+          "Push operation failed during channel creation",
+          completedOperations,
+          failedOperations,
+          { stage: "channels", totalChannels: config.channels.length },
+          error
+        );
       }
     }
 
@@ -62,21 +88,36 @@ export class SaleorConfigurator {
       );
       progress.start();
 
+      let successCount = 0;
       for (const productType of config.productTypes) {
         try {
           await this.services.productType.bootstrapProductType(productType);
           progress.increment(productType.name);
+          successCount++;
         } catch (error) {
           progress.addFailure(productType.name, error as Error);
           logger.error(`Failed to create product type: ${productType.name}`, {
             error,
           });
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          failedOperations.push({ operation: `Create product type: ${productType.name}`, error: errorMessage });
         }
       }
 
       progress.complete();
+      
+      if (successCount > 0) {
+        completedOperations.push(`Created ${successCount} product types`);
+      }
+      
       if (progress.hasFailures()) {
-        throw new Error("Some product types failed to create. Check the logs for details.");
+        throw new PartialDeploymentError(
+          "Push operation failed during product type creation",
+          completedOperations,
+          failedOperations,
+          { stage: "productTypes", totalProductTypes: config.productTypes.length, successCount },
+          new Error("Some product types failed to create. Check the logs for details.")
+        );
       }
     }
 
@@ -89,21 +130,36 @@ export class SaleorConfigurator {
       );
       progress.start();
 
+      let successCount = 0;
       for (const pageType of config.pageTypes) {
         try {
           await this.services.pageType.bootstrapPageType(pageType);
           progress.increment(pageType.name);
+          successCount++;
         } catch (error) {
           progress.addFailure(pageType.name, error as Error);
           logger.error(`Failed to create page type: ${pageType.name}`, {
             error,
           });
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          failedOperations.push({ operation: `Create page type: ${pageType.name}`, error: errorMessage });
         }
       }
 
       progress.complete();
+      
+      if (successCount > 0) {
+        completedOperations.push(`Created ${successCount} page types`);
+      }
+      
       if (progress.hasFailures()) {
-        throw new Error("Some page types failed to create. Check the logs for details.");
+        throw new PartialDeploymentError(
+          "Push operation failed during page type creation",
+          completedOperations,
+          failedOperations,
+          { stage: "pageTypes", totalPageTypes: config.pageTypes.length, successCount },
+          new Error("Some page types failed to create. Check the logs for details.")
+        );
       }
     }
 
@@ -119,9 +175,19 @@ export class SaleorConfigurator {
       try {
         await this.services.category.bootstrapCategories(config.categories);
         progress.complete();
+        completedOperations.push(`Created ${config.categories.length} categories`);
       } catch (error) {
         progress.complete();
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        failedOperations.push({ operation: "Create categories", error: errorMessage });
+        
+        throw new PartialDeploymentError(
+          "Push operation failed during category creation",
+          completedOperations,
+          failedOperations,
+          { stage: "categories", totalCategories: config.categories.length },
+          error
+        );
       }
     }
 
@@ -137,9 +203,19 @@ export class SaleorConfigurator {
       try {
         await this.services.product.bootstrapProducts(config.products);
         progress.complete();
+        completedOperations.push(`Created ${config.products.length} products`);
       } catch (error) {
         progress.complete();
-        throw error;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        failedOperations.push({ operation: "Create products", error: errorMessage });
+        
+        throw new PartialDeploymentError(
+          "Push operation failed during product creation",
+          completedOperations,
+          failedOperations,
+          { stage: "products", totalProducts: config.products.length },
+          error
+        );
       }
     }
 
