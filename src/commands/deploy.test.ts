@@ -1,280 +1,361 @@
-import { describe, expect, it } from "vitest";
-import { z } from "zod";
-import type { DiffSummary } from "../core/diff";
-import { DiffFormatter } from "../core/diff/formatter";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { deployHandler } from "./deploy";
+import * as configuratorModule from "../core/configurator";
+import * as deploymentModule from "../core/deployment";
+import { NetworkDeploymentError, AuthenticationDeploymentError, ValidationDeploymentError } from "../core/errors/deployment-errors";
+import { ConfigurationValidationError } from "../core/diff/errors";
 
-// Define a test schema matching the deploy command structure
-const testDeploySchema = z.object({
-  url: z.string(),
-  token: z.string(),
-  config: z.string().default("config.yml"),
-  quiet: z.boolean().default(false),
-  ci: z.boolean().default(false),
-});
+// Mock modules
+vi.mock("../cli/console");
+vi.mock("../cli/command");
+vi.mock("../lib/logger");
+vi.mock("../core/deployment");
+vi.mock("../core/diff/formatters", () => ({
+  DeployDiffFormatter: vi.fn().mockImplementation(() => ({
+    format: vi.fn().mockReturnValue("Mock diff output")
+  })),
+  DetailedDiffFormatter: vi.fn().mockImplementation(() => ({
+    format: vi.fn().mockReturnValue("Mock detailed diff output")
+  })),
+  SummaryDiffFormatter: vi.fn().mockImplementation(() => ({
+    format: vi.fn().mockReturnValue("Mock summary diff output")
+  }))
+}));
 
-describe("Deploy Command Schema Validation", () => {
-  it("should validate all required fields", () => {
-    const validArgs = {
-      url: "https://shop.saleor.cloud/graphql/",
-      token: "test-token",
+describe("Deploy Command", () => {
+  let mockCreateConfigurator: ReturnType<typeof vi.fn>;
+  let mockExit: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let mockDeploymentPipeline: any;
+  let mockDiffService: any;
+  
+  beforeEach(() => {
+    // Mock process.exit
+    mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`Process exited with code ${code}`);
+    });
+    
+    // Mock console methods
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    
+    
+    // Mock diff service
+    mockDiffService = {
+      diffForDeployWithFormatting: vi.fn().mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: []
+        },
+        output: ""
+      })
     };
-
-    const result = testDeploySchema.safeParse(validArgs);
-    expect(result.success).toBe(true);
     
-    if (result.success) {
-      expect(result.data.config).toBe("config.yml");
-      expect(result.data.quiet).toBe(false);
-      expect(result.data.ci).toBe(false);
-    }
-  });
-
-  it("should use custom flag values when provided", () => {
-    const customArgs = {
-      url: "https://shop.saleor.cloud/graphql/",
-      token: "test-token",
-      config: "custom.yml",
-      quiet: true,
-      ci: true,
+    // Mock deployment pipeline
+    mockDeploymentPipeline = {
+      addStage: vi.fn(),
+      execute: vi.fn().mockResolvedValue({
+        startTime: new Date(),
+        endTime: new Date(),
+        totalDuration: 100,
+        stageMetrics: [],
+        operationCounts: { created: 1, updated: 0, deleted: 0 },
+        errors: []
+      })
     };
-
-    const result = testDeploySchema.safeParse(customArgs);
-    expect(result.success).toBe(true);
     
-    if (result.success) {
-      expect(result.data.config).toBe("custom.yml");
-      expect(result.data.quiet).toBe(true);
-      expect(result.data.ci).toBe(true);
-    }
-  });
-
-  it("should require url and token", () => {
-    const invalidArgs = { config: "test.yml" };
-    const result = testDeploySchema.safeParse(invalidArgs);
+    vi.spyOn(deploymentModule, "DeploymentPipeline").mockImplementation(() => mockDeploymentPipeline);
+    vi.spyOn(deploymentModule, "getAllStages").mockReturnValue([]);
+    vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(() => ({
+      display: vi.fn()
+    }) as any);
+    vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() => ({
+      saveToFile: vi.fn()
+    }) as any);
     
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.errors).toHaveLength(2);
-      expect(result.error.errors.some(e => e.path.includes("url"))).toBe(true);
-      expect(result.error.errors.some(e => e.path.includes("token"))).toBe(true);
-    }
-  });
-});
-
-describe("Diff Summary Analysis", () => {
-  const createMockSummary = (
-    creates: number,
-    updates: number,
-    deletes: number
-  ): DiffSummary => ({
-    totalChanges: creates + updates + deletes,
-    creates,
-    updates,
-    deletes,
-    results: [
-      ...Array(creates).fill(0).map((_, i) => ({
-        operation: "CREATE" as const,
-        entityType: "Product Types" as const,
-        entityName: `New Product Type ${i}`,
-      })),
-      ...Array(updates).fill(0).map((_, i) => ({
-        operation: "UPDATE" as const,
-        entityType: "Channels" as const,
-        entityName: `Channel ${i}`,
-      })),
-      ...Array(deletes).fill(0).map((_, i) => ({
-        operation: "DELETE" as const,
-        entityType: "Categories" as const,
-        entityName: `Old Category ${i}`,
-      })),
-    ],
-  });
-
-  it("should detect no changes scenario", () => {
-    const summary = createMockSummary(0, 0, 0);
+    // Mock configurator
+    mockCreateConfigurator = vi.fn().mockReturnValue({
+      services: {
+        diffService: mockDiffService,
+        configStorage: {
+          load: vi.fn().mockResolvedValue({})
+        }
+      },
+      diff: vi.fn().mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: []
+        },
+        output: ""
+      })
+    });
     
-    expect(summary.totalChanges).toBe(0);
-    expect(summary.creates).toBe(0);
-    expect(summary.updates).toBe(0);
-    expect(summary.deletes).toBe(0);
-    expect(summary.results).toHaveLength(0);
-  });
-
-  it("should detect safe changes without destructive operations", () => {
-    const summary = createMockSummary(2, 3, 0);
-    const hasDestructiveOperations = summary.deletes > 0;
+    vi.spyOn(configuratorModule, "createConfigurator").mockImplementation(
+      mockCreateConfigurator
+    );
     
-    expect(summary.totalChanges).toBe(5);
-    expect(summary.creates).toBe(2);
-    expect(summary.updates).toBe(3);
-    expect(summary.deletes).toBe(0);
-    expect(hasDestructiveOperations).toBe(false);
-  });
-
-  it("should detect destructive operations", () => {
-    const summary = createMockSummary(1, 2, 3);
-    const hasDestructiveOperations = summary.deletes > 0;
-    const deleteOperations = summary.results.filter(r => r.operation === "DELETE");
-    
-    expect(summary.totalChanges).toBe(6);
-    expect(summary.deletes).toBe(3);
-    expect(hasDestructiveOperations).toBe(true);
-    expect(deleteOperations).toHaveLength(3);
-    expect(deleteOperations[0].entityName).toBe("Old Category 0");
-  });
-
-  it("should categorize operations correctly", () => {
-    const summary = createMockSummary(2, 1, 1);
-    const createOps = summary.results.filter(r => r.operation === "CREATE");
-    const updateOps = summary.results.filter(r => r.operation === "UPDATE");
-    const deleteOps = summary.results.filter(r => r.operation === "DELETE");
-    
-    expect(createOps).toHaveLength(2);
-    expect(updateOps).toHaveLength(1);
-    expect(deleteOps).toHaveLength(1);
-    
-    expect(createOps[0].entityType).toBe("Product Types");
-    expect(updateOps[0].entityType).toBe("Channels");
-    expect(deleteOps[0].entityType).toBe("Categories");
-  });
-});
-
-describe("Deployment Mode Logic", () => {
-  type DeploymentMode = {
-    ci: boolean;
-  };
-
-  const testModeLogic = (mode: DeploymentMode, hasDestructiveOps: boolean) => {
-    const shouldSkipConfirmation = mode.ci;
-    const shouldShowDiff = true; // Always show diff now
-    const requiresExtraWarning = hasDestructiveOps && !shouldSkipConfirmation;
-    
-    return {
-      shouldSkipConfirmation,
-      shouldShowDiff,
-      requiresExtraWarning,
-    };
-  };
-
-  it("should handle normal interactive mode", () => {
-    const mode = { ci: false };
-    const result = testModeLogic(mode, false);
-    
-    expect(result.shouldSkipConfirmation).toBe(false);
-    expect(result.shouldShowDiff).toBe(true);
-    expect(result.requiresExtraWarning).toBe(false);
-  });
-
-  it("should handle CI mode", () => {
-    const mode = { ci: true };
-    const result = testModeLogic(mode, true);
-    
-    expect(result.shouldSkipConfirmation).toBe(true);
-    expect(result.shouldShowDiff).toBe(true);
-    expect(result.requiresExtraWarning).toBe(false);
-  });
-
-
-  it("should require extra warning for destructive operations in interactive mode", () => {
-    const mode = { ci: false };
-    const result = testModeLogic(mode, true);
-    
-    expect(result.shouldSkipConfirmation).toBe(false);
-    expect(result.shouldShowDiff).toBe(true);
-    expect(result.requiresExtraWarning).toBe(true);
-  });
-
-});
-
-describe("Error Handling Categories", () => {
-  const categorizeError = (errorMessage: string) => {
-    if (errorMessage.includes("network") || errorMessage.includes("ENOTFOUND") || errorMessage.includes("timeout")) {
-      return "Network";
-    }
-    if (errorMessage.includes("401") || errorMessage.includes("403") || errorMessage.includes("authentication")) {
-      return "Authentication";
-    }
-    if (errorMessage.includes("GraphQL")) {
-      return "GraphQL";
-    }
-    if (errorMessage.includes("validation") || errorMessage.includes("invalid") || errorMessage.includes("schema")) {
-      return "Configuration";
-    }
-    return "Unknown";
-  };
-
-  const getSuggestion = (category: string) => {
-    const suggestions = {
-      "Network": "Check your internet connection and verify the URL is correct",
-      "Authentication": "Verify your API token has the required permissions",
-      "Configuration": "Review your configuration file for syntax errors",
-      "GraphQL": "Check if the API schema matches your configuration",
-      "Unknown": "Run with --verbose flag for more details",
-    };
-    return suggestions[category as keyof typeof suggestions] || suggestions.Unknown;
-  };
-
-  const errorTestCases = [
-    { message: "network timeout occurred", expectedCategory: "Network" },
-    { message: "ENOTFOUND hostname", expectedCategory: "Network" },
-    { message: "401 Unauthorized", expectedCategory: "Authentication" },
-    { message: "authentication failed", expectedCategory: "Authentication" },
-    { message: "invalid configuration schema", expectedCategory: "Configuration" },
-    { message: "validation error in config", expectedCategory: "Configuration" },
-    { message: "GraphQL schema mismatch", expectedCategory: "GraphQL" },
-    { message: "something completely unexpected", expectedCategory: "Unknown" },
-  ];
-
-  errorTestCases.forEach(({ message, expectedCategory }) => {
-    it(`should categorize "${expectedCategory}" errors correctly`, () => {
-      const category = categorizeError(message);
-      const suggestion = getSuggestion(category);
-      
-      expect(category).toBe(expectedCategory);
-      expect(suggestion).toBeTruthy();
-      expect(typeof suggestion).toBe("string");
+    // Mock confirmAction to always return true
+    vi.mock("../cli/command", async () => {
+      const actual = await vi.importActual("../cli/command");
+      return {
+        ...actual,
+        confirmAction: vi.fn().mockResolvedValue(true),
+      };
     });
   });
-
-  it("should provide appropriate suggestions for each category", () => {
-    expect(getSuggestion("Network")).toContain("connection");
-    expect(getSuggestion("Authentication")).toContain("token");
-    expect(getSuggestion("Configuration")).toContain("configuration");
-    expect(getSuggestion("GraphQL")).toContain("schema");
-    expect(getSuggestion("Unknown")).toContain("verbose");
+  
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+  
+  describe("Error handling", () => {
+    it("should handle network errors with exit code 3", async () => {
+      const networkError = new Error("fetch failed: ECONNREFUSED");
+      mockDeploymentPipeline.execute.mockRejectedValue(networkError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      
+      expect(mockExit).toHaveBeenCalledWith(3);
+    });
+    
+    it("should handle authentication errors with exit code 2", async () => {
+      const authError = new Error("GraphQL error: Unauthorized");
+      mockDeploymentPipeline.execute.mockRejectedValue(authError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "invalid-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 2");
+      
+      expect(mockExit).toHaveBeenCalledWith(2);
+    });
+    
+    it("should handle configuration validation errors with exit code 4", async () => {
+      const validationError = new ConfigurationValidationError(
+        "Configuration validation failed",
+        "config.yml",
+        [
+          { path: "channels.0.name", message: "Field is required" },
+          { path: "shop.email", message: "Invalid email format" }
+        ]
+      );
+      
+      // Mock the configurator's diff method to throw validation error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(validationError)
+      };
+      
+      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 4");
+      
+      expect(mockExit).toHaveBeenCalledWith(4);
+    });
+    
+    it("should handle DeploymentError instances directly", async () => {
+      const deploymentError = new NetworkDeploymentError(
+        "Failed to connect to Saleor",
+        { url: "https://test.saleor.cloud", timeout: 30000 }
+      );
+      mockDeploymentPipeline.execute.mockRejectedValue(deploymentError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      
+      expect(mockExit).toHaveBeenCalledWith(3);
+    });
+    
+    it("should show verbose error details when verbose flag is set", async () => {
+      const originalError = new Error("Connection timeout: ETIMEDOUT");
+      const networkError = new NetworkDeploymentError(
+        "Unable to reach Saleor instance",
+        { url: "https://test.saleor.cloud" },
+        originalError
+      );
+      mockDeploymentPipeline.execute.mockRejectedValue(networkError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token", 
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: true,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      
+      expect(mockExit).toHaveBeenCalledWith(3);
+    });
+    
+    it("should handle unexpected errors with exit code 1", async () => {
+      const unexpectedError = new Error("Unexpected internal error");
+      mockDeploymentPipeline.execute.mockRejectedValue(unexpectedError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 1");
+      
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+    
+    it("should handle errors during diff analysis", async () => {
+      const diffError = new Error("Invalid configuration structure");
+      
+      // Mock the configurator's diff method to throw error
+      const mockConfiguratorWithError = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockRejectedValue(diffError)
+      };
+      
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 4");
+      
+      expect(mockExit).toHaveBeenCalledWith(4);
+    });
+  });
+  
+  describe("Successful deployment", () => {
+    it("should complete deployment successfully", async () => {
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      
+      expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
+      expect(mockDeploymentPipeline.execute).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+    
+    it("should skip confirmation in CI mode", async () => {
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      
+      const { confirmAction } = await import("../cli/command");
+      expect(confirmAction).not.toHaveBeenCalled();
+    });
+    
+    it("should save deployment report", async () => {
+      const mockReportGenerator = {
+        saveToFile: vi.fn()
+      };
+      
+      vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() => mockReportGenerator as any);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+        reportPath: "custom-report.json"
+      };
+      
+      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      
+      expect(mockReportGenerator.saveToFile).toHaveBeenCalledWith("custom-report.json");
+    });
+  });
+  
+  describe("User confirmation", () => {
+    it("should exit gracefully when user cancels", async () => {
+      // Mock confirmAction to return false
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValue(false);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: false,
+        quiet: false,
+        verbose: false,
+      };
+      
+      await deployHandler(args);
+      
+      expect(mockDeploymentPipeline.execute).not.toHaveBeenCalled();
+      expect(mockExit).not.toHaveBeenCalled();
+    });
   });
 });
-
-describe("Diff Formatting", () => {
-  it("should format empty diff", () => {
-    const summary: DiffSummary = {
-      totalChanges: 0,
-      creates: 0,
-      updates: 0,
-      deletes: 0,
-      results: [],
-    };
-
-    const output = DiffFormatter.format(summary);
-    expect(output).toBeTruthy();
-    expect(typeof output).toBe("string");
-  });
-
-  it("should format mixed operations", () => {
-    const summary: DiffSummary = {
-      totalChanges: 3,
-      creates: 1,
-      updates: 1,
-      deletes: 1,
-      results: [
-        { operation: "CREATE", entityType: "Product Types", entityName: "Books" },
-        { operation: "UPDATE", entityType: "Channels", entityName: "Default" },
-        { operation: "DELETE", entityType: "Categories", entityName: "Old Category" },
-      ],
-    };
-
-    const output = DiffFormatter.format(summary);
-    expect(output).toBeTruthy();
-    expect(typeof output).toBe("string");
-  });
-}); 

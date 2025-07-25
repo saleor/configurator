@@ -3,6 +3,8 @@ import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
+import { DeploymentError, toDeploymentError } from "../core/errors/deployment-errors";
+import { logger } from "../lib/logger";
 
 export const pushCommandSchema = baseCommandArgsSchema.extend({
   force: z.boolean().default(false).describe("Force push without confirmation"),
@@ -10,6 +12,10 @@ export const pushCommandSchema = baseCommandArgsSchema.extend({
     .boolean()
     .default(false)
     .describe("Show what would be changed without applying"),
+  verbose: z
+    .boolean()
+    .default(false)
+    .describe("Show detailed error information"),
 });
 
 export type PushCommandArgs = z.infer<typeof pushCommandSchema>;
@@ -68,8 +74,21 @@ class PushCommandHandler implements CommandHandler<PushCommandArgs, void> {
 
     const configurator = createConfigurator(args);
 
-    await configurator.push();
-    this.console.success("✅ Configuration pushed to Saleor instance");
+    try {
+      await configurator.push();
+      this.console.success("✅ Configuration pushed to Saleor instance");
+    } catch (error) {
+      logger.error("Push operation failed", { error });
+      
+      // Convert to DeploymentError for consistent handling
+      const deploymentError = toDeploymentError(error, "push");
+      
+      // Display user-friendly error message
+      this.console.error(deploymentError.getUserMessage(args.verbose));
+      
+      // Exit with appropriate code
+      process.exit(deploymentError.getExitCode());
+    }
   }
 }
 
