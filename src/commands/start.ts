@@ -50,7 +50,7 @@ async function runInteractiveSetup(): Promise<void> {
     program.addCommand(command);
 
     // For commands that need URL and token, prompt for them interactively
-    if (["introspect", "diff", "push"].includes(selectedAction)) {
+    if (["introspect", "diff", "deploy"].includes(selectedAction)) {
       const { promptForMissingArgs } = await import("../cli/command");
       const interactiveArgs = await promptForMissingArgs({});
 

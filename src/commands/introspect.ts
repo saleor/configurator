@@ -93,7 +93,7 @@ export const INTROSPECT_MESSAGES = {
 💡 Next steps:
    • Review your configuration in ${configPath}
    • Make any necessary adjustments
-   • Use 'configurator push' to apply changes back to Saleor`,
+   • Use 'configurator deploy' to apply changes back to Saleor`,
 } as const;
 
 export const ERROR_ADVICE = {
