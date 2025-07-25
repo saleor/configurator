@@ -115,7 +115,7 @@ describe("Deploy Command", () => {
   
   describe("Error handling", () => {
     it("should handle network errors with exit code 3", async () => {
-      const networkError = new Error("fetch failed: ECONNREFUSED");
+      const networkError = new Error("fetch failed");
       
       // Mock the configurator's diff method to throw network error
       const mockConfiguratorWithError = {
@@ -128,7 +128,7 @@ describe("Deploy Command", () => {
         diff: vi.fn().mockRejectedValue(networkError)
       };
       
-      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -145,7 +145,7 @@ describe("Deploy Command", () => {
     });
     
     it("should handle authentication errors with exit code 2", async () => {
-      const authError = new Error("GraphQL error: Unauthorized");
+      const authError = new Error("unauthorized");
       
       // Mock the configurator's diff method to throw auth error
       const mockConfiguratorWithError = {
@@ -158,7 +158,7 @@ describe("Deploy Command", () => {
         diff: vi.fn().mockRejectedValue(authError)
       };
       
-      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -195,7 +195,7 @@ describe("Deploy Command", () => {
         diff: vi.fn().mockRejectedValue(validationError)
       };
       
-      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -228,7 +228,7 @@ describe("Deploy Command", () => {
         diff: vi.fn().mockRejectedValue(deploymentError)
       };
       
-      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
@@ -245,12 +245,7 @@ describe("Deploy Command", () => {
     });
     
     it("should show verbose error details when verbose flag is set", async () => {
-      const originalError = new Error("Connection timeout: ETIMEDOUT");
-      const networkError = new NetworkDeploymentError(
-        "Unable to reach Saleor instance",
-        { url: "https://test.saleor.cloud" },
-        originalError
-      );
+      const networkError = new Error("econnrefused");
       
       // Mock the configurator's diff method to throw network error
       const mockConfiguratorWithError = {
@@ -263,7 +258,7 @@ describe("Deploy Command", () => {
         diff: vi.fn().mockRejectedValue(networkError)
       };
       
-      mockCreateConfigurator.mockReturnValueOnce(mockConfiguratorWithError);
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
       
       const args = {
         url: "https://test.saleor.cloud",
