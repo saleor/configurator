@@ -1,8 +1,5 @@
 import { logger } from "../../lib/logger";
-import type {
-  AttributeInput,
-  FullAttribute,
-} from "../config/schema/attribute.schema";
+import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
 import { AttributeValidationError } from "./errors";
 import type {
   Attribute,
@@ -12,9 +9,7 @@ import type {
 } from "./repository";
 
 // Type guard to check if an attribute input is a reference
-export function isReferencedAttribute(
-  input: AttributeInput
-): input is { attribute: string } {
+export function isReferencedAttribute(input: AttributeInput): input is { attribute: string } {
   return "attribute" in input && !("name" in input);
 }
 
@@ -61,14 +56,11 @@ const createAttributeUpdateInput = (
 
   // For attributes with values (dropdown, multiselect, swatch), compare and update values
   if ("values" in input && input.values) {
-    const existingValues =
-      existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
+    const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
     const newValues = input.values.map((v) => v.name);
 
     // Find values to add
-    const valuesToAdd = newValues.filter(
-      (value) => !existingValues.includes(value)
-    );
+    const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
 
     if (valuesToAdd.length > 0) {
       return {
@@ -113,9 +105,7 @@ export class AttributeService {
     });
 
     // Get the names of referenced attributes
-    const referencedAttributeNames = referencedAttributes.map(
-      (a) => a.attribute
-    );
+    const referencedAttributeNames = referencedAttributes.map((a) => a.attribute);
 
     // Filter out attributes that are already assigned
     const unassignedAttributeNames = referencedAttributeNames.filter(
@@ -152,11 +142,7 @@ export class AttributeService {
     return attributeIds;
   }
 
-  async bootstrapAttributes({
-    attributeInputs,
-  }: {
-    attributeInputs: FullAttribute[];
-  }) {
+  async bootstrapAttributes({ attributeInputs }: { attributeInputs: FullAttribute[] }) {
     logger.debug("Bootstrapping attributes", {
       count: attributeInputs.length,
     });
@@ -172,19 +158,13 @@ export class AttributeService {
     return createdAttributes;
   }
 
-  async updateAttribute(
-    attributeInput: FullAttribute,
-    existingAttribute: Attribute
-  ) {
+  async updateAttribute(attributeInput: FullAttribute, existingAttribute: Attribute) {
     logger.debug("Updating attribute", {
       name: attributeInput.name,
       id: existingAttribute.id,
     });
 
-    const updateInput = createAttributeUpdateInput(
-      attributeInput,
-      existingAttribute
-    );
+    const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
 
     // Only update if there are actual changes
     if (Object.keys(updateInput).length > 1) {

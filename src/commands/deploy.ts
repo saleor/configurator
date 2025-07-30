@@ -10,12 +10,13 @@ import {
   DeploymentSummaryReport,
   getAllStages,
 } from "../core/deployment";
+import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
 import type { DiffSummary } from "../core/diff";
+import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
   ConfigurationLoadError,
   ConfigurationValidationError,
-} from "../core/diff/errors";
-import { DeployDiffFormatter } from "../core/diff/formatters";
+} from "../core/errors/configuration-errors";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 
@@ -30,6 +31,7 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .describe(
       "Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
     ),
+  verbose: z.boolean().optional().default(false).describe("Show detailed error information"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -46,133 +48,35 @@ function generateDefaultReportPath(): string {
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
-  private handleDeploymentError(error: unknown): never {
-    if (error instanceof ConfigurationValidationError) {
-      this.handleValidationError(error);
-    }
-
+  private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
     logger.error("Deployment failed", { error });
 
-    if (error instanceof Error) {
-      this.console.error(`❌ Deployment failed: ${error.message}`);
+    // Handle ConfigurationValidationError specially for backwards compatibility
+    if (error instanceof ConfigurationValidationError) {
+      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
 
-      // Provide helpful context based on error content
-      if (
-        error.message.includes("Network") ||
-        error.message.includes("ENOTFOUND")
-      ) {
-        this.console.warn(
-          "💡 Check your internet connection and Saleor instance URL"
-        );
-      } else if (
-        error.message.includes("Authentication") ||
-        error.message.includes("Unauthorized") ||
-        error.message.includes("401")
-      ) {
-        this.console.warn(
-          "💡 Verify your API token has the required permissions"
-        );
-      } else if (
-        error.message.includes("Configuration") ||
-        error.message.includes("validation")
-      ) {
-        this.console.warn("💡 Check your configuration file for syntax errors");
-      } else if (
-        error.message.includes("product type") &&
-        error.message.includes("delete")
-      ) {
-        // Generic product type deletion failure
-        this.console.warn("\n💡 Product type deletion failed. Common reasons:");
-        this.console.warn(
-          "  • The product type has products associated with it"
-        );
-        this.console.warn(
-          "  • You need to delete all products using this type first"
-        );
-        this.console.warn(
-          "  • Or remove the product type from your local config to keep it"
-        );
-      } else if (
-        error.message.includes("Failed to manage") &&
-        error.message.includes("product type")
-      ) {
-        // Generic product type management error
-        this.console.warn("\n💡 Product type management failed. Check:");
-        this.console.warn(
-          "  • Attribute value changes (they can't be renamed, only added/removed)"
-        );
-        this.console.warn(
-          "  • Product types with associated products can't be deleted"
-        );
-        this.console.warn("  • Ensure all referenced attributes exist");
-      } else if (
-        error.message.includes("attribute") &&
-        error.message.includes("delete")
-      ) {
-        // Attribute deletion failure
-        this.console.warn("\n💡 Attribute deletion failed. Common reasons:");
-        this.console.warn(
-          "  • The attribute is used by existing products or variants"
-        );
-        this.console.warn(
-          "  • Remove attribute assignments before deleting the attribute"
-        );
-      }
-
-      throw error;
-    } else {
-      this.console.error("❌ An unexpected error occurred during deployment");
-      throw new Error("An unexpected error occurred during deployment");
-    }
-  }
-
-  private handleValidationError(error: ConfigurationValidationError): void {
-    // Clear visual separation
-    this.console.text("");
-
-    // Main error header - clean and professional
-    this.console.header(
-      `${this.console.icon("error")} Configuration Validation Failed`
-    );
-    this.console.separator("═", 60);
-
-    // File context with clean formatting
-    this.console.text("");
-    this.console.field("File", this.console.path(error.filePath));
-    this.console.field(
-      "Errors found",
-      this.console.value(error.validationErrors.length.toString())
-    );
-    this.console.text("");
-
-    // Display first few errors with clean formatting
-    const displayErrors = error.validationErrors.slice(0, 5);
-
-    displayErrors.forEach((err, index) => {
-      const pathDisplay = `${this.console.type("Config")}.${err.path}`;
-      this.console.text(`  ${index + 1}. ${pathDisplay}`);
-      this.console.text(`     ● ${err.message}`);
-      this.console.text("");
-    });
-
-    if (error.validationErrors.length > 5) {
-      this.console.muted(
-        `     ... and ${error.validationErrors.length - 5} more errors`
+      const deploymentError = new ValidationDeploymentError(
+        "Configuration validation failed",
+        validationErrors,
+        {
+          file: error.filePath,
+          errorCount: error.validationErrors.length,
+        },
+        error
       );
-      this.console.text("");
+
+      this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+      process.exit(deploymentError.getExitCode());
     }
 
-    // Action items section with clean styling
-    this.console.separator("═", 60);
-    this.console.subtitle("🔧 How to Fix These Issues");
-    this.console.text("");
+    // Convert to DeploymentError for consistent handling
+    const deploymentError = toDeploymentError(error, "deployment");
 
-    this.console.text("  1. Fix the validation errors shown above");
-    this.console.text("  2. Check SCHEMA.md for correct field formats");
-    this.console.text("  3. Ensure all required fields are present");
-    this.console.text("  4. Verify data types match schema requirements");
+    // Display user-friendly error message
+    this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
 
-    this.console.text("");
+    // Exit with appropriate code
+    process.exit(deploymentError.getExitCode());
   }
 
   private async confirmSafeOperations(summary: DiffSummary): Promise<boolean> {
@@ -186,15 +90,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   private formatDestructiveOperationsWarning(summary: DiffSummary): string {
-    const deleteResults = summary.results.filter(
-      (result) => result.operation === "DELETE"
-    );
+    const deleteResults = summary.results.filter((result) => result.operation === "DELETE");
     const attributeValueRemovals = summary.results.filter(
       (r) =>
         r.operation === "UPDATE" &&
-        r.changes?.some(
-          (c) => c.field.includes("values") && c.currentValue && !c.desiredValue
-        )
+        r.changes?.some((c) => c.field.includes("values") && c.currentValue && !c.desiredValue)
     );
 
     if (deleteResults.length === 0 && attributeValueRemovals.length === 0) {
@@ -217,15 +117,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       for (const result of attributeValueRemovals) {
         const removals =
           result.changes?.filter(
-            (c) =>
-              c.field.includes("values") && c.currentValue && !c.desiredValue
+            (c) => c.field.includes("values") && c.currentValue && !c.desiredValue
           ) || [];
         if (removals.length > 0) {
-          lines.push(
-            `• ${result.entityName}: ${removals
-              .map((r) => r.currentValue)
-              .join(", ")}`
-          );
+          lines.push(`• ${result.entityName}: ${removals.map((r) => r.currentValue).join(", ")}`);
         }
       }
     }
@@ -266,21 +161,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     ];
 
     if (summary.creates > 0) {
-      lines.push(
-        `│ ✅ ${summary.creates} items to create                           │`
-      );
+      lines.push(`│ ✅ ${summary.creates} items to create                           │`);
     }
 
     if (summary.updates > 0) {
-      lines.push(
-        `│ 📝 ${summary.updates} items to update                           │`
-      );
+      lines.push(`│ 📝 ${summary.updates} items to update                           │`);
     }
 
     if (summary.deletes > 0) {
-      lines.push(
-        `│ ⚠️  ${summary.deletes} items to delete                           │`
-      );
+      lines.push(`│ ⚠️  ${summary.deletes} items to delete                           │`);
     }
 
     lines.push("╰─────────────────────────────────────────────────────────╯");
@@ -315,22 +204,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.text("");
 
     // Check if there are items that should have been deleted
-    const pendingDeletes = summary.results.filter(
-      (r) => r.operation === "DELETE"
-    );
+    const pendingDeletes = summary.results.filter((r) => r.operation === "DELETE");
     if (pendingDeletes.length > 0) {
-      this.console.warn(
-        "\n⚠️  Note: Some items marked for deletion may not have been removed:"
-      );
-      this.console.warn(
-        "  • Attribute values cannot be deleted if they're used by products"
-      );
-      this.console.warn(
-        "  • Product types cannot be deleted if they have associated products"
-      );
-      this.console.warn(
-        "\n  Running deploy again will show remaining differences."
-      );
+      this.console.warn("\n⚠️  Note: Some items marked for deletion may not have been removed:");
+      this.console.warn("  • Attribute values cannot be deleted if they're used by products");
+      this.console.warn("  • Product types cannot be deleted if they have associated products");
+      this.console.warn("\n  Running deploy again will show remaining differences.");
       this.console.text("");
     }
 
@@ -356,9 +235,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return metrics;
   }
 
-  private async validateLocalConfiguration(
-    args: DeployCommandArgs
-  ): Promise<void> {
+  private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
     const configurator = createConfigurator(args);
 
     try {
@@ -367,9 +244,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     } catch (error) {
       // Re-throw with proper error type
       if (error instanceof Error) {
-        throw new ConfigurationLoadError(
-          `Failed to load local configuration: ${error.message}`
-        );
+        throw new ConfigurationLoadError(`Failed to load local configuration: ${error.message}`);
       }
       throw error;
     }
@@ -391,7 +266,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
+  private async performDeploymentFlow(args: DeployCommandArgs): Promise<boolean> {
     let diffAnalysis: Awaited<ReturnType<typeof this.analyzeDifferences>>;
 
     try {
@@ -402,15 +277,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       diffAnalysis = await this.analyzeDifferences(args);
 
       if (diffAnalysis.summary.totalChanges === 0) {
-        this.console.status(
-          "✅ No changes detected - configuration is already in sync"
-        );
-        return; // Exit gracefully without changes
+        this.console.status("✅ No changes detected - configuration is already in sync");
+        return false; // Exit gracefully without changes
       }
 
-      this.console.status(
-        `\n${this.formatDeploymentPreview(diffAnalysis.summary)}`
-      );
+      this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
 
       // TEMPORARY FEATURE FLAG: Remove after A/B testing
       // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
@@ -425,7 +296,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       if (!shouldDeploy) {
         this.console.cancelled("Deployment cancelled by user");
-        return; // Exit gracefully when cancelled
+        return false; // Exit gracefully when cancelled
       }
 
       await this.executeDeployment(args, diffAnalysis.summary);
@@ -437,9 +308,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         deletes: diffAnalysis.summary.deletes,
       });
 
-      process.exit(0);
+      return true; // Indicate successful deployment with changes
     } catch (error) {
-      this.handleDeploymentError(error);
+      this.handleDeploymentError(error, args);
     }
   }
 
@@ -447,7 +318,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.setOptions({ quiet: args.quiet });
     this.console.header("🚀 Saleor Configuration Deploy\n");
 
-    await this.performDeploymentFlow(args);
+    const hasChanges = await this.performDeploymentFlow(args);
+
+    // Exit with success code only after successful deployment with changes
+    if (hasChanges) {
+      process.exit(0);
+    }
   }
 }
 
