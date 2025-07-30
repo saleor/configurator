@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { deployHandler } from "../deploy";
-import type { DeployCommandArgs } from "../deploy";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigFileBuilder } from "../../test-helpers/config-file-builder";
-import { createTempDirectory } from "../../test-helpers/filesystem";
 import type { TempDirectory } from "../../test-helpers/filesystem";
+import { createTempDirectory } from "../../test-helpers/filesystem";
+import type { DeployCommandArgs } from "../deploy";
+import { deployHandler } from "../deploy";
 
 describe.skip("Deploy Command with Pipeline Integration", () => {
   let tempDir: TempDirectory;
@@ -22,6 +22,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       config: configPath,
       quiet: true,
       ci: true,
+      verbose: false,
     };
 
     // Mock console methods to capture output
@@ -49,7 +50,9 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
         .withProductType({
           name: "Test Product Type",
           isShippingRequired: true,
-          productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }, { name: "Blue" }] }],
+          productAttributes: [
+            { name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }, { name: "Blue" }] },
+          ],
         })
         .withPageType({ name: "Test Page Type" })
         .withCategory({ name: "Test Category" })
@@ -58,32 +61,38 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       await fs.writeFile(configPath, config);
 
       // Mock fetch to return successful responses
-      vi.spyOn(global, 'fetch').mockImplementation(async (_url, options) => {
+      vi.spyOn(global, "fetch").mockImplementation(async (_url, options) => {
         const fetchOptions = options as RequestInit;
         const body = JSON.parse(fetchOptions.body as string);
-        
+
         // Mock responses based on operation
         if (body.operationName === "GetShopInfo") {
-          return new Response(JSON.stringify({
-            data: {
-              shop: {
-                name: "Old Shop",
-                defaultMailSenderName: "Old Name",
-              }
+          return new Response(
+            JSON.stringify({
+              data: {
+                shop: {
+                  name: "Old Shop",
+                  defaultMailSenderName: "Old Name",
+                },
+              },
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json" },
             }
-          }), { 
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          );
         }
-        
+
         // Default empty response for other queries
-        return new Response(JSON.stringify({
-          data: {}
-        }), { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return new Response(
+          JSON.stringify({
+            data: {},
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
       });
 
       await deployHandler(args);
@@ -101,10 +110,10 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       await fs.writeFile(configPath, config);
 
       // Mock fetch
-      vi.spyOn(global, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({ data: {} }), { 
+      vi.spyOn(global, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ data: {} }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         })
       );
 
@@ -127,13 +136,16 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       await fs.writeFile(configPath, config);
 
       // Mock fetch to return an error
-      vi.spyOn(global, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({
-          errors: [{ message: "Invalid product type data" }]
-        }), { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        })
+      vi.spyOn(global, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            errors: [{ message: "Invalid product type data" }],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
       );
 
       await expect(deployHandler(args)).rejects.toThrow();
@@ -144,16 +156,21 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
     it("updates progress for each stage", async () => {
       const config = new ConfigFileBuilder()
         .withShop({ defaultMailSenderName: "Updated Shop" })
-        .withChannel({ name: "New Channel", slug: "new-channel", currencyCode: "EUR", defaultCountry: "DE" })
+        .withChannel({
+          name: "New Channel",
+          slug: "new-channel",
+          currencyCode: "EUR",
+          defaultCountry: "DE",
+        })
         .toYaml();
 
       await fs.writeFile(configPath, config);
 
       // Mock fetch
-      vi.spyOn(global, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({ data: {} }), { 
+      vi.spyOn(global, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ data: {} }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         })
       );
 
@@ -176,17 +193,20 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       await fs.writeFile(configPath, config);
 
       // Mock fetch
-      vi.spyOn(global, 'fetch').mockResolvedValue(
-        new Response(JSON.stringify({ data: {} }), { 
+      vi.spyOn(global, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ data: {} }), {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { "Content-Type": "application/json" },
         })
       );
 
       await deployHandler(args);
 
       // Verify report was created
-      const reportExists = await fs.access(reportPath).then(() => true).catch(() => false);
+      const reportExists = await fs
+        .access(reportPath)
+        .then(() => true)
+        .catch(() => false);
       expect(reportExists).toBe(true);
 
       const report = JSON.parse(await fs.readFile(reportPath, "utf-8"));

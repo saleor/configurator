@@ -61,10 +61,7 @@ describe("AttributeService", () => {
       ];
 
       // When
-      const result = await service.resolveReferencedAttributes(
-        inputAttributes,
-        "PRODUCT_TYPE"
-      );
+      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
 
       // Then
       expect(result).toEqual(["attr-1"]);
@@ -96,10 +93,7 @@ describe("AttributeService", () => {
       ];
 
       // When
-      const result = await service.resolveReferencedAttributes(
-        inputAttributes,
-        "PAGE_TYPE"
-      );
+      const result = await service.resolveReferencedAttributes(inputAttributes, "PAGE_TYPE");
 
       // Then
       expect(result).toEqual(["attr-2"]);
@@ -156,10 +150,7 @@ describe("AttributeService", () => {
       ];
 
       // When
-      const result = await service.resolveReferencedAttributes(
-        inputAttributes,
-        "PRODUCT_TYPE"
-      );
+      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
 
       // Then
       expect(result).toEqual([]);
@@ -181,10 +172,7 @@ describe("AttributeService", () => {
       ];
 
       // When
-      const result = await service.resolveReferencedAttributes(
-        inputAttributes,
-        "PRODUCT_TYPE"
-      );
+      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
 
       // Then
       expect(result).toEqual([]);
@@ -205,10 +193,7 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
-          ],
+          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
         },
       };
 
@@ -241,10 +226,7 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(
-        updatedAttributeInput,
-        existingAttribute
-      );
+      const result = await service.updateAttribute(updatedAttributeInput, existingAttribute);
 
       // Then
       expect(mockOperations.updateAttribute).toHaveBeenCalledWith("attr-1", {
@@ -263,10 +245,7 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
-          ],
+          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
         },
       };
 
@@ -286,10 +265,7 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(
-        sameAttributeInput,
-        existingAttribute
-      );
+      const result = await service.updateAttribute(sameAttributeInput, existingAttribute);
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
@@ -322,10 +298,7 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(
-        attributeInput,
-        existingAttribute
-      );
+      const result = await service.updateAttribute(attributeInput, existingAttribute);
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
@@ -359,10 +332,7 @@ describe("AttributeService", () => {
       const service = new AttributeService(mockOperations);
 
       // When
-      const result = await service.updateAttribute(
-        attributeInput,
-        existingAttribute
-      );
+      const result = await service.updateAttribute(attributeInput, existingAttribute);
 
       // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();

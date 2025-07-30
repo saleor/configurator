@@ -33,10 +33,7 @@ describe("PageTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new PageTypeService(
-        mockPageTypeOperations,
-        attributeService
-      );
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       // When
       await service.bootstrapPageType({
@@ -80,10 +77,7 @@ describe("PageTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new PageTypeService(
-        mockPageTypeOperations,
-        attributeService
-      );
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       const inputAttributes: AttributeInput[] = [
         { attribute: "Published Date" }, // Reference to existing attribute
@@ -101,12 +95,10 @@ describe("PageTypeService", () => {
       });
 
       // Then
-      expect(mockAttributeOperations.getAttributesByNames).toHaveBeenCalledWith(
-        {
-          names: ["Published Date"],
-          type: "PAGE_TYPE",
-        }
-      );
+      expect(mockAttributeOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["Published Date"],
+        type: "PAGE_TYPE",
+      });
       expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith(
         "page-type-1",
         expect.arrayContaining(["attr-1", "attr-3"]) // Should include the referenced attribute ID and the new one
@@ -138,10 +130,7 @@ describe("PageTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new PageTypeService(
-        mockPageTypeOperations,
-        attributeService
-      );
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       const inputAttributes: AttributeInput[] = [
         { attribute: "Published Date" }, // Already assigned
@@ -154,9 +143,7 @@ describe("PageTypeService", () => {
       });
 
       // Then
-      expect(
-        mockAttributeOperations.getAttributesByNames
-      ).not.toHaveBeenCalled();
+      expect(mockAttributeOperations.getAttributesByNames).not.toHaveBeenCalled();
       expect(mockPageTypeOperations.assignAttributes).not.toHaveBeenCalled();
     });
   });

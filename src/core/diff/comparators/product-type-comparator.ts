@@ -31,12 +31,14 @@ export class ProductTypeComparator extends BaseEntityComparator<
     local: readonly ProductTypeEntity[],
     remote: readonly ProductTypeEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
+    // Validate unique names in local (strict - no duplicates allowed)
     this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+
+    // For remote, deduplicate corrupted entities but allow processing to continue
+    const deduplicatedRemote = this.deduplicateEntities(remote);
 
     const results: import("../types").DiffResult[] = [];
-    const remoteByName = this.createEntityMap(remote);
+    const remoteByName = this.createEntityMap(deduplicatedRemote);
     const localByName = this.createEntityMap(local);
 
     // Check for creates and updates
@@ -79,7 +81,7 @@ export class ProductTypeComparator extends BaseEntityComparator<
     }
 
     // Check for deletes
-    for (const remotePT of remote) {
+    for (const remotePT of deduplicatedRemote) {
       if (!localByName.has(this.getEntityName(remotePT))) {
         results.push(this.createDeleteResult(remotePT));
       }
