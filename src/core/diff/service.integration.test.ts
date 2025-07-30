@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ServiceContainer } from "../service-container";
-import { type DiffChange, formatDiff, formatDiffSummary, type DiffSummary } from ".";
+import { type DiffChange, type DiffSummary, formatDiff, formatDiffSummary } from ".";
 import { DiffService } from "./service";
 
 /**

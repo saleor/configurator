@@ -81,6 +81,9 @@
       "includes": ["src/lib/graphql/graphql-env.d.ts"],
       "linter": {
         "enabled": false
+      },
+      "files": {
+        "maxSize": 10485760
       }
     }
   ]
