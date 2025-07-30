@@ -141,9 +141,11 @@ export class CategoryComparator extends BaseEntityComparator<
         );
       } else {
         // Compare existing subcategories recursively
-        const remoteSubcat = remoteSubcatMap.get(localSubcat.name)!;
-        const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
-        changes.push(...nestedChanges);
+        const remoteSubcat = remoteSubcatMap.get(localSubcat.name);
+        if (remoteSubcat) {
+          const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
+          changes.push(...nestedChanges);
+        }
       }
     }
 
