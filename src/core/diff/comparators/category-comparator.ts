@@ -8,11 +8,12 @@ import { BaseEntityComparator } from "./base-comparator";
 type CategoryEntity = NonNullable<SaleorConfig["categories"]>[number];
 
 /**
- * Subcategory structure
+ * Subcategory structure with recursive nesting
  */
 interface Subcategory {
   readonly name: string;
   readonly slug?: string;
+  readonly subcategories?: readonly Subcategory[];
 }
 
 /**
@@ -116,7 +117,7 @@ export class CategoryComparator extends BaseEntityComparator<
   }
 
   /**
-   * Compares subcategories between local and remote categories
+   * Compares subcategories between local and remote categories recursively
    */
   private compareSubcategories(
     local: readonly Subcategory[],
@@ -138,6 +139,11 @@ export class CategoryComparator extends BaseEntityComparator<
             `Subcategory "${localSubcat.name}" added (in config, not on Saleor)`
           )
         );
+      } else {
+        // Compare existing subcategories recursively
+        const remoteSubcat = remoteSubcatMap.get(localSubcat.name)!;
+        const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
+        changes.push(...nestedChanges);
       }
     }
 
@@ -150,6 +156,36 @@ export class CategoryComparator extends BaseEntityComparator<
             remoteSubcat.name,
             null,
             `Subcategory "${remoteSubcat.name}" removed (on Saleor, not in config)`
+          )
+        );
+      }
+    }
+
+    return changes;
+  }
+
+  /**
+   * Compares the structure of individual subcategories recursively
+   */
+  private compareSubcategoryStructure(local: Subcategory, remote: Subcategory): DiffChange[] {
+    const changes: DiffChange[] = [];
+
+    // Get nested subcategories
+    const localNested = local.subcategories ?? [];
+    const remoteNested = remote.subcategories ?? [];
+
+    // If there are nested subcategories, compare them recursively
+    if (localNested.length > 0 || remoteNested.length > 0) {
+      const nestedChanges = this.compareSubcategories(localNested, remoteNested);
+
+      // Prefix the nested changes with the parent subcategory name for clarity
+      for (const change of nestedChanges) {
+        changes.push(
+          this.createFieldChange(
+            change.field,
+            change.oldValue,
+            change.newValue,
+            `In "${local.name}": ${change.description || `${change.field} changed`}`
           )
         );
       }
