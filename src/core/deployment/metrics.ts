@@ -28,10 +28,9 @@ export class MetricsCollector {
     };
 
     // Map operation to property name
-    const propertyName = operation === "create" ? "created" 
-                      : operation === "update" ? "updated" 
-                      : "deleted";
-    
+    const propertyName =
+      operation === "create" ? "created" : operation === "update" ? "updated" : "deleted";
+
     this.entityCounts.set(type, {
       ...current,
       [propertyName]: current[propertyName] + 1,
@@ -40,7 +39,7 @@ export class MetricsCollector {
 
   complete(): DeploymentMetrics {
     this.endTime = new Date();
-    
+
     return {
       duration: this.endTime.getTime() - this.startTime.getTime(),
       startTime: this.startTime,
@@ -52,7 +51,7 @@ export class MetricsCollector {
 
   getMetrics(): DeploymentMetrics {
     const endTime = this.endTime ?? new Date();
-    
+
     return {
       duration: endTime.getTime() - this.startTime.getTime(),
       startTime: this.startTime,

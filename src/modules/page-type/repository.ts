@@ -21,14 +21,12 @@ const createPageTypeMutation = graphql(`
 type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
 
 export type PageType = NonNullable<
-  NonNullable<
-    ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]
-  >["pageType"]
+  NonNullable<ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]>["pageType"]
 >;
 
 const getPageTypeByNameQuery = graphql(`
   query GetPageTypeByName($name: String!) {
-    pageTypes(filter: { search: $name }, first: 1) {
+    pageTypes(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -75,10 +73,7 @@ export interface PageTypeOperations {
   createPageType(pageTypeInput: PageTypeCreateInput): Promise<PageType>;
   getPageTypeByName(name: string): Promise<PageType | null | undefined>;
   getPageType(id: string): Promise<PageType | null | undefined>;
-  assignAttributes(
-    pageTypeId: string,
-    attributeIds: string[]
-  ): Promise<{ id: string }>;
+  assignAttributes(pageTypeId: string, attributeIds: string[]): Promise<{ id: string }>;
 }
 
 export class PageTypeRepository implements PageTypeOperations {
@@ -108,7 +103,10 @@ export class PageTypeRepository implements PageTypeOperations {
       name,
     });
 
-    return result.data?.pageTypes?.edges?.[0]?.node;
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.pageTypes?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
   }
 
   async getPageType(id: string) {

@@ -1,6 +1,6 @@
-import { writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 export interface TestConfig {
   shop?: {
@@ -34,20 +34,20 @@ export function createTestConfigFile(config: TestConfig, filename = "test-config
   const configYaml = generateConfigYaml(config);
   const tempDir = tmpdir();
   const configPath = join(tempDir, filename);
-  
+
   try {
     mkdirSync(tempDir, { recursive: true });
   } catch {
     // Directory already exists
   }
-  
+
   writeFileSync(configPath, configYaml, "utf8");
   return configPath;
 }
 
 function generateConfigYaml(config: TestConfig): string {
   const lines: string[] = [];
-  
+
   if (config.shop) {
     lines.push("shop:");
     if (config.shop.defaultMailSenderName) {
@@ -55,7 +55,7 @@ function generateConfigYaml(config: TestConfig): string {
     }
     lines.push("");
   }
-  
+
   if (config.channels && config.channels.length > 0) {
     lines.push("channels:");
     for (const channel of config.channels) {
@@ -71,7 +71,7 @@ function generateConfigYaml(config: TestConfig): string {
     }
     lines.push("");
   }
-  
+
   if (config.productTypes && config.productTypes.length > 0) {
     lines.push("productTypes:");
     for (const productType of config.productTypes) {
@@ -88,7 +88,7 @@ function generateConfigYaml(config: TestConfig): string {
     }
     lines.push("");
   }
-  
+
   if (config.pageTypes && config.pageTypes.length > 0) {
     lines.push("pageTypes:");
     for (const pageType of config.pageTypes) {
@@ -99,7 +99,7 @@ function generateConfigYaml(config: TestConfig): string {
     }
     lines.push("");
   }
-  
+
   if (config.categories && config.categories.length > 0) {
     lines.push("categories:");
     for (const category of config.categories) {
@@ -113,7 +113,7 @@ function generateConfigYaml(config: TestConfig): string {
     }
     lines.push("");
   }
-  
+
   return lines.join("\n");
 }
 
@@ -125,7 +125,12 @@ export const testConfigs = {
       defaultMailSenderName: "Test Shop",
     },
     channels: [
-      { name: "Default Channel", slug: "default-channel", currencyCode: "USD", defaultCountry: "US" },
+      {
+        name: "Default Channel",
+        slug: "default-channel",
+        currencyCode: "USD",
+        defaultCountry: "US",
+      },
     ],
   }),
 
@@ -135,7 +140,12 @@ export const testConfigs = {
       defaultMailSenderName: "Updated Shop Name",
     },
     channels: [
-      { name: "Default Channel", slug: "default-channel", currencyCode: "USD", defaultCountry: "US" },
+      {
+        name: "Default Channel",
+        slug: "default-channel",
+        currencyCode: "USD",
+        defaultCountry: "US",
+      },
       { name: "New Channel", slug: "new-channel", currencyCode: "EUR", defaultCountry: "DE" },
     ],
     productTypes: [
@@ -194,4 +204,4 @@ export const testConfigs = {
       categories,
     };
   },
-}; 
+};

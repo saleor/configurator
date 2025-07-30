@@ -67,10 +67,11 @@ export class CategoryComparator extends BaseEntityComparator<
   }
 
   /**
-   * Gets the name of a category entity
+   * Gets the unique identifier of a category entity (using slug)
+   * Categories in Saleor are uniquely identified by slug, not name
    */
   protected getEntityName(entity: CategoryEntity) {
-    return entity.name;
+    return entity.slug || entity.name; // Fallback to name if slug is not available
   }
 
   /**

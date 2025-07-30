@@ -35,9 +35,7 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
   private async performDiffOperation(args: DiffCommandArgs): Promise<void> {
     const configurator = createConfigurator(args);
 
-    this.console.muted(
-      "⏳ Preparing a diff between the configuration and the Saleor instance..."
-    );
+    this.console.muted("⏳ Preparing a diff between the configuration and the Saleor instance...");
 
     const { summary, output } = await configurator.diff();
 
@@ -65,8 +63,7 @@ export async function handleDiff(args: DiffCommandArgs): Promise<void> {
 
 export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
   name: "diff",
-  description:
-    "Shows the differences between local and remote Saleor configurations",
+  description: "Shows the differences between local and remote Saleor configurations",
   schema: diffCommandSchema,
   handler: handleDiff,
   requiresInteractive: true,

@@ -166,19 +166,11 @@ export class Console {
     const lines = [
       chalk.gray(`╭${border}╮`),
       ...(title
-        ? [
-            chalk.gray(
-              `│ ${chalk.bold(title)}${" ".repeat(
-                maxWidth - title.length - 3
-              )}│`
-            ),
-          ]
+        ? [chalk.gray(`│ ${chalk.bold(title)}${" ".repeat(maxWidth - title.length - 3)}│`)]
         : []),
       ...(title ? [chalk.gray(`├${border}┤`)] : []),
       ...content.map((line) =>
-        chalk.gray(
-          `│ ${line}${" ".repeat(Math.max(0, maxWidth - line.length - 3))}│`
-        )
+        chalk.gray(`│ ${line}${" ".repeat(Math.max(0, maxWidth - line.length - 3))}│`)
       ),
       chalk.gray(`╰${border}╯`),
     ];
@@ -201,8 +193,4 @@ export class Console {
   }
 }
 
-// TODO: Remove this once we implement it everywhere
-/**
- * @deprecated
- */
 export const cliConsole = new Console();

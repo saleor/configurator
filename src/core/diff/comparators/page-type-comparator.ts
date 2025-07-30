@@ -33,12 +33,14 @@ export class PageTypeComparator extends BaseEntityComparator<
     local: readonly PageTypeEntity[],
     remote: readonly PageTypeEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
+    // Validate unique names in local (strict - no duplicates allowed)
     this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+
+    // For remote, deduplicate corrupted entities but allow processing to continue
+    const deduplicatedRemote = this.deduplicateEntities(remote);
 
     const results: import("../types").DiffResult[] = [];
-    const remoteByName = this.createEntityMap(remote);
+    const remoteByName = this.createEntityMap(deduplicatedRemote);
     const localByName = this.createEntityMap(local);
 
     // Check for creates and updates
@@ -56,8 +58,8 @@ export class PageTypeComparator extends BaseEntityComparator<
       }
     }
 
-    // Check for deletes
-    for (const remotePT of remote) {
+    // Check for deletes (use deduplicated remote)
+    for (const remotePT of deduplicatedRemote) {
       if (!localByName.has(this.getEntityName(remotePT))) {
         results.push(this.createDeleteResult(remotePT));
       }
@@ -109,11 +111,12 @@ export class PageTypeComparator extends BaseEntityComparator<
    * Safely extracts attributes from a page type entity
    */
   private getAttributes(entity: PageTypeEntity): readonly PageTypeAttribute[] {
-    if (!("attributes" in entity)) {
+    if (!("attributes" in entity) || !entity.attributes) {
       return [];
     }
 
-    const filteredAttributes = entity.attributes.filter((attribute) => !("name" in attribute));
+    // Keep attributes that have a name property (fix: was filtering them out incorrectly)
+    const filteredAttributes = entity.attributes.filter((attribute) => "name" in attribute && attribute.name);
 
     return filteredAttributes as readonly PageTypeAttribute[];
   }
