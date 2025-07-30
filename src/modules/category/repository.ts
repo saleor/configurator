@@ -30,7 +30,7 @@ export type CategoryInput = VariablesOf<typeof createCategoryMutation>["input"];
 
 const getCategoryByNameQuery = graphql(`
   query GetCategoryByName($name: String!) {
-    categories(filter: { search: $name }, first: 1) {
+    categories(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -85,10 +85,7 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(
-    input: CategoryInput,
-    parentId?: string
-  ): Promise<Category> {
+  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -122,7 +119,10 @@ export class CategoryRepository implements CategoryOperations {
       name,
     });
 
-    return result.data?.categories?.edges?.[0]?.node;
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
   }
 
   async getAllCategories(): Promise<Category[]> {

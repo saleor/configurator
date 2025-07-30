@@ -1,7 +1,14 @@
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { createTempDirectory } from "./filesystem";
-import { createMinimalConfig, createStandardConfig, createComplexConfig, createInvalidConfig, createLargeConfig, createConfigFile } from "./config-file-builder";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  createComplexConfig,
+  createConfigFile,
+  createInvalidConfig,
+  createLargeConfig,
+  createMinimalConfig,
+  createStandardConfig,
+} from "./config-file-builder";
 import type { TempDirectory } from "./filesystem";
+import { createTempDirectory } from "./filesystem";
 
 describe("ConfigFileBuilder", () => {
   let tempDir: TempDirectory;
@@ -22,7 +29,7 @@ describe("ConfigFileBuilder", () => {
           name: "Test Channel",
           slug: "test-channel",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         });
 
       const yaml = config.toYaml();
@@ -38,13 +45,13 @@ describe("ConfigFileBuilder", () => {
           name: "Channel 1",
           slug: "channel-1",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         })
         .withChannel({
-          name: "Channel 2", 
+          name: "Channel 2",
           slug: "channel-2",
           currencyCode: "EUR",
-          defaultCountry: "DE"
+          defaultCountry: "DE",
         })
         .withProductType({
           name: "Electronics",
@@ -59,8 +66,7 @@ describe("ConfigFileBuilder", () => {
     });
 
     it("should save files to temp directory", () => {
-      const config = createConfigFile()
-        .withShop({ defaultMailSenderName: "File Test" });
+      const config = createConfigFile().withShop({ defaultMailSenderName: "File Test" });
 
       const filePath = config.saveToFile(tempDir, "test-config.yml");
       const fileContent = tempDir.readFile("test-config.yml");
@@ -71,12 +77,12 @@ describe("ConfigFileBuilder", () => {
 
     it("should support JSON format", () => {
       const config = createConfigFile()
-        .setFormat('json')
+        .setFormat("json")
         .withShop({ defaultMailSenderName: "JSON Shop" });
 
       const json = config.toJson();
       const parsed = JSON.parse(json);
-      
+
       expect(parsed.shop.defaultMailSenderName).toBe("JSON Shop");
     });
   });
@@ -117,9 +123,9 @@ describe("ConfigFileBuilder", () => {
         channelCount: 2,
         productTypeCount: 5,
         pageTypeCount: 3,
-        categoryCount: 4
+        categoryCount: 4,
       });
-      
+
       const content = config.getContent();
 
       expect(content.channels).toHaveLength(2);
@@ -143,7 +149,7 @@ describe("ConfigFileBuilder", () => {
         .withShop({
           defaultMailSenderName: "YAML Test",
           displayGrossPrices: true,
-          trackInventoryByDefault: false
+          trackInventoryByDefault: false,
         })
         .withChannels([
           {
@@ -151,15 +157,15 @@ describe("ConfigFileBuilder", () => {
             slug: "us",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
-            name: "EU Channel", 
+            name: "EU Channel",
             slug: "eu",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: false
-          }
+            isActive: false,
+          },
         ]);
 
       const yaml = config.toYaml();
@@ -169,7 +175,7 @@ describe("ConfigFileBuilder", () => {
       expect(yaml).toContain("channels:");
       expect(yaml).toContain("  - name: US Channel");
       expect(yaml).toContain("  - name: EU Channel");
-      
+
       // Check boolean values
       expect(yaml).toContain("displayGrossPrices: true");
       expect(yaml).toContain("trackInventoryByDefault: false");
@@ -180,14 +186,14 @@ describe("ConfigFileBuilder", () => {
     it("should handle special characters and strings properly", () => {
       const config = createConfigFile()
         .withShop({
-          defaultMailSenderName: "Shop: With Special Characters & Numbers 123"
+          defaultMailSenderName: "Shop: With Special Characters & Numbers 123",
         })
         .withCategory({
           name: "Category with: colons",
         });
 
       const yaml = config.toYaml();
-      
+
       // Should quote strings with special characters
       expect(yaml).toContain('"Shop: With Special Characters & Numbers 123"');
       expect(yaml).toContain('"Category with: colons"');
@@ -202,16 +208,15 @@ describe("ConfigFileBuilder", () => {
           name: "Initial Channel",
           slug: "initial",
           currencyCode: "USD",
-          defaultCountry: "US"
+          defaultCountry: "US",
         });
 
       // Reset and build different config
-      builder.reset()
-        .withShop({ defaultMailSenderName: "Reset Shop" });
+      builder.reset().withShop({ defaultMailSenderName: "Reset Shop" });
 
       const yaml = builder.toYaml();
       expect(yaml).toContain("defaultMailSenderName: Reset Shop");
       expect(yaml).not.toContain("channels:");
     });
   });
-}); 
+});

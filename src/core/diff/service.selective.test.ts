@@ -356,9 +356,7 @@ describe("DiffService - Selective Options", () => {
       // We should have fetched the configurations (since we need them for comparison)
       // but only compared the shop section
       expect(mockServices.configStorage?.load).toHaveBeenCalled();
-      expect(
-        mockServices.configuration?.retrieveWithoutSaving
-      ).toHaveBeenCalled();
+      expect(mockServices.configuration?.retrieveWithoutSaving).toHaveBeenCalled();
     });
   });
 
@@ -375,9 +373,7 @@ describe("DiffService - Selective Options", () => {
 
       // Assert
       expect(result.totalChanges).toBeGreaterThanOrEqual(0);
-      expect(result.creates + result.updates + result.deletes).toBe(
-        result.totalChanges
-      );
+      expect(result.creates + result.updates + result.deletes).toBe(result.totalChanges);
 
       // All results should be from Shop Settings only
       const entityTypes = result.results.map((r) => r.entityType);

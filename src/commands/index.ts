@@ -5,14 +5,14 @@
  * Commands are automatically registered in the CLI through this registry.
  */
 
+export { deployCommandConfig } from "./deploy";
 export { diffCommandConfig } from "./diff";
 export { introspectCommandConfig } from "./introspect";
-export { deployCommandConfig } from "./deploy";
 export { startCommandConfig } from "./start";
 
+import { deployCommandConfig } from "./deploy";
 import { diffCommandConfig } from "./diff";
 import { introspectCommandConfig } from "./introspect";
-import { deployCommandConfig } from "./deploy";
 import { startCommandConfig } from "./start";
 
 /**
