@@ -178,6 +178,23 @@ export class ConfigurationService {
     });
   }
 
+  private mapCategories(
+    rawCategories: RawSaleorConfig["categories"]
+  ): SaleorConfig["categories"] {
+    if (!rawCategories?.edges) {
+      return [];
+    }
+
+    return rawCategories.edges
+      .map((edge) => edge.node)
+      .filter((node) => node !== null)
+      .map((category) => ({
+        name: category.name,
+        slug: category.slug,
+        // TODO: Handle subcategories/children if needed
+      }));
+  }
+
   /**
    * Normalizes attribute references by converting shared attributes to reference syntax
    * This prevents duplicate attribute definition errors during deployment
@@ -210,7 +227,10 @@ export class ConfigurationService {
         if (!attributeUsage.has(attr.name)) {
           attributeUsage.set(attr.name, { attribute: attr, locations: [] });
         }
-        attributeUsage.get(attr.name)!.locations.push(location);
+        const usage = attributeUsage.get(attr.name);
+        if (usage) {
+          usage.locations.push(location);
+        }
       });
     });
 
@@ -221,7 +241,10 @@ export class ConfigurationService {
         if (!attributeUsage.has(attr.name)) {
           attributeUsage.set(attr.name, { attribute: attr, locations: [] });
         }
-        attributeUsage.get(attr.name)!.locations.push(location);
+        const usage = attributeUsage.get(attr.name);
+        if (usage) {
+          usage.locations.push(location);
+        }
       });
     });
 
@@ -238,6 +261,7 @@ export class ConfigurationService {
       ...config,
       productTypes: productTypesWithFullAttrs?.map((productType) => ({
         ...productType,
+        isShippingRequired: productType.isShippingRequired ?? false,
         productAttributes: this.convertToReferences(
           productType.productAttributes || [],
           sharedAttributes
@@ -283,7 +307,7 @@ export class ConfigurationService {
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
-      // TODO: add categories
+      categories: this.mapCategories(rawConfig.categories),
     };
 
     // Normalize attribute references to prevent duplication errors during deployment

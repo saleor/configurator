@@ -104,6 +104,24 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    categories(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          children(first: 100) {
+            edges {
+              node {
+                id
+                name
+                slug
+              }
+            }
+          }
+        }
+      }
+    }
   }
 `);
 
