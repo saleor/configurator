@@ -2,7 +2,7 @@ import invariant from "tiny-invariant";
 import { object } from "../../lib/utils/object";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { FullAttribute } from "./schema/attribute.schema";
+import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
 import type { CountryCode, CurrencyCode, ProductTypeInput, SaleorConfig } from "./schema/schema";
 import type { ConfigurationStorage } from "./yaml-manager";
 
@@ -178,14 +178,116 @@ export class ConfigurationService {
     });
   }
 
-  mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
+  /**
+   * Normalizes attribute references by converting shared attributes to reference syntax
+   * This prevents duplicate attribute definition errors during deployment
+   */
+  private normalizeAttributeReferences(config: SaleorConfig): SaleorConfig {
+    // Since we just created the config from raw data, all attributes are FullAttributes at this point
+    // We need to cast them properly to work with them
+    const productTypesWithFullAttrs = config.productTypes as Array<{
+      name: string;
+      isShippingRequired?: boolean;
+      productAttributes?: FullAttribute[];
+      variantAttributes?: FullAttribute[];
+    }>;
+
+    const pageTypesWithFullAttrs = config.pageTypes as Array<{
+      name: string;
+      attributes?: FullAttribute[];
+    }>;
+
+    // Collect all attributes across product types and page types
+    const attributeUsage = new Map<string, { attribute: FullAttribute; locations: string[] }>();
+
+    // Track attributes from product types
+    productTypesWithFullAttrs?.forEach((productType) => {
+      [
+        ...(productType.productAttributes || []),
+        ...(productType.variantAttributes || []),
+      ].forEach((attr) => {
+        const location = `productType:${productType.name}`;
+        if (!attributeUsage.has(attr.name)) {
+          attributeUsage.set(attr.name, { attribute: attr, locations: [] });
+        }
+        attributeUsage.get(attr.name)!.locations.push(location);
+      });
+    });
+
+    // Track attributes from page types
+    pageTypesWithFullAttrs?.forEach((pageType) => {
+      (pageType.attributes || []).forEach((attr) => {
+        const location = `pageType:${pageType.name}`;
+        if (!attributeUsage.has(attr.name)) {
+          attributeUsage.set(attr.name, { attribute: attr, locations: [] });
+        }
+        attributeUsage.get(attr.name)!.locations.push(location);
+      });
+    });
+
+    // Identify shared attributes (used in multiple locations)
+    const sharedAttributes = new Set<string>();
+    for (const [attrName, usage] of attributeUsage) {
+      if (usage.locations.length > 1) {
+        sharedAttributes.add(attrName);
+      }
+    }
+
+    // Convert shared attributes to references, keep unique attributes as full definitions
     return {
+      ...config,
+      productTypes: productTypesWithFullAttrs?.map((productType) => ({
+        ...productType,
+        productAttributes: this.convertToReferences(
+          productType.productAttributes || [],
+          sharedAttributes
+        ),
+        variantAttributes: this.convertToReferences(
+          productType.variantAttributes || [],
+          sharedAttributes
+        ),
+      })),
+      pageTypes: pageTypesWithFullAttrs?.map((pageType) => ({
+        ...pageType,
+        attributes: this.convertToReferences(
+          pageType.attributes || [],
+          sharedAttributes
+        ),
+      })),
+    };
+  }
+
+  /**
+   * Converts shared attributes to reference syntax while keeping unique attributes as full definitions
+   */
+  private convertToReferences(
+    attributes: FullAttribute[],
+    sharedAttributes: Set<string>
+  ): AttributeInput[] {
+    return attributes.map((attr) => {
+      if (sharedAttributes.has(attr.name)) {
+        // Convert to reference syntax
+        return { attribute: attr.name };
+      }
+      // Keep as full definition for unique attributes, but remove the 'type' field
+      // since AttributeInput expects SimpleAttribute not FullAttribute
+      // biome-ignore lint/correctness/noUnusedVariables: We're intentionally extracting 'type' to exclude it from the result
+      const { type, ...simpleAttribute } = attr;
+      return simpleAttribute;
+    });
+  }
+
+  mapConfig(rawConfig: RawSaleorConfig): SaleorConfig {
+    const config = {
       shop: this.mapShopSettings(rawConfig),
       channels: this.mapChannels(rawConfig.channels),
       productTypes: this.mapProductTypes(rawConfig.productTypes),
       pageTypes: this.mapPageTypes(rawConfig.pageTypes),
       // TODO: add categories
     };
+
+    // Normalize attribute references to prevent duplication errors during deployment
+    return this.normalizeAttributeReferences(config);
   }
 }
 
