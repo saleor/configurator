@@ -1,4 +1,13 @@
-import type { GraphQLError as GraphQLErrorType } from "graphql";
+/**
+ * Exit codes for different error types
+ */
+export const EXIT_CODES = {
+  UNEXPECTED: 1,
+  AUTHENTICATION: 2,
+  NETWORK: 3,
+  VALIDATION: 4,
+  PARTIAL_FAILURE: 5,
+} as const;
 
 /**
  * Base class for all deployment-related errors
@@ -13,7 +22,7 @@ export abstract class DeploymentError extends Error {
   ) {
     super(message);
     this.name = this.constructor.name;
-    
+
     // Preserve stack trace from original error if available
     if (originalError instanceof Error && originalError.stack) {
       this.stack = originalError.stack;
@@ -29,11 +38,7 @@ export abstract class DeploymentError extends Error {
    * Get a user-friendly error message with suggestions
    */
   getUserMessage(verbose = false): string {
-    const lines: string[] = [
-      `❌ Deployment failed: ${this.getErrorType()}`,
-      "",
-      this.message,
-    ];
+    const lines: string[] = [`❌ Deployment failed: ${this.getErrorType()}`, "", this.message];
 
     if (this.context && Object.keys(this.context).length > 0) {
       lines.push("", "Details:");
@@ -68,23 +73,19 @@ export abstract class DeploymentError extends Error {
  * Network-related deployment errors
  */
 export class NetworkDeploymentError extends DeploymentError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-    originalError?: Error | unknown
-  ) {
+  constructor(message: string, context?: Record<string, unknown>, originalError?: Error | unknown) {
     const suggestions = [
       "Check your internet connection",
       "Verify the Saleor instance URL is correct",
       "Ensure the Saleor instance is running and accessible",
       "Check if you're behind a proxy or firewall",
     ];
-    
+
     super(message, suggestions, context, originalError);
   }
 
   getExitCode(): number {
-    return 3; // Network error exit code
+    return EXIT_CODES.NETWORK;
   }
 
   protected getErrorType(): string {
@@ -96,23 +97,19 @@ export class NetworkDeploymentError extends DeploymentError {
  * Authentication and permission errors
  */
 export class AuthenticationDeploymentError extends DeploymentError {
-  constructor(
-    message: string,
-    context?: Record<string, unknown>,
-    originalError?: Error | unknown
-  ) {
+  constructor(message: string, context?: Record<string, unknown>, originalError?: Error | unknown) {
     const suggestions = [
       "Verify your API token is correct: --token YOUR_TOKEN",
       "Check token permissions in Saleor dashboard",
       "Generate a new token if the current one is expired",
       "Ensure the token has the required permissions for this operation",
     ];
-    
+
     super(message, suggestions, context, originalError);
   }
 
   getExitCode(): number {
-    return 2; // Authentication error exit code
+    return EXIT_CODES.AUTHENTICATION;
   }
 
   protected getErrorType(): string {
@@ -136,18 +133,18 @@ export class ValidationDeploymentError extends DeploymentError {
       "Ensure all required fields are present",
       "Validate your configuration with 'saleor-configurator diff'",
     ];
-    
+
     // Add validation errors to context
     const enhancedContext = {
       ...context,
       validationErrors: validationErrors.join(", "),
     };
-    
+
     super(message, suggestions, enhancedContext, originalError);
   }
 
   getExitCode(): number {
-    return 4; // Validation error exit code
+    return EXIT_CODES.VALIDATION;
   }
 
   protected getErrorType(): string {
@@ -172,19 +169,19 @@ export class PartialDeploymentError extends DeploymentError {
       "Check Saleor logs for more details",
       "Consider running 'saleor-configurator diff' to see current state",
     ];
-    
+
     // Add operation details to context
     const enhancedContext = {
       ...context,
       completedCount: completedOperations.length,
       failedCount: failedOperations.length,
     };
-    
+
     super(message, suggestions, enhancedContext, originalError);
   }
 
   getExitCode(): number {
-    return 5; // Partial failure exit code
+    return EXIT_CODES.PARTIAL_FAILURE;
   }
 
   protected getErrorType(): string {
@@ -194,33 +191,35 @@ export class PartialDeploymentError extends DeploymentError {
   getUserMessage(verbose = false): string {
     const baseMessage = super.getUserMessage(verbose);
     const lines = baseMessage.split("\n");
-    
+
     // Insert operation status after the main error message
-    const insertIndex = lines.findIndex(line => line === "Details:") + 2;
-    
+    const insertIndex = lines.findIndex((line) => line === "Details:") + 2;
+
     if (this.completedOperations.length > 0) {
       lines.splice(insertIndex, 0, "", "✅ Completed operations:");
-      this.completedOperations.forEach(op => {
+      this.completedOperations.forEach((op) => {
         lines.splice(insertIndex + 2, 0, `  • ${op}`);
       });
     }
-    
+
     if (this.failedOperations.length > 0) {
       lines.splice(
-        insertIndex + (this.completedOperations.length > 0 ? this.completedOperations.length + 3 : 0),
+        insertIndex +
+          (this.completedOperations.length > 0 ? this.completedOperations.length + 3 : 0),
         0,
         "",
         "❌ Failed operations:"
       );
       this.failedOperations.forEach(({ operation, error }) => {
         lines.splice(
-          insertIndex + (this.completedOperations.length > 0 ? this.completedOperations.length + 5 : 2),
+          insertIndex +
+            (this.completedOperations.length > 0 ? this.completedOperations.length + 5 : 2),
           0,
           `  • ${operation}: ${error}`
         );
       });
     }
-    
+
     return lines.join("\n");
   }
 }
@@ -229,22 +228,19 @@ export class PartialDeploymentError extends DeploymentError {
  * Generic deployment error for unexpected failures
  */
 export class UnexpectedDeploymentError extends DeploymentError {
-  constructor(
-    message: string,
-    originalError?: Error | unknown
-  ) {
+  constructor(message: string, originalError?: Error | unknown) {
     const suggestions = [
       "Check the error message above for clues",
       "Run with --verbose flag for more details",
       "Check if this is a known issue on GitHub",
       "Report this issue if it persists",
     ];
-    
+
     super(message, suggestions, undefined, originalError);
   }
 
   getExitCode(): number {
-    return 1; // Generic error exit code
+    return EXIT_CODES.UNEXPECTED;
   }
 
   protected getErrorType(): string {
@@ -260,16 +256,16 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
   if (error instanceof DeploymentError) {
     return error;
   }
-  
+
   // GraphQL errors with specific handling
   if (error instanceof Error) {
     const errorMessage = error.message.toLowerCase();
-    
+
     // Configuration file errors
     if (
       errorMessage.includes("configuration file not found") ||
       errorMessage.includes("failed to load") ||
-      errorMessage.includes("config") && errorMessage.includes("not found") ||
+      (errorMessage.includes("config") && errorMessage.includes("not found")) ||
       errorMessage.includes("implicit keys") ||
       errorMessage.includes("yaml") ||
       errorMessage.includes("expected schema")
@@ -281,7 +277,7 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
         error
       );
     }
-    
+
     // Network errors
     if (
       errorMessage.includes("fetch failed") ||
@@ -296,7 +292,7 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
         error
       );
     }
-    
+
     // Authentication errors
     if (
       errorMessage.includes("unauthorized") ||
@@ -305,13 +301,9 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
       errorMessage.includes("forbidden") ||
       errorMessage.includes("invalid token")
     ) {
-      return new AuthenticationDeploymentError(
-        "Authentication failed",
-        { operation },
-        error
-      );
+      return new AuthenticationDeploymentError("Authentication failed", { operation }, error);
     }
-    
+
     // Validation errors
     if (
       errorMessage.includes("validation") ||
@@ -326,10 +318,7 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
       );
     }
   }
-  
+
   // Fallback to unexpected error
-  return new UnexpectedDeploymentError(
-    `Unexpected error during ${operation}`,
-    error
-  );
+  return new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error);
 }

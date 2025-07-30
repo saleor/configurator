@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { ProductTypeService } from "../product-type/product-type-service";
-import type {
-  ProductType,
-  ProductTypeOperations,
-} from "../product-type/repository";
+import type { ProductType, ProductTypeOperations } from "../product-type/repository";
 import type { AttributeService } from "./attribute-service";
 import { DuplicateAttributeDefinitionError } from "./errors";
 import type { Attribute } from "./repository";
@@ -39,10 +36,7 @@ describe("Attribute Duplicate Handling", () => {
       variantAttributes: [],
     } as ProductType;
 
-    productTypeService = new ProductTypeService(
-      mockRepository,
-      mockAttributeService
-    );
+    productTypeService = new ProductTypeService(mockRepository, mockAttributeService);
   });
 
   describe("duplicate attribute definition handling", () => {
@@ -57,9 +51,9 @@ describe("Attribute Duplicate Handling", () => {
       } as Attribute;
 
       // Mock that the attribute already exists globally
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([existingAttribute]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([
+        existingAttribute,
+      ]);
 
       const inputAttributes: AttributeInput[] = [
         {
@@ -80,9 +74,7 @@ describe("Attribute Duplicate Handling", () => {
 
     it("should allow creating attribute when it doesn't exist globally", async () => {
       // Mock that the attribute doesn't exist globally
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([]);
       vi.mocked(mockAttributeService.bootstrapAttributes).mockResolvedValue([
         {
           id: "new-attr-id",
@@ -115,9 +107,9 @@ describe("Attribute Duplicate Handling", () => {
         inputType: "DROPDOWN",
       } as Attribute;
 
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([existingAttribute]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([
+        existingAttribute,
+      ]);
 
       const inputAttributes: AttributeInput[] = [
         {

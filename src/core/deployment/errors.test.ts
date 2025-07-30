@@ -1,13 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  DeploymentError,
-  NetworkDeploymentError,
   AuthenticationDeploymentError,
-  ValidationDeploymentError,
+  NetworkDeploymentError,
   PartialDeploymentError,
-  UnexpectedDeploymentError,
   toDeploymentError,
-} from "./deployment-errors";
+  UnexpectedDeploymentError,
+  ValidationDeploymentError,
+} from "./errors";
 
 describe("DeploymentError Classes", () => {
   describe("NetworkDeploymentError", () => {
@@ -38,11 +37,7 @@ describe("DeploymentError Classes", () => {
 
     it("should include original error in verbose mode", () => {
       const originalError = new Error("ECONNREFUSED");
-      const error = new NetworkDeploymentError(
-        "Connection failed",
-        {},
-        originalError
-      );
+      const error = new NetworkDeploymentError("Connection failed", {}, originalError);
 
       const verboseMessage = error.getUserMessage(true);
       expect(verboseMessage).toContain("Original error:");
@@ -56,16 +51,13 @@ describe("DeploymentError Classes", () => {
 
       expect(error).toBeInstanceOf(AuthenticationDeploymentError);
       expect(error.getExitCode()).toBe(2);
-      expect(error.suggestions).toContain(
-        "Verify your API token is correct: --token YOUR_TOKEN"
-      );
+      expect(error.suggestions).toContain("Verify your API token is correct: --token YOUR_TOKEN");
     });
 
     it("should format auth error message", () => {
-      const error = new AuthenticationDeploymentError(
-        "Token validation failed",
-        { tokenLength: 10 }
-      );
+      const error = new AuthenticationDeploymentError("Token validation failed", {
+        tokenLength: 10,
+      });
 
       const message = error.getUserMessage();
       expect(message).toContain("❌ Deployment failed: Authentication Error");
@@ -76,14 +68,8 @@ describe("DeploymentError Classes", () => {
 
   describe("ValidationDeploymentError", () => {
     it("should create validation error with validation details", () => {
-      const validationErrors = [
-        "Field 'name' is required",
-        "Invalid currency code",
-      ];
-      const error = new ValidationDeploymentError(
-        "Configuration is invalid",
-        validationErrors
-      );
+      const validationErrors = ["Field 'name' is required", "Invalid currency code"];
+      const error = new ValidationDeploymentError("Configuration is invalid", validationErrors);
 
       expect(error).toBeInstanceOf(ValidationDeploymentError);
       expect(error.getExitCode()).toBe(4);
@@ -112,11 +98,7 @@ describe("DeploymentError Classes", () => {
         { operation: "Create attribute", error: "Invalid input type" },
       ];
 
-      const error = new PartialDeploymentError(
-        "Some operations failed",
-        completed,
-        failed
-      );
+      const error = new PartialDeploymentError("Some operations failed", completed, failed);
 
       expect(error).toBeInstanceOf(PartialDeploymentError);
       expect(error.getExitCode()).toBe(5);
@@ -217,7 +199,7 @@ describe("DeploymentError Classes", () => {
 
     it("should handle non-Error objects", () => {
       const result = toDeploymentError("string error");
-      
+
       expect(result).toBeInstanceOf(UnexpectedDeploymentError);
       expect(result.originalError).toBe("string error");
     });
@@ -234,7 +216,7 @@ describe("DeploymentError Classes", () => {
   describe("Error Message Formatting", () => {
     it("should not show verbose hint when verbose is true", () => {
       const error = new NetworkDeploymentError("Test error");
-      
+
       const normalMessage = error.getUserMessage(false);
       const verboseMessage = error.getUserMessage(true);
 
@@ -245,9 +227,9 @@ describe("DeploymentError Classes", () => {
     it("should preserve stack trace from original error", () => {
       const originalError = new Error("Original");
       originalError.stack = "Error: Original\n    at test.js:10:5";
-      
+
       const error = new NetworkDeploymentError("Wrapped", {}, originalError);
-      
+
       expect(error.stack).toBe(originalError.stack);
     });
   });

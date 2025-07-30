@@ -1,6 +1,7 @@
 import { logger } from "../../lib/logger";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
+import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
 import {
   CategoryComparator,
@@ -10,7 +11,7 @@ import {
   ProductTypeComparator,
   ShopComparator,
 } from "./comparators";
-import { ConfigurationLoadError, DiffComparisonError, RemoteConfigurationError } from "./errors";
+import { DiffComparisonError } from "./errors";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,

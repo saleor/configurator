@@ -55,9 +55,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     const icon = this.getEntityIcon(entityType);
     lines.push(chalk.bold.white(`${icon} ${entityType}`));
     lines.push(
-      chalk.gray(
-        this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR)
-      )
+      chalk.gray(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR))
     );
 
     for (const result of results) {
@@ -76,19 +74,13 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     lines.push(`  ${opIcon} ${operation}: ${entityName}`);
 
     // Add detailed changes for updates
-    if (
-      result.operation === "UPDATE" &&
-      result.changes &&
-      result.changes.length > 0
-    ) {
+    if (result.operation === "UPDATE" && result.changes && result.changes.length > 0) {
       // Group changes by field for array values
       const groupedChanges = this.groupArrayChanges(result.changes);
 
       for (const change of groupedChanges) {
         const changeDescription = this.formatFieldChange(change);
-        lines.push(
-          `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`
-        );
+        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`);
       }
     }
 
@@ -109,9 +101,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     lines.push("");
   }
 
-  private groupArrayChanges(
-    changes: readonly DiffChange[]
-  ): (DiffChange | ArrayChangeGroup)[] {
+  private groupArrayChanges(changes: readonly DiffChange[]): (DiffChange | ArrayChangeGroup)[] {
     // Group changes by field name
     const fieldGroups = new Map<string, DiffChange[]>();
     const nonArrayChanges: DiffChange[] = [];
@@ -128,9 +118,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     }
 
     // Convert grouped array changes into single entries
-    const consolidatedChanges: (DiffChange | ArrayChangeGroup)[] = [
-      ...nonArrayChanges,
-    ];
+    const consolidatedChanges: (DiffChange | ArrayChangeGroup)[] = [...nonArrayChanges];
 
     for (const [field, fieldChanges] of fieldGroups) {
       const added: string[] = [];
@@ -139,10 +127,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       for (const change of fieldChanges) {
         if (change.currentValue === null && change.desiredValue !== null) {
           added.push(String(change.desiredValue));
-        } else if (
-          change.currentValue !== null &&
-          change.desiredValue === null
-        ) {
+        } else if (change.currentValue !== null && change.desiredValue === null) {
           removed.push(String(change.currentValue));
         }
       }
@@ -197,32 +182,20 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     const parts: string[] = [];
 
     if (change.removed.length > 0) {
-      const removedStr = change.removed
-        .map((v: string) => chalk.red(`-${v}`))
-        .join(", ");
+      const removedStr = change.removed.map((v: string) => chalk.red(`-${v}`)).join(", ");
       parts.push(removedStr);
     }
 
     if (change.added.length > 0) {
-      const addedStr = change.added
-        .map((v: string) => chalk.green(`+${v}`))
-        .join(", ");
+      const addedStr = change.added.map((v: string) => chalk.green(`+${v}`)).join(", ");
       parts.push(addedStr);
     }
 
     return `${field}: [${parts.join(", ")}]`;
   }
 
-  private addCreationDetails(
-    lines: string[],
-    entity: Record<string, unknown>
-  ): void {
-    const importantFields = [
-      "currencyCode",
-      "defaultCountry",
-      "slug",
-      "isShippingRequired",
-    ];
+  private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
+    const importantFields = ["currencyCode", "defaultCountry", "slug", "isShippingRequired"];
 
     for (const field of importantFields) {
       if (entity[field] !== undefined) {
@@ -232,9 +205,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
               ? chalk.green("true")
               : chalk.red("false")
             : chalk.cyan(String(entity[field]));
-        lines.push(
-          `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${field}: ${value}`
-        );
+        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${field}: ${value}`);
       }
     }
   }
@@ -242,12 +213,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
   private addSummarySection(lines: string[], summary: DiffSummary): void {
     lines.push(chalk.bold.white(`${DIFF_ICONS.SUMMARY.CHART} Summary`));
     lines.push(
-      chalk.gray(
-        this.createSeparator(
-          FORMAT_CONFIG.SUMMARY_WIDTH,
-          FORMAT_CONFIG.SUB_SEPARATOR
-        )
-      )
+      chalk.gray(this.createSeparator(FORMAT_CONFIG.SUMMARY_WIDTH, FORMAT_CONFIG.SUB_SEPARATOR))
     );
 
     const changes: string[] = [];
@@ -261,25 +227,19 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       changes.push(chalk.red(`${summary.deletes} to delete`));
     }
 
-    lines.push(
-      `Total: ${summary.totalChanges} changes (${changes.join(", ")})`
-    );
+    lines.push(`Total: ${summary.totalChanges} changes (${changes.join(", ")})`);
 
     // Add note about attribute value removals
     const hasAttributeValueRemovals = summary.results.some(
       (r) =>
         r.operation === "UPDATE" &&
-        r.changes?.some(
-          (c) => c.field.includes("values") && c.currentValue && !c.desiredValue
-        )
+        r.changes?.some((c) => c.field.includes("values") && c.currentValue && !c.desiredValue)
     );
 
     if (hasAttributeValueRemovals) {
       lines.push("");
       lines.push(
-        chalk.gray(
-          "Note: Attribute value removals may fail if values are in use by products"
-        )
+        chalk.gray("Note: Attribute value removals may fail if values are in use by products")
       );
     }
   }

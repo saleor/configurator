@@ -29,7 +29,7 @@ export interface ServiceContainer {
   readonly product: ProductService;
 }
 
-// biome-ignore lint/complexity/noStaticOnlyClass: <explanation>
+// biome-ignore lint/complexity/noStaticOnlyClass: ServiceComposer is a factory pattern that groups related static methods
 export class ServiceComposer {
   static compose(client: Client, configPath?: string): ServiceContainer {
     logger.debug("Creating repositories");

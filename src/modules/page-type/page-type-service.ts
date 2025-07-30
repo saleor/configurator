@@ -2,10 +2,7 @@ import { logger } from "../../lib/logger";
 import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
-import type {
-  PageTypeInput,
-  PageTypeUpdateInput,
-} from "../config/schema/schema";
+import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
@@ -26,10 +23,7 @@ export class PageTypeService {
     return this.repository.createPageType({ name });
   }
 
-  private async filterOutAssignedAttributes(
-    pageTypeId: string,
-    attributeIds: string[]
-  ) {
+  private async filterOutAssignedAttributes(pageTypeId: string, attributeIds: string[]) {
     logger.debug("Checking for assigned attributes", {
       pageTypeId,
       attributeIds,
@@ -45,9 +39,7 @@ export class PageTypeService {
     const assignedAttributeIds = new Set(
       pageType.attributes.map((attr: { id: string }) => attr.id)
     );
-    const filteredIds = attributeIds.filter(
-      (id) => !assignedAttributeIds.has(id)
-    );
+    const filteredIds = attributeIds.filter((id) => !assignedAttributeIds.has(id));
 
     return filteredIds;
   }
@@ -94,18 +86,14 @@ export class PageTypeService {
         pageType.attributes
           ?.map((attr) => attr.name)
           .filter((name): name is string => name !== null) ?? [];
-      const referencedAttributeIds =
-        await this.attributeService.resolveReferencedAttributes(
-          updateInput.attributes,
-          "PAGE_TYPE",
-          existingAttributeNames
-        );
+      const referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
+        updateInput.attributes,
+        "PAGE_TYPE",
+        existingAttributeNames
+      );
 
       // Combine new and referenced attribute IDs
-      const allAttributeIds = [
-        ...attributes.map((attr) => attr.id),
-        ...referencedAttributeIds,
-      ];
+      const allAttributeIds = [...attributes.map((attr) => attr.id), ...referencedAttributeIds];
 
       // Filter out already assigned attributes
       const attributesToAssign = await this.filterOutAssignedAttributes(
@@ -122,10 +110,7 @@ export class PageTypeService {
         });
 
         try {
-          await this.repository.assignAttributes(
-            pageType.id,
-            attributesToAssign
-          );
+          await this.repository.assignAttributes(pageType.id, attributesToAssign);
           logger.debug("Successfully assigned attributes to page type", {
             name: input.name,
           });

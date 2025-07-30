@@ -1,9 +1,8 @@
 import type { BaseCommandArgs } from "../cli/command";
 import { cliConsole } from "../cli/console";
-import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
-import { DiffFormatter, DiffService } from "./diff";
+import { DiffService, formatDiff } from "./diff";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
@@ -16,7 +15,6 @@ export class SaleorConfigurator {
   get serviceContainer(): ServiceContainer {
     return this.services;
   }
-
 
   async introspect() {
     cliConsole.progress.start("Retrieving configuration from Saleor");
@@ -39,7 +37,7 @@ export class SaleorConfigurator {
       const summary = await diffService.compare();
       cliConsole.progress.succeed("Configuration comparison completed");
 
-      const output = DiffFormatter.format(summary);
+      const output = formatDiff(summary);
 
       return {
         summary,

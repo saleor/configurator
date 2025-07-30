@@ -15,7 +15,7 @@ export const EXIT_CODES = {
  * Output formats supported by commands
  */
 export const OUTPUT_FORMATS = ["table", "json", "yaml"] as const;
-export type OutputFormat = typeof OUTPUT_FORMATS[number];
+export type OutputFormat = (typeof OUTPUT_FORMATS)[number];
 
 /**
  * Validates if a string is a valid output format
