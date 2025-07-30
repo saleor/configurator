@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cliConsole } from "../../../cli/console";
+import type { DiffSummary } from "../../diff";
 import { DeploymentSummaryReport } from "../summary";
 import type { DeploymentMetrics } from "../types";
-import type { DiffSummary } from "../../diff";
-import { cliConsole } from "../../../cli/console";
 
 vi.mock("../../../cli/console", () => ({
   cliConsole: {
@@ -16,7 +16,7 @@ describe.skip("DeploymentSummaryReport", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     const now = new Date("2024-01-01T10:00:00Z");
     mockMetrics = {
       duration: 5000,
@@ -48,12 +48,12 @@ describe.skip("DeploymentSummaryReport", () => {
 
       const boxCalls = vi.mocked(cliConsole.box).mock.calls;
       expect(boxCalls).toHaveLength(1);
-      
+
       const [lines, title] = boxCalls[0];
       expect(title).toBe("📊 Deployment Summary");
       expect(lines).toContain("Duration: 5.0s");
-      expect(lines.some(line => line.includes("Started:"))).toBe(true);
-      expect(lines.some(line => line.includes("Completed:"))).toBe(true);
+      expect(lines.some((line) => line.includes("Started:"))).toBe(true);
+      expect(lines.some((line) => line.includes("Completed:"))).toBe(true);
     });
 
     it("displays stage timing breakdown", () => {
@@ -147,9 +147,7 @@ describe.skip("DeploymentSummaryReport", () => {
     it("only shows entity operations that occurred", () => {
       const metrics: DeploymentMetrics = {
         ...mockMetrics,
-        entityCounts: new Map([
-          ["Product", { created: 5, updated: 0, deleted: 0 }],
-        ]),
+        entityCounts: new Map([["Product", { created: 5, updated: 0, deleted: 0 }]]),
       };
 
       const report = new DeploymentSummaryReport(metrics, mockSummary);

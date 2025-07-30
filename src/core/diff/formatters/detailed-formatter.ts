@@ -30,9 +30,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    * Adds the header section to the output
    */
   private addHeader(lines: string[]): void {
-    lines.push(
-      chalk.bold.white(`${DIFF_ICONS.SUMMARY.RESULTS} ${DIFF_MESSAGES.HEADER}`)
-    );
+    lines.push(chalk.bold.white(`${DIFF_ICONS.SUMMARY.RESULTS} ${DIFF_MESSAGES.HEADER}`));
     lines.push(chalk.gray(this.createSeparator(FORMAT_CONFIG.HEADER_WIDTH)));
     lines.push("");
   }
@@ -67,9 +65,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     const icon = this.getEntityIcon(entityType);
     lines.push(chalk.bold.white(`${icon} ${entityType}`));
     lines.push(
-      chalk.gray(
-        this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR)
-      )
+      chalk.gray(this.createSeparator(entityType.length + 2, FORMAT_CONFIG.SUB_SEPARATOR))
     );
 
     for (const result of results) {
@@ -128,10 +124,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds operation-specific additional details
    */
-  private addOperationSpecificDetails(
-    lines: string[],
-    result: DiffResult
-  ): void {
+  private addOperationSpecificDetails(lines: string[], result: DiffResult): void {
     if (result.operation === "DELETE" && result.current) {
       lines.push(
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.gray(
@@ -148,10 +141,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   /**
    * Adds specific details for entity creation
    */
-  private addCreationDetails(
-    lines: string[],
-    entity: Record<string, unknown>
-  ): void {
+  private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
     const typedEntity = entity;
 
     if (typedEntity?.currencyCode) {
@@ -175,18 +165,9 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    * Adds the summary statistics section
    */
   private addSummarySection(lines: string[], summary: DiffSummary): void {
+    lines.push(chalk.bold.white(`${DIFF_ICONS.SUMMARY.CHART} ${DIFF_MESSAGES.SUMMARY_HEADER}`));
     lines.push(
-      chalk.bold.white(
-        `${DIFF_ICONS.SUMMARY.CHART} ${DIFF_MESSAGES.SUMMARY_HEADER}`
-      )
-    );
-    lines.push(
-      chalk.gray(
-        this.createSeparator(
-          FORMAT_CONFIG.SUMMARY_WIDTH,
-          FORMAT_CONFIG.SUB_SEPARATOR
-        )
-      )
+      chalk.gray(this.createSeparator(FORMAT_CONFIG.SUMMARY_WIDTH, FORMAT_CONFIG.SUB_SEPARATOR))
     );
     lines.push(DIFF_MESSAGES.TOTAL_CHANGES(summary.totalChanges));
     lines.push(
@@ -202,10 +183,7 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
       )}`
     );
     lines.push(
-      `• ${chalk.red(summary.deletes.toString())} ${this.formatPlural(
-        summary.deletes,
-        "Deletion"
-      )}`
+      `• ${chalk.red(summary.deletes.toString())} ${this.formatPlural(summary.deletes, "Deletion")}`
     );
   }
 }

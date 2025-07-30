@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { MetricsCollector } from "../metrics";
 
 describe.skip("MetricsCollector", () => {
@@ -11,15 +11,16 @@ describe.skip("MetricsCollector", () => {
   describe("stage timing", () => {
     it("tracks stage duration", async () => {
       collector.startStage("test-stage");
-      
+
       // Simulate some work
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       collector.endStage("test-stage");
       const metrics = collector.getMetrics();
 
       expect(metrics.stageDurations.has("test-stage")).toBe(true);
-      const duration = metrics.stageDurations.get("test-stage")!;
+      const duration = metrics.stageDurations.get("test-stage");
+      expect(duration).toBeDefined();
       expect(duration).toBeGreaterThanOrEqual(50);
       expect(duration).toBeLessThan(100);
     });
@@ -34,7 +35,7 @@ describe.skip("MetricsCollector", () => {
     it("tracks multiple stages", () => {
       collector.startStage("stage-1");
       collector.endStage("stage-1");
-      
+
       collector.startStage("stage-2");
       collector.endStage("stage-2");
 
@@ -53,7 +54,7 @@ describe.skip("MetricsCollector", () => {
       collector.recordEntity("Category", "delete");
 
       const metrics = collector.getMetrics();
-      
+
       const productCounts = metrics.entityCounts.get("Product");
       expect(productCounts).toEqual({
         created: 2,
@@ -74,7 +75,7 @@ describe.skip("MetricsCollector", () => {
 
       const metrics = collector.getMetrics();
       const counts = metrics.entityCounts.get("NewType");
-      
+
       expect(counts).toEqual({
         created: 0,
         updated: 1,
@@ -87,10 +88,10 @@ describe.skip("MetricsCollector", () => {
     it("sets end time when completed", async () => {
       const startTime = new Date();
       collector.startStage("test");
-      
+
       // Ensure some time passes
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       collector.endStage("test");
 
       const metrics = collector.complete();
@@ -102,10 +103,10 @@ describe.skip("MetricsCollector", () => {
     });
 
     it("calculates total duration correctly", async () => {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const metrics = collector.complete();
-      
+
       expect(metrics.duration).toBeGreaterThanOrEqual(100);
       expect(metrics.duration).toBeLessThan(200);
     });
@@ -127,12 +128,12 @@ describe.skip("MetricsCollector", () => {
     it("returns immutable copies of maps", () => {
       collector.recordEntity("Test", "create");
       const metrics1 = collector.getMetrics();
-      
+
       // Try to modify the returned map (should not affect internal state)
       // This test ensures that the returned map is readonly
       const mutableMap = new Map(metrics1.entityCounts);
       mutableMap.clear();
-      
+
       const metrics2 = collector.getMetrics();
       expect(metrics2.entityCounts.size).toBe(1);
     });
