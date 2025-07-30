@@ -185,7 +185,7 @@ export class CategoryComparator extends BaseEntityComparator<
             change.field,
             change.oldValue,
             change.newValue,
-            `In "${local.name}": ${change.description || change.field + " changed"}`
+            `In "${local.name}": ${change.description || `${change.field} changed`}`
           )
         );
       }
