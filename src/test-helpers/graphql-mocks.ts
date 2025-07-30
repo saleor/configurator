@@ -1,9 +1,9 @@
-import type { MockNock, MockNockScope, GraphQLFetchOptions } from './types';
+import type { GraphQLFetchOptions, MockNock, MockNockScope } from "./types";
 
 // Mock nock for tests
 const nock: MockNock = (() => {
   const scopes = new Map<string, MockNockScope>();
-  
+
   const createScope = (baseUrl: string): MockNockScope => {
     const scope: MockNockScope = {
       post: () => scope,
@@ -16,13 +16,13 @@ const nock: MockNock = (() => {
     scopes.set(baseUrl, scope);
     return scope;
   };
-  
+
   const mockNock = ((baseUrl: string) => createScope(baseUrl)) as MockNock;
   mockNock.cleanAll = () => scopes.clear();
   mockNock.isActive = () => false;
   mockNock.activate = () => {};
   mockNock.restore = () => {};
-  
+
   return mockNock;
 })();
 
@@ -47,20 +47,22 @@ function createMockResponse(data: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     statusText: status === 200 ? "OK" : "Error",
-    headers: new Headers({ 'content-type': 'application/json' }),
+    headers: new Headers({ "content-type": "application/json" }),
     url: "",
     redirected: false,
     type: "basic" as ResponseType,
     body: null,
     bodyUsed: false,
-    
+
     // Essential methods that urql's fetch exchange uses
     text: () => Promise.resolve(responseText),
     json: () => Promise.resolve(data),
     blob: () => Promise.resolve(new Blob([responseText])),
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     formData: () => Promise.resolve(new FormData()),
-    clone: function() { return this; },
+    clone: function () {
+      return this;
+    },
   } as Response;
 }
 
@@ -72,24 +74,21 @@ export class GraphQLMockServer {
   constructor(options: MockGraphQLOptions) {
     this.baseUrl = options.baseUrl;
     this.endpoint = options.endpoint || "/graphql/";
-    
+
     // Ensure nock is active and configured
     if (!nock.isActive()) {
       nock.activate();
     }
-    
+
     // Clean up any existing mocks first
     nock.cleanAll();
-    
+
     this.scope = nock(this.baseUrl);
   }
 
   mockOperation(_operationName: string, response: GraphQLMockResponse): this {
-    this.scope
-      .post(this.endpoint)
-      .reply(200, response)
-      .persist(); // Allow multiple calls to the same operation
-    
+    this.scope.post(this.endpoint).reply(200, response).persist(); // Allow multiple calls to the same operation
+
     return this;
   }
 
@@ -107,12 +106,12 @@ export class GraphQLMockServer {
         data: {
           shop: mockData.shop || { defaultMailSenderName: "Test Shop" },
           channels: mockData.channels || [
-            { 
-              name: "Default Channel", 
-              slug: "default-channel", 
+            {
+              name: "Default Channel",
+              slug: "default-channel",
               currencyCode: "USD",
-              defaultCountry: { code: "US" }
-            }
+              defaultCountry: { code: "US" },
+            },
           ],
           productTypes: mockData.productTypes || { edges: [] },
           pageTypes: mockData.pageTypes || { edges: [] },
@@ -120,16 +119,13 @@ export class GraphQLMockServer {
         },
       })
       .persist();
-    
+
     return this;
   }
 
   mockMutation(_mutationName: string, response: GraphQLMockResponse): this {
-    this.scope
-      .post(this.endpoint)
-      .reply(200, response)
-      .persist();
-    
+    this.scope.post(this.endpoint).reply(200, response).persist();
+
     return this;
   }
 
@@ -140,7 +136,7 @@ export class GraphQLMockServer {
         data: { success: true },
       })
       .persist();
-    
+
     return this;
   }
 
@@ -149,13 +145,15 @@ export class GraphQLMockServer {
     this.scope
       .post(this.endpoint)
       .reply(401, {
-        errors: [{ 
-          message: "Authentication required",
-          extensions: { code: "UNAUTHORIZED" }
-        }],
+        errors: [
+          {
+            message: "Authentication required",
+            extensions: { code: "UNAUTHORIZED" },
+          },
+        ],
       })
       .persist();
-    
+
     return this;
   }
 
@@ -168,7 +166,7 @@ export class GraphQLMockServer {
         message: "Connection refused",
       })
       .persist();
-    
+
     return this;
   }
 
@@ -176,7 +174,7 @@ export class GraphQLMockServer {
     this.scope
       .post(this.endpoint)
       .reply(400, {
-        errors: fieldErrors.map(error => ({
+        errors: fieldErrors.map((error) => ({
           message: `Field '${error.field}': ${error.message}`,
           extensions: {
             code: "VALIDATION_ERROR",
@@ -185,7 +183,7 @@ export class GraphQLMockServer {
         })),
       })
       .persist();
-    
+
     return this;
   }
 
@@ -205,43 +203,44 @@ export class GraphQLMockServer {
 
 // Helper functions for common scenarios
 export function mockSuccessfulIntrospection(baseUrl: string): GraphQLMockServer {
-  return new GraphQLMockServer({ baseUrl })
-    .mockIntrospection({
-      shop: { defaultMailSenderName: "Test Shop" },
-      channels: [
-        { 
-          name: "Default Channel", 
-          slug: "default-channel", 
-          currencyCode: "USD",
-          defaultCountry: "US"
-        },
-        { 
-          name: "Mobile Channel", 
-          slug: "mobile", 
-          currencyCode: "EUR",
-          defaultCountry: "DE"
-        },
-      ],
-      productTypes: { edges: [] },
-      pageTypes: { edges: [] },
-      categories: { edges: [] },
-    });
+  return new GraphQLMockServer({ baseUrl }).mockIntrospection({
+    shop: { defaultMailSenderName: "Test Shop" },
+    channels: [
+      {
+        name: "Default Channel",
+        slug: "default-channel",
+        currencyCode: "USD",
+        defaultCountry: "US",
+      },
+      {
+        name: "Mobile Channel",
+        slug: "mobile",
+        currencyCode: "EUR",
+        defaultCountry: "DE",
+      },
+    ],
+    productTypes: { edges: [] },
+    pageTypes: { edges: [] },
+    categories: { edges: [] },
+  });
 }
 
 export function mockSuccessfulDeployment(baseUrl: string): GraphQLMockServer {
   const server = new GraphQLMockServer({ baseUrl });
-  
+
   // Mock introspection
   server.mockIntrospection({
     shop: { defaultMailSenderName: "Old Shop Name" },
-    channels: [{ 
-      name: "Old Channel", 
-      slug: "old", 
-      currencyCode: "USD",
-      defaultCountry: "US"
-    }],
+    channels: [
+      {
+        name: "Old Channel",
+        slug: "old",
+        currencyCode: "USD",
+        defaultCountry: "US",
+      },
+    ],
   });
-  
+
   // Mock successful mutations
   server.mockMutation("shopSettingsUpdate", {
     data: {
@@ -251,7 +250,7 @@ export function mockSuccessfulDeployment(baseUrl: string): GraphQLMockServer {
       },
     },
   });
-  
+
   return server;
 }
 
@@ -261,10 +260,10 @@ export function createFetchMock() {
     try {
       // Parse the GraphQL request to determine what to mock
       const body = options?.body ? JSON.parse(options.body as string) : {};
-      const query = body.query || '';
-      
+      const query = body.query || "";
+
       // Handle GraphQL introspection queries (used by GraphQL client internally)
-      if (query.includes('__schema') || query.includes('IntrospectionQuery')) {
+      if (query.includes("__schema") || query.includes("IntrospectionQuery")) {
         return createMockResponse({
           data: {
             __schema: {
@@ -275,26 +274,24 @@ export function createFetchMock() {
                 {
                   kind: "OBJECT",
                   name: "Shop",
-                  fields: [
-                    { name: "defaultMailSenderName", type: { name: "String" } }
-                  ]
+                  fields: [{ name: "defaultMailSenderName", type: { name: "String" } }],
                 },
                 {
-                  kind: "OBJECT", 
+                  kind: "OBJECT",
                   name: "Channel",
                   fields: [
                     { name: "name", type: { name: "String" } },
-                    { name: "slug", type: { name: "String" } }
-                  ]
-                }
-              ]
-            }
-          }
+                    { name: "slug", type: { name: "String" } },
+                  ],
+                },
+              ],
+            },
+          },
         });
       }
-      
+
       // Handle specific GraphQL operations based on query content
-      if (query.includes('productTypeCreate') || query.includes('ProductTypeCreate')) {
+      if (query.includes("productTypeCreate") || query.includes("ProductTypeCreate")) {
         return createMockResponse({
           data: {
             productTypeCreate: {
@@ -311,7 +308,7 @@ export function createFetchMock() {
         });
       }
 
-      if (query.includes('pageTypeCreate') || query.includes('PageTypeCreate')) {
+      if (query.includes("pageTypeCreate") || query.includes("PageTypeCreate")) {
         return createMockResponse({
           data: {
             pageTypeCreate: {
@@ -326,7 +323,7 @@ export function createFetchMock() {
         });
       }
 
-      if (query.includes('categoryCreate') || query.includes('CategoryCreate')) {
+      if (query.includes("categoryCreate") || query.includes("CategoryCreate")) {
         return createMockResponse({
           data: {
             categoryCreate: {
@@ -343,23 +340,35 @@ export function createFetchMock() {
       }
 
       // Handle authentication errors
-      if (options?.headers && 
-          typeof options.headers === 'object' && 
-          'authorization' in options.headers &&
-          (options.headers as GraphQLFetchOptions['headers'] as Record<string, string>).authorization === 'Bearer invalid-token') {
-        return createMockResponse({
-          errors: [{ 
-            message: "Authentication credentials were not provided.",
-            extensions: { code: "UNAUTHENTICATED" }
-          }]
-        }, 401);
+      if (
+        options?.headers &&
+        typeof options.headers === "object" &&
+        "authorization" in options.headers &&
+        (options.headers as GraphQLFetchOptions["headers"] as Record<string, string>)
+          .authorization === "Bearer invalid-token"
+      ) {
+        return createMockResponse(
+          {
+            errors: [
+              {
+                message: "Authentication credentials were not provided.",
+                extensions: { code: "UNAUTHENTICATED" },
+              },
+            ],
+          },
+          401
+        );
       }
 
       // Default introspection response for diff queries
-      if (query.includes('shop') || query.includes('channels') || body.operationName === 'GetConfig') {
+      if (
+        query.includes("shop") ||
+        query.includes("channels") ||
+        body.operationName === "GetConfig"
+      ) {
         return createMockResponse({
           data: {
-            shop: { 
+            shop: {
               defaultMailSenderName: "Current Shop Name",
               defaultMailSenderAddress: "noreply@test.com",
               displayGrossPrices: true,
@@ -371,24 +380,24 @@ export function createFetchMock() {
               defaultDigitalMaxDownloads: null,
               defaultDigitalUrlValidDays: null,
               defaultWeightUnit: "KG",
-              allowLoginWithoutConfirmation: false
+              allowLoginWithoutConfirmation: false,
             },
             channels: [
-              { 
+              {
                 id: "channel-1",
-                name: "Default Channel", 
-                slug: "default-channel", 
+                name: "Default Channel",
+                slug: "default-channel",
                 currencyCode: "USD",
                 defaultCountry: { code: "US" },
                 checkoutSettings: {
                   useLegacyErrorFlow: false,
-                  automaticallyCompleteFullyPaidCheckouts: true
+                  automaticallyCompleteFullyPaidCheckouts: true,
                 },
                 paymentSettings: {
-                  defaultTransactionFlowStrategy: "CHARGE"
+                  defaultTransactionFlowStrategy: "CHARGE",
                 },
                 stockSettings: {
-                  allocationStrategy: "PRIORITIZE_SORTING_ORDER"
+                  allocationStrategy: "PRIORITIZE_SORTING_ORDER",
                 },
                 orderSettings: {
                   automaticallyConfirmAllNewOrders: true,
@@ -397,16 +406,16 @@ export function createFetchMock() {
                   deleteExpiredOrdersAfter: "60",
                   markAsPaidStrategy: "PAYMENT_FLOW",
                   allowUnpaidOrders: false,
-                  includeDraftOrderInVoucherUsage: false
-                }
-              }
+                  includeDraftOrderInVoucherUsage: false,
+                },
+              },
             ],
             productTypes: { edges: [] },
             pageTypes: { edges: [] },
           },
         });
       }
-      
+
       // Default success response for mutations
       return createMockResponse({
         data: {
@@ -427,9 +436,12 @@ export function createFetchMock() {
       });
     } catch (error) {
       // Return error response
-      return createMockResponse({
-        errors: [{ message: `GraphQL Error: ${error}` }]
-      }, 400);
+      return createMockResponse(
+        {
+          errors: [{ message: `GraphQL Error: ${error}` }],
+        },
+        400
+      );
     }
   };
 }
@@ -440,4 +452,4 @@ export function cleanupAllMocks(): void {
   if (nock.isActive()) {
     nock.restore();
   }
-} 
+}

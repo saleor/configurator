@@ -61,10 +61,7 @@ export interface CategoryOperations {
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(
-    input: CategoryInput,
-    parentId?: string
-  ): Promise<Category> {
+  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,

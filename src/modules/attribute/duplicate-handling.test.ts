@@ -1,12 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { ProductTypeService } from "../product-type/product-type-service";
-import type {
-  ProductType,
-  ProductTypeOperations,
-} from "../product-type/repository";
+import type { ProductType, ProductTypeOperations } from "../product-type/repository";
 import type { AttributeService } from "./attribute-service";
-import { DuplicateAttributeDefinitionError } from "./errors";
 import type { Attribute } from "./repository";
 
 describe("Attribute Duplicate Handling", () => {
@@ -39,14 +35,11 @@ describe("Attribute Duplicate Handling", () => {
       variantAttributes: [],
     } as ProductType;
 
-    productTypeService = new ProductTypeService(
-      mockRepository,
-      mockAttributeService
-    );
+    productTypeService = new ProductTypeService(mockRepository, mockAttributeService);
   });
 
   describe("duplicate attribute definition handling", () => {
-    it("should throw error when attempting to define an attribute that already exists", async () => {
+    it("should reuse existing attribute when attempting to define an attribute that already exists", async () => {
       const existingAttribute: Attribute = {
         id: "existing-attr-id",
         name: "Color",
@@ -57,9 +50,9 @@ describe("Attribute Duplicate Handling", () => {
       } as Attribute;
 
       // Mock that the attribute already exists globally
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([existingAttribute]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([
+        existingAttribute,
+      ]);
 
       const inputAttributes: AttributeInput[] = [
         {
@@ -69,20 +62,23 @@ describe("Attribute Duplicate Handling", () => {
         },
       ];
 
-      await expect(
-        productTypeService.updateProductType(mockProductType, {
-          name: "Test Product Type",
-          isShippingRequired: false,
-          productAttributes: inputAttributes,
-        })
-      ).rejects.toThrow(DuplicateAttributeDefinitionError);
+      const result = await productTypeService.updateProductType(mockProductType, {
+        name: "Test Product Type",
+        isShippingRequired: false,
+        productAttributes: inputAttributes,
+      });
+
+      expect(result).toBe(mockProductType);
+      expect(mockRepository.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: mockProductType.id,
+        attributeIds: [existingAttribute.id],
+        type: "PRODUCT",
+      });
     });
 
     it("should allow creating attribute when it doesn't exist globally", async () => {
       // Mock that the attribute doesn't exist globally
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([]);
       vi.mocked(mockAttributeService.bootstrapAttributes).mockResolvedValue([
         {
           id: "new-attr-id",
@@ -108,34 +104,40 @@ describe("Attribute Duplicate Handling", () => {
       ).resolves.not.toThrow();
     });
 
-    it("should suggest using reference syntax in error message", async () => {
+    it("should reuse existing attribute regardless of values difference", async () => {
       const existingAttribute: Attribute = {
         id: "existing-attr-id",
         name: "Size",
         inputType: "DROPDOWN",
+        choices: {
+          edges: [{ node: { name: "XS" } }, { node: { name: "S" } }],
+        },
       } as Attribute;
 
-      vi.mocked(
-        mockAttributeService.repo.getAttributesByNames
-      ).mockResolvedValue([existingAttribute]);
+      vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([
+        existingAttribute,
+      ]);
 
       const inputAttributes: AttributeInput[] = [
         {
           name: "Size",
           inputType: "DROPDOWN" as const,
-          values: [{ name: "S" }, { name: "M" }, { name: "L" }],
+          values: [{ name: "S" }, { name: "M" }, { name: "L" }], // Different values
         },
       ];
 
-      try {
-        await productTypeService.updateProductType(mockProductType, {
-          name: "Test Product Type",
-          isShippingRequired: false,
-          productAttributes: inputAttributes,
-        });
-      } catch (error) {
-        expect(error).toBeInstanceOf(DuplicateAttributeDefinitionError);
-      }
+      const result = await productTypeService.updateProductType(mockProductType, {
+        name: "Test Product Type",
+        isShippingRequired: false,
+        productAttributes: inputAttributes,
+      });
+
+      expect(result).toBe(mockProductType);
+      expect(mockRepository.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: mockProductType.id,
+        attributeIds: [existingAttribute.id],
+        type: "PRODUCT",
+      });
     });
   });
 });
