@@ -54,9 +54,9 @@ export class CliRunner {
         exitCode: 0,
         stdout: "",
         stderr: "",
-        timedOut: false
+        timedOut: false,
       };
-      
+
       return {
         exitCode: result.exitCode,
         stdout: result.stdout,
@@ -69,7 +69,7 @@ export class CliRunner {
     } catch (error) {
       // Handle timeout and other errors
       const isTimeout = error instanceof Error && error.message.includes("timed out");
-      
+
       return {
         exitCode: 1,
         stdout: "",
@@ -92,19 +92,18 @@ export class CliRunner {
     env?: Record<string, string>;
   }): Promise<CliResult> {
     const args = ["deploy"];
-    
+
     args.push("--url", options.url);
     args.push("--token", options.token);
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
-    
+
     if (options.ci) {
       args.push("--ci", "true");
     }
-    
-    
+
     if (options.skipDiff) {
       args.push("--skip-diff", "true");
     }
@@ -119,4 +118,4 @@ export class CliRunner {
 // Convenience function for tests
 export function createCliRunner(): CliRunner {
   return new CliRunner();
-} 
+}

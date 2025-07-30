@@ -36,9 +36,7 @@ function validateSaleorUrl(url: string): string {
 
 export const baseCommandArgsSchema = z.object({
   url: z.string().describe("Saleor instance URL").transform(validateSaleorUrl),
-  token: z
-    .string({ required_error: "Token is required" })
-    .describe("Saleor API token"),
+  token: z.string({ required_error: "Token is required" }).describe("Saleor API token"),
   config: z.string().default("config.yml").describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
@@ -122,9 +120,7 @@ export async function selectOption<T extends string>(
   });
 }
 
-export interface CommandConfig<
-  T extends z.ZodObject<Record<string, z.ZodTypeAny>>
-> {
+export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
   name: string;
   description: string;
   schema: T;
@@ -136,8 +132,7 @@ export interface CommandConfig<
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
   const isBoolean =
     field._def.typeName === "ZodBoolean" ||
-    (field._def.typeName === "ZodDefault" &&
-      field._def.innerType._def.typeName === "ZodBoolean");
+    (field._def.typeName === "ZodDefault" && field._def.innerType._def.typeName === "ZodBoolean");
 
   return {
     flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
@@ -156,13 +151,11 @@ function generateOptionsFromSchema(
   const shape = schema.shape;
 
   Object.entries(shape).forEach(([key, field]) => {
-    const { flags, description, defaultValue } =
-      getOptionConfigFromZodForCommander(key, field);
+    const { flags, description, defaultValue } = getOptionConfigFromZodForCommander(key, field);
 
     const isBoolean =
       field._def.typeName === "ZodBoolean" ||
-      (field._def.typeName === "ZodDefault" &&
-        field._def.innerType._def.typeName === "ZodBoolean");
+      (field._def.typeName === "ZodDefault" && field._def.innerType._def.typeName === "ZodBoolean");
 
     if (isBoolean) {
       command.option(flags, description);
@@ -175,12 +168,10 @@ function generateOptionsFromSchema(
 /**
  * Creates a Commander.js command with enhanced TypeScript support and interactive prompts
  */
-export function createCommand<
-  T extends z.ZodObject<Record<string, z.ZodTypeAny>>
->(config: CommandConfig<T>): Command {
-  const command = new Command()
-    .name(config.name)
-    .description(config.description);
+export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>>>(
+  config: CommandConfig<T>
+): Command {
+  const command = new Command().name(config.name).description(config.description);
 
   // Dynamically generate options ("-u, --url <url>", etc) from baseCommandArgsSchema
   // ! shorthands (e.g. -u) are not generated properly
@@ -206,17 +197,12 @@ export function createCommand<
       let validatedArgs: z.infer<T>;
 
       if (config.requiresInteractive && (!options.url || !options.token)) {
-        cliConsole.info(
-          "🔧 Interactive mode: Let's set up your configuration\n"
-        );
+        cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(options);
         const result = config.schema.safeParse(interactiveArgs);
 
         if (!result.success) {
-          throw ZodValidationError.fromZodError(
-            result.error,
-            "Invalid arguments"
-          );
+          throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
         }
 
         validatedArgs = result.data;
@@ -224,10 +210,7 @@ export function createCommand<
         const result = config.schema.safeParse(options);
 
         if (!result.success) {
-          throw ZodValidationError.fromZodError(
-            result.error,
-            "Invalid arguments"
-          );
+          throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
         }
 
         validatedArgs = result.data;

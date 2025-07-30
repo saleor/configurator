@@ -1,7 +1,7 @@
+import { randomBytes } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from "node:fs";
-import { randomBytes } from "node:crypto";
 
 export interface TempDirectory {
   path: string;
@@ -15,12 +15,12 @@ export interface TempDirectory {
 export function createTempDirectory(prefix = "configurator-test"): TempDirectory {
   const randomSuffix = randomBytes(8).toString("hex");
   const dirPath = join(tmpdir(), `${prefix}-${randomSuffix}`);
-  
+
   mkdirSync(dirPath, { recursive: true });
-  
+
   return {
     path: dirPath,
-    
+
     cleanup() {
       try {
         if (existsSync(dirPath)) {
@@ -30,24 +30,24 @@ export function createTempDirectory(prefix = "configurator-test"): TempDirectory
         console.warn(`Failed to cleanup temp directory ${dirPath}:`, error);
       }
     },
-    
+
     createFile(filename: string, content: string): string {
       const filePath = join(dirPath, filename);
       writeFileSync(filePath, content, "utf8");
       return filePath;
     },
-    
+
     createSubDir(dirname: string): string {
       const subDirPath = join(dirPath, dirname);
       mkdirSync(subDirPath, { recursive: true });
       return subDirPath;
     },
-    
+
     exists(path: string): boolean {
       const fullPath = join(dirPath, path);
       return existsSync(fullPath);
     },
-    
+
     readFile(filename: string): string {
       const filePath = join(dirPath, filename);
       return readFileSync(filePath, "utf8");
@@ -69,7 +69,7 @@ productTypes:
   - name: ""  # Empty name
     slug: "empty-name"
 `;
-  
+
   return tempDir.createFile("invalid-config.yml", invalidYaml);
 }
 
@@ -99,52 +99,52 @@ categories:
     slug: "test-category"
     description: "A test category"
 `;
-  
+
   return tempDir.createFile("valid-config.yml", validYaml);
 }
 
 export function createLargeConfigFile(tempDir: TempDirectory, itemCount = 100): string {
   const lines = [
-    'shop:',
+    "shop:",
     '  defaultMailSenderName: "Large Config Shop"',
-    '',
-    'channels:',
+    "",
+    "channels:",
     '  - name: "Main Channel"',
     '    slug: "main"',
     '    currencyCode: "USD"',
-    '',
-    'productTypes:',
+    "",
+    "productTypes:",
   ];
-  
+
   for (let i = 1; i <= itemCount; i++) {
     lines.push(`  - name: "Product Type ${i}"`);
     lines.push(`    slug: "product-type-${i}"`);
     lines.push(`    hasVariants: ${i % 2 === 0}`);
     lines.push(`    kind: "NORMAL"`);
   }
-  
-  lines.push('');
-  lines.push('categories:');
-  
+
+  lines.push("");
+  lines.push("categories:");
+
   for (let i = 1; i <= itemCount; i++) {
     lines.push(`  - name: "Category ${i}"`);
     lines.push(`    slug: "category-${i}"`);
     lines.push(`    description: "Description for category ${i}"`);
   }
-  
-  return tempDir.createFile("large-config.yml", lines.join('\n'));
+
+  return tempDir.createFile("large-config.yml", lines.join("\n"));
 }
 
 // Cleanup utility for tests
 export function cleanupTempDirectories(): void {
   // This is a safety net - individual tests should handle their own cleanup
   const tempBase = tmpdir();
-  const fs = require('node:fs');
-  
+  const fs = require("node:fs");
+
   try {
     const entries = fs.readdirSync(tempBase);
     for (const entry of entries) {
-      if (entry.startsWith('configurator-test-')) {
+      if (entry.startsWith("configurator-test-")) {
         const fullPath = join(tempBase, entry);
         try {
           rmSync(fullPath, { recursive: true, force: true });
@@ -156,4 +156,4 @@ export function cleanupTempDirectories(): void {
   } catch {
     // Ignore errors in global cleanup
   }
-} 
+}
