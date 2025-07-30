@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SaleorConfigurator } from "../../configurator";
 import { DeploymentPipeline } from "../pipeline";
 import type { DeploymentContext, DeploymentStage } from "../types";
-import type { SaleorConfigurator } from "../../configurator";
 
 describe("DeploymentPipeline", () => {
   let pipeline: DeploymentPipeline;
@@ -11,7 +11,14 @@ describe("DeploymentPipeline", () => {
     pipeline = new DeploymentPipeline();
     mockContext = {
       configurator: {} as SaleorConfigurator,
-      args: { url: "test", token: "test", config: "test.yml", quiet: false, ci: false },
+      args: {
+        url: "test",
+        token: "test",
+        config: "test.yml",
+        quiet: false,
+        ci: false,
+        verbose: false,
+      },
       summary: { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] },
       startTime: new Date(),
     };
@@ -20,7 +27,7 @@ describe("DeploymentPipeline", () => {
   describe("stage execution", () => {
     it("executes stages in order", async () => {
       const executionOrder: string[] = [];
-      
+
       const stage1: DeploymentStage = {
         name: "Stage 1",
         execute: vi.fn().mockImplementation(async () => {
@@ -67,7 +74,7 @@ describe("DeploymentPipeline", () => {
       const stage: DeploymentStage = {
         name: "Test Stage",
         execute: async () => {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
         },
       };
 
@@ -138,13 +145,13 @@ describe("DeploymentPipeline", () => {
       const stage2: DeploymentStage = { name: "Stage 2", execute: async () => {} };
 
       const result = pipeline.addStage(stage1).addStage(stage2);
-      
+
       expect(result).toBe(pipeline);
     });
 
     it("executes with no stages", async () => {
       const metrics = await pipeline.execute(mockContext);
-      
+
       expect(metrics.duration).toBeGreaterThanOrEqual(0);
       expect(metrics.stageDurations.size).toBe(0);
     });

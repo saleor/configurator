@@ -153,7 +153,7 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.shop).toEqual({});
-      expect(Object.keys(result.shop!)).toHaveLength(0);
+      expect(Object.keys(result.shop ?? {})).toHaveLength(0);
     });
 
     it("should parse update input (with settings)", () => {
@@ -637,18 +637,7 @@ describe("ShopConfigurationSchema", () => {
 
     it("should include all original country codes", () => {
       // Arrange
-      const originalCodes = [
-        "US",
-        "GB",
-        "DE",
-        "FR",
-        "IT",
-        "ES",
-        "PL",
-        "JP",
-        "IN",
-        "CA",
-      ];
+      const originalCodes = ["US", "GB", "DE", "FR", "IT", "ES", "PL", "JP", "IN", "CA"];
 
       // Act & Assert
       originalCodes.forEach((code) => {

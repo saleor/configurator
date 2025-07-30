@@ -14,8 +14,8 @@ export {
   hasDiffChanges,
   hasSafeDiffChangesOnly,
 } from "./diff-operations";
-// Main formatter (backward compatible)
-export { DiffFormatter } from "./formatter";
+// Main formatter functions
+export { formatDiff, formatDiffSummary } from "./formatter";
 // Individual formatters for more specific use cases
 export {
   BaseDiffFormatter,

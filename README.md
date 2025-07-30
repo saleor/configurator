@@ -55,7 +55,7 @@ pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-
 >
 > 👉🏻 **Backup Your Data**: Before applying changes, make sure to back up your database or snapshot your instance in Saleor Cloud.
 >
-> 👉🏻 **Configuration as Source of Truth**: Configurator treats your local configuration file as the authoritative source for your Saleor instance. This means any entities (channels, product types, attributes, etc.) that exist in your Saleor instance but are not defined in your configuration will be flagged for removal during the push operation.
+> 👉🏻 **Configuration as Source of Truth**: Configurator treats your local configuration file as the authoritative source for your Saleor instance. This means any entities (channels, product types, attributes, etc.) that exist in your Saleor instance but are not defined in your configuration will be flagged for removal during the deploy operation.
 
 4. Review changes with the diff command to see what changes would be applied to your Saleor instance:
 

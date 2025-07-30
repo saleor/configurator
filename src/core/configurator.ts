@@ -3,7 +3,7 @@ import { cliConsole } from "../cli/console";
 import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
-import { DiffFormatter, DiffService } from "./diff";
+import { formatDiff } from "./diff";
 import type { ParsedSelectiveOptions } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
@@ -147,7 +147,6 @@ export class SaleorConfigurator {
     cliConsole.progress.info("Push operation completed successfully");
   }
 
-
   async introspect(selectiveOptions?: ParsedSelectiveOptions) {
     cliConsole.progress.start("Retrieving configuration from Saleor");
     try {
@@ -164,12 +163,11 @@ export class SaleorConfigurator {
   async diff() {
     cliConsole.progress.start("Comparing local and remote configurations");
     try {
-      const diffService = new DiffService(this.services);
-
-      const summary = await diffService.compare();
+      // Use the shared diff service instance from service container to ensure consistency
+      const summary = await this.services.diffService.compare();
       cliConsole.progress.succeed("Configuration comparison completed");
 
-      const output = DiffFormatter.format(summary);
+      const output = formatDiff(summary);
 
       return {
         summary,

@@ -4,7 +4,8 @@ import {
   createDetailedFormatter,
   createSummaryFormatter,
   DetailedDiffFormatter,
-  DiffFormatter,
+  formatDiff,
+  formatDiffSummary,
   type DiffStatistics,
   type DiffSummary,
   filterDiffByEntityType,
@@ -39,7 +40,7 @@ describe("DiffFormatter", () => {
       };
 
       // Act
-      const output = DiffFormatter.format(summary);
+      const output = formatDiff(summary);
 
       // Assert
       expect(output).toContain("📊 Configuration Diff Results");
@@ -78,7 +79,7 @@ describe("DiffFormatter", () => {
       };
 
       // Act
-      const output = DiffFormatter.format(summary);
+      const output = formatDiff(summary);
 
       // Assert
       expect(output).toContain("📊 Configuration Diff Results");
@@ -102,7 +103,7 @@ describe("DiffFormatter", () => {
       };
 
       // Act
-      const output = DiffFormatter.format(summary);
+      const output = formatDiff(summary);
 
       // Assert
       expect(output).toContain("✅ No differences found");
@@ -139,7 +140,7 @@ describe("DiffFormatter", () => {
       };
 
       // Act
-      const output = DiffFormatter.formatSummary(summary);
+      const output = formatDiffSummary(summary);
 
       // Assert
       expect(output).toContain("📊 Found 5 differences");
@@ -163,7 +164,7 @@ describe("DiffFormatter", () => {
       };
 
       // Act
-      const output = DiffFormatter.formatSummary(summary);
+      const output = formatDiffSummary(summary);
 
       // Assert
       expect(output).toContain("✅ No differences found");

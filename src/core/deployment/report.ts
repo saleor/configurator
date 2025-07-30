@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
+import type { DiffResult, DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
-import type { DiffSummary, DiffResult } from "../diff";
 
 export interface DeploymentReport {
   timestamp: string;
@@ -31,11 +31,14 @@ export interface DeploymentReport {
       newValue: unknown;
     }>;
   }>;
-  entityCounts: Record<string, {
-    created: number;
-    updated: number;
-    deleted: number;
-  }>;
+  entityCounts: Record<
+    string,
+    {
+      created: number;
+      updated: number;
+      deleted: number;
+    }
+  >;
 }
 
 export class DeploymentReportGenerator {
@@ -73,7 +76,7 @@ export class DeploymentReportGenerator {
 
   private formatStages(): Array<{ name: string; durationMs: number; durationFormatted: string }> {
     const stages: Array<{ name: string; durationMs: number; durationFormatted: string }> = [];
-    
+
     for (const [name, duration] of this.metrics.stageDurations) {
       stages.push({
         name,
@@ -81,7 +84,7 @@ export class DeploymentReportGenerator {
         durationFormatted: this.formatDuration(duration),
       });
     }
-    
+
     return stages;
   }
 
@@ -104,24 +107,25 @@ export class DeploymentReportGenerator {
       };
 
       if (result.changes && result.changes.length > 0) {
-        change.fields = result.changes.map((fieldChange: {
-          field: string;
-          currentValue: unknown;
-          desiredValue: unknown;
-        }) => ({
-          field: fieldChange.field,
-          oldValue: fieldChange.currentValue ?? null,
-          newValue: fieldChange.desiredValue ?? null,
-        }));
+        change.fields = result.changes.map(
+          (fieldChange: { field: string; currentValue: unknown; desiredValue: unknown }) => ({
+            field: fieldChange.field,
+            oldValue: fieldChange.currentValue ?? null,
+            newValue: fieldChange.desiredValue ?? null,
+          })
+        );
       }
 
       return change;
     });
   }
 
-  private formatEntityCounts(): Record<string, { created: number; updated: number; deleted: number }> {
+  private formatEntityCounts(): Record<
+    string,
+    { created: number; updated: number; deleted: number }
+  > {
     const counts: Record<string, { created: number; updated: number; deleted: number }> = {};
-    
+
     for (const [type, count] of this.metrics.entityCounts) {
       counts[type] = {
         created: count.created,
@@ -129,7 +133,7 @@ export class DeploymentReportGenerator {
         deleted: count.deleted,
       };
     }
-    
+
     return counts;
   }
 

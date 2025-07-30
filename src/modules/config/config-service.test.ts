@@ -119,6 +119,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
+        categories: [],
       });
     });
 
@@ -169,10 +170,7 @@ describe("ConfigurationService", () => {
                     type: "PRODUCT_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Red" } },
-                        { node: { name: "Blue" } },
-                      ],
+                      edges: [{ node: { name: "Red" } }, { node: { name: "Blue" } }],
                     },
                   },
                 ],
@@ -204,10 +202,7 @@ describe("ConfigurationService", () => {
                     type: "PAGE_TYPE",
                     inputType: "DROPDOWN",
                     choices: {
-                      edges: [
-                        { node: { name: "Full Width" } },
-                        { node: { name: "Sidebar" } },
-                      ],
+                      edges: [{ node: { name: "Full Width" } }, { node: { name: "Sidebar" } }],
                     },
                   },
                 ],
@@ -224,8 +219,7 @@ describe("ConfigurationService", () => {
       const result = service.mapConfig(completeConfig);
 
       expect(
-        (result.shop as unknown as { defaultMailSenderName: string })
-          ?.defaultMailSenderName
+        (result.shop as unknown as { defaultMailSenderName: string })?.defaultMailSenderName
       ).toBe("Test Store");
       expect(result.channels?.[0]?.name).toBe("Default Channel");
       expect(
@@ -236,8 +230,7 @@ describe("ConfigurationService", () => {
         )?.productAttributes
       ).toHaveLength(1);
       expect(
-        (result.pageTypes?.[0] as unknown as { attributes: unknown[] })
-          ?.attributes
+        (result.pageTypes?.[0] as unknown as { attributes: unknown[] })?.attributes
       ).toHaveLength(1);
     });
 
@@ -288,10 +281,7 @@ describe("ConfigurationService", () => {
         pageTypes: { edges: [] },
       };
 
-      const service = new ConfigurationService(
-        new MockRepository(rawConfig),
-        createMockStorage()
-      );
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
       const result = service.mapConfig(rawConfig);
       const attributes = result.productTypes?.[0]?.productAttributes;
       console.log(result.productTypes?.[0]);
