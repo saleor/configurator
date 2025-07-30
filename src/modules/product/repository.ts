@@ -112,7 +112,7 @@ export type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantM
 
 const getProductByNameQuery = graphql(`
   query GetProductByName($name: String!) {
-    products(filter: { search: $name }, first: 1) {
+    products(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -133,7 +133,7 @@ const getProductByNameQuery = graphql(`
 
 const getProductTypeByNameQuery = graphql(`
   query GetProductTypeByName($name: String!) {
-    productTypes(filter: { search: $name }, first: 1) {
+    productTypes(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -146,7 +146,7 @@ const getProductTypeByNameQuery = graphql(`
 
 const getCategoryByNameQuery = graphql(`
   query GetCategoryByName($name: String!) {
-    categories(filter: { search: $name }, first: 1) {
+    categories(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -159,7 +159,7 @@ const getCategoryByNameQuery = graphql(`
 
 const getAttributeByNameQuery = graphql(`
   query GetAttributeByName($name: String!) {
-    attributes(filter: { search: $name }, first: 1) {
+    attributes(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -448,17 +448,29 @@ export class ProductRepository implements ProductOperations {
 
   async getProductByName(name: string): Promise<Product | null | undefined> {
     const result = await this.client.query(getProductByNameQuery, { name });
-    return result.data?.products?.edges?.[0]?.node;
+
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.products?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getProductTypeByNameQuery, { name });
-    return result.data?.productTypes?.edges?.[0]?.node || null;
+
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.productTypes?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node || null;
   }
 
   async getCategoryByName(name: string): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getCategoryByNameQuery, { name });
-    return result.data?.categories?.edges?.[0]?.node || null;
+
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node || null;
   }
 
   async getCategoryByPath(path: string): Promise<{ id: string; name: string } | null> {
@@ -486,7 +498,10 @@ export class ProductRepository implements ProductOperations {
     logger.debug("Looking up attribute by name", { name });
 
     const result = await this.client.query(getAttributeByNameQuery, { name });
-    const attribute = result.data?.attributes?.edges?.[0]?.node;
+
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.attributes?.edges?.find((edge) => edge.node?.name === name);
+    const attribute = exactMatch?.node;
 
     if (attribute) {
       logger.debug("Found attribute", {

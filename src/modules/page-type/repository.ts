@@ -26,7 +26,7 @@ export type PageType = NonNullable<
 
 const getPageTypeByNameQuery = graphql(`
   query GetPageTypeByName($name: String!) {
-    pageTypes(filter: { search: $name }, first: 1) {
+    pageTypes(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -103,7 +103,10 @@ export class PageTypeRepository implements PageTypeOperations {
       name,
     });
 
-    return result.data?.pageTypes?.edges?.[0]?.node;
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.pageTypes?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
   }
 
   async getPageType(id: string) {
