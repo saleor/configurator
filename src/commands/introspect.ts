@@ -2,18 +2,12 @@ import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console } from "../cli/console";
-import {
-  createConfigurator,
-  type SaleorConfigurator,
-} from "../core/configurator";
+import { createConfigurator, type SaleorConfigurator } from "../core/configurator";
 import { DiffService } from "../core/diff";
 import type { DiffSummary, IntrospectDiffResult } from "../core/diff/types";
 import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
-import {
-  getSelectiveOptionsSummary,
-  parseSelectiveOptions,
-} from "../lib/utils/selective-options";
+import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
 
 // CLI Command result types
@@ -59,50 +53,41 @@ const CommandResult = {
 // Constants for magic strings
 export const INTROSPECT_MESSAGES = {
   HEADER: "🔍 Saleor Configuration Introspect\n",
-  DRY_RUN_NO_CHANGES:
-    "✅ DRY RUN: No changes would be made to local configuration",
-  DRY_RUN_CHANGES: (count: number) =>
-    `\n🔍 DRY RUN: ${count} changes would be made`,
+  DRY_RUN_NO_CHANGES: "✅ DRY RUN: No changes would be made to local configuration",
+  DRY_RUN_CHANGES: (count: number) => `\n🔍 DRY RUN: ${count} changes would be made`,
   DRY_RUN_HINT: "Run without --dry-run to apply these changes",
   NO_CHANGES: "✅ Local configuration is already up to date!",
   OPERATION_CANCELLED: "Operation cancelled.",
-  WARNING_OVERWRITE:
-    "⚠️  Introspecting will overwrite your local configuration file.",
+  WARNING_OVERWRITE: "⚠️  Introspecting will overwrite your local configuration file.",
   CONFIRM_PROMPT: "Do you want to continue and update the local file?",
   CONFIRM_DESCRIPTION:
     "This will overwrite your current local configuration with the remote state.",
   PROCESSING_BACKUP: "💾 Creating backup...",
   SUCCESS_BACKUP: (path: string) => `✅ Backup created: ${path}`,
   PROCESSING_FETCH: "🌐 Fetching configuration from Saleor...",
-  SUCCESS_SAVE: (path: string) =>
-    `✅ Configuration successfully saved to ${path}\n`,
-  PROCESSING_DIFF:
-    "🔍 Analyzing differences between remote and local configuration...\n",
+  SUCCESS_SAVE: (path: string) => `✅ Configuration successfully saved to ${path}\n`,
+  PROCESSING_DIFF: "🔍 Analyzing differences between remote and local configuration...\n",
   TOTAL_TIME: (time: string) => `\n⏱️  Total time: ${time}s`,
   TIP_VERBOSE: "💡 Tip: Use --verbose to see detailed changes for all items\n",
   CHANGES_TO_APPLY: "\nChanges to be applied:",
-  FILE_EXISTS: (path: string) =>
-    `Local configuration file "${path}" already exists.\n`,
+  FILE_EXISTS: (path: string) => `Local configuration file "${path}" already exists.\n`,
   // First-time user messages
   FIRST_TIME_WELCOME: "🎉 Welcome! No local configuration found.",
   FIRST_TIME_FETCH:
     "Configurator will download the current configuration from the remote Saleor instance.",
-  FIRST_TIME_SUCCESS:
-    "✨ Your configuration has been initialized successfully!",
+  FIRST_TIME_SUCCESS: "✨ Your configuration has been initialized successfully!",
   NEXT_STEPS: (configPath: string) => `
 💡 Next steps:
    • Review your configuration in ${configPath}
    • Make any necessary adjustments
-   • Use 'configurator push' to apply changes back to Saleor`,
+   • Use 'configurator deploy' to apply changes back to Saleor`,
 } as const;
 
 export const ERROR_ADVICE = {
-  ECONNREFUSED:
-    "Check that the Saleor URL is correct and the server is running",
+  ECONNREFUSED: "Check that the Saleor URL is correct and the server is running",
   UNAUTHORIZED: "Check that your authentication token is valid",
   ENOENT: "Check that the configuration file path is correct",
-  TIMEOUT:
-    "The operation timed out. Try again or check your network connection",
+  TIMEOUT: "The operation timed out. Try again or check your network connection",
 } as const;
 
 export const ERROR_PATTERNS = [
@@ -114,38 +99,19 @@ export const ERROR_PATTERNS = [
 ] as const;
 
 export const introspectCommandSchema = baseCommandArgsSchema.extend({
-  dryRun: z
-    .boolean()
-    .default(false)
-    .describe("Preview changes without applying them"),
-  backup: z
-    .boolean()
-    .default(true)
-    .describe("Create a backup before making changes"),
-  format: z
-    .enum(["table", "json", "yaml"])
-    .default("table")
-    .describe("Output format"),
+  dryRun: z.boolean().default(false).describe("Preview changes without applying them"),
+  backup: z.boolean().default(true).describe("Create a backup before making changes"),
+  format: z.enum(["table", "json", "yaml"]).default("table").describe("Output format"),
   ci: z
     .boolean()
     .default(false)
-    .describe(
-      "CI mode: non-interactive, exits with code 1 if changes detected"
-    ),
+    .describe("CI mode: non-interactive, exits with code 1 if changes detected"),
   include: z
     .string()
     .optional()
-    .describe(
-      "Comma-separated list of sections to include (e.g., 'channels,shop')"
-    ),
-  exclude: z
-    .string()
-    .optional()
-    .describe("Comma-separated list of sections to exclude"),
-  verbose: z
-    .boolean()
-    .default(false)
-    .describe("Show detailed changes for all items"),
+    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
+  exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
+  verbose: z.boolean().default(false).describe("Show detailed changes for all items"),
 });
 
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
@@ -200,17 +166,11 @@ export class IntrospectCommandHandler
       await this.displayResults(diffResult, context);
 
       // Check exit conditions
-      const earlyExitResult = await this.checkEarlyExitConditions(
-        diffResult.summary,
-        context
-      );
+      const earlyExitResult = await this.checkEarlyExitConditions(diffResult.summary, context);
       if (earlyExitResult) return earlyExitResult;
 
       // Perform introspection
-      const confirmResult = await this.confirmAndExecute(
-        diffResult.summary,
-        context
-      );
+      const confirmResult = await this.confirmAndExecute(diffResult.summary, context);
       if (confirmResult) return confirmResult;
 
       // Show timing
@@ -250,10 +210,7 @@ export class IntrospectCommandHandler
     }
   }
 
-  private displayConfigurationInfo(
-    args: IntrospectCommandArgs,
-    isQuiet: boolean
-  ): void {
+  private displayConfigurationInfo(args: IntrospectCommandArgs, isQuiet: boolean): void {
     if (isQuiet) return;
 
     // Show existing file info
@@ -278,15 +235,11 @@ export class IntrospectCommandHandler
     }
   }
 
-  private async analyzeDifferences(
-    context: IntrospectContext
-  ): Promise<IntrospectDiffResult> {
+  private async analyzeDifferences(context: IntrospectContext): Promise<IntrospectDiffResult> {
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_DIFF);
 
     const outputFormat = this.getOutputFormat(context.args);
-    const { includeSections, excludeSections } = parseSelectiveOptions(
-      context.args
-    );
+    const { includeSections, excludeSections } = parseSelectiveOptions(context.args);
 
     // Create DiffService instance with the same service container
     const diffService = new DiffService(context.configurator.serviceContainer);
@@ -344,10 +297,7 @@ export class IntrospectCommandHandler
     return null;
   }
 
-  private handleDryRun(
-    totalChanges: number,
-    context: IntrospectContext
-  ): CommandResult {
+  private handleDryRun(totalChanges: number, context: IntrospectContext): CommandResult {
     if (totalChanges === 0) {
       if (!context.args.ci) {
         this.console.success(INTROSPECT_MESSAGES.DRY_RUN_NO_CHANGES);
@@ -362,9 +312,7 @@ export class IntrospectCommandHandler
   }
 
   private handleCiMode(totalChanges: number): CommandResult {
-    return totalChanges > 0
-      ? CommandResult.error("", 1)
-      : CommandResult.success();
+    return totalChanges > 0 ? CommandResult.error("", 1) : CommandResult.success();
   }
 
   private handleNoChanges(): CommandResult {
@@ -389,9 +337,7 @@ export class IntrospectCommandHandler
     return null;
   }
 
-  private async requestConfirmation(
-    summary: DiffSummary
-  ): Promise<CommandResult | null> {
+  private async requestConfirmation(summary: DiffSummary): Promise<CommandResult | null> {
     this.console.warn(INTROSPECT_MESSAGES.WARNING_OVERWRITE);
 
     if (summary.totalChanges > 0) {
@@ -420,9 +366,7 @@ export class IntrospectCommandHandler
     }
 
     const formatLine = (count: number, action: string) =>
-      count > 0
-        ? `  ${count} ${count === 1 ? "item" : "items"} will be ${action}`
-        : null;
+      count > 0 ? `  ${count} ${count === 1 ? "item" : "items"} will be ${action}` : null;
 
     const lines = [
       formatLine(summary.creates, "added"),
@@ -445,9 +389,7 @@ export class IntrospectCommandHandler
     }
   }
 
-  private async executeIntrospection(
-    context: IntrospectContext
-  ): Promise<void> {
+  private async executeIntrospection(context: IntrospectContext): Promise<void> {
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
     await context.configurator.introspect();
@@ -462,21 +404,15 @@ export class IntrospectCommandHandler
     this.console.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
   }
 
-  private getOutputFormat(
-    args: IntrospectCommandArgs
-  ): "table" | "json" | "yaml" {
+  private getOutputFormat(args: IntrospectCommandArgs): "table" | "json" | "yaml" {
     return args.ci ? "json" : args.format;
   }
 
   private handleError(error: unknown): CommandResult {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    const matchedPattern = ERROR_PATTERNS.find(({ pattern }) =>
-      errorMessage.includes(pattern)
-    );
-    const actionableAdvice = matchedPattern
-      ? `\n💡 ${matchedPattern.advice}`
-      : "";
+    const matchedPattern = ERROR_PATTERNS.find(({ pattern }) => errorMessage.includes(pattern));
+    const actionableAdvice = matchedPattern ? `\n💡 ${matchedPattern.advice}` : "";
 
     const finalMessage = `Introspection failed: ${errorMessage}${actionableAdvice}`;
 
@@ -491,9 +427,7 @@ export class IntrospectCommandHandler
   }
 }
 
-export async function introspectHandler(
-  args: IntrospectCommandArgs
-): Promise<void> {
+export async function introspectHandler(args: IntrospectCommandArgs): Promise<void> {
   const handler = new IntrospectCommandHandler();
   const result = await handler.execute(args);
 
@@ -504,12 +438,9 @@ export async function introspectHandler(
   process.exit(result.exitCode);
 }
 
-export const introspectCommandConfig: CommandConfig<
-  typeof introspectCommandSchema
-> = {
+export const introspectCommandConfig: CommandConfig<typeof introspectCommandSchema> = {
   name: "introspect",
-  description:
-    "Downloads the current configuration from the remote Saleor instance",
+  description: "Downloads the current configuration from the remote Saleor instance",
   schema: introspectCommandSchema,
   handler: introspectHandler,
   requiresInteractive: false,

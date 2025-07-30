@@ -92,9 +92,7 @@ describe("File Utilities", () => {
       const result = createBackupPath(originalPath);
 
       // Assert
-      expect(result).toBe(
-        "my.config.file.backup.2023-12-01T10-30-00-000Z.yaml"
-      );
+      expect(result).toBe("my.config.file.backup.2023-12-01T10-30-00-000Z.yaml");
     });
 
     it("should handle file with no extension", () => {
@@ -148,9 +146,7 @@ describe("File Utilities", () => {
       // Arrange
       const filePath = "config.yml";
       mockFs.existsSync.mockReturnValue(true);
-      mockFs.promises.copyFile = vi
-        .fn()
-        .mockRejectedValue(new Error("Permission denied"));
+      mockFs.promises.copyFile = vi.fn().mockRejectedValue(new Error("Permission denied"));
 
       // Act
       const result = await createBackup(filePath);
@@ -198,9 +194,7 @@ describe("File Utilities", () => {
       mockFs.promises.mkdir = vi.fn().mockRejectedValue(permissionError);
 
       // Act & Assert
-      await expect(ensureDirectory(dirPath)).rejects.toThrow(
-        "Permission denied"
-      );
+      await expect(ensureDirectory(dirPath)).rejects.toThrow("Permission denied");
     });
   });
 
@@ -243,11 +237,7 @@ describe("File Utilities", () => {
       await writeFile(filePath, content);
 
       // Assert
-      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
-        filePath,
-        content,
-        "utf-8"
-      );
+      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(filePath, content, "utf-8");
     });
 
     it("should throw formatted error when writing fails", async () => {

@@ -1,10 +1,10 @@
 import { cliConsole } from "../../cli/console";
-import type { DeploymentMetrics } from "./types";
 import type { DiffSummary } from "../diff";
+import type { DeploymentMetrics } from "./types";
 
 export class DeploymentSummaryReport {
   private readonly maxLineWidth = 57; // Box width (60) minus padding and borders
-  
+
   constructor(
     private readonly metrics: DeploymentMetrics,
     private readonly summary: DiffSummary
@@ -66,7 +66,7 @@ export class DeploymentSummaryReport {
         if (counts.created > 0) parts.push(`${counts.created} created`);
         if (counts.updated > 0) parts.push(`${counts.updated} updated`);
         if (counts.deleted > 0) parts.push(`${counts.deleted} deleted`);
-        
+
         if (parts.length > 0) {
           const line = `• ${type}: ${parts.join(", ")}`;
           lines.push(this.truncateLine(line));
