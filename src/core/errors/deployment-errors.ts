@@ -265,6 +265,23 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
   if (error instanceof Error) {
     const errorMessage = error.message.toLowerCase();
     
+    // Configuration file errors
+    if (
+      errorMessage.includes("configuration file not found") ||
+      errorMessage.includes("failed to load") ||
+      errorMessage.includes("config") && errorMessage.includes("not found") ||
+      errorMessage.includes("implicit keys") ||
+      errorMessage.includes("yaml") ||
+      errorMessage.includes("expected schema")
+    ) {
+      return new ValidationDeploymentError(
+        "Configuration file error",
+        [error.message],
+        { operation },
+        error
+      );
+    }
+    
     // Network errors
     if (
       errorMessage.includes("fetch failed") ||

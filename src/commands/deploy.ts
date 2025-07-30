@@ -355,7 +355,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
+  private async performDeploymentFlow(args: DeployCommandArgs): Promise<boolean> {
     let diffAnalysis: Awaited<ReturnType<typeof this.analyzeDifferences>>;
 
     try {
@@ -369,7 +369,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         this.console.status(
           "✅ No changes detected - configuration is already in sync"
         );
-        return; // Exit gracefully without changes
+        return false; // Exit gracefully without changes
       }
 
       this.console.status(
@@ -401,7 +401,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         deletes: diffAnalysis.summary.deletes,
       });
 
-      process.exit(0);
+      return true; // Indicate successful deployment with changes
     } catch (error) {
       this.handleDeploymentError(error, args);
     }
@@ -411,7 +411,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.setOptions({ quiet: args.quiet });
     this.console.header("🚀 Saleor Configuration Deploy\n");
 
-    await this.performDeploymentFlow(args);
+    const hasChanges = await this.performDeploymentFlow(args);
+    
+    // Exit with success code only after successful deployment with changes
+    if (hasChanges) {
+      process.exit(0);
+    }
   }
 }
 

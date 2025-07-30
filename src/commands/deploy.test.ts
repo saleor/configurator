@@ -4,20 +4,31 @@ import * as configuratorModule from "../core/configurator";
 import * as deploymentModule from "../core/deployment";
 import { NetworkDeploymentError, AuthenticationDeploymentError, ValidationDeploymentError } from "../core/errors/deployment-errors";
 import { ConfigurationValidationError } from "../core/diff/errors";
+import { logger } from "../lib/logger";
 
-// Mock modules
+// Import cliConsole so we can mock it
+import { cliConsole } from "../cli/console";
+
+// Mock modules  
 vi.mock("../cli/console");
-vi.mock("../cli/command");
+vi.mock("../cli/command", () => ({
+  baseCommandArgsSchema: {
+    extend: vi.fn().mockReturnValue({
+      parse: vi.fn().mockReturnValue({})
+    })
+  },
+  confirmAction: vi.fn().mockResolvedValue(true)
+}));
 vi.mock("../lib/logger");
 vi.mock("../core/deployment");
 vi.mock("../core/diff/formatters", () => ({
-  DeployDiffFormatter: vi.fn().mockImplementation(() => ({
+  DeployDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock diff output")
   })),
-  DetailedDiffFormatter: vi.fn().mockImplementation(() => ({
+  DetailedDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock detailed diff output")
   })),
-  SummaryDiffFormatter: vi.fn().mockImplementation(() => ({
+  SummaryDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock summary diff output")
   }))
 }));
@@ -34,6 +45,9 @@ describe("Deploy Command", () => {
     mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`Process exited with code ${code}`);
     });
+    
+    // Mock logger to suppress output
+    vi.spyOn(logger, "error").mockImplementation(() => {});
     
     // Mock console methods
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -75,12 +89,15 @@ describe("Deploy Command", () => {
       saveToFile: vi.fn()
     }) as any);
     
-    // Mock configurator
-    mockCreateConfigurator = vi.fn().mockReturnValue({
+    // Mock configurator with all required methods
+    const mockConfigurator = {
       services: {
         diffService: mockDiffService,
         configStorage: {
           load: vi.fn().mockResolvedValue({})
+        },
+        configuration: {
+          retrieveWithoutSaving: vi.fn().mockResolvedValue({})
         }
       },
       diff: vi.fn().mockResolvedValue({
@@ -93,20 +110,26 @@ describe("Deploy Command", () => {
         },
         output: ""
       })
-    });
+    };
+    
+    mockCreateConfigurator = vi.fn().mockReturnValue(mockConfigurator);
     
     vi.spyOn(configuratorModule, "createConfigurator").mockImplementation(
       mockCreateConfigurator
     );
     
-    // Mock confirmAction to always return true
-    vi.mock("../cli/command", async () => {
-      const actual = await vi.importActual("../cli/command");
-      return {
-        ...actual,
-        confirmAction: vi.fn().mockResolvedValue(true),
-      };
-    });
+    // confirmAction is already mocked at module level
+    
+    // Mock the progress methods that are used in the diff() method
+    if (!vi.mocked(cliConsole).progress) {
+      vi.mocked(cliConsole).progress = {} as any;
+    }
+    vi.mocked(cliConsole).progress.start = vi.fn();
+    vi.mocked(cliConsole).progress.update = vi.fn();
+    vi.mocked(cliConsole).progress.succeed = vi.fn();
+    vi.mocked(cliConsole).progress.fail = vi.fn();
+    vi.mocked(cliConsole).progress.info = vi.fn();
+    vi.mocked(cliConsole).progress.warn = vi.fn();
   });
   
   afterEach(() => {
@@ -324,6 +347,49 @@ describe("Deploy Command", () => {
   });
   
   describe("Successful deployment", () => {
+    it("should exit gracefully when no changes detected", async () => {
+      // Mock no changes scenario
+      const mockConfiguratorNoChanges = {
+        services: {
+          diffService: mockDiffService,
+          configStorage: {
+            load: vi.fn().mockResolvedValue({})
+          },
+          configuration: {
+            retrieveWithoutSaving: vi.fn().mockResolvedValue({})
+          }
+        },
+        diff: vi.fn().mockResolvedValue({
+          summary: {
+            totalChanges: 0,
+            creates: 0,
+            updates: 0,
+            deletes: 0,
+            results: []
+          },
+          output: ""
+        })
+      };
+      
+      mockCreateConfigurator.mockReturnValue(mockConfiguratorNoChanges);
+      
+      const args = {
+        url: "https://test.saleor.cloud",
+        token: "test-token",
+        config: "config.yml",
+        ci: true,
+        quiet: false,
+        verbose: false,
+      };
+      
+      // Should not throw any error and should not call process.exit
+      await deployHandler(args);
+      
+      expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
+      expect(mockDeploymentPipeline.execute).not.toHaveBeenCalled();
+      expect(mockExit).not.toHaveBeenCalled();
+    });
+    
     it("should complete deployment successfully", async () => {
       const args = {
         url: "https://test.saleor.cloud",
@@ -334,10 +400,13 @@ describe("Deploy Command", () => {
         verbose: false,
       };
       
+      // The deployment will succeed with exit code 0
       await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
       
+      // Verify that the deployment pipeline was executed
       expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
       expect(mockDeploymentPipeline.execute).toHaveBeenCalled();
+      // And that exit(0) was called for successful deployment
       expect(mockExit).toHaveBeenCalledWith(0);
     });
     
@@ -353,8 +422,10 @@ describe("Deploy Command", () => {
       
       await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
       
+      // In CI mode, confirmAction should not be called because args.ci is true
       const { confirmAction } = await import("../cli/command");
       expect(confirmAction).not.toHaveBeenCalled();
+      expect(mockDeploymentPipeline.execute).toHaveBeenCalled();
     });
     
     it("should save deployment report", async () => {
@@ -382,9 +453,9 @@ describe("Deploy Command", () => {
   
   describe("User confirmation", () => {
     it("should exit gracefully when user cancels", async () => {
-      // Mock confirmAction to return false
+      // Mock confirmAction to return false for this specific test
       const { confirmAction } = await import("../cli/command");
-      vi.mocked(confirmAction).mockResolvedValue(false);
+      vi.mocked(confirmAction).mockResolvedValueOnce(false);
       
       const args = {
         url: "https://test.saleor.cloud",

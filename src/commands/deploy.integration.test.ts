@@ -19,12 +19,18 @@ type FetchMockCall = [string | URL | Request, RequestInit | undefined];
 describe("Deploy Command - Integration Tests", () => {
   let tempDir: TempDirectory;
   let fetchSpy: MockInstance<typeof fetch>;
+  let mockExit: MockInstance;
 
   beforeEach(() => {
     tempDir = createTempDirectory();
 
     // Use the enhanced fetch mock from graphql-mocks
     fetchSpy = vi.spyOn(global, "fetch").mockImplementation(createFetchMock());
+
+    // Mock process.exit to prevent actual exit and capture exit codes
+    mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`process.exit(${code})`);
+    });
   });
 
   afterEach(() => {
@@ -45,25 +51,20 @@ describe("Deploy Command - Integration Tests", () => {
         })
         .saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
           ci: true,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(0)");
 
-      // Assert - Verify actual behavior
-      // Assert - Verify force mode worked
-      expect(deployError?.message).toContain(
-        'process.exit unexpectedly called with "0"'
-      );
+      // Verify exit was called with success code
+      expect(mockExit).toHaveBeenCalledWith(0);
       // Verify GraphQL queries were called for diff (fetching current config)
       const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
         (call) => {
@@ -143,22 +144,20 @@ describe("Deploy Command - Integration Tests", () => {
         }
       );
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act - Should complete without throwing
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
           ci: true, // Use CI mode to avoid confirmation prompt
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).resolves.toBeUndefined();
 
-      // Assert - Should exit with no changes
-      expect(deployError).toBeUndefined();
+      // Assert - Should NOT call process.exit when no changes
+      expect(mockExit).not.toHaveBeenCalled();
 
       // Should have called GraphQL to fetch current config for diff
       const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
@@ -193,25 +192,20 @@ describe("Deploy Command - Integration Tests", () => {
       // Arrange
       const configPath = createComplexConfig().saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
           ci: true,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(0)");
 
-      // Assert - Verify multiple entity types were processed
-      // Assert - Verify force mode worked
-      expect(deployError?.message).toContain(
-        'process.exit unexpectedly called with "0"'
-      );
+      // Verify exit was called with success code
+      expect(mockExit).toHaveBeenCalledWith(0);
       // Verify shop update
       const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
         (call) => {
@@ -255,24 +249,20 @@ describe("Deploy Command - Integration Tests", () => {
         })
         .saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           ci: true,
           quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(0)");
 
-      // Assert - Verify force mode worked
-      expect(deployError?.message).toContain(
-        'process.exit unexpectedly called with "0"'
-      );
+      // Verify exit was called with success code
+      expect(mockExit).toHaveBeenCalledWith(0);
 
       // In force mode, should still compute diff and execute mutations
       const mutationCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter(
@@ -311,23 +301,20 @@ describe("Deploy Command - Integration Tests", () => {
         })
         .saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: "invalid-token",
           config: configPath,
           ci: true,
           quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(2)");
 
-      // Assert - Verify proper error handling
-      expect(deployError).toBeDefined();
-      expect(deployError?.message).toContain("Unauthorized");
+      // Verify exit was called with auth error code
+      expect(mockExit).toHaveBeenCalledWith(2);
 
       // Should have attempted the request
       expect(fetchSpy!).toHaveBeenCalledWith(
@@ -354,23 +341,20 @@ describe("Deploy Command - Integration Tests", () => {
         })
         .saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           ci: true,
           quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(3)");
 
-      // Assert - Verify network error handling
-      expect(deployError).toBeDefined();
-      expect(deployError?.message).toContain("Network");
+      // Verify exit was called with network error code
+      expect(mockExit).toHaveBeenCalledWith(3);
 
       // Should have attempted the request
       expect(fetchSpy!).toHaveBeenCalledWith(
@@ -385,23 +369,20 @@ describe("Deploy Command - Integration Tests", () => {
     });
 
     it("should fail when configuration file is missing", async () => {
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: "non-existent-config.yml",
           ci: true,
           quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(4)");
 
-      // Assert - Verify file not found error
-      expect(deployError).toBeDefined();
-      expect(deployError?.message).toContain("not found");
+      // Verify exit was called with validation error code
+      expect(mockExit).toHaveBeenCalledWith(4);
 
       // Should NOT have made any network requests
       expect(fetchSpy!).not.toHaveBeenCalled();
@@ -419,27 +400,20 @@ invalid_yaml: [
 `
       );
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           ci: true,
           quiet: false,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(4)");
 
-      // Assert - Verify YAML parsing error
-      expect(deployError).toBeDefined();
-      expect(
-        deployError?.message.includes("Implicit keys") ||
-          deployError?.message.includes("YAML") ||
-          deployError?.message.includes("configuration")
-      ).toBe(true);
+      // Verify exit was called with validation error code
+      expect(mockExit).toHaveBeenCalledWith(4);
 
       // Should NOT have made any network requests
       expect(fetchSpy!).not.toHaveBeenCalled();
@@ -449,28 +423,20 @@ invalid_yaml: [
       // Arrange: Create invalid config using builder
       const configPath = createInvalidConfig().saveToFile(tempDir);
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
           ci: true,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(4)");
 
-      // Assert - Verify validation error handling
-      expect(deployError).toBeDefined();
-      expect(
-        deployError?.message.includes("Configuration file doesn't match") ||
-          deployError?.message.includes("validation") ||
-          deployError?.message.includes("Invalid") ||
-          deployError?.message.includes("expected schema")
-      ).toBe(true);
+      // Verify exit was called with validation error code
+      expect(mockExit).toHaveBeenCalledWith(4);
 
       // Should NOT have made any network requests (config validation fails first)
       expect(fetchSpy!).not.toHaveBeenCalled();
@@ -489,28 +455,23 @@ invalid_yaml: [
 
       const startTime = Date.now();
 
-      // Act
-      let deployError: Error | undefined;
-      try {
-        await deployHandler({
+      // Act & Assert
+      await expect(
+        deployHandler({
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
           ci: true,
-        });
-      } catch (error) {
-        deployError = error as Error;
-      }
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(0)");
 
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      // Assert - Verify performance and correctness
-      // Assert - Verify force mode worked
-      expect(deployError?.message).toContain(
-        'process.exit unexpectedly called with "0"'
-      );
+      // Verify exit was called with success code
+      expect(mockExit).toHaveBeenCalledWith(0);
       expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
 
       // Verify multiple mutations were sent for different entity types
