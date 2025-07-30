@@ -271,6 +271,7 @@ export class ConfigurationService {
       }
       // Keep as full definition for unique attributes, but remove the 'type' field
       // since AttributeInput expects SimpleAttribute not FullAttribute
+      // biome-ignore lint/correctness/noUnusedVariables: We're intentionally extracting 'type' to exclude it from the result
       const { type, ...simpleAttribute } = attr;
       return simpleAttribute;
     });
