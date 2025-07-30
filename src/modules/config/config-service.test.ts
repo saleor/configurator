@@ -119,6 +119,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
+        categories: [],
       });
     });
 
