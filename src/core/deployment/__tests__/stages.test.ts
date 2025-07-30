@@ -1,12 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
-import { 
-  validationStage, 
-  shopSettingsStage, 
-  productTypesStage,
-  getAllStages 
-} from "../stages";
-import type { DeploymentContext } from "../types";
+import { describe, expect, it, vi } from "vitest";
 import type { SaleorConfigurator } from "../../configurator";
+import { getAllStages, productTypesStage, shopSettingsStage, validationStage } from "../stages";
+import type { DeploymentContext } from "../types";
 
 describe("Deployment Stages", () => {
   const createMockContext = (overrides?: Partial<DeploymentContext>): DeploymentContext => {
@@ -33,12 +28,13 @@ describe("Deployment Stages", () => {
 
     return {
       configurator: mockConfigurator,
-      args: { 
-        url: "test", 
-        token: "test", 
-        config: "test.yml", 
+      args: {
+        url: "test",
+        token: "test",
+        config: "test.yml",
         quiet: false,
         ci: false,
+        verbose: false,
       },
       summary: {
         totalChanges: 1,
@@ -55,9 +51,9 @@ describe("Deployment Stages", () => {
   describe("validationStage", () => {
     it("validates local configuration", async () => {
       const context = createMockContext();
-      
+
       await validationStage.execute(context);
-      
+
       expect(context.configurator.services.configStorage.load).toHaveBeenCalled();
     });
   });
@@ -65,9 +61,9 @@ describe("Deployment Stages", () => {
   describe("shopSettingsStage", () => {
     it("updates shop settings when config has shop data", async () => {
       const context = createMockContext();
-      
+
       await shopSettingsStage.execute(context);
-      
+
       expect(context.configurator.services.shop.updateSettings).toHaveBeenCalledWith({
         defaultMailSenderName: "Test",
       });
@@ -83,13 +79,13 @@ describe("Deployment Stages", () => {
           results: [{ entityType: "Product Types", entityName: "Test", operation: "CREATE" }],
         },
       });
-      
+
       expect(shopSettingsStage.skip?.(context)).toBe(true);
     });
 
     it("does not skip when shop changes exist", () => {
       const context = createMockContext();
-      
+
       expect(shopSettingsStage.skip?.(context)).toBe(false);
     });
   });
@@ -97,11 +93,12 @@ describe("Deployment Stages", () => {
   describe("productTypesStage", () => {
     it("bootstraps product types in parallel", async () => {
       const context = createMockContext();
-      
+
       await productTypesStage.execute(context);
-      
-      expect(context.configurator.services.productType.bootstrapProductType)
-        .toHaveBeenCalledWith({ name: "Test Type" });
+
+      expect(context.configurator.services.productType.bootstrapProductType).toHaveBeenCalledWith({
+        name: "Test Type",
+      });
     });
 
     it("skips when no product type changes", () => {
@@ -114,7 +111,7 @@ describe("Deployment Stages", () => {
           results: [],
         },
       });
-      
+
       expect(productTypesStage.skip?.(context)).toBe(true);
     });
   });
@@ -122,7 +119,7 @@ describe("Deployment Stages", () => {
   describe("getAllStages", () => {
     it("returns all stages in correct order", () => {
       const stages = getAllStages();
-      
+
       expect(stages).toHaveLength(7);
       expect(stages[0].name).toBe("Validating configuration");
       expect(stages[1].name).toBe("Updating shop settings");

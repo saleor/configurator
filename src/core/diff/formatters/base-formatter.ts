@@ -1,12 +1,7 @@
+import chalk from "chalk";
 import { DIFF_ICONS, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
 import { DiffSummaryError } from "../errors";
-import type {
-  DiffOperation,
-  DiffResult,
-  DiffSummary,
-  EntityType,
-} from "../types";
-import chalk from "chalk";
+import type { DiffOperation, DiffResult, DiffSummary, EntityType } from "../types";
 
 /**
  * Base formatter providing common formatting utilities

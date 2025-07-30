@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ServiceContainer } from "../service-container";
-import { type DiffChange, DiffFormatter, type DiffSummary } from ".";
+import { type DiffChange, formatDiff, formatDiffSummary, type DiffSummary } from ".";
 import { DiffService } from "./service";
 
 /**
@@ -249,7 +249,7 @@ productTypes:
         ],
       };
 
-      const output = DiffFormatter.format(mockSummary);
+      const output = formatDiff(mockSummary);
 
       expect(output).toContain("Configuration Diff Results");
       expect(output).toContain("Shop Settings");
@@ -294,7 +294,7 @@ productTypes:
         results: [],
       };
 
-      const summary = DiffFormatter.formatSummary(mockSummary);
+      const summary = formatDiffSummary(mockSummary);
 
       expect(summary).toContain("Found 3 differences");
       expect(summary).toContain("create");
@@ -311,8 +311,8 @@ productTypes:
         results: [],
       };
 
-      const output = DiffFormatter.format(mockSummary);
-      const summary = DiffFormatter.formatSummary(mockSummary);
+      const output = formatDiff(mockSummary);
+      const summary = formatDiffSummary(mockSummary);
 
       expect(output).toContain("No differences found");
       expect(summary).toContain("No differences found");

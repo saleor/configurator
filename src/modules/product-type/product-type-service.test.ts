@@ -32,10 +32,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When
       await service.bootstrapProductType({
@@ -52,13 +49,9 @@ describe("ProductTypeService", () => {
       });
 
       // Then
-      expect(
-        mockProductTypeOperations.createProductType
-      ).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.createProductType).not.toHaveBeenCalled();
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).not.toHaveBeenCalled();
     });
 
     it("should create a new product type and assign attributes when it doesn't exist", async () => {
@@ -90,10 +83,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When
       await service.bootstrapProductType({
@@ -124,9 +114,7 @@ describe("ProductTypeService", () => {
         inputType: "DROPDOWN",
         values: [{ name: "Red" }],
       });
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: newProductType.id,
         attributeIds: [newAttribute.id],
         type: "PRODUCT",
@@ -167,10 +155,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When
       await service.bootstrapProductType({
@@ -187,9 +172,7 @@ describe("ProductTypeService", () => {
       });
 
       // Then - Since the attribute is already assigned, no new assignment should be made
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).not.toHaveBeenCalled();
     });
 
     it("should handle errors during attribute assignment", async () => {
@@ -203,9 +186,7 @@ describe("ProductTypeService", () => {
       const mockProductTypeOperations = {
         getProductTypeByName: vi.fn().mockResolvedValue(null),
         createProductType: vi.fn().mockResolvedValue(newProductType),
-        assignAttributesToProductType: vi
-          .fn()
-          .mockRejectedValue(new Error("Assignment failed")),
+        assignAttributesToProductType: vi.fn().mockRejectedValue(new Error("Assignment failed")),
       };
 
       const newAttribute = {
@@ -223,10 +204,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When/Then
       await expect(
@@ -271,10 +249,7 @@ describe("ProductTypeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [
-            { node: { name: "Fiction" } },
-            { node: { name: "Non-Fiction" } },
-          ],
+          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
         },
       };
 
@@ -309,10 +284,7 @@ describe("ProductTypeService", () => {
       const attributeService = new AttributeService(mockAttributeOperations);
       const updateAttributeSpy = vi.spyOn(attributeService, "updateAttribute");
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When
       await service.updateProductType(existingProductType, {
@@ -351,9 +323,7 @@ describe("ProductTypeService", () => {
         existingGenreAttribute
       );
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).not.toHaveBeenCalled();
+      expect(mockProductTypeOperations.assignAttributesToProductType).not.toHaveBeenCalled();
     });
 
     it("should create new attributes and update existing ones", async () => {
@@ -398,10 +368,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // Set up the mock to return existing attributes only for "Genre"
       vi.mocked(mockAttributeOperations.getAttributesByNames)
@@ -437,17 +404,13 @@ describe("ProductTypeService", () => {
         slug: "author",
         inputType: "PLAIN_TEXT",
       });
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["attr-2"],
         type: "PRODUCT",
       });
       // Only one call should be made since variantAttributes is empty
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledTimes(1);
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledTimes(1);
     });
 
     it("should handle create input (name only)", async () => {
@@ -472,10 +435,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When
       const result = await service.bootstrapProductType({
@@ -489,7 +449,7 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
     });
 
-    it("should throw DuplicateAttributeDefinitionError when trying to create an attribute that already exists globally", async () => {
+    it("should reuse existing global attribute instead of creating duplicate", async () => {
       const existingProductType: ProductType = {
         id: "1",
         name: "Book",
@@ -527,30 +487,112 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When
+      const result = await service.updateProductType(existingProductType, {
+        name: "Book",
+        isShippingRequired: false,
+        productAttributes: [
+          {
+            name: "Author", // This attribute already exists globally
+            inputType: "PLAIN_TEXT",
+          },
+        ],
+        variantAttributes: [],
+      });
+
+      // Then - Should succeed and reuse existing attribute
+      expect(result).toBe(existingProductType);
+      expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
+      expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-1"],
+        type: "PRODUCT",
+      });
+    });
+
+    it("should not throw duplicate error when attribute is defined only once in config but exists from previous deployment", async () => {
+      // This test reproduces the bug: "License Type error when only defined once in config"
+      // Scenario: User has deployed before, so attribute exists in Saleor
+      // But in current config, it's only defined once
+      // The system should NOT throw duplicate error
+      
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Digital Products",
+        productAttributes: [], // Currently no attributes assigned
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      // This attribute exists in Saleor from a previous deployment
+      const existingLicenseAttribute = {
+        id: "attr-1",
+        name: "License Type",
+        type: "PRODUCT_TYPE",
+        inputType: "DROPDOWN",
+        entityType: null,
+        choices: {
+          edges: [{ node: { name: "MIT" } }],
+        },
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockImplementation(({ names }) => {
+          // Return existing attribute when "License Type" is requested
+          if (names.includes("License Type")) {
+            return [existingLicenseAttribute];
+          }
+          return [];
+        }),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+
       const service = new ProductTypeService(
         mockProductTypeOperations,
         attributeService
       );
 
-      // When/Then
-      await expect(
-        service.updateProductType(existingProductType, {
-          name: "Book",
-          isShippingRequired: false,
-          productAttributes: [
-            {
-              name: "Author", // This attribute already exists globally
-              inputType: "PLAIN_TEXT",
-            },
-          ],
-          variantAttributes: [],
-        })
-      ).rejects.toThrow(
-        'Attribute "Author" is already defined elsewhere in the configuration. Use reference syntax instead: "attribute: Author".'
-      );
+      // When user tries to update product type with License Type attribute
+      // This is the only place License Type is defined in the current config
+      // This should NOT throw because the attribute is only defined once in config
+      await service.updateProductType(existingProductType, {
+        name: "Digital Products",
+        isShippingRequired: false,
+        productAttributes: [
+          {
+            name: "License Type", // Only defined once in config
+            inputType: "DROPDOWN",
+            values: [
+              { name: "MIT" },
+              { name: "GPL" },
+            ],
+          },
+        ],
+        variantAttributes: [],
+      });
 
+      // Should not create new attribute since it exists, just assign it
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
-      expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
+      expect(
+        mockProductTypeOperations.assignAttributesToProductType
+      ).toHaveBeenCalledWith({
+        productTypeId: "1",
+        attributeIds: ["attr-1"],
+        type: "PRODUCT",
+      });
     });
   });
 });

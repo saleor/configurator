@@ -1,6 +1,6 @@
-import { ProgressIndicator } from "./progress";
 import { logger } from "../../lib/logger";
 import { MetricsCollector } from "./metrics";
+import { ProgressIndicator } from "./progress";
 import type { DeploymentContext, DeploymentMetrics, DeploymentStage } from "./types";
 
 export class DeploymentPipeline {
@@ -30,28 +30,25 @@ export class DeploymentPipeline {
     return this.metrics.complete();
   }
 
-  private async executeStage(
-    stage: DeploymentStage,
-    context: DeploymentContext
-  ): Promise<void> {
+  private async executeStage(stage: DeploymentStage, context: DeploymentContext): Promise<void> {
     const stopSpinner = this.progress.startSpinner(stage.name);
     this.metrics.startStage(stage.name);
 
     try {
       await stage.execute(context);
-      
+
       this.metrics.endStage(stage.name);
       stopSpinner();
-      
+
       const duration = this.metrics.getMetrics().stageDurations.get(stage.name);
       const durationStr = duration ? ` (${(duration / 1000).toFixed(1)}s)` : "";
       this.progress.complete(`${stage.name}${durationStr}`);
-      
+
       logger.debug(`Stage completed: ${stage.name}`, { duration });
     } catch (error) {
       stopSpinner();
       this.progress.fail(`${stage.name} - Failed`);
-      
+
       logger.error(`Stage failed: ${stage.name}`, { error });
       throw new Error(
         `Deployment failed during "${stage.name}": ${

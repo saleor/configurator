@@ -30,7 +30,7 @@ export type CategoryInput = VariablesOf<typeof createCategoryMutation>["input"];
 
 const getCategoryByNameQuery = graphql(`
   query GetCategoryByName($name: String!) {
-    categories(filter: { search: $name }, first: 1) {
+    categories(filter: { search: $name }, first: 100) {
       edges {
         node {
           id
@@ -49,6 +49,29 @@ const getCategoryByNameQuery = graphql(`
   }
 `);
 
+const getAllCategoriesQuery = graphql(`
+  query GetAllCategories {
+    categories(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          children(first: 100) {
+            edges {
+              node {
+                id
+                name
+                slug
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
 export type Category = NonNullable<
   NonNullable<ResultOf<typeof getCategoryByNameQuery>["categories"]>["edges"]
 >[number]["node"];
@@ -56,15 +79,13 @@ export type Category = NonNullable<
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
+  getAllCategories(): Promise<Category[]>;
 }
 
 export class CategoryRepository implements CategoryOperations {
   constructor(private client: Client) {}
 
-  async createCategory(
-    input: CategoryInput,
-    parentId?: string
-  ): Promise<Category> {
+  async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
       name: input.name,
       parentId,
@@ -98,6 +119,30 @@ export class CategoryRepository implements CategoryOperations {
       name,
     });
 
-    return result.data?.categories?.edges?.[0]?.node;
+    // Find exact match among search results to prevent duplicate creation
+    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
+  }
+
+  async getAllCategories(): Promise<Category[]> {
+    logger.debug("Fetching all categories");
+
+    const result = await this.client.query(getAllCategoriesQuery, {});
+
+    if (!result.data?.categories?.edges) {
+      logger.debug("No categories found");
+      return [];
+    }
+
+    const categories = result.data.categories.edges
+      .map((edge) => edge.node)
+      .filter((node): node is Category => node !== null);
+
+    logger.debug("Retrieved categories", {
+      count: categories.length,
+    });
+
+    return categories;
   }
 }
