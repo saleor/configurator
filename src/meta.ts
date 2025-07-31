@@ -1,1 +1,1 @@
-export const COMMAND_NAME = "pnpm run"; // change to "configurator" once published to npm
+export const COMMAND_NAME = "pnpm dlx @saleor/configurator";
