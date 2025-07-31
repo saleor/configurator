@@ -104,13 +104,14 @@ export class ChannelComparator extends BaseEntityComparator<
   }
 
   /**
-   * Gets the name of a channel entity
+   * Gets the unique identifier of a channel entity (using slug)
+   * Channels in Saleor are uniquely identified by slug, not name
    */
   protected getEntityName(entity: ChannelEntity): string {
-    if (!entity.name || typeof entity.name !== "string") {
-      throw new EntityValidationError("Channel entity must have a valid name");
+    if (!entity.slug || typeof entity.slug !== "string") {
+      throw new EntityValidationError("Channel entity must have a valid slug");
     }
-    return entity.name;
+    return entity.slug;
   }
 
   /**

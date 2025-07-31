@@ -260,11 +260,13 @@ export type ShopInput = z.infer<typeof shopSchema>;
 // Category Create Schema - minimal fields for creation
 const categoryCreateSchema = z.object({
   name: z.string().describe("Category.name"),
+  slug: z.string().describe("Category.slug"),
 });
 
 // Category Update Schema - full state representation with subcategories
 const baseCategoryUpdateSchema = z.object({
   name: z.string().describe("Category.name"),
+  slug: z.string().describe("Category.slug"),
 });
 
 type CategoryUpdate = z.infer<typeof baseCategoryUpdateSchema> & {
@@ -313,6 +315,7 @@ const productVariantSchema = z.object({
 
 const productSchema = z.object({
   name: z.string(),
+  slug: z.string(),
   productType: z.string(),
   category: z.string(),
   attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),

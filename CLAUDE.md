@@ -352,6 +352,42 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 
 ## Development Guidelines
 
+### Entity Identification Guidelines
+
+**IMPORTANT**: All entities that have slugs in the Saleor API must use slugs as their primary identifier for comparisons and uniqueness validation.
+
+#### Current Entity Identification:
+- **Categories**: Use `slug` for identification (required field)
+- **Channels**: Use `slug` for identification (required field)  
+- **Products**: Use `slug` for identification (required field)
+- **Page Types**: Use `name` for identification (no slug in API)
+- **Product Types**: Use `name` for identification (no slug in API)
+
+#### Implementation Requirements:
+1. **Schema Definition**: If an entity has a slug in the API, the schema MUST include it as a required field
+2. **Comparator Implementation**: The `getEntityName()` method must return the slug for slug-based entities
+3. **Validation**: Use `validateUniqueNames()` which validates based on the identifier returned by `getEntityName()`
+4. **Subcategory/Nested Handling**: Use slug-based maps for comparison when entities have slugs
+
+#### Example Implementation:
+```typescript
+// Schema with slug
+const entitySchema = z.object({
+  name: z.string().describe("Entity.name"),
+  slug: z.string().describe("Entity.slug"),
+});
+
+// Comparator using slug
+protected getEntityName(entity: Entity): string {
+  if (!entity.slug) {
+    throw new EntityValidationError("Entity must have a valid slug");
+  }
+  return entity.slug;
+}
+```
+
+This approach ensures entities with the same name but different slugs are correctly treated as separate entities, preventing false duplicate detection errors.
+
 ### Adding New Commands
 
 1. Create command file in `src/commands/`
