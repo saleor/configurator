@@ -194,13 +194,13 @@ export class ProductTypeService {
         // Attribute exists globally from a previous deployment or another product type
         // We should reuse the existing attribute rather than trying to create a duplicate
         const existingAttribute = existingAttributes[0];
-        
+
         logger.debug("Reusing existing global attribute", {
           attributeName: attributeInput.name,
           attributeId: existingAttribute.id,
           productTypeName: productType.name,
         });
-        
+
         // Use the existing attribute
         newAttributes.push(existingAttribute);
         continue;

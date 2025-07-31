@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { PageTypeComparator } from "./page-type-comparator";
 import { ProductTypeComparator } from "./product-type-comparator";
 

@@ -10,7 +10,6 @@ import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import { PageTypeService } from "../modules/page-type/page-type-service";
-import { DiffService } from "./diff";
 import { PageTypeRepository } from "../modules/page-type/repository";
 import { ProductService } from "../modules/product/product-service";
 import { ProductRepository } from "../modules/product/repository";
@@ -18,6 +17,7 @@ import { ProductTypeService } from "../modules/product-type/product-type-service
 import { ProductTypeRepository } from "../modules/product-type/repository";
 import { ShopRepository } from "../modules/shop/repository";
 import { ShopService } from "../modules/shop/shop-service";
+import { DiffService } from "./diff";
 
 export interface ServiceContainer {
   readonly channel: ChannelService;
@@ -64,7 +64,7 @@ export class ServiceComposer {
       configStorage,
       category: new CategoryService(repositories.category),
       product: new ProductService(repositories.product),
-    } as Omit<ServiceContainer, 'diffService'>;
+    } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container
     const diffService = new DiffService(services as ServiceContainer);

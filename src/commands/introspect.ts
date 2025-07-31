@@ -71,16 +71,6 @@ export const INTROSPECT_MESSAGES = {
   TIP_VERBOSE: "💡 Tip: Use --verbose to see detailed changes for all items\n",
   CHANGES_TO_APPLY: "\nChanges to be applied:",
   FILE_EXISTS: (path: string) => `Local configuration file "${path}" already exists.\n`,
-  // First-time user messages
-  FIRST_TIME_WELCOME: "🎉 Welcome! No local configuration found.",
-  FIRST_TIME_FETCH:
-    "Configurator will download the current configuration from the remote Saleor instance.",
-  FIRST_TIME_SUCCESS: "✨ Your configuration has been initialized successfully!",
-  NEXT_STEPS: (configPath: string) => `
-💡 Next steps:
-   • Review your configuration in ${configPath}
-   • Make any necessary adjustments
-   • Use 'configurator deploy' to apply changes back to Saleor`,
 } as const;
 
 export const ERROR_ADVICE = {
@@ -142,17 +132,18 @@ export class IntrospectCommandHandler
       this.setupConsole(isQuiet);
       this.console.header(INTROSPECT_MESSAGES.HEADER);
 
-      // Check if this is a first-time user
-      const isFirstTime = !fileExists(args.config);
-
-      if (isFirstTime) {
-        return await this.handleFirstTimeUser(args, startTime);
-      }
-
-      // Existing user flow
+      // Display configuration info
       this.displayConfigurationInfo(args, isQuiet);
 
-      // Create context
+      // Check if config file exists
+      const configExists = fileExists(args.config);
+
+      if (!configExists) {
+        // Handle case where no config exists - just create it without diff analysis
+        return await this.handleNoExistingConfig(args, startTime);
+      }
+
+      // Create context for existing config flow
       const configurator = createConfigurator(args);
       const context: IntrospectContext = {
         args,
@@ -182,17 +173,15 @@ export class IntrospectCommandHandler
     }
   }
 
-  private async handleFirstTimeUser(
+  private async handleNoExistingConfig(
     args: IntrospectCommandArgs,
     startTime: number
   ): Promise<CommandResult> {
-    this.console.info(INTROSPECT_MESSAGES.FIRST_TIME_WELCOME);
-
     // Create configurator
     const configurator = createConfigurator(args);
 
     try {
-      // Fetch and save configuration directly
+      // Fetch and save configuration directly - no diff, no confirmation needed
       this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
       // Parse selective options from args
@@ -202,8 +191,6 @@ export class IntrospectCommandHandler
       await configurator.introspect(selectiveOptions);
 
       this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(args.config));
-      this.console.success(INTROSPECT_MESSAGES.FIRST_TIME_SUCCESS);
-      this.console.info(INTROSPECT_MESSAGES.NEXT_STEPS(args.config));
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
       this.console.info(INTROSPECT_MESSAGES.TOTAL_TIME(totalTime));
@@ -214,12 +201,15 @@ export class IntrospectCommandHandler
     }
   }
 
+
   private displayConfigurationInfo(args: IntrospectCommandArgs, isQuiet: boolean): void {
     if (isQuiet) return;
 
     // Show existing file info
     if (fileExists(args.config)) {
       this.console.muted(INTROSPECT_MESSAGES.FILE_EXISTS(args.config));
+    } else {
+      this.console.info(`Will create new configuration file: ${args.config}\n`);
     }
 
     // Show selective options
@@ -404,7 +394,6 @@ export class IntrospectCommandHandler
 
     const configPath = this.console.important(context.args.config);
     this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
-    this.console.info(INTROSPECT_MESSAGES.NEXT_STEPS(configPath));
   }
 
   private displayExecutionTime(context: IntrospectContext): void {

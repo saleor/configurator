@@ -180,9 +180,7 @@ export class ConfigurationService {
     });
   }
 
-  private mapCategories(
-    rawCategories: RawSaleorConfig["categories"]
-  ): SaleorConfig["categories"] {
+  private mapCategories(rawCategories: RawSaleorConfig["categories"]): SaleorConfig["categories"] {
     if (!rawCategories?.edges) {
       return [];
     }
@@ -221,19 +219,18 @@ export class ConfigurationService {
 
     // Track attributes from product types
     productTypesWithFullAttrs?.forEach((productType) => {
-      [
-        ...(productType.productAttributes || []),
-        ...(productType.variantAttributes || []),
-      ].forEach((attr) => {
-        const location = `productType:${productType.name}`;
-        if (!attributeUsage.has(attr.name)) {
-          attributeUsage.set(attr.name, { attribute: attr, locations: [] });
+      [...(productType.productAttributes || []), ...(productType.variantAttributes || [])].forEach(
+        (attr) => {
+          const location = `productType:${productType.name}`;
+          if (!attributeUsage.has(attr.name)) {
+            attributeUsage.set(attr.name, { attribute: attr, locations: [] });
+          }
+          const usage = attributeUsage.get(attr.name);
+          if (usage) {
+            usage.locations.push(location);
+          }
         }
-        const usage = attributeUsage.get(attr.name);
-        if (usage) {
-          usage.locations.push(location);
-        }
-      });
+      );
     });
 
     // Track attributes from page types
@@ -275,10 +272,7 @@ export class ConfigurationService {
       })),
       pageTypes: pageTypesWithFullAttrs?.map((pageType) => ({
         ...pageType,
-        attributes: this.convertToReferences(
-          pageType.attributes || [],
-          sharedAttributes
-        ),
+        attributes: this.convertToReferences(pageType.attributes || [], sharedAttributes),
       })),
     };
   }
@@ -306,7 +300,7 @@ export class ConfigurationService {
   mapConfig(rawConfig: RawSaleorConfig, selectiveOptions?: ParsedSelectiveOptions): SaleorConfig {
     // Default to include all sections if no selective options provided
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
-    
+
     const config: Partial<SaleorConfig> = {};
 
     if (shouldIncludeSection("shop", options)) {
@@ -330,7 +324,7 @@ export class ConfigurationService {
     }
 
     const fullConfig = config as SaleorConfig;
-    
+
     // Normalize attribute references to prevent duplication errors during deployment
     return this.normalizeAttributeReferences(fullConfig);
   }

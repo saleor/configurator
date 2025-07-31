@@ -506,9 +506,7 @@ describe("ProductTypeService", () => {
       expect(result).toBe(existingProductType);
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
       expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["attr-1"],
         type: "PRODUCT",
@@ -520,7 +518,7 @@ describe("ProductTypeService", () => {
       // Scenario: User has deployed before, so attribute exists in Saleor
       // But in current config, it's only defined once
       // The system should NOT throw duplicate error
-      
+
       const existingProductType: ProductType = {
         id: "1",
         name: "Digital Products",
@@ -560,10 +558,7 @@ describe("ProductTypeService", () => {
 
       const attributeService = new AttributeService(mockAttributeOperations);
 
-      const service = new ProductTypeService(
-        mockProductTypeOperations,
-        attributeService
-      );
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
 
       // When user tries to update product type with License Type attribute
       // This is the only place License Type is defined in the current config
@@ -575,10 +570,7 @@ describe("ProductTypeService", () => {
           {
             name: "License Type", // Only defined once in config
             inputType: "DROPDOWN",
-            values: [
-              { name: "MIT" },
-              { name: "GPL" },
-            ],
+            values: [{ name: "MIT" }, { name: "GPL" }],
           },
         ],
         variantAttributes: [],
@@ -586,9 +578,7 @@ describe("ProductTypeService", () => {
 
       // Should not create new attribute since it exists, just assign it
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
-      expect(
-        mockProductTypeOperations.assignAttributesToProductType
-      ).toHaveBeenCalledWith({
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
         attributeIds: ["attr-1"],
         type: "PRODUCT",

@@ -17,7 +17,7 @@ export type CommandOption = {
 
 const CLI_CONFIG = {
   name: "configurator",
-  description: "🛒 Saleor Configuration Management Tool",
+  description: "🛒 Manage your Saleor e-commerce store configuration as code",
   version: packageJson.version,
 } as const;
 
@@ -45,21 +45,26 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
   return error.code === "commander.help" || error.code === "commander.version";
 }
 
-function addHelpContent(program: Command): void {
+function addConditionalHelpContent(program: Command): void {
+  // Add help content only to the main program, not subcommands
   program.addHelpText("before", cliConsole.important("✨ Saleor Configurator ✨\n"));
   program.addHelpText("after", buildHelpText());
 }
 
 function buildHelpText(): string {
   return `
+${cliConsole.important("What is Saleor Configurator?")}
+  ${cliConsole.hint("‧ Manage your Saleor e-commerce store configuration as code")}
+  ${cliConsole.hint("‧ Keep store settings in version control & apply across environments")}
+  ${cliConsole.hint("‧ Declarative YAML configuration for products, channels, categories & more")}
+
 ${cliConsole.important("Quick Start:")}
-  ${cliConsole.hint("‧ First time? Use the interactive setup:")}
+  ${cliConsole.hint("‧ First-time setup:")}
   ${cliConsole.code(`${COMMAND_NAME} start`)}
   
-  ${cliConsole.hint("‧ Or run commands directly:")}
-  ${cliConsole.code(
-    `${COMMAND_NAME} deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token \n`
-  )}
+  ${cliConsole.hint("‧ Common commands:")}
+  ${cliConsole.code(`${COMMAND_NAME} introspect --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
+  ${cliConsole.code(`${COMMAND_NAME} deploy --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
 `;
 }
 
@@ -74,7 +79,8 @@ function createCLI(): Command {
 
   registerCommands(program);
   setupErrorHandling(program);
-  addHelpContent(program);
+  // Only add help content for general help, not for specific commands
+  addConditionalHelpContent(program);
 
   return program;
 }

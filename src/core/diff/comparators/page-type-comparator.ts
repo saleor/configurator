@@ -116,7 +116,9 @@ export class PageTypeComparator extends BaseEntityComparator<
     }
 
     // Keep attributes that have a name property (fix: was filtering them out incorrectly)
-    const filteredAttributes = entity.attributes.filter((attribute) => "name" in attribute && attribute.name);
+    const filteredAttributes = entity.attributes.filter(
+      (attribute) => "name" in attribute && attribute.name
+    );
 
     return filteredAttributes as readonly PageTypeAttribute[];
   }
