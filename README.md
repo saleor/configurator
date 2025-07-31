@@ -11,29 +11,17 @@ Saleor Configurator is a "commerce as code" tool that helps you automate the cre
 
 - Node.js 20+
 
-**Installation:**
-
-You can use Saleor Configurator without installing it globally:
+**Usage:**
 
 ```bash
-# Using pnpm (recommended)
-pnpm dlx @saleor/configurator --help
+# Run directly (recommended)
+pnpm dlx @saleor/configurator start
+npx @saleor/configurator@latest start
 
-# Using npx
-npx @saleor/configurator@latest --help
-```
-
-Alternatively, you can install it globally:
-
-```bash
-# Install globally with pnpm
+# Or install globally
 pnpm add -g @saleor/configurator
-
-# Install globally with npm
 npm install -g @saleor/configurator
-
-# After global install, use directly:
-saleor-configurator --help
+saleor-configurator start
 ```
 
 **Quickstart:**
