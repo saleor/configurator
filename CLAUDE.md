@@ -335,6 +335,30 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Automatic changelog generation
 - GitHub releases with proper tag creation
 
+**Writing Changesets**:
+
+When creating or updating a changeset for a branch:
+
+1. **Review Everything**: Thoroughly review all changes made on the current branch
+2. **Find the Right Changeset**: Look for the changeset file that contains `"@saleor/configurator": patch` (or minor/major) - this is the one to edit
+3. **Don't Edit Other Changesets**: Other changeset files are ready for merge/publish - do not modify them
+4. **Write for NPM Users**: The changeset will appear in the npm package changelog, so write for engineers who will read it
+
+**Changeset Content Guidelines**:
+- **Be Concise**: Summarize the change in 1-2 sentences
+- **Be Pragmatic**: Focus on what changed and why it matters to users
+- **Be Human Readable**: Avoid technical jargon, use clear language
+- **Include Impact**: Mention if it fixes bugs, adds features, or changes behavior
+
+**Example Changeset**:
+```markdown
+---
+"@saleor/configurator": patch
+---
+
+Fixed entity identification to use slugs instead of names for categories and channels. This resolves issues where entities with the same name but different slugs were incorrectly treated as duplicates.
+```
+
 **Release Process**:
 
 1. Create changeset for changes
