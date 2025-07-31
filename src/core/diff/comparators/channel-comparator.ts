@@ -29,10 +29,11 @@ interface ChannelSettings {
  * Channel fields to compare (excluding settings)
  */
 const CHANNEL_FIELDS: ReadonlyArray<keyof ChannelEntity> = [
+  "name",
   "currencyCode",
   "defaultCountry",
   "slug",
-  "isActive", // ADD MISSING FIELD
+  "isActive",
 ] as const;
 
 /**
@@ -69,9 +70,9 @@ export class ChannelComparator extends BaseEntityComparator<
     local: readonly ChannelEntity[],
     remote: readonly ChannelEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
-    this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+    // Validate unique identifiers (slugs for channels)
+    this.validateUniqueIdentifiers(local);
+    this.validateUniqueIdentifiers(remote);
 
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
@@ -104,13 +105,14 @@ export class ChannelComparator extends BaseEntityComparator<
   }
 
   /**
-   * Gets the name of a channel entity
+   * Gets the unique identifier of a channel entity (using slug)
+   * Channels in Saleor are uniquely identified by slug, not name
    */
   protected getEntityName(entity: ChannelEntity): string {
-    if (!entity.name || typeof entity.name !== "string") {
-      throw new EntityValidationError("Channel entity must have a valid name");
+    if (!entity.slug || typeof entity.slug !== "string") {
+      throw new EntityValidationError("Channel entity must have a valid slug");
     }
-    return entity.name;
+    return entity.slug;
   }
 
   /**

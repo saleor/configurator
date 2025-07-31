@@ -335,6 +335,30 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Automatic changelog generation
 - GitHub releases with proper tag creation
 
+**Writing Changesets**:
+
+When creating or updating a changeset for a branch:
+
+1. **Review Everything**: Thoroughly review all changes made on the current branch
+2. **Find the Right Changeset**: Look for the changeset file that contains `"@saleor/configurator": patch` (or minor/major) - this is the one to edit
+3. **Don't Edit Other Changesets**: Other changeset files are ready for merge/publish - do not modify them
+4. **Write for NPM Users**: The changeset will appear in the npm package changelog, so write for engineers who will read it
+
+**Changeset Content Guidelines**:
+- **Be Concise**: Summarize the change in 1-2 sentences
+- **Be Pragmatic**: Focus on what changed and why it matters to users
+- **Be Human Readable**: Avoid technical jargon, use clear language
+- **Include Impact**: Mention if it fixes bugs, adds features, or changes behavior
+
+**Example Changeset**:
+```markdown
+---
+"@saleor/configurator": patch
+---
+
+Fixed entity identification to use slugs instead of names for categories and channels. This resolves issues where entities with the same name but different slugs were incorrectly treated as duplicates.
+```
+
 **Release Process**:
 
 1. Create changeset for changes
@@ -351,6 +375,42 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Creates GitHub releases with proper versioning
 
 ## Development Guidelines
+
+### Entity Identification Guidelines
+
+**IMPORTANT**: All entities that have slugs in the Saleor API must use slugs as their primary identifier for comparisons and uniqueness validation.
+
+#### Current Entity Identification:
+- **Categories**: Use `slug` for identification (required field)
+- **Channels**: Use `slug` for identification (required field)  
+- **Products**: Use `slug` for identification (required field)
+- **Page Types**: Use `name` for identification (no slug in API)
+- **Product Types**: Use `name` for identification (no slug in API)
+
+#### Implementation Requirements:
+1. **Schema Definition**: If an entity has a slug in the API, the schema MUST include it as a required field
+2. **Comparator Implementation**: The `getEntityName()` method must return the slug for slug-based entities
+3. **Validation**: Use `validateUniqueIdentifiers()` which validates based on the identifier returned by `getEntityName()`
+4. **Subcategory/Nested Handling**: Use slug-based maps for comparison when entities have slugs
+
+#### Example Implementation:
+```typescript
+// Schema with slug
+const entitySchema = z.object({
+  name: z.string().describe("Entity.name"),
+  slug: z.string().describe("Entity.slug"),
+});
+
+// Comparator using slug
+protected getEntityName(entity: Entity): string {
+  if (!entity.slug) {
+    throw new EntityValidationError("Entity must have a valid slug");
+  }
+  return entity.slug;
+}
+```
+
+This approach ensures entities with the same name but different slugs are correctly treated as separate entities, preventing false duplicate detection errors.
 
 ### Adding New Commands
 
@@ -375,6 +435,24 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 3. Include context and suggestions where helpful
 4. Use structured logging for debugging
 5. Handle GraphQL errors with `GraphQLError.fromCombinedError()`
+
+## Testing Requirements
+
+### Comprehensive Test Plan
+
+**IMPORTANT**: After making any code changes, always run through the comprehensive test plan documented in `TEST_PLAN.md`. This ensures the configurator maintains its integrity across all operations.
+
+**Core Testing Workflow**:
+1. Remove existing config: `rm -rf config.yml`
+2. Introspect from remote
+3. Make critical data changes
+4. Deploy changes
+5. Deploy again (verify idempotency)
+6. Remove config again
+7. Introspect again (verify round-trip integrity)
+8. Run diff (should show no changes)
+
+See `TEST_PLAN.md` for detailed test scenarios and validation points.
 
 ## Common Issues & Solutions
 

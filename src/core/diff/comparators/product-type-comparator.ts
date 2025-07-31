@@ -31,8 +31,8 @@ export class ProductTypeComparator extends BaseEntityComparator<
     local: readonly ProductTypeEntity[],
     remote: readonly ProductTypeEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names in local (strict - no duplicates allowed)
-    this.validateUniqueNames(local);
+    // Validate unique identifiers in local (names for product types - no slugs in API)
+    this.validateUniqueIdentifiers(local);
 
     // For remote, deduplicate corrupted entities but allow processing to continue
     const deduplicatedRemote = this.deduplicateEntities(remote);

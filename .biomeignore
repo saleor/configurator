@@ -5,4 +5,4 @@ build/
 coverage/
 *.generated.*
 schema.graphql
-src/graphql/graphql-env.d.ts 
+src/lib/graphql/graphql-env.d.ts 

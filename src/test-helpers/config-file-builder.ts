@@ -203,6 +203,7 @@ export class ConfigFileBuilder {
     for (let i = 0; i < categoryCount; i++) {
       categories.push({
         name: `Category ${i + 1}`,
+        slug: `category-${i + 1}`,
       });
     }
     this.withCategories(categories);
@@ -433,6 +434,7 @@ export function createComplexConfig(): ConfigFileBuilder {
     .withCategories([
       {
         name: "Gadgets",
+        slug: "gadgets",
       },
     ]);
 }

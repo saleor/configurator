@@ -12,7 +12,7 @@ type CategoryEntity = NonNullable<SaleorConfig["categories"]>[number];
  */
 interface Subcategory {
   readonly name: string;
-  readonly slug?: string;
+  readonly slug: string;
   readonly subcategories?: readonly Subcategory[];
 }
 
@@ -33,9 +33,9 @@ export class CategoryComparator extends BaseEntityComparator<
     local: readonly CategoryEntity[],
     remote: readonly CategoryEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
-    this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+    // Validate unique identifiers (slugs for categories)
+    this.validateUniqueIdentifiers(local);
+    this.validateUniqueIdentifiers(remote);
 
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
@@ -125,12 +125,12 @@ export class CategoryComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localSubcatMap = new Map(local.map((subcat) => [subcat.name, subcat]));
-    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.name, subcat]));
+    const localSubcatMap = new Map(local.map((subcat) => [subcat.slug, subcat]));
+    const remoteSubcatMap = new Map(remote.map((subcat) => [subcat.slug, subcat]));
 
     // Find added subcategories
     for (const localSubcat of local) {
-      if (!remoteSubcatMap.has(localSubcat.name)) {
+      if (!remoteSubcatMap.has(localSubcat.slug)) {
         changes.push(
           this.createFieldChange(
             "subcategories",
@@ -141,15 +141,17 @@ export class CategoryComparator extends BaseEntityComparator<
         );
       } else {
         // Compare existing subcategories recursively
-        const remoteSubcat = remoteSubcatMap.get(localSubcat.name)!;
-        const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
-        changes.push(...nestedChanges);
+        const remoteSubcat = remoteSubcatMap.get(localSubcat.slug);
+        if (remoteSubcat) {
+          const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
+          changes.push(...nestedChanges);
+        }
       }
     }
 
     // Find removed subcategories
     for (const remoteSubcat of remote) {
-      if (!localSubcatMap.has(remoteSubcat.name)) {
+      if (!localSubcatMap.has(remoteSubcat.slug)) {
         changes.push(
           this.createFieldChange(
             "subcategories",

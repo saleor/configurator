@@ -224,11 +224,12 @@ describe("Schema Union Types", () => {
   });
 
   describe("Category Schema", () => {
-    it("should parse create input (name only)", () => {
+    it("should parse create input (name and slug)", () => {
       const createInput = {
         categories: [
           {
             name: "Electronics",
+            slug: "electronics",
           },
         ],
       };
@@ -236,24 +237,28 @@ describe("Schema Union Types", () => {
       const result = configSchema.parse(createInput);
 
       expect(result.categories).toHaveLength(1);
-      expect(result.categories?.[0]).toEqual({ name: "Electronics" });
+      expect(result.categories?.[0]).toEqual({ name: "Electronics", slug: "electronics" });
       expect(result.categories?.[0] && "subcategories" in result.categories[0]).toBe(false);
     });
 
-    it("should parse update input (name + subcategories)", () => {
+    it("should parse update input (name + slug + subcategories)", () => {
       const updateInput = {
         categories: [
           {
             name: "Electronics",
+            slug: "electronics",
             subcategories: [
               {
                 name: "Phones",
+                slug: "phones",
               },
               {
                 name: "Laptops",
+                slug: "laptops",
                 subcategories: [
                   {
                     name: "Gaming Laptops",
+                    slug: "gaming-laptops",
                   },
                 ],
               },
@@ -266,15 +271,19 @@ describe("Schema Union Types", () => {
 
       expect(result.categories?.[0]).toEqual({
         name: "Electronics",
+        slug: "electronics",
         subcategories: [
           {
             name: "Phones",
+            slug: "phones",
           },
           {
             name: "Laptops",
+            slug: "laptops",
             subcategories: [
               {
                 name: "Gaming Laptops",
+                slug: "gaming-laptops",
               },
             ],
           },
@@ -778,7 +787,11 @@ describe("ShopConfigurationSchema", () => {
         categories: [
           {
             name: "Electronics",
-            subcategories: [{ name: "Phones" }, { name: "Laptops" }],
+            slug: "electronics",
+            subcategories: [
+              { name: "Phones", slug: "phones" }, 
+              { name: "Laptops", slug: "laptops" }
+            ],
           },
         ],
       };
