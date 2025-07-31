@@ -11,7 +11,9 @@ export type EntityType =
   | "Channels"
   | "Page Types"
   | "Categories"
-  | "Shop Settings";
+  | "Shop Settings"
+  | "Warehouses"
+  | "Shipping Zones";
 
 /**
  * Represents a single field change in a diff operation
@@ -84,7 +86,9 @@ export type ConfigurationSection =
   | "pageTypes"
   | "categories"
   | "products"
-  | "attributes";
+  | "attributes"
+  | "warehouses"
+  | "shippingZones";
 
 /**
  * Parsed selective options from command line

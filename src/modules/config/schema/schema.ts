@@ -323,11 +323,111 @@ const productSchema = z.object({
   variants: z.array(productVariantSchema),
 });
 
+// Warehouse Schema
+const warehouseClickAndCollectOptionSchema = z.enum(["DISABLED", "LOCAL", "ALL"]);
+
+const warehouseAddressSchema = z.object({
+  streetAddress1: z.string().describe("Address.streetAddress1"),
+  streetAddress2: z.string().optional().describe("Address.streetAddress2"),
+  city: z.string().describe("Address.city"),
+  cityArea: z.string().optional().describe("Address.cityArea"),
+  postalCode: z.string().optional().describe("Address.postalCode"),
+  country: countryCodeSchema.describe("Address.country"),
+  countryArea: z.string().optional().describe("Address.countryArea"),
+  companyName: z.string().optional().describe("Address.companyName"),
+  phone: z.string().optional().describe("Address.phone"),
+});
+
+const warehouseSchema = z.object({
+  name: z.string().describe("Warehouse.name"),
+  slug: z.string().describe("Warehouse.slug"),
+  email: z.string().email().describe("Warehouse.email"),
+  isPrivate: z.boolean().optional().default(false).describe("Warehouse.isPrivate"),
+  address: warehouseAddressSchema.describe("Warehouse.address"),
+  clickAndCollectOption: warehouseClickAndCollectOptionSchema
+    .optional()
+    .default("DISABLED")
+    .describe("Warehouse.clickAndCollectOption"),
+  shippingZones: z.array(z.string()).optional().describe("Warehouse.shippingZones"), // References to shipping zone names
+});
+
+export type WarehouseInput = z.infer<typeof warehouseSchema>;
+
+// Shipping Zone Schema
+const shippingMethodTypeSchema = z.enum(["PRICE", "WEIGHT"]);
+
+const weightUnitSchema = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
+
+const weightSchema = z.object({
+  unit: weightUnitSchema,
+  value: z.number().positive(),
+});
+
+const shippingMethodChannelListingSchema = z.object({
+  channel: z.string().describe("ShippingMethodChannelListing.channel"), // Channel slug reference
+  price: z.number().nonnegative().describe("ShippingMethodChannelListing.price"),
+  currency: currencyCodeSchema.optional().describe("ShippingMethodChannelListing.currency"),
+  minimumOrderPrice: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethodChannelListing.minimumOrderPrice"),
+  maximumOrderPrice: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethodChannelListing.maximumOrderPrice"),
+});
+
+const shippingMethodSchema = z.object({
+  name: z.string().describe("ShippingMethod.name"),
+  description: z.string().optional().describe("ShippingMethod.description"),
+  type: shippingMethodTypeSchema.describe("ShippingMethod.type"),
+  active: z.boolean().optional().default(true).describe("ShippingMethod.active"),
+  minimumDeliveryDays: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethod.minimumDeliveryDays"),
+  maximumDeliveryDays: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethod.maximumDeliveryDays"),
+  minimumOrderWeight: weightSchema.optional().describe("ShippingMethod.minimumOrderWeight"),
+  maximumOrderWeight: weightSchema.optional().describe("ShippingMethod.maximumOrderWeight"),
+  taxClass: z.string().optional().describe("ShippingMethod.taxClass"), // Tax class name reference
+  channelListings: z
+    .array(shippingMethodChannelListingSchema)
+    .optional()
+    .describe("ShippingMethod.channelListings"),
+});
+
+const shippingZoneSchema = z.object({
+  name: z.string().describe("ShippingZone.name"),
+  description: z.string().optional().describe("ShippingZone.description"),
+  default: z.boolean().optional().default(false).describe("ShippingZone.default"),
+  countries: z.array(countryCodeSchema).describe("ShippingZone.countries"),
+  warehouses: z.array(z.string()).optional().describe("ShippingZone.warehouses"), // References to warehouse slugs
+  channels: z.array(z.string()).optional().describe("ShippingZone.channels"), // References to channel slugs
+  shippingMethods: z
+    .array(shippingMethodSchema)
+    .optional()
+    .describe("ShippingZone.shippingMethods"),
+});
+
+export type ShippingZoneInput = z.infer<typeof shippingZoneSchema>;
+export type ShippingMethodInput = z.infer<typeof shippingMethodSchema>;
+
 // TODO: config schema should only use the full state representation of the entities, not the create/update schemas
 export const configSchema = z
   .object({
     shop: shopSchema.optional().describe("Shop"),
     channels: z.array(channelSchema).optional().describe("Channel"),
+    warehouses: z.array(warehouseSchema).optional().describe("Warehouse"),
+    shippingZones: z.array(shippingZoneSchema).optional().describe("ShippingZone"),
     productTypes: z.array(productTypeSchema).optional().describe("ProductType"),
     pageTypes: z.array(pageTypeSchema).optional().describe("PageType"),
     categories: z.array(categorySchema).optional().describe("Category"),

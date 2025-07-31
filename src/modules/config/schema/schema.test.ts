@@ -789,8 +789,8 @@ describe("ShopConfigurationSchema", () => {
             name: "Electronics",
             slug: "electronics",
             subcategories: [
-              { name: "Phones", slug: "phones" }, 
-              { name: "Laptops", slug: "laptops" }
+              { name: "Phones", slug: "phones" },
+              { name: "Laptops", slug: "laptops" },
             ],
           },
         ],

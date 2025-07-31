@@ -120,14 +120,16 @@ describe("Deployment Stages", () => {
     it("returns all stages in correct order", () => {
       const stages = getAllStages();
 
-      expect(stages).toHaveLength(7);
+      expect(stages).toHaveLength(9);
       expect(stages[0].name).toBe("Validating configuration");
       expect(stages[1].name).toBe("Updating shop settings");
       expect(stages[2].name).toBe("Managing product types");
       expect(stages[3].name).toBe("Managing channels");
       expect(stages[4].name).toBe("Managing page types");
       expect(stages[5].name).toBe("Managing categories");
-      expect(stages[6].name).toBe("Managing products");
+      expect(stages[6].name).toBe("Managing warehouses");
+      expect(stages[7].name).toBe("Managing shipping zones");
+      expect(stages[8].name).toBe("Managing products");
     });
   });
 });

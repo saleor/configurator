@@ -12,7 +12,6 @@ export const startCommandSchema = z.object({
 
 export type StartCommandArgs = z.infer<typeof startCommandSchema>;
 
-
 const RETURNING_USER_CHOICES = [
   {
     name: "⬇️  Download fresh configuration from your store (`introspect`)",
@@ -54,7 +53,9 @@ async function runFirstTimeSetup(configPath: string): Promise<void> {
   showWelcomeMessage();
 
   cliConsole.subtitle("🎯 Let's get you started!\n");
-  cliConsole.info("Since you don't have an existing configuration, we'll download your store's current");
+  cliConsole.info(
+    "Since you don't have an existing configuration, we'll download your store's current"
+  );
   cliConsole.info(`configuration to create a local ${cliConsole.path(configPath)} file.\n`);
 
   const shouldContinue = await confirmAction(
@@ -75,7 +76,9 @@ async function runFirstTimeSetup(configPath: string): Promise<void> {
 async function runReturningUserSetup(configPath: string): Promise<void> {
   cliConsole.info("\n"); // Add some breathing room from CLI help
   cliConsole.header("🔧 Saleor Configurator\n");
-  cliConsole.info(`I see you have a ${cliConsole.path(configPath)} file. What would you like to do?\n`);
+  cliConsole.info(
+    `I see you have a ${cliConsole.path(configPath)} file. What would you like to do?\n`
+  );
 
   const selectedAction = await selectOption("Choose an action:", RETURNING_USER_CHOICES);
 
@@ -153,7 +156,9 @@ async function showPostIntrospectGuidance(configPath: string): Promise<void> {
   cliConsole.info(`   • ${cliConsole.code("configurator --help")} - See all available options\n`);
 
   cliConsole.subtitle("📖 Learn more:");
-  cliConsole.info("   • Read the full documentation: https://github.com/saleor/configurator/blob/main/README.md\n");
+  cliConsole.info(
+    "   • Read the full documentation: https://github.com/saleor/configurator/blob/main/README.md\n"
+  );
 
   cliConsole.muted(
     "💡 Pro tip: Keep your config.yml in version control to track changes over time!"
