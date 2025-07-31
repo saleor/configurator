@@ -4,7 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "bin": {
-    "saleor-configurator": "bin/saleor-configurator.js"
+    "saleor-configurator": "bin/saleor-configurator.js",
+    "configurator": "bin/saleor-configurator.js"
   },
   "files": [
     "bin",

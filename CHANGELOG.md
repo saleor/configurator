@@ -35,13 +35,13 @@
 
   ```bash
   # Interactive deployment
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
 
   # CI/CD deployment
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
 
   # Custom report location
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
   ```
 
   ### Migration
