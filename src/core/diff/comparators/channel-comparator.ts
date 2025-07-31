@@ -29,10 +29,11 @@ interface ChannelSettings {
  * Channel fields to compare (excluding settings)
  */
 const CHANNEL_FIELDS: ReadonlyArray<keyof ChannelEntity> = [
+  "name",
   "currencyCode",
   "defaultCountry",
   "slug",
-  "isActive", // ADD MISSING FIELD
+  "isActive",
 ] as const;
 
 /**

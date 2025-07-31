@@ -85,15 +85,21 @@ pageTypes:
 
 categories:
   - name: "Fiction"
+    slug: "fiction"
     subcategories:
       - name: "Fantasy"
+        slug: "fantasy"
   - name: "Non-Fiction"
+    slug: "non-fiction"
     subcategories:
       - name: "Science"
+        slug: "science"
       - name: "History"
+        slug: "history"
 
 products:
   - name: "Sample Fiction Book"
+    slug: "sample-fiction-book"
     productType: "Book"
     category: "Fiction"
     attributes:

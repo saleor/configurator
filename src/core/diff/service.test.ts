@@ -56,7 +56,7 @@ describe("DiffService", () => {
       expect(summary.results[0]).toMatchObject({
         operation: "CREATE",
         entityType: "Channels",
-        entityName: "Germany",
+        entityName: "germany",
       });
     });
 
@@ -91,19 +91,19 @@ describe("DiffService", () => {
       expect(summary.results[0]).toMatchObject({
         operation: "DELETE",
         entityType: "Channels",
-        entityName: "Germany",
+        entityName: "germany",
       });
     });
 
     it("should detect channel updates", async () => {
-      // Arrange: Same channel name but different properties
+      // Arrange: Same channel slug but different properties
       const localConfig: SaleorConfig = {
         channels: [
           {
-            name: "Germany",
+            name: "Germany Store",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            slug: "germany-new",
+            slug: "germany",
           },
         ],
       };
@@ -133,7 +133,7 @@ describe("DiffService", () => {
       expect(summary.results[0]).toMatchObject({
         operation: "UPDATE",
         entityType: "Channels",
-        entityName: "Germany",
+        entityName: "germany",
       });
       expect(summary.results[0].changes).toHaveLength(2);
     });
@@ -488,8 +488,8 @@ describe("DiffService", () => {
       const newChannels = summary.results
         .filter((r) => r.operation === "CREATE" && r.entityType === "Channels")
         .map((r) => r.entityName);
-      expect(newChannels).toContain("EU Store");
-      expect(newChannels).toContain("UK Store");
+      expect(newChannels).toContain("eu");
+      expect(newChannels).toContain("uk");
     });
 
     it("should detect configuration cleanup scenario", async () => {
@@ -541,8 +541,8 @@ describe("DiffService", () => {
       const deletedChannels = summary.results
         .filter((r) => r.operation === "DELETE")
         .map((r) => r.entityName);
-      expect(deletedChannels).toContain("Test Channel");
-      expect(deletedChannels).toContain("Old Channel");
+      expect(deletedChannels).toContain("test");
+      expect(deletedChannels).toContain("old");
     });
   });
 
@@ -665,7 +665,7 @@ describe("DiffService", () => {
       expect(summary.results[0]).toMatchObject({
         operation: "CREATE",
         entityType: "Channels",
-        entityName: "Default Channel",
+        entityName: "default",
       });
     });
 
@@ -709,7 +709,7 @@ describe("DiffService", () => {
 
       const deletions = summary.results.filter((r) => r.operation === "DELETE");
       expect(deletions).toHaveLength(2);
-      expect(deletions.map((r) => r.entityName)).toContain("Old Channel");
+      expect(deletions.map((r) => r.entityName)).toContain("old");
       expect(deletions.map((r) => r.entityName)).toContain("Deprecated Type");
     });
 
