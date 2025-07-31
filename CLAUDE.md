@@ -412,6 +412,24 @@ This approach ensures entities with the same name but different slugs are correc
 4. Use structured logging for debugging
 5. Handle GraphQL errors with `GraphQLError.fromCombinedError()`
 
+## Testing Requirements
+
+### Comprehensive Test Plan
+
+**IMPORTANT**: After making any code changes, always run through the comprehensive test plan documented in `TEST_PLAN.md`. This ensures the configurator maintains its integrity across all operations.
+
+**Core Testing Workflow**:
+1. Remove existing config: `rm -rf config.yml`
+2. Introspect from remote
+3. Make critical data changes
+4. Deploy changes
+5. Deploy again (verify idempotency)
+6. Remove config again
+7. Introspect again (verify round-trip integrity)
+8. Run diff (should show no changes)
+
+See `TEST_PLAN.md` for detailed test scenarios and validation points.
+
 ## Common Issues & Solutions
 
 ### GraphQL Error Handling

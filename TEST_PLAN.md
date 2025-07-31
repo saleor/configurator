@@ -1,217 +1,283 @@
-# Comprehensive Test Plan for Saleor Configurator
+# Saleor Configurator Test Plan
 
-This test plan covers all the bug fixes and improvements made across multiple PRs.
+This test plan defines the critical workflows to validate after any code changes to ensure the configurator maintains its integrity.
 
-## Prerequisites
-- Store URL: `https://store-rzalldyg.saleor.cloud`
-- Token: `YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs`
+## Core Testing Workflow
 
-## Test Scenarios
+After making any changes to the codebase, execute this complete workflow to ensure everything works correctly:
 
-### 1. Test Bug #9 Fix: Selective Include/Exclude Flags
 ```bash
-# Clean start
-rm -f config.yml
+# 1. Clean start - remove any existing configuration
+rm -rf config.yml
 
-# Test selective introspection with --include
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --include shop
-# Verify: config.yml should only contain shop section
+# 2. Introspect from remote
+pnpm run introspect --url <SALEOR_URL> --token <SALEOR_TOKEN>
 
-# Test selective introspection with --exclude
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --exclude productTypes,pageTypes
-# Verify: config.yml should contain shop, channels, categories but NOT productTypes or pageTypes
+# 3. Make critical data changes (see scenarios below)
+# Edit config.yml with various test scenarios
+
+# 4. Deploy the changes
+pnpm run deploy --url <SALEOR_URL> --token <SALEOR_TOKEN> --ci
+
+# 5. Deploy again to ensure idempotency (should show no differences)
+pnpm run deploy --url <SALEOR_URL> --token <SALEOR_TOKEN> --ci
+
+# 6. Clean configuration again
+rm -rf config.yml
+
+# 7. Introspect again - should retrieve what was deployed
+pnpm run introspect --url <SALEOR_URL> --token <SALEOR_TOKEN>
+
+# 8. Verify the introspected config matches what was deployed
+pnpm run diff --url <SALEOR_URL> --token <SALEOR_TOKEN>
+# Should show no differences
 ```
 
-### 2. Test Bug #5 Fix: Channel isActive Field Tracking
-```bash
-# Full introspection
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+## Critical Data Change Scenarios
 
-# Modify channel isActive field
-# Edit config.yml and change isActive for any channel:
-# channels:
-#   - name: "Default Channel"
-#     isActive: false  # Change this value
+### Scenario 1: Entity Name vs Slug Handling
+Test that entities with same names but different slugs are handled correctly:
 
-# Run diff to verify change is detected
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-# Verify: Should show "isActive changed from true to false"
+```yaml
+# Add categories with same name but different slugs
+categories:
+  - name: "Accessories"
+    slug: "accessories"
+  - name: "Accessories" 
+    slug: "accessories-2"
+    
+# Add channels with different names but verify slug-based identification
+channels:
+  - name: "European Store"
+    slug: "eu-store"
+    currencyCode: EUR
+    defaultCountry: DE
 ```
 
-### 3. Test Bug #4 Fix: Introspect Creates Invalid Attribute Definitions
-```bash
-# Introspect to get current state
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+### Scenario 2: Nested Entity Relationships
+Test parent-child relationships and nested structures:
 
-# Deploy should work without attribute duplication errors
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-
-# Deploy again - should still work
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-# Verify: No duplicate attribute errors
+```yaml
+categories:
+  - name: "Electronics"
+    slug: "electronics"
+    subcategories:
+      - name: "Computers"
+        slug: "computers"
+        subcategories:
+          - name: "Laptops"
+            slug: "laptops"
+          - name: "Desktops"
+            slug: "desktops"
 ```
 
-### 4. Test Bug #1 Fix: Duplicate Attribute Handling
-```bash
-# Add a shared attribute across multiple product types
-# Edit config.yml:
+### Scenario 3: Shared Attributes Across Types
+Test attribute reuse and deduplication:
+
+```yaml
 productTypes:
-  - name: "Digital Products"
+  - name: "Digital Product"
     productAttributes:
       - name: "License Type"
         inputType: DROPDOWN
         values:
-          - name: "MIT"
-          - name: "Apache"
+          - name: "Personal"
+          - name: "Commercial"
   - name: "Software"
     productAttributes:
-      - name: "License Type"  # Same attribute name
+      - name: "License Type"  # Same attribute, should be reused
         inputType: DROPDOWN
         values:
-          - name: "MIT"
-          - name: "Apache"
-
-# Deploy - should succeed without duplicate errors
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-
-# Deploy again - should reuse existing attributes
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-# Verify: No duplicate attribute errors, attributes are reused
+          - name: "Personal"
+          - name: "Commercial"
 ```
 
-### 5. Test Bug #6 Fix: Page Type Attributes Comparison
-```bash
-# Introspect current state
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+### Scenario 4: Field Updates and Tracking
+Test that all fields are properly tracked for changes:
 
-# Add attribute to a page type
-# Edit config.yml:
+```yaml
+# Modify various fields to ensure tracking
+shop:
+  defaultMailSenderName: "Updated Store Name"
+  displayGrossPrices: false  # Toggle boolean fields
+  trackInventoryByDefault: true
+
+channels:
+  - name: "Main Channel"
+    slug: "default-channel"
+    isActive: false  # Test isActive tracking
+    currencyCode: EUR  # Change currency
+    settings:
+      automaticallyConfirmAllNewOrders: true
+      allowUnpaidOrders: false
+```
+
+### Scenario 5: Complex Product Configuration
+Test product creation with variants and attributes:
+
+```yaml
+products:
+  - name: "Test Product"
+    slug: "test-product"
+    productType: "Simple Product"
+    category: "Electronics"
+    attributes:
+      Brand: "TestBrand"
+      Color: "Blue"
+    variants:
+      - name: "Small"
+        sku: "TEST-S"
+        weight: 0.5
+      - name: "Large"
+        sku: "TEST-L"
+        weight: 1.0
+```
+
+## Test Validation Points
+
+After each workflow execution, verify:
+
+1. **Introspection Completeness**
+   - All entities are captured with their slugs
+   - Nested relationships are preserved
+   - Settings and metadata are included
+
+2. **Deployment Idempotency**
+   - First deployment applies all changes
+   - Second deployment shows "No changes detected"
+   - No duplicate entities are created
+
+3. **Round-trip Integrity**
+   - Introspect → Deploy → Introspect produces identical configs
+   - No data loss or corruption occurs
+
+4. **Error Handling**
+   - Invalid configurations produce clear error messages
+   - Network/auth failures are handled gracefully
+   - Partial failures don't corrupt state
+
+## Selective Testing Scenarios
+
+### Selective Operations Testing
+
+Test that selective include/exclude flags work correctly:
+
+```bash
+# Test selective introspection with --include
+rm -f config.yml
+pnpm run introspect --url <SALEOR_URL> --token <SALEOR_TOKEN> --include shop,channels
+# Verify: config.yml should only contain shop and channels sections
+
+# Test selective introspection with --exclude  
+rm -f config.yml
+pnpm run introspect --url <SALEOR_URL> --token <SALEOR_TOKEN> --exclude productTypes,pageTypes
+# Verify: config.yml should contain all sections except productTypes and pageTypes
+
+# Test selective deployment
+pnpm run deploy --url <SALEOR_URL> --token <SALEOR_TOKEN> --include shop --ci
+# Verify: Only shop settings are deployed
+```
+
+## Bug-Specific Regression Tests
+
+### 1. Channel isActive Field Tracking
+```yaml
+# Modify channel isActive field and verify it's tracked
+channels:
+  - name: "Default Channel"
+    slug: "default-channel"
+    isActive: false  # Change this value
+    
+# Run diff - should show isActive change
+pnpm run diff --url <SALEOR_URL> --token <SALEOR_TOKEN>
+```
+
+### 2. Attribute Deduplication
+```yaml
+# Deploy product types with shared attributes
+# Should reuse existing attributes, not create duplicates
+productTypes:
+  - name: "Type A"
+    productAttributes:
+      - name: "Shared Attribute"
+        inputType: PLAIN_TEXT
+  - name: "Type B"  
+    productAttributes:
+      - name: "Shared Attribute"  # Same attribute
+        inputType: PLAIN_TEXT
+```
+
+### 3. Page Type Attributes
+```yaml
+# Add/remove attributes from page types
 pageTypes:
   - name: "Blog Post"
     attributes:
-      - name: "SEO Title"
+      - name: "Author"
         inputType: PLAIN_TEXT
-
-# Run diff - should detect the change
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-# Verify: Shows 'Attribute "SEO Title" added (in config, not on Saleor)'
-
-# Deploy the change
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
+      - name: "Tags"
+        inputType: MULTISELECT
+        values:
+          - name: "Tech"
+          - name: "Business"
 ```
 
-### 6. Test Bug #7 Fix: Category Parent-Child Relationships
-```bash
-# Introspect to get categories
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-
-# Modify subcategory structure
-# Edit config.yml:
+### 4. Category Hierarchy Changes
+```yaml
+# Test moving categories between parents
 categories:
-  - name: "Electronics"
+  - name: "Parent A"
+    slug: "parent-a"
     subcategories:
-      - name: "Laptops"
-        subcategories:
-          - name: "Gaming Laptops"
-          - name: "Business Laptops"  # Add this
-
-# Run diff - should show parent context
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-# Verify: Shows 'In "Laptops": Subcategory "Business Laptops" added'
+      - name: "Child"  # Move this to Parent B
+        slug: "child"
+  - name: "Parent B"
+    slug: "parent-b"
+    subcategories: []
 ```
 
-### 7. Test Bug #8 Fix: Category Introspection
-```bash
-# Categories should be introspected properly
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+## Error Scenario Testing
 
-# Verify categories section exists in config.yml
-cat config.yml | grep -A 5 "categories:"
-# Verify: Categories section should be present with data
-```
-
-### 8. Test Enhanced Error Handling
+### Authentication Errors
 ```bash
 # Test with invalid token
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token INVALID_TOKEN --ci
-# Verify: Clear authentication error message
+pnpm run deploy --url <SALEOR_URL> --token INVALID_TOKEN --ci
+# Expected: Clear authentication error with suggested actions
+```
 
+### Network Errors
+```bash
 # Test with invalid URL
-pnpm run deploy --url https://invalid-store.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-# Verify: Clear network error message
+pnpm run deploy --url https://invalid-store.saleor.cloud --token <TOKEN> --ci
+# Expected: Clear network error with troubleshooting steps
+```
 
+### Validation Errors
+```bash
 # Test with malformed config
-echo "invalid: yaml: content:" > config.yml
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-# Verify: Clear validation error message
+echo "invalid: yaml: - syntax" > config.yml
+pnpm run deploy --url <SALEOR_URL> --token <SALEOR_TOKEN> --ci
+# Expected: Clear YAML parsing error with line numbers
 ```
 
-### 9. Test Deploy Command (Push Replacement)
+## Performance Testing
+
+### Large Configuration Handling
 ```bash
-# The new deploy command should work for all scenarios
-rm -f config.yml
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Create config with many entities
+categories: # 50+ categories with nested subcategories
+productTypes: # 20+ product types with attributes
+channels: # 5+ channels with different settings
 
-# Make a small change to shop settings
-# Edit config.yml:
-shop:
-  defaultMailSenderName: "Test Store Updated"
-
-# Deploy the change
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-# Verify: Deployment succeeds with progress indicators
+# Deploy and measure time
+time pnpm run deploy --url <SALEOR_URL> --token <SALEOR_TOKEN> --ci
+# Should complete within reasonable time (< 2 minutes)
 ```
-
-### 10. Test Complete Workflow
-```bash
-# Full end-to-end test
-rm -f config.yml
-
-# 1. Introspect
-pnpm run introspect --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-
-# 2. Check diff (should be empty)
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-
-# 3. Make multiple changes in config.yml:
-# - Change shop name
-# - Add/modify a channel
-# - Add an attribute to a product type
-# - Modify a page type
-# - Add a category
-
-# 4. Check diff (should show all changes)
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-
-# 5. Deploy changes
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-
-# 6. Check diff again (should be empty)
-pnpm run diff --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
-
-# 7. Deploy again (should succeed with no changes)
-pnpm run deploy --url https://store-rzalldyg.saleor.cloud --token YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs --ci
-```
-
-## Expected Results
-
-1. **Selective flags**: Only specified sections appear in config.yml
-2. **Channel tracking**: isActive field changes are detected
-3. **Attribute handling**: No duplicate attribute errors on re-deployment
-4. **Page type attrs**: Changes are properly detected in diff
-5. **Category hierarchy**: Parent context shown in diff messages
-6. **Error messages**: Clear, actionable error messages for various failure scenarios
-7. **Deploy command**: Works reliably with progress indicators
-8. **Multiple deploys**: Can deploy multiple times without errors
 
 ## Notes
 
-- Always use `--ci` flag for non-interactive deployment
-- Check deployment-report-*.json files for detailed deployment logs
-- The token expires periodically, so update if you get auth errors
+- Always test with `--ci` flag for non-interactive mode in scripts
+- Check `deployment-report-*.json` files for detailed logs
+- Use generic `<SALEOR_URL>` and `<SALEOR_TOKEN>` placeholders in examples
+- Test both create/update/delete operations for all entity types
+- Verify slug-based identification works correctly for all entities
