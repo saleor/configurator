@@ -70,7 +70,7 @@ pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graph
 
 All commands support the `--help` flag to display detailed usage information with examples.
 
-### `pnpm dlx @saleor/configurator start`
+### `start`
 
 Starts the interactive setup wizard that will guide you through the available operations.
 
@@ -78,7 +78,7 @@ Starts the interactive setup wizard that will guide you through the available op
 pnpm dlx @saleor/configurator start
 ```
 
-### `pnpm dlx @saleor/configurator deploy`
+### `deploy`
 
 Deploys the local configuration to the remote Saleor instance with mandatory diff preview and safety confirmations.
 
@@ -105,7 +105,7 @@ pnpm dlx @saleor/configurator deploy --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm dlx @saleor/configurator diff`
+### `diff`
 
 Shows the differences between the local and remote Saleor instances.
 
@@ -128,7 +128,7 @@ pnpm dlx @saleor/configurator diff --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm dlx @saleor/configurator introspect`
+### `introspect`
 
 Shows the current state of the remote Saleor instance and upon confirmation saves it to a configuration file.
 
