@@ -7,27 +7,21 @@ Saleor Configurator is a "commerce as code" tool that helps you automate the cre
 
 ## Usage
 
-> [!IMPORTANT]
-> Configurator is not currently published as an npm package. You need to clone the repository and install dependencies locally.
-
 **Prerequisites:**
 
 - Node.js 20+
-- pnpm 9+
 
-**Setup:**
-
-1. Clone the repository:
+**Usage:**
 
 ```bash
-git clone git@github.com:saleor/configurator.git
-cd saleor-configurator
-```
+# Run directly (recommended)
+pnpm dlx @saleor/configurator start
+npx @saleor/configurator@latest start
 
-2. Install dependencies:
-
-```bash
-pnpm install
+# Or install globally
+pnpm add -g @saleor/configurator
+npm install -g @saleor/configurator
+saleor-configurator start
 ```
 
 **Quickstart:**
@@ -40,7 +34,7 @@ pnpm install
 2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
 
 ```bash
-pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 3. Modify the pulled configuration according to your needs.
@@ -51,7 +45,7 @@ pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-
 >
 > 👉🏻 **Schema Documentation**: You can find the schema documentation in [SCHEMA.md](SCHEMA.md) and the example configuration in [example.yml](example.yml).
 >
-> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm run diff` to see what would be applied, and then push it.
+> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm dlx @saleor/configurator diff` to see what would be applied, and then push it.
 >
 > 👉🏻 **Backup Your Data**: Before applying changes, make sure to back up your database or snapshot your instance in Saleor Cloud.
 >
@@ -60,13 +54,13 @@ pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-
 4. Review changes with the diff command to see what changes would be applied to your Saleor instance:
 
 ```bash
-pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 5. If you're happy with the changes, push them to your Saleor instance:
 
 ```bash
-pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 > [!TIP]
@@ -76,30 +70,30 @@ pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-
 
 All commands support the `--help` flag to display detailed usage information with examples.
 
-### `pnpm run start`
+### `start`
 
 Starts the interactive setup wizard that will guide you through the available operations.
 
 ```bash
-pnpm run start
+pnpm dlx @saleor/configurator start
 ```
 
-### `pnpm run deploy`
+### `deploy`
 
 Deploys the local configuration to the remote Saleor instance with mandatory diff preview and safety confirmations.
 
 ```bash
 # Basic usage with diff preview and confirmation
-pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # CI mode (skip all confirmations for automated environments)
-pnpm run deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --ci
+pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token --ci
 
 # Show help
-pnpm run deploy --help
+pnpm dlx @saleor/configurator deploy --help
 ```
 
 **Arguments:**
@@ -111,19 +105,19 @@ pnpm run deploy --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm run diff`
+### `diff`
 
 Shows the differences between the local and remote Saleor instances.
 
 ```bash
 # Basic usage
-pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm run diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # Show help
-pnpm run diff --help
+pnpm dlx @saleor/configurator diff --help
 ```
 
 **Arguments:**
@@ -134,19 +128,19 @@ pnpm run diff --help
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 
-### `pnpm run introspect`
+### `introspect`
 
 Shows the current state of the remote Saleor instance and upon confirmation saves it to a configuration file.
 
 ```bash
 # Basic usage (shows diff and asks for confirmation)
-pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 
 # With custom config file
-pnpm run introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
+pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config production.yml
 
 # Show help
-pnpm run introspect --help
+pnpm dlx @saleor/configurator introspect --help
 ```
 
 **Arguments:**

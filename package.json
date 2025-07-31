@@ -1,10 +1,11 @@
 {
   "name": "@saleor/configurator",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "bin": {
-    "saleor-configurator": "bin/saleor-configurator.js"
+    "saleor-configurator": "bin/saleor-configurator.js",
+    "configurator": "bin/saleor-configurator.js"
   },
   "files": [
     "bin",
@@ -32,7 +33,7 @@
     "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
     "version": "changeset version",
-    "publish:ci-prod": "pnpm publish && pnpm exec changeset tag && git push --follow-tags",
+    "publish:ci-prod": "pnpm publish --no-git-checks && pnpm exec changeset tag && git push --follow-tags",
     "publish:ci-dev": "pnpm exec changeset version --snapshot pr && pnpm publish --tag dev --no-git-checks",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",

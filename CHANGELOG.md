@@ -1,5 +1,49 @@
 # saleor-configurator
 
+## 0.9.0
+
+### Minor Changes
+
+- f9d464d: Improved error handling for deploy command with specific exit codes and actionable error messages. Deploy operations now provide clear feedback when errors occur, including network issues (exit code 3), authentication failures (exit code 2), and validation errors (exit code 4). Added --verbose flag for detailed error information useful for debugging.
+
+### Patch Changes
+
+- f5dd91e: Fix introspect command ignoring include/exclude flags
+
+  The introspect command now properly respects `--include` and `--exclude` flags to selectively retrieve configuration sections. Previously, these flags were parsed but ignored, causing the entire configuration to be saved regardless of the specified filters. This fix enables focused configuration management workflows.
+
+- 67322af: Fix inconsistent diff results between commands
+
+  Resolved an issue where diff operations could produce inconsistent results when used across different commands. The DiffService is now properly shared through the service container as a singleton, ensuring consistent configuration comparison behavior throughout the application.
+
+- b745504: Fix page type attribute comparison in diff command
+
+  Page type attributes were being ignored during diff operations due to inverted filtering logic. The comparator was incorrectly removing valid attributes instead of keeping them. This fix ensures page type attribute changes are properly detected and can be deployed.
+
+- f7c4c6b: Fix introspect command creating invalid attribute definitions
+
+  The introspect command now properly generates attribute references for shared attributes. When an attribute is used across multiple product types or page types, it's automatically converted to reference syntax (e.g., `attribute: "Color"`) rather than duplicating the full definition. This prevents duplicate attribute errors during subsequent deployments.
+
+- 38e7ca2: Fix category parent-child relationship detection in diff
+
+  Category comparisons now properly detect changes in nested subcategory structures. The diff command will show parent context for subcategory changes (e.g., 'In "Laptops": Subcategory "Gaming Laptops" added'), making it clear where in the hierarchy changes occurred. Previously, only top-level category changes were detected.
+
+- 1233c85: Fix deployment failures caused by duplicate entities in Saleor
+
+  Deployments no longer fail when Saleor contains duplicate entities (e.g., multiple page types or product types with the same name). The system now deduplicates remote entities automatically while warning about duplicates found. Additionally, improved exact-match logic prevents creating new duplicates during deployment.
+
+- 1f08510: Merge category introspection with attribute normalization
+
+  Combined the category introspection feature (Bug #8) with the attribute reference normalization feature (Bug #4). The configuration service now properly maps categories from remote Saleor instances while also preventing duplicate attribute definition errors during deployment.
+
+- 8bb671e: Fix channel isActive field not being tracked in diff comparison
+
+  The diff command was not detecting changes to the `isActive` field on channels, causing deployment issues when trying to enable or disable channels. This field is now properly tracked and compared.
+
+- 90032b8: Fix duplicate attribute error when redeploying configurations
+
+  Previously, pushing a configuration that contained attributes already present in Saleor (from previous deployments) would fail with a duplicate attribute error. The system now correctly reuses existing attributes instead of attempting to recreate them, making redeployments more reliable.
+
 ## 0.8.0
 
 ### Minor Changes
@@ -35,13 +79,13 @@
 
   ```bash
   # Interactive deployment
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token
 
   # CI/CD deployment
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --ci
 
   # Custom report location
-  pnpm run deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
+  pnpm dlx @saleor/configurator deploy --url https://store.saleor.cloud/graphql/ --token your-app-token --report-path ./deploy-report.json
   ```
 
   ### Migration
