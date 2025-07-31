@@ -33,9 +33,9 @@ export class CategoryComparator extends BaseEntityComparator<
     local: readonly CategoryEntity[],
     remote: readonly CategoryEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names - now uses slug-based identification via getEntityName
-    this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+    // Validate unique identifiers (slugs for categories)
+    this.validateUniqueIdentifiers(local);
+    this.validateUniqueIdentifiers(remote);
 
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);

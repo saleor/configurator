@@ -69,9 +69,9 @@ export class ChannelComparator extends BaseEntityComparator<
     local: readonly ChannelEntity[],
     remote: readonly ChannelEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
-    this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+    // Validate unique identifiers (slugs for channels)
+    this.validateUniqueIdentifiers(local);
+    this.validateUniqueIdentifiers(remote);
 
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);

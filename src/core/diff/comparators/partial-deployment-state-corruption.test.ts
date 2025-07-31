@@ -36,7 +36,7 @@ describe("Bug #3: Partial Deployment State Corruption", () => {
 
       // Should throw error for local duplicates (strict validation)
       expect(() => comparator.compare(local, remote)).toThrow(
-        "Duplicate entity names found in Page Types: Default Type"
+        "Duplicate entity identifiers found in Page Types: Default Type"
       );
     });
 

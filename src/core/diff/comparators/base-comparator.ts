@@ -36,9 +36,11 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
   abstract compare(local: TLocal, remote: TRemote): readonly DiffResult[];
 
   /**
-   * Gets the name/identifier of an entity
-   * @param entity The entity to get the name from
-   * @returns The entity name
+   * Gets the unique identifier of an entity
+   * For entities with slugs, this should return the slug.
+   * For entities without slugs, this should return the name.
+   * @param entity The entity to get the identifier from
+   * @returns The entity's unique identifier
    */
   protected abstract getEntityName(entity: TEntity): string;
 
@@ -60,25 +62,26 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
   }
 
   /**
-   * Validates that entity names are unique within a collection
+   * Validates that entity identifiers are unique within a collection
+   * For entities with slugs, this validates unique slugs. For others, unique names.
    * @param entities Array of entities to validate
-   * @throws Error if duplicate names are found
+   * @throws Error if duplicate identifiers are found
    */
-  protected validateUniqueNames(entities: readonly TEntity[]): void {
-    const names = new Set<string>();
+  protected validateUniqueIdentifiers(entities: readonly TEntity[]): void {
+    const identifiers = new Set<string>();
     const duplicates = new Set<string>();
 
     for (const entity of entities) {
-      const name = this.getEntityName(entity);
-      if (names.has(name)) {
-        duplicates.add(name);
+      const identifier = this.getEntityName(entity);
+      if (identifiers.has(identifier)) {
+        duplicates.add(identifier);
       }
-      names.add(name);
+      identifiers.add(identifier);
     }
 
     if (duplicates.size > 0) {
       throw new EntityValidationError(
-        `Duplicate entity names found in ${this.entityType}: ${Array.from(duplicates).join(", ")}`
+        `Duplicate entity identifiers found in ${this.entityType}: ${Array.from(duplicates).join(", ")}`
       );
     }
   }

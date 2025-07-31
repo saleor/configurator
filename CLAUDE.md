@@ -366,7 +366,7 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 #### Implementation Requirements:
 1. **Schema Definition**: If an entity has a slug in the API, the schema MUST include it as a required field
 2. **Comparator Implementation**: The `getEntityName()` method must return the slug for slug-based entities
-3. **Validation**: Use `validateUniqueNames()` which validates based on the identifier returned by `getEntityName()`
+3. **Validation**: Use `validateUniqueIdentifiers()` which validates based on the identifier returned by `getEntityName()`
 4. **Subcategory/Nested Handling**: Use slug-based maps for comparison when entities have slugs
 
 #### Example Implementation:
