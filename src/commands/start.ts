@@ -3,8 +3,10 @@ import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { confirmAction, promptForMissingArgs, selectOption } from "../cli/command";
 import { cliConsole } from "../cli/console";
+import { DEFAULT_CONFIG_PATH } from "../modules/config/yaml-manager";
 
 export const startCommandSchema = z.object({
+  config: z.string().default(DEFAULT_CONFIG_PATH).describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
 
@@ -44,16 +46,16 @@ function showWelcomeMessage(): void {
   cliConsole.info("👉 Collaborate on store configuration with your team\n");
 }
 
-function isFirstTimeUser(): boolean {
-  return !existsSync("config.yml");
+function isFirstTimeUser(configPath: string = DEFAULT_CONFIG_PATH): boolean {
+  return !existsSync(configPath);
 }
 
-async function runFirstTimeSetup(): Promise<void> {
+async function runFirstTimeSetup(configPath: string): Promise<void> {
   showWelcomeMessage();
 
   cliConsole.subtitle("🎯 Let's get you started!\n");
   cliConsole.info("Since you don't have an existing configuration, we'll download your store's current");
-  cliConsole.info(`configuration to create a local ${cliConsole.path("config.yml")} file.\n`);
+  cliConsole.info(`configuration to create a local ${cliConsole.path(configPath)} file.\n`);
 
   const shouldContinue = await confirmAction(
     "Ready to connect to your Saleor store and download your configuration?",
@@ -67,22 +69,22 @@ async function runFirstTimeSetup(): Promise<void> {
   }
 
   cliConsole.info("");
-  await executeCommand("introspect");
+  await executeCommand("introspect", configPath);
 }
 
-async function runReturningUserSetup(): Promise<void> {
+async function runReturningUserSetup(configPath: string): Promise<void> {
   cliConsole.info("\n"); // Add some breathing room from CLI help
   cliConsole.header("🔧 Saleor Configurator\n");
-  cliConsole.info(`I see you have a ${cliConsole.path("config.yml")} file. What would you like to do?\n`);
+  cliConsole.info(`I see you have a ${cliConsole.path(configPath)} file. What would you like to do?\n`);
 
   const selectedAction = await selectOption("Choose an action:", RETURNING_USER_CHOICES);
 
   cliConsole.info(`\n✨ Starting ${selectedAction}...\n`);
-  await executeCommand(selectedAction);
+  await executeCommand(selectedAction, configPath);
 }
 
-async function executeCommand(commandName: string): Promise<void> {
-  const isFirstTime = isFirstTimeUser();
+async function executeCommand(commandName: string, configPath: string): Promise<void> {
+  const isFirstTime = isFirstTimeUser(configPath);
 
   // Import the commands dynamically to avoid circular dependencies
   const { commands } = await import("./index");
@@ -99,7 +101,7 @@ async function executeCommand(commandName: string): Promise<void> {
 
     // For commands that need URL and token, prompt for them interactively
     if (["introspect", "diff", "deploy"].includes(commandName)) {
-      const interactiveArgs = await promptForMissingArgs({});
+      const interactiveArgs = await promptForMissingArgs({ config: configPath });
 
       // Parse with the command name and interactive arguments
       await program.parseAsync(
@@ -110,14 +112,14 @@ async function executeCommand(commandName: string): Promise<void> {
           "--token",
           interactiveArgs.token,
           "--config",
-          interactiveArgs.config,
+          configPath,
         ],
         { from: "user" }
       );
 
       // Add post-success messaging for first-time introspect from start command
       if (commandName === "introspect" && isFirstTime) {
-        await showPostIntrospectGuidance(interactiveArgs.config);
+        await showPostIntrospectGuidance(configPath);
       }
     } else {
       // Parse with the command name to simulate running it directly
@@ -159,17 +161,17 @@ async function showPostIntrospectGuidance(configPath: string): Promise<void> {
   cliConsole.separator("─", 60);
 }
 
-async function runInteractiveSetup(): Promise<void> {
-  if (isFirstTimeUser()) {
-    await runFirstTimeSetup();
+async function runInteractiveSetup(configPath: string): Promise<void> {
+  if (isFirstTimeUser(configPath)) {
+    await runFirstTimeSetup(configPath);
   } else {
-    await runReturningUserSetup();
+    await runReturningUserSetup(configPath);
   }
 }
 
 export async function startHandler(args: StartCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
-  await runInteractiveSetup();
+  await runInteractiveSetup(args.config);
 }
 
 export const startCommandConfig: CommandConfig<typeof startCommandSchema> = {
