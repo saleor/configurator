@@ -31,10 +31,14 @@ saleor-configurator start
 > [!TIP]
 > You can also use the `start` command to explore the features interactively.
 
-2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
+2. Introspect your current configuration from your remote Saleor instance:
 
 ```bash
+# Generate YAML configuration (traditional)
 pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+
+# Generate TypeScript configuration (with full type safety)
+pnpm dlx @saleor/configurator introspect --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 3. Modify the pulled configuration according to your needs.
@@ -43,7 +47,7 @@ pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/g
 >
 > Here are a bunch of tips for working with the configuration file:
 >
-> 👉🏻 **Schema Documentation**: You can find the schema documentation in [SCHEMA.md](SCHEMA.md) and the example configuration in [example.yml](example.yml).
+> 👉🏻 **Example Configuration**: You can find example configurations in [example.yml](example.yml) (YAML format) and [example-config.ts](example-config.ts) (TypeScript format with full type safety and IDE support).
 >
 > 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm dlx @saleor/configurator diff` to see what would be applied, and then push it.
 >
@@ -51,7 +55,7 @@ pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/g
 >
 > 👉🏻 **Configuration as Source of Truth**: Configurator treats your local configuration file as the authoritative source for your Saleor instance. This means any entities (channels, product types, attributes, etc.) that exist in your Saleor instance but are not defined in your configuration will be flagged for removal during the deploy operation.
 
-4. Review changes with the diff command to see what changes would be applied to your Saleor instance:
+1. Review changes with the diff command to see what changes would be applied to your Saleor instance:
 
 ```bash
 pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
@@ -206,9 +210,8 @@ products:
 
 **Tips:**
 
-1. See [SCHEMA.md](SCHEMA.md) for complete schema documentation with all available properties.
-2. See [example.yml](example.yml) for an example configuration.
-3. If you need to reuse an attribute across multiple product or page types, you can define it once and reference with the `attribute: <attribute-name>` property. Here is an example:
+1. See [example.yml](example.yml) for an example configuration.
+2. If you need to reuse an attribute across multiple product or page types, you can define it once and reference with the `attribute: <attribute-name>` property. Here is an example:
 
 ```yaml
 pageTypes:
@@ -220,6 +223,113 @@ pageTypes:
     attributes:
       - attribute: Published Date # Reference the existing attribute
 ```
+
+## TypeScript Configuration (Beta)
+
+**For enhanced developer experience**, you can also write your configuration in TypeScript! This provides:
+
+- **Full type safety** with compile-time validation
+- **Superior IDE support** in any TypeScript-capable editor  
+- **Computed values** and **reusable components**
+- **Better refactoring** and **error messages**
+
+### Getting Started with TypeScript Config
+
+1. **Create a TypeScript config file** (e.g., `config.ts`):
+
+```typescript
+import { createSaleorConfig, attribute } from '@saleor/configurator'
+
+export default createSaleorConfig({
+  shop: {
+    defaultMailSenderName: "My Store",
+    displayGrossPrices: true,
+  },
+  channels: [
+    {
+      name: "US Store",
+      slug: "us", 
+      currencyCode: "USD", // Full autocompletion for currency codes!
+      defaultCountry: "US", // Full autocompletion for country codes!
+      isActive: true,
+    }
+  ],
+  productTypes: [
+    {
+      name: "Electronics",
+      isShippingRequired: true,
+      productAttributes: [
+        attribute.plainText("Brand"),
+        attribute.dropdown("Color", ["Red", "Blue", "Green"]),
+        attribute.reference("Category", "CATEGORY"),
+      ]
+    }
+  ]
+})
+```
+
+2. **Use TypeScript config with any command**:
+
+```bash
+# Deploy TypeScript configuration
+pnpm dlx @saleor/configurator deploy --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+
+# Diff with TypeScript config
+pnpm dlx @saleor/configurator diff --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+```
+
+### TypeScript Configuration Benefits
+
+**Powerful Features:**
+- **Variables and computed values**: Reuse configuration parts
+- **Helper functions**: Create channels, attributes, and other entities programmatically
+- **Environment variables**: `process.env.NODE_ENV` support
+- **Imports**: Split large configs across multiple files
+
+**Example of advanced TypeScript config:**
+
+```typescript
+import { createSaleorConfig, attribute } from '@saleor/configurator'
+
+// Reusable components
+const commonAttributes = [
+  attribute.plainText("Brand"),
+  attribute.dropdown("Color", ["Red", "Blue", "Green"])
+];
+
+const createChannel = (name: string, currency: string, country: string) => ({
+  name: `${name} Store`,
+  slug: name.toLowerCase(),
+  currencyCode: currency as const,
+  defaultCountry: country as const,
+  isActive: true,
+});
+
+export default createSaleorConfig({
+  channels: [
+    createChannel("US", "USD", "US"),
+    createChannel("EU", "EUR", "DE"), 
+    createChannel("UK", "GBP", "GB"),
+  ],
+  productTypes: [
+    {
+      name: "Electronics",
+      productAttributes: [
+        ...commonAttributes, // Spread reusable attributes!
+        attribute.numeric("Weight"),
+      ]
+    }
+  ]
+})
+```
+
+**IDE Experience:**
+- Works in **any TypeScript editor** (VS Code, WebStorm, Vim, etc.)
+- **Excellent IntelliSense** with documentation on hover
+- **Compile-time validation** catches errors before deployment
+- **Refactoring support** with symbol renaming across files
+
+See [example-config.ts](example-config.ts) for a comprehensive TypeScript configuration example.
 
 ### Limitations
 
@@ -237,15 +347,37 @@ For contributors and advanced users who want to modify the tool.
 > [!NOTE]
 > The `pnpm install` command will install dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
-### Schema Documentation
+### IDE Autocompletion
 
-The configuration schema is automatically documented from Zod schemas with GraphQL field mappings. The [`SCHEMA.md`](SCHEMA.md) file is automatically regenerated by CI when schema files change.
+For the best development experience with full type safety, IntelliSense, and autocompletion, we recommend using **TypeScript configuration files** (`.ts`):
 
-**Manual generation** (if needed):
+**TypeScript Configuration (Recommended):**
 
-```bash
-pnpm run generate-docs
+1. Create your configuration as `config.ts` using the TypeScript API
+2. Get full compile-time type checking and IDE autocompletion
+3. Access to advanced features like computed values and helper functions
+
+```typescript
+import { createSaleorConfig, attribute } from "@saleor/configurator";
+
+export default createSaleorConfig({
+  shop: {
+    defaultMailSenderName: "My Store"
+  },
+  channels: [
+    {
+      name: "US Store",
+      slug: "us",
+      currencyCode: "USD",
+      defaultCountry: "US"
+    }
+  ]
+});
 ```
+
+**YAML Configuration (Legacy):**
+
+For backward compatibility, YAML configurations are still supported, but without the advanced IDE features of TypeScript.
 
 ### Testing
 

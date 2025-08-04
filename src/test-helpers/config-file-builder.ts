@@ -225,6 +225,7 @@ export class ConfigFileBuilder {
           slug: "invalid-channel",
           currencyCode: "INVALID" as CurrencyCode, // Invalid currency code
           defaultCountry: "US", // Valid, but the currency is invalid
+          isActive: true,
         },
       ],
       productTypes: [
@@ -463,6 +464,7 @@ export function createMatchingCurrentStateConfig(): ConfigFileBuilder {
       slug: "default-channel",
       currencyCode: "USD",
       defaultCountry: "US",
+      isActive: true,
     });
 }
 

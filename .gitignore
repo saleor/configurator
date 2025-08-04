@@ -1,7 +1,14 @@
 .env
 node_modules
 config.yml
+config.ts
 .biome
 deployment-report-*.json
+config.schema.json
+test-autocompletion.yml
 CLAUDE.md
 .serena
+
+# Keep example files
+!example-config.ts
+!example.yml

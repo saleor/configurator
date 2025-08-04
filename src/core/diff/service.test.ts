@@ -34,6 +34,7 @@ describe("DiffService", () => {
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "germany",
+            isActive: true,
           },
         ],
       };
@@ -73,6 +74,7 @@ describe("DiffService", () => {
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "germany",
+            isActive: true,
           },
         ],
       };
@@ -104,6 +106,7 @@ describe("DiffService", () => {
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "germany",
+            isActive: true,
           },
         ],
       };
@@ -115,6 +118,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "DE",
             slug: "germany",
+            isActive: true,
           },
         ],
       };
@@ -333,6 +337,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "default",
+            isActive: true,
           },
         ],
         productTypes: [
@@ -393,6 +398,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "default",
+            isActive: true,
           },
         ],
         productTypes: [
@@ -442,12 +448,14 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "us",
+            isActive: true,
           },
           {
             name: "EU Store", // New channel
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "eu",
+            isActive: true,
             settings: {
               allocationStrategy: "PRIORITIZE_SORTING_ORDER",
             },
@@ -457,6 +465,7 @@ describe("DiffService", () => {
             currencyCode: "GBP",
             defaultCountry: "GB",
             slug: "uk",
+            isActive: true,
           },
         ],
       };
@@ -468,6 +477,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "us",
+            isActive: true,
           },
         ],
       };
@@ -501,6 +511,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "main",
+            isActive: true,
           },
         ],
       };
@@ -512,18 +523,21 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "main",
+            isActive: true,
           },
           {
             name: "Test Channel", // Will be marked for deletion
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "test",
+            isActive: true,
           },
           {
             name: "Old Channel", // Will be marked for deletion
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "old",
+            isActive: true,
           },
         ],
       };
@@ -555,6 +569,7 @@ describe("DiffService", () => {
           currencyCode: "USD",
           defaultCountry: "US",
           slug: `channel-${i}`,
+          isActive: true,
         })),
         productTypes: Array.from({ length: 30 }, (_, i) => ({
           name: `Product Type ${i}`,
@@ -616,6 +631,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "remote",
+            isActive: true,
           },
         ],
       };
@@ -647,6 +663,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "default",
+            isActive: true,
           },
         ],
       };
@@ -678,6 +695,7 @@ describe("DiffService", () => {
             currencyCode: "EUR",
             defaultCountry: "DE",
             slug: "old",
+            isActive: true,
           },
         ],
         productTypes: [
@@ -759,6 +777,7 @@ describe("DiffService", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "ch1",
+            isActive: true,
           },
         ],
         productTypes: [

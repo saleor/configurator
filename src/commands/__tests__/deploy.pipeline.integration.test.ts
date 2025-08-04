@@ -46,6 +46,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
           slug: "test-channel",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         })
         .withProductType({
           name: "Test Product Type",
@@ -55,7 +56,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
           ],
         })
         .withPageType({ name: "Test Page Type" })
-        .withCategory({ name: "Test Category" })
+        .withCategory({ name: "Test Category", slug: "test-category" })
         .toYaml();
 
       await fs.writeFile(configPath, config);
@@ -161,6 +162,7 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
           slug: "new-channel",
           currencyCode: "EUR",
           defaultCountry: "DE",
+          isActive: true,
         })
         .toYaml();
 

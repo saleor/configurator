@@ -201,7 +201,6 @@ export class IntrospectCommandHandler
     }
   }
 
-
   private displayConfigurationInfo(args: IntrospectCommandArgs, isQuiet: boolean): void {
     if (isQuiet) return;
 

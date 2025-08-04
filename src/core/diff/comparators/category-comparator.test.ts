@@ -35,9 +35,10 @@ describe("CategoryComparator", () => {
 
     // Should detect the subcategory difference
     const changes = results[0].changes;
+    expect(changes).toBeDefined();
     expect(changes).toHaveLength(1);
-    expect(changes[0].field).toBe("subcategories");
-    expect(changes[0].description).toContain("Laptops");
+    expect(changes?.[0]?.field).toBe("subcategories");
+    expect(changes?.[0]?.description).toContain("Laptops");
   });
 
   it("should detect nested parent-child relationships", () => {
@@ -83,9 +84,10 @@ describe("CategoryComparator", () => {
 
     // Should detect nested subcategory differences
     const changes = results[0].changes;
-    expect(changes.length).toBeGreaterThan(0);
+    expect(changes).toBeDefined();
+    expect(changes?.length).toBeGreaterThan(0);
     expect(
-      changes.some(
+      changes?.some(
         (change) =>
           change.field === "subcategories" && change.description?.includes("Business Laptops")
       )
@@ -126,9 +128,10 @@ describe("CategoryComparator", () => {
 
     const results = comparator.compare(local, remote);
     const changes = results[0].changes;
+    expect(changes).toBeDefined();
 
     // Should show parent context in the description
-    const changeWithContext = changes.find(
+    const changeWithContext = changes?.find(
       (change) =>
         change.description?.includes('In "Laptops"') &&
         change.description?.includes("Business Laptops")
