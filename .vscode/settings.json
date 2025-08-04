@@ -1,35 +1,19 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "yaml.schemas": {
-    "./config.schema.json": [
-      "config.yml",
-      "config.yaml",
-      "**/config/*.yml",
-      "**/config/*.yaml",
-      "example.yml",
-      "example.yaml"
-    ]
-  },
-  "yaml.format.enable": true,
-  "yaml.validate": true,
-  "yaml.completion": true,
-  "yaml.hover": true,
-  "[yaml]": {
-    "editor.defaultFormatter": "redhat.vscode-yaml",
-    "editor.autoIndent": "full",
-    "editor.insertSpaces": true,
-    "editor.tabSize": 2,
+  "typescript.preferences.quotingStyle": "double",
+  "typescript.suggest.autoImports": true,
+  "typescript.suggest.completeFunctionCalls": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome",
     "editor.formatOnSave": true,
-    "editor.quickSuggestions": {
-      "other": true,
-      "comments": false,
-      "strings": true
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
     }
   },
   "files.associations": {
-    "config.yml": "yaml",
-    "config.yaml": "yaml",
-    "example.yml": "yaml"
+    "config.ts": "typescript",
+    "example-config.ts": "typescript",
+    "**/config/*.ts": "typescript"
   }
 }

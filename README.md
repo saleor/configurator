@@ -349,25 +349,35 @@ For contributors and advanced users who want to modify the tool.
 
 ### IDE Autocompletion
 
-The configurator automatically generates a JSON Schema from the Zod configuration schema to enable IDE autocompletion and validation for your `config.yml` files.
+For the best development experience with full type safety, IntelliSense, and autocompletion, we recommend using **TypeScript configuration files** (`.ts`):
 
-**Setup for VSCode:**
+**TypeScript Configuration (Recommended):**
 
-1. Install the "YAML" extension by Red Hat
-2. The project includes pre-configured VSCode settings that will automatically use the generated schema
-3. Start editing your `config.yml` file and enjoy autocompletion, validation, and hover documentation!
+1. Create your configuration as `config.ts` using the TypeScript API
+2. Get full compile-time type checking and IDE autocompletion
+3. Access to advanced features like computed values and helper functions
 
-**Manual Schema Generation:**
+```typescript
+import { createSaleorConfig, attribute } from "@saleor/configurator";
 
-```bash
-pnpm run generate-schema
+export default createSaleorConfig({
+  shop: {
+    defaultMailSenderName: "My Store"
+  },
+  channels: [
+    {
+      name: "US Store",
+      slug: "us",
+      currencyCode: "USD",
+      defaultCountry: "US"
+    }
+  ]
+});
 ```
 
-This creates a `config.schema.json` file that provides:
-- **Autocompletion** for all configuration properties
-- **Validation** with helpful error messages
-- **Documentation** on hover for all fields
-- **Enum suggestions** for currency codes, country codes, and other constrained values
+**YAML Configuration (Legacy):**
+
+For backward compatibility, YAML configurations are still supported, but without the advanced IDE features of TypeScript.
 
 ### Testing
 
