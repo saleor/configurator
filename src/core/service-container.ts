@@ -8,7 +8,8 @@ import { ChannelService } from "../modules/channel/channel-service";
 import { ChannelRepository } from "../modules/channel/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import { UnifiedConfigurationManager } from "../modules/config/unified-manager";
+import type { ConfigurationStorage } from "../modules/config/yaml-manager";
 import { PageTypeService } from "../modules/page-type/page-type-service";
 import { PageTypeRepository } from "../modules/page-type/repository";
 import { ProductService } from "../modules/product/product-service";
@@ -25,7 +26,7 @@ export interface ServiceContainer {
   readonly productType: ProductTypeService;
   readonly shop: ShopService;
   readonly configuration: ConfigurationService;
-  readonly configStorage: YamlConfigurationManager;
+  readonly configStorage: ConfigurationStorage;
   readonly category: CategoryService;
   readonly product: ProductService;
   readonly diffService: DiffService;
@@ -48,7 +49,7 @@ export class ServiceComposer {
 
     logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
-    const configStorage = new YamlConfigurationManager(configPath);
+    const configStorage = new UnifiedConfigurationManager(configPath || "config.yml");
     const configurationService = new ConfigurationService(
       repositories.configuration,
       configStorage

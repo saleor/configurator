@@ -31,10 +31,14 @@ saleor-configurator start
 > [!TIP]
 > You can also use the `start` command to explore the features interactively.
 
-2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
+2. Introspect your current configuration from your remote Saleor instance:
 
 ```bash
+# Generate YAML configuration (traditional)
 pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+
+# Generate TypeScript configuration (with full type safety)
+pnpm dlx @saleor/configurator introspect --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
 3. Modify the pulled configuration according to your needs.
@@ -43,7 +47,7 @@ pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/g
 >
 > Here are a bunch of tips for working with the configuration file:
 >
-> 👉🏻 **Example Configuration**: You can find the example configuration in [example.yml](example.yml).
+> 👉🏻 **Example Configuration**: You can find example configurations in [example.yml](example.yml) (YAML format) and [example-config.ts](example-config.ts) (TypeScript format with full type safety and IDE support).
 >
 > 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm dlx @saleor/configurator diff` to see what would be applied, and then push it.
 >
@@ -220,6 +224,113 @@ pageTypes:
       - attribute: Published Date # Reference the existing attribute
 ```
 
+## TypeScript Configuration (Beta)
+
+**For enhanced developer experience**, you can also write your configuration in TypeScript! This provides:
+
+- **Full type safety** with compile-time validation
+- **Superior IDE support** in any TypeScript-capable editor  
+- **Computed values** and **reusable components**
+- **Better refactoring** and **error messages**
+
+### Getting Started with TypeScript Config
+
+1. **Create a TypeScript config file** (e.g., `config.ts`):
+
+```typescript
+import { createSaleorConfig, attribute } from '@saleor/configurator'
+
+export default createSaleorConfig({
+  shop: {
+    defaultMailSenderName: "My Store",
+    displayGrossPrices: true,
+  },
+  channels: [
+    {
+      name: "US Store",
+      slug: "us", 
+      currencyCode: "USD", // Full autocompletion for currency codes!
+      defaultCountry: "US", // Full autocompletion for country codes!
+      isActive: true,
+    }
+  ],
+  productTypes: [
+    {
+      name: "Electronics",
+      isShippingRequired: true,
+      productAttributes: [
+        attribute.plainText("Brand"),
+        attribute.dropdown("Color", ["Red", "Blue", "Green"]),
+        attribute.reference("Category", "CATEGORY"),
+      ]
+    }
+  ]
+})
+```
+
+2. **Use TypeScript config with any command**:
+
+```bash
+# Deploy TypeScript configuration
+pnpm dlx @saleor/configurator deploy --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+
+# Diff with TypeScript config
+pnpm dlx @saleor/configurator diff --config config.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+```
+
+### TypeScript Configuration Benefits
+
+**Powerful Features:**
+- **Variables and computed values**: Reuse configuration parts
+- **Helper functions**: Create channels, attributes, and other entities programmatically
+- **Environment variables**: `process.env.NODE_ENV` support
+- **Imports**: Split large configs across multiple files
+
+**Example of advanced TypeScript config:**
+
+```typescript
+import { createSaleorConfig, attribute } from '@saleor/configurator'
+
+// Reusable components
+const commonAttributes = [
+  attribute.plainText("Brand"),
+  attribute.dropdown("Color", ["Red", "Blue", "Green"])
+];
+
+const createChannel = (name: string, currency: string, country: string) => ({
+  name: `${name} Store`,
+  slug: name.toLowerCase(),
+  currencyCode: currency as const,
+  defaultCountry: country as const,
+  isActive: true,
+});
+
+export default createSaleorConfig({
+  channels: [
+    createChannel("US", "USD", "US"),
+    createChannel("EU", "EUR", "DE"), 
+    createChannel("UK", "GBP", "GB"),
+  ],
+  productTypes: [
+    {
+      name: "Electronics",
+      productAttributes: [
+        ...commonAttributes, // Spread reusable attributes!
+        attribute.numeric("Weight"),
+      ]
+    }
+  ]
+})
+```
+
+**IDE Experience:**
+- Works in **any TypeScript editor** (VS Code, WebStorm, Vim, etc.)
+- **Excellent IntelliSense** with documentation on hover
+- **Compile-time validation** catches errors before deployment
+- **Refactoring support** with symbol renaming across files
+
+See [example-config.ts](example-config.ts) for a comprehensive TypeScript configuration example.
+
 ### Limitations
 
 The following features are not yet supported in the current version:
@@ -236,9 +347,27 @@ For contributors and advanced users who want to modify the tool.
 > [!NOTE]
 > The `pnpm install` command will install dependencies and fetch the Saleor schema needed for [gql.tada](https://gql-tada.0no.co/) to generate the types.
 
-### Schema Documentation
+### IDE Autocompletion
 
-TODO: replace with JSON schema
+The configurator automatically generates a JSON Schema from the Zod configuration schema to enable IDE autocompletion and validation for your `config.yml` files.
+
+**Setup for VSCode:**
+
+1. Install the "YAML" extension by Red Hat
+2. The project includes pre-configured VSCode settings that will automatically use the generated schema
+3. Start editing your `config.yml` file and enjoy autocompletion, validation, and hover documentation!
+
+**Manual Schema Generation:**
+
+```bash
+pnpm run generate-schema
+```
+
+This creates a `config.schema.json` file that provides:
+- **Autocompletion** for all configuration properties
+- **Validation** with helpful error messages
+- **Documentation** on hover for all fields
+- **Enum suggestions** for currency codes, country codes, and other constrained values
 
 ### Testing
 

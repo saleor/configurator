@@ -35,6 +35,7 @@ src/
 - **Command Pattern**: CLI commands as discrete handlers
 - **Strategy Pattern**: Multiple comparators for diff operations
 - **Factory Pattern**: Service composition and client creation
+- **Unified Manager Pattern**: Single interface for multiple configuration formats
 
 ### Technology Stack
 
@@ -170,19 +171,32 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 
 ## Configuration System
 
-### Configuration Format
+### Configuration Formats
 
-**YAML-Based Configuration**: Declarative configuration files
+**Hybrid Configuration Support**: The configurator supports both YAML and TypeScript configuration formats
 
+**YAML Configuration** (Legacy):
 - Human-readable and version-controllable
 - Supports nested structures and references
 - Example configuration in `example.yml`
+- Ideal for simple configurations and non-technical users
+
+**TypeScript Configuration** (Recommended):
+- Full compile-time type safety and IntelliSense
+- Programmatic configuration with helper functions
+- Code completion and validation in IDE
+- Example configuration in `example-config.ts`
+- Supports computed values, functions, and advanced TypeScript features
+
+**Auto-Detection**: The system automatically detects configuration format based on file extension:
+- `.yml`, `.yaml` → YAML configuration
+- `.ts`, `.mts` → TypeScript configuration
 
 **Schema Definition**: Zod schemas define configuration structure
 
 - Located in `src/modules/config/schema/`
-- Provides validation and TypeScript types
-- Auto-generates documentation
+- Provides validation and TypeScript types for both formats
+- Shared validation ensures consistency between YAML and TypeScript configs
 
 ### Configuration Sections
 
@@ -200,6 +214,82 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Support for various input types (text, dropdown, reference, etc.)
 - Reusable attributes across product/page types
 - Reference existing attributes or create new ones
+
+### TypeScript Configuration System
+
+**Core API**: Centered around `createSaleorConfig()` function
+
+```typescript
+import { createSaleorConfig, attribute } from "@saleor/configurator";
+
+export default createSaleorConfig({
+  shop: {
+    defaultMailSenderName: "My Shop",
+    defaultMailSenderAddress: "noreply@example.com"
+  },
+  channels: [
+    {
+      name: "US Store",
+      slug: "us-store", 
+      currencyCode: "USD",
+      defaultCountry: "US"
+    }
+  ]
+});
+```
+
+**Attribute Helpers**: Type-safe attribute creation
+
+```typescript
+productTypes: [
+  {
+    name: "T-Shirt",
+    productAttributes: [
+      attribute.dropdown("Size", ["XS", "S", "M", "L", "XL"]),
+      attribute.plainText("Material"),
+      attribute.reference("Brand", "PRODUCT")
+    ]
+  }
+]
+```
+
+**File Organization**:
+- `src/modules/config/typescript/index.ts` - Main API exports
+- `src/modules/config/typescript/config-builder.ts` - `createSaleorConfig()` implementation
+- `src/modules/config/typescript/helpers.ts` - Attribute helper functions
+- `src/modules/config/typescript/types.ts` - TypeScript type definitions
+- `src/modules/config/typescript/loader.ts` - Dynamic import and validation
+- `src/modules/config/typescript/generator.ts` - Code generation for introspect
+
+**Introspect Behavior**: TypeScript configs maintain their format during introspect:
+- TypeScript config file → introspect → generates TypeScript code
+- YAML config file → introspect → saves as YAML
+- Preserves the developer's chosen format and workflow
+
+**Example Files**:
+- `example.yml` - YAML configuration example showing traditional approach
+- `example-config.ts` - TypeScript configuration example with advanced features:
+  - Computed values and variables
+  - Reusable attribute definitions  
+  - Helper functions for channel creation
+  - Comments and documentation
+
+**CLI Usage with TypeScript**:
+```bash
+# Deploy TypeScript configuration
+saleor-configurator deploy --config config.ts
+
+# Introspect to TypeScript file  
+saleor-configurator introspect --config config.ts
+
+# Diff TypeScript configuration
+saleor-configurator diff --config config.ts
+```
+
+**Runtime Requirements**: TypeScript configs require Node.js with TypeScript support:
+- Run with `tsx`: `tsx node_modules/.bin/saleor-configurator deploy --config config.ts`
+- Or with ts-node: `ts-node -m esm node_modules/.bin/saleor-configurator deploy --config config.ts`
+- The CLI automatically handles TypeScript execution when config file is `.ts`
 
 ## Testing Strategy
 
@@ -236,6 +326,14 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Mock GraphQL client for repository tests
 - Mock file system for configuration tests
 - Use real validation for schema tests
+
+**4. TypeScript Configuration Testing**
+
+- Test both YAML and TypeScript configuration loading
+- Validate code generation produces executable TypeScript
+- Ensure format preservation during introspect operations
+- Test attribute helper functions with all input types
+- Verify error handling for invalid TypeScript configurations
 
 ## Development Workflow
 
@@ -296,6 +394,14 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Specialized comparators for different entity types
 - Multiple output formats (table, JSON, YAML)
 - Supports both introspect and push perspectives
+
+**4. Unified Configuration Management**
+
+- `UnifiedConfigurationManager` handles both YAML and TypeScript formats
+- Auto-detection based on file extension (`.ts/.mts` vs `.yml/.yaml`)
+- Format preservation during introspect operations
+- TypeScript configs use dynamic imports with validation
+- Code generation maintains readable, idiomatic TypeScript output
 
 ### Configuration Validation
 
@@ -412,6 +518,29 @@ protected getEntityName(entity: Entity): string {
 
 This approach ensures entities with the same name but different slugs are correctly treated as separate entities, preventing false duplicate detection errors.
 
+### TypeScript Configuration Development
+
+**Adding TypeScript Support for New Entities**:
+
+1. **Update TypeScript Types**: Add entity type to `src/modules/config/typescript/types.ts`
+2. **Extend Attribute Helpers**: Add new attribute types to `helpers.ts` if needed
+3. **Update Code Generator**: Add generation logic in `generator.ts` for new entity types
+4. **Maintain API Consistency**: Ensure all new features work with both YAML and TypeScript configs
+
+**Code Generation Guidelines**:
+
+1. **Template-Based Generation**: Use string templates for readable generated code
+2. **Recursive Handling**: Support nested structures (like category subcategories)
+3. **Helper Usage**: Generate code that uses `attribute` helpers for type safety
+4. **Proper Formatting**: Maintain consistent indentation and code style
+
+**Configuration Manager Guidelines**:
+
+1. **Format Detection**: Use `isTypeScriptConfig()` to detect file format
+2. **Format Preservation**: Save configs in the same format they were loaded from
+3. **Error Handling**: Provide clear errors for TypeScript compilation issues
+4. **Import Validation**: Ensure TypeScript configs have proper default exports
+
 ### Adding New Commands
 
 1. Create command file in `src/commands/`
@@ -479,5 +608,22 @@ See `TEST_PLAN.md` for detailed test scenarios and validation points.
 
 **Issue**: Missing required arguments
 **Solution**: Interactive prompts with `maybePromptFor*()` functions
+
+### TypeScript Configuration Issues
+
+**Issue**: TypeScript config file not loading properly
+**Solution**: Ensure the file has a default export with `export default createSaleorConfig(...)`
+
+**Issue**: Dynamic import errors with TypeScript configs
+**Solution**: Verify Node.js version (>=20) and ensure TypeScript/tsx is available
+
+**Issue**: Generated TypeScript code from introspect is malformed
+**Solution**: Check that the source configuration has valid structure; complex nested objects may need manual cleanup
+
+**Issue**: TypeScript config shows "Module not found" errors
+**Solution**: Run with tsx: `npx tsx node_modules/.bin/saleor-configurator [command] --config config.ts`
+
+**Issue**: Introspect overwrites TypeScript config with YAML
+**Solution**: Verify the `UnifiedConfigurationManager` properly detects `.ts` files and uses TypeScript generation
 
 This document should be updated as the project evolves to maintain accurate development context.
