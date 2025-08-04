@@ -185,8 +185,8 @@ export class CategoryComparator extends BaseEntityComparator<
         changes.push(
           this.createFieldChange(
             change.field,
-            change.oldValue,
-            change.newValue,
+            change.currentValue,
+            change.desiredValue,
             `In "${local.name}": ${change.description || `${change.field} changed`}`
           )
         );

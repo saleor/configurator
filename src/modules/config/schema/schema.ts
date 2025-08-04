@@ -141,6 +141,7 @@ const channelCreateSchema = z.object({
   currencyCode: currencyCodeSchema.describe("Channel.currencyCode"),
   defaultCountry: countryCodeSchema.describe("Channel.defaultCountry.code"),
   slug: z.string().describe("Channel.slug"),
+  isActive: z.boolean().optional().describe("Channel.isActive").default(false),
 });
 
 // Channel Update Schema - full state representation
@@ -309,7 +310,7 @@ const productVariantSchema = z.object({
   sku: z.string(),
   weight: z.number().optional(),
   digital: z.boolean().optional(),
-  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  attributes: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
   channelListings: z.array(productVariantChannelListingSchema).optional(),
 });
 
@@ -318,7 +319,7 @@ const productSchema = z.object({
   slug: z.string(),
   productType: z.string(),
   category: z.string(),
-  attributes: z.record(z.union([z.string(), z.array(z.string())])).optional(),
+  attributes: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
   channelListings: z.array(productChannelListingSchema).optional(),
   variants: z.array(productVariantSchema),
 });
@@ -333,7 +334,6 @@ export const configSchema = z
     categories: z.array(categorySchema).optional().describe("Category"),
     products: z.array(productSchema).optional().describe("Product"),
   })
-  .strict()
   .describe("Configuration");
 
 export type SaleorConfig = z.infer<typeof configSchema>;

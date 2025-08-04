@@ -27,6 +27,7 @@ describe("ProductService", () => {
   describe("bootstrapProduct", () => {
     const mockProductInput: ProductInput = {
       name: "Test Book",
+      slug: "test-book",
       productType: "Book",
       category: "Fiction",
       variants: [
@@ -164,12 +165,14 @@ describe("ProductService", () => {
       const products: ProductInput[] = [
         {
           name: "Book 1",
+          slug: "book-1",
           productType: "Book",
           category: "Fiction",
           variants: [{ name: "Default", sku: "B1", channelListings: [] }],
         },
         {
           name: "Book 2",
+          slug: "book-2",
           productType: "Book",
           category: "Fiction",
           variants: [{ name: "Default", sku: "B2", channelListings: [] }],

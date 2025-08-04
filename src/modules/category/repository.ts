@@ -43,6 +43,7 @@ const getCategoryByNameQuery = graphql(`
               node {
                 id
                 name
+                slug
               }
             }
           }
