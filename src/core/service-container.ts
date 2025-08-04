@@ -73,7 +73,11 @@ export class ServiceComposer {
       category: new CategoryService(repositories.category),
       product: new ProductService(repositories.product),
       warehouse: new WarehouseService(repositories.warehouse),
-      shippingZone: new ShippingZoneService(repositories.shippingZone),
+      shippingZone: new ShippingZoneService(
+        repositories.shippingZone,
+        repositories.warehouse,
+        repositories.channel
+      ),
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container

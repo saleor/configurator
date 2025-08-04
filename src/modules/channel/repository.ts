@@ -23,6 +23,7 @@ const getChannelsQuery = graphql(`
     channels {
       id
       name
+      slug
     }
   }
 `);

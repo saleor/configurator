@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
+import type { WarehouseOperations } from "../warehouse/repository";
 import {
   ShippingMethodValidationError,
   ShippingZoneOperationError,
@@ -20,11 +22,29 @@ class TestShippingZoneService extends ShippingZoneService {
 }
 
 describe("ShippingZoneService", () => {
+  const createMockWarehouseOperations = (): WarehouseOperations => ({
+    getWarehouses: vi
+      .fn()
+      .mockResolvedValue([{ id: "w1", name: "Main Warehouse", slug: "main-warehouse" }]),
+    getWarehouse: vi.fn(),
+    createWarehouse: vi.fn(),
+    updateWarehouse: vi.fn(),
+    assignShippingZones: vi.fn(),
+    unassignShippingZones: vi.fn(),
+  });
+
+  const createMockChannelOperations = (): ChannelOperations => ({
+    getChannels: vi
+      .fn()
+      .mockResolvedValue([{ id: "c1", name: "Default Channel", slug: "default-channel" }]),
+    createChannel: vi.fn(),
+    updateChannel: vi.fn(),
+  });
+
   const mockShippingMethodInput: ShippingMethodInput = {
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
-    active: true,
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
     channelListings: [
@@ -53,7 +73,6 @@ describe("ShippingZoneService", () => {
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
-    active: true,
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
     channelListings: [
@@ -91,7 +110,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
         ShippingZoneValidationError
@@ -111,7 +134,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
         ShippingZoneValidationError
@@ -135,7 +162,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
         ShippingMethodValidationError
@@ -166,7 +197,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
         ShippingMethodValidationError
@@ -187,7 +222,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       const result = await service.getOrCreateShippingZone(mockShippingZoneInput);
 
@@ -208,7 +247,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       const result = await service.getOrCreateShippingZone(mockShippingZoneInput);
 
@@ -231,7 +274,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new TestShippingZoneService(mockOperations);
+      const service = new TestShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await service.testSyncShippingMethods("zone-1", [mockShippingMethodInput], []);
 
@@ -251,7 +298,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new TestShippingZoneService(mockOperations);
+      const service = new TestShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await service.testSyncShippingMethods(
         "zone-1",
@@ -275,7 +326,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new TestShippingZoneService(mockOperations);
+      const service = new TestShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await service.testSyncShippingMethods("zone-1", [], [mockShippingMethod]);
 
@@ -301,7 +356,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.bootstrapShippingZones(duplicateZones)).rejects.toThrow(
         ShippingZoneValidationError
@@ -325,7 +384,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       const results = await service.bootstrapShippingZones(zones);
 
@@ -347,7 +410,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.createShippingZone(mockShippingZoneInput)).rejects.toThrow(
         ShippingZoneOperationError
@@ -366,7 +433,11 @@ describe("ShippingZoneService", () => {
         updateShippingMethodChannelListing: vi.fn(),
       };
 
-      const service = new ShippingZoneService(mockOperations);
+      const service = new ShippingZoneService(
+        mockOperations,
+        createMockWarehouseOperations(),
+        createMockChannelOperations()
+      );
 
       await expect(service.updateShippingZone("1", mockShippingZoneInput)).rejects.toThrow(
         ShippingZoneOperationError

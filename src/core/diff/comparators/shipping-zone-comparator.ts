@@ -10,6 +10,41 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 > {
   protected readonly entityType: EntityType = "Shipping Zones";
 
+  /**
+   * Creates a readable summary of shipping methods for display
+   */
+  private serializeShippingMethods(
+    methods: ShippingMethodInput[] | ShippingMethod[] | undefined
+  ): string {
+    if (!methods || methods.length === 0) {
+      return "[]";
+    }
+
+    return methods
+      .map((method) => {
+        const name = method.name || "Unnamed";
+        const type = method.type || "Unknown";
+        return `${name} (${type})`;
+      })
+      .join(", ");
+  }
+
+  /**
+   * Creates a field change specifically for shipping methods with proper serialization
+   */
+  private createShippingMethodsFieldChange(
+    remoteMethods: ShippingMethod[] | undefined,
+    localMethods: ShippingMethodInput[] | undefined,
+    description: string
+  ): DiffChange {
+    return {
+      field: "shippingMethods",
+      currentValue: this.serializeShippingMethods(remoteMethods),
+      desiredValue: this.serializeShippingMethods(localMethods),
+      description,
+    };
+  }
+
   compare(
     local: readonly ShippingZoneInput[],
     remote: readonly ShippingZone[]
@@ -81,8 +116,15 @@ export class ShippingZoneComparator extends BaseEntityComparator<
       // Check if it's an array of objects with slug property (remote)
       if (typeof entity.warehouses[0] === "object" && "slug" in entity.warehouses[0]) {
         return entity.warehouses
-          .map((warehouse) => (warehouse as { slug: string }).slug)
-          .filter(Boolean)
+          .map((warehouse) => {
+            // Type guard for safety
+            if (warehouse && typeof warehouse === "object" && "slug" in warehouse) {
+              const slugValue = (warehouse as { slug: unknown }).slug;
+              return typeof slugValue === "string" ? slugValue : null;
+            }
+            return null;
+          })
+          .filter((slug): slug is string => slug !== null)
           .sort();
       }
       // Otherwise it's already an array of warehouse slugs (local)
@@ -115,7 +157,6 @@ export class ShippingZoneComparator extends BaseEntityComparator<
       name: method.name,
       description: method.description || "",
       type: method.type,
-      active: "active" in method ? method.active : true,
       minimumDeliveryDays: method.minimumDeliveryDays || null,
       maximumDeliveryDays: method.maximumDeliveryDays || null,
     };
@@ -225,12 +266,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
       }
 
       changes.push(
-        this.createFieldChange(
-          "shippingMethods",
-          remoteMethods || [],
-          localMethods || [],
-          description.join("; ")
-        )
+        this.createShippingMethodsFieldChange(remoteMethods, localMethods, description.join("; "))
       );
     }
 

@@ -1,6 +1,8 @@
 import { logger } from "../../lib/logger";
 import { object } from "../../lib/utils/object";
+import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
+import type { WarehouseOperations } from "../warehouse/repository";
 import {
   ShippingMethodValidationError,
   ShippingZoneOperationError,
@@ -16,7 +18,14 @@ import type {
 } from "./repository";
 
 export class ShippingZoneService {
-  constructor(private repository: ShippingZoneOperations) {}
+  private warehouseIdCache: Map<string, string> | null = null;
+  private channelIdCache: Map<string, string> | null = null;
+
+  constructor(
+    private repository: ShippingZoneOperations,
+    private warehouseRepository: WarehouseOperations,
+    private channelRepository: ChannelOperations
+  ) {}
 
   private async getExistingShippingZone(name: string): Promise<ShippingZone | undefined> {
     logger.debug("Looking up existing shipping zone", { name });
@@ -69,27 +78,164 @@ export class ShippingZoneService {
     }
   }
 
-  private mapInputToCreateInput(input: ShippingZoneInput): ShippingZoneCreateInput {
-    return object.filterUndefinedValues({
-      name: input.name,
-      description: input.description,
-      countries: input.countries,
-      default: input.default,
-      addWarehouses: input.warehouses,
-      addChannels: input.channels,
+  private async getWarehouseIdMap(): Promise<Map<string, string>> {
+    if (!this.warehouseIdCache) {
+      logger.debug("Building warehouse ID cache");
+      const warehouses = await this.warehouseRepository.getWarehouses();
+      this.warehouseIdCache = new Map(warehouses.map((w) => [w.slug, w.id]));
+      logger.debug("Warehouse ID cache built", { size: this.warehouseIdCache.size });
+    }
+    return this.warehouseIdCache;
+  }
+
+  private async resolveWarehouseSlugToId(slug: string): Promise<string> {
+    logger.debug("Resolving warehouse slug to ID", { slug });
+    const warehouseMap = await this.getWarehouseIdMap();
+    const id = warehouseMap.get(slug);
+
+    if (!id) {
+      throw new ShippingZoneValidationError(
+        `Warehouse with slug '${slug}' not found`,
+        "warehouses"
+      );
+    }
+
+    logger.debug("Resolved warehouse slug to ID", { slug, id });
+    return id;
+  }
+
+  private async resolveWarehouseSlugsToIds(slugs: string[]): Promise<string[]> {
+    if (!slugs || slugs.length === 0) {
+      return [];
+    }
+    
+    // Get the map once for all slugs
+    const warehouseMap = await this.getWarehouseIdMap();
+    
+    return slugs.map((slug) => {
+      const id = warehouseMap.get(slug);
+      if (!id) {
+        throw new ShippingZoneValidationError(
+          `Warehouse with slug '${slug}' not found`,
+          "warehouses"
+        );
+      }
+      return id;
     });
   }
 
-  private mapInputToUpdateInput(input: ShippingZoneInput): ShippingZoneUpdateInput {
+  private async resolveChannelSlugToId(slug: string): Promise<string> {
+    logger.debug("Resolving channel slug to ID", { slug });
+    const channelMap = await this.getChannelIdMap();
+    const id = channelMap.get(slug);
+
+    if (!id) {
+      throw new ShippingZoneValidationError(`Channel with slug '${slug}' not found`, "channels");
+    }
+
+    logger.debug("Resolved channel slug to ID", { slug, id });
+    return id;
+  }
+
+  private async getChannelIdMap(): Promise<Map<string, string>> {
+    if (!this.channelIdCache) {
+      logger.debug("Building channel ID cache");
+      const channels = await this.channelRepository.getChannels();
+      
+      if (!channels) {
+        throw new ShippingZoneOperationError("resolve", "channels", "Failed to fetch channels");
+      }
+      
+      this.channelIdCache = new Map(channels.map((c) => [c.slug, c.id]));
+      logger.debug("Channel ID cache built", { size: this.channelIdCache.size });
+    }
+    return this.channelIdCache;
+  }
+
+  private async resolveChannelSlugsToIds(slugs: string[]): Promise<string[]> {
+    if (!slugs || slugs.length === 0) {
+      return [];
+    }
+    
+    // Get the map once for all slugs
+    const channelMap = await this.getChannelIdMap();
+    
+    return slugs.map((slug) => {
+      const id = channelMap.get(slug);
+      if (!id) {
+        throw new ShippingZoneValidationError(
+          `Channel with slug '${slug}' not found`,
+          "channels"
+        );
+      }
+      return id;
+    });
+  }
+
+  private async mapInputToCreateInput(input: ShippingZoneInput): Promise<ShippingZoneCreateInput> {
+    const warehouseIds = input.warehouses
+      ? await this.resolveWarehouseSlugsToIds(input.warehouses)
+      : undefined;
+    const channelIds = input.channels
+      ? await this.resolveChannelSlugsToIds(input.channels)
+      : undefined;
+
     return object.filterUndefinedValues({
       name: input.name,
       description: input.description,
       countries: input.countries,
       default: input.default,
-      addWarehouses: input.warehouses,
-      removeWarehouses: [], // Will be handled separately
-      addChannels: input.channels,
-      removeChannels: [], // Will be handled separately
+      addWarehouses: warehouseIds,
+      addChannels: channelIds,
+    });
+  }
+
+  private async mapInputToUpdateInput(
+    input: ShippingZoneInput,
+    currentZone?: ShippingZone
+  ): Promise<ShippingZoneUpdateInput> {
+    const desiredWarehouseIds = input.warehouses
+      ? await this.resolveWarehouseSlugsToIds(input.warehouses)
+      : [];
+    const desiredChannelIds = input.channels
+      ? await this.resolveChannelSlugsToIds(input.channels)
+      : [];
+
+    // Calculate warehouses to add and remove
+    const currentWarehouseIds = currentZone?.warehouses?.map(w => w.id) || [];
+    const addWarehouses = desiredWarehouseIds.filter(id => !currentWarehouseIds.includes(id));
+    const removeWarehouses = currentWarehouseIds.filter(id => !desiredWarehouseIds.includes(id));
+
+    // Calculate channels to add and remove
+    const currentChannelIds = currentZone?.channels?.map(c => c.id) || [];
+    const addChannels = desiredChannelIds.filter(id => !currentChannelIds.includes(id));
+    const removeChannels = currentChannelIds.filter(id => !desiredChannelIds.includes(id));
+
+    logger.debug("Warehouse/channel assignment changes", {
+      shippingZone: input.name,
+      warehouses: {
+        desired: input.warehouses,
+        current: currentZone?.warehouses?.map(w => w.slug) || [],
+        add: addWarehouses,
+        remove: removeWarehouses
+      },
+      channels: {
+        desired: input.channels,
+        current: currentZone?.channels?.map(c => c.slug) || [],
+        add: addChannels,
+        remove: removeChannels
+      }
+    });
+
+    return object.filterUndefinedValues({
+      name: input.name,
+      description: input.description,
+      countries: input.countries,
+      default: input.default,
+      addWarehouses: addWarehouses.length > 0 ? addWarehouses : undefined,
+      removeWarehouses: removeWarehouses.length > 0 ? removeWarehouses : undefined,
+      addChannels: addChannels.length > 0 ? addChannels : undefined,
+      removeChannels: removeChannels.length > 0 ? removeChannels : undefined,
     });
   }
 
@@ -125,7 +271,7 @@ export class ShippingZoneService {
     }
 
     try {
-      const createInput = this.mapInputToCreateInput(input);
+      const createInput = await this.mapInputToCreateInput(input);
       const shippingZone = await this.repository.createShippingZone(createInput);
 
       // Create shipping methods if provided
@@ -163,7 +309,9 @@ export class ShippingZoneService {
     logger.debug("Updating shipping zone", { id, name: input.name });
 
     try {
-      const updateInput = this.mapInputToUpdateInput(input);
+      // Get current shipping zone to calculate warehouse/channel changes
+      const currentZone = await this.repository.getShippingZone(id);
+      const updateInput = await this.mapInputToUpdateInput(input, currentZone);
       const shippingZone = await this.repository.updateShippingZone(id, updateInput);
 
       // Update shipping methods if provided
@@ -220,10 +368,13 @@ export class ShippingZoneService {
       const createdMethod = await this.repository.createShippingMethod(createInput);
 
       // Update channel listings if provided
-      if (method.channelListings && method.channelListings.length > 0) {
+      if (method.channelListings && Array.isArray(method.channelListings) && method.channelListings.length > 0) {
+        const channelIds = await this.resolveChannelSlugsToIds(
+          method.channelListings.map((listing) => listing.channel)
+        );
         const channelListingInput = {
-          addChannels: method.channelListings.map((listing) => ({
-            channelId: listing.channel, // This should be resolved to ID from slug
+          addChannels: method.channelListings.map((listing, index) => ({
+            channelId: channelIds[index],
             price: listing.price?.toString(),
             minimumOrderPrice: listing.minimumOrderPrice
               ? {
@@ -252,12 +403,16 @@ export class ShippingZoneService {
     desiredMethods: ShippingMethodInput[],
     currentMethods: ShippingMethod[]
   ): Promise<void> {
+    // Ensure currentMethods is an array and filter out any invalid methods
+    const validCurrentMethods = Array.isArray(currentMethods) ? currentMethods.filter(m => m?.name) : [];
+    const validDesiredMethods = Array.isArray(desiredMethods) ? desiredMethods.filter(m => m?.name) : [];
+    
     // Create a map of current methods by name for easy lookup
-    const currentMethodsMap = new Map(currentMethods.map((m) => [m.name, m]));
-    const desiredMethodNames = new Set(desiredMethods.map((m) => m.name));
+    const currentMethodsMap = new Map(validCurrentMethods.map((m) => [m.name, m]));
+    const desiredMethodNames = new Set(validDesiredMethods.map((m) => m.name));
 
     // Delete methods that are no longer desired
-    for (const currentMethod of currentMethods) {
+    for (const currentMethod of validCurrentMethods) {
       if (!desiredMethodNames.has(currentMethod.name)) {
         logger.debug("Deleting shipping method", {
           id: currentMethod.id,
@@ -268,7 +423,7 @@ export class ShippingZoneService {
     }
 
     // Create or update methods
-    for (const desiredMethod of desiredMethods) {
+    for (const desiredMethod of validDesiredMethods) {
       this.validateShippingMethodInput(desiredMethod);
       const currentMethod = currentMethodsMap.get(desiredMethod.name);
 
@@ -282,10 +437,13 @@ export class ShippingZoneService {
         await this.repository.updateShippingMethod(currentMethod.id, updateInput);
 
         // Update channel listings if provided
-        if (desiredMethod.channelListings) {
+        if (desiredMethod.channelListings && Array.isArray(desiredMethod.channelListings) && desiredMethod.channelListings.length > 0) {
+          const channelIds = await this.resolveChannelSlugsToIds(
+            desiredMethod.channelListings.map((listing) => listing.channel)
+          );
           const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing) => ({
-              channelId: listing.channel, // This should be resolved to ID from slug
+            addChannels: desiredMethod.channelListings.map((listing, index) => ({
+              channelId: channelIds[index],
               price: listing.price?.toString(),
               minimumOrderPrice: listing.minimumOrderPrice
                 ? {
@@ -313,10 +471,13 @@ export class ShippingZoneService {
         const createdMethod = await this.repository.createShippingMethod(createInput);
 
         // Update channel listings if provided
-        if (desiredMethod.channelListings && desiredMethod.channelListings.length > 0) {
+        if (desiredMethod.channelListings && Array.isArray(desiredMethod.channelListings) && desiredMethod.channelListings.length > 0) {
+          const channelIds = await this.resolveChannelSlugsToIds(
+            desiredMethod.channelListings.map((listing) => listing.channel)
+          );
           const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing) => ({
-              channelId: listing.channel, // This should be resolved to ID from slug
+            addChannels: desiredMethod.channelListings.map((listing, index) => ({
+              channelId: channelIds[index],
               price: listing.price?.toString(),
               minimumOrderPrice: listing.minimumOrderPrice
                 ? {

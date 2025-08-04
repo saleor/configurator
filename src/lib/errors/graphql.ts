@@ -178,7 +178,7 @@ export class GraphQLError extends BaseError {
     }
 
     // Fallback to message checking for edge cases
-    const message = error.message.toLowerCase();
+    const message = error.message?.toLowerCase() || "";
     return message.includes("forbidden") || message.includes("403");
   }
 
@@ -202,7 +202,7 @@ export class GraphQLError extends BaseError {
     }
 
     // Fallback to message checking
-    const message = error.message.toLowerCase();
+    const message = error.message?.toLowerCase() || "";
     return message.includes("404") && message.includes("[network]");
   }
 
@@ -226,7 +226,7 @@ export class GraphQLError extends BaseError {
     }
 
     // Fallback to message checking
-    const message = error.message.toLowerCase();
+    const message = error.message?.toLowerCase() || "";
     return (
       message.includes("[network]") &&
       (message.includes("enotfound") ||
@@ -256,7 +256,7 @@ export class GraphQLError extends BaseError {
     }
 
     // Fallback to message checking
-    const message = error.message.toLowerCase();
+    const message = error.message?.toLowerCase() || "";
     return message.includes("unauthorized") || message.includes("401");
   }
 }

@@ -259,9 +259,19 @@ export class WarehouseRepository implements WarehouseOperations {
   }
 
   async updateWarehouse(id: string, input: WarehouseUpdateInput): Promise<Warehouse> {
+    logger.debug("Executing warehouse update mutation", {
+      id,
+      input: JSON.stringify(input, null, 2)
+    });
+    
     const result = await this.client.mutation(updateWarehouseMutation, { id, input });
 
     if (result.error) {
+      logger.error("GraphQL error in warehouse update", {
+        id,
+        error: result.error,
+        input: JSON.stringify(input, null, 2)
+      });
       throw GraphQLError.fromCombinedError(
         result.error,
         `Failed to update warehouse ${input.name || id}`

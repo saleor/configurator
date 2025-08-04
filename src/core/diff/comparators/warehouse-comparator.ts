@@ -98,14 +98,17 @@ export class WarehouseComparator extends BaseEntityComparator<
     ];
 
     for (const field of addressFields) {
-      if (normalizedLocal[field] !== normalizedRemote[field]) {
-        changes.push(
-          this.createFieldChange(
-            `address.${field}`,
-            normalizedRemote[field],
-            normalizedLocal[field]
-          )
-        );
+      const localValue = normalizedLocal[field];
+      const remoteValue = normalizedRemote[field];
+
+      // Case-insensitive comparison for city field since Saleor normalizes warehouse addresses to UPPERCASE
+      const valuesAreDifferent =
+        field === "city"
+          ? localValue.toLowerCase() !== remoteValue.toLowerCase()
+          : localValue !== remoteValue;
+
+      if (valuesAreDifferent) {
+        changes.push(this.createFieldChange(`address.${field}`, remoteValue, localValue));
       }
     }
 

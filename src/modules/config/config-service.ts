@@ -258,7 +258,6 @@ export class ConfigurationService {
                     ? method.description || undefined
                     : undefined,
                 type: method.type as "PRICE" | "WEIGHT",
-                active: Boolean(method.active) ?? true,
                 minimumDeliveryDays: method.minimumDeliveryDays || undefined,
                 maximumDeliveryDays: method.maximumDeliveryDays || undefined,
                 minimumOrderWeight: method.minimumOrderWeight
@@ -277,8 +276,8 @@ export class ConfigurationService {
                   method.channelListings && method.channelListings.length > 0
                     ? method.channelListings.map((listing) => ({
                         channel: listing.channel.slug,
-                        price: listing.price.amount,
-                        currency: listing.price.currency as CurrencyCode,
+                        price: listing.price?.amount || 0,
+                        currency: (listing.price?.currency || "USD") as CurrencyCode,
                         minimumOrderPrice: listing.minimumOrderPrice?.amount || undefined,
                         maximumOrderPrice: listing.maximumOrderPrice?.amount || undefined,
                       }))

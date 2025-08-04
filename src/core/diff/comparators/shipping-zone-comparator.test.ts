@@ -10,7 +10,6 @@ describe("ShippingZoneComparator", () => {
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
-    active: true,
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
     channelListings: [
@@ -38,7 +37,6 @@ describe("ShippingZoneComparator", () => {
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
-    active: true,
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
     channelListings: [

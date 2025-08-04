@@ -178,7 +178,6 @@ const getConfigQuery = graphql(`
             name
             description
             type
-            active
             maximumDeliveryDays
             minimumDeliveryDays
             maximumOrderWeight {

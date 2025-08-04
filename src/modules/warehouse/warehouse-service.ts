@@ -31,13 +31,13 @@ export class WarehouseService {
   }
 
   private validateWarehouseInput(input: WarehouseInput): void {
-    if (!input.slug) {
+    if (!input.slug?.trim()) {
       throw new WarehouseValidationError("Warehouse slug is required", "slug");
     }
-    if (!input.name) {
+    if (!input.name?.trim()) {
       throw new WarehouseValidationError("Warehouse name is required", "name");
     }
-    if (!input.email) {
+    if (!input.email?.trim()) {
       throw new WarehouseValidationError("Warehouse email is required", "email");
     }
     // Validate email format
@@ -48,16 +48,16 @@ export class WarehouseService {
     if (!input.address) {
       throw new WarehouseValidationError("Warehouse address is required", "address");
     }
-    if (!input.address.streetAddress1) {
+    if (!input.address.streetAddress1?.trim()) {
       throw new WarehouseValidationError(
         "Warehouse street address is required",
         "address.streetAddress1"
       );
     }
-    if (!input.address.city) {
+    if (!input.address.city?.trim()) {
       throw new WarehouseValidationError("Warehouse city is required", "address.city");
     }
-    if (!input.address.country) {
+    if (!input.address.country?.trim()) {
       throw new WarehouseValidationError("Warehouse country is required", "address.country");
     }
   }
@@ -143,11 +143,20 @@ export class WarehouseService {
 
     try {
       const updateInput = this.mapInputToUpdateInput(input);
+      logger.debug("Warehouse update input", { 
+        id, 
+        updateInput: JSON.stringify(updateInput, null, 2),
+        originalInput: JSON.stringify(input, null, 2)
+      });
+      
       const warehouse = await this.repository.updateWarehouse(id, updateInput);
+      
       logger.debug("Successfully updated warehouse", {
         id: warehouse.id,
         name: warehouse.name,
         slug: warehouse.slug,
+        returnedCity: warehouse.address?.city,
+        inputCity: input.address?.city
       });
       return warehouse;
     } catch (error) {
