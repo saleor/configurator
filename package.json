@@ -27,7 +27,6 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
@@ -71,6 +70,6 @@
     "tslog": "^4.9.3",
     "tsx": "^4.7.0",
     "yaml": "^2.7.0",
-    "zod": "^3.25.71"
+    "zod": "^4.0.0"
   }
 }

@@ -54,6 +54,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -87,6 +88,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -106,6 +108,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -210,6 +213,7 @@ describe("ConfigurationService", () => {
             },
           ],
         },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -279,6 +283,7 @@ describe("ConfigurationService", () => {
           ],
         },
         pageTypes: { edges: [] },
+        categories: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
