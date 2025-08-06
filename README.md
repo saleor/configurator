@@ -240,7 +240,7 @@ The configuration schema is automatically documented from Zod schemas with Graph
 **Manual generation** (if needed):
 
 ```bash
-pnpm run generate-docs
+pnpm run generate-schema-docs
 ```
 
 ### Local Development
