@@ -5,3 +5,4 @@ config.yml
 deployment-report-*.json
 CLAUDE.md
 .serena
+dist
