@@ -91,8 +91,8 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')
 - **isShippingRequired** (`boolean`) *required*: Whether products of this type require shipping (false for digital products)
-- **productAttributes** (`array<AttributeInput>`): Attributes that apply to the entire product (e.g., Brand, Color, Material)
-- **variantAttributes** (`array<AttributeInput>`): Attributes that can vary between product variants (e.g., Size, Weight)
+- **productAttributes** (`array<AttributeInput>`): Attributes that apply to the entire product (e.g., Brand, Material)
+- **variantAttributes** (`array<AttributeInput>`): Attributes that can vary between product variants (e.g., Size, Color)
 
 ## pageTypes
 

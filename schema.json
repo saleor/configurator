@@ -462,7 +462,7 @@
             "type": "boolean"
           },
           "productAttributes": {
-            "description": "Attributes that apply to the entire product (e.g., Brand, Color, Material)",
+            "description": "Attributes that apply to the entire product (e.g., Brand, Material)",
             "type": "array",
             "items": {
               "anyOf": [
@@ -574,7 +574,7 @@
             }
           },
           "variantAttributes": {
-            "description": "Attributes that can vary between product variants (e.g., Size, Weight)",
+            "description": "Attributes that can vary between product variants (e.g., Size, Color)",
             "type": "array",
             "items": {
               "anyOf": [

@@ -9,7 +9,7 @@ interface JsonSchemaProperty {
   items?: JsonSchemaProperty;
   properties?: Record<string, JsonSchemaProperty>;
   required?: string[];
-  default?: any;
+  default?: unknown;
   anyOf?: JsonSchemaProperty[];
   $ref?: string;
 }
@@ -196,7 +196,8 @@ function extractPropertiesFromItem(
         // Merge properties from different union variants
         // If a property exists in multiple variants, combine their info
         if (propertyMap.has(name)) {
-          const existing = propertyMap.get(name)!;
+          const existing = propertyMap.get(name);
+          if (!existing) continue;
           // Keep the more detailed property definition
           if (property.description && !existing.property.description) {
             propertyMap.set(name, { property, required: existing.required || required });
@@ -231,7 +232,7 @@ function getTypeInfo(
 ): {
   type: string;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
 } {
   if (property.$ref) {
     // Handle reference to definition
@@ -309,7 +310,7 @@ function isAttributeType(property: JsonSchemaProperty): boolean {
   return hasAttributeReference || hasAttributeDefinition;
 }
 
-function generateUsageExample(name: string, property: JsonSchemaProperty): string {
+function generateUsageExample(_name: string, _property: JsonSchemaProperty): string {
   return "";
 }
 

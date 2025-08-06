@@ -33,6 +33,7 @@
     "generate-json-schema": "tsx scripts/generate-json-schema.ts",
     "generate-schema-docs": "tsx scripts/generate-schema-docs.ts",
     "postinstall": "pnpm run fetch-schema && pnpm run generate-json-schema && pnpm run generate-schema-docs",
+    "prepare": "husky",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
@@ -45,8 +46,7 @@
     "format:fix": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
-    "check:ci": "biome lint . --diagnostic-level=error",
-    "prepush": "pnpm run generate-json-schema && pnpm run generate-schema-docs"
+    "check:ci": "biome lint . --diagnostic-level=error"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
@@ -54,6 +54,7 @@
     "@changesets/cli": "^2.29.4",
     "@types/node": "^20.17.16",
     "execa": "^8.0.1",
+    "husky": "^9.1.7",
     "nock": "^13.5.0",
     "strip-ansi": "^7.1.0",
     "tmp": "^0.2.1",
