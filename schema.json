@@ -1,0 +1,1099 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.",
+  "type": "object",
+  "properties": {
+    "shop": {
+      "description": "Global shop configuration settings that apply across all channels and define store-wide behavior",
+      "type": "object",
+      "properties": {
+        "headerText": {
+          "description": "Text displayed in the shop header",
+          "type": "string"
+        },
+        "description": {
+          "description": "General description of the shop",
+          "type": "string"
+        },
+        "trackInventoryByDefault": {
+          "description": "Whether new products should track inventory by default",
+          "type": "boolean"
+        },
+        "defaultWeightUnit": {
+          "description": "Default unit for product weights",
+          "type": "string",
+          "enum": [
+            "KG",
+            "LB",
+            "OZ",
+            "G",
+            "TONNE"
+          ]
+        },
+        "automaticFulfillmentDigitalProducts": {
+          "description": "Automatically fulfill digital products upon payment",
+          "type": "boolean"
+        },
+        "fulfillmentAutoApprove": {
+          "description": "Automatically approve fulfillments",
+          "type": "boolean"
+        },
+        "fulfillmentAllowUnpaid": {
+          "description": "Allow fulfillment of unpaid orders",
+          "type": "boolean"
+        },
+        "defaultDigitalMaxDownloads": {
+          "description": "Maximum downloads allowed for digital products",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultDigitalUrlValidDays": {
+          "description": "Days that download links remain valid",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultMailSenderName": {
+          "description": "Default name for outgoing emails",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultMailSenderAddress": {
+          "description": "Default email address for outgoing emails",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "customerSetPasswordUrl": {
+          "description": "URL where customers can set their password",
+          "type": "string"
+        },
+        "reserveStockDurationAnonymousUser": {
+          "description": "Minutes to reserve stock for anonymous users",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserveStockDurationAuthenticatedUser": {
+          "description": "Minutes to reserve stock for authenticated users",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "limitQuantityPerCheckout": {
+          "description": "Maximum quantity per checkout",
+          "type": "number"
+        },
+        "enableAccountConfirmationByEmail": {
+          "description": "Require email confirmation for new accounts",
+          "type": "boolean"
+        },
+        "allowLoginWithoutConfirmation": {
+          "description": "Allow login before email confirmation",
+          "type": "boolean"
+        },
+        "displayGrossPrices": {
+          "description": "Show prices including taxes",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "channels": {
+      "description": "Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Display name of the channel",
+                "type": "string"
+              },
+              "currencyCode": {
+                "description": "Currency used for pricing in this channel",
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "EUR",
+                  "GBP",
+                  "JPY",
+                  "AUD",
+                  "CAD",
+                  "CHF",
+                  "CNY",
+                  "SEK",
+                  "NZD",
+                  "MXN",
+                  "SGD",
+                  "HKD",
+                  "NOK",
+                  "KRW",
+                  "TRY",
+                  "RUB",
+                  "INR",
+                  "BRL",
+                  "ZAR",
+                  "PLN",
+                  "CZK",
+                  "DKK",
+                  "HUF",
+                  "ILS",
+                  "THB",
+                  "IDR",
+                  "MYR",
+                  "PHP",
+                  "VND",
+                  "EGP",
+                  "SAR",
+                  "AED",
+                  "NGN",
+                  "ARS",
+                  "CLP",
+                  "COP",
+                  "PEN"
+                ]
+              },
+              "defaultCountry": {
+                "description": "Default country for shipping and tax calculations",
+                "type": "string",
+                "enum": [
+                  "US",
+                  "GB",
+                  "DE",
+                  "FR",
+                  "ES",
+                  "IT",
+                  "PL",
+                  "NL",
+                  "BE",
+                  "CZ",
+                  "PT",
+                  "SE",
+                  "AT",
+                  "CH",
+                  "DK",
+                  "FI",
+                  "NO",
+                  "IE",
+                  "AU",
+                  "JP",
+                  "BR",
+                  "RU",
+                  "CN",
+                  "IN",
+                  "CA",
+                  "AE",
+                  "MX",
+                  "KR",
+                  "SG",
+                  "HK",
+                  "MY",
+                  "TH",
+                  "ID",
+                  "PH",
+                  "VN",
+                  "EG",
+                  "SA",
+                  "IL",
+                  "TR",
+                  "ZA",
+                  "NG",
+                  "AR",
+                  "CL",
+                  "CO",
+                  "PE",
+                  "NZ"
+                ]
+              },
+              "slug": {
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
+              },
+              "isActive": {
+                "default": false,
+                "description": "Whether this channel is currently active and accepting orders",
+                "type": "boolean"
+              },
+              "settings": {
+                "description": "Advanced channel configuration options",
+                "type": "object",
+                "properties": {
+                  "allocationStrategy": {
+                    "description": "Strategy for allocating stock when multiple locations have inventory",
+                    "type": "string",
+                    "enum": [
+                      "PRIORITIZE_SORTING_ORDER",
+                      "PRIORITIZE_HIGH_STOCK"
+                    ]
+                  },
+                  "automaticallyConfirmAllNewOrders": {
+                    "description": "Automatically confirm all new orders without manual review",
+                    "type": "boolean"
+                  },
+                  "automaticallyFulfillNonShippableGiftCard": {
+                    "description": "Automatically fulfill gift cards and other non-shippable items",
+                    "type": "boolean"
+                  },
+                  "expireOrdersAfter": {
+                    "description": "Minutes after which unpaid orders expire",
+                    "type": "number"
+                  },
+                  "deleteExpiredOrdersAfter": {
+                    "description": "Days after which expired orders are permanently deleted",
+                    "type": "number"
+                  },
+                  "markAsPaidStrategy": {
+                    "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow",
+                    "type": "string",
+                    "enum": [
+                      "TRANSACTION_FLOW",
+                      "PAYMENT_FLOW"
+                    ]
+                  },
+                  "allowUnpaidOrders": {
+                    "description": "Allow creation of orders without immediate payment",
+                    "type": "boolean"
+                  },
+                  "includeDraftOrderInVoucherUsage": {
+                    "description": "Include draft orders when calculating voucher usage limits",
+                    "type": "boolean"
+                  },
+                  "useLegacyErrorFlow": {
+                    "description": "Use legacy error handling for checkout (for backward compatibility)",
+                    "type": "boolean"
+                  },
+                  "automaticallyCompleteFullyPaidCheckouts": {
+                    "description": "Automatically complete checkouts when payment is fully captured",
+                    "type": "boolean"
+                  },
+                  "defaultTransactionFlowStrategy": {
+                    "description": "Default payment flow - authorize first then capture, or charge immediately",
+                    "type": "string",
+                    "enum": [
+                      "AUTHORIZATION",
+                      "CHARGE"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Display name of the channel",
+                "type": "string"
+              },
+              "currencyCode": {
+                "description": "Currency used for pricing in this channel",
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "EUR",
+                  "GBP",
+                  "JPY",
+                  "AUD",
+                  "CAD",
+                  "CHF",
+                  "CNY",
+                  "SEK",
+                  "NZD",
+                  "MXN",
+                  "SGD",
+                  "HKD",
+                  "NOK",
+                  "KRW",
+                  "TRY",
+                  "RUB",
+                  "INR",
+                  "BRL",
+                  "ZAR",
+                  "PLN",
+                  "CZK",
+                  "DKK",
+                  "HUF",
+                  "ILS",
+                  "THB",
+                  "IDR",
+                  "MYR",
+                  "PHP",
+                  "VND",
+                  "EGP",
+                  "SAR",
+                  "AED",
+                  "NGN",
+                  "ARS",
+                  "CLP",
+                  "COP",
+                  "PEN"
+                ]
+              },
+              "defaultCountry": {
+                "description": "Default country for shipping and tax calculations",
+                "type": "string",
+                "enum": [
+                  "US",
+                  "GB",
+                  "DE",
+                  "FR",
+                  "ES",
+                  "IT",
+                  "PL",
+                  "NL",
+                  "BE",
+                  "CZ",
+                  "PT",
+                  "SE",
+                  "AT",
+                  "CH",
+                  "DK",
+                  "FI",
+                  "NO",
+                  "IE",
+                  "AU",
+                  "JP",
+                  "BR",
+                  "RU",
+                  "CN",
+                  "IN",
+                  "CA",
+                  "AE",
+                  "MX",
+                  "KR",
+                  "SG",
+                  "HK",
+                  "MY",
+                  "TH",
+                  "ID",
+                  "PH",
+                  "VN",
+                  "EG",
+                  "SA",
+                  "IL",
+                  "TR",
+                  "ZA",
+                  "NG",
+                  "AR",
+                  "CL",
+                  "CO",
+                  "PE",
+                  "NZ"
+                ]
+              },
+              "slug": {
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
+              },
+              "isActive": {
+                "default": false,
+                "description": "Whether this channel is currently active and accepting orders",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "productTypes": {
+      "description": "Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')",
+            "type": "string"
+          },
+          "isShippingRequired": {
+            "description": "Whether products of this type require shipping (false for digital products)",
+            "default": false,
+            "type": "boolean"
+          },
+          "productAttributes": {
+            "description": "Attributes that apply to the entire product (e.g., Brand, Color, Material)",
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "description": "Reference to an existing attribute by slug",
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "variantAttributes": {
+            "description": "Attributes that can vary between product variants (e.g., Size, Weight)",
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "description": "Reference to an existing attribute by slug",
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "isShippingRequired"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "pageTypes": {
+      "description": "Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')",
+                "type": "string"
+              },
+              "attributes": {
+                "description": "Attributes available for pages of this type (e.g., Author, Published Date, Tags)",
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "enum": [
+                                "DROPDOWN",
+                                "MULTISELECT",
+                                "SWATCH"
+                              ]
+                            },
+                            "values": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType",
+                            "values"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "const": "REFERENCE"
+                            },
+                            "entityType": {
+                              "type": "string",
+                              "enum": [
+                                "PAGE",
+                                "PRODUCT",
+                                "PRODUCT_VARIANT"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "enum": [
+                                "PLAIN_TEXT",
+                                "NUMERIC",
+                                "DATE",
+                                "BOOLEAN",
+                                "RICH_TEXT",
+                                "DATE_TIME",
+                                "FILE"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    {
+                      "description": "Reference to an existing attribute by slug",
+                      "type": "object",
+                      "properties": {
+                        "attribute": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "attribute"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "name",
+              "attributes"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "categories": {
+      "description": "Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/__schema0"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "description": "Display name of the category",
+                "type": "string"
+              },
+              "slug": {
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "products": {
+      "description": "Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Product name as displayed to customers",
+            "type": "string"
+          },
+          "slug": {
+            "description": "URL-friendly identifier (used in URLs and API calls)",
+            "type": "string"
+          },
+          "productType": {
+            "description": "Reference to the product type (must match a productType name)",
+            "type": "string"
+          },
+          "category": {
+            "description": "Reference to the product category (must match a category slug)",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "Product-specific attribute values",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          },
+          "channelListings": {
+            "description": "Channel-specific settings like pricing and availability",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channel": {
+                  "description": "Channel slug reference (e.g., 'default-channel')",
+                  "type": "string"
+                },
+                "isPublished": {
+                  "description": "Whether the product is published and visible in this channel",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "visibleInListings": {
+                  "description": "Whether the product appears in category listings",
+                  "default": true,
+                  "type": "boolean"
+                },
+                "availableForPurchase": {
+                  "description": "ISO date when the product becomes available for purchase",
+                  "type": "string"
+                },
+                "publishedAt": {
+                  "description": "ISO date when the product was published",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "channel",
+                "isPublished",
+                "visibleInListings"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "variants": {
+            "description": "Product variants with different SKUs, attributes, or pricing",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "Variant name (e.g., 'Size M', 'Red Color')",
+                  "type": "string"
+                },
+                "sku": {
+                  "description": "Stock keeping unit - unique identifier for this variant",
+                  "type": "string"
+                },
+                "weight": {
+                  "description": "Product weight (in the shop's default unit)",
+                  "type": "number"
+                },
+                "digital": {
+                  "description": "Whether this is a digital product (no shipping required)",
+                  "type": "boolean"
+                },
+                "attributes": {
+                  "description": "Variant-specific attribute values",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "channelListings": {
+                  "description": "Channel-specific pricing for this variant",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "description": "Channel slug reference (e.g., 'default-channel')",
+                        "type": "string"
+                      },
+                      "price": {
+                        "description": "Price in the channel's currency",
+                        "type": "number"
+                      },
+                      "costPrice": {
+                        "description": "Cost price for internal tracking and profit calculations",
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "channel",
+                      "price"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "sku"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "productType",
+          "category",
+          "variants"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Display name of the category",
+          "type": "string"
+        },
+        "slug": {
+          "description": "URL-friendly identifier (used in URLs and API calls)",
+          "type": "string"
+        },
+        "subcategories": {
+          "description": "Child categories nested under this category",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "slug"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "title": "Saleor Configurator Configuration Schema",
+  "examples": [
+    {
+      "shop": {
+        "headerText": "My Store",
+        "description": "E-commerce store powered by Saleor",
+        "trackInventoryByDefault": true,
+        "defaultWeightUnit": "KG"
+      },
+      "channels": [
+        {
+          "name": "Default Channel",
+          "currencyCode": "USD",
+          "defaultCountry": "US",
+          "slug": "default-channel",
+          "isActive": true
+        }
+      ],
+      "productTypes": [
+        {
+          "name": "Book",
+          "isShippingRequired": false,
+          "productAttributes": [
+            {
+              "name": "Author",
+              "inputType": "PLAIN_TEXT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -29,8 +29,10 @@
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims",
-    "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "prepublishOnly": "pnpm build",
+    "generate-json-schema": "tsx scripts/generate-json-schema.ts",
+    "generate-schema-docs": "tsx scripts/generate-schema-docs.ts",
+    "postinstall": "pnpm run fetch-schema && pnpm run generate-json-schema && pnpm run generate-schema-docs",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
@@ -43,7 +45,8 @@
     "format:fix": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
-    "check:ci": "biome lint . --diagnostic-level=error"
+    "check:ci": "biome lint . --diagnostic-level=error",
+    "prepush": "pnpm run generate-json-schema && pnpm run generate-schema-docs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",

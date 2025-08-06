@@ -43,7 +43,7 @@ pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/g
 >
 > Here are a bunch of tips for working with the configuration file:
 >
-> 👉🏻 **Example Configuration**: You can find the example configuration in [example.yml](example.yml).
+> 👉🏻 **Writing Configuration**: You can find the example configuration in [example.yml](example.yml) and [SCHEMA.md](SCHEMA.md) for detailed documentation of all available fields.
 >
 > 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm dlx @saleor/configurator diff` to see what would be applied, and then push it.
 >
@@ -153,7 +153,7 @@ pnpm dlx @saleor/configurator introspect --help
 
 ## Configuration
 
-Define your Saleor configuration in a YAML file (default: `config.yml`):
+Define your Saleor configuration in a YAML file (default: `config.yml`). For detailed documentation of all available fields, see [SCHEMA.md](SCHEMA.md).
 
 ```yaml
 shop:
@@ -206,7 +206,7 @@ products:
 
 **Tips:**
 
-1. See [example.yml](example.yml) for an example configuration.
+1. See [example.yml](example.yml) for an example configuration and [SCHEMA.md](SCHEMA.md) for detailed documentation of all available fields.
 2. If you need to reuse an attribute across multiple product or page types, you can define it once and reference with the `attribute: <attribute-name>` property. Here is an example:
 
 ```yaml
