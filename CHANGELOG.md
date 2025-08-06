@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.10.4
+
+### Patch Changes
+
+- ffa236e: Fixed npx compatibility for ESM CLI package. Added ESM wrapper to resolve execution issues when using `npx @saleor/configurator start` command, while maintaining full compatibility with `pnpm dlx` and direct execution.
+
 ## 0.10.3
 
 ### Patch Changes
