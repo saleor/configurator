@@ -1,6 +1,7 @@
 {
   "name": "@saleor/configurator",
   "version": "0.10.3",
+  "type": "module",
   "packageManager": "pnpm@9.15.0",
   "main": "dist/main.js",
   "bin": {
@@ -26,7 +27,7 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "build": "tsup src/cli/main.ts --format cjs --target node20 --clean",
+    "build": "tsup src/cli/main.ts --format esm --target node20 --clean",
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "prepublishOnly": "pnpm build",
     "test": "vitest",

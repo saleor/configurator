@@ -146,7 +146,7 @@ export async function runCLI(): Promise<void> {
   }
 }
 
-if (__filename === process.argv[1]) {
-  // Only run CLI if this file is executed directly
+// Only run CLI if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   runCLI();
 }
