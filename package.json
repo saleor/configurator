@@ -29,7 +29,6 @@
     "build": "tsup src/cli/main.ts --format esm --target node20 --clean",
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "prepublishOnly": "pnpm build",
-    "postinstall": "pnpm run fetch-schema",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
