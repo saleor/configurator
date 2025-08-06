@@ -5,11 +5,12 @@
   "packageManager": "pnpm@9.15.0",
   "main": "dist/main.js",
   "bin": {
-    "@saleor/configurator": "./dist/main.js",
-    "configurator": "./dist/main.js"
+    "@saleor/configurator": "./bin/cli.mjs",
+    "configurator": "./bin/cli.mjs"
   },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE"
   ],
@@ -27,7 +28,7 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "build": "tsup src/cli/main.ts --format esm --target node20 --clean",
+    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims",
     "generate-docs": "tsx scripts/generate-schema-docs.ts",
     "prepublishOnly": "pnpm build",
     "test": "vitest",
