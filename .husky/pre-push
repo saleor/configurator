@@ -1,5 +1,2 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Regenerate schema documentation before pushing
 pnpm run generate-schema-docs
