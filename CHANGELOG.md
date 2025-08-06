@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.10.1
+
+### Patch Changes
+
+- 52a6de4: Bundle CLI with `tsup` for improved reliability and performance.
+
 ## 0.10.0
 
 ### Minor Changes
