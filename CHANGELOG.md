@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.10.4
+
+### Patch Changes
+
+- d26e2b8: Fix the bundling to use CJS.
+
 ## 0.10.3
 
 ### Patch Changes
