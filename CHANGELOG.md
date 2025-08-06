@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.10.2
+
+### Patch Changes
+
+- fa07ca8: Fixed the issue when npm was trying to fetch schema post install.
+
 ## 0.10.1
 
 ### Patch Changes
