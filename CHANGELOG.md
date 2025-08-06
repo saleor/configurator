@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.10.3
+
+### Patch Changes
+
+- d425e55: Fixed the bin resolution in npx.
+
 ## 0.10.2
 
 ### Patch Changes
