@@ -21,9 +21,7 @@ export class CategoryService {
     });
 
     const category = await this.repository.createCategory(
-      {
-        name: input.name,
-      },
+      input,
       parentId
     );
 
