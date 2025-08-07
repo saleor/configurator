@@ -9,11 +9,13 @@ const createCategoryMutation = graphql(`
       category {
         id
         name
+        slug
         children(first: 100) {
           edges {
             node {
               id
               name
+              slug
             }
           }
         }
@@ -35,6 +37,7 @@ const getCategoryByNameQuery = graphql(`
         node {
           id
           name
+          slug
           children(first: 100) {
             edges {
               node {
@@ -92,9 +95,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     const result = await this.client.mutation(createCategoryMutation, {
-      input: {
-        name: input.name,
-      },
+      input,
       parent: parentId,
     });
 
