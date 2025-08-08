@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
 import { WarehouseService } from "./warehouse-service";
-import type { WarehouseOperations, Warehouse } from "./repository";
+import type { WarehouseOperations } from "./repository";
 
 describe("WarehouseService - Two-Step Creation", () => {
   it("should create warehouse with two-step process when isPrivate or clickAndCollectOption is set", async () => {
