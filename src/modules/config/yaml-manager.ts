@@ -68,7 +68,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
         );
 
         logger.error("Configuration validation failed", {
-          errors: error.errors,
+          errors: error.issues,
           path: this.configPath,
         });
         throw validationError;

@@ -1,5 +1,52 @@
 # saleor-configurator
 
+## 0.10.6
+
+### Patch Changes
+
+- 71b757d: Fixed npx installation failures by removing problematic postinstall script that required devDependencies. The postinstall script was trying to run tsx commands that aren't available when installing via npx/pnpm dlx, causing installation to fail. Generated files are now created during the build process and included in the published package.
+
+## 0.10.5
+
+### Patch Changes
+
+- 0aa86bb: Added comprehensive schema documentation with automatic generation. The new SCHEMA.md file provides detailed documentation of all configuration fields, types, and validation rules, automatically generated from the Zod schema using native v4 JSON schema capabilities.
+- 5bf86b0: Fixed category slug being skipped during creation
+
+## 0.10.4
+
+### Patch Changes
+
+- ffa236e: Fixed npx compatibility for ESM CLI package. Added ESM wrapper to resolve execution issues when using `npx @saleor/configurator start` command, while maintaining full compatibility with `pnpm dlx` and direct execution.
+
+## 0.10.3
+
+### Patch Changes
+
+- d425e55: Fixed the bin resolution in npx.
+
+## 0.10.2
+
+### Patch Changes
+
+- fa07ca8: Fixed the issue when npm was trying to fetch schema post install.
+
+## 0.10.1
+
+### Patch Changes
+
+- 52a6de4: Bundle CLI with `tsup` for improved reliability and performance.
+
+## 0.10.0
+
+### Minor Changes
+
+- 129083f: Improved user onboarding with enhanced start command. First-time users now get a welcoming introduction explaining what Saleor Configurator is, followed by guided setup. Returning users see a clean action menu. Consolidated all first-time user logic into the start command, making introspect purely functional.
+
+### Patch Changes
+
+- f5b85c7: Fixed entity identification to use slugs instead of names for categories and channels. Entities with the same name but different slugs are now correctly handled as separate entities, resolving duplicate detection issues. Also improved validation method naming from `validateUniqueNames` to `validateUniqueIdentifiers` for clarity.
+
 ## 0.9.0
 
 ### Minor Changes

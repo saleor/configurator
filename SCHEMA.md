@@ -1,546 +1,224 @@
-# 📋 Configuration Schema Reference
+# Saleor Configurator Configuration Schema
 
-> **Automated documentation for Saleor Configurator**
-> 
-> This document describes all available configuration options with their GraphQL field mappings.
+Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.
+
+> [!TIP]
+> For a complete configuration example, see [example.yml](example.yml).
 
 ## Table of Contents
 
 - [shop](#shop)
 - [channels](#channels)
+- [warehouses](#warehouses)
+- [shippingZones](#shippingzones)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
 - [categories](#categories)
 - [products](#products)
-- [warehouses](#warehouses)
-- [shippingZones](#shippingzones)
-
-
 
 ## shop
 
-| Property | Value |
-|---|---|
-| **Type** | `object | object` |
-| **Required** | No |
+Global shop configuration settings that apply across all channels and define store-wide behavior
+
+**Type:** `object` *(optional)*
+
+**Properties:**
+
+- **headerText** (`string`): Text displayed in the shop header
+- **description** (`string`): General description of the shop
+- **trackInventoryByDefault** (`boolean`): Whether new products should track inventory by default
+- **defaultWeightUnit** (`string (enum)`): Default unit for product weights
+- **automaticFulfillmentDigitalProducts** (`boolean`): Automatically fulfill digital products upon payment
+- **fulfillmentAutoApprove** (`boolean`): Automatically approve fulfillments
+- **fulfillmentAllowUnpaid** (`boolean`): Allow fulfillment of unpaid orders
+- **defaultDigitalMaxDownloads** (`unknown | number | null`): Maximum downloads allowed for digital products
+- **defaultDigitalUrlValidDays** (`unknown | number | null`): Days that download links remain valid
+- **defaultMailSenderName** (`unknown | string | null`): Default name for outgoing emails
+- **defaultMailSenderAddress** (`unknown | string | null`): Default email address for outgoing emails
+- **customerSetPasswordUrl** (`string`): URL where customers can set their password
+- **reserveStockDurationAnonymousUser** (`unknown | number | null`): Minutes to reserve stock for anonymous users
+- **reserveStockDurationAuthenticatedUser** (`unknown | number | null`): Minutes to reserve stock for authenticated users
+- **limitQuantityPerCheckout** (`number`): Maximum quantity per checkout
+- **enableAccountConfirmationByEmail** (`boolean`): Require email confirmation for new accounts
+- **allowLoginWithoutConfirmation** (`boolean`): Allow login before email confirmation
+- **displayGrossPrices** (`boolean`): Show prices including taxes
 
 ## channels
 
-| Property | Value |
-|---|---|
-| **Type** | `object | object[]` |
-| **Required** | No |
+Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration
 
-## productTypes
+**Type:** `array<object>` *(optional)*
 
-**Type**: `object[]` (optional)
+**Array items:**
 
-Product type definitions with their associated attributes
+Each item is of type: `object`
 
-### name
+**Item properties:**
 
-**GraphQL Field**: `ProductType.name`
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-### productAttributes
-
-**GraphQL Field**: `ProductType.productAttributes`
-
-| Property | Value |
-|---|---|
-| **Type** | `object | object[]` |
-| **Required** | No |
-
-### variantAttributes
-
-**GraphQL Field**: `ProductType.variantAttributes`
-
-| Property | Value |
-|---|---|
-| **Type** | `object | object[]` |
-| **Required** | No |
-
-## pageTypes
-
-| Property | Value |
-|---|---|
-| **Type** | `object | object[]` |
-| **Required** | No |
-
-## categories
-
-| Property | Value |
-|---|---|
-| **Type** | `object | object[]` |
-| **Required** | No |
-
-## products
-
-**Type**: `object[]` (optional)
-
-Product catalog with variants and attributes
-
-### name
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-### productType
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-### category
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-### description
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-### attributes
-
-| Property | Value |
-|---|---|
-| **Type** | `Record<string, string | string[]>` |
-| **Required** | No |
-| **Example** | `{"Color":"Red","Size":["S","M","L"]}` |
-
-### channelListings
-
-**Type**: `object[]` (optional)
-
-#### channel
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-#### isPublished
-
-| Property | Value |
-|---|---|
-| **Type** | `unknown` |
-| **Required** | Yes |
-
-#### visibleInListings
-
-| Property | Value |
-|---|---|
-| **Type** | `unknown` |
-| **Required** | Yes |
-
-#### availableForPurchase
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-#### publishedAt
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-### variants
-
-**Type**: `object[]` (required)
-
-#### name
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-#### sku
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-#### weight
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | No |
-
-#### digital
-
-| Property | Value |
-|---|---|
-| **Type** | `boolean` |
-| **Required** | No |
-
-#### attributes
-
-| Property | Value |
-|---|---|
-| **Type** | `Record<string, string | string[]>` |
-| **Required** | No |
-| **Example** | `{"Color":"Red","Size":["S","M","L"]}` |
-
-#### channelListings
-
-**Type**: `object[]` (required)
-
-##### channel
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-##### price
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | Yes |
-
-##### costPrice
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | No |
+- **name** (`string`) *required*: Display name of the channel
+- **currencyCode** (`string (enum)`) *required*: Currency used for pricing in this channel
+  - **Allowed values:** 
+    `USD`, `EUR`, `GBP`, `JPY`, `AUD`, `CAD`,
+    `CHF`, `CNY`, `SEK`, `NZD`, `MXN`, `SGD`,
+    `HKD`, `NOK`, `KRW`, `TRY`, `RUB`, `INR`,
+    `BRL`, `ZAR`, `PLN`, `CZK`, `DKK`, `HUF`,
+    `ILS`, `THB`, `IDR`, `MYR`, `PHP`, `VND`,
+    `EGP`, `SAR`, `AED`, `NGN`, `ARS`, `CLP`,
+    `COP`, `PEN`
+- **defaultCountry** (`string (enum)`) *required*: Default country for shipping and tax calculations
+  - **Allowed values:** 
+    `AD`, `AE`, `AF`, `AG`, `AI`, `AL`,
+    `AM`, `AO`, `AQ`, `AR`, `AS`, `AT`,
+    `AU`, `AW`, `AX`, `AZ`, `BA`, `BB`,
+    `BD`, `BE`, `BF`, `BG`, `BH`, `BI`,
+    `BJ`, `BL`, `BM`, `BN`, `BO`, `BQ`,
+    `BR`, `BS`, `BT`, `BV`, `BW`, `BY`,
+    `BZ`, `CA`, `CC`, `CD`, `CF`, `CG`,
+    `CH`, `CI`, `CK`, `CL`, `CM`, `CN`,
+    `CO`, `CR`, `CU`, `CV`, `CW`, `CX`,
+    `CY`, `CZ`, `DE`, `DJ`, `DK`, `DM`,
+    `DO`, `DZ`, `EC`, `EE`, `EG`, `EH`,
+    `ER`, `ES`, `ET`, `FI`, `FJ`, `FK`,
+    `FM`, `FO`, `FR`, `GA`, `GB`, `GD`,
+    `GE`, `GF`, `GG`, `GH`, `GI`, `GL`,
+    `GM`, `GN`, `GP`, `GQ`, `GR`, `GS`,
+    `GT`, `GU`, `GW`, `GY`, `HK`, `HM`,
+    `HN`, `HR`, `HT`, `HU`, `ID`, `IE`,
+    `IL`, `IM`, `IN`, `IO`, `IQ`, `IR`,
+    `IS`, `IT`, `JE`, `JM`, `JO`, `JP`,
+    `KE`, `KG`, `KH`, `KI`, `KM`, `KN`,
+    `KP`, `KR`, `KW`, `KY`, `KZ`, `LA`,
+    `LB`, `LC`, `LI`, `LK`, `LR`, `LS`,
+    `LT`, `LU`, `LV`, `LY`, `MA`, `MC`,
+    `MD`, `ME`, `MF`, `MG`, `MH`, `MK`,
+    `ML`, `MM`, `MN`, `MO`, `MP`, `MQ`,
+    `MR`, `MS`, `MT`, `MU`, `MV`, `MW`,
+    `MX`, `MY`, `MZ`, `NA`, `NC`, `NE`,
+    `NF`, `NG`, `NI`, `NL`, `NO`, `NP`,
+    `NR`, `NU`, `NZ`, `OM`, `PA`, `PE`,
+    `PF`, `PG`, `PH`, `PK`, `PL`, `PM`,
+    `PN`, `PR`, `PS`, `PT`, `PW`, `PY`,
+    `QA`, `RE`, `RO`, `RS`, `RU`, `RW`,
+    `SA`, `SB`, `SC`, `SD`, `SE`, `SG`,
+    `SH`, `SI`, `SJ`, `SK`, `SL`, `SM`,
+    `SN`, `SO`, `SR`, `SS`, `ST`, `SV`,
+    `SX`, `SY`, `SZ`, `TC`, `TD`, `TF`,
+    `TG`, `TH`, `TJ`, `TK`, `TL`, `TM`,
+    `TN`, `TO`, `TR`, `TT`, `TV`, `TW`,
+    `TZ`, `UA`, `UG`, `UM`, `US`, `UY`,
+    `UZ`, `VA`, `VC`, `VE`, `VG`, `VI`,
+    `VN`, `VU`, `WF`, `WS`, `YE`, `YT`,
+    `ZA`, `ZM`, `ZW`
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **isActive** (`boolean`): Whether this channel is currently active and accepting orders
+- **settings** (`object`): Advanced channel configuration options
 
 ## warehouses
 
-**Type**: `object[]` (optional)
+Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment
 
-Warehouse definitions with address and shipping zone assignments
+**Type:** `array<object>` *(optional)*
 
-### name
+**Array items:**
 
-**GraphQL Field**: `Warehouse.name`
+Each item is of type: `object`
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
+**Item properties:**
 
-### slug
-
-**GraphQL Field**: `Warehouse.slug`
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-### email
-
-**GraphQL Field**: `Warehouse.email`
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-| **Format** | Email |
-
-### isPrivate
-
-**GraphQL Field**: `Warehouse.isPrivate`
-
-| Property | Value |
-|---|---|
-| **Type** | `boolean` |
-| **Required** | No |
-| **Default** | `false` |
-
-### clickAndCollectOption
-
-**GraphQL Field**: `Warehouse.clickAndCollectOption`
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-| **Enum** | `DISABLED`, `LOCAL`, `ALL` |
-| **Default** | `DISABLED` |
-
-### address
-
-**GraphQL Field**: `Warehouse.address`
-
-**Type**: `object` (required)
-
-#### streetAddress1
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-#### streetAddress2
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-#### city
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-| **Note** | Case-insensitive comparison (API normalizes to uppercase) |
-
-#### cityArea
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-#### postalCode
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-#### country
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-| **Format** | ISO 3166-1 alpha-2 country code |
-
-#### countryArea
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-#### companyName
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-#### phone
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-
-### shippingZones
-
-**GraphQL Field**: `Warehouse.shippingZones`
-
-| Property | Value |
-|---|---|
-| **Type** | `string[]` |
-| **Required** | No |
-| **Description** | Array of shipping zone slugs |
+- **name** (`string`) *required*: Warehouse.name
+- **slug** (`string`) *required*: Warehouse.slug
+- **email** (`string`) *required*: Warehouse.email
+- **isPrivate** (`boolean`): Warehouse.isPrivate
+- **address** (`object`) *required*: Warehouse.address
+- **clickAndCollectOption** (`string (enum)`): Warehouse.clickAndCollectOption
+  - **Allowed values:** `DISABLED` | `LOCAL` | `ALL`
+- **shippingZones** (`array<string>`): Warehouse.shippingZones
 
 ## shippingZones
 
-**Type**: `object[]` (optional)
+Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules
 
-Shipping zone definitions with warehouse assignments and shipping methods
+**Type:** `array<object>` *(optional)*
 
-### name
+**Array items:**
 
-**GraphQL Field**: `ShippingZone.name`
+Each item is of type: `object`
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
+**Item properties:**
 
-### slug
+- **name** (`string`) *required*: ShippingZone.name
+- **description** (`string`): ShippingZone.description
+- **default** (`boolean`): ShippingZone.default
+- **countries** (`array<string (enum)>`) *required*: ShippingZone.countries
+- **warehouses** (`array<string>`): ShippingZone.warehouses
+- **channels** (`array<string>`): ShippingZone.channels
+- **shippingMethods** (`array<object>`): ShippingZone.shippingMethods
 
-**GraphQL Field**: `ShippingZone.slug`
+## productTypes
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
+Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type
 
-### description
+**Type:** `array<object>` *(optional)*
 
-**GraphQL Field**: `ShippingZone.description`
+**Array items:**
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
+Each item is of type: `object`
 
-### countries
+**Item properties:**
 
-**GraphQL Field**: `ShippingZone.countries`
+- **name** (`string`) *required*: Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')
+- **isShippingRequired** (`boolean`): Whether products of this type require shipping (false for digital products)
+- **productAttributes** (`array<AttributeInput>`): Attributes that apply to the entire product (e.g., Brand, Material)
+- **variantAttributes** (`array<unknown>`): Attributes that can vary between product variants (e.g., Size, Color)
 
-| Property | Value |
-|---|---|
-| **Type** | `string[]` |
-| **Required** | No |
-| **Format** | ISO 3166-1 alpha-2 country codes |
+## pageTypes
 
-### warehouses
+Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc
 
-**GraphQL Field**: `ShippingZone.warehouses`
+**Type:** `array<object>` *(optional)*
 
-| Property | Value |
-|---|---|
-| **Type** | `string[]` |
-| **Required** | No |
-| **Description** | Array of warehouse slugs |
+**Array items:**
 
-### channels
+Each item is of type: `object`
 
-**GraphQL Field**: `ShippingZone.channels`
+**Item properties:**
 
-| Property | Value |
-|---|---|
-| **Type** | `string[]` |
-| **Required** | No |
-| **Description** | Array of channel slugs |
+- **name** (`string`) *required*: Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')
+- **attributes** (`array<unknown>`) *required*: Attributes available for pages of this type (e.g., Author, Published Date, Tags)
 
-### shippingMethods
+## categories
 
-**Type**: `object[]` (optional)
+Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering
 
-#### name
+**Type:** `array<object>` *(optional)*
 
-**GraphQL Field**: `ShippingMethod.name`
+**Array items:**
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
+Each item is of type: `object`
 
-#### type
+**Item properties:**
 
-**GraphQL Field**: `ShippingMethod.type`
+- **name** (`string`) *required*: Display name of the category
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **subcategories** (`array<unknown>`): Child categories nested under this category
 
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | No |
-| **Enum** | `PRICE`, `WEIGHT` |
-| **Default** | `PRICE` |
+## products
 
-#### maximumDeliveryDays
+Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability
 
-**GraphQL Field**: `ShippingMethod.maximumDeliveryDays`
+**Type:** `array<object>` *(optional)*
 
-| Property | Value |
-|---|---|
-| **Type** | `integer` |
-| **Required** | No |
+**Array items:**
 
-#### minimumDeliveryDays
+Each item is of type: `object`
 
-**GraphQL Field**: `ShippingMethod.minimumDeliveryDays`
+**Item properties:**
 
-| Property | Value |
-|---|---|
-| **Type** | `integer` |
-| **Required** | No |
-
-#### channelListings
-
-**Type**: `object[]` (optional)
-
-##### channel
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-
-##### price
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | Yes |
-
-##### maximumOrderPrice
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | No |
-| **Description** | Only for PRICE type methods |
-
-##### minimumOrderPrice
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | No |
-| **Description** | Only for PRICE type methods |
-
-##### maximumOrderWeight
-
-**Type**: `object` (optional)
-
-**Description**: Only for WEIGHT type methods
-
-###### unit
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-| **Enum** | `G`, `LB`, `OZ`, `KG`, `TONNE` |
-
-###### value
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | Yes |
-| **Min** | `0` |
-
-##### minimumOrderWeight
-
-**Type**: `object` (optional)
-
-**Description**: Only for WEIGHT type methods
-
-###### unit
-
-| Property | Value |
-|---|---|
-| **Type** | `string` |
-| **Required** | Yes |
-| **Enum** | `G`, `LB`, `OZ`, `KG`, `TONNE` |
-
-###### value
-
-| Property | Value |
-|---|---|
-| **Type** | `number` |
-| **Required** | Yes |
-| **Min** | `0` |
-
+- **name** (`string`) *required*: Product name as displayed to customers
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **productType** (`string`) *required*: Reference to the product type (must match a productType name)
+- **category** (`string`) *required*: Reference to the product category (must match a category slug)
+- **attributes** (`object`): Product-specific attribute values
+- **channelListings** (`array<object>`): Channel-specific settings like pricing and availability
+- **variants** (`array<object>`) *required*: Product variants with different SKUs, attributes, or pricing
 

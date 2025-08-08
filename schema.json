@@ -1,0 +1,2120 @@
+{
+  "type": "object",
+  "properties": {
+    "shop": {
+      "type": "object",
+      "properties": {
+        "headerText": {
+          "type": "string",
+          "description": "Text displayed in the shop header"
+        },
+        "description": {
+          "type": "string",
+          "description": "General description of the shop"
+        },
+        "trackInventoryByDefault": {
+          "type": "boolean",
+          "description": "Whether new products should track inventory by default"
+        },
+        "defaultWeightUnit": {
+          "type": "string",
+          "enum": [
+            "KG",
+            "LB",
+            "OZ",
+            "G",
+            "TONNE"
+          ],
+          "description": "Default unit for product weights"
+        },
+        "automaticFulfillmentDigitalProducts": {
+          "type": "boolean",
+          "description": "Automatically fulfill digital products upon payment"
+        },
+        "fulfillmentAutoApprove": {
+          "type": "boolean",
+          "description": "Automatically approve fulfillments"
+        },
+        "fulfillmentAllowUnpaid": {
+          "type": "boolean",
+          "description": "Allow fulfillment of unpaid orders"
+        },
+        "defaultDigitalMaxDownloads": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Maximum downloads allowed for digital products"
+        },
+        "defaultDigitalUrlValidDays": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Days that download links remain valid"
+        },
+        "defaultMailSenderName": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Default name for outgoing emails"
+        },
+        "defaultMailSenderAddress": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Default email address for outgoing emails"
+        },
+        "customerSetPasswordUrl": {
+          "type": "string",
+          "description": "URL where customers can set their password"
+        },
+        "reserveStockDurationAnonymousUser": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Minutes to reserve stock for anonymous users"
+        },
+        "reserveStockDurationAuthenticatedUser": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "not": {}
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Minutes to reserve stock for authenticated users"
+        },
+        "limitQuantityPerCheckout": {
+          "type": "number",
+          "description": "Maximum quantity per checkout"
+        },
+        "enableAccountConfirmationByEmail": {
+          "type": "boolean",
+          "description": "Require email confirmation for new accounts"
+        },
+        "allowLoginWithoutConfirmation": {
+          "type": "boolean",
+          "description": "Allow login before email confirmation"
+        },
+        "displayGrossPrices": {
+          "type": "boolean",
+          "description": "Show prices including taxes"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Global shop configuration settings that apply across all channels and define store-wide behavior"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Display name of the channel"
+              },
+              "currencyCode": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "EUR",
+                  "GBP",
+                  "JPY",
+                  "AUD",
+                  "CAD",
+                  "CHF",
+                  "CNY",
+                  "SEK",
+                  "NZD",
+                  "MXN",
+                  "SGD",
+                  "HKD",
+                  "NOK",
+                  "KRW",
+                  "TRY",
+                  "RUB",
+                  "INR",
+                  "BRL",
+                  "ZAR",
+                  "PLN",
+                  "CZK",
+                  "DKK",
+                  "HUF",
+                  "ILS",
+                  "THB",
+                  "IDR",
+                  "MYR",
+                  "PHP",
+                  "VND",
+                  "EGP",
+                  "SAR",
+                  "AED",
+                  "NGN",
+                  "ARS",
+                  "CLP",
+                  "COP",
+                  "PEN"
+                ],
+                "description": "Currency used for pricing in this channel"
+              },
+              "defaultCountry": {
+                "type": "string",
+                "enum": [
+                  "AD",
+                  "AE",
+                  "AF",
+                  "AG",
+                  "AI",
+                  "AL",
+                  "AM",
+                  "AO",
+                  "AQ",
+                  "AR",
+                  "AS",
+                  "AT",
+                  "AU",
+                  "AW",
+                  "AX",
+                  "AZ",
+                  "BA",
+                  "BB",
+                  "BD",
+                  "BE",
+                  "BF",
+                  "BG",
+                  "BH",
+                  "BI",
+                  "BJ",
+                  "BL",
+                  "BM",
+                  "BN",
+                  "BO",
+                  "BQ",
+                  "BR",
+                  "BS",
+                  "BT",
+                  "BV",
+                  "BW",
+                  "BY",
+                  "BZ",
+                  "CA",
+                  "CC",
+                  "CD",
+                  "CF",
+                  "CG",
+                  "CH",
+                  "CI",
+                  "CK",
+                  "CL",
+                  "CM",
+                  "CN",
+                  "CO",
+                  "CR",
+                  "CU",
+                  "CV",
+                  "CW",
+                  "CX",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DJ",
+                  "DK",
+                  "DM",
+                  "DO",
+                  "DZ",
+                  "EC",
+                  "EE",
+                  "EG",
+                  "EH",
+                  "ER",
+                  "ES",
+                  "ET",
+                  "FI",
+                  "FJ",
+                  "FK",
+                  "FM",
+                  "FO",
+                  "FR",
+                  "GA",
+                  "GB",
+                  "GD",
+                  "GE",
+                  "GF",
+                  "GG",
+                  "GH",
+                  "GI",
+                  "GL",
+                  "GM",
+                  "GN",
+                  "GP",
+                  "GQ",
+                  "GR",
+                  "GS",
+                  "GT",
+                  "GU",
+                  "GW",
+                  "GY",
+                  "HK",
+                  "HM",
+                  "HN",
+                  "HR",
+                  "HT",
+                  "HU",
+                  "ID",
+                  "IE",
+                  "IL",
+                  "IM",
+                  "IN",
+                  "IO",
+                  "IQ",
+                  "IR",
+                  "IS",
+                  "IT",
+                  "JE",
+                  "JM",
+                  "JO",
+                  "JP",
+                  "KE",
+                  "KG",
+                  "KH",
+                  "KI",
+                  "KM",
+                  "KN",
+                  "KP",
+                  "KR",
+                  "KW",
+                  "KY",
+                  "KZ",
+                  "LA",
+                  "LB",
+                  "LC",
+                  "LI",
+                  "LK",
+                  "LR",
+                  "LS",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "LY",
+                  "MA",
+                  "MC",
+                  "MD",
+                  "ME",
+                  "MF",
+                  "MG",
+                  "MH",
+                  "MK",
+                  "ML",
+                  "MM",
+                  "MN",
+                  "MO",
+                  "MP",
+                  "MQ",
+                  "MR",
+                  "MS",
+                  "MT",
+                  "MU",
+                  "MV",
+                  "MW",
+                  "MX",
+                  "MY",
+                  "MZ",
+                  "NA",
+                  "NC",
+                  "NE",
+                  "NF",
+                  "NG",
+                  "NI",
+                  "NL",
+                  "NO",
+                  "NP",
+                  "NR",
+                  "NU",
+                  "NZ",
+                  "OM",
+                  "PA",
+                  "PE",
+                  "PF",
+                  "PG",
+                  "PH",
+                  "PK",
+                  "PL",
+                  "PM",
+                  "PN",
+                  "PR",
+                  "PS",
+                  "PT",
+                  "PW",
+                  "PY",
+                  "QA",
+                  "RE",
+                  "RO",
+                  "RS",
+                  "RU",
+                  "RW",
+                  "SA",
+                  "SB",
+                  "SC",
+                  "SD",
+                  "SE",
+                  "SG",
+                  "SH",
+                  "SI",
+                  "SJ",
+                  "SK",
+                  "SL",
+                  "SM",
+                  "SN",
+                  "SO",
+                  "SR",
+                  "SS",
+                  "ST",
+                  "SV",
+                  "SX",
+                  "SY",
+                  "SZ",
+                  "TC",
+                  "TD",
+                  "TF",
+                  "TG",
+                  "TH",
+                  "TJ",
+                  "TK",
+                  "TL",
+                  "TM",
+                  "TN",
+                  "TO",
+                  "TR",
+                  "TT",
+                  "TV",
+                  "TW",
+                  "TZ",
+                  "UA",
+                  "UG",
+                  "UM",
+                  "US",
+                  "UY",
+                  "UZ",
+                  "VA",
+                  "VC",
+                  "VE",
+                  "VG",
+                  "VI",
+                  "VN",
+                  "VU",
+                  "WF",
+                  "WS",
+                  "YE",
+                  "YT",
+                  "ZA",
+                  "ZM",
+                  "ZW"
+                ],
+                "description": "Default country for shipping and tax calculations"
+              },
+              "slug": {
+                "type": "string",
+                "description": "URL-friendly identifier (used in URLs and API calls)"
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether this channel is currently active and accepting orders",
+                "default": false
+              },
+              "settings": {
+                "type": "object",
+                "properties": {
+                  "allocationStrategy": {
+                    "type": "string",
+                    "enum": [
+                      "PRIORITIZE_SORTING_ORDER",
+                      "PRIORITIZE_HIGH_STOCK"
+                    ],
+                    "description": "Strategy for allocating stock when multiple locations have inventory"
+                  },
+                  "automaticallyConfirmAllNewOrders": {
+                    "type": "boolean",
+                    "description": "Automatically confirm all new orders without manual review"
+                  },
+                  "automaticallyFulfillNonShippableGiftCard": {
+                    "type": "boolean",
+                    "description": "Automatically fulfill gift cards and other non-shippable items"
+                  },
+                  "expireOrdersAfter": {
+                    "type": "number",
+                    "description": "Minutes after which unpaid orders expire"
+                  },
+                  "deleteExpiredOrdersAfter": {
+                    "type": "number",
+                    "description": "Days after which expired orders are permanently deleted"
+                  },
+                  "markAsPaidStrategy": {
+                    "type": "string",
+                    "enum": [
+                      "TRANSACTION_FLOW",
+                      "PAYMENT_FLOW"
+                    ],
+                    "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow"
+                  },
+                  "allowUnpaidOrders": {
+                    "type": "boolean",
+                    "description": "Allow creation of orders without immediate payment"
+                  },
+                  "includeDraftOrderInVoucherUsage": {
+                    "type": "boolean",
+                    "description": "Include draft orders when calculating voucher usage limits"
+                  },
+                  "useLegacyErrorFlow": {
+                    "type": "boolean",
+                    "description": "Use legacy error handling for checkout (for backward compatibility)"
+                  },
+                  "automaticallyCompleteFullyPaidCheckouts": {
+                    "type": "boolean",
+                    "description": "Automatically complete checkouts when payment is fully captured"
+                  },
+                  "defaultTransactionFlowStrategy": {
+                    "type": "string",
+                    "enum": [
+                      "AUTHORIZATION",
+                      "CHARGE"
+                    ],
+                    "description": "Default payment flow - authorize first then capture, or charge immediately"
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Advanced channel configuration options"
+              }
+            },
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Display name of the channel"
+              },
+              "currencyCode": {
+                "type": "string",
+                "enum": [
+                  "USD",
+                  "EUR",
+                  "GBP",
+                  "JPY",
+                  "AUD",
+                  "CAD",
+                  "CHF",
+                  "CNY",
+                  "SEK",
+                  "NZD",
+                  "MXN",
+                  "SGD",
+                  "HKD",
+                  "NOK",
+                  "KRW",
+                  "TRY",
+                  "RUB",
+                  "INR",
+                  "BRL",
+                  "ZAR",
+                  "PLN",
+                  "CZK",
+                  "DKK",
+                  "HUF",
+                  "ILS",
+                  "THB",
+                  "IDR",
+                  "MYR",
+                  "PHP",
+                  "VND",
+                  "EGP",
+                  "SAR",
+                  "AED",
+                  "NGN",
+                  "ARS",
+                  "CLP",
+                  "COP",
+                  "PEN"
+                ],
+                "description": "Currency used for pricing in this channel"
+              },
+              "defaultCountry": {
+                "type": "string",
+                "enum": [
+                  "AD",
+                  "AE",
+                  "AF",
+                  "AG",
+                  "AI",
+                  "AL",
+                  "AM",
+                  "AO",
+                  "AQ",
+                  "AR",
+                  "AS",
+                  "AT",
+                  "AU",
+                  "AW",
+                  "AX",
+                  "AZ",
+                  "BA",
+                  "BB",
+                  "BD",
+                  "BE",
+                  "BF",
+                  "BG",
+                  "BH",
+                  "BI",
+                  "BJ",
+                  "BL",
+                  "BM",
+                  "BN",
+                  "BO",
+                  "BQ",
+                  "BR",
+                  "BS",
+                  "BT",
+                  "BV",
+                  "BW",
+                  "BY",
+                  "BZ",
+                  "CA",
+                  "CC",
+                  "CD",
+                  "CF",
+                  "CG",
+                  "CH",
+                  "CI",
+                  "CK",
+                  "CL",
+                  "CM",
+                  "CN",
+                  "CO",
+                  "CR",
+                  "CU",
+                  "CV",
+                  "CW",
+                  "CX",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DJ",
+                  "DK",
+                  "DM",
+                  "DO",
+                  "DZ",
+                  "EC",
+                  "EE",
+                  "EG",
+                  "EH",
+                  "ER",
+                  "ES",
+                  "ET",
+                  "FI",
+                  "FJ",
+                  "FK",
+                  "FM",
+                  "FO",
+                  "FR",
+                  "GA",
+                  "GB",
+                  "GD",
+                  "GE",
+                  "GF",
+                  "GG",
+                  "GH",
+                  "GI",
+                  "GL",
+                  "GM",
+                  "GN",
+                  "GP",
+                  "GQ",
+                  "GR",
+                  "GS",
+                  "GT",
+                  "GU",
+                  "GW",
+                  "GY",
+                  "HK",
+                  "HM",
+                  "HN",
+                  "HR",
+                  "HT",
+                  "HU",
+                  "ID",
+                  "IE",
+                  "IL",
+                  "IM",
+                  "IN",
+                  "IO",
+                  "IQ",
+                  "IR",
+                  "IS",
+                  "IT",
+                  "JE",
+                  "JM",
+                  "JO",
+                  "JP",
+                  "KE",
+                  "KG",
+                  "KH",
+                  "KI",
+                  "KM",
+                  "KN",
+                  "KP",
+                  "KR",
+                  "KW",
+                  "KY",
+                  "KZ",
+                  "LA",
+                  "LB",
+                  "LC",
+                  "LI",
+                  "LK",
+                  "LR",
+                  "LS",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "LY",
+                  "MA",
+                  "MC",
+                  "MD",
+                  "ME",
+                  "MF",
+                  "MG",
+                  "MH",
+                  "MK",
+                  "ML",
+                  "MM",
+                  "MN",
+                  "MO",
+                  "MP",
+                  "MQ",
+                  "MR",
+                  "MS",
+                  "MT",
+                  "MU",
+                  "MV",
+                  "MW",
+                  "MX",
+                  "MY",
+                  "MZ",
+                  "NA",
+                  "NC",
+                  "NE",
+                  "NF",
+                  "NG",
+                  "NI",
+                  "NL",
+                  "NO",
+                  "NP",
+                  "NR",
+                  "NU",
+                  "NZ",
+                  "OM",
+                  "PA",
+                  "PE",
+                  "PF",
+                  "PG",
+                  "PH",
+                  "PK",
+                  "PL",
+                  "PM",
+                  "PN",
+                  "PR",
+                  "PS",
+                  "PT",
+                  "PW",
+                  "PY",
+                  "QA",
+                  "RE",
+                  "RO",
+                  "RS",
+                  "RU",
+                  "RW",
+                  "SA",
+                  "SB",
+                  "SC",
+                  "SD",
+                  "SE",
+                  "SG",
+                  "SH",
+                  "SI",
+                  "SJ",
+                  "SK",
+                  "SL",
+                  "SM",
+                  "SN",
+                  "SO",
+                  "SR",
+                  "SS",
+                  "ST",
+                  "SV",
+                  "SX",
+                  "SY",
+                  "SZ",
+                  "TC",
+                  "TD",
+                  "TF",
+                  "TG",
+                  "TH",
+                  "TJ",
+                  "TK",
+                  "TL",
+                  "TM",
+                  "TN",
+                  "TO",
+                  "TR",
+                  "TT",
+                  "TV",
+                  "TW",
+                  "TZ",
+                  "UA",
+                  "UG",
+                  "UM",
+                  "US",
+                  "UY",
+                  "UZ",
+                  "VA",
+                  "VC",
+                  "VE",
+                  "VG",
+                  "VI",
+                  "VN",
+                  "VU",
+                  "WF",
+                  "WS",
+                  "YE",
+                  "YT",
+                  "ZA",
+                  "ZM",
+                  "ZW"
+                ],
+                "description": "Default country for shipping and tax calculations"
+              },
+              "slug": {
+                "type": "string",
+                "description": "URL-friendly identifier (used in URLs and API calls)"
+              },
+              "isActive": {
+                "type": "boolean",
+                "description": "Whether this channel is currently active and accepting orders",
+                "default": false
+              }
+            },
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration"
+    },
+    "warehouses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Warehouse.name"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Warehouse.slug"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Warehouse.email"
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "default": false,
+            "description": "Warehouse.isPrivate"
+          },
+          "address": {
+            "type": "object",
+            "properties": {
+              "streetAddress1": {
+                "type": "string",
+                "description": "Address.streetAddress1"
+              },
+              "streetAddress2": {
+                "type": "string",
+                "description": "Address.streetAddress2"
+              },
+              "city": {
+                "type": "string",
+                "description": "Address.city"
+              },
+              "cityArea": {
+                "type": "string",
+                "description": "Address.cityArea"
+              },
+              "postalCode": {
+                "type": "string",
+                "description": "Address.postalCode"
+              },
+              "country": {
+                "type": "string",
+                "enum": [
+                  "AD",
+                  "AE",
+                  "AF",
+                  "AG",
+                  "AI",
+                  "AL",
+                  "AM",
+                  "AO",
+                  "AQ",
+                  "AR",
+                  "AS",
+                  "AT",
+                  "AU",
+                  "AW",
+                  "AX",
+                  "AZ",
+                  "BA",
+                  "BB",
+                  "BD",
+                  "BE",
+                  "BF",
+                  "BG",
+                  "BH",
+                  "BI",
+                  "BJ",
+                  "BL",
+                  "BM",
+                  "BN",
+                  "BO",
+                  "BQ",
+                  "BR",
+                  "BS",
+                  "BT",
+                  "BV",
+                  "BW",
+                  "BY",
+                  "BZ",
+                  "CA",
+                  "CC",
+                  "CD",
+                  "CF",
+                  "CG",
+                  "CH",
+                  "CI",
+                  "CK",
+                  "CL",
+                  "CM",
+                  "CN",
+                  "CO",
+                  "CR",
+                  "CU",
+                  "CV",
+                  "CW",
+                  "CX",
+                  "CY",
+                  "CZ",
+                  "DE",
+                  "DJ",
+                  "DK",
+                  "DM",
+                  "DO",
+                  "DZ",
+                  "EC",
+                  "EE",
+                  "EG",
+                  "EH",
+                  "ER",
+                  "ES",
+                  "ET",
+                  "FI",
+                  "FJ",
+                  "FK",
+                  "FM",
+                  "FO",
+                  "FR",
+                  "GA",
+                  "GB",
+                  "GD",
+                  "GE",
+                  "GF",
+                  "GG",
+                  "GH",
+                  "GI",
+                  "GL",
+                  "GM",
+                  "GN",
+                  "GP",
+                  "GQ",
+                  "GR",
+                  "GS",
+                  "GT",
+                  "GU",
+                  "GW",
+                  "GY",
+                  "HK",
+                  "HM",
+                  "HN",
+                  "HR",
+                  "HT",
+                  "HU",
+                  "ID",
+                  "IE",
+                  "IL",
+                  "IM",
+                  "IN",
+                  "IO",
+                  "IQ",
+                  "IR",
+                  "IS",
+                  "IT",
+                  "JE",
+                  "JM",
+                  "JO",
+                  "JP",
+                  "KE",
+                  "KG",
+                  "KH",
+                  "KI",
+                  "KM",
+                  "KN",
+                  "KP",
+                  "KR",
+                  "KW",
+                  "KY",
+                  "KZ",
+                  "LA",
+                  "LB",
+                  "LC",
+                  "LI",
+                  "LK",
+                  "LR",
+                  "LS",
+                  "LT",
+                  "LU",
+                  "LV",
+                  "LY",
+                  "MA",
+                  "MC",
+                  "MD",
+                  "ME",
+                  "MF",
+                  "MG",
+                  "MH",
+                  "MK",
+                  "ML",
+                  "MM",
+                  "MN",
+                  "MO",
+                  "MP",
+                  "MQ",
+                  "MR",
+                  "MS",
+                  "MT",
+                  "MU",
+                  "MV",
+                  "MW",
+                  "MX",
+                  "MY",
+                  "MZ",
+                  "NA",
+                  "NC",
+                  "NE",
+                  "NF",
+                  "NG",
+                  "NI",
+                  "NL",
+                  "NO",
+                  "NP",
+                  "NR",
+                  "NU",
+                  "NZ",
+                  "OM",
+                  "PA",
+                  "PE",
+                  "PF",
+                  "PG",
+                  "PH",
+                  "PK",
+                  "PL",
+                  "PM",
+                  "PN",
+                  "PR",
+                  "PS",
+                  "PT",
+                  "PW",
+                  "PY",
+                  "QA",
+                  "RE",
+                  "RO",
+                  "RS",
+                  "RU",
+                  "RW",
+                  "SA",
+                  "SB",
+                  "SC",
+                  "SD",
+                  "SE",
+                  "SG",
+                  "SH",
+                  "SI",
+                  "SJ",
+                  "SK",
+                  "SL",
+                  "SM",
+                  "SN",
+                  "SO",
+                  "SR",
+                  "SS",
+                  "ST",
+                  "SV",
+                  "SX",
+                  "SY",
+                  "SZ",
+                  "TC",
+                  "TD",
+                  "TF",
+                  "TG",
+                  "TH",
+                  "TJ",
+                  "TK",
+                  "TL",
+                  "TM",
+                  "TN",
+                  "TO",
+                  "TR",
+                  "TT",
+                  "TV",
+                  "TW",
+                  "TZ",
+                  "UA",
+                  "UG",
+                  "UM",
+                  "US",
+                  "UY",
+                  "UZ",
+                  "VA",
+                  "VC",
+                  "VE",
+                  "VG",
+                  "VI",
+                  "VN",
+                  "VU",
+                  "WF",
+                  "WS",
+                  "YE",
+                  "YT",
+                  "ZA",
+                  "ZM",
+                  "ZW"
+                ],
+                "description": "Address.country"
+              },
+              "countryArea": {
+                "type": "string",
+                "description": "Address.countryArea"
+              },
+              "companyName": {
+                "type": "string",
+                "description": "Address.companyName"
+              },
+              "phone": {
+                "type": "string",
+                "description": "Address.phone"
+              }
+            },
+            "required": [
+              "streetAddress1",
+              "city",
+              "country"
+            ],
+            "additionalProperties": false,
+            "description": "Warehouse.address"
+          },
+          "clickAndCollectOption": {
+            "type": "string",
+            "enum": [
+              "DISABLED",
+              "LOCAL",
+              "ALL"
+            ],
+            "default": "DISABLED",
+            "description": "Warehouse.clickAndCollectOption"
+          },
+          "shippingZones": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warehouse.shippingZones"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "email",
+          "address"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment"
+    },
+    "shippingZones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "ShippingZone.name"
+          },
+          "description": {
+            "type": "string",
+            "description": "ShippingZone.description"
+          },
+          "default": {
+            "type": "boolean",
+            "default": false,
+            "description": "ShippingZone.default"
+          },
+          "countries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "AD",
+                "AE",
+                "AF",
+                "AG",
+                "AI",
+                "AL",
+                "AM",
+                "AO",
+                "AQ",
+                "AR",
+                "AS",
+                "AT",
+                "AU",
+                "AW",
+                "AX",
+                "AZ",
+                "BA",
+                "BB",
+                "BD",
+                "BE",
+                "BF",
+                "BG",
+                "BH",
+                "BI",
+                "BJ",
+                "BL",
+                "BM",
+                "BN",
+                "BO",
+                "BQ",
+                "BR",
+                "BS",
+                "BT",
+                "BV",
+                "BW",
+                "BY",
+                "BZ",
+                "CA",
+                "CC",
+                "CD",
+                "CF",
+                "CG",
+                "CH",
+                "CI",
+                "CK",
+                "CL",
+                "CM",
+                "CN",
+                "CO",
+                "CR",
+                "CU",
+                "CV",
+                "CW",
+                "CX",
+                "CY",
+                "CZ",
+                "DE",
+                "DJ",
+                "DK",
+                "DM",
+                "DO",
+                "DZ",
+                "EC",
+                "EE",
+                "EG",
+                "EH",
+                "ER",
+                "ES",
+                "ET",
+                "FI",
+                "FJ",
+                "FK",
+                "FM",
+                "FO",
+                "FR",
+                "GA",
+                "GB",
+                "GD",
+                "GE",
+                "GF",
+                "GG",
+                "GH",
+                "GI",
+                "GL",
+                "GM",
+                "GN",
+                "GP",
+                "GQ",
+                "GR",
+                "GS",
+                "GT",
+                "GU",
+                "GW",
+                "GY",
+                "HK",
+                "HM",
+                "HN",
+                "HR",
+                "HT",
+                "HU",
+                "ID",
+                "IE",
+                "IL",
+                "IM",
+                "IN",
+                "IO",
+                "IQ",
+                "IR",
+                "IS",
+                "IT",
+                "JE",
+                "JM",
+                "JO",
+                "JP",
+                "KE",
+                "KG",
+                "KH",
+                "KI",
+                "KM",
+                "KN",
+                "KP",
+                "KR",
+                "KW",
+                "KY",
+                "KZ",
+                "LA",
+                "LB",
+                "LC",
+                "LI",
+                "LK",
+                "LR",
+                "LS",
+                "LT",
+                "LU",
+                "LV",
+                "LY",
+                "MA",
+                "MC",
+                "MD",
+                "ME",
+                "MF",
+                "MG",
+                "MH",
+                "MK",
+                "ML",
+                "MM",
+                "MN",
+                "MO",
+                "MP",
+                "MQ",
+                "MR",
+                "MS",
+                "MT",
+                "MU",
+                "MV",
+                "MW",
+                "MX",
+                "MY",
+                "MZ",
+                "NA",
+                "NC",
+                "NE",
+                "NF",
+                "NG",
+                "NI",
+                "NL",
+                "NO",
+                "NP",
+                "NR",
+                "NU",
+                "NZ",
+                "OM",
+                "PA",
+                "PE",
+                "PF",
+                "PG",
+                "PH",
+                "PK",
+                "PL",
+                "PM",
+                "PN",
+                "PR",
+                "PS",
+                "PT",
+                "PW",
+                "PY",
+                "QA",
+                "RE",
+                "RO",
+                "RS",
+                "RU",
+                "RW",
+                "SA",
+                "SB",
+                "SC",
+                "SD",
+                "SE",
+                "SG",
+                "SH",
+                "SI",
+                "SJ",
+                "SK",
+                "SL",
+                "SM",
+                "SN",
+                "SO",
+                "SR",
+                "SS",
+                "ST",
+                "SV",
+                "SX",
+                "SY",
+                "SZ",
+                "TC",
+                "TD",
+                "TF",
+                "TG",
+                "TH",
+                "TJ",
+                "TK",
+                "TL",
+                "TM",
+                "TN",
+                "TO",
+                "TR",
+                "TT",
+                "TV",
+                "TW",
+                "TZ",
+                "UA",
+                "UG",
+                "UM",
+                "US",
+                "UY",
+                "UZ",
+                "VA",
+                "VC",
+                "VE",
+                "VG",
+                "VI",
+                "VN",
+                "VU",
+                "WF",
+                "WS",
+                "YE",
+                "YT",
+                "ZA",
+                "ZM",
+                "ZW"
+              ]
+            },
+            "description": "ShippingZone.countries"
+          },
+          "warehouses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "ShippingZone.warehouses"
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "ShippingZone.channels"
+          },
+          "shippingMethods": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "ShippingMethod.name"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "ShippingMethod.description"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "PRICE",
+                    "WEIGHT"
+                  ],
+                  "description": "ShippingMethod.type"
+                },
+                "minimumDeliveryDays": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "ShippingMethod.minimumDeliveryDays"
+                },
+                "maximumDeliveryDays": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "ShippingMethod.maximumDeliveryDays"
+                },
+                "minimumOrderWeight": {
+                  "type": "object",
+                  "properties": {
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
+                    },
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
+                  "additionalProperties": false,
+                  "description": "ShippingMethod.minimumOrderWeight"
+                },
+                "maximumOrderWeight": {
+                  "$ref": "#/properties/shippingZones/items/properties/shippingMethods/items/properties/minimumOrderWeight",
+                  "description": "ShippingMethod.maximumOrderWeight"
+                },
+                "taxClass": {
+                  "type": "string",
+                  "description": "ShippingMethod.taxClass"
+                },
+                "channelListings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                        "description": "ShippingMethodChannelListing.channel"
+                      },
+                      "price": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "ShippingMethodChannelListing.price"
+                      },
+                      "currency": {
+                        "type": "string",
+                        "enum": [
+                          "USD",
+                          "EUR",
+                          "GBP",
+                          "JPY",
+                          "AUD",
+                          "CAD",
+                          "CHF",
+                          "CNY",
+                          "SEK",
+                          "NZD",
+                          "MXN",
+                          "SGD",
+                          "HKD",
+                          "NOK",
+                          "KRW",
+                          "TRY",
+                          "RUB",
+                          "INR",
+                          "BRL",
+                          "ZAR",
+                          "PLN",
+                          "CZK",
+                          "DKK",
+                          "HUF",
+                          "ILS",
+                          "THB",
+                          "IDR",
+                          "MYR",
+                          "PHP",
+                          "VND",
+                          "EGP",
+                          "SAR",
+                          "AED",
+                          "NGN",
+                          "ARS",
+                          "CLP",
+                          "COP",
+                          "PEN"
+                        ],
+                        "description": "ShippingMethodChannelListing.currency"
+                      },
+                      "minimumOrderPrice": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "ShippingMethodChannelListing.minimumOrderPrice"
+                      },
+                      "maximumOrderPrice": {
+                        "type": "number",
+                        "minimum": 0,
+                        "description": "ShippingMethodChannelListing.maximumOrderPrice"
+                      }
+                    },
+                    "required": [
+                      "channel",
+                      "price"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "ShippingMethod.channelListings"
+                }
+              },
+              "required": [
+                "name",
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            "description": "ShippingZone.shippingMethods"
+          }
+        },
+        "required": [
+          "name",
+          "countries"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules"
+    },
+    "productTypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')"
+          },
+          "isShippingRequired": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether products of this type require shipping (false for digital products)"
+          },
+          "productAttributes": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "$ref": "#/properties/productTypes/items/properties/productAttributes/items/anyOf/0/anyOf/0/properties/name"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "$ref": "#/properties/productTypes/items/properties/productAttributes/items/anyOf/0/anyOf/0/properties/name"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Reference to an existing attribute by slug"
+                }
+              ]
+            },
+            "description": "Attributes that apply to the entire product (e.g., Brand, Material)"
+          },
+          "variantAttributes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/properties/productTypes/items/properties/productAttributes/items"
+            },
+            "description": "Attributes that can vary between product variants (e.g., Size, Color)"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type"
+    },
+    "pageTypes": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')"
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/properties/productTypes/items/properties/productAttributes/items"
+                },
+                "description": "Attributes available for pages of this type (e.g., Author, Published Date, Tags)"
+              }
+            },
+            "required": [
+              "name",
+              "attributes"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Display name of the category"
+              },
+              "slug": {
+                "type": "string",
+                "description": "URL-friendly identifier (used in URLs and API calls)"
+              },
+              "subcategories": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/properties/categories/items/anyOf/0"
+                },
+                "description": "Child categories nested under this category"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Display name of the category"
+              },
+              "slug": {
+                "type": "string",
+                "description": "URL-friendly identifier (used in URLs and API calls)"
+              }
+            },
+            "required": [
+              "name",
+              "slug"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Product name as displayed to customers"
+          },
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly identifier (used in URLs and API calls)"
+          },
+          "productType": {
+            "type": "string",
+            "description": "Reference to the product type (must match a productType name)"
+          },
+          "category": {
+            "type": "string",
+            "description": "Reference to the product category (must match a category slug)"
+          },
+          "attributes": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "description": "Product-specific attribute values"
+          },
+          "channelListings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channel": {
+                  "type": "string",
+                  "description": "Channel slug reference (e.g., 'default-channel')"
+                },
+                "isPublished": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether the product is published and visible in this channel"
+                },
+                "visibleInListings": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Whether the product appears in category listings"
+                },
+                "availableForPurchase": {
+                  "type": "string",
+                  "description": "ISO date when the product becomes available for purchase"
+                },
+                "publishedAt": {
+                  "type": "string",
+                  "description": "ISO date when the product was published"
+                }
+              },
+              "required": [
+                "channel"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Channel-specific settings like pricing and availability"
+          },
+          "variants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Variant name (e.g., 'Size M', 'Red Color')"
+                },
+                "sku": {
+                  "type": "string",
+                  "description": "Stock keeping unit - unique identifier for this variant"
+                },
+                "weight": {
+                  "type": "number",
+                  "description": "Product weight (in the shop's default unit)"
+                },
+                "digital": {
+                  "type": "boolean",
+                  "description": "Whether this is a digital product (no shipping required)"
+                },
+                "attributes": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "description": "Variant-specific attribute values"
+                },
+                "channelListings": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                        "description": "Channel slug reference (e.g., 'default-channel')"
+                      },
+                      "price": {
+                        "type": "number",
+                        "description": "Price in the channel's currency"
+                      },
+                      "costPrice": {
+                        "type": "number",
+                        "description": "Cost price for internal tracking and profit calculations"
+                      }
+                    },
+                    "required": [
+                      "channel",
+                      "price"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "description": "Channel-specific pricing for this variant"
+                }
+              },
+              "required": [
+                "name",
+                "sku"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Product variants with different SKUs, attributes, or pricing"
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "productType",
+          "category",
+          "variants"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Saleor Configurator Configuration Schema",
+  "examples": [
+    {
+      "shop": {
+        "headerText": "My Store",
+        "description": "E-commerce store powered by Saleor",
+        "trackInventoryByDefault": true,
+        "defaultWeightUnit": "KG"
+      },
+      "channels": [
+        {
+          "name": "Default Channel",
+          "currencyCode": "USD",
+          "defaultCountry": "US",
+          "slug": "default-channel",
+          "isActive": true
+        }
+      ],
+      "productTypes": [
+        {
+          "name": "Book",
+          "isShippingRequired": false,
+          "productAttributes": [
+            {
+              "name": "Author",
+              "inputType": "PLAIN_TEXT"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -36,7 +36,7 @@ function validateSaleorUrl(url: string): string {
 
 export const baseCommandArgsSchema = z.object({
   url: z.string().describe("Saleor instance URL").transform(validateSaleorUrl),
-  token: z.string({ required_error: "Token is required" }).describe("Saleor API token"),
+  token: z.string({ error: "Token is required" }).describe("Saleor API token"),
   config: z.string().default("config.yml").describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
@@ -131,16 +131,17 @@ export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny
 
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
   const isBoolean =
-    field._def.typeName === "ZodBoolean" ||
-    (field._def.typeName === "ZodDefault" && field._def.innerType._def.typeName === "ZodBoolean");
+    field instanceof z.ZodBoolean ||
+    (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
 
   return {
     flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
     description: field.description || key,
-    defaultValue:
-      "defaultValue" in field._def && field._def.typeName === "ZodDefault"
-        ? (field._def as z.ZodDefaultDef<z.ZodTypeAny>).defaultValue()
-        : undefined,
+    defaultValue: field instanceof z.ZodDefault 
+      ? typeof field._def.defaultValue === 'function' 
+        ? field._def.defaultValue() 
+        : field._def.defaultValue
+      : undefined,
   };
 }
 
@@ -154,13 +155,13 @@ function generateOptionsFromSchema(
     const { flags, description, defaultValue } = getOptionConfigFromZodForCommander(key, field);
 
     const isBoolean =
-      field._def.typeName === "ZodBoolean" ||
-      (field._def.typeName === "ZodDefault" && field._def.innerType._def.typeName === "ZodBoolean");
+      field instanceof z.ZodBoolean ||
+      (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
 
     if (isBoolean) {
       command.option(flags, description);
     } else {
-      command.option(flags, description, defaultValue);
+      command.option(flags, description, defaultValue as string | undefined);
     }
   });
 }
@@ -191,14 +192,15 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
   }
 
   // Set action with interactive prompts and validation
-  command.action(async (options: z.infer<T>) => {
+  command.action(async (options: unknown, _command: unknown) => {
     try {
       // Handle interactive mode for missing arguments
       let validatedArgs: z.infer<T>;
 
-      if (config.requiresInteractive && (!options.url || !options.token)) {
+      const args = options as Partial<z.infer<T>>;
+      if (config.requiresInteractive && (!args.url || !args.token)) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
-        const interactiveArgs = await promptForMissingArgs(options);
+        const interactiveArgs = await promptForMissingArgs(args);
         const result = config.schema.safeParse(interactiveArgs);
 
         if (!result.success) {
@@ -207,7 +209,7 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
 
         validatedArgs = result.data;
       } else {
-        const result = config.schema.safeParse(options);
+        const result = config.schema.safeParse(args);
 
         if (!result.success) {
           throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
