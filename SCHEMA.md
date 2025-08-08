@@ -31,13 +31,13 @@ Global shop configuration settings that apply across all channels and define sto
 - **automaticFulfillmentDigitalProducts** (`boolean`): Automatically fulfill digital products upon payment
 - **fulfillmentAutoApprove** (`boolean`): Automatically approve fulfillments
 - **fulfillmentAllowUnpaid** (`boolean`): Allow fulfillment of unpaid orders
-- **defaultDigitalMaxDownloads** (`unknown | number | null`): Maximum downloads allowed for digital products
-- **defaultDigitalUrlValidDays** (`unknown | number | null`): Days that download links remain valid
-- **defaultMailSenderName** (`unknown | string | null`): Default name for outgoing emails
-- **defaultMailSenderAddress** (`unknown | string | null`): Default email address for outgoing emails
+- **defaultDigitalMaxDownloads** (`number | null`): Maximum downloads allowed for digital products
+- **defaultDigitalUrlValidDays** (`number | null`): Days that download links remain valid
+- **defaultMailSenderName** (`string | null`): Default name for outgoing emails
+- **defaultMailSenderAddress** (`string | null`): Default email address for outgoing emails
 - **customerSetPasswordUrl** (`string`): URL where customers can set their password
-- **reserveStockDurationAnonymousUser** (`unknown | number | null`): Minutes to reserve stock for anonymous users
-- **reserveStockDurationAuthenticatedUser** (`unknown | number | null`): Minutes to reserve stock for authenticated users
+- **reserveStockDurationAnonymousUser** (`number | null`): Minutes to reserve stock for anonymous users
+- **reserveStockDurationAuthenticatedUser** (`number | null`): Minutes to reserve stock for authenticated users
 - **limitQuantityPerCheckout** (`number`): Maximum quantity per checkout
 - **enableAccountConfirmationByEmail** (`boolean`): Require email confirmation for new accounts
 - **allowLoginWithoutConfirmation** (`boolean`): Allow login before email confirmation
@@ -110,7 +110,7 @@ Each item is of type: `object`
     `VN`, `VU`, `WF`, `WS`, `YE`, `YT`,
     `ZA`, `ZM`, `ZW`
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
-- **isActive** (`boolean`): Whether this channel is currently active and accepting orders
+- **isActive** (`boolean`) *required*: Whether this channel is currently active and accepting orders
 - **settings** (`object`): Advanced channel configuration options
 
 ## warehouses
@@ -128,9 +128,9 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Warehouse.name
 - **slug** (`string`) *required*: Warehouse.slug
 - **email** (`string`) *required*: Warehouse.email
-- **isPrivate** (`boolean`): Warehouse.isPrivate
+- **isPrivate** (`boolean`) *required*: Warehouse.isPrivate
 - **address** (`object`) *required*: Warehouse.address
-- **clickAndCollectOption** (`string (enum)`): Warehouse.clickAndCollectOption
+- **clickAndCollectOption** (`string (enum)`) *required*: Warehouse.clickAndCollectOption
   - **Allowed values:** `DISABLED` | `LOCAL` | `ALL`
 - **shippingZones** (`array<string>`): Warehouse.shippingZones
 
@@ -148,7 +148,7 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: ShippingZone.name
 - **description** (`string`): ShippingZone.description
-- **default** (`boolean`): ShippingZone.default
+- **default** (`boolean`) *required*: ShippingZone.default
 - **countries** (`array<string (enum)>`) *required*: ShippingZone.countries
 - **warehouses** (`array<string>`): ShippingZone.warehouses
 - **channels** (`array<string>`): ShippingZone.channels
@@ -167,9 +167,9 @@ Each item is of type: `object`
 **Item properties:**
 
 - **name** (`string`) *required*: Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')
-- **isShippingRequired** (`boolean`): Whether products of this type require shipping (false for digital products)
+- **isShippingRequired** (`boolean`) *required*: Whether products of this type require shipping (false for digital products)
 - **productAttributes** (`array<AttributeInput>`): Attributes that apply to the entire product (e.g., Brand, Material)
-- **variantAttributes** (`array<unknown>`): Attributes that can vary between product variants (e.g., Size, Color)
+- **variantAttributes** (`array<AttributeInput>`): Attributes that can vary between product variants (e.g., Size, Color)
 
 ## pageTypes
 
@@ -184,7 +184,7 @@ Each item is of type: `object`
 **Item properties:**
 
 - **name** (`string`) *required*: Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')
-- **attributes** (`array<unknown>`) *required*: Attributes available for pages of this type (e.g., Author, Published Date, Tags)
+- **attributes** (`array<AttributeInput>`) *required*: Attributes available for pages of this type (e.g., Author, Published Date, Tags)
 
 ## categories
 
@@ -200,7 +200,7 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: Display name of the category
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
-- **subcategories** (`array<unknown>`): Child categories nested under this category
+- **subcategories** (`array<object>`): Child categories nested under this category
 
 ## products
 

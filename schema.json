@@ -1,22 +1,26 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.",
   "type": "object",
   "properties": {
     "shop": {
+      "description": "Global shop configuration settings that apply across all channels and define store-wide behavior",
       "type": "object",
       "properties": {
         "headerText": {
-          "type": "string",
-          "description": "Text displayed in the shop header"
+          "description": "Text displayed in the shop header",
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "description": "General description of the shop"
+          "description": "General description of the shop",
+          "type": "string"
         },
         "trackInventoryByDefault": {
-          "type": "boolean",
-          "description": "Whether new products should track inventory by default"
+          "description": "Whether new products should track inventory by default",
+          "type": "boolean"
         },
         "defaultWeightUnit": {
+          "description": "Default unit for product weights",
           "type": "string",
           "enum": [
             "KG",
@@ -24,154 +28,111 @@
             "OZ",
             "G",
             "TONNE"
-          ],
-          "description": "Default unit for product weights"
+          ]
         },
         "automaticFulfillmentDigitalProducts": {
-          "type": "boolean",
-          "description": "Automatically fulfill digital products upon payment"
+          "description": "Automatically fulfill digital products upon payment",
+          "type": "boolean"
         },
         "fulfillmentAutoApprove": {
-          "type": "boolean",
-          "description": "Automatically approve fulfillments"
+          "description": "Automatically approve fulfillments",
+          "type": "boolean"
         },
         "fulfillmentAllowUnpaid": {
-          "type": "boolean",
-          "description": "Allow fulfillment of unpaid orders"
+          "description": "Allow fulfillment of unpaid orders",
+          "type": "boolean"
         },
         "defaultDigitalMaxDownloads": {
+          "description": "Maximum downloads allowed for digital products",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "number"
-                }
-              ]
+              "type": "number"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Maximum downloads allowed for digital products"
+          ]
         },
         "defaultDigitalUrlValidDays": {
+          "description": "Days that download links remain valid",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "number"
-                }
-              ]
+              "type": "number"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Days that download links remain valid"
+          ]
         },
         "defaultMailSenderName": {
+          "description": "Default name for outgoing emails",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "string"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Default name for outgoing emails"
+          ]
         },
         "defaultMailSenderAddress": {
+          "description": "Default email address for outgoing emails",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "string"
-                }
-              ]
+              "type": "string"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Default email address for outgoing emails"
+          ]
         },
         "customerSetPasswordUrl": {
-          "type": "string",
-          "description": "URL where customers can set their password"
+          "description": "URL where customers can set their password",
+          "type": "string"
         },
         "reserveStockDurationAnonymousUser": {
+          "description": "Minutes to reserve stock for anonymous users",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "number"
-                }
-              ]
+              "type": "number"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Minutes to reserve stock for anonymous users"
+          ]
         },
         "reserveStockDurationAuthenticatedUser": {
+          "description": "Minutes to reserve stock for authenticated users",
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "not": {}
-                },
-                {
-                  "type": "number"
-                }
-              ]
+              "type": "number"
             },
             {
               "type": "null"
             }
-          ],
-          "description": "Minutes to reserve stock for authenticated users"
+          ]
         },
         "limitQuantityPerCheckout": {
-          "type": "number",
-          "description": "Maximum quantity per checkout"
+          "description": "Maximum quantity per checkout",
+          "type": "number"
         },
         "enableAccountConfirmationByEmail": {
-          "type": "boolean",
-          "description": "Require email confirmation for new accounts"
+          "description": "Require email confirmation for new accounts",
+          "type": "boolean"
         },
         "allowLoginWithoutConfirmation": {
-          "type": "boolean",
-          "description": "Allow login before email confirmation"
+          "description": "Allow login before email confirmation",
+          "type": "boolean"
         },
         "displayGrossPrices": {
-          "type": "boolean",
-          "description": "Show prices including taxes"
+          "description": "Show prices including taxes",
+          "type": "boolean"
         }
       },
-      "additionalProperties": false,
-      "description": "Global shop configuration settings that apply across all channels and define store-wide behavior"
+      "additionalProperties": false
     },
     "channels": {
+      "description": "Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration",
       "type": "array",
       "items": {
         "anyOf": [
@@ -179,10 +140,11 @@
             "type": "object",
             "properties": {
               "name": {
-                "type": "string",
-                "description": "Display name of the channel"
+                "description": "Display name of the channel",
+                "type": "string"
               },
               "currencyCode": {
+                "description": "Currency used for pricing in this channel",
                 "type": "string",
                 "enum": [
                   "USD",
@@ -223,10 +185,10 @@
                   "CLP",
                   "COP",
                   "PEN"
-                ],
-                "description": "Currency used for pricing in this channel"
+                ]
               },
               "defaultCountry": {
+                "description": "Default country for shipping and tax calculations",
                 "type": "string",
                 "enum": [
                   "AD",
@@ -478,87 +440,87 @@
                   "ZA",
                   "ZM",
                   "ZW"
-                ],
-                "description": "Default country for shipping and tax calculations"
+                ]
               },
               "slug": {
-                "type": "string",
-                "description": "URL-friendly identifier (used in URLs and API calls)"
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
               },
               "isActive": {
-                "type": "boolean",
+                "default": false,
                 "description": "Whether this channel is currently active and accepting orders",
-                "default": false
+                "type": "boolean"
               },
               "settings": {
+                "description": "Advanced channel configuration options",
                 "type": "object",
                 "properties": {
                   "allocationStrategy": {
+                    "description": "Strategy for allocating stock when multiple locations have inventory",
                     "type": "string",
                     "enum": [
                       "PRIORITIZE_SORTING_ORDER",
                       "PRIORITIZE_HIGH_STOCK"
-                    ],
-                    "description": "Strategy for allocating stock when multiple locations have inventory"
+                    ]
                   },
                   "automaticallyConfirmAllNewOrders": {
-                    "type": "boolean",
-                    "description": "Automatically confirm all new orders without manual review"
+                    "description": "Automatically confirm all new orders without manual review",
+                    "type": "boolean"
                   },
                   "automaticallyFulfillNonShippableGiftCard": {
-                    "type": "boolean",
-                    "description": "Automatically fulfill gift cards and other non-shippable items"
+                    "description": "Automatically fulfill gift cards and other non-shippable items",
+                    "type": "boolean"
                   },
                   "expireOrdersAfter": {
-                    "type": "number",
-                    "description": "Minutes after which unpaid orders expire"
+                    "description": "Minutes after which unpaid orders expire",
+                    "type": "number"
                   },
                   "deleteExpiredOrdersAfter": {
-                    "type": "number",
-                    "description": "Days after which expired orders are permanently deleted"
+                    "description": "Days after which expired orders are permanently deleted",
+                    "type": "number"
                   },
                   "markAsPaidStrategy": {
+                    "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow",
                     "type": "string",
                     "enum": [
                       "TRANSACTION_FLOW",
                       "PAYMENT_FLOW"
-                    ],
-                    "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow"
+                    ]
                   },
                   "allowUnpaidOrders": {
-                    "type": "boolean",
-                    "description": "Allow creation of orders without immediate payment"
+                    "description": "Allow creation of orders without immediate payment",
+                    "type": "boolean"
                   },
                   "includeDraftOrderInVoucherUsage": {
-                    "type": "boolean",
-                    "description": "Include draft orders when calculating voucher usage limits"
+                    "description": "Include draft orders when calculating voucher usage limits",
+                    "type": "boolean"
                   },
                   "useLegacyErrorFlow": {
-                    "type": "boolean",
-                    "description": "Use legacy error handling for checkout (for backward compatibility)"
+                    "description": "Use legacy error handling for checkout (for backward compatibility)",
+                    "type": "boolean"
                   },
                   "automaticallyCompleteFullyPaidCheckouts": {
-                    "type": "boolean",
-                    "description": "Automatically complete checkouts when payment is fully captured"
+                    "description": "Automatically complete checkouts when payment is fully captured",
+                    "type": "boolean"
                   },
                   "defaultTransactionFlowStrategy": {
+                    "description": "Default payment flow - authorize first then capture, or charge immediately",
                     "type": "string",
                     "enum": [
                       "AUTHORIZATION",
                       "CHARGE"
-                    ],
-                    "description": "Default payment flow - authorize first then capture, or charge immediately"
+                    ]
                   }
                 },
-                "additionalProperties": false,
-                "description": "Advanced channel configuration options"
+                "additionalProperties": false
               }
             },
             "required": [
               "name",
               "currencyCode",
               "defaultCountry",
-              "slug"
+              "slug",
+              "isActive"
             ],
             "additionalProperties": false
           },
@@ -566,10 +528,11 @@
             "type": "object",
             "properties": {
               "name": {
-                "type": "string",
-                "description": "Display name of the channel"
+                "description": "Display name of the channel",
+                "type": "string"
               },
               "currencyCode": {
+                "description": "Currency used for pricing in this channel",
                 "type": "string",
                 "enum": [
                   "USD",
@@ -610,10 +573,10 @@
                   "CLP",
                   "COP",
                   "PEN"
-                ],
-                "description": "Currency used for pricing in this channel"
+                ]
               },
               "defaultCountry": {
+                "description": "Default country for shipping and tax calculations",
                 "type": "string",
                 "enum": [
                   "AD",
@@ -865,78 +828,81 @@
                   "ZA",
                   "ZM",
                   "ZW"
-                ],
-                "description": "Default country for shipping and tax calculations"
+                ]
               },
               "slug": {
-                "type": "string",
-                "description": "URL-friendly identifier (used in URLs and API calls)"
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
               },
               "isActive": {
-                "type": "boolean",
+                "default": false,
                 "description": "Whether this channel is currently active and accepting orders",
-                "default": false
+                "type": "boolean"
               }
             },
             "required": [
               "name",
               "currencyCode",
               "defaultCountry",
-              "slug"
+              "slug",
+              "isActive"
             ],
             "additionalProperties": false
           }
         ]
-      },
-      "description": "Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration"
+      }
     },
     "warehouses": {
+      "description": "Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Warehouse.name"
+            "description": "Warehouse.name",
+            "type": "string"
           },
           "slug": {
-            "type": "string",
-            "description": "Warehouse.slug"
+            "description": "Warehouse.slug",
+            "type": "string"
           },
           "email": {
+            "description": "Warehouse.email",
             "type": "string",
             "format": "email",
-            "description": "Warehouse.email"
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
           "isPrivate": {
-            "type": "boolean",
+            "description": "Warehouse.isPrivate",
             "default": false,
-            "description": "Warehouse.isPrivate"
+            "type": "boolean"
           },
           "address": {
+            "description": "Warehouse.address",
             "type": "object",
             "properties": {
               "streetAddress1": {
-                "type": "string",
-                "description": "Address.streetAddress1"
+                "description": "Address.streetAddress1",
+                "type": "string"
               },
               "streetAddress2": {
-                "type": "string",
-                "description": "Address.streetAddress2"
+                "description": "Address.streetAddress2",
+                "type": "string"
               },
               "city": {
-                "type": "string",
-                "description": "Address.city"
+                "description": "Address.city",
+                "type": "string"
               },
               "cityArea": {
-                "type": "string",
-                "description": "Address.cityArea"
+                "description": "Address.cityArea",
+                "type": "string"
               },
               "postalCode": {
-                "type": "string",
-                "description": "Address.postalCode"
+                "description": "Address.postalCode",
+                "type": "string"
               },
               "country": {
+                "description": "Address.country",
                 "type": "string",
                 "enum": [
                   "AD",
@@ -1188,20 +1154,19 @@
                   "ZA",
                   "ZM",
                   "ZW"
-                ],
-                "description": "Address.country"
+                ]
               },
               "countryArea": {
-                "type": "string",
-                "description": "Address.countryArea"
+                "description": "Address.countryArea",
+                "type": "string"
               },
               "companyName": {
-                "type": "string",
-                "description": "Address.companyName"
+                "description": "Address.companyName",
+                "type": "string"
               },
               "phone": {
-                "type": "string",
-                "description": "Address.phone"
+                "description": "Address.phone",
+                "type": "string"
               }
             },
             "required": [
@@ -1209,56 +1174,58 @@
               "city",
               "country"
             ],
-            "additionalProperties": false,
-            "description": "Warehouse.address"
+            "additionalProperties": false
           },
           "clickAndCollectOption": {
+            "description": "Warehouse.clickAndCollectOption",
+            "default": "DISABLED",
             "type": "string",
             "enum": [
               "DISABLED",
               "LOCAL",
               "ALL"
-            ],
-            "default": "DISABLED",
-            "description": "Warehouse.clickAndCollectOption"
+            ]
           },
           "shippingZones": {
+            "description": "Warehouse.shippingZones",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "Warehouse.shippingZones"
+            }
           }
         },
         "required": [
           "name",
           "slug",
           "email",
-          "address"
+          "isPrivate",
+          "address",
+          "clickAndCollectOption"
         ],
         "additionalProperties": false
-      },
-      "description": "Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment"
+      }
     },
     "shippingZones": {
+      "description": "Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "ShippingZone.name"
+            "description": "ShippingZone.name",
+            "type": "string"
           },
           "description": {
-            "type": "string",
-            "description": "ShippingZone.description"
+            "description": "ShippingZone.description",
+            "type": "string"
           },
           "default": {
-            "type": "boolean",
+            "description": "ShippingZone.default",
             "default": false,
-            "description": "ShippingZone.default"
+            "type": "boolean"
           },
           "countries": {
+            "description": "ShippingZone.countries",
             "type": "array",
             "items": {
               "type": "string",
@@ -1513,55 +1480,58 @@
                 "ZM",
                 "ZW"
               ]
-            },
-            "description": "ShippingZone.countries"
+            }
           },
           "warehouses": {
+            "description": "ShippingZone.warehouses",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "ShippingZone.warehouses"
+            }
           },
           "channels": {
+            "description": "ShippingZone.channels",
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "description": "ShippingZone.channels"
+            }
           },
           "shippingMethods": {
+            "description": "ShippingZone.shippingMethods",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "name": {
-                  "type": "string",
-                  "description": "ShippingMethod.name"
+                  "description": "ShippingMethod.name",
+                  "type": "string"
                 },
                 "description": {
-                  "type": "string",
-                  "description": "ShippingMethod.description"
+                  "description": "ShippingMethod.description",
+                  "type": "string"
                 },
                 "type": {
+                  "description": "ShippingMethod.type",
                   "type": "string",
                   "enum": [
                     "PRICE",
                     "WEIGHT"
-                  ],
-                  "description": "ShippingMethod.type"
+                  ]
                 },
                 "minimumDeliveryDays": {
+                  "description": "ShippingMethod.minimumDeliveryDays",
                   "type": "integer",
                   "minimum": 0,
-                  "description": "ShippingMethod.minimumDeliveryDays"
+                  "maximum": 9007199254740991
                 },
                 "maximumDeliveryDays": {
+                  "description": "ShippingMethod.maximumDeliveryDays",
                   "type": "integer",
                   "minimum": 0,
-                  "description": "ShippingMethod.maximumDeliveryDays"
+                  "maximum": 9007199254740991
                 },
                 "minimumOrderWeight": {
+                  "description": "ShippingMethod.minimumOrderWeight",
                   "type": "object",
                   "properties": {
                     "unit": {
@@ -1583,32 +1553,54 @@
                     "unit",
                     "value"
                   ],
-                  "additionalProperties": false,
-                  "description": "ShippingMethod.minimumOrderWeight"
+                  "additionalProperties": false
                 },
                 "maximumOrderWeight": {
-                  "$ref": "#/properties/shippingZones/items/properties/shippingMethods/items/properties/minimumOrderWeight",
-                  "description": "ShippingMethod.maximumOrderWeight"
+                  "description": "ShippingMethod.maximumOrderWeight",
+                  "type": "object",
+                  "properties": {
+                    "unit": {
+                      "type": "string",
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
+                    },
+                    "value": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
+                  "additionalProperties": false
                 },
                 "taxClass": {
-                  "type": "string",
-                  "description": "ShippingMethod.taxClass"
+                  "description": "ShippingMethod.taxClass",
+                  "type": "string"
                 },
                 "channelListings": {
+                  "description": "ShippingMethod.channelListings",
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "channel": {
-                        "type": "string",
-                        "description": "ShippingMethodChannelListing.channel"
+                        "description": "ShippingMethodChannelListing.channel",
+                        "type": "string"
                       },
                       "price": {
+                        "description": "ShippingMethodChannelListing.price",
                         "type": "number",
-                        "minimum": 0,
-                        "description": "ShippingMethodChannelListing.price"
+                        "minimum": 0
                       },
                       "currency": {
+                        "description": "ShippingMethodChannelListing.currency",
                         "type": "string",
                         "enum": [
                           "USD",
@@ -1649,18 +1641,17 @@
                           "CLP",
                           "COP",
                           "PEN"
-                        ],
-                        "description": "ShippingMethodChannelListing.currency"
+                        ]
                       },
                       "minimumOrderPrice": {
+                        "description": "ShippingMethodChannelListing.minimumOrderPrice",
                         "type": "number",
-                        "minimum": 0,
-                        "description": "ShippingMethodChannelListing.minimumOrderPrice"
+                        "minimum": 0
                       },
                       "maximumOrderPrice": {
+                        "description": "ShippingMethodChannelListing.maximumOrderPrice",
                         "type": "number",
-                        "minimum": 0,
-                        "description": "ShippingMethodChannelListing.maximumOrderPrice"
+                        "minimum": 0
                       }
                     },
                     "required": [
@@ -1668,8 +1659,7 @@
                       "price"
                     ],
                     "additionalProperties": false
-                  },
-                  "description": "ShippingMethod.channelListings"
+                  }
                 }
               },
               "required": [
@@ -1677,33 +1667,34 @@
                 "type"
               ],
               "additionalProperties": false
-            },
-            "description": "ShippingZone.shippingMethods"
+            }
           }
         },
         "required": [
           "name",
+          "default",
           "countries"
         ],
         "additionalProperties": false
-      },
-      "description": "Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules"
+      }
     },
     "productTypes": {
+      "description": "Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')"
+            "description": "Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')",
+            "type": "string"
           },
           "isShippingRequired": {
-            "type": "boolean",
+            "description": "Whether products of this type require shipping (false for digital products)",
             "default": false,
-            "description": "Whether products of this type require shipping (false for digital products)"
+            "type": "boolean"
           },
           "productAttributes": {
+            "description": "Attributes that apply to the entire product (e.g., Brand, Material)",
             "type": "array",
             "items": {
               "anyOf": [
@@ -1750,7 +1741,7 @@
                       "type": "object",
                       "properties": {
                         "name": {
-                          "$ref": "#/properties/productTypes/items/properties/productAttributes/items/anyOf/0/anyOf/0/properties/name"
+                          "type": "string"
                         },
                         "inputType": {
                           "type": "string",
@@ -1775,7 +1766,7 @@
                       "type": "object",
                       "properties": {
                         "name": {
-                          "$ref": "#/properties/productTypes/items/properties/productAttributes/items/anyOf/0/anyOf/0/properties/name"
+                          "type": "string"
                         },
                         "inputType": {
                           "type": "string",
@@ -1799,6 +1790,7 @@
                   ]
                 },
                 {
+                  "description": "Reference to an existing attribute by slug",
                   "type": "object",
                   "properties": {
                     "attribute": {
@@ -1808,29 +1800,133 @@
                   "required": [
                     "attribute"
                   ],
-                  "additionalProperties": false,
-                  "description": "Reference to an existing attribute by slug"
+                  "additionalProperties": false
                 }
               ]
-            },
-            "description": "Attributes that apply to the entire product (e.g., Brand, Material)"
+            }
           },
           "variantAttributes": {
+            "description": "Attributes that can vary between product variants (e.g., Size, Color)",
             "type": "array",
             "items": {
-              "$ref": "#/properties/productTypes/items/properties/productAttributes/items"
-            },
-            "description": "Attributes that can vary between product variants (e.g., Size, Color)"
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "description": "Reference to an existing attribute by slug",
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
           }
         },
         "required": [
-          "name"
+          "name",
+          "isShippingRequired"
         ],
         "additionalProperties": false
-      },
-      "description": "Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type"
+      }
     },
     "pageTypes": {
+      "description": "Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc",
       "type": "array",
       "items": {
         "anyOf": [
@@ -1838,15 +1934,120 @@
             "type": "object",
             "properties": {
               "name": {
-                "type": "string",
-                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')"
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')",
+                "type": "string"
               },
               "attributes": {
+                "description": "Attributes available for pages of this type (e.g., Author, Published Date, Tags)",
                 "type": "array",
                 "items": {
-                  "$ref": "#/properties/productTypes/items/properties/productAttributes/items"
-                },
-                "description": "Attributes available for pages of this type (e.g., Author, Published Date, Tags)"
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "enum": [
+                                "DROPDOWN",
+                                "MULTISELECT",
+                                "SWATCH"
+                              ]
+                            },
+                            "values": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "name"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType",
+                            "values"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "const": "REFERENCE"
+                            },
+                            "entityType": {
+                              "type": "string",
+                              "enum": [
+                                "PAGE",
+                                "PRODUCT",
+                                "PRODUCT_VARIANT"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "enum": [
+                                "PLAIN_TEXT",
+                                "NUMERIC",
+                                "DATE",
+                                "BOOLEAN",
+                                "RICH_TEXT",
+                                "DATE_TIME",
+                                "FILE"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    {
+                      "description": "Reference to an existing attribute by slug",
+                      "type": "object",
+                      "properties": {
+                        "attribute": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "attribute"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
               }
             },
             "required": [
@@ -1859,8 +2060,8 @@
             "type": "object",
             "properties": {
               "name": {
-                "type": "string",
-                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')"
+                "description": "Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')",
+                "type": "string"
               }
             },
             "required": [
@@ -1869,48 +2070,26 @@
             "additionalProperties": false
           }
         ]
-      },
-      "description": "Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc"
+      }
     },
     "categories": {
+      "description": "Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering",
       "type": "array",
       "items": {
         "anyOf": [
           {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "description": "Display name of the category"
-              },
-              "slug": {
-                "type": "string",
-                "description": "URL-friendly identifier (used in URLs and API calls)"
-              },
-              "subcategories": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/properties/categories/items/anyOf/0"
-                },
-                "description": "Child categories nested under this category"
-              }
-            },
-            "required": [
-              "name",
-              "slug"
-            ],
-            "additionalProperties": false
+            "$ref": "#/$defs/__schema0"
           },
           {
             "type": "object",
             "properties": {
               "name": {
-                "type": "string",
-                "description": "Display name of the category"
+                "description": "Display name of the category",
+                "type": "string"
               },
               "slug": {
-                "type": "string",
-                "description": "URL-friendly identifier (used in URLs and API calls)"
+                "description": "URL-friendly identifier (used in URLs and API calls)",
+                "type": "string"
               }
             },
             "required": [
@@ -1920,32 +2099,36 @@
             "additionalProperties": false
           }
         ]
-      },
-      "description": "Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering"
+      }
     },
     "products": {
+      "description": "Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability",
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Product name as displayed to customers"
+            "description": "Product name as displayed to customers",
+            "type": "string"
           },
           "slug": {
-            "type": "string",
-            "description": "URL-friendly identifier (used in URLs and API calls)"
+            "description": "URL-friendly identifier (used in URLs and API calls)",
+            "type": "string"
           },
           "productType": {
-            "type": "string",
-            "description": "Reference to the product type (must match a productType name)"
+            "description": "Reference to the product type (must match a productType name)",
+            "type": "string"
           },
           "category": {
-            "type": "string",
-            "description": "Reference to the product category (must match a category slug)"
+            "description": "Reference to the product category (must match a category slug)",
+            "type": "string"
           },
           "attributes": {
+            "description": "Product-specific attribute values",
             "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
             "additionalProperties": {
               "anyOf": [
                 {
@@ -1958,67 +2141,73 @@
                   }
                 }
               ]
-            },
-            "description": "Product-specific attribute values"
+            }
           },
           "channelListings": {
+            "description": "Channel-specific settings like pricing and availability",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "channel": {
-                  "type": "string",
-                  "description": "Channel slug reference (e.g., 'default-channel')"
+                  "description": "Channel slug reference (e.g., 'default-channel')",
+                  "type": "string"
                 },
                 "isPublished": {
-                  "type": "boolean",
+                  "description": "Whether the product is published and visible in this channel",
                   "default": true,
-                  "description": "Whether the product is published and visible in this channel"
+                  "type": "boolean"
                 },
                 "visibleInListings": {
-                  "type": "boolean",
+                  "description": "Whether the product appears in category listings",
                   "default": true,
-                  "description": "Whether the product appears in category listings"
+                  "type": "boolean"
                 },
                 "availableForPurchase": {
-                  "type": "string",
-                  "description": "ISO date when the product becomes available for purchase"
+                  "description": "ISO date when the product becomes available for purchase",
+                  "type": "string"
                 },
                 "publishedAt": {
-                  "type": "string",
-                  "description": "ISO date when the product was published"
+                  "description": "ISO date when the product was published",
+                  "type": "string"
                 }
               },
               "required": [
-                "channel"
+                "channel",
+                "isPublished",
+                "visibleInListings"
               ],
               "additionalProperties": false
-            },
-            "description": "Channel-specific settings like pricing and availability"
+            }
           },
           "variants": {
+            "description": "Product variants with different SKUs, attributes, or pricing",
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
                 "name": {
-                  "type": "string",
-                  "description": "Variant name (e.g., 'Size M', 'Red Color')"
+                  "description": "Variant name (e.g., 'Size M', 'Red Color')",
+                  "type": "string"
                 },
                 "sku": {
-                  "type": "string",
-                  "description": "Stock keeping unit - unique identifier for this variant"
+                  "description": "Stock keeping unit - unique identifier for this variant",
+                  "type": "string"
                 },
                 "weight": {
-                  "type": "number",
-                  "description": "Product weight (in the shop's default unit)"
+                  "description": "Product weight (in the shop's default unit)",
+                  "type": "number"
                 },
                 "digital": {
-                  "type": "boolean",
-                  "description": "Whether this is a digital product (no shipping required)"
+                  "description": "Whether this is a digital product (no shipping required)",
+                  "type": "boolean"
                 },
                 "attributes": {
+                  "description": "Variant-specific attribute values",
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {
                     "anyOf": [
                       {
@@ -2031,25 +2220,25 @@
                         }
                       }
                     ]
-                  },
-                  "description": "Variant-specific attribute values"
+                  }
                 },
                 "channelListings": {
+                  "description": "Channel-specific pricing for this variant",
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "channel": {
-                        "type": "string",
-                        "description": "Channel slug reference (e.g., 'default-channel')"
+                        "description": "Channel slug reference (e.g., 'default-channel')",
+                        "type": "string"
                       },
                       "price": {
-                        "type": "number",
-                        "description": "Price in the channel's currency"
+                        "description": "Price in the channel's currency",
+                        "type": "number"
                       },
                       "costPrice": {
-                        "type": "number",
-                        "description": "Cost price for internal tracking and profit calculations"
+                        "description": "Cost price for internal tracking and profit calculations",
+                        "type": "number"
                       }
                     },
                     "required": [
@@ -2057,8 +2246,7 @@
                       "price"
                     ],
                     "additionalProperties": false
-                  },
-                  "description": "Channel-specific pricing for this variant"
+                  }
                 }
               },
               "required": [
@@ -2066,8 +2254,7 @@
                 "sku"
               ],
               "additionalProperties": false
-            },
-            "description": "Product variants with different SKUs, attributes, or pricing"
+            }
           }
         },
         "required": [
@@ -2078,13 +2265,37 @@
           "variants"
         ],
         "additionalProperties": false
-      },
-      "description": "Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability"
+      }
     }
   },
   "additionalProperties": false,
-  "description": "Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "__schema0": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Display name of the category",
+          "type": "string"
+        },
+        "slug": {
+          "description": "URL-friendly identifier (used in URLs and API calls)",
+          "type": "string"
+        },
+        "subcategories": {
+          "description": "Child categories nested under this category",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "slug"
+      ],
+      "additionalProperties": false
+    }
+  },
   "title": "Saleor Configurator Configuration Schema",
   "examples": [
     {
