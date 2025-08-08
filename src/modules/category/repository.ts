@@ -10,14 +10,10 @@ const createCategoryMutation = graphql(`
         id
         name
         slug
-        children(first: 100) {
-          edges {
-            node {
-              id
-              name
-              slug
-            }
-          }
+        level
+        parent {
+          id
+          slug
         }
       }
       errors {
@@ -38,14 +34,10 @@ const getCategoryByNameQuery = graphql(`
           id
           name
           slug
-          children(first: 100) {
-            edges {
-              node {
-                id
-                name
-                slug
-              }
-            }
+          level
+          parent {
+            id
+            slug
           }
         }
       }
@@ -61,14 +53,10 @@ const getAllCategoriesQuery = graphql(`
           id
           name
           slug
-          children(first: 100) {
-            edges {
-              node {
-                id
-                name
-                slug
-              }
-            }
+          level
+          parent {
+            id
+            slug
           }
         }
       }
