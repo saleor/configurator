@@ -155,6 +155,64 @@ describe("WarehouseComparator", () => {
       );
     });
 
+    it("should handle city case normalization (lowercase local vs UPPERCASE remote)", () => {
+      const local = [
+        {
+          ...mockLocalWarehouse,
+          address: {
+            ...mockLocalWarehouse.address,
+            city: "new york", // lowercase
+          },
+        },
+      ];
+      const remote = [
+        {
+          ...mockRemoteWarehouse,
+          address: {
+            ...mockRemoteWarehouse.address,
+            city: "NEW YORK", // UPPERCASE (Saleor normalizes)
+          },
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+
+      // Should not show any changes due to case normalization
+      if (results.length > 0) {
+        const cityChange = results[0].changes?.find(c => c.field === "address.city");
+        expect(cityChange).toBeUndefined();
+      }
+    });
+
+    it("should detect actual city changes beyond case differences", () => {
+      const local = [
+        {
+          ...mockLocalWarehouse,
+          address: {
+            ...mockLocalWarehouse.address,
+            city: "los angeles",
+          },
+        },
+      ];
+      const remote = [
+        {
+          ...mockRemoteWarehouse,
+          address: {
+            ...mockRemoteWarehouse.address,
+            city: "NEW YORK", // Different city, not just case
+          },
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results).toHaveLength(1);
+      const cityChange = results[0].changes?.find(c => c.field === "address.city");
+      expect(cityChange).toBeDefined();
+      expect(cityChange?.currentValue).toBe("NEW YORK");
+      expect(cityChange?.desiredValue).toBe("los angeles");
+    });
+
     it("should detect shipping zone changes", () => {
       const local = [
         {

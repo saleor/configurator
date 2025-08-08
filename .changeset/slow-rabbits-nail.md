@@ -1,5 +1,5 @@
 ---
-"@saleor/configurator": patch
+"@saleor/configurator": minor
 ---
 
-Fixed entity identification to use slugs instead of names for categories and channels. Entities with the same name but different slugs are now correctly handled as separate entities, resolving duplicate detection issues. Also improved validation method naming from `validateUniqueNames` to `validateUniqueIdentifiers` for clarity.
+Added support for warehouses and shipping zones configuration. You can now manage warehouse locations, shipping zones, and shipping methods as code, enabling multi-region fulfillment setups and complex shipping rules across your Saleor instances.

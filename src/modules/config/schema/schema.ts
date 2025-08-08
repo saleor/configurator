@@ -564,7 +564,7 @@ const weightUnitSchema = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
 const weightSchema = z.object({
   unit: weightUnitSchema,
-  value: z.number().positive(),
+  value: z.number().nonnegative(),
 });
 
 const shippingMethodChannelListingSchema = z.object({

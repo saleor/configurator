@@ -78,8 +78,8 @@ export class WarehouseService {
         companyName: input.address.companyName,
         phone: input.address.phone,
       },
-      isPrivate: input.isPrivate,
-      clickAndCollectOption: input.clickAndCollectOption,
+      // Note: isPrivate and clickAndCollectOption are not supported in warehouse creation
+      // These fields can only be updated after creation or are set via other mutations
     });
   }
 
@@ -112,7 +112,23 @@ export class WarehouseService {
 
     try {
       const createInput = this.mapInputToCreateInput(input);
-      const warehouse = await this.repository.createWarehouse(createInput);
+      let warehouse = await this.repository.createWarehouse(createInput);
+
+      // Check if we need to update additional fields that aren't supported in creation
+      const needsUpdate =
+        input.isPrivate !== undefined || input.clickAndCollectOption !== undefined;
+
+      if (needsUpdate) {
+        logger.debug("Updating warehouse with additional fields after creation", {
+          id: warehouse.id,
+          isPrivate: input.isPrivate,
+          clickAndCollectOption: input.clickAndCollectOption,
+        });
+
+        const updateInput = this.mapInputToUpdateInput(input);
+        warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
+      }
+
       logger.debug("Successfully created warehouse", {
         id: warehouse.id,
         name: warehouse.name,
@@ -143,20 +159,20 @@ export class WarehouseService {
 
     try {
       const updateInput = this.mapInputToUpdateInput(input);
-      logger.debug("Warehouse update input", { 
-        id, 
+      logger.debug("Warehouse update input", {
+        id,
         updateInput: JSON.stringify(updateInput, null, 2),
-        originalInput: JSON.stringify(input, null, 2)
+        originalInput: JSON.stringify(input, null, 2),
       });
-      
+
       const warehouse = await this.repository.updateWarehouse(id, updateInput);
-      
+
       logger.debug("Successfully updated warehouse", {
         id: warehouse.id,
         name: warehouse.name,
         slug: warehouse.slug,
         returnedCity: warehouse.address?.city,
-        inputCity: input.address?.city
+        inputCity: input.address?.city,
       });
       return warehouse;
     } catch (error) {

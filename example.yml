@@ -120,3 +120,88 @@ products:
           Size: "Standard"
           Cover: "Paperback"
         channelListings: []
+
+warehouses:
+  - name: "Main Warehouse"
+    slug: "main-warehouse"
+    email: "warehouse@example.com"
+    isPrivate: false
+    clickAndCollectOption: "LOCAL"
+    address:
+      streetAddress1: "123 Commerce Street"
+      streetAddress2: "Building A"
+      city: "Warsaw"
+      cityArea: "Downtown"
+      postalCode: "00-001"
+      country: "PL"
+      countryArea: "Mazowieckie"
+      companyName: "Example Store Ltd."
+      phone: "+48123456789"
+    shippingZones: ["poland-zone"]
+
+  - name: "Secondary Distribution Center"
+    slug: "secondary-dc"
+    email: "dc2@example.com"
+    isPrivate: true
+    clickAndCollectOption: "DISABLED"
+    address:
+      streetAddress1: "456 Storage Avenue"
+      city: "Krakow"
+      postalCode: "30-001"
+      country: "PL"
+      companyName: "Example Store Ltd."
+    shippingZones: ["poland-zone", "europe-zone"]
+
+shippingZones:
+  - name: "Poland Zone"
+    slug: "poland-zone"
+    description: "Shipping zone for Poland"
+    countries: ["PL"]
+    warehouses: ["main-warehouse", "secondary-dc"]
+    channels: ["poland"]
+    shippingMethods:
+      - name: "Standard Shipping"
+        type: "PRICE"
+        maximumDeliveryDays: 5
+        minimumDeliveryDays: 3
+        channelListings:
+          - channel: "poland"
+            maximumOrderPrice: 1000.00
+            minimumOrderPrice: 0.00
+            price: 19.99
+      
+      - name: "Express Shipping"
+        type: "PRICE"
+        maximumDeliveryDays: 2
+        minimumDeliveryDays: 1
+        channelListings:
+          - channel: "poland"
+            minimumOrderPrice: 0.00
+            price: 39.99
+
+      - name: "Weight-based Shipping"
+        type: "WEIGHT"
+        maximumDeliveryDays: 7
+        minimumDeliveryDays: 5
+        channelListings:
+          - channel: "poland"
+            maximumOrderWeight:
+              unit: "KG"
+              value: 30
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            price: 15.00
+
+  - name: "Europe Zone"
+    slug: "europe-zone"
+    description: "Shipping zone for European Union countries"
+    countries: ["DE", "FR", "IT", "ES", "CZ", "SK"]
+    warehouses: ["secondary-dc"]
+    channels: []
+    shippingMethods:
+      - name: "EU Standard Delivery"
+        type: "PRICE"
+        maximumDeliveryDays: 10
+        minimumDeliveryDays: 7
+        channelListings: []

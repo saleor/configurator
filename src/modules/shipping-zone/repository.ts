@@ -386,13 +386,13 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
   }
 
   async createShippingMethod(input: ShippingPriceInput): Promise<ShippingMethod> {
-    logger.debug("Creating shipping method with input", { 
+    logger.debug("Creating shipping method with input", {
       name: input.name,
       type: input.type,
       shippingZone: input.shippingZone,
-      input: JSON.stringify(input, null, 2)
+      input: JSON.stringify(input, null, 2),
     });
-    
+
     const result = await this.client.mutation(createShippingPriceMutation, { input });
 
     if (result.error) {
@@ -401,9 +401,9 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
         error: result.error,
         errorMessage: result.error.message,
         graphQLErrors: result.error.graphQLErrors,
-        networkError: result.error.networkError
+        networkError: result.error.networkError,
       });
-      
+
       throw GraphQLError.fromCombinedError(
         result.error,
         `Failed to create shipping method ${input.name}`
@@ -414,9 +414,9 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       logger.error("GraphQL data errors for shipping method creation", {
         name: input.name,
         errors: result.data.shippingPriceCreate.errors,
-        fullResult: JSON.stringify(result.data, null, 2)
+        fullResult: JSON.stringify(result.data, null, 2),
       });
-      
+
       throw GraphQLError.fromDataErrors(
         `Failed to create shipping method ${input.name}`,
         result.data.shippingPriceCreate.errors
