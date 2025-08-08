@@ -7,7 +7,7 @@ export class ZodValidationError extends BaseError {
   }
 
   static fromZodError(error: z.ZodError, message?: string): ZodValidationError {
-    const formattedErrors = error.errors.map((issue) => {
+    const formattedErrors = error.issues.map((issue) => {
       const path = issue.path.length > 0 ? issue.path.join(".") : "root";
       const errorMessage = formatZodIssue(issue);
       return path === "root" ? errorMessage : `${path}: ${errorMessage}`;
@@ -22,57 +22,70 @@ export class ZodValidationError extends BaseError {
 }
 
 function formatZodIssue(issue: z.ZodIssue): string {
-  switch (issue.code) {
-    case "invalid_type":
-      return `Expected ${issue.expected}, but received ${issue.received}`;
-    case "too_small":
-      if (issue.type === "string") {
-        return `Must be at least ${issue.minimum} character${issue.minimum === 1 ? "" : "s"} long`;
-      }
-      if (issue.type === "number") {
-        return `Must be at least ${issue.minimum}`;
-      }
-      if (issue.type === "array") {
-        return `Must contain at least ${issue.minimum} item${issue.minimum === 1 ? "" : "s"}`;
-      }
-      return issue.message;
-    case "too_big":
-      if (issue.type === "string") {
-        return `Must be at most ${issue.maximum} character${issue.maximum === 1 ? "" : "s"} long`;
-      }
-      if (issue.type === "number") {
-        return `Must be at most ${issue.maximum}`;
-      }
-      if (issue.type === "array") {
-        return `Must contain at most ${issue.maximum} item${issue.maximum === 1 ? "" : "s"}`;
-      }
-      return issue.message;
-    case "invalid_string":
-      if (issue.validation === "email") {
-        return "Must be a valid email address";
-      }
-      if (issue.validation === "url") {
-        return "Must be a valid URL";
-      }
-      if (issue.validation === "uuid") {
-        return "Must be a valid UUID";
-      }
-      return issue.message;
-    case "invalid_enum_value":
-      return `Must be one of: ${issue.options.join(", ")}`;
-    case "unrecognized_keys":
-      return `Unrecognized key${issue.keys.length === 1 ? "" : "s"}: ${issue.keys.join(", ")}`;
-    case "invalid_literal":
-      return `Must be exactly "${issue.expected}"`;
-    case "invalid_union":
-      return "Value doesn't match any of the expected types";
-    case "invalid_date":
-      return "Invalid date format";
-    case "not_multiple_of":
-      return `Must be a multiple of ${issue.multipleOf}`;
-    case "not_finite":
-      return "Must be a finite number";
-    default:
-      return issue.message;
+  // For Zod v4, let's use the default message but improve some specific cases
+  const message = issue.message;
+
+  // Customize common error patterns for better UX
+  if (message.includes("Invalid email")) {
+    return "Must be a valid email address";
   }
+  if (message.includes("Invalid url")) {
+    return "Must be a valid URL";
+  }
+  if (message.includes("Invalid uuid")) {
+    return "Must be a valid UUID";
+  }
+  if (message.includes("Too small") && message.includes("string")) {
+    const match = message.match(/>=(\d+)/);
+    if (match) {
+      const min = parseInt(match[1]);
+      return `Must be at least ${min} character${min === 1 ? "" : "s"} long`;
+    }
+  }
+  if (message.includes("Too small") && message.includes("number")) {
+    const match = message.match(/>=(\d+)/);
+    if (match) {
+      return `Must be at least ${match[1]}`;
+    }
+  }
+  if (message.includes("Too small") && message.includes("array")) {
+    const match = message.match(/>=(\d+)/);
+    if (match) {
+      const min = parseInt(match[1]);
+      return `Must contain at least ${min} item${min === 1 ? "" : "s"}`;
+    }
+  }
+  if (message.includes("Invalid option")) {
+    const match = message.match(/expected one of (.+)/);
+    if (match) {
+      // Clean up the quoted options format: "admin"|"user"|"guest" -> admin, user, guest
+      const options = match[1].replace(/"/g, "").replace(/\|/g, ", ");
+      return `Must be one of: ${options}`;
+    }
+  }
+  if (
+    message.includes("Invalid input") &&
+    message.includes("expected") &&
+    !message.includes("received")
+  ) {
+    const match = message.match(/expected (.+)/);
+    if (match) {
+      return `Must be exactly ${match[1]}`;
+    }
+  }
+  if (
+    message.includes("Invalid input") &&
+    message.includes("expected") &&
+    message.includes("received")
+  ) {
+    const typeMatch = message.match(/expected (.+?), received (.+)/);
+    if (typeMatch) {
+      return `Expected ${typeMatch[1]}, but received ${typeMatch[2]}`;
+    }
+  }
+  if (message === "Invalid input") {
+    return "Value doesn't match any of the expected types";
+  }
+
+  return message;
 }

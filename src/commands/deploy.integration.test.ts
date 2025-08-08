@@ -48,6 +48,7 @@ describe("Deploy Command - Integration Tests", () => {
           slug: "default-channel",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         })
         .saveToFile(tempDir);
 
@@ -215,6 +216,7 @@ describe("Deploy Command - Integration Tests", () => {
           slug: "keep",
           currencyCode: "EUR",
           defaultCountry: "GB",
+          isActive: true,
         })
         .saveToFile(tempDir);
 
@@ -265,6 +267,7 @@ describe("Deploy Command - Integration Tests", () => {
           slug: "default-channel",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         })
         .saveToFile(tempDir);
 
@@ -305,6 +308,7 @@ describe("Deploy Command - Integration Tests", () => {
           slug: "default-channel",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         })
         .saveToFile(tempDir);
 

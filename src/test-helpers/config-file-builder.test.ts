@@ -30,6 +30,7 @@ describe("ConfigFileBuilder", () => {
           slug: "test-channel",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         });
 
       const yaml = config.toYaml();
@@ -46,12 +47,14 @@ describe("ConfigFileBuilder", () => {
           slug: "channel-1",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         })
         .withChannel({
           name: "Channel 2",
           slug: "channel-2",
           currencyCode: "EUR",
           defaultCountry: "DE",
+          isActive: true,
         })
         .withProductType({
           name: "Electronics",
@@ -190,6 +193,7 @@ describe("ConfigFileBuilder", () => {
         })
         .withCategory({
           name: "Category with: colons",
+          slug: "category-with-colons",
         });
 
       const yaml = config.toYaml();
@@ -209,6 +213,7 @@ describe("ConfigFileBuilder", () => {
           slug: "initial",
           currencyCode: "USD",
           defaultCountry: "US",
+          isActive: true,
         });
 
       // Reset and build different config

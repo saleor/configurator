@@ -1,270 +1,317 @@
 #!/usr/bin/env tsx
 
-/**
- * Automated Schema Documentation Generator
- *
- * This script automatically generates comprehensive documentation from Zod schemas.
- * It introspects the Zod schema definitions and creates a structured Markdown file
- * documenting all configuration options with their types, requirements, and GraphQL mappings.
- *
- * How it works:
- * 1. Analyzes the main configSchema using Zod's internal structure
- * 2. Recursively walks through nested objects, arrays, unions, enums, and records
- * 3. Extracts descriptions from schema.describe() calls
- * 4. Identifies field types (string, number, boolean, enum, object, array, etc.)
- * 5. Determines if fields are optional or required
- * 6. Extracts enum values and type unions
- * 7. Generates structured Markdown with proper heading hierarchy
- *
- * Key features:
- * - Automatically extracts GraphQL field mappings from descriptions
- * - Lists enum values for developer reference
- * - Shows required vs optional fields
- * - Handles complex nested structures
- * - Maintains proper Markdown formatting
- * - Always stays in sync with schema changes
- *
- * Usage: pnpm run generate-docs
- * Output: SCHEMA.md (auto-generated, gitignored)
- */
+import { readFileSync, writeFileSync } from "node:fs";
 
-import { writeFileSync } from "node:fs";
-import { z } from "zod";
-import { configSchema } from "../src/modules/config/schema/schema.js";
-
-interface SchemaDocumentation {
-  name: string;
-  type: string;
-  optional: boolean;
+interface JsonSchemaProperty {
+  type?: string | string[];
   description?: string;
   enum?: string[];
-  properties?: SchemaDocumentation[];
-  // biome-ignore lint/suspicious/noExplicitAny: utility script
-  example?: any;
+  items?: JsonSchemaProperty;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+  default?: unknown;
+  anyOf?: JsonSchemaProperty[];
+  $ref?: string;
 }
 
-function analyzeZodSchema(schema: z.ZodTypeAny, name: string = "root"): SchemaDocumentation {
-  const doc: SchemaDocumentation = {
-    name,
-    type: "unknown",
-    optional: false,
-  };
-
-  // Extract description from Zod schema
-  // biome-ignore lint/suspicious/noExplicitAny: utility script
-  if (schema && (schema as any)._def?.description) {
-    // biome-ignore lint/suspicious/noExplicitAny: utility script
-    doc.description = (schema as any)._def.description;
-  }
-
-  // Handle optional schemas
-  if (schema instanceof z.ZodOptional) {
-    doc.optional = true;
-    const unwrapped = analyzeZodSchema(schema.unwrap(), name);
-    return {
-      ...unwrapped,
-      optional: true,
-      description: unwrapped.description || doc.description,
-    };
-  }
-
-  // Handle arrays
-  if (schema instanceof z.ZodArray) {
-    const element = analyzeZodSchema(schema.element, "item");
-    return {
-      ...doc,
-      type: `${element.type}[]`,
-      properties: element.properties,
-    };
-  }
-
-  // Handle objects
-  if (schema instanceof z.ZodObject) {
-    const shape = schema.shape;
-    doc.type = "object";
-    doc.properties = Object.entries(shape).map(([key, value]) =>
-      analyzeZodSchema(value as z.ZodTypeAny, key)
-    );
-    return doc;
-  }
-
-  // Handle enums
-  if (schema instanceof z.ZodEnum) {
-    doc.type = "enum";
-    doc.enum = schema.options;
-    return doc;
-  }
-
-  // Handle unions (like z.union([z.string(), z.array(z.string())]))
-  if (schema instanceof z.ZodUnion) {
-    const types = schema.options.map((option: z.ZodTypeAny) => {
-      const analyzed = analyzeZodSchema(option, name);
-      return analyzed.type;
-    });
-    doc.type = types.join(" | ");
-    return doc;
-  }
-
-  // Handle records (like z.record(z.string()))
-  if (schema instanceof z.ZodRecord) {
-    // biome-ignore lint/suspicious/noExplicitAny: utility script
-    const valueType = analyzeZodSchema((schema as any)._def.valueType, "value");
-    doc.type = `Record<string, ${valueType.type}>`;
-    return doc;
-  }
-
-  // Handle discriminated unions and intersections
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    doc.type = "object";
-    return doc;
-  }
-
-  if (schema instanceof z.ZodIntersection) {
-    const left = analyzeZodSchema(schema._def.left, name);
-    const right = analyzeZodSchema(schema._def.right, name);
-    doc.type = `${left.type} & ${right.type}`;
-    return doc;
-  }
-
-  // Handle basic types
-  if (schema instanceof z.ZodString) {
-    doc.type = "string";
-  } else if (schema instanceof z.ZodNumber) {
-    doc.type = "number";
-  } else if (schema instanceof z.ZodBoolean) {
-    doc.type = "boolean";
-  } else if (schema instanceof z.ZodLazy) {
-    doc.type = "recursive";
-  }
-
-  return doc;
+interface JsonSchema {
+  title: string;
+  description: string;
+  properties: Record<string, JsonSchemaProperty>;
+  $defs?: Record<string, JsonSchemaProperty>;
 }
 
-function generateMarkdownDocs(schema: SchemaDocumentation, level: number = 1): string {
-  // Skip root level "Configuration" wrapper
-  if (level === 1 && schema.name === "Configuration") {
-    let markdown = "";
-    if (schema.properties && schema.properties.length > 0) {
-      for (const prop of schema.properties) {
-        markdown += generateMarkdownDocs(prop, level);
-      }
-    }
-    return markdown;
+/**
+ * Generate user-friendly SCHEMA.md documentation from JSON Schema
+ */
+function generateSchemaDocs(): void {
+  console.log("🔄 Generating SCHEMA.md from JSON Schema...");
+
+  try {
+    // Read the generated JSON schema
+    const schemaPath = "schema.json";
+    const schemaContent = readFileSync(schemaPath, "utf8");
+    const schema: JsonSchema = JSON.parse(schemaContent);
+
+    const markdown = generateMarkdownFromSchema(schema);
+
+    // Write to SCHEMA.md
+    const outputPath = "SCHEMA.md";
+    writeFileSync(outputPath, markdown, "utf8");
+
+    console.log(`✅ Schema documentation generated successfully: ${outputPath}`);
+    console.log(`📄 Generated ${markdown.split("\n").length} lines of documentation`);
+  } catch (error) {
+    console.error("❌ Failed to generate schema documentation:", error);
+    process.exit(1);
+  }
+}
+
+function generateMarkdownFromSchema(schema: JsonSchema): string {
+  let markdown = `# ${schema.title}\n\n`;
+  markdown += `${schema.description}\n\n`;
+  markdown += `> [!TIP]\n`;
+  markdown += `> For a complete configuration example, see [example.yml](example.yml).\n\n`;
+
+  markdown += "## Table of Contents\n\n";
+  for (const [key] of Object.entries(schema.properties)) {
+    markdown += `- [${key}](#${key.toLowerCase()})\n`;
+  }
+  markdown += "\n";
+
+  // Generate documentation for each top-level property
+  for (const [propertyName, property] of Object.entries(schema.properties)) {
+    markdown += generatePropertySection(propertyName, property, schema, 2);
   }
 
-  const header = "#".repeat(Math.min(level + 1, 6));
-  let markdown = `${header} ${schema.name}\n\n`;
-
-  // Add GraphQL field reference
-  if (
-    schema.description &&
-    !enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]
-  ) {
-    markdown += `**GraphQL Field**: \`${schema.description}\`\n\n`;
-  }
-
-  // Create a compact info table for primitive types
-  if (!schema.properties || schema.properties.length === 0) {
-    markdown += "| Property | Value |\n";
-    markdown += "|---|---|\n";
-    markdown += `| **Type** | \`${schema.type}\` |\n`;
-    markdown += `| **Required** | ${schema.optional ? "No" : "Yes"} |\n`;
-
-    if (schema.enum) {
-      markdown += `| **Values** | ${schema.enum.map((v) => `\`${v}\``).join(", ")} |\n`;
-    }
-
-    if (schema.example !== undefined) {
-      markdown += `| **Example** | \`${JSON.stringify(schema.example)}\` |\n`;
-    }
-
-    markdown += "\n";
-  } else {
-    // For objects with properties, show type info inline
-    markdown += `**Type**: \`${schema.type}\` ${schema.optional ? "(optional)" : "(required)"}\n\n`;
-
-    if (
-      schema.description &&
-      enhancedDescriptions[schema.name as keyof typeof enhancedDescriptions]
-    ) {
-      markdown += `${schema.description}\n\n`;
-    }
-  }
-
-  // Add properties with proper nesting
-  if (schema.properties && schema.properties.length > 0) {
-    for (const prop of schema.properties) {
-      markdown += generateMarkdownDocs(prop, level + 1);
-    }
-  }
 
   return markdown;
 }
 
-// Add descriptions and examples to make documentation richer
-const enhancedDescriptions = {
-  shop: "Global shop settings that apply to the entire Saleor instance",
-  channels: "Sales channels for different markets, regions, or customer segments",
-  productTypes: "Product type definitions with their associated attributes",
-  pageTypes: "Page type definitions for CMS content",
-  categories: "Product category hierarchy",
-  products: "Product catalog with variants and attributes",
-};
-
-function addDescriptions(doc: SchemaDocumentation): SchemaDocumentation {
-  // Only add enhanced descriptions for top-level sections
-  if (enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions]) {
-    doc.description = enhancedDescriptions[doc.name as keyof typeof enhancedDescriptions];
-  }
-
-  // Recursively process properties
-  if (doc.properties) {
-    doc.properties.forEach((prop) => {
-      addDescriptions(prop);
-
-      // Add examples for specific fields
-      switch (prop.name) {
-        case "attributes":
-          prop.example = { Color: "Red", Size: ["S", "M", "L"] };
-          break;
-      }
-    });
-  }
-
-  return doc;
+function getFriendlyDescription(originalDescription?: string): string {
+  return originalDescription || "No description available";
 }
 
-function generateTableOfContents(schema: SchemaDocumentation): string {
-  let toc = "## Table of Contents\n\n";
+function generatePropertySection(
+  name: string,
+  property: JsonSchemaProperty,
+  schema: JsonSchema,
+  level: number = 2
+): string {
+  let markdown = "";
+  const headerPrefix = "#".repeat(level);
 
-  if (schema.properties) {
-    for (const prop of schema.properties) {
-      toc += `- [${prop.name}](#${prop.name.toLowerCase()})\n`;
+  // Handle property name and type
+  const typeInfo = getTypeInfo(property, schema);
+  markdown += `${headerPrefix} ${name}\n\n`;
+
+  // Add description from schema
+  if (property.description) {
+    markdown += `${property.description}\n\n`;
+  }
+
+  markdown += `**Type:** \`${typeInfo.type}\`${typeInfo.required ? " *(required)*" : " *(optional)*"}\n\n`;
+
+  if (typeInfo.defaultValue !== undefined) {
+    markdown += `**Default:** \`${JSON.stringify(typeInfo.defaultValue)}\`\n\n`;
+  }
+
+  // Handle enums with better formatting
+  if (property.enum) {
+    markdown += "**Allowed values:**\n";
+    if (property.enum.length <= 10) {
+      // Show inline for small enums
+      markdown += `\`${property.enum.join('` | `')}\`\n\n`;
+    } else {
+      // Show as list for large enums
+      const chunks = [];
+      for (let i = 0; i < property.enum.length; i += 6) {
+        chunks.push(property.enum.slice(i, i + 6).map(v => `\`${v}\``).join(', '));
+      }
+      for (const chunk of chunks) {
+        markdown += `${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? ',' : ''}\n`;
+      }
+      markdown += "\n";
     }
   }
 
-  return `${toc}\n`;
+  // Handle object properties
+  if (property.type === "object" && property.properties) {
+    markdown += "**Properties:**\n\n";
+    for (const [propName, prop] of Object.entries(property.properties)) {
+      const propType = getTypeInfo(prop, schema);
+      const isRequired = property.required?.includes(propName);
+      const friendlyDescription = getFriendlyDescription(prop.description);
+      markdown += `- **${propName}** (\`${propType.type}\`)${isRequired ? " *required*" : ""}: ${friendlyDescription}\n`;
+    }
+    markdown += "\n";
+  }
+
+  // Handle arrays
+  if (property.type === "array" && property.items) {
+    markdown += "**Array items:**\n\n";
+    const itemType = getTypeInfo(property.items, schema);
+    markdown += `Each item is of type: \`${itemType.type}\`\n\n`;
+
+    // Extract properties from array items, handling union types
+    const itemProperties = extractPropertiesFromItem(property.items, schema);
+    if (itemProperties.length > 0) {
+      markdown += "**Item properties:**\n\n";
+      for (const { name: propName, property: prop, required } of itemProperties) {
+        const propType = getTypeInfo(prop, schema);
+        const friendlyDescription = getFriendlyDescription(prop.description);
+        markdown += `- **${propName}** (\`${propType.type}\`)${required ? " *required*" : ""}: ${friendlyDescription}\n`;
+        
+        // Show enum values for array item properties
+        if (prop.enum) {
+          markdown += `  - **Allowed values:** `;
+          if (prop.enum.length <= 8) {
+            markdown += `\`${prop.enum.join('` | `')}\`\n`;
+          } else {
+            markdown += `\n`;
+            const chunks = [];
+            for (let i = 0; i < prop.enum.length; i += 6) {
+              chunks.push(prop.enum.slice(i, i + 6).map(v => `\`${v}\``).join(', '));
+            }
+            for (const chunk of chunks) {
+              markdown += `    ${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? ',' : ''}\n`;
+            }
+          }
+        }
+      }
+      markdown += "\n";
+    }
+  }
+
+  // Add usage example
+  markdown += generateUsageExample(name, property);
+
+  return markdown;
 }
 
-// Generate documentation
-console.log("🔍 Analyzing Zod schema...");
-const rawDocs = analyzeZodSchema(configSchema, "Configuration");
-const enhancedDocs = addDescriptions(rawDocs);
+function extractPropertiesFromItem(
+  item: JsonSchemaProperty,
+  schema: JsonSchema
+): Array<{ name: string; property: JsonSchemaProperty; required: boolean }> {
+  const properties: Array<{ name: string; property: JsonSchemaProperty; required: boolean }> = [];
 
-console.log("📝 Generating Markdown documentation...");
-const markdown = `# 📋 Configuration Schema Reference
+  // Direct properties
+  if (item.properties) {
+    for (const [name, prop] of Object.entries(item.properties)) {
+      properties.push({
+        name,
+        property: prop,
+        required: item.required?.includes(name) || false,
+      });
+    }
+  }
 
-> **Automated documentation for Saleor Configurator**
-> 
-> This document describes all available configuration options with their GraphQL field mappings.
+  // Handle anyOf (union types)
+  if (item.anyOf) {
+    const propertyMap = new Map<string, { property: JsonSchemaProperty; required: boolean }>();
+    
+    for (const variant of item.anyOf) {
+      const variantProps = extractPropertiesFromItem(variant, schema);
+      for (const { name, property, required } of variantProps) {
+        // Merge properties from different union variants
+        // If a property exists in multiple variants, combine their info
+        if (propertyMap.has(name)) {
+          const existing = propertyMap.get(name);
+          if (!existing) continue;
+          // Keep the more detailed property definition
+          if (property.description && !existing.property.description) {
+            propertyMap.set(name, { property, required: existing.required || required });
+          } else {
+            propertyMap.set(name, { property: existing.property, required: existing.required || required });
+          }
+        } else {
+          propertyMap.set(name, { property, required });
+        }
+      }
+    }
+    
+    for (const [name, { property, required }] of propertyMap) {
+      properties.push({ name, property, required });
+    }
+  }
 
-${generateTableOfContents(enhancedDocs)}
+  // Handle references
+  if (item.$ref) {
+    const refKey = item.$ref.split("/").pop();
+    if (refKey && schema.$defs?.[refKey]) {
+      return extractPropertiesFromItem(schema.$defs[refKey], schema);
+    }
+  }
 
-${generateMarkdownDocs(enhancedDocs)}
-`;
+  return properties;
+}
 
-// Write to file
-const outputPath = "SCHEMA.md";
-writeFileSync(outputPath, markdown);
+function getTypeInfo(
+  property: JsonSchemaProperty,
+  schema: JsonSchema
+): {
+  type: string;
+  required: boolean;
+  defaultValue?: unknown;
+} {
+  if (property.$ref) {
+    // Handle reference to definition
+    const refKey = property.$ref.split("/").pop();
+    if (refKey && schema.$defs?.[refKey]) {
+      return getTypeInfo(schema.$defs[refKey], schema);
+    }
+  }
 
-console.log(`✅ Documentation generated: ${outputPath}`);
+  if (property.anyOf) {
+    // Special handling for attribute types
+    if (isAttributeType(property)) {
+      return {
+        type: "AttributeInput",
+        required: false,
+        defaultValue: property.default,
+      };
+    }
+    
+    const types = property.anyOf.map((p) => getTypeInfo(p, schema).type);
+    // Deduplicate identical types (like "object | object")
+    const uniqueTypes = [...new Set(types)];
+    return {
+      type: uniqueTypes.join(" | "),
+      required: false,
+      defaultValue: property.default,
+    };
+  }
+
+  if (Array.isArray(property.type)) {
+    return {
+      type: property.type.join(" | "),
+      required: false,
+      defaultValue: property.default,
+    };
+  }
+
+  let type = property.type || "unknown";
+
+  if (property.enum) {
+    type += ` (enum)`;
+  }
+
+  if (property.type === "array" && property.items) {
+    const itemType = getTypeInfo(property.items, schema);
+    type = `array<${itemType.type}>`;
+  }
+
+  return {
+    type,
+    required: false, // This would need to be passed from parent context
+    defaultValue: property.default,
+  };
+}
+
+function isAttributeType(property: JsonSchemaProperty): boolean {
+  // Check if this is an attribute union type by looking for attribute patterns
+  if (!property.anyOf) return false;
+  
+  // Look for the attribute reference pattern: { attribute: string }
+  const hasAttributeReference = property.anyOf.some(variant => 
+    variant.properties?.attribute?.type === "string"
+  );
+  
+  // Look for attribute definition patterns with inputType
+  const hasAttributeDefinition = property.anyOf.some(variant => {
+    if (variant.anyOf) {
+      return variant.anyOf.some(subVariant => 
+        subVariant.properties?.inputType?.type === "string"
+      );
+    }
+    return variant.properties?.inputType?.type === "string";
+  });
+  
+  return hasAttributeReference || hasAttributeDefinition;
+}
+
+function generateUsageExample(_name: string, _property: JsonSchemaProperty): string {
+  return "";
+}
+
+generateSchemaDocs();

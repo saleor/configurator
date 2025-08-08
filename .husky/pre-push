@@ -1,0 +1,2 @@
+# Regenerate schema documentation before pushing
+pnpm run generate-schema-docs
