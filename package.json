@@ -3,11 +3,7 @@
   "version": "0.10.4",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
-  "main": "dist/main.js",
-  "bin": {
-    "@saleor/configurator": "./bin/cli.mjs",
-    "configurator": "./bin/cli.mjs"
-  },
+  "bin": "./bin/cli.mjs",
   "files": [
     "dist",
     "bin",
