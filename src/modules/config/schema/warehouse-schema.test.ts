@@ -48,7 +48,7 @@ describe("Warehouse Schema Validation", () => {
 
     const result = configSchema.safeParse(config);
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toContain("greater than or equal to 0");
+    expect(result.error?.issues[0]?.message).toContain(">=0");
   });
 
   it("should validate warehouse email format", () => {
