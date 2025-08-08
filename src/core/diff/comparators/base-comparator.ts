@@ -182,7 +182,19 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
       field,
       currentValue,
       desiredValue,
-      description: description || `${field}: "${currentValue}" → "${desiredValue}"`,
+      description:
+        description ||
+        `${field}: "${this.serializeValue(currentValue)}" → "${this.serializeValue(desiredValue)}"`,
     };
+  }
+
+  private serializeValue(value: unknown): string {
+    if (value === null || value === undefined) {
+      return String(value);
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return String(value);
   }
 }

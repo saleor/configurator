@@ -9,6 +9,8 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 
 - [shop](#shop)
 - [channels](#channels)
+- [warehouses](#warehouses)
+- [shippingZones](#shippingzones)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
 - [categories](#categories)
@@ -65,17 +67,92 @@ Each item is of type: `object`
     `COP`, `PEN`
 - **defaultCountry** (`string (enum)`) *required*: Default country for shipping and tax calculations
   - **Allowed values:** 
-    `US`, `GB`, `DE`, `FR`, `ES`, `IT`,
-    `PL`, `NL`, `BE`, `CZ`, `PT`, `SE`,
-    `AT`, `CH`, `DK`, `FI`, `NO`, `IE`,
-    `AU`, `JP`, `BR`, `RU`, `CN`, `IN`,
-    `CA`, `AE`, `MX`, `KR`, `SG`, `HK`,
-    `MY`, `TH`, `ID`, `PH`, `VN`, `EG`,
-    `SA`, `IL`, `TR`, `ZA`, `NG`, `AR`,
-    `CL`, `CO`, `PE`, `NZ`
+    `AD`, `AE`, `AF`, `AG`, `AI`, `AL`,
+    `AM`, `AO`, `AQ`, `AR`, `AS`, `AT`,
+    `AU`, `AW`, `AX`, `AZ`, `BA`, `BB`,
+    `BD`, `BE`, `BF`, `BG`, `BH`, `BI`,
+    `BJ`, `BL`, `BM`, `BN`, `BO`, `BQ`,
+    `BR`, `BS`, `BT`, `BV`, `BW`, `BY`,
+    `BZ`, `CA`, `CC`, `CD`, `CF`, `CG`,
+    `CH`, `CI`, `CK`, `CL`, `CM`, `CN`,
+    `CO`, `CR`, `CU`, `CV`, `CW`, `CX`,
+    `CY`, `CZ`, `DE`, `DJ`, `DK`, `DM`,
+    `DO`, `DZ`, `EC`, `EE`, `EG`, `EH`,
+    `ER`, `ES`, `ET`, `FI`, `FJ`, `FK`,
+    `FM`, `FO`, `FR`, `GA`, `GB`, `GD`,
+    `GE`, `GF`, `GG`, `GH`, `GI`, `GL`,
+    `GM`, `GN`, `GP`, `GQ`, `GR`, `GS`,
+    `GT`, `GU`, `GW`, `GY`, `HK`, `HM`,
+    `HN`, `HR`, `HT`, `HU`, `ID`, `IE`,
+    `IL`, `IM`, `IN`, `IO`, `IQ`, `IR`,
+    `IS`, `IT`, `JE`, `JM`, `JO`, `JP`,
+    `KE`, `KG`, `KH`, `KI`, `KM`, `KN`,
+    `KP`, `KR`, `KW`, `KY`, `KZ`, `LA`,
+    `LB`, `LC`, `LI`, `LK`, `LR`, `LS`,
+    `LT`, `LU`, `LV`, `LY`, `MA`, `MC`,
+    `MD`, `ME`, `MF`, `MG`, `MH`, `MK`,
+    `ML`, `MM`, `MN`, `MO`, `MP`, `MQ`,
+    `MR`, `MS`, `MT`, `MU`, `MV`, `MW`,
+    `MX`, `MY`, `MZ`, `NA`, `NC`, `NE`,
+    `NF`, `NG`, `NI`, `NL`, `NO`, `NP`,
+    `NR`, `NU`, `NZ`, `OM`, `PA`, `PE`,
+    `PF`, `PG`, `PH`, `PK`, `PL`, `PM`,
+    `PN`, `PR`, `PS`, `PT`, `PW`, `PY`,
+    `QA`, `RE`, `RO`, `RS`, `RU`, `RW`,
+    `SA`, `SB`, `SC`, `SD`, `SE`, `SG`,
+    `SH`, `SI`, `SJ`, `SK`, `SL`, `SM`,
+    `SN`, `SO`, `SR`, `SS`, `ST`, `SV`,
+    `SX`, `SY`, `SZ`, `TC`, `TD`, `TF`,
+    `TG`, `TH`, `TJ`, `TK`, `TL`, `TM`,
+    `TN`, `TO`, `TR`, `TT`, `TV`, `TW`,
+    `TZ`, `UA`, `UG`, `UM`, `US`, `UY`,
+    `UZ`, `VA`, `VC`, `VE`, `VG`, `VI`,
+    `VN`, `VU`, `WF`, `WS`, `YE`, `YT`,
+    `ZA`, `ZM`, `ZW`
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
 - **isActive** (`boolean`) *required*: Whether this channel is currently active and accepting orders
 - **settings** (`object`): Advanced channel configuration options
+
+## warehouses
+
+Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Warehouse.name
+- **slug** (`string`) *required*: Warehouse.slug
+- **email** (`string`) *required*: Warehouse.email
+- **isPrivate** (`boolean`) *required*: Warehouse.isPrivate
+- **address** (`object`) *required*: Warehouse.address
+- **clickAndCollectOption** (`string (enum)`) *required*: Warehouse.clickAndCollectOption
+  - **Allowed values:** `DISABLED` | `LOCAL` | `ALL`
+- **shippingZones** (`array<string>`): Warehouse.shippingZones
+
+## shippingZones
+
+Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: ShippingZone.name
+- **description** (`string`): ShippingZone.description
+- **default** (`boolean`) *required*: ShippingZone.default
+- **countries** (`array<string (enum)>`) *required*: ShippingZone.countries
+- **warehouses** (`array<string>`): ShippingZone.warehouses
+- **channels** (`array<string>`): ShippingZone.channels
+- **shippingMethods** (`array<object>`): ShippingZone.shippingMethods
 
 ## productTypes
 

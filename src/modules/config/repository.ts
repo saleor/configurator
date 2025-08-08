@@ -122,6 +122,93 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    warehouses(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          email
+          isPrivate
+          clickAndCollectOption
+          address {
+            streetAddress1
+            streetAddress2
+            city
+            cityArea
+            postalCode
+            country {
+              code
+            }
+            countryArea
+            companyName
+            phone
+          }
+          shippingZones(first: 100) {
+            edges {
+              node {
+                id
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+    shippingZones(first: 100) {
+      edges {
+        node {
+          id
+          name
+          default
+          description
+          countries {
+            code
+          }
+          channels {
+            id
+            slug
+          }
+          warehouses {
+            id
+            slug
+          }
+          shippingMethods {
+            id
+            name
+            description
+            type
+            maximumDeliveryDays
+            minimumDeliveryDays
+            maximumOrderWeight {
+              unit
+              value
+            }
+            minimumOrderWeight {
+              unit
+              value
+            }
+            channelListings {
+              channel {
+                slug
+              }
+              price {
+                amount
+                currency
+              }
+              maximumOrderPrice {
+                amount
+                currency
+              }
+              minimumOrderPrice {
+                amount
+                currency
+              }
+            }
+          }
+        }
+      }
+    }
   }
 `);
 

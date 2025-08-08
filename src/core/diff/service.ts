@@ -9,7 +9,9 @@ import {
   type EntityComparator,
   PageTypeComparator,
   ProductTypeComparator,
+  ShippingZoneComparator,
   ShopComparator,
+  WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
 import { IntrospectDiffFormatter } from "./formatters";
@@ -275,6 +277,8 @@ export class DiffService {
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["categories", new CategoryComparator() as EntityComparator],
+      ["warehouses", new WarehouseComparator() as EntityComparator],
+      ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       // TODO: add product comparator; also add types that force you to add newly introduced entities to the diff service
     ]);
   }
@@ -340,7 +344,14 @@ export class DiffService {
     }
 
     // Entity array comparisons
-    const entityTypes = ["channels", "productTypes", "pageTypes", "categories"] as const;
+    const entityTypes = [
+      "channels",
+      "productTypes",
+      "pageTypes",
+      "categories",
+      "warehouses",
+      "shippingZones",
+    ] as const;
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
@@ -389,6 +400,8 @@ export class DiffService {
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       categories: "categories",
+      warehouses: "warehouses",
+      shippingZones: "shippingZones",
     };
 
     for (const [entityType, section] of Object.entries(entityTypeMappings)) {

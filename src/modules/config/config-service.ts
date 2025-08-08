@@ -5,7 +5,14 @@ import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
-import type { CountryCode, CurrencyCode, ProductTypeInput, SaleorConfig } from "./schema/schema";
+import type {
+  CountryCode,
+  CurrencyCode,
+  ProductTypeInput,
+  SaleorConfig,
+  ShippingZoneInput,
+  WarehouseInput,
+} from "./schema/schema";
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -195,6 +202,91 @@ export class ConfigurationService {
       }));
   }
 
+  private mapWarehouses(rawWarehouses: RawSaleorConfig["warehouses"]): WarehouseInput[] {
+    if (!rawWarehouses?.edges) {
+      return [];
+    }
+
+    return rawWarehouses.edges
+      .map((edge) => edge.node)
+      .filter((node) => node !== null)
+      .map((warehouse) => ({
+        name: warehouse.name,
+        slug: warehouse.slug,
+        email: warehouse.email,
+        isPrivate: warehouse.isPrivate,
+        clickAndCollectOption: warehouse.clickAndCollectOption || "DISABLED",
+        address: {
+          streetAddress1: warehouse.address.streetAddress1,
+          streetAddress2: warehouse.address.streetAddress2 || undefined,
+          city: warehouse.address.city,
+          cityArea: warehouse.address.cityArea || undefined,
+          postalCode: warehouse.address.postalCode || undefined,
+          country: warehouse.address.country.code as CountryCode,
+          countryArea: warehouse.address.countryArea || undefined,
+          companyName: warehouse.address.companyName || undefined,
+          phone: warehouse.address.phone || undefined,
+        },
+        shippingZones:
+          warehouse.shippingZones?.edges.map((edge) => edge.node.name).filter(Boolean) || undefined,
+      }));
+  }
+
+  private mapShippingZones(
+    rawShippingZones: RawSaleorConfig["shippingZones"]
+  ): ShippingZoneInput[] {
+    if (!rawShippingZones?.edges) {
+      return [];
+    }
+
+    return rawShippingZones.edges
+      .map((edge) => edge.node)
+      .filter((node) => node !== null)
+      .map((zone) => ({
+        name: zone.name,
+        description: zone.description || undefined,
+        default: zone.default,
+        countries: zone.countries.map((country) => country.code as CountryCode),
+        warehouses: zone.warehouses.map((warehouse) => warehouse.slug).filter(Boolean) || undefined,
+        channels: zone.channels.map((channel) => channel.slug).filter(Boolean) || undefined,
+        shippingMethods:
+          zone.shippingMethods && zone.shippingMethods.length > 0
+            ? zone.shippingMethods.map((method) => ({
+                name: method.name,
+                description:
+                  typeof method.description === "string"
+                    ? method.description || undefined
+                    : undefined,
+                type: method.type as "PRICE" | "WEIGHT",
+                minimumDeliveryDays: method.minimumDeliveryDays || undefined,
+                maximumDeliveryDays: method.maximumDeliveryDays || undefined,
+                minimumOrderWeight: method.minimumOrderWeight
+                  ? {
+                      unit: method.minimumOrderWeight.unit,
+                      value: method.minimumOrderWeight.value,
+                    }
+                  : undefined,
+                maximumOrderWeight: method.maximumOrderWeight
+                  ? {
+                      unit: method.maximumOrderWeight.unit,
+                      value: method.maximumOrderWeight.value,
+                    }
+                  : undefined,
+                channelListings:
+                  method.channelListings && method.channelListings.length > 0
+                    ? method.channelListings.map((listing) => ({
+                        channel: listing.channel.slug,
+                        price: listing.price?.amount || 0,
+                        currency: (listing.price?.currency || "USD") as CurrencyCode,
+                        minimumOrderPrice: listing.minimumOrderPrice?.amount || undefined,
+                        maximumOrderPrice: listing.maximumOrderPrice?.amount || undefined,
+                      }))
+                    : undefined,
+              }))
+            : undefined,
+      }));
+  }
+
   /**
    * Normalizes attribute references by converting shared attributes to reference syntax
    * This prevents duplicate attribute definition errors during deployment
@@ -321,6 +413,14 @@ export class ConfigurationService {
 
     if (shouldIncludeSection("categories", options)) {
       config.categories = this.mapCategories(rawConfig.categories);
+    }
+
+    if (shouldIncludeSection("warehouses", options)) {
+      config.warehouses = this.mapWarehouses(rawConfig.warehouses);
+    }
+
+    if (shouldIncludeSection("shippingZones", options)) {
+      config.shippingZones = this.mapShippingZones(rawConfig.shippingZones);
     }
 
     const fullConfig = config as SaleorConfig;

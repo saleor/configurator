@@ -160,6 +160,50 @@ export const categoriesStage: DeploymentStage = {
   },
 };
 
+export const warehousesStage: DeploymentStage = {
+  name: "Managing warehouses",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.warehouses?.length) {
+        logger.debug("No warehouses to manage");
+        return;
+      }
+
+      await context.configurator.services.warehouse.bootstrapWarehouses(config.warehouses);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage warehouses: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Warehouses");
+  },
+};
+
+export const shippingZonesStage: DeploymentStage = {
+  name: "Managing shipping zones",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.shippingZones?.length) {
+        logger.debug("No shipping zones to manage");
+        return;
+      }
+
+      await context.configurator.services.shippingZone.bootstrapShippingZones(config.shippingZones);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage shipping zones: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Shipping Zones");
+  },
+};
+
 export const productsStage: DeploymentStage = {
   name: "Managing products",
   async execute(context) {
@@ -191,6 +235,8 @@ export function getAllStages(): DeploymentStage[] {
     channelsStage,
     pageTypesStage,
     categoriesStage,
+    warehousesStage,
+    shippingZonesStage,
     productsStage,
   ];
 }

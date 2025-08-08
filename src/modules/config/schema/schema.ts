@@ -46,53 +46,257 @@ export type PageTypeCreateInput = z.infer<typeof pageTypeCreateSchema>;
 export type PageTypeUpdateInput = z.infer<typeof pageTypeUpdateSchema>;
 export type PageTypeInput = z.infer<typeof pageTypeSchema>;
 
+// ISO 3166-1 alpha-2 country codes
 const countryCodeSchema = z.enum([
-  "US",
-  "GB",
-  "DE",
-  "FR",
-  "ES",
-  "IT",
-  "PL",
-  "NL",
-  "BE",
-  "CZ",
-  "PT",
-  "SE",
-  "AT",
-  "CH",
-  "DK",
-  "FI",
-  "NO",
-  "IE",
-  "AU",
-  "JP",
-  "BR",
-  "RU",
-  "CN",
-  "IN",
-  "CA",
+  "AD",
   "AE",
-  "MX",
-  "KR",
-  "SG",
-  "HK",
-  "MY",
-  "TH",
-  "ID",
-  "PH",
-  "VN",
-  "EG",
-  "SA",
-  "IL",
-  "TR",
-  "ZA",
-  "NG",
+  "AF",
+  "AG",
+  "AI",
+  "AL",
+  "AM",
+  "AO",
+  "AQ",
   "AR",
+  "AS",
+  "AT",
+  "AU",
+  "AW",
+  "AX",
+  "AZ",
+  "BA",
+  "BB",
+  "BD",
+  "BE",
+  "BF",
+  "BG",
+  "BH",
+  "BI",
+  "BJ",
+  "BL",
+  "BM",
+  "BN",
+  "BO",
+  "BQ",
+  "BR",
+  "BS",
+  "BT",
+  "BV",
+  "BW",
+  "BY",
+  "BZ",
+  "CA",
+  "CC",
+  "CD",
+  "CF",
+  "CG",
+  "CH",
+  "CI",
+  "CK",
   "CL",
+  "CM",
+  "CN",
   "CO",
-  "PE",
+  "CR",
+  "CU",
+  "CV",
+  "CW",
+  "CX",
+  "CY",
+  "CZ",
+  "DE",
+  "DJ",
+  "DK",
+  "DM",
+  "DO",
+  "DZ",
+  "EC",
+  "EE",
+  "EG",
+  "EH",
+  "ER",
+  "ES",
+  "ET",
+  "FI",
+  "FJ",
+  "FK",
+  "FM",
+  "FO",
+  "FR",
+  "GA",
+  "GB",
+  "GD",
+  "GE",
+  "GF",
+  "GG",
+  "GH",
+  "GI",
+  "GL",
+  "GM",
+  "GN",
+  "GP",
+  "GQ",
+  "GR",
+  "GS",
+  "GT",
+  "GU",
+  "GW",
+  "GY",
+  "HK",
+  "HM",
+  "HN",
+  "HR",
+  "HT",
+  "HU",
+  "ID",
+  "IE",
+  "IL",
+  "IM",
+  "IN",
+  "IO",
+  "IQ",
+  "IR",
+  "IS",
+  "IT",
+  "JE",
+  "JM",
+  "JO",
+  "JP",
+  "KE",
+  "KG",
+  "KH",
+  "KI",
+  "KM",
+  "KN",
+  "KP",
+  "KR",
+  "KW",
+  "KY",
+  "KZ",
+  "LA",
+  "LB",
+  "LC",
+  "LI",
+  "LK",
+  "LR",
+  "LS",
+  "LT",
+  "LU",
+  "LV",
+  "LY",
+  "MA",
+  "MC",
+  "MD",
+  "ME",
+  "MF",
+  "MG",
+  "MH",
+  "MK",
+  "ML",
+  "MM",
+  "MN",
+  "MO",
+  "MP",
+  "MQ",
+  "MR",
+  "MS",
+  "MT",
+  "MU",
+  "MV",
+  "MW",
+  "MX",
+  "MY",
+  "MZ",
+  "NA",
+  "NC",
+  "NE",
+  "NF",
+  "NG",
+  "NI",
+  "NL",
+  "NO",
+  "NP",
+  "NR",
+  "NU",
   "NZ",
+  "OM",
+  "PA",
+  "PE",
+  "PF",
+  "PG",
+  "PH",
+  "PK",
+  "PL",
+  "PM",
+  "PN",
+  "PR",
+  "PS",
+  "PT",
+  "PW",
+  "PY",
+  "QA",
+  "RE",
+  "RO",
+  "RS",
+  "RU",
+  "RW",
+  "SA",
+  "SB",
+  "SC",
+  "SD",
+  "SE",
+  "SG",
+  "SH",
+  "SI",
+  "SJ",
+  "SK",
+  "SL",
+  "SM",
+  "SN",
+  "SO",
+  "SR",
+  "SS",
+  "ST",
+  "SV",
+  "SX",
+  "SY",
+  "SZ",
+  "TC",
+  "TD",
+  "TF",
+  "TG",
+  "TH",
+  "TJ",
+  "TK",
+  "TL",
+  "TM",
+  "TN",
+  "TO",
+  "TR",
+  "TT",
+  "TV",
+  "TW",
+  "TZ",
+  "UA",
+  "UG",
+  "UM",
+  "US",
+  "UY",
+  "UZ",
+  "VA",
+  "VC",
+  "VE",
+  "VG",
+  "VI",
+  "VN",
+  "VU",
+  "WF",
+  "WS",
+  "YE",
+  "YT",
+  "ZA",
+  "ZM",
+  "ZW",
 ]);
 
 export type CountryCode = z.infer<typeof countryCodeSchema>;
@@ -384,6 +588,103 @@ const productSchema = z.object({
     .describe("Product variants with different SKUs, attributes, or pricing"),
 });
 
+// Warehouse Schema
+const warehouseClickAndCollectOptionSchema = z.enum(["DISABLED", "LOCAL", "ALL"]);
+
+const warehouseAddressSchema = z.object({
+  streetAddress1: z.string().describe("Address.streetAddress1"),
+  streetAddress2: z.string().optional().describe("Address.streetAddress2"),
+  city: z.string().describe("Address.city"),
+  cityArea: z.string().optional().describe("Address.cityArea"),
+  postalCode: z.string().optional().describe("Address.postalCode"),
+  country: countryCodeSchema.describe("Address.country"),
+  countryArea: z.string().optional().describe("Address.countryArea"),
+  companyName: z.string().optional().describe("Address.companyName"),
+  phone: z.string().optional().describe("Address.phone"),
+});
+
+const warehouseSchema = z.object({
+  name: z.string().describe("Warehouse.name"),
+  slug: z.string().describe("Warehouse.slug"),
+  email: z.string().email().describe("Warehouse.email"),
+  isPrivate: z.boolean().optional().default(false).describe("Warehouse.isPrivate"),
+  address: warehouseAddressSchema.describe("Warehouse.address"),
+  clickAndCollectOption: warehouseClickAndCollectOptionSchema
+    .optional()
+    .default("DISABLED")
+    .describe("Warehouse.clickAndCollectOption"),
+  shippingZones: z.array(z.string()).optional().describe("Warehouse.shippingZones"), // References to shipping zone names
+});
+
+export type WarehouseInput = z.infer<typeof warehouseSchema>;
+
+// Shipping Zone Schema
+const shippingMethodTypeSchema = z.enum(["PRICE", "WEIGHT"]);
+
+const weightUnitSchema = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
+
+const weightSchema = z.object({
+  unit: weightUnitSchema,
+  value: z.number().nonnegative(),
+});
+
+const shippingMethodChannelListingSchema = z.object({
+  channel: z.string().describe("ShippingMethodChannelListing.channel"), // Channel slug reference
+  price: z.number().nonnegative().describe("ShippingMethodChannelListing.price"),
+  currency: currencyCodeSchema.optional().describe("ShippingMethodChannelListing.currency"),
+  minimumOrderPrice: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethodChannelListing.minimumOrderPrice"),
+  maximumOrderPrice: z
+    .number()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethodChannelListing.maximumOrderPrice"),
+});
+
+const shippingMethodSchema = z.object({
+  name: z.string().describe("ShippingMethod.name"),
+  description: z.string().optional().describe("ShippingMethod.description"),
+  type: shippingMethodTypeSchema.describe("ShippingMethod.type"),
+  minimumDeliveryDays: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethod.minimumDeliveryDays"),
+  maximumDeliveryDays: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe("ShippingMethod.maximumDeliveryDays"),
+  minimumOrderWeight: weightSchema.optional().describe("ShippingMethod.minimumOrderWeight"),
+  maximumOrderWeight: weightSchema.optional().describe("ShippingMethod.maximumOrderWeight"),
+  taxClass: z.string().optional().describe("ShippingMethod.taxClass"), // Tax class name reference
+  channelListings: z
+    .array(shippingMethodChannelListingSchema)
+    .optional()
+    .describe("ShippingMethod.channelListings"),
+});
+
+const shippingZoneSchema = z.object({
+  name: z.string().describe("ShippingZone.name"),
+  description: z.string().optional().describe("ShippingZone.description"),
+  default: z.boolean().optional().default(false).describe("ShippingZone.default"),
+  countries: z.array(countryCodeSchema).describe("ShippingZone.countries"),
+  warehouses: z.array(z.string()).optional().describe("ShippingZone.warehouses"), // References to warehouse slugs
+  channels: z.array(z.string()).optional().describe("ShippingZone.channels"), // References to channel slugs
+  shippingMethods: z
+    .array(shippingMethodSchema)
+    .optional()
+    .describe("ShippingZone.shippingMethods"),
+});
+
+export type ShippingZoneInput = z.infer<typeof shippingZoneSchema>;
+export type ShippingMethodInput = z.infer<typeof shippingMethodSchema>;
+
 // TODO: config schema should only use the full state representation of the entities, not the create/update schemas
 export const configSchema = z
   .object({
@@ -397,6 +698,18 @@ export const configSchema = z
       .optional()
       .describe(
         "Sales channels define different storefronts or markets with their own currency, country, and settings. Each channel can have different pricing, availability, and configuration"
+      ),
+    warehouses: z
+      .array(warehouseSchema)
+      .optional()
+      .describe(
+        "Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment"
+      ),
+    shippingZones: z
+      .array(shippingZoneSchema)
+      .optional()
+      .describe(
+        "Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules"
       ),
     productTypes: z
       .array(productTypeSchema)
