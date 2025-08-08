@@ -1,5 +1,12 @@
 # saleor-configurator
 
+## 0.10.5
+
+### Patch Changes
+
+- 0aa86bb: Added comprehensive schema documentation with automatic generation. The new SCHEMA.md file provides detailed documentation of all configuration fields, types, and validation rules, automatically generated from the Zod schema using native v4 JSON schema capabilities.
+- 5bf86b0: Fixed category slug being skipped during creation
+
 ## 0.10.4
 
 ### Patch Changes
