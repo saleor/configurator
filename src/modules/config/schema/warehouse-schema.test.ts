@@ -51,13 +51,13 @@ describe("Warehouse Schema Validation", () => {
     expect(result.error?.issues[0]?.message).toContain(">=0");
   });
 
-  it("should validate warehouse email format", () => {
+  it("should validate warehouse email format when provided", () => {
     const invalidConfig = {
       warehouses: [
         {
           name: "Test Warehouse",
           slug: "test-warehouse",
-          email: "invalid-email", // Invalid email
+          email: "invalid-email", // Invalid email format
           address: {
             streetAddress1: "123 Test St",
             city: "Test City",
@@ -69,7 +69,7 @@ describe("Warehouse Schema Validation", () => {
 
     const result = configSchema.safeParse(invalidConfig);
     expect(result.success).toBe(false);
-    expect(result.error?.issues[0]?.message).toContain("email");
+    expect(result.error?.issues[0]?.message).toContain("Invalid email");
   });
 
   it("should accept valid warehouse with all fields", () => {
@@ -89,6 +89,49 @@ describe("Warehouse Schema Validation", () => {
             countryArea: "CA",
           },
           shippingZones: ["zone-1"],
+        },
+      ],
+    };
+
+    const result = configSchema.safeParse(config);
+    expect(result.success).toBe(true);
+  });
+
+  it("should accept warehouse with empty email string", () => {
+    const config = {
+      warehouses: [
+        {
+          name: "Test Warehouse",
+          slug: "test-warehouse",
+          email: "",
+          address: {
+            streetAddress1: "123 Test St",
+            city: "Test City",
+            country: "US",
+          },
+        },
+      ],
+    };
+
+    const result = configSchema.safeParse(config);
+    expect(result.success).toBe(true);
+    // The empty string should be transformed to undefined
+    if (result.success) {
+      expect(result.data.warehouses?.[0].email).toBeUndefined();
+    }
+  });
+
+  it("should accept warehouse without email field", () => {
+    const config = {
+      warehouses: [
+        {
+          name: "Test Warehouse",
+          slug: "test-warehouse",
+          address: {
+            streetAddress1: "123 Test St",
+            city: "Test City",
+            country: "US",
+          },
         },
       ],
     };

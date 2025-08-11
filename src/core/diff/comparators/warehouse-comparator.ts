@@ -141,8 +141,11 @@ export class WarehouseComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("name", remote.name, local.name));
     }
 
-    if (local.email !== remote.email) {
-      changes.push(this.createFieldChange("email", remote.email, local.email));
+    // Handle email comparison - treat undefined and empty string as equivalent
+    const localEmail = local.email || undefined;
+    const remoteEmail = remote.email || undefined;
+    if (localEmail !== remoteEmail) {
+      changes.push(this.createFieldChange("email", remoteEmail, localEmail));
     }
 
     const localIsPrivate = local.isPrivate ?? false;
