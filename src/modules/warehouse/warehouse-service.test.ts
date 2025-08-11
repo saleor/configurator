@@ -94,7 +94,7 @@ describe("WarehouseService", () => {
     });
 
     it("should accept warehouse with empty email string", async () => {
-      const inputWithEmptyEmail = { ...mockWarehouseInput, email: "" as any };
+      const inputWithEmptyEmail = { ...mockWarehouseInput, email: "" };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
         createWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
