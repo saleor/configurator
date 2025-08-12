@@ -1,6 +1,6 @@
+import type { Client } from "@urql/core";
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationRepository } from "./repository";
-import type { Client } from "@urql/core";
 
 describe("ConfigurationRepository", () => {
   describe("fetchConfig", () => {
@@ -53,10 +53,8 @@ describe("ConfigurationRepository", () => {
       // Get the query that was sent
       const queryCall = mockQuery.mock.calls[0];
       expect(queryCall).toBeDefined();
-      
+
       // The query is passed as the first argument
-      const queryDocument = queryCall[0];
-      
       // For gql.tada queries, we need to check the definitions
       // In a real test environment with proper GraphQL setup, we'd parse this
       // For now, we'll just verify the mock was called and returned the right structure

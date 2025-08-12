@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CategoryInput } from "../config/schema/schema";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
-import type { CategoryInput } from "../config/schema/schema";
 
 // Mock category repository
 const mockRepository: CategoryOperations = {
@@ -70,28 +70,44 @@ describe("CategoryService - Nested Categories", () => {
     expect(mockCreateCategory).toHaveBeenCalledTimes(4);
 
     // Root category (no parent)
-    expect(mockCreateCategory).toHaveBeenNthCalledWith(1, {
-      name: "Electronics",
-      slug: "electronics",
-    }, undefined);
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      1,
+      {
+        name: "Electronics",
+        slug: "electronics",
+      },
+      undefined
+    );
 
     // Level 1 (parent: root)
-    expect(mockCreateCategory).toHaveBeenNthCalledWith(2, {
-      name: "Computers",
-      slug: "computers",
-    }, "root-id");
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      2,
+      {
+        name: "Computers",
+        slug: "computers",
+      },
+      "root-id"
+    );
 
     // Level 2 (parent: level 1)
-    expect(mockCreateCategory).toHaveBeenNthCalledWith(3, {
-      name: "Laptops",
-      slug: "laptops",
-    }, "l1-id");
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      3,
+      {
+        name: "Laptops",
+        slug: "laptops",
+      },
+      "l1-id"
+    );
 
     // Level 3 (parent: level 2)
-    expect(mockCreateCategory).toHaveBeenNthCalledWith(4, {
-      name: "Gaming Laptops",
-      slug: "gaming-laptops",
-    }, "l2-id");
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      4,
+      {
+        name: "Gaming Laptops",
+        slug: "gaming-laptops",
+      },
+      "l2-id"
+    );
   });
 
   it("should handle multiple root categories with subcategories", async () => {
@@ -136,25 +152,37 @@ describe("CategoryService - Nested Categories", () => {
     expect(mockCreateCategory).toHaveBeenCalledTimes(4);
 
     // Two root categories
-    expect(mockCreateCategory).toHaveBeenCalledWith({
-      name: "Electronics",
-      slug: "electronics",
-    }, undefined);
-    
-    expect(mockCreateCategory).toHaveBeenCalledWith({
-      name: "Clothing", 
-      slug: "clothing",
-    }, undefined);
+    expect(mockCreateCategory).toHaveBeenCalledWith(
+      {
+        name: "Electronics",
+        slug: "electronics",
+      },
+      undefined
+    );
+
+    expect(mockCreateCategory).toHaveBeenCalledWith(
+      {
+        name: "Clothing",
+        slug: "clothing",
+      },
+      undefined
+    );
 
     // Two subcategories with correct parents
-    expect(mockCreateCategory).toHaveBeenCalledWith({
-      name: "Phones",
-      slug: "phones",
-    }, "electronics-id");
+    expect(mockCreateCategory).toHaveBeenCalledWith(
+      {
+        name: "Phones",
+        slug: "phones",
+      },
+      "electronics-id"
+    );
 
-    expect(mockCreateCategory).toHaveBeenCalledWith({
-      name: "Shirts",
-      slug: "shirts",
-    }, "clothing-id");
+    expect(mockCreateCategory).toHaveBeenCalledWith(
+      {
+        name: "Shirts",
+        slug: "shirts",
+      },
+      "clothing-id"
+    );
   });
 });

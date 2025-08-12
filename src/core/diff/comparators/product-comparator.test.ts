@@ -10,14 +10,14 @@ describe("ProductComparator", () => {
     category: "Apparel",
     attributes: {
       color: "red",
-      size: ["S", "M", "L"]
+      size: ["S", "M", "L"],
     },
     variants: [
       {
         name: "Red S",
-        sku: "RED-S"
-      }
-    ]
+        sku: "RED-S",
+      },
+    ],
   };
 
   describe("compare", () => {
@@ -37,7 +37,7 @@ describe("ProductComparator", () => {
     });
 
     it("should detect product deletion", () => {
-      const local: typeof sampleProduct[] = [];
+      const local: (typeof sampleProduct)[] = [];
       const remote = [sampleProduct];
 
       const results = comparator.compare(local, remote);
@@ -54,7 +54,7 @@ describe("ProductComparator", () => {
     it("should detect product updates", () => {
       const localProduct = {
         ...sampleProduct,
-        productType: "Electronics"
+        productType: "Electronics",
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -69,7 +69,7 @@ describe("ProductComparator", () => {
         field: "productType",
         currentValue: "Clothing",
         desiredValue: "Electronics",
-        description: 'productType: "Clothing" → "Electronics"'
+        description: 'productType: "Clothing" → "Electronics"',
       });
     });
 
@@ -78,8 +78,8 @@ describe("ProductComparator", () => {
         ...sampleProduct,
         attributes: {
           color: "blue",
-          size: ["M", "L", "XL"]
-        }
+          size: ["M", "L", "XL"],
+        },
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -92,7 +92,7 @@ describe("ProductComparator", () => {
         field: "attributes.color",
         currentValue: "red",
         desiredValue: "blue",
-        description: 'Attribute "color": "red" → "blue"'
+        description: 'Attribute "color": "red" → "blue"',
       });
     });
 
@@ -101,8 +101,8 @@ describe("ProductComparator", () => {
         ...sampleProduct,
         variants: [
           { name: "Red S", sku: "RED-S" },
-          { name: "Blue M", sku: "BLUE-M" }
-        ]
+          { name: "Blue M", sku: "BLUE-M" },
+        ],
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -115,7 +115,7 @@ describe("ProductComparator", () => {
         field: "variants.length",
         currentValue: 1,
         desiredValue: 2,
-        description: "Variant count changed: 1 → 2"
+        description: "Variant count changed: 1 → 2",
       });
     });
 
@@ -133,9 +133,9 @@ describe("ProductComparator", () => {
         name: "Simple Product",
         productType: "Simple",
         category: "Basic",
-        variants: []
+        variants: [],
       };
-      
+
       const local = [productWithoutAttributes];
       const remote = [productWithoutAttributes];
 

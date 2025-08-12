@@ -1,6 +1,10 @@
 import { logger } from "../../lib/logger";
 import type { CategoryInput } from "../config/schema/schema";
-import type { Category, CategoryOperations, CategoryInput as RepositoryCategoryInput } from "./repository";
+import type {
+  Category,
+  CategoryOperations,
+  CategoryInput as RepositoryCategoryInput,
+} from "./repository";
 
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
@@ -27,10 +31,7 @@ export class CategoryService {
       slug: input.slug,
     };
 
-    const category = await this.repository.createCategory(
-      categoryInput,
-      parentId
-    );
+    const category = await this.repository.createCategory(categoryInput, parentId);
 
     logger.debug("Created category", {
       id: category.id,
@@ -48,7 +49,10 @@ export class CategoryService {
     return Promise.all(categories.map((category) => this.bootstrapCategory(category)));
   }
 
-  private async getOrCreateCategory(categoryInput: CategoryInput, parentId?: string): Promise<Category> {
+  private async getOrCreateCategory(
+    categoryInput: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     const existingCategory = await this.getExistingCategory(categoryInput.name);
 
     if (existingCategory) {
@@ -58,7 +62,10 @@ export class CategoryService {
     return this.createCategory(categoryInput, parentId);
   }
 
-  private async bootstrapCategory(categoryInput: CategoryInput, parentId?: string): Promise<Category> {
+  private async bootstrapCategory(
+    categoryInput: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     logger.debug("Bootstrapping category", { name: categoryInput.name, parentId });
 
     // Create or get the category with parent if specified

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "../config/config-service";
-import { CategoryService } from "./category-service";
 import type { ConfigurationOperations } from "../config/repository";
 import type { ConfigurationStorage } from "../config/yaml-manager";
+import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
 
 describe("Category Round-Trip Integrity", () => {
@@ -48,27 +48,36 @@ describe("Category Round-Trip Integrity", () => {
     };
 
     // Step 2: Deploy categories (simulate)
-    const deployedCategories: any[] = [];
+    interface DeployedCategory {
+      id: string;
+      name: string;
+      slug: string;
+      level: number;
+      parent: { id: string; slug: string } | null;
+    }
+    const deployedCategories: DeployedCategory[] = [];
     const mockCategoryRepository: CategoryOperations = {
       createCategory: vi.fn().mockImplementation((input, parentId) => {
-        const category = {
+        const category: DeployedCategory = {
           id: `cat-${deployedCategories.length + 1}`,
           name: input.name,
           slug: input.slug,
-          level: parentId ? deployedCategories.find(c => c.id === parentId).level + 1 : 0,
-          parent: parentId ? { id: parentId, slug: deployedCategories.find(c => c.id === parentId).slug } : null,
+          level: parentId ? (deployedCategories.find((c) => c.id === parentId)?.level ?? 0) + 1 : 0,
+          parent: parentId
+            ? { id: parentId, slug: deployedCategories.find((c) => c.id === parentId)?.slug ?? "" }
+            : null,
         };
         deployedCategories.push(category);
         return Promise.resolve(category);
       }),
       getCategoryByName: vi.fn().mockImplementation((name) => {
-        return Promise.resolve(deployedCategories.find(c => c.name === name));
+        return Promise.resolve(deployedCategories.find((c) => c.name === name));
       }),
       getAllCategories: vi.fn().mockResolvedValue(deployedCategories),
     };
 
     const categoryService = new CategoryService(mockCategoryRepository);
-    
+
     // Deploy the categories
     await categoryService.bootstrapCategories(initialConfig.categories);
 
@@ -80,7 +89,7 @@ describe("Category Round-Trip Integrity", () => {
         productTypes: null,
         pageTypes: null,
         categories: {
-          edges: deployedCategories.map(cat => ({
+          edges: deployedCategories.map((cat) => ({
             node: {
               id: cat.id,
               name: cat.name,
@@ -101,7 +110,7 @@ describe("Category Round-Trip Integrity", () => {
     };
 
     const configService = new ConfigurationService(mockConfigRepository, mockStorage);
-    
+
     // Introspect the configuration
     const introspectedConfig = await configService.retrieve();
 
@@ -109,22 +118,22 @@ describe("Category Round-Trip Integrity", () => {
     expect(introspectedConfig.categories).toHaveLength(2); // Two root categories
 
     // Check Electronics hierarchy
-    const electronics = introspectedConfig.categories?.find(c => c.slug === "electronics");
+    const electronics = introspectedConfig.categories?.find((c) => c.slug === "electronics");
     expect(electronics).toBeDefined();
     expect(electronics?.subcategories).toHaveLength(2);
 
-    const computers = electronics?.subcategories?.find(c => c.slug === "computers");
+    const computers = electronics?.subcategories?.find((c) => c.slug === "computers");
     expect(computers).toBeDefined();
     expect(computers?.subcategories).toHaveLength(2);
-    expect(computers?.subcategories?.map(c => c.slug)).toContain("laptops");
-    expect(computers?.subcategories?.map(c => c.slug)).toContain("desktops");
+    expect(computers?.subcategories?.map((c) => c.slug)).toContain("laptops");
+    expect(computers?.subcategories?.map((c) => c.slug)).toContain("desktops");
 
-    const audio = electronics?.subcategories?.find(c => c.slug === "audio");
+    const audio = electronics?.subcategories?.find((c) => c.slug === "audio");
     expect(audio).toBeDefined();
     expect(audio?.subcategories).toBeUndefined();
 
     // Check Clothing hierarchy
-    const clothing = introspectedConfig.categories?.find(c => c.slug === "clothing");
+    const clothing = introspectedConfig.categories?.find((c) => c.slug === "clothing");
     expect(clothing).toBeDefined();
     expect(clothing?.subcategories).toHaveLength(1);
     expect(clothing?.subcategories?.[0].slug).toBe("mens");

@@ -1,9 +1,9 @@
-import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, unlinkSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as yaml from "yaml";
 import { ConfigurationService } from "../modules/config/config-service";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import type { RawSaleorConfig } from "../modules/config/repository";
+import { YamlConfigurationManager } from "../modules/config/yaml-manager";
 import { type IntrospectCommandArgs, introspectCommandSchema } from "./introspect";
 
 // Mock modules
@@ -168,7 +168,7 @@ describe("introspect command", () => {
 
   describe("Integration - Nested Categories", () => {
     const TEST_CONFIG_PATH = "test-introspect-output.yml";
-    
+
     beforeEach(() => {
       // Clean up any existing test file
       try {
@@ -247,7 +247,7 @@ describe("introspect command", () => {
 
       // Get the mapped configuration
       const config = configService.mapConfig(mockRawConfig);
-      
+
       // Save to YAML
       await yamlManager.save(config);
 
@@ -260,7 +260,9 @@ describe("introspect command", () => {
       expect(parsedYaml.categories[0].subcategories).toHaveLength(1);
       expect(parsedYaml.categories[0].subcategories[0].name).toBe("Laptops");
       expect(parsedYaml.categories[0].subcategories[0].subcategories).toHaveLength(1);
-      expect(parsedYaml.categories[0].subcategories[0].subcategories[0].name).toBe("Gaming Laptops");
+      expect(parsedYaml.categories[0].subcategories[0].subcategories[0].name).toBe(
+        "Gaming Laptops"
+      );
       expect(parsedYaml.categories[1].name).toBe("Clothing");
       expect(parsedYaml.categories[1].subcategories).toHaveLength(1);
       expect(parsedYaml.categories[1].subcategories[0].name).toBe("Mens");
@@ -310,13 +312,13 @@ describe("introspect command", () => {
 
       // Get the mapped configuration
       const config = configService.mapConfig(mockRawConfig);
-      
+
       // Save to YAML
       await yamlManager.save(config);
 
       // Read the raw YAML content to check formatting
       const yamlContent = readFileSync(TEST_CONFIG_PATH, "utf-8");
-      
+
       // Check proper indentation for nested structure
       expect(yamlContent).toContain("categories:");
       expect(yamlContent).toContain("  - name: Parent");
