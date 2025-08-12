@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
-import { WarehouseService } from "./warehouse-service";
 import type { WarehouseOperations } from "./repository";
+import { WarehouseService } from "./warehouse-service";
 
 describe("WarehouseService - Two-Step Creation", () => {
   it("should create warehouse with two-step process when isPrivate or clickAndCollectOption is set", async () => {
@@ -31,7 +31,7 @@ describe("WarehouseService - Two-Step Creation", () => {
     };
 
     const service = new WarehouseService(mockRepository);
-    
+
     const input: WarehouseInput = {
       name: "Test Warehouse",
       slug: "test-warehouse",
@@ -50,12 +50,12 @@ describe("WarehouseService - Two-Step Creation", () => {
     // Verify two-step process was used
     expect(mockRepository.createWarehouse).toHaveBeenCalledTimes(1);
     expect(mockRepository.updateWarehouse).toHaveBeenCalledTimes(1);
-    
+
     // Verify create was called without isPrivate/clickAndCollectOption
     const createCall = vi.mocked(mockRepository.createWarehouse).mock.calls[0][0];
     expect(createCall).not.toHaveProperty("isPrivate");
     expect(createCall).not.toHaveProperty("clickAndCollectOption");
-    
+
     // Verify update was called with these fields
     const updateCall = vi.mocked(mockRepository.updateWarehouse).mock.calls[0][1];
     expect(updateCall.isPrivate).toBe(true);
@@ -71,15 +71,19 @@ describe("WarehouseService - Two-Step Creation", () => {
         name: "Test Warehouse",
         slug: "test-warehouse",
       }),
-      updateWarehouse: vi.fn().mockRejectedValue(
-        new Error("[clickAndCollectOption] Local warehouse can be toggled only for non-private warehouse stocks")
-      ),
+      updateWarehouse: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "[clickAndCollectOption] Local warehouse can be toggled only for non-private warehouse stocks"
+          )
+        ),
       assignShippingZones: vi.fn(),
       unassignShippingZones: vi.fn(),
     };
 
     const service = new WarehouseService(mockRepository);
-    
+
     const input: WarehouseInput = {
       name: "Test Warehouse",
       slug: "test-warehouse",
@@ -113,7 +117,7 @@ describe("WarehouseService - Two-Step Creation", () => {
     };
 
     const service = new WarehouseService(mockRepository);
-    
+
     const input: WarehouseInput = {
       name: "Test Warehouse",
       slug: "test-warehouse",

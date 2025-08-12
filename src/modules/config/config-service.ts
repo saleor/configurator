@@ -6,6 +6,8 @@ import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
 import type {
+  CategoryInput,
+  CategoryUpdateInput,
   CountryCode,
   CurrencyCode,
   ProductTypeInput,
@@ -192,14 +194,45 @@ export class ConfigurationService {
       return [];
     }
 
-    return rawCategories.edges
-      .map((edge) => edge.node)
-      .filter((node) => node !== null)
-      .map((category) => ({
+    const categoryMap: Record<string, CategoryInput> = {};
+    const categories = rawCategories.edges.map((edge) => edge.node).filter(Boolean);
+
+    // Sort categories by level to ensure parents are processed before children
+    categories.sort((a, b) => a.level - b.level);
+
+    // Initialize all categories in the map
+    categories.forEach((category) => {
+      categoryMap[category.slug] = {
         name: category.name,
         slug: category.slug,
-        // TODO: Handle subcategories/children if needed
-      }));
+      };
+    });
+
+    // Build the tree structure
+    const tree: SaleorConfig["categories"] = [];
+    categories.forEach((category) => {
+      if (!category.parent) {
+        // Top-level category
+        tree.push(categoryMap[category.slug]);
+      } else {
+        // Subcategory
+        const parentSlug = category.parent.slug;
+        if (parentSlug && categoryMap[parentSlug]) {
+          if (
+            "subcategories" in categoryMap[parentSlug] &&
+            Array.isArray(categoryMap[parentSlug].subcategories)
+          ) {
+            categoryMap[parentSlug].subcategories.push(categoryMap[category.slug]);
+          } else {
+            (categoryMap[parentSlug] as CategoryUpdateInput).subcategories = [
+              categoryMap[category.slug],
+            ];
+          }
+        }
+      }
+    });
+
+    return tree;
   }
 
   private mapWarehouses(rawWarehouses: RawSaleorConfig["warehouses"]): WarehouseInput[] {

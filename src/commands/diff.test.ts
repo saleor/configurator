@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { diffCommandConfig, diffCommandSchema, handleDiff } from "./diff";
 import type { DiffCommandArgs } from "./diff";
+import { diffCommandConfig, diffCommandSchema, handleDiff } from "./diff";
 
 // Mock the console and dependencies
 const mockConsole = {
@@ -24,8 +24,8 @@ const mockDiffSummary = {
 const mockConfigurator = {
   diff: vi.fn().mockResolvedValue({
     summary: mockDiffSummary,
-    output: "Mock diff output"
-  })
+    output: "Mock diff output",
+  }),
 };
 
 vi.mock("../cli/console", () => ({
@@ -135,7 +135,7 @@ describe("diff command", () => {
     it("should display no changes message when no differences found", async () => {
       mockConfigurator.diff.mockResolvedValueOnce({
         summary: { ...mockDiffSummary, totalChanges: 0 },
-        output: "No changes output"
+        output: "No changes output",
       });
 
       await expect(handleDiff(mockArgs)).rejects.toThrow("process.exit");
@@ -156,7 +156,7 @@ describe("diff command", () => {
     it("should handle single difference correctly", async () => {
       mockConfigurator.diff.mockResolvedValueOnce({
         summary: { ...mockDiffSummary, totalChanges: 1 },
-        output: "Single change output"
+        output: "Single change output",
       });
 
       await expect(handleDiff(mockArgs)).rejects.toThrow("process.exit");
@@ -168,7 +168,7 @@ describe("diff command", () => {
 
     it("should handle quiet mode", async () => {
       const quietArgs = { ...mockArgs, quiet: true };
-      
+
       await expect(handleDiff(quietArgs)).rejects.toThrow("process.exit");
 
       expect(mockConsole.setOptions).toHaveBeenCalledWith({ quiet: true });
@@ -191,7 +191,7 @@ describe("diff command", () => {
 
     it("should log completion with summary statistics", async () => {
       const { logger } = await import("../lib/logger");
-      
+
       await expect(handleDiff(mockArgs)).rejects.toThrow("process.exit");
 
       expect(logger.info).toHaveBeenCalledWith("Diff process completed successfully", {
@@ -216,9 +216,9 @@ describe("diff command", () => {
 
     it("should have examples", () => {
       expect(diffCommandConfig.examples).toEqual([
-        "pnpm run diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
-        "pnpm run diff --config custom-config.yml",
-        "pnpm run diff --quiet",
+        "pnpm dlx @saleor/configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
+        "pnpm dlx @saleor/configurator diff --config custom-config.yml",
+        "pnpm dlx @saleor/configurator diff --quiet",
       ]);
     });
   });
@@ -228,36 +228,42 @@ describe("diff command", () => {
       const error = new Error("Configuration file not found");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(handleDiff({
-        url: "https://example.com/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-      })).rejects.toThrow("Configuration file not found");
+      await expect(
+        handleDiff({
+          url: "https://example.com/graphql/",
+          token: "test-token",
+          config: "config.yml",
+          quiet: false,
+        })
+      ).rejects.toThrow("Configuration file not found");
     });
 
     it("should handle network errors", async () => {
       const error = new Error("Network error");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(handleDiff({
-        url: "https://example.com/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-      })).rejects.toThrow("Network error");
+      await expect(
+        handleDiff({
+          url: "https://example.com/graphql/",
+          token: "test-token",
+          config: "config.yml",
+          quiet: false,
+        })
+      ).rejects.toThrow("Network error");
     });
 
     it("should handle authentication errors", async () => {
       const error = new Error("Unauthorized");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(handleDiff({
-        url: "https://example.com/graphql/",
-        token: "invalid-token",
-        config: "config.yml",
-        quiet: false,
-      })).rejects.toThrow("Unauthorized");
+      await expect(
+        handleDiff({
+          url: "https://example.com/graphql/",
+          token: "invalid-token",
+          config: "config.yml",
+          quiet: false,
+        })
+      ).rejects.toThrow("Unauthorized");
     });
   });
 
@@ -268,24 +274,28 @@ describe("diff command", () => {
         creates: 50,
         updates: 30,
         deletes: 20,
-        results: Array(100).fill(null).map((_, i) => ({
-          operation: i % 3 === 0 ? "CREATE" : i % 3 === 1 ? "UPDATE" : "DELETE",
-          entityType: "Products",
-          entityName: `Product ${i}`,
-        })),
+        results: Array(100)
+          .fill(null)
+          .map((_, i) => ({
+            operation: i % 3 === 0 ? "CREATE" : i % 3 === 1 ? "UPDATE" : "DELETE",
+            entityType: "Products",
+            entityName: `Product ${i}`,
+          })),
       };
 
       mockConfigurator.diff.mockResolvedValueOnce({
         summary: largeDiffSummary,
-        output: "Large diff output"
+        output: "Large diff output",
       });
 
-      await expect(handleDiff({
-        url: "https://example.com/graphql/",
-        token: "test-token",
-        config: "config.yml",
-        quiet: false,
-      })).rejects.toThrow("process.exit");
+      await expect(
+        handleDiff({
+          url: "https://example.com/graphql/",
+          token: "test-token",
+          config: "config.yml",
+          quiet: false,
+        })
+      ).rejects.toThrow("process.exit");
 
       expect(mockConsole.status).toHaveBeenCalledWith(
         "\n⚠️  Found 100 differences that would be applied by 'deploy'"
