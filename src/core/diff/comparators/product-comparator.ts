@@ -24,9 +24,9 @@ export class ProductComparator extends BaseEntityComparator<
     local: readonly ProductEntity[],
     remote: readonly ProductEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique names
-    this.validateUniqueNames(local);
-    this.validateUniqueNames(remote);
+    // Validate unique identifiers
+    this.validateUniqueIdentifiers(local);
+    this.validateUniqueIdentifiers(remote);
 
     const results: import("../types").DiffResult[] = [];
     const remoteByName = this.createEntityMap(remote);
@@ -58,10 +58,13 @@ export class ProductComparator extends BaseEntityComparator<
   }
 
   /**
-   * Gets the name of a product entity
+   * Gets the identifier of a product entity (uses slug for identification)
    */
   protected getEntityName(entity: ProductEntity): string {
-    return entity.name;
+    if (!entity.slug) {
+      throw new Error("Product must have a valid slug");
+    }
+    return entity.slug;
   }
 
   /**
@@ -83,11 +86,11 @@ export class ProductComparator extends BaseEntityComparator<
     // Compare attributes
     const localAttributes = local.attributes || {};
     const remoteAttributes = remote.attributes || {};
-    
+
     // Check for attribute changes
     const allAttributeKeys = new Set([
       ...Object.keys(localAttributes),
-      ...Object.keys(remoteAttributes)
+      ...Object.keys(remoteAttributes),
     ]);
 
     for (const key of allAttributeKeys) {
@@ -95,12 +98,14 @@ export class ProductComparator extends BaseEntityComparator<
       const remoteValue = remoteAttributes[key];
 
       if (JSON.stringify(localValue) !== JSON.stringify(remoteValue)) {
-        changes.push(this.createFieldChange(
-          `attributes.${key}`,
-          remoteValue,
-          localValue,
-          `Attribute "${key}": ${JSON.stringify(remoteValue)} → ${JSON.stringify(localValue)}`
-        ));
+        changes.push(
+          this.createFieldChange(
+            `attributes.${key}`,
+            remoteValue,
+            localValue,
+            `Attribute "${key}": ${JSON.stringify(remoteValue)} → ${JSON.stringify(localValue)}`
+          )
+        );
       }
     }
 
@@ -109,12 +114,14 @@ export class ProductComparator extends BaseEntityComparator<
     const remoteVariantCount = remote.variants?.length || 0;
 
     if (localVariantCount !== remoteVariantCount) {
-      changes.push(this.createFieldChange(
-        "variants.length",
-        remoteVariantCount,
-        localVariantCount,
-        `Variant count changed: ${remoteVariantCount} → ${localVariantCount}`
-      ));
+      changes.push(
+        this.createFieldChange(
+          "variants.length",
+          remoteVariantCount,
+          localVariantCount,
+          `Variant count changed: ${remoteVariantCount} → ${localVariantCount}`
+        )
+      );
     }
 
     return changes;

@@ -242,6 +242,75 @@ const updateProductVariantMutation = graphql(`
   }
 `);
 
+const getChannelBySlugQuery = graphql(`
+  query GetChannelBySlug($slug: String!) {
+    channels(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          currencyCode
+        }
+      }
+    }
+  }
+`);
+
+const productChannelListingUpdateMutation = graphql(`
+  mutation ProductChannelListingUpdate($id: ID!, $input: ProductChannelListingUpdateInput!) {
+    productChannelListingUpdate(id: $id, input: $input) {
+      product {
+        id
+        name
+        channelListings {
+          id
+          channel {
+            id
+            slug
+          }
+          isPublished
+          visibleInListings
+          publishedAt
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+const productVariantChannelListingUpdateMutation = graphql(`
+  mutation ProductVariantChannelListingUpdate($id: ID!, $input: [ProductVariantChannelListingAddInput!]!) {
+    productVariantChannelListingUpdate(id: $id, input: $input) {
+      productVariant {
+        id
+        name
+        sku
+        channelListings {
+          id
+          channel {
+            id
+            slug
+          }
+          price {
+            amount
+          }
+          costPrice {
+            amount
+          }
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
 export type Product = NonNullable<
   NonNullable<ResultOf<typeof getProductByNameQuery>["products"]>["edges"]
 >[number]["node"];
@@ -251,6 +320,18 @@ export type ProductVariant = NonNullable<
     ResultOf<typeof createProductVariantMutation>["productVariantCreate"]
   >["productVariant"]
 >;
+
+export type ProductChannelListingUpdateInput = VariablesOf<
+  typeof productChannelListingUpdateMutation
+>["input"];
+
+export type ProductVariantChannelListingAddInput = VariablesOf<
+  typeof productVariantChannelListingUpdateMutation
+>["input"][number];
+
+export type Channel = NonNullable<
+  NonNullable<ResultOf<typeof getChannelBySlugQuery>["channels"]>["edges"]
+>[number]["node"];
 
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
@@ -263,7 +344,15 @@ export interface ProductOperations {
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
-  // TODO: Add back getChannelBySlug and updateProductChannelListings in separate commit
+  getChannelBySlug(slug: string): Promise<Channel | null>;
+  updateProductChannelListings(
+    id: string,
+    input: ProductChannelListingUpdateInput
+  ): Promise<Product | null>;
+  updateProductVariantChannelListings(
+    id: string,
+    input: ProductVariantChannelListingAddInput[]
+  ): Promise<ProductVariant | null>;
 }
 
 export type Attribute = NonNullable<
@@ -515,5 +604,131 @@ export class ProductRepository implements ProductOperations {
     return attribute || null;
   }
 
-  // TODO: Add getChannelBySlug method in separate commit
+  async getChannelBySlug(slug: string): Promise<Channel | null> {
+    logger.debug("Looking up channel by slug", { slug });
+
+    const result = await this.client.query(getChannelBySlugQuery, { slug });
+
+    // Find exact match among search results
+    const exactMatch = result.data?.channels?.edges?.find((edge) => edge.node?.slug === slug);
+
+    const channel = exactMatch?.node;
+
+    if (channel) {
+      logger.debug("Found channel", {
+        id: channel.id,
+        slug: channel.slug,
+        name: channel.name,
+      });
+    } else {
+      logger.debug("No channel found with slug", { slug });
+    }
+
+    return channel || null;
+  }
+
+  async updateProductChannelListings(
+    id: string,
+    input: ProductChannelListingUpdateInput
+  ): Promise<Product | null> {
+    logger.debug("Updating product channel listings", { productId: id, input });
+
+    const result = await this.client.mutation(productChannelListingUpdateMutation, {
+      id,
+      input,
+    });
+
+    if (!result.data?.productChannelListingUpdate?.product) {
+      // Handle GraphQL errors from the response
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          `Failed to update product channel listings for product ${id}`
+        );
+      }
+
+      // Handle network errors
+      if (result.error && !result.error.graphQLErrors) {
+        throw GraphQLError.fromCombinedError(
+          `Failed to update product channel listings for product ${id}`,
+          result.error
+        );
+      }
+
+      // Handle business logic errors from the mutation response
+      const businessErrors = result.data?.productChannelListingUpdate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        throw GraphQLError.fromDataErrors(
+          `Failed to update product channel listings for product ${id}`,
+          businessErrors
+        );
+      }
+
+      logger.warn("Product channel listings update returned no product", { productId: id });
+      return null;
+    }
+
+    const product = result.data.productChannelListingUpdate.product;
+
+    logger.info("Product channel listings updated", {
+      productId: product.id,
+      channelListings: product.channelListings?.length || 0,
+    });
+
+    return product;
+  }
+
+  async updateProductVariantChannelListings(
+    id: string,
+    input: ProductVariantChannelListingAddInput[]
+  ): Promise<ProductVariant | null> {
+    logger.debug("Updating product variant channel listings", {
+      variantId: id,
+      channelCount: input.length,
+    });
+
+    const result = await this.client.mutation(productVariantChannelListingUpdateMutation, {
+      id,
+      input,
+    });
+
+    if (!result.data?.productVariantChannelListingUpdate?.productVariant) {
+      // Handle GraphQL errors from the response
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          `Failed to update variant channel listings for variant ${id}`
+        );
+      }
+
+      // Handle network errors
+      if (result.error && !result.error.graphQLErrors) {
+        throw GraphQLError.fromCombinedError(
+          `Failed to update variant channel listings for variant ${id}`,
+          result.error
+        );
+      }
+
+      // Handle business logic errors from the mutation response
+      const businessErrors = result.data?.productVariantChannelListingUpdate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        throw GraphQLError.fromDataErrors(
+          `Failed to update variant channel listings for variant ${id}`,
+          businessErrors
+        );
+      }
+
+      logger.warn("Variant channel listings update returned no variant", { variantId: id });
+      return null;
+    }
+
+    const variant = result.data.productVariantChannelListingUpdate.productVariant;
+
+    logger.info("Product variant channel listings updated", {
+      variantId: variant.id,
+      channelListings: variant.channelListings?.length || 0,
+    });
+
+    return variant;
+  }
 }

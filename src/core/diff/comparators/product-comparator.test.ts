@@ -6,18 +6,19 @@ describe("ProductComparator", () => {
 
   const sampleProduct = {
     name: "Sample Product",
+    slug: "sample-product",
     productType: "Clothing",
     category: "Apparel",
     attributes: {
       color: "red",
-      size: ["S", "M", "L"]
+      size: ["S", "M", "L"],
     },
     variants: [
       {
         name: "Red S",
-        sku: "RED-S"
-      }
-    ]
+        sku: "RED-S",
+      },
+    ],
   };
 
   describe("compare", () => {
@@ -31,13 +32,13 @@ describe("ProductComparator", () => {
       expect(results[0]).toEqual({
         operation: "CREATE",
         entityType: "Products",
-        entityName: "Sample Product",
+        entityName: "sample-product",
         desired: sampleProduct,
       });
     });
 
     it("should detect product deletion", () => {
-      const local: typeof sampleProduct[] = [];
+      const local: (typeof sampleProduct)[] = [];
       const remote = [sampleProduct];
 
       const results = comparator.compare(local, remote);
@@ -46,7 +47,7 @@ describe("ProductComparator", () => {
       expect(results[0]).toEqual({
         operation: "DELETE",
         entityType: "Products",
-        entityName: "Sample Product",
+        entityName: "sample-product",
         current: sampleProduct,
       });
     });
@@ -54,7 +55,7 @@ describe("ProductComparator", () => {
     it("should detect product updates", () => {
       const localProduct = {
         ...sampleProduct,
-        productType: "Electronics"
+        productType: "Electronics",
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -64,12 +65,12 @@ describe("ProductComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].entityType).toBe("Products");
-      expect(results[0].entityName).toBe("Sample Product");
+      expect(results[0].entityName).toBe("sample-product");
       expect(results[0].changes).toContainEqual({
         field: "productType",
         currentValue: "Clothing",
         desiredValue: "Electronics",
-        description: 'productType: "Clothing" → "Electronics"'
+        description: 'productType: "Clothing" → "Electronics"',
       });
     });
 
@@ -78,8 +79,8 @@ describe("ProductComparator", () => {
         ...sampleProduct,
         attributes: {
           color: "blue",
-          size: ["M", "L", "XL"]
-        }
+          size: ["M", "L", "XL"],
+        },
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -92,7 +93,7 @@ describe("ProductComparator", () => {
         field: "attributes.color",
         currentValue: "red",
         desiredValue: "blue",
-        description: 'Attribute "color": "red" → "blue"'
+        description: 'Attribute "color": "red" → "blue"',
       });
     });
 
@@ -101,8 +102,8 @@ describe("ProductComparator", () => {
         ...sampleProduct,
         variants: [
           { name: "Red S", sku: "RED-S" },
-          { name: "Blue M", sku: "BLUE-M" }
-        ]
+          { name: "Blue M", sku: "BLUE-M" },
+        ],
       };
       const local = [localProduct];
       const remote = [sampleProduct];
@@ -115,7 +116,7 @@ describe("ProductComparator", () => {
         field: "variants.length",
         currentValue: 1,
         desiredValue: 2,
-        description: "Variant count changed: 1 → 2"
+        description: "Variant count changed: 1 → 2",
       });
     });
 
@@ -131,11 +132,12 @@ describe("ProductComparator", () => {
     it("should handle products with no attributes", () => {
       const productWithoutAttributes = {
         name: "Simple Product",
+        slug: "simple-product",
         productType: "Simple",
         category: "Basic",
-        variants: []
+        variants: [],
       };
-      
+
       const local = [productWithoutAttributes];
       const remote = [productWithoutAttributes];
 

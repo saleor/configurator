@@ -64,7 +64,6 @@ function generateMarkdownFromSchema(schema: JsonSchema): string {
     markdown += generatePropertySection(propertyName, property, schema, 2);
   }
 
-
   return markdown;
 }
 
@@ -101,15 +100,20 @@ function generatePropertySection(
     markdown += "**Allowed values:**\n";
     if (property.enum.length <= 10) {
       // Show inline for small enums
-      markdown += `\`${property.enum.join('` | `')}\`\n\n`;
+      markdown += `\`${property.enum.join("` | `")}\`\n\n`;
     } else {
       // Show as list for large enums
       const chunks = [];
       for (let i = 0; i < property.enum.length; i += 6) {
-        chunks.push(property.enum.slice(i, i + 6).map(v => `\`${v}\``).join(', '));
+        chunks.push(
+          property.enum
+            .slice(i, i + 6)
+            .map((v) => `\`${v}\``)
+            .join(", ")
+        );
       }
       for (const chunk of chunks) {
-        markdown += `${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? ',' : ''}\n`;
+        markdown += `${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? "," : ""}\n`;
       }
       markdown += "\n";
     }
@@ -141,20 +145,25 @@ function generatePropertySection(
         const propType = getTypeInfo(prop, schema);
         const friendlyDescription = getFriendlyDescription(prop.description);
         markdown += `- **${propName}** (\`${propType.type}\`)${required ? " *required*" : ""}: ${friendlyDescription}\n`;
-        
+
         // Show enum values for array item properties
         if (prop.enum) {
           markdown += `  - **Allowed values:** `;
           if (prop.enum.length <= 8) {
-            markdown += `\`${prop.enum.join('` | `')}\`\n`;
+            markdown += `\`${prop.enum.join("` | `")}\`\n`;
           } else {
             markdown += `\n`;
             const chunks = [];
             for (let i = 0; i < prop.enum.length; i += 6) {
-              chunks.push(prop.enum.slice(i, i + 6).map(v => `\`${v}\``).join(', '));
+              chunks.push(
+                prop.enum
+                  .slice(i, i + 6)
+                  .map((v) => `\`${v}\``)
+                  .join(", ")
+              );
             }
             for (const chunk of chunks) {
-              markdown += `    ${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? ',' : ''}\n`;
+              markdown += `    ${chunk}${chunks.indexOf(chunk) < chunks.length - 1 ? "," : ""}\n`;
             }
           }
         }
@@ -189,7 +198,7 @@ function extractPropertiesFromItem(
   // Handle anyOf (union types)
   if (item.anyOf) {
     const propertyMap = new Map<string, { property: JsonSchemaProperty; required: boolean }>();
-    
+
     for (const variant of item.anyOf) {
       const variantProps = extractPropertiesFromItem(variant, schema);
       for (const { name, property, required } of variantProps) {
@@ -202,14 +211,17 @@ function extractPropertiesFromItem(
           if (property.description && !existing.property.description) {
             propertyMap.set(name, { property, required: existing.required || required });
           } else {
-            propertyMap.set(name, { property: existing.property, required: existing.required || required });
+            propertyMap.set(name, {
+              property: existing.property,
+              required: existing.required || required,
+            });
           }
         } else {
           propertyMap.set(name, { property, required });
         }
       }
     }
-    
+
     for (const [name, { property, required }] of propertyMap) {
       properties.push({ name, property, required });
     }
@@ -251,7 +263,7 @@ function getTypeInfo(
         defaultValue: property.default,
       };
     }
-    
+
     const types = property.anyOf.map((p) => getTypeInfo(p, schema).type);
     // Deduplicate identical types (like "object | object")
     const uniqueTypes = [...new Set(types)];
@@ -291,22 +303,22 @@ function getTypeInfo(
 function isAttributeType(property: JsonSchemaProperty): boolean {
   // Check if this is an attribute union type by looking for attribute patterns
   if (!property.anyOf) return false;
-  
+
   // Look for the attribute reference pattern: { attribute: string }
-  const hasAttributeReference = property.anyOf.some(variant => 
-    variant.properties?.attribute?.type === "string"
+  const hasAttributeReference = property.anyOf.some(
+    (variant) => variant.properties?.attribute?.type === "string"
   );
-  
+
   // Look for attribute definition patterns with inputType
-  const hasAttributeDefinition = property.anyOf.some(variant => {
+  const hasAttributeDefinition = property.anyOf.some((variant) => {
     if (variant.anyOf) {
-      return variant.anyOf.some(subVariant => 
-        subVariant.properties?.inputType?.type === "string"
+      return variant.anyOf.some(
+        (subVariant) => subVariant.properties?.inputType?.type === "string"
       );
     }
     return variant.properties?.inputType?.type === "string";
   });
-  
+
   return hasAttributeReference || hasAttributeDefinition;
 }
 

@@ -20,10 +20,7 @@ export class CategoryService {
       parentId,
     });
 
-    const category = await this.repository.createCategory(
-      input,
-      parentId
-    );
+    const category = await this.repository.createCategory(input, parentId);
 
     logger.debug("Created category", {
       id: category.id,

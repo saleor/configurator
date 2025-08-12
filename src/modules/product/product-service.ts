@@ -31,14 +31,67 @@ export class ProductService {
     return category.id;
   }
 
-  // Temporarily removed channel resolution
-  // TODO: Add back in separate commit when implementing channel listings
+  private async resolveChannelReference(channelSlug: string): Promise<string> {
+    const channel = await this.repository.getChannelBySlug(channelSlug);
+    if (!channel) {
+      throw new EntityNotFoundError(
+        `Channel "${channelSlug}" not found. Make sure it exists in your channels configuration.`
+      );
+    }
+    return channel.id;
+  }
 
-  // Temporarily removed channel listings resolution
-  // TODO: Add back in separate commit
+  private async resolveChannelListings(
+    channelListings: Array<{
+      channel: string;
+      isPublished?: boolean;
+      visibleInListings?: boolean;
+      availableForPurchase?: string;
+      publishedAt?: string;
+    }> = []
+  ): Promise<{
+    updateChannels: Array<{
+      channelId: string;
+      isPublished?: boolean;
+      visibleInListings?: boolean;
+      publishedAt?: string;
+    }>;
+  }> {
+    const updateChannels = [];
 
-  // Temporarily removed variant channel listings resolution
-  // TODO: Add back in separate commit
+    for (const listing of channelListings) {
+      const channelId = await this.resolveChannelReference(listing.channel);
+      updateChannels.push({
+        channelId,
+        isPublished: listing.isPublished,
+        visibleInListings: listing.visibleInListings,
+        publishedAt: listing.publishedAt,
+      });
+    }
+
+    return { updateChannels };
+  }
+
+  private async resolveVariantChannelListings(
+    channelListings: Array<{
+      channel: string;
+      price: number;
+      costPrice?: number;
+    }> = []
+  ): Promise<Array<{ channelId: string; price: number; costPrice?: number }>> {
+    const resolvedListings = [];
+
+    for (const listing of channelListings) {
+      const channelId = await this.resolveChannelReference(listing.channel);
+      resolvedListings.push({
+        channelId,
+        price: listing.price,
+        costPrice: listing.costPrice,
+      });
+    }
+
+    return resolvedListings;
+  }
 
   private async resolveAttributeValues(
     attributes: Record<string, string | string[]> = {}
@@ -184,18 +237,80 @@ export class ProductService {
 
     try {
       // 1. Create or get product
-      const product = await this.upsertProduct(productInput);
+      let product = await this.upsertProduct(productInput);
 
       // 2. Create variants
       const variants = await this.createProductVariants(product, productInput.variants);
 
+      // 3. Update product channel listings (optional, graceful degradation)
+      if (productInput.channelListings && productInput.channelListings.length > 0) {
+        try {
+          const channelListingInput = await this.resolveChannelListings(
+            productInput.channelListings
+          );
+          const updatedProduct = await this.repository.updateProductChannelListings(
+            product.id,
+            channelListingInput
+          );
+          if (updatedProduct) {
+            product = updatedProduct;
+          }
+          logger.debug("Product channel listings updated", {
+            productId: product.id,
+            channelCount: productInput.channelListings.length,
+          });
+        } catch (error) {
+          logger.warn(
+            "Failed to update product channel listings, continuing with product creation",
+            {
+              productId: product.id,
+              error: error instanceof Error ? error.message : "Unknown error",
+            }
+          );
+        }
+      }
+
+      // 4. Update variant channel listings (optional, graceful degradation)
+      const updatedVariants = [...variants];
+      for (let i = 0; i < productInput.variants.length; i++) {
+        const variantInput = productInput.variants[i];
+        const variant = variants[i];
+
+        if (variantInput.channelListings && variantInput.channelListings.length > 0) {
+          try {
+            const channelListingInput = await this.resolveVariantChannelListings(
+              variantInput.channelListings
+            );
+            const updatedVariant = await this.repository.updateProductVariantChannelListings(
+              variant.id,
+              channelListingInput
+            );
+            if (updatedVariant) {
+              updatedVariants[i] = updatedVariant;
+            }
+            logger.debug("Variant channel listings updated", {
+              variantId: variant.id,
+              channelCount: variantInput.channelListings.length,
+            });
+          } catch (error) {
+            logger.warn(
+              "Failed to update variant channel listings, continuing with variant creation",
+              {
+                variantId: variant.id,
+                error: error instanceof Error ? error.message : "Unknown error",
+              }
+            );
+          }
+        }
+      }
+
       logger.info("Successfully bootstrapped product", {
         productId: product.id,
         name: product.name,
-        variantCount: variants.length,
+        variantCount: updatedVariants.length,
       });
 
-      return { product, variants };
+      return { product, variants: updatedVariants };
     } catch (error) {
       logger.error("Failed to bootstrap product", {
         name: productInput.name,
