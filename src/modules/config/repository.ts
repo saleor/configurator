@@ -110,14 +110,10 @@ const getConfigQuery = graphql(`
           id
           name
           slug
-          children(first: 100) {
-            edges {
-              node {
-                id
-                name
-                slug
-              }
-            }
+          level
+          parent {
+            id
+            slug
           }
         }
       }
