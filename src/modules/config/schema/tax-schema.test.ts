@@ -29,77 +29,77 @@ describe("Tax Schema Validation", () => {
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate tax class without country rates", () => {
+    it("should validate tax class without country rates", async () => {
       const taxClass = {
         name: "Standard Rate",
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should reject empty tax class name", () => {
+    it("should reject empty tax class name", async () => {
       const taxClass = {
         name: "",
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should reject missing tax class name", () => {
+    it("should reject missing tax class name", async () => {
       const taxClass = {
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should reject invalid country codes", () => {
+    it("should reject invalid country codes", async () => {
       const taxClass = {
         name: "Standard Rate",
         countryRates: [{ countryCode: "INVALID", rate: 8.5 }],
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should reject negative tax rates", () => {
+    it("should reject negative tax rates", async () => {
       const taxClass = {
         name: "Standard Rate",
         countryRates: [{ countryCode: "US", rate: -5 }],
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should reject tax rates over 100%", () => {
+    it("should reject tax rates over 100%", async () => {
       const taxClass = {
         name: "Standard Rate",
         countryRates: [{ countryCode: "US", rate: 150 }],
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should validate multiple tax classes", () => {
+    it("should validate multiple tax classes", async () => {
       const taxClasses = [
         {
           name: "Standard Rate",
@@ -119,12 +119,12 @@ describe("Tax Schema Validation", () => {
       ];
 
       const config = createTestConfig(taxClasses);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate edge case rates", () => {
+    it("should validate edge case rates", async () => {
       const taxClass = {
         name: "Edge Cases",
         countryRates: [
@@ -135,7 +135,7 @@ describe("Tax Schema Validation", () => {
       };
 
       const config = createTestConfig([taxClass]);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
@@ -159,7 +159,7 @@ describe("Tax Schema Validation", () => {
       ],
     });
 
-    it("should validate basic tax configuration", () => {
+    it("should validate basic tax configuration", async () => {
       const taxConfig = {
         taxCalculationStrategy: "FLAT_RATES",
         chargeTaxes: true,
@@ -168,12 +168,12 @@ describe("Tax Schema Validation", () => {
       };
 
       const config = createChannelWithTaxConfig(taxConfig);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate tax app configuration", () => {
+    it("should validate tax app configuration", async () => {
       const taxConfig = {
         taxCalculationStrategy: "TAX_APP",
         chargeTaxes: true,
@@ -183,35 +183,35 @@ describe("Tax Schema Validation", () => {
       };
 
       const config = createChannelWithTaxConfig(taxConfig);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate minimal tax configuration", () => {
+    it("should validate minimal tax configuration", async () => {
       const taxConfig = {
         chargeTaxes: false,
       };
 
       const config = createChannelWithTaxConfig(taxConfig);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should reject invalid tax calculation strategy", () => {
+    it("should reject invalid tax calculation strategy", async () => {
       const taxConfig = {
         taxCalculationStrategy: "INVALID_STRATEGY",
         chargeTaxes: true,
       };
 
       const config = createChannelWithTaxConfig(taxConfig);
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).toThrow();
     });
 
-    it("should validate channel without tax configuration", () => {
+    it("should validate channel without tax configuration", async () => {
       const config = {
         channels: [
           {
@@ -223,7 +223,7 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
@@ -235,7 +235,7 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    it("should validate product with tax class reference", () => {
+    it("should validate product with tax class reference", async () => {
       const config = {
         products: [
           {
@@ -254,12 +254,12 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate product without tax class reference", () => {
+    it("should validate product without tax class reference", async () => {
       const config = {
         products: [
           {
@@ -277,7 +277,7 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
@@ -289,7 +289,7 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    it("should validate product type with tax class reference", () => {
+    it("should validate product type with tax class reference", async () => {
       const config = {
         productTypes: [
           {
@@ -300,12 +300,12 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
 
-    it("should validate product type without tax class reference", () => {
+    it("should validate product type without tax class reference", async () => {
       const config = {
         productTypes: [
           {
@@ -315,7 +315,7 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
@@ -327,7 +327,7 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    it("should validate complete configuration with tax classes", () => {
+    it("should validate complete configuration with tax classes", async () => {
       const config: Partial<SaleorConfig> = {
         shop: {
           displayGrossPrices: true,
@@ -376,7 +376,7 @@ describe("Tax Schema Validation", () => {
         ],
       };
 
-      const schema = getConfigSchema();
+      const schema = await getConfigSchema();
 
       expect(() => schema.parse(config)).not.toThrow();
     });
