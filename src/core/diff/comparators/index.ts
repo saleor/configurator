@@ -6,4 +6,5 @@ export { PageTypeComparator } from "./page-type-comparator";
 export { ProductTypeComparator } from "./product-type-comparator";
 export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { ShopComparator } from "./shop-comparator";
+export { TaxClassComparator } from "./tax-class-comparator";
 export { WarehouseComparator } from "./warehouse-comparator";

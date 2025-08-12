@@ -11,6 +11,7 @@ import {
   ProductTypeComparator,
   ShippingZoneComparator,
   ShopComparator,
+  TaxClassComparator,
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
@@ -279,6 +280,7 @@ export class DiffService {
       ["categories", new CategoryComparator() as EntityComparator],
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
+      ["taxClasses", new TaxClassComparator() as EntityComparator],
       // TODO: add product comparator; also add types that force you to add newly introduced entities to the diff service
     ]);
   }
@@ -347,10 +349,11 @@ export class DiffService {
     const entityTypes = [
       "channels",
       "productTypes",
-      "pageTypes",
+      "pageTypes", 
       "categories",
       "warehouses",
       "shippingZones",
+      "taxClasses",
     ] as const;
 
     for (const entityType of entityTypes) {
