@@ -216,9 +216,9 @@ describe("diff command", () => {
 
     it("should have examples", () => {
       expect(diffCommandConfig.examples).toEqual([
-        "pnpm run diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
-        "pnpm run diff --config custom-config.yml",
-        "pnpm run diff --quiet",
+        "pnpm dlx @saleor/configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
+        "pnpm dlx @saleor/configurator diff --config custom-config.yml",
+        "pnpm dlx @saleor/configurator diff --quiet",
       ]);
     });
   });
