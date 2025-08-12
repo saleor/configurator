@@ -606,7 +606,11 @@ const warehouseAddressSchema = z.object({
 const warehouseSchema = z.object({
   name: z.string().describe("Warehouse.name"),
   slug: z.string().describe("Warehouse.slug"),
-  email: z.string().email().describe("Warehouse.email"),
+  email: z
+    .union([z.string().email(), z.literal(""), z.undefined()])
+    .optional()
+    .transform((val) => (val === "" ? undefined : val))
+    .describe("Warehouse.email"),
   isPrivate: z.boolean().optional().default(false).describe("Warehouse.isPrivate"),
   address: warehouseAddressSchema.describe("Warehouse.address"),
   clickAndCollectOption: warehouseClickAndCollectOptionSchema

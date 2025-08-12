@@ -246,7 +246,7 @@ export class ConfigurationService {
       .map((warehouse) => ({
         name: warehouse.name,
         slug: warehouse.slug,
-        email: warehouse.email,
+        email: warehouse.email || undefined,
         isPrivate: warehouse.isPrivate,
         clickAndCollectOption: warehouse.clickAndCollectOption || "DISABLED",
         address: {

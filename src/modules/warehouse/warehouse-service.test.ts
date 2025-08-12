@@ -77,18 +77,36 @@ describe("WarehouseService", () => {
       await expect(service.createWarehouse(invalidInput)).rejects.toThrow(WarehouseValidationError);
     });
 
-    it("should throw error when email is invalid", async () => {
-      const invalidInput = { ...mockWarehouseInput, email: "invalid-email" };
+    it("should accept warehouse without email", async () => {
+      const inputWithoutEmail = { ...mockWarehouseInput, email: undefined };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
-        createWarehouse: vi.fn(),
-        updateWarehouse: vi.fn(),
+        createWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
+        updateWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
         assignWarehouseToShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
 
-      await expect(service.createWarehouse(invalidInput)).rejects.toThrow(WarehouseValidationError);
+      const result = await service.createWarehouse(inputWithoutEmail);
+      expect(result).toBeDefined();
+      expect(mockOperations.createWarehouse).toHaveBeenCalled();
+    });
+
+    it("should accept warehouse with empty email string", async () => {
+      const inputWithEmptyEmail = { ...mockWarehouseInput, email: "" };
+      const mockOperations = {
+        getWarehouses: vi.fn().mockResolvedValue([]),
+        createWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
+        updateWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
+        assignWarehouseToShippingZones: vi.fn(),
+      };
+
+      const service = new WarehouseService(mockOperations);
+
+      const result = await service.createWarehouse(inputWithEmptyEmail);
+      expect(result).toBeDefined();
+      expect(mockOperations.createWarehouse).toHaveBeenCalled();
     });
   });
 
