@@ -312,4 +312,281 @@ describe("ConfigurationService", () => {
       expect(service.mapConfig).toBeInstanceOf(Function);
     });
   });
+
+  describe("mapCategories - nested category support", () => {
+    it("should map flat categories correctly", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: {
+          edges: [
+            {
+              node: {
+                id: "1",
+                name: "Electronics",
+                slug: "electronics",
+                level: 0,
+                parent: null,
+              },
+            },
+            {
+              node: {
+                id: "2",
+                name: "Clothing",
+                slug: "clothing",
+                level: 0,
+                parent: null,
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([
+        {
+          name: "Electronics",
+          slug: "electronics",
+        },
+        {
+          name: "Clothing",
+          slug: "clothing",
+        },
+      ]);
+    });
+
+    it("should build nested tree from flat list with parent references", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: {
+          edges: [
+            {
+              node: {
+                id: "1",
+                name: "Electronics",
+                slug: "electronics",
+                level: 0,
+                parent: null,
+              },
+            },
+            {
+              node: {
+                id: "2",
+                name: "Laptops",
+                slug: "laptops",
+                level: 1,
+                parent: { id: "1", slug: "electronics" },
+              },
+            },
+            {
+              node: {
+                id: "3",
+                name: "Gaming Laptops",
+                slug: "gaming-laptops",
+                level: 2,
+                parent: { id: "2", slug: "laptops" },
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([
+        {
+          name: "Electronics",
+          slug: "electronics",
+          subcategories: [
+            {
+              name: "Laptops",
+              slug: "laptops",
+              subcategories: [
+                {
+                  name: "Gaming Laptops",
+                  slug: "gaming-laptops",
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("should handle categories in random order", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: {
+          edges: [
+            // Child before parent
+            {
+              node: {
+                id: "3",
+                name: "Gaming Laptops",
+                slug: "gaming-laptops",
+                level: 2,
+                parent: { id: "2", slug: "laptops" },
+              },
+            },
+            {
+              node: {
+                id: "1",
+                name: "Electronics",
+                slug: "electronics",
+                level: 0,
+                parent: null,
+              },
+            },
+            {
+              node: {
+                id: "2",
+                name: "Laptops",
+                slug: "laptops",
+                level: 1,
+                parent: { id: "1", slug: "electronics" },
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([
+        {
+          name: "Electronics",
+          slug: "electronics",
+          subcategories: [
+            {
+              name: "Laptops",
+              slug: "laptops",
+              subcategories: [
+                {
+                  name: "Gaming Laptops",
+                  slug: "gaming-laptops",
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("should handle multiple root categories with subcategories", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: {
+          edges: [
+            {
+              node: {
+                id: "1",
+                name: "Electronics",
+                slug: "electronics",
+                level: 0,
+                parent: null,
+              },
+            },
+            {
+              node: {
+                id: "2",
+                name: "Laptops",
+                slug: "laptops",
+                level: 1,
+                parent: { id: "1", slug: "electronics" },
+              },
+            },
+            {
+              node: {
+                id: "3",
+                name: "Clothing",
+                slug: "clothing",
+                level: 0,
+                parent: null,
+              },
+            },
+            {
+              node: {
+                id: "4",
+                name: "Mens",
+                slug: "mens",
+                level: 1,
+                parent: { id: "3", slug: "clothing" },
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([
+        {
+          name: "Electronics",
+          slug: "electronics",
+          subcategories: [
+            {
+              name: "Laptops",
+              slug: "laptops",
+            },
+          ],
+        },
+        {
+          name: "Clothing",
+          slug: "clothing",
+          subcategories: [
+            {
+              name: "Mens",
+              slug: "mens",
+            },
+          ],
+        },
+      ]);
+    });
+
+    it("should handle empty categories array", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([]);
+    });
+
+    it("should handle null categories", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: null,
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.categories).toEqual([]);
+    });
+  });
 });
