@@ -1,0 +1,541 @@
+# Saleor Fashion & Apparel Configuration
+# Complete setup for clothing, footwear, and accessories stores
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Fashion Store"
+  defaultMailSenderAddress: "shop@fashion-store.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 20
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 30
+  reserveStockDurationAuthenticatedUser: 60
+  defaultWeightUnit: KG
+
+channels:
+  - name: "Online Store"
+    currencyCode: USD
+    defaultCountry: US
+    slug: online-store
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 7
+      deleteExpiredOrdersAfter: 30
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      defaultTransactionFlowStrategy: CHARGE
+
+  - name: "Outlet"
+    currencyCode: USD
+    defaultCountry: US
+    slug: outlet
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      expireOrdersAfter: 3
+      deleteExpiredOrdersAfter: 14
+
+productTypes:
+  - name: "Apparel"
+    slug: apparel
+    isShippingRequired: true
+    productAttributes:
+      - name: "Brand"
+        slug: brand
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Nike"
+            slug: nike
+          - name: "Adidas"
+            slug: adidas
+          - name: "Puma"
+            slug: puma
+          - name: "Under Armour"
+            slug: under-armour
+          - name: "Levi's"
+            slug: levis
+          - name: "Gap"
+            slug: gap
+          - name: "H&M"
+            slug: hm
+          - name: "Zara"
+            slug: zara
+          - name: "Uniqlo"
+            slug: uniqlo
+      - name: "Material"
+        slug: material
+        inputType: MULTISELECT
+        values:
+          - name: "Cotton"
+            slug: cotton
+          - name: "Polyester"
+            slug: polyester
+          - name: "Wool"
+            slug: wool
+          - name: "Silk"
+            slug: silk
+          - name: "Linen"
+            slug: linen
+          - name: "Denim"
+            slug: denim
+          - name: "Leather"
+            slug: leather
+          - name: "Synthetic"
+            slug: synthetic
+      - name: "Season"
+        slug: season
+        inputType: DROPDOWN
+        values:
+          - name: "Spring/Summer"
+            slug: spring-summer
+          - name: "Fall/Winter"
+            slug: fall-winter
+          - name: "All Season"
+            slug: all-season
+      - name: "Collection"
+        slug: collection
+        inputType: DROPDOWN
+        values:
+          - name: "Spring 2024"
+            slug: spring-2024
+          - name: "Summer 2024"
+            slug: summer-2024
+          - name: "Fall 2024"
+            slug: fall-2024
+          - name: "Winter 2024"
+            slug: winter-2024
+          - name: "Resort 2024"
+            slug: resort-2024
+          - name: "Classics"
+            slug: classics
+      - name: "Gender"
+        slug: gender
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Men"
+            slug: men
+          - name: "Women"
+            slug: women
+          - name: "Unisex"
+            slug: unisex
+          - name: "Boys"
+            slug: boys
+          - name: "Girls"
+            slug: girls
+      - name: "Care Instructions"
+        slug: care-instructions
+        inputType: MULTISELECT
+        values:
+          - name: "Machine Wash Cold"
+            slug: machine-wash-cold
+          - name: "Hand Wash Only"
+            slug: hand-wash-only
+          - name: "Dry Clean Only"
+            slug: dry-clean-only
+          - name: "Do Not Bleach"
+            slug: do-not-bleach
+          - name: "Tumble Dry Low"
+            slug: tumble-dry-low
+          - name: "Hang Dry"
+            slug: hang-dry
+          - name: "Iron Low Heat"
+            slug: iron-low-heat
+          - name: "Do Not Iron"
+            slug: do-not-iron
+      - name: "Style"
+        slug: style
+        inputType: DROPDOWN
+        values:
+          - name: "Casual"
+            slug: casual
+          - name: "Formal"
+            slug: formal
+          - name: "Business"
+            slug: business
+          - name: "Sport"
+            slug: sport
+          - name: "Evening"
+            slug: evening
+          - name: "Streetwear"
+            slug: streetwear
+      - name: "Fit Type"
+        slug: fit-type
+        inputType: DROPDOWN
+        values:
+          - name: "Regular Fit"
+            slug: regular-fit
+          - name: "Slim Fit"
+            slug: slim-fit
+          - name: "Relaxed Fit"
+            slug: relaxed-fit
+          - name: "Athletic Fit"
+            slug: athletic-fit
+          - name: "Oversized"
+            slug: oversized
+      - name: "Pattern"
+        slug: pattern
+        inputType: DROPDOWN
+        values:
+          - name: "Solid"
+            slug: solid
+          - name: "Striped"
+            slug: striped
+          - name: "Plaid"
+            slug: plaid
+          - name: "Floral"
+            slug: floral
+          - name: "Geometric"
+            slug: geometric
+          - name: "Abstract"
+            slug: abstract
+          - name: "Camouflage"
+            slug: camouflage
+      - name: "Sustainability"
+        slug: sustainability
+        inputType: MULTISELECT
+        values:
+          - name: "Organic"
+            slug: organic
+          - name: "Recycled Materials"
+            slug: recycled-materials
+          - name: "Fair Trade"
+            slug: fair-trade
+          - name: "Vegan"
+            slug: vegan
+          - name: "Eco-Friendly"
+            slug: eco-friendly
+    variantAttributes:
+      - name: "Size"
+        slug: size
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "XS"
+            slug: xs
+            metadata:
+              us: "0-2"
+              eu: "32-34"
+              uk: "4-6"
+          - name: "S"
+            slug: s
+            metadata:
+              us: "4-6"
+              eu: "36-38"
+              uk: "8-10"
+          - name: "M"
+            slug: m
+            metadata:
+              us: "8-10"
+              eu: "40-42"
+              uk: "12-14"
+          - name: "L"
+            slug: l
+            metadata:
+              us: "12-14"
+              eu: "44-46"
+              uk: "16-18"
+          - name: "XL"
+            slug: xl
+            metadata:
+              us: "16-18"
+              eu: "48-50"
+              uk: "20-22"
+          - name: "XXL"
+            slug: xxl
+            metadata:
+              us: "20-22"
+              eu: "52-54"
+              uk: "24-26"
+      - name: "Color"
+        slug: color
+        inputType: SWATCH
+        required: true
+        values:
+          - name: "Black"
+            slug: black
+            value: "#000000"
+          - name: "White"
+            slug: white
+            value: "#FFFFFF"
+          - name: "Navy"
+            slug: navy
+            value: "#000080"
+          - name: "Gray"
+            slug: gray
+            value: "#808080"
+          - name: "Charcoal"
+            slug: charcoal
+            value: "#36454F"
+          - name: "Red"
+            slug: red
+            value: "#FF0000"
+          - name: "Blue"
+            slug: blue
+            value: "#0000FF"
+          - name: "Green"
+            slug: green
+            value: "#008000"
+          - name: "Beige"
+            slug: beige
+            value: "#F5F5DC"
+          - name: "Brown"
+            slug: brown
+            value: "#964B00"
+
+  - name: "Footwear"
+    slug: footwear
+    isShippingRequired: true
+    productAttributes:
+      - attribute: brand
+      - attribute: material
+      - attribute: season
+      - attribute: gender
+      - attribute: style
+      - name: "Shoe Type"
+        slug: shoe-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Sneakers"
+            slug: sneakers
+          - name: "Boots"
+            slug: boots
+          - name: "Sandals"
+            slug: sandals
+          - name: "Loafers"
+            slug: loafers
+          - name: "Oxfords"
+            slug: oxfords
+          - name: "Heels"
+            slug: heels
+          - name: "Flats"
+            slug: flats
+          - name: "Athletic"
+            slug: athletic
+      - name: "Closure Type"
+        slug: closure-type
+        inputType: DROPDOWN
+        values:
+          - name: "Lace-up"
+            slug: lace-up
+          - name: "Slip-on"
+            slug: slip-on
+          - name: "Velcro"
+            slug: velcro
+          - name: "Zipper"
+            slug: zipper
+          - name: "Buckle"
+            slug: buckle
+      - name: "Heel Height"
+        slug: heel-height
+        inputType: DROPDOWN
+        values:
+          - name: "Flat (0-1 inch)"
+            slug: flat
+          - name: "Low (1-2 inches)"
+            slug: low
+          - name: "Mid (2-3 inches)"
+            slug: mid
+          - name: "High (3-4 inches)"
+            slug: high
+          - name: "Very High (4+ inches)"
+            slug: very-high
+      - name: "Water Resistant"
+        slug: water-resistant
+        inputType: BOOLEAN
+    variantAttributes:
+      - name: "Shoe Size"
+        slug: shoe-size
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "US 5 / EU 35"
+            slug: us5-eu35
+          - name: "US 6 / EU 36"
+            slug: us6-eu36
+          - name: "US 7 / EU 37"
+            slug: us7-eu37
+          - name: "US 8 / EU 38"
+            slug: us8-eu38
+          - name: "US 9 / EU 39"
+            slug: us9-eu39
+          - name: "US 10 / EU 40"
+            slug: us10-eu40
+          - name: "US 11 / EU 41"
+            slug: us11-eu41
+          - name: "US 12 / EU 42"
+            slug: us12-eu42
+          - name: "US 13 / EU 43"
+            slug: us13-eu43
+      - attribute: color
+
+  - name: "Accessories"
+    slug: accessories
+    isShippingRequired: true
+    productAttributes:
+      - attribute: brand
+      - attribute: material
+      - attribute: gender
+      - attribute: style
+      - name: "Accessory Type"
+        slug: accessory-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Bags"
+            slug: bags
+          - name: "Belts"
+            slug: belts
+          - name: "Hats"
+            slug: hats
+          - name: "Scarves"
+            slug: scarves
+          - name: "Sunglasses"
+            slug: sunglasses
+          - name: "Watches"
+            slug: watches
+          - name: "Jewelry"
+            slug: jewelry
+          - name: "Wallets"
+            slug: wallets
+    variantAttributes:
+      - name: "Size"
+        slug: accessory-size
+        inputType: DROPDOWN
+        values:
+          - name: "One Size"
+            slug: one-size
+          - name: "Small"
+            slug: small
+          - name: "Medium"
+            slug: medium
+          - name: "Large"
+            slug: large
+          - name: "Adjustable"
+            slug: adjustable
+      - attribute: color
+
+pageTypes:
+  - name: "Size Guide"
+    slug: size-guide
+    attributes:
+      - name: "Product Category"
+        slug: product-category
+        inputType: DROPDOWN
+        values:
+          - name: "Tops"
+            slug: tops
+          - name: "Bottoms"
+            slug: bottoms
+          - name: "Dresses"
+            slug: dresses
+          - name: "Footwear"
+            slug: footwear
+      - name: "Size Chart"
+        slug: size-chart
+        inputType: RICH_TEXT
+      - name: "Measurement Guide"
+        slug: measurement-guide
+        inputType: RICH_TEXT
+      - name: "Fit Notes"
+        slug: fit-notes
+        inputType: MULTILINE
+
+  - name: "Lookbook"
+    slug: lookbook
+    attributes:
+      - name: "Season"
+        slug: lookbook-season
+        inputType: DROPDOWN
+        values:
+          - name: "Spring 2024"
+            slug: spring-2024
+          - name: "Summer 2024"
+            slug: summer-2024
+          - name: "Fall 2024"
+            slug: fall-2024
+          - name: "Winter 2024"
+            slug: winter-2024
+      - name: "Featured Products"
+        slug: featured-products
+        inputType: REFERENCE
+        entityType: PRODUCT
+      - name: "Styling Tips"
+        slug: styling-tips
+        inputType: RICH_TEXT
+      - name: "Gallery Images"
+        slug: gallery-images
+        inputType: FILE
+
+categories:
+  - name: "Women"
+    slug: "women"
+    subcategories:
+      - name: "Clothing"
+        slug: "women-clothing"
+        subcategories:
+          - name: "Dresses"
+            slug: "women-dresses"
+          - name: "Tops"
+            slug: "women-tops"
+          - name: "Bottoms"
+            slug: "women-bottoms"
+          - name: "Outerwear"
+            slug: "women-outerwear"
+          - name: "Activewear"
+            slug: "women-activewear"
+      - name: "Shoes"
+        slug: "women-shoes"
+      - name: "Accessories"
+        slug: "women-accessories"
+
+  - name: "Men"
+    slug: "men"
+    subcategories:
+      - name: "Clothing"
+        slug: "men-clothing"
+        subcategories:
+          - name: "Shirts"
+            slug: "men-shirts"
+          - name: "Pants"
+            slug: "men-pants"
+          - name: "Suits"
+            slug: "men-suits"
+          - name: "Outerwear"
+            slug: "men-outerwear"
+          - name: "Activewear"
+            slug: "men-activewear"
+      - name: "Shoes"
+        slug: "men-shoes"
+      - name: "Accessories"
+        slug: "men-accessories"
+
+  - name: "Kids"
+    slug: "kids"
+    subcategories:
+      - name: "Girls"
+        slug: "girls"
+      - name: "Boys"
+        slug: "boys"
+      - name: "Baby"
+        slug: "baby"
+
+  - name: "Sale"
+    slug: "sale"
+    subcategories:
+      - name: "Women's Sale"
+        slug: "women-sale"
+      - name: "Men's Sale"
+        slug: "men-sale"
+      - name: "Kids' Sale"
+        slug: "kids-sale"
+
+  - name: "New Arrivals"
+    slug: "new-arrivals"
