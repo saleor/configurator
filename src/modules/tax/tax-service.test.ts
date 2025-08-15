@@ -2,11 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { TaxService } from "./tax-service";
 import type { TaxRepository } from "./repository";
 import type { Logger } from "../../lib/logger";
-import {
-  TaxClassValidationError,
-  DuplicateTaxClassError,
-  InvalidCountryRateError,
-} from "./errors";
+import { TaxClassValidationError, DuplicateTaxClassError, InvalidCountryRateError } from "./errors";
 import type { TaxClassInput } from "../config/schema/schema";
 
 describe("TaxService", () => {
@@ -172,10 +168,7 @@ describe("TaxService", () => {
 
   describe("bootstrapTaxClasses", () => {
     it("should bootstrap multiple tax classes", async () => {
-      const taxClasses: TaxClassInput[] = [
-        { name: "Standard Rate" },
-        { name: "Reduced Rate" },
-      ];
+      const taxClasses: TaxClassInput[] = [{ name: "Standard Rate" }, { name: "Reduced Rate" }];
 
       vi.mocked(mockRepository.getAllTaxClasses).mockResolvedValue([]);
       vi.mocked(mockRepository.createTaxClass)
@@ -260,9 +253,9 @@ describe("TaxService", () => {
 
       vi.mocked(mockRepository.getAllTaxConfigurations).mockResolvedValue([]);
 
-      await expect(
-        taxService.updateChannelTaxConfiguration(channelId, input)
-      ).rejects.toThrow("Tax configuration for channel nonexistent-channel not found");
+      await expect(taxService.updateChannelTaxConfiguration(channelId, input)).rejects.toThrow(
+        "Tax configuration for channel nonexistent-channel not found"
+      );
     });
   });
 

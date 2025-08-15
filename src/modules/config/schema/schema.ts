@@ -357,10 +357,7 @@ const taxConfigurationSchema = z
     taxCalculationStrategy: taxCalculationStrategySchema
       .optional()
       .describe("Method for calculating taxes - flat rates or external tax app"),
-    chargeTaxes: z
-      .boolean()
-      .optional()
-      .describe("Whether to charge taxes in this channel"),
+    chargeTaxes: z.boolean().optional().describe("Whether to charge taxes in this channel"),
     displayGrossPrices: z
       .boolean()
       .optional()
@@ -419,7 +416,10 @@ const channelUpdateSchema = z
           .boolean()
           .optional()
           .describe("Automatically fulfill gift cards and other non-shippable items"),
-        expireOrdersAfter: z.number().optional().describe("Minutes after which unpaid orders expire"),
+        expireOrdersAfter: z
+          .number()
+          .optional()
+          .describe("Minutes after which unpaid orders expire"),
         deleteExpiredOrdersAfter: z
           .number()
           .optional()
@@ -732,11 +732,7 @@ export type ShippingMethodInput = z.infer<typeof shippingMethodSchema>;
 // Tax Class Schema
 const taxClassCountryRateSchema = z.object({
   countryCode: countryCodeSchema.describe("ISO 3166-1 alpha-2 country code"),
-  rate: z
-    .number()
-    .min(0)
-    .max(100)
-    .describe("Tax rate as a percentage (0-100)"),
+  rate: z.number().min(0).max(100).describe("Tax rate as a percentage (0-100)"),
 });
 
 const taxClassSchema = z.object({

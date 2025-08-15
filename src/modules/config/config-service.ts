@@ -283,7 +283,7 @@ export class ConfigurationService {
   private mapTaxClasses(taxClasses: readonly TaxClassType[]): readonly TaxClassInput[] {
     return taxClasses.map((edge) => {
       const taxClass = edge.node;
-      
+
       // Filter country rates to only include rates that belong to this tax class
       const countryRates = taxClass.countries
         .filter((country: TaxClassCountryRateType) => country.taxClass?.id === taxClass.id)

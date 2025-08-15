@@ -349,7 +349,7 @@ export class DiffService {
     const entityTypes = [
       "channels",
       "productTypes",
-      "pageTypes", 
+      "pageTypes",
       "categories",
       "warehouses",
       "shippingZones",

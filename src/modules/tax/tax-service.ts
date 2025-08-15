@@ -1,10 +1,6 @@
 import type { TaxRepository } from "./repository";
 import type { TaxClassInput, TaxConfigurationInput } from "../config/schema/schema";
-import {
-  TaxClassValidationError,
-  DuplicateTaxClassError,
-  InvalidCountryRateError,
-} from "./errors";
+import { TaxClassValidationError, DuplicateTaxClassError, InvalidCountryRateError } from "./errors";
 import type { Logger } from "../../lib/logger";
 
 interface TaxClassWithId extends TaxClassInput {
@@ -37,9 +33,9 @@ export class TaxService {
 
   async createTaxClass(input: TaxClassInput) {
     this.logger.info(`Creating tax class: ${input.name}`);
-    
+
     this.validateTaxClass(input);
-    
+
     const existing = await this.getExistingTaxClass(input.name);
     if (existing) {
       throw new DuplicateTaxClassError(input.name);
@@ -58,7 +54,7 @@ export class TaxService {
 
   async updateTaxClass(id: string, input: TaxClassInput) {
     this.logger.info(`Updating tax class: ${id}`);
-    
+
     this.validateTaxClass(input);
 
     const updateInput = {
@@ -79,7 +75,7 @@ export class TaxService {
 
   async getOrCreateTaxClass(input: TaxClassInput): Promise<TaxClassWithId> {
     const existing = await this.getExistingTaxClass(input.name);
-    
+
     if (existing) {
       this.logger.info(`Tax class '${input.name}' already exists`);
       return { ...existing, ...input };
@@ -91,9 +87,9 @@ export class TaxService {
 
   async bootstrapTaxClasses(taxClasses: TaxClassInput[]) {
     this.logger.info(`Bootstrapping ${taxClasses.length} tax classes`);
-    
+
     const results: TaxClassWithId[] = [];
-    
+
     for (const taxClass of taxClasses) {
       const result = await this.bootstrapTaxClass(taxClass);
       results.push(result);
@@ -104,7 +100,7 @@ export class TaxService {
 
   private async bootstrapTaxClass(input: TaxClassInput): Promise<TaxClassWithId> {
     const existing = await this.getExistingTaxClass(input.name);
-    
+
     if (!existing) {
       this.logger.info(`Creating new tax class: ${input.name}`);
       const created = await this.createTaxClass(input);
@@ -112,9 +108,9 @@ export class TaxService {
     }
 
     this.logger.info(`Updating existing tax class: ${input.name}`);
-    
+
     const needsUpdate = this.taxClassNeedsUpdate(existing, input);
-    
+
     if (needsUpdate) {
       const updated = await this.updateTaxClass(existing.id, input);
       return { ...updated, ...input };
@@ -131,10 +127,10 @@ export class TaxService {
 
   async updateChannelTaxConfiguration(channelId: string, input: TaxConfigurationInput) {
     this.logger.info(`Updating tax configuration for channel: ${channelId}`);
-    
+
     const configurations = await this.getAllTaxConfigurations();
     const config = configurations.find((c) => c.channelId === channelId);
-    
+
     if (!config) {
       throw new Error(`Tax configuration for channel ${channelId} not found`);
     }
@@ -166,7 +162,7 @@ export class TaxService {
 
     if (input.countryRates) {
       const countryCodesSeen = new Set<string>();
-      
+
       for (const rate of input.countryRates) {
         if (countryCodesSeen.has(rate.countryCode)) {
           throw new TaxClassValidationError(
@@ -182,7 +178,10 @@ export class TaxService {
     }
   }
 
-  private taxClassNeedsUpdate(existing: { name: string; countryRates?: Array<{ countryCode: string; rate: number }> }, input: TaxClassInput): boolean {
+  private taxClassNeedsUpdate(
+    existing: { name: string; countryRates?: Array<{ countryCode: string; rate: number }> },
+    input: TaxClassInput
+  ): boolean {
     if (existing.name !== input.name) {
       return true;
     }

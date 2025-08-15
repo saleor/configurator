@@ -1,6 +1,9 @@
 import { BaseEntityComparator } from "./base-comparator";
 import type { DiffChange } from "../types";
-import type { TaxClassInput, TaxClassCountryRateInput } from "../../../modules/config/schema/schema";
+import type {
+  TaxClassInput,
+  TaxClassCountryRateInput,
+} from "../../../modules/config/schema/schema";
 
 interface TaxClassEntity extends TaxClassInput {
   id?: string;
@@ -101,7 +104,7 @@ export class TaxClassComparator extends BaseEntityComparator<
     // Find added or updated rates
     for (const localRate of local) {
       const remoteRate = remoteRatesMap.get(localRate.countryCode);
-      
+
       if (remoteRate === undefined) {
         // New country rate
         changes.push(

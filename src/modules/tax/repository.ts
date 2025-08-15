@@ -229,7 +229,7 @@ export class TaxRepository {
 
   async getAllTaxClasses(): Promise<TaxClass[]> {
     const result = await this.client.query(getAllTaxClassesDocument, {});
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to fetch tax classes", result.error);
     }
@@ -250,7 +250,7 @@ export class TaxRepository {
 
   async createTaxClass(input: CreateTaxClassInput): Promise<TaxClass> {
     const result = await this.client.mutation(createTaxClassDocument, { input });
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to create tax class", result.error);
     }
@@ -268,16 +268,17 @@ export class TaxRepository {
     return {
       id: taxClass.id,
       name: taxClass.name,
-      countryRates: taxClass.countries?.map((country) => ({
-        countryCode: country.country.code as CountryCode,
-        rate: country.rate,
-      })) || [],
+      countryRates:
+        taxClass.countries?.map((country) => ({
+          countryCode: country.country.code as CountryCode,
+          rate: country.rate,
+        })) || [],
     };
   }
 
   async updateTaxClass(id: string, input: UpdateTaxClassInput): Promise<TaxClass> {
     const result = await this.client.mutation(updateTaxClassDocument, { id, input });
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to update tax class", result.error);
     }
@@ -295,16 +296,17 @@ export class TaxRepository {
     return {
       id: taxClass.id,
       name: taxClass.name,
-      countryRates: taxClass.countries?.map((country) => ({
-        countryCode: country.country.code as CountryCode,
-        rate: country.rate,
-      })) || [],
+      countryRates:
+        taxClass.countries?.map((country) => ({
+          countryCode: country.country.code as CountryCode,
+          rate: country.rate,
+        })) || [],
     };
   }
 
   async deleteTaxClass(id: string): Promise<void> {
     const result = await this.client.mutation(deleteTaxClassDocument, { id });
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to delete tax class", result.error);
     }
@@ -317,7 +319,7 @@ export class TaxRepository {
 
   async getAllTaxConfigurations(): Promise<TaxConfiguration[]> {
     const result = await this.client.query(getAllTaxConfigurationsDocument, {});
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to fetch tax configurations", result.error);
     }
@@ -337,9 +339,12 @@ export class TaxRepository {
     );
   }
 
-  async updateTaxConfiguration(id: string, input: UpdateTaxConfigurationInput): Promise<TaxConfiguration> {
+  async updateTaxConfiguration(
+    id: string,
+    input: UpdateTaxConfigurationInput
+  ): Promise<TaxConfiguration> {
     const result = await this.client.mutation(updateTaxConfigurationDocument, { id, input });
-    
+
     if (result.error) {
       throw GraphQLError.fromCombinedError("Failed to update tax configuration", result.error);
     }
@@ -368,16 +373,19 @@ export class TaxRepository {
   }
 
   async updateTaxCountryConfiguration(
-    countryCode: CountryCode, 
+    countryCode: CountryCode,
     updateTaxClassRates: Array<{ taxClassId?: string; rate?: number }>
   ): Promise<void> {
     const result = await this.client.mutation(updateTaxCountryConfigurationDocument, {
       countryCode,
       updateTaxClassRates,
     });
-    
+
     if (result.error) {
-      throw GraphQLError.fromCombinedError("Failed to update tax country configuration", result.error);
+      throw GraphQLError.fromCombinedError(
+        "Failed to update tax country configuration",
+        result.error
+      );
     }
 
     if (result.data?.taxCountryConfigurationUpdate?.errors?.length) {

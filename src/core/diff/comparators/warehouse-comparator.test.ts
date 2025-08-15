@@ -179,7 +179,7 @@ describe("WarehouseComparator", () => {
 
       // Should not show any changes due to case normalization
       if (results.length > 0) {
-        const cityChange = results[0].changes?.find(c => c.field === "address.city");
+        const cityChange = results[0].changes?.find((c) => c.field === "address.city");
         expect(cityChange).toBeUndefined();
       }
     });
@@ -207,7 +207,7 @@ describe("WarehouseComparator", () => {
       const results = comparator.compare(local, remote);
 
       expect(results).toHaveLength(1);
-      const cityChange = results[0].changes?.find(c => c.field === "address.city");
+      const cityChange = results[0].changes?.find((c) => c.field === "address.city");
       expect(cityChange).toBeDefined();
       expect(cityChange?.currentValue).toBe("NEW YORK");
       expect(cityChange?.desiredValue).toBe("los angeles");

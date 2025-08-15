@@ -265,14 +265,22 @@ describe("Tax Integration", () => {
       const testCases = [
         {
           name: "Empty to populated",
-          local: [{ name: "Standard Rate", countryRates: [{ countryCode: "US" as const, rate: 8.5 }] }],
+          local: [
+            { name: "Standard Rate", countryRates: [{ countryCode: "US" as const, rate: 8.5 }] },
+          ],
           remote: [],
           expectedOperations: ["CREATE"],
         },
         {
           name: "Populated to empty",
           local: [],
-          remote: [{ id: "1", name: "Standard Rate", countryRates: [{ countryCode: "US" as const, rate: 8.5 }] }],
+          remote: [
+            {
+              id: "1",
+              name: "Standard Rate",
+              countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
+            },
+          ],
           expectedOperations: ["DELETE"],
         },
         {
