@@ -200,7 +200,7 @@ export const taxClassesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "TaxClasses");
+    return context.summary.results.every((r) => r.entityType !== "taxClasses");
   },
 };
 
