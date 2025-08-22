@@ -1,0 +1,549 @@
+# Saleor Click & Collect Configuration
+# Omnichannel setup with buy online pickup in-store (BOPIS) and curbside pickup
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Store Pickup"
+  defaultMailSenderAddress: "pickup@retail-store.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 20
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 30  # 30 minutes for pickup reservation
+  reserveStockDurationAuthenticatedUser: 240  # 4 hours for authenticated users
+  defaultWeightUnit: KG
+  fulfilledShipmentAutomaticallyApproved: true
+
+channels:
+  - name: "Online - Store Pickup"
+    currencyCode: USD
+    defaultCountry: US
+    slug: store-pickup
+    isActive: true
+    warehouses:
+      - "Downtown Store"
+      - "Mall Location"
+      - "Airport Store"
+      - "Suburban Store"
+      - "Outlet Center"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 7  # 7 days to pickup
+      deleteExpiredOrdersAfter: 30
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      allowUnpaidOrders: false  # Payment required for pickup
+      pickupOptions:
+        - "In-Store Pickup"
+        - "Curbside Pickup"
+        - "Locker Pickup"
+        - "Express Counter"
+
+  - name: "Online - Delivery"
+    currencyCode: USD
+    defaultCountry: US
+    slug: delivery
+    isActive: true
+    warehouses:
+      - "Central Warehouse"
+      - "Regional DC"
+    settings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+
+  - name: "In-Store Only"
+    currencyCode: USD
+    defaultCountry: US
+    slug: in-store
+    isActive: true
+    warehouses:
+      - "All Store Locations"
+    settings:
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: PAYMENT_FLOW
+      metadata:
+        pos_enabled: "true"
+        cash_accepted: "true"
+
+productTypes:
+  - name: "Retail Product"
+    slug: retail-product
+    isShippingRequired: true
+    productAttributes:
+      - name: "Brand"
+        slug: brand
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Product Category"
+        slug: product-category
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Electronics"
+            slug: electronics
+          - name: "Apparel"
+            slug: apparel
+          - name: "Home Goods"
+            slug: home-goods
+          - name: "Sports & Recreation"
+            slug: sports
+          - name: "Books & Media"
+            slug: books-media
+          - name: "Toys & Games"
+            slug: toys
+          - name: "Health & Beauty"
+            slug: health-beauty
+          - name: "Food & Beverage"
+            slug: food-beverage
+      - name: "Store Availability"
+        slug: store-availability
+        inputType: MULTISELECT
+        required: true
+        values:
+          - name: "Downtown Store"
+            slug: downtown
+          - name: "Mall Location"
+            slug: mall
+          - name: "Airport Store"
+            slug: airport
+          - name: "Suburban Store"
+            slug: suburban
+          - name: "Outlet Center"
+            slug: outlet
+          - name: "Online Only"
+            slug: online-only
+      - name: "Pickup Options"
+        slug: pickup-options
+        inputType: MULTISELECT
+        values:
+          - name: "In-Store Pickup"
+            slug: in-store-pickup
+          - name: "Curbside Available"
+            slug: curbside
+          - name: "Locker Pickup"
+            slug: locker
+          - name: "Express Counter"
+            slug: express
+          - name: "Drive-Through"
+            slug: drive-through
+      - name: "Preparation Time"
+        slug: prep-time
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Ready Now (In Stock)"
+            slug: ready-now
+          - name: "15 minutes"
+            slug: 15-min
+          - name: "30 minutes"
+            slug: 30-min
+          - name: "1 hour"
+            slug: 1-hour
+          - name: "2 hours"
+            slug: 2-hours
+          - name: "4 hours"
+            slug: 4-hours
+          - name: "Same Day"
+            slug: same-day
+          - name: "Next Day"
+            slug: next-day
+      - name: "Store Display Location"
+        slug: display-location
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "Aisle, shelf, or department location"
+      - name: "Fragile Item"
+        slug: fragile
+        inputType: BOOLEAN
+        metadata:
+          help: "Requires special handling"
+      - name: "Temperature Controlled"
+        slug: temp-controlled
+        inputType: DROPDOWN
+        values:
+          - name: "Not Required"
+            slug: none
+          - name: "Refrigerated"
+            slug: refrigerated
+          - name: "Frozen"
+            slug: frozen
+          - name: "Room Temperature"
+            slug: room-temp
+      - name: "Age Restricted"
+        slug: age-restricted
+        inputType: DROPDOWN
+        values:
+          - name: "None"
+            slug: none
+          - name: "18+"
+            slug: 18-plus
+          - name: "21+"
+            slug: 21-plus
+      - name: "ID Verification Required"
+        slug: id-required
+        inputType: BOOLEAN
+      - name: "Assembly Required"
+        slug: assembly-required
+        inputType: BOOLEAN
+      - name: "Installation Service Available"
+        slug: installation-available
+        inputType: BOOLEAN
+      - name: "Try Before Buy"
+        slug: try-before-buy
+        inputType: BOOLEAN
+        metadata:
+          help: "Customer can test/try product at pickup"
+      - name: "Gift Wrapping Available"
+        slug: gift-wrap
+        inputType: BOOLEAN
+      - name: "Express Pickup Eligible"
+        slug: express-eligible
+        inputType: BOOLEAN
+        metadata:
+          help: "Available for 15-minute pickup"
+    variantAttributes:
+      - name: "Size"
+        slug: size
+        inputType: DROPDOWN
+        values:
+          - name: "Small"
+            slug: small
+          - name: "Medium"
+            slug: medium
+          - name: "Large"
+            slug: large
+          - name: "X-Large"
+            slug: x-large
+      - name: "Color"
+        slug: color
+        inputType: DROPDOWN
+        values:
+          - name: "Black"
+            slug: black
+          - name: "White"
+            slug: white
+          - name: "Blue"
+            slug: blue
+          - name: "Red"
+            slug: red
+          - name: "Green"
+            slug: green
+
+  - name: "Grocery Product"
+    slug: grocery-product
+    isShippingRequired: false  # Pickup only
+    productAttributes:
+      - attribute: product-category
+      - attribute: store-availability
+      - attribute: temp-controlled
+      - attribute: age-restricted
+      - name: "Product Type"
+        slug: grocery-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Fresh Produce"
+            slug: produce
+          - name: "Dairy"
+            slug: dairy
+          - name: "Meat & Seafood"
+            slug: meat-seafood
+          - name: "Bakery"
+            slug: bakery
+          - name: "Frozen"
+            slug: frozen
+          - name: "Pantry"
+            slug: pantry
+          - name: "Beverages"
+            slug: beverages
+      - name: "Organic"
+        slug: organic
+        inputType: BOOLEAN
+      - name: "Local Product"
+        slug: local
+        inputType: BOOLEAN
+      - name: "Expiration Handling"
+        slug: expiration-handling
+        inputType: DROPDOWN
+        values:
+          - name: "Same Day"
+            slug: same-day
+          - name: "3+ Days"
+            slug: 3-days
+          - name: "1 Week+"
+            slug: 1-week
+          - name: "Non-Perishable"
+            slug: non-perishable
+      - name: "Substitution Allowed"
+        slug: substitution
+        inputType: BOOLEAN
+        metadata:
+          help: "Allow substitutes if out of stock"
+
+pageTypes:
+  - name: "Store Location"
+    slug: store-location
+    attributes:
+      - name: "Store Name"
+        slug: store-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Store Code"
+        slug: store-code
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Address"
+        slug: address
+        inputType: MULTILINE
+        required: true
+      - name: "Phone Number"
+        slug: phone
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Store Hours"
+        slug: store-hours
+        inputType: RICH_TEXT
+        metadata:
+          help: "Include regular and holiday hours"
+      - name: "Pickup Hours"
+        slug: pickup-hours
+        inputType: RICH_TEXT
+        metadata:
+          help: "May differ from store hours"
+      - name: "Curbside Instructions"
+        slug: curbside-instructions
+        inputType: MULTILINE
+        metadata:
+          help: "Where to park, how to notify arrival"
+      - name: "GPS Coordinates"
+        slug: gps
+        inputType: PLAIN_TEXT
+        metadata:
+          format: "latitude,longitude"
+      - name: "Parking Available"
+        slug: parking
+        inputType: DROPDOWN
+        values:
+          - name: "Free Parking"
+            slug: free
+          - name: "Paid Parking"
+            slug: paid
+          - name: "Street Parking"
+            slug: street
+          - name: "Valet Available"
+            slug: valet
+          - name: "No Parking"
+            slug: none
+      - name: "Pickup Counter Location"
+        slug: pickup-counter
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "e.g., Customer Service Desk, Back of Store"
+      - name: "Curbside Spots"
+        slug: curbside-spots
+        inputType: NUMERIC
+        metadata:
+          help: "Number of designated curbside spots"
+      - name: "Locker Available"
+        slug: locker-available
+        inputType: BOOLEAN
+      - name: "Drive-Through"
+        slug: drive-through
+        inputType: BOOLEAN
+      - name: "Wheelchair Accessible"
+        slug: wheelchair-accessible
+        inputType: BOOLEAN
+      - name: "Store Manager"
+        slug: manager
+        inputType: PLAIN_TEXT
+      - name: "Store Email"
+        slug: store-email
+        inputType: PLAIN_TEXT
+      - name: "Store Image"
+        slug: store-image
+        inputType: FILE
+      - name: "Special Services"
+        slug: special-services
+        inputType: MULTISELECT
+        values:
+          - name: "Gift Wrapping"
+            slug: gift-wrap
+          - name: "Personal Shopping"
+            slug: personal-shop
+          - name: "Installation"
+            slug: installation
+          - name: "Returns Desk"
+            slug: returns
+          - name: "Alterations"
+            slug: alterations
+
+  - name: "Pickup Order"
+    slug: pickup-order
+    attributes:
+      - name: "Order Number"
+        slug: order-number
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Pickup Location"
+        slug: pickup-location
+        inputType: REFERENCE
+        entityType: PAGE
+        required: true
+      - name: "Pickup Type"
+        slug: pickup-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "In-Store"
+            slug: in-store
+          - name: "Curbside"
+            slug: curbside
+          - name: "Locker"
+            slug: locker
+          - name: "Drive-Through"
+            slug: drive-through
+      - name: "Scheduled Time"
+        slug: scheduled-time
+        inputType: DATETIME
+      - name: "Customer Name"
+        slug: customer-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Customer Phone"
+        slug: customer-phone
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Vehicle Info"
+        slug: vehicle-info
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "For curbside: Make, Model, Color"
+      - name: "Parking Spot"
+        slug: parking-spot
+        inputType: PLAIN_TEXT
+      - name: "Order Status"
+        slug: order-status
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Pending"
+            slug: pending
+          - name: "Being Prepared"
+            slug: preparing
+          - name: "Ready for Pickup"
+            slug: ready
+          - name: "Customer Arrived"
+            slug: arrived
+          - name: "Picked Up"
+            slug: completed
+          - name: "Cancelled"
+            slug: cancelled
+          - name: "No Show"
+            slug: no-show
+      - name: "Preparation Notes"
+        slug: prep-notes
+        inputType: MULTILINE
+      - name: "Special Instructions"
+        slug: special-instructions
+        inputType: MULTILINE
+      - name: "ID Verified"
+        slug: id-verified
+        inputType: BOOLEAN
+      - name: "Pickup Confirmation Code"
+        slug: confirmation-code
+        inputType: PLAIN_TEXT
+      - name: "Items Count"
+        slug: items-count
+        inputType: NUMERIC
+      - name: "Bags Count"
+        slug: bags-count
+        inputType: NUMERIC
+      - name: "Temperature Items"
+        slug: temp-items
+        inputType: MULTISELECT
+        values:
+          - name: "Refrigerated"
+            slug: refrigerated
+          - name: "Frozen"
+            slug: frozen
+          - name: "Hot Food"
+            slug: hot
+      - name: "Staff Member"
+        slug: staff-member
+        inputType: PLAIN_TEXT
+      - name: "Pickup Time"
+        slug: actual-pickup-time
+        inputType: DATETIME
+      - name: "Customer Signature"
+        slug: signature
+        inputType: FILE
+
+categories:
+  - name: "Available for Pickup"
+    slug: "pickup-available"
+    subcategories:
+      - name: "Ready in 15 Minutes"
+        slug: "express-pickup"
+        metadata:
+          prep_time: "15"
+      - name: "Same Day Pickup"
+        slug: "same-day"
+        metadata:
+          prep_time: "240"
+      - name: "Next Day Pickup"
+        slug: "next-day"
+        metadata:
+          prep_time: "1440"
+
+  - name: "Curbside Available"
+    slug: "curbside"
+    subcategories:
+      - name: "Groceries"
+        slug: "curbside-grocery"
+      - name: "General Merchandise"
+        slug: "curbside-general"
+      - name: "Electronics"
+        slug: "curbside-electronics"
+
+  - name: "Store Departments"
+    slug: "departments"
+    subcategories:
+      - name: "Electronics"
+        slug: "dept-electronics"
+        metadata:
+          floor: "1"
+          section: "A"
+      - name: "Clothing"
+        slug: "dept-clothing"
+        metadata:
+          floor: "2"
+          section: "B"
+      - name: "Home & Garden"
+        slug: "dept-home"
+        metadata:
+          floor: "1"
+          section: "C"
+      - name: "Grocery"
+        slug: "dept-grocery"
+        metadata:
+          floor: "1"
+          section: "D"
+      - name: "Customer Service"
+        slug: "customer-service"
+        metadata:
+          floor: "1"
+          section: "Front"
+
+  - name: "Online Exclusive"
+    slug: "online-exclusive"
+    metadata:
+      note: "Ship to home only"
+
+  - name: "In-Store Only"
+    slug: "in-store-only"
+    metadata:
+      note: "Must visit store to purchase"

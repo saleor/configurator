@@ -1,0 +1,627 @@
+# Saleor Digital Products Configuration
+# Setup for selling software, ebooks, courses, and other digital goods
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Digital Store"
+  defaultMailSenderAddress: "support@digital-store.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 10
+  trackInventoryByDefault: false  # Digital products don't need inventory tracking
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+  defaultWeightUnit: KG
+
+channels:
+  - name: "Global Digital Store"
+    currencyCode: USD
+    defaultCountry: US
+    slug: digital-store
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 90
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: CHARGE
+
+productTypes:
+  - name: "Software"
+    slug: software
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Software Type"
+        slug: software-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Desktop Application"
+            slug: desktop-app
+          - name: "Mobile App"
+            slug: mobile-app
+          - name: "Web Application"
+            slug: web-app
+          - name: "Plugin/Extension"
+            slug: plugin
+          - name: "Developer Tool"
+            slug: dev-tool
+          - name: "Game"
+            slug: game
+      - name: "License Type"
+        slug: license-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Single User"
+            slug: single-user
+          - name: "Team (up to 5)"
+            slug: team-5
+          - name: "Team (up to 10)"
+            slug: team-10
+          - name: "Business (up to 50)"
+            slug: business-50
+          - name: "Enterprise (unlimited)"
+            slug: enterprise
+          - name: "Educational"
+            slug: educational
+          - name: "Open Source"
+            slug: open-source
+      - name: "Operating System"
+        slug: operating-system
+        inputType: MULTISELECT
+        values:
+          - name: "Windows"
+            slug: windows
+          - name: "macOS"
+            slug: macos
+          - name: "Linux"
+            slug: linux
+          - name: "iOS"
+            slug: ios
+          - name: "Android"
+            slug: android
+          - name: "Web-based"
+            slug: web-based
+      - name: "Version"
+        slug: version
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "System Requirements"
+        slug: system-requirements
+        inputType: RICH_TEXT
+      - name: "File Size"
+        slug: file-size
+        inputType: PLAIN_TEXT
+        unit: "MB"
+      - name: "Subscription Type"
+        slug: subscription-type
+        inputType: DROPDOWN
+        values:
+          - name: "One-time Purchase"
+            slug: one-time
+          - name: "Monthly Subscription"
+            slug: monthly
+          - name: "Annual Subscription"
+            slug: annual
+          - name: "Lifetime License"
+            slug: lifetime
+          - name: "Free"
+            slug: free
+          - name: "Freemium"
+            slug: freemium
+      - name: "Max Installations"
+        slug: max-installations
+        inputType: NUMERIC
+        metadata:
+          min: "1"
+          max: "999"
+          help: "Number of devices/installations allowed"
+      - name: "Trial Period"
+        slug: trial-period
+        inputType: NUMERIC
+        unit: "days"
+      - name: "Auto-renewal"
+        slug: auto-renewal
+        inputType: BOOLEAN
+      - name: "Digital Content URL"
+        slug: digital-content-url
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "Secure download URL for the digital product"
+      - name: "Activation Method"
+        slug: activation-method
+        inputType: DROPDOWN
+        values:
+          - name: "License Key"
+            slug: license-key
+          - name: "Account Activation"
+            slug: account
+          - name: "Download Link"
+            slug: download-link
+          - name: "Serial Number"
+            slug: serial
+    variantAttributes:
+      - name: "Duration"
+        slug: duration
+        inputType: DROPDOWN
+        values:
+          - name: "1 Month"
+            slug: 1-month
+          - name: "3 Months"
+            slug: 3-months
+          - name: "6 Months"
+            slug: 6-months
+          - name: "1 Year"
+            slug: 1-year
+          - name: "2 Years"
+            slug: 2-years
+          - name: "Lifetime"
+            slug: lifetime
+
+  - name: "E-Book"
+    slug: ebook
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Author"
+        slug: author
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Publisher"
+        slug: publisher
+        inputType: PLAIN_TEXT
+      - name: "ISBN"
+        slug: isbn
+        inputType: PLAIN_TEXT
+      - name: "Publication Date"
+        slug: publication-date
+        inputType: DATE
+      - name: "Language"
+        slug: language
+        inputType: DROPDOWN
+        values:
+          - name: "English"
+            slug: english
+          - name: "Spanish"
+            slug: spanish
+          - name: "French"
+            slug: french
+          - name: "German"
+            slug: german
+          - name: "Chinese"
+            slug: chinese
+          - name: "Japanese"
+            slug: japanese
+      - name: "Page Count"
+        slug: page-count
+        inputType: NUMERIC
+      - name: "Genre"
+        slug: genre
+        inputType: MULTISELECT
+        values:
+          - name: "Fiction"
+            slug: fiction
+          - name: "Non-Fiction"
+            slug: non-fiction
+          - name: "Business"
+            slug: business
+          - name: "Technology"
+            slug: technology
+          - name: "Self-Help"
+            slug: self-help
+          - name: "Biography"
+            slug: biography
+          - name: "History"
+            slug: history
+          - name: "Science"
+            slug: science
+          - name: "Children"
+            slug: children
+      - name: "Format"
+        slug: format
+        inputType: MULTISELECT
+        required: true
+        values:
+          - name: "PDF"
+            slug: pdf
+          - name: "EPUB"
+            slug: epub
+          - name: "MOBI"
+            slug: mobi
+          - name: "AZW3"
+            slug: azw3
+      - name: "DRM Protected"
+        slug: drm-protected
+        inputType: BOOLEAN
+      - name: "Sample Available"
+        slug: sample-available
+        inputType: BOOLEAN
+      - name: "Reading Level"
+        slug: reading-level
+        inputType: DROPDOWN
+        values:
+          - name: "Children (5-8)"
+            slug: children-5-8
+          - name: "Young Adult (9-12)"
+            slug: young-adult
+          - name: "Teen (13-17)"
+            slug: teen
+          - name: "Adult"
+            slug: adult
+
+  - name: "Online Course"
+    slug: online-course
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Instructor"
+        slug: instructor
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Course Duration"
+        slug: course-duration
+        inputType: PLAIN_TEXT
+        unit: "hours"
+      - name: "Skill Level"
+        slug: skill-level
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Beginner"
+            slug: beginner
+          - name: "Intermediate"
+            slug: intermediate
+          - name: "Advanced"
+            slug: advanced
+          - name: "All Levels"
+            slug: all-levels
+      - name: "Course Format"
+        slug: course-format
+        inputType: MULTISELECT
+        values:
+          - name: "Video Lectures"
+            slug: video
+          - name: "Text Materials"
+            slug: text
+          - name: "Interactive Exercises"
+            slug: exercises
+          - name: "Live Sessions"
+            slug: live
+          - name: "Downloadable Resources"
+            slug: downloads
+          - name: "Quizzes"
+            slug: quizzes
+          - name: "Assignments"
+            slug: assignments
+      - name: "Certificate Provided"
+        slug: certificate
+        inputType: BOOLEAN
+      - name: "Access Duration"
+        slug: access-duration
+        inputType: DROPDOWN
+        values:
+          - name: "30 days"
+            slug: 30-days
+          - name: "90 days"
+            slug: 90-days
+          - name: "180 days"
+            slug: 180-days
+          - name: "1 year"
+            slug: 1-year
+          - name: "Lifetime"
+            slug: lifetime
+      - name: "Number of Lessons"
+        slug: num-lessons
+        inputType: NUMERIC
+      - name: "Language"
+        slug: course-language
+        inputType: DROPDOWN
+        values:
+          - name: "English"
+            slug: english
+          - name: "Spanish"
+            slug: spanish
+          - name: "French"
+            slug: french
+          - name: "German"
+            slug: german
+      - name: "Subtitles Available"
+        slug: subtitles
+        inputType: BOOLEAN
+      - name: "Course Platform"
+        slug: course-platform
+        inputType: DROPDOWN
+        values:
+          - name: "Own Platform"
+            slug: own-platform
+          - name: "Udemy"
+            slug: udemy
+          - name: "Coursera"
+            slug: coursera
+          - name: "Teachable"
+            slug: teachable
+          - name: "Thinkific"
+            slug: thinkific
+      - name: "Prerequisites"
+        slug: prerequisites
+        inputType: MULTILINE
+
+  - name: "Digital Asset"
+    slug: digital-asset
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Asset Type"
+        slug: asset-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Stock Photo"
+            slug: stock-photo
+          - name: "Vector Graphics"
+            slug: vector
+          - name: "3D Model"
+            slug: 3d-model
+          - name: "Audio Track"
+            slug: audio
+          - name: "Video Footage"
+            slug: video
+          - name: "Font"
+            slug: font
+          - name: "Template"
+            slug: template
+          - name: "Preset/Filter"
+            slug: preset
+      - name: "File Format"
+        slug: file-format
+        inputType: MULTISELECT
+        required: true
+        values:
+          - name: "JPG"
+            slug: jpg
+          - name: "PNG"
+            slug: png
+          - name: "SVG"
+            slug: svg
+          - name: "AI"
+            slug: ai
+          - name: "PSD"
+            slug: psd
+          - name: "EPS"
+            slug: eps
+          - name: "MP3"
+            slug: mp3
+          - name: "WAV"
+            slug: wav
+          - name: "MP4"
+            slug: mp4
+          - name: "MOV"
+            slug: mov
+      - name: "Resolution"
+        slug: resolution
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "e.g., 1920x1080, 4K, Vector"
+      - name: "License Type"
+        slug: asset-license
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Personal Use"
+            slug: personal
+          - name: "Commercial Use"
+            slug: commercial
+          - name: "Extended Commercial"
+            slug: extended
+          - name: "Editorial Only"
+            slug: editorial
+          - name: "Royalty Free"
+            slug: royalty-free
+          - name: "Rights Managed"
+            slug: rights-managed
+      - name: "Usage Restrictions"
+        slug: usage-restrictions
+        inputType: MULTILINE
+      - name: "File Size"
+        slug: asset-file-size
+        inputType: PLAIN_TEXT
+        unit: "MB"
+
+  - name: "Subscription Service"
+    slug: subscription-service
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Service Type"
+        slug: service-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Streaming Service"
+            slug: streaming
+          - name: "Cloud Storage"
+            slug: cloud-storage
+          - name: "VPN Service"
+            slug: vpn
+          - name: "Software as a Service"
+            slug: saas
+          - name: "Membership"
+            slug: membership
+          - name: "Newsletter"
+            slug: newsletter
+      - name: "Billing Cycle"
+        slug: billing-cycle
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Monthly"
+            slug: monthly
+          - name: "Quarterly"
+            slug: quarterly
+          - name: "Semi-Annual"
+            slug: semi-annual
+          - name: "Annual"
+            slug: annual
+      - name: "Free Trial Days"
+        slug: free-trial
+        inputType: NUMERIC
+        unit: "days"
+      - name: "Auto-renewal"
+        slug: subscription-auto-renewal
+        inputType: BOOLEAN
+        metadata:
+          default: "true"
+      - name: "Cancellation Policy"
+        slug: cancellation-policy
+        inputType: DROPDOWN
+        values:
+          - name: "Anytime"
+            slug: anytime
+          - name: "End of Billing Period"
+            slug: end-period
+          - name: "30 Days Notice"
+            slug: 30-days-notice
+      - name: "User Limit"
+        slug: user-limit
+        inputType: NUMERIC
+        metadata:
+          help: "Maximum number of users per subscription"
+      - name: "Features Included"
+        slug: features-included
+        inputType: RICH_TEXT
+
+pageTypes:
+  - name: "License Management"
+    slug: license-management
+    attributes:
+      - name: "License Key"
+        slug: license-key
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Customer Email"
+        slug: customer-email
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Purchase Date"
+        slug: purchase-date
+        inputType: DATE
+      - name: "Expiration Date"
+        slug: expiration-date
+        inputType: DATE
+      - name: "Activation Count"
+        slug: activation-count
+        inputType: NUMERIC
+      - name: "Max Activations"
+        slug: max-activations
+        inputType: NUMERIC
+      - name: "Status"
+        slug: license-status
+        inputType: DROPDOWN
+        values:
+          - name: "Active"
+            slug: active
+          - name: "Expired"
+            slug: expired
+          - name: "Revoked"
+            slug: revoked
+          - name: "Pending"
+            slug: pending
+
+  - name: "Download Link"
+    slug: download-link
+    attributes:
+      - name: "Product Name"
+        slug: product-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Download URL"
+        slug: download-url
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Expiration Date"
+        slug: link-expiration
+        inputType: DATETIME
+      - name: "Download Count"
+        slug: download-count
+        inputType: NUMERIC
+      - name: "Max Downloads"
+        slug: max-downloads
+        inputType: NUMERIC
+      - name: "Access Token"
+        slug: access-token
+        inputType: PLAIN_TEXT
+
+categories:
+  - name: "Software"
+    slug: "software"
+    subcategories:
+      - name: "Productivity"
+        slug: "productivity"
+      - name: "Security"
+        slug: "security"
+      - name: "Development Tools"
+        slug: "dev-tools"
+      - name: "Graphics & Design"
+        slug: "graphics-design"
+      - name: "Business"
+        slug: "business-software"
+      - name: "Games"
+        slug: "games"
+
+  - name: "Digital Media"
+    slug: "digital-media"
+    subcategories:
+      - name: "E-Books"
+        slug: "ebooks"
+      - name: "Audiobooks"
+        slug: "audiobooks"
+      - name: "Music"
+        slug: "music"
+      - name: "Videos"
+        slug: "videos"
+      - name: "Stock Assets"
+        slug: "stock-assets"
+
+  - name: "Online Learning"
+    slug: "online-learning"
+    subcategories:
+      - name: "Technology"
+        slug: "tech-courses"
+      - name: "Business"
+        slug: "business-courses"
+      - name: "Creative"
+        slug: "creative-courses"
+      - name: "Language"
+        slug: "language-courses"
+      - name: "Personal Development"
+        slug: "personal-dev"
+
+  - name: "Subscriptions"
+    slug: "subscriptions"
+    subcategories:
+      - name: "Streaming Services"
+        slug: "streaming"
+      - name: "Cloud Services"
+        slug: "cloud"
+      - name: "Memberships"
+        slug: "memberships"
+      - name: "Newsletters"
+        slug: "newsletters"
+
+  - name: "Templates & Themes"
+    slug: "templates-themes"
+    subcategories:
+      - name: "Website Templates"
+        slug: "website-templates"
+      - name: "WordPress Themes"
+        slug: "wordpress"
+      - name: "Email Templates"
+        slug: "email-templates"
+      - name: "Presentation Templates"
+        slug: "presentations"

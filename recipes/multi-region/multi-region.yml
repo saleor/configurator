@@ -1,0 +1,600 @@
+# Saleor Multi-Region Configuration
+# International e-commerce setup with multiple channels, currencies, and localized experiences
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Global Store"
+  defaultMailSenderAddress: "support@global-store.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 10
+  reserveStockDurationAuthenticatedUser: 60
+  defaultWeightUnit: KG
+  fulfilledShipmentAutomaticallyApproved: true
+  fulfilledReturnAutomaticallyApproved: false
+
+channels:
+  - name: "North America"
+    currencyCode: USD
+    defaultCountry: US
+    slug: north-america
+    isActive: true
+    warehouses:
+      - "US East Warehouse"
+      - "US West Warehouse"
+      - "Canada Warehouse"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      expireOrdersAfter: 60
+      deleteExpiredOrdersAfter: 120
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      includeDraftOrderInVoucherUsage: false
+      automaticallyFulfillNonShippableGiftCard: true
+      allowedCountries:
+        - US
+        - CA
+        - MX
+      shippingZones:
+        - "North America Standard"
+        - "North America Express"
+        - "North America Economy"
+
+  - name: "Europe"
+    currencyCode: EUR
+    defaultCountry: DE
+    slug: europe
+    isActive: true
+    warehouses:
+      - "Germany Warehouse"
+      - "Netherlands Warehouse"
+      - "Poland Warehouse"
+    settings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      expireOrdersAfter: 60
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      allowedCountries:
+        - DE
+        - FR
+        - IT
+        - ES
+        - NL
+        - BE
+        - AT
+        - PL
+        - CZ
+        - DK
+        - SE
+        - FI
+      shippingZones:
+        - "EU Standard"
+        - "EU Express"
+        - "EU Next Day"
+
+  - name: "United Kingdom"
+    currencyCode: GBP
+    defaultCountry: GB
+    slug: uk
+    isActive: true
+    warehouses:
+      - "UK Warehouse"
+      - "Ireland Warehouse"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      allowedCountries:
+        - GB
+        - IE
+      shippingZones:
+        - "UK Standard"
+        - "UK Express"
+        - "UK Economy"
+
+  - name: "Asia Pacific"
+    currencyCode: USD
+    defaultCountry: JP
+    slug: asia-pacific
+    isActive: true
+    warehouses:
+      - "Japan Warehouse"
+      - "Singapore Warehouse"
+      - "Australia Warehouse"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      allowedCountries:
+        - JP
+        - SG
+        - AU
+        - NZ
+        - KR
+        - HK
+        - TW
+      shippingZones:
+        - "APAC Standard"
+        - "APAC Express"
+        - "APAC Economy"
+
+  - name: "Middle East"
+    currencyCode: AED
+    defaultCountry: AE
+    slug: middle-east
+    isActive: true
+    warehouses:
+      - "Dubai Warehouse"
+      - "Saudi Warehouse"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false  # Manual review for high-value orders
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: AUTHORIZATION
+      allowedCountries:
+        - AE
+        - SA
+        - QA
+        - KW
+        - BH
+        - OM
+      shippingZones:
+        - "Gulf Standard"
+        - "Gulf Express"
+
+productTypes:
+  - name: "International Product"
+    slug: international-product
+    isShippingRequired: true
+    productAttributes:
+      - name: "Global Brand"
+        slug: global-brand
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Country of Origin"
+        slug: country-of-origin
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "China"
+            slug: china
+          - name: "India"
+            slug: india
+          - name: "Vietnam"
+            slug: vietnam
+          - name: "Bangladesh"
+            slug: bangladesh
+          - name: "Germany"
+            slug: germany
+          - name: "Italy"
+            slug: italy
+          - name: "USA"
+            slug: usa
+          - name: "Japan"
+            slug: japan
+          - name: "South Korea"
+            slug: south-korea
+          - name: "Turkey"
+            slug: turkey
+      - name: "Material"
+        slug: material
+        inputType: MULTISELECT
+        values:
+          - name: "Cotton"
+            slug: cotton
+          - name: "Polyester"
+            slug: polyester
+          - name: "Wool"
+            slug: wool
+          - name: "Leather"
+            slug: leather
+          - name: "Synthetic"
+            slug: synthetic
+      - name: "Import Restrictions"
+        slug: import-restrictions
+        inputType: MULTISELECT
+        values:
+          - name: "None"
+            slug: none
+          - name: "EU REACH Compliant"
+            slug: eu-reach
+          - name: "CPSIA Compliant"
+            slug: cpsia
+          - name: "CE Marking Required"
+            slug: ce-marking
+          - name: "FDA Approved"
+            slug: fda
+          - name: "Halal Certified"
+            slug: halal
+          - name: "Kosher Certified"
+            slug: kosher
+      - name: "HS Code"
+        slug: hs-code
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "Harmonized System code for customs"
+      - name: "Duties & Taxes"
+        slug: duties-taxes
+        inputType: DROPDOWN
+        values:
+          - name: "Included (DDP)"
+            slug: ddp
+          - name: "Not Included (DDU)"
+            slug: ddu
+          - name: "Prepaid"
+            slug: prepaid
+      - name: "Localization Available"
+        slug: localization-available
+        inputType: MULTISELECT
+        values:
+          - name: "English"
+            slug: en
+          - name: "Spanish"
+            slug: es
+          - name: "French"
+            slug: fr
+          - name: "German"
+            slug: de
+          - name: "Italian"
+            slug: it
+          - name: "Japanese"
+            slug: ja
+          - name: "Chinese (Simplified)"
+            slug: zh-cn
+          - name: "Arabic"
+            slug: ar
+          - name: "Portuguese"
+            slug: pt
+          - name: "Russian"
+            slug: ru
+      - name: "Regional Availability"
+        slug: regional-availability
+        inputType: MULTISELECT
+        values:
+          - name: "North America"
+            slug: north-america
+          - name: "Europe"
+            slug: europe
+          - name: "United Kingdom"
+            slug: uk
+          - name: "Asia Pacific"
+            slug: asia-pacific
+          - name: "Middle East"
+            slug: middle-east
+          - name: "Latin America"
+            slug: latam
+          - name: "Africa"
+            slug: africa
+      - name: "Warranty Type"
+        slug: warranty-type
+        inputType: DROPDOWN
+        values:
+          - name: "International Warranty"
+            slug: international
+          - name: "Regional Warranty"
+            slug: regional
+          - name: "Local Warranty Only"
+            slug: local
+          - name: "No Warranty"
+            slug: none
+      - name: "Power Adapter"
+        slug: power-adapter
+        inputType: MULTISELECT
+        values:
+          - name: "Type A (US/Japan)"
+            slug: type-a
+          - name: "Type C (EU)"
+            slug: type-c
+          - name: "Type G (UK)"
+            slug: type-g
+          - name: "Type I (Australia)"
+            slug: type-i
+          - name: "Universal Adapter Included"
+            slug: universal
+          - name: "Not Applicable"
+            slug: na
+      - name: "Packaging Language"
+        slug: packaging-language
+        inputType: MULTISELECT
+        values:
+          - name: "English"
+            slug: en-pack
+          - name: "Multi-language"
+            slug: multi-pack
+          - name: "Local Language"
+            slug: local-pack
+      - name: "Return Policy"
+        slug: return-policy
+        inputType: DROPDOWN
+        values:
+          - name: "30 Days International"
+            slug: 30-days-intl
+          - name: "14 Days International"
+            slug: 14-days-intl
+          - name: "Local Returns Only"
+            slug: local-only
+          - name: "No International Returns"
+            slug: no-intl-returns
+    variantAttributes:
+      - name: "Size"
+        slug: size
+        inputType: DROPDOWN
+        values:
+          - name: "XS"
+            slug: xs
+            metadata:
+              us: "0-2"
+              eu: "32-34"
+              uk: "4-6"
+              jp: "5-7"
+          - name: "S"
+            slug: s
+            metadata:
+              us: "4-6"
+              eu: "36-38"
+              uk: "8-10"
+              jp: "9-11"
+          - name: "M"
+            slug: m
+            metadata:
+              us: "8-10"
+              eu: "40-42"
+              uk: "12-14"
+              jp: "13-15"
+          - name: "L"
+            slug: l
+            metadata:
+              us: "12-14"
+              eu: "44-46"
+              uk: "16-18"
+              jp: "17-19"
+          - name: "XL"
+            slug: xl
+            metadata:
+              us: "16-18"
+              eu: "48-50"
+              uk: "20-22"
+              jp: "21-23"
+      - name: "Color"
+        slug: color
+        inputType: DROPDOWN
+        values:
+          - name: "Black"
+            slug: black
+          - name: "White"
+            slug: white
+          - name: "Navy"
+            slug: navy
+          - name: "Red"
+            slug: red
+          - name: "Blue"
+            slug: blue
+
+pageTypes:
+  - name: "Regional Settings"
+    slug: regional-settings
+    attributes:
+      - name: "Region Name"
+        slug: region-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Default Language"
+        slug: default-language
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "English"
+            slug: en
+          - name: "Spanish"
+            slug: es
+          - name: "French"
+            slug: fr
+          - name: "German"
+            slug: de
+          - name: "Italian"
+            slug: it
+          - name: "Japanese"
+            slug: ja
+          - name: "Chinese"
+            slug: zh
+          - name: "Arabic"
+            slug: ar
+      - name: "Currency Symbol Position"
+        slug: currency-position
+        inputType: DROPDOWN
+        values:
+          - name: "Before Amount ($100)"
+            slug: before
+          - name: "After Amount (100€)"
+            slug: after
+      - name: "Date Format"
+        slug: date-format
+        inputType: DROPDOWN
+        values:
+          - name: "MM/DD/YYYY"
+            slug: us-format
+          - name: "DD/MM/YYYY"
+            slug: eu-format
+          - name: "YYYY-MM-DD"
+            slug: iso-format
+      - name: "Tax Display"
+        slug: tax-display
+        inputType: DROPDOWN
+        values:
+          - name: "Include Tax (VAT)"
+            slug: include-tax
+          - name: "Exclude Tax"
+            slug: exclude-tax
+      - name: "Phone Format"
+        slug: phone-format
+        inputType: PLAIN_TEXT
+        metadata:
+          help: "Example: +1 (XXX) XXX-XXXX"
+      - name: "Address Format"
+        slug: address-format
+        inputType: MULTILINE
+        metadata:
+          help: "Template for address display"
+      - name: "Business Hours"
+        slug: business-hours
+        inputType: MULTILINE
+      - name: "Local Holidays"
+        slug: local-holidays
+        inputType: MULTILINE
+      - name: "Support Email"
+        slug: support-email
+        inputType: PLAIN_TEXT
+      - name: "Support Phone"
+        slug: support-phone
+        inputType: PLAIN_TEXT
+      - name: "Customs Information"
+        slug: customs-info
+        inputType: RICH_TEXT
+
+  - name: "Shipping Zone"
+    slug: shipping-zone
+    attributes:
+      - name: "Zone Name"
+        slug: zone-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Countries Included"
+        slug: countries-included
+        inputType: MULTILINE
+        required: true
+      - name: "Shipping Methods"
+        slug: shipping-methods
+        inputType: MULTISELECT
+        values:
+          - name: "Standard (5-10 days)"
+            slug: standard
+          - name: "Express (2-3 days)"
+            slug: express
+          - name: "Next Day"
+            slug: next-day
+          - name: "Economy (10-20 days)"
+            slug: economy
+      - name: "Free Shipping Threshold"
+        slug: free-shipping-threshold
+        inputType: NUMERIC
+        unit: "USD"
+      - name: "Import Duty Handling"
+        slug: import-duty
+        inputType: DROPDOWN
+        values:
+          - name: "Customer Pays"
+            slug: customer-pays
+          - name: "Merchant Pays"
+            slug: merchant-pays
+          - name: "Calculated at Checkout"
+            slug: calculated
+      - name: "Tracking Available"
+        slug: tracking-available
+        inputType: BOOLEAN
+      - name: "Insurance Available"
+        slug: insurance-available
+        inputType: BOOLEAN
+      - name: "Signature Required"
+        slug: signature-required
+        inputType: BOOLEAN
+
+  - name: "Currency Exchange"
+    slug: currency-exchange
+    attributes:
+      - name: "Base Currency"
+        slug: base-currency
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Target Currency"
+        slug: target-currency
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Exchange Rate"
+        slug: exchange-rate
+        inputType: NUMERIC
+        required: true
+      - name: "Last Updated"
+        slug: last-updated
+        inputType: DATETIME
+      - name: "Markup Percentage"
+        slug: markup-percentage
+        inputType: NUMERIC
+        metadata:
+          help: "Additional markup on exchange rate"
+      - name: "Auto Update"
+        slug: auto-update
+        inputType: BOOLEAN
+
+categories:
+  - name: "Global Products"
+    slug: "global-products"
+    subcategories:
+      - name: "Electronics"
+        slug: "electronics"
+        subcategories:
+          - name: "Smartphones"
+            slug: "smartphones"
+          - name: "Laptops"
+            slug: "laptops"
+          - name: "Accessories"
+            slug: "electronics-accessories"
+      - name: "Fashion"
+        slug: "fashion"
+        subcategories:
+          - name: "International Brands"
+            slug: "intl-brands"
+          - name: "Local Designers"
+            slug: "local-designers"
+      - name: "Home & Garden"
+        slug: "home-garden"
+        subcategories:
+          - name: "Furniture"
+            slug: "furniture"
+          - name: "Decor"
+            slug: "decor"
+          - name: "Kitchen"
+            slug: "kitchen"
+      - name: "Sports & Outdoors"
+        slug: "sports-outdoors"
+      - name: "Books & Media"
+        slug: "books-media"
+        subcategories:
+          - name: "English Books"
+            slug: "english-books"
+          - name: "Local Language"
+            slug: "local-language"
+          - name: "International Media"
+            slug: "intl-media"
+
+  - name: "Regional Exclusives"
+    slug: "regional-exclusives"
+    subcategories:
+      - name: "North America Only"
+        slug: "na-only"
+      - name: "Europe Only"
+        slug: "eu-only"
+      - name: "Asia Only"
+        slug: "asia-only"
+      - name: "UK Only"
+        slug: "uk-only"
+
+  - name: "Duty Free"
+    slug: "duty-free"
+    metadata:
+      note: "Products eligible for duty-free shipping"
+
+  - name: "Local Marketplace"
+    slug: "local-marketplace"
+    subcategories:
+      - name: "Local Artisans"
+        slug: "local-artisans"
+      - name: "Regional Specialties"
+        slug: "regional-specialties"
+      - name: "Traditional Products"
+        slug: "traditional"

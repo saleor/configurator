@@ -1,0 +1,305 @@
+# Saleor Marketplace Configuration
+# Multi-vendor marketplace with commission tracking and vendor management
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Marketplace Platform"
+  defaultMailSenderAddress: "marketplace@example.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 100
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+  defaultWeightUnit: KG
+
+channels:
+  - name: "Global Marketplace"
+    currencyCode: USD
+    defaultCountry: US
+    slug: marketplace
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 90
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: false
+      defaultTransactionFlowStrategy: AUTHORIZATION
+
+productTypes:
+  - name: "Marketplace Product"
+    slug: marketplace-product
+    isShippingRequired: true
+    productAttributes:
+      - name: "Vendor Name"
+        slug: vendor-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Vendor ID"
+        slug: vendor-id
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Commission Rate"
+        slug: commission-rate
+        inputType: NUMERIC
+        unit: "%"
+        metadata:
+          min: "0"
+          max: "100"
+          default: "15"
+      - name: "Fulfillment Type"
+        slug: fulfillment-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Vendor Fulfilled"
+            slug: vendor-fulfilled
+          - name: "Platform Fulfilled"
+            slug: platform-fulfilled
+          - name: "Dropship"
+            slug: dropship
+      - name: "Return Policy"
+        slug: return-policy
+        inputType: DROPDOWN
+        values:
+          - name: "14 days"
+            slug: 14-days
+          - name: "30 days"
+            slug: 30-days
+          - name: "60 days"
+            slug: 60-days
+          - name: "No returns"
+            slug: no-returns
+      - name: "Shipping Time"
+        slug: shipping-time
+        inputType: DROPDOWN
+        values:
+          - name: "1-2 business days"
+            slug: 1-2-days
+          - name: "3-5 business days"
+            slug: 3-5-days
+          - name: "1-2 weeks"
+            slug: 1-2-weeks
+      - name: "Product Condition"
+        slug: product-condition
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "New"
+            slug: new
+          - name: "Refurbished"
+            slug: refurbished
+          - name: "Used - Like New"
+            slug: used-like-new
+          - name: "Used - Good"
+            slug: used-good
+      - name: "Vendor SKU"
+        slug: vendor-sku
+        inputType: PLAIN_TEXT
+    variantAttributes:
+      - name: "Variant Option"
+        slug: variant-option
+        inputType: DROPDOWN
+        values:
+          - name: "Default"
+            slug: default
+
+  - name: "Digital Product"
+    slug: digital-product
+    isShippingRequired: false
+    productAttributes:
+      - attribute: vendor-name
+      - attribute: vendor-id
+      - attribute: commission-rate
+      - name: "License Type"
+        slug: license-type
+        inputType: DROPDOWN
+        values:
+          - name: "Single User"
+            slug: single-user
+          - name: "Team (up to 5)"
+            slug: team-5
+          - name: "Business (unlimited)"
+            slug: business-unlimited
+      - name: "Delivery Method"
+        slug: delivery-method
+        inputType: DROPDOWN
+        values:
+          - name: "Instant Download"
+            slug: instant-download
+          - name: "Email Delivery"
+            slug: email-delivery
+          - name: "Account Access"
+            slug: account-access
+
+pageTypes:
+  - name: "Vendor Profile"
+    slug: vendor-profile
+    attributes:
+      - name: "Company Name"
+        slug: company-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Business Registration Number"
+        slug: business-registration
+        inputType: PLAIN_TEXT
+      - name: "Vendor Rating"
+        slug: vendor-rating
+        inputType: NUMERIC
+        metadata:
+          min: "1"
+          max: "5"
+          step: "0.1"
+      - name: "Total Sales"
+        slug: total-sales
+        inputType: NUMERIC
+      - name: "Member Since"
+        slug: member-since
+        inputType: DATE
+      - name: "Vendor Logo"
+        slug: vendor-logo
+        inputType: FILE
+      - name: "Business Category"
+        slug: business-category
+        inputType: DROPDOWN
+        values:
+          - name: "Electronics"
+            slug: electronics
+          - name: "Fashion"
+            slug: fashion
+          - name: "Home & Garden"
+            slug: home-garden
+          - name: "Sports & Outdoors"
+            slug: sports-outdoors
+          - name: "Books & Media"
+            slug: books-media
+      - name: "Vendor Description"
+        slug: vendor-description
+        inputType: RICH_TEXT
+      - name: "Return Address"
+        slug: return-address
+        inputType: MULTILINE
+      - name: "Support Email"
+        slug: support-email
+        inputType: PLAIN_TEXT
+      - name: "Support Phone"
+        slug: support-phone
+        inputType: PLAIN_TEXT
+      - name: "Banking Details"
+        slug: banking-details
+        inputType: MULTILINE
+        metadata:
+          encrypted: "true"
+      - name: "Tax ID"
+        slug: tax-id
+        inputType: PLAIN_TEXT
+      - name: "Vendor Status"
+        slug: vendor-status
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Active"
+            slug: active
+          - name: "Suspended"
+            slug: suspended
+          - name: "Under Review"
+            slug: under-review
+          - name: "Inactive"
+            slug: inactive
+
+  - name: "Vendor Agreement"
+    slug: vendor-agreement
+    attributes:
+      - name: "Agreement Date"
+        slug: agreement-date
+        inputType: DATE
+        required: true
+      - name: "Agreement Type"
+        slug: agreement-type
+        inputType: DROPDOWN
+        values:
+          - name: "Standard"
+            slug: standard
+          - name: "Premium"
+            slug: premium
+          - name: "Enterprise"
+            slug: enterprise
+      - name: "Commission Structure"
+        slug: commission-structure
+        inputType: RICH_TEXT
+      - name: "Payment Terms"
+        slug: payment-terms
+        inputType: DROPDOWN
+        values:
+          - name: "Weekly"
+            slug: weekly
+          - name: "Bi-weekly"
+            slug: bi-weekly
+          - name: "Monthly"
+            slug: monthly
+      - name: "Agreement Document"
+        slug: agreement-document
+        inputType: FILE
+
+categories:
+  - name: "Electronics"
+    slug: "electronics"
+    subcategories:
+      - name: "Computers & Tablets"
+        slug: "computers-tablets"
+      - name: "Phones & Accessories"
+        slug: "phones-accessories"
+      - name: "Audio & Video"
+        slug: "audio-video"
+      - name: "Gaming"
+        slug: "gaming"
+  
+  - name: "Fashion"
+    slug: "fashion"
+    subcategories:
+      - name: "Men's Clothing"
+        slug: "mens-clothing"
+      - name: "Women's Clothing"
+        slug: "womens-clothing"
+      - name: "Shoes"
+        slug: "shoes"
+      - name: "Accessories"
+        slug: "accessories"
+  
+  - name: "Home & Garden"
+    slug: "home-garden"
+    subcategories:
+      - name: "Furniture"
+        slug: "furniture"
+      - name: "Kitchen & Dining"
+        slug: "kitchen-dining"
+      - name: "Bedding & Bath"
+        slug: "bedding-bath"
+      - name: "Garden & Outdoor"
+        slug: "garden-outdoor"
+  
+  - name: "Sports & Outdoors"
+    slug: "sports-outdoors"
+    subcategories:
+      - name: "Exercise & Fitness"
+        slug: "exercise-fitness"
+      - name: "Outdoor Recreation"
+        slug: "outdoor-recreation"
+      - name: "Sports Equipment"
+        slug: "sports-equipment"
+  
+  - name: "Books & Media"
+    slug: "books-media"
+    subcategories:
+      - name: "Books"
+        slug: "books"
+      - name: "E-books"
+        slug: "ebooks"
+      - name: "Music"
+        slug: "music"
+      - name: "Movies & TV"
+        slug: "movies-tv"

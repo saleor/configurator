@@ -1,0 +1,608 @@
+# Saleor Custom Shipping Configuration
+# Advanced shipping setup with complex rules, multiple carriers, and specialized delivery options
+
+shop:
+  customerAllowedToSetExternalReference: false
+  defaultMailSenderName: "Shipping Department"
+  defaultMailSenderAddress: "shipping@custom-logistics.com"
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 100
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 20
+  reserveStockDurationAuthenticatedUser: 120
+  defaultWeightUnit: KG
+  fulfilledShipmentAutomaticallyApproved: false  # Manual review for custom shipping
+
+channels:
+  - name: "Standard Commerce"
+    currencyCode: USD
+    defaultCountry: US
+    slug: standard
+    isActive: true
+    warehouses:
+      - "Main Warehouse"
+      - "East Coast DC"
+      - "West Coast DC"
+      - "Central Hub"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      shippingZones:
+        - "Domestic Standard"
+        - "Domestic Express"
+        - "Domestic Economy"
+        - "International"
+
+  - name: "Premium Service"
+    currencyCode: USD
+    defaultCountry: US
+    slug: premium
+    isActive: true
+    warehouses:
+      - "Premium Fulfillment Center"
+      - "Express Hub"
+    settings:
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      shippingZones:
+        - "White Glove Delivery"
+        - "Same Day Delivery"
+        - "Scheduled Delivery"
+        - "Installation Service"
+
+  - name: "Bulk & Freight"
+    currencyCode: USD
+    defaultCountry: US
+    slug: bulk-freight
+    isActive: true
+    warehouses:
+      - "Freight Terminal"
+      - "Bulk Storage"
+    settings:
+      minimumOrderValue: 1000
+      allowUnpaidOrders: true  # NET terms for bulk
+      shippingZones:
+        - "LTL Freight"
+        - "Full Truckload"
+        - "Ocean Freight"
+        - "Rail Transport"
+
+productTypes:
+  - name: "Shippable Product"
+    slug: shippable-product
+    isShippingRequired: true
+    productAttributes:
+      - name: "Shipping Class"
+        slug: shipping-class
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Standard"
+            slug: standard
+            metadata:
+              base_rate: "10"
+          - name: "Oversized"
+            slug: oversized
+            metadata:
+              base_rate: "25"
+              surcharge: "15"
+          - name: "Fragile"
+            slug: fragile
+            metadata:
+              base_rate: "15"
+              insurance_required: "true"
+          - name: "Hazmat"
+            slug: hazmat
+            metadata:
+              base_rate: "50"
+              special_handling: "true"
+          - name: "Perishable"
+            slug: perishable
+            metadata:
+              expedited_only: "true"
+          - name: "High Value"
+            slug: high-value
+            metadata:
+              signature_required: "true"
+              insurance_required: "true"
+      - name: "Package Dimensions (LxWxH)"
+        slug: dimensions
+        inputType: PLAIN_TEXT
+        required: true
+        unit: "inches"
+        metadata:
+          format: "L x W x H"
+      - name: "Weight"
+        slug: weight
+        inputType: NUMERIC
+        required: true
+        unit: "lbs"
+      - name: "Dimensional Weight"
+        slug: dim-weight
+        inputType: NUMERIC
+        unit: "lbs"
+        metadata:
+          formula: "(L x W x H) / 139"
+      - name: "Ships From"
+        slug: ships-from
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Main Warehouse"
+            slug: main-warehouse
+          - name: "East Coast DC"
+            slug: east-dc
+          - name: "West Coast DC"
+            slug: west-dc
+          - name: "Vendor Direct"
+            slug: vendor-direct
+          - name: "Made to Order"
+            slug: made-to-order
+      - name: "Carrier Restrictions"
+        slug: carrier-restrictions
+        inputType: MULTISELECT
+        values:
+          - name: "No FedEx"
+            slug: no-fedex
+          - name: "No UPS"
+            slug: no-ups
+          - name: "No USPS"
+            slug: no-usps
+          - name: "Freight Only"
+            slug: freight-only
+          - name: "White Glove Required"
+            slug: white-glove
+      - name: "Handling Time"
+        slug: handling-time
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Same Day"
+            slug: same-day
+          - name: "1 Business Day"
+            slug: 1-day
+          - name: "2-3 Business Days"
+            slug: 2-3-days
+          - name: "3-5 Business Days"
+            slug: 3-5-days
+          - name: "1-2 Weeks"
+            slug: 1-2-weeks
+          - name: "Custom Manufacturing"
+            slug: custom
+      - name: "Free Shipping Eligible"
+        slug: free-shipping-eligible
+        inputType: BOOLEAN
+        metadata:
+          threshold: "50"
+      - name: "Expedited Available"
+        slug: expedited-available
+        inputType: BOOLEAN
+      - name: "Saturday Delivery"
+        slug: saturday-delivery
+        inputType: BOOLEAN
+      - name: "Sunday Delivery"
+        slug: sunday-delivery
+        inputType: BOOLEAN
+      - name: "Signature Required"
+        slug: signature-required
+        inputType: DROPDOWN
+        values:
+          - name: "No Signature"
+            slug: none
+          - name: "Signature Required"
+            slug: required
+          - name: "Adult Signature (21+)"
+            slug: adult
+          - name: "Direct Signature"
+            slug: direct
+      - name: "Insurance Options"
+        slug: insurance
+        inputType: DROPDOWN
+        values:
+          - name: "No Insurance"
+            slug: none
+          - name: "Basic Coverage"
+            slug: basic
+          - name: "Full Value"
+            slug: full
+          - name: "Extended Coverage"
+            slug: extended
+      - name: "Packaging Type"
+        slug: packaging-type
+        inputType: DROPDOWN
+        values:
+          - name: "Standard Box"
+            slug: box
+          - name: "Envelope"
+            slug: envelope
+          - name: "Tube"
+            slug: tube
+          - name: "Pallet"
+            slug: pallet
+          - name: "Crate"
+            slug: crate
+          - name: "Custom Packaging"
+            slug: custom
+      - name: "Special Instructions"
+        slug: special-instructions
+        inputType: MULTILINE
+      - name: "Stackable"
+        slug: stackable
+        inputType: BOOLEAN
+      - name: "Orientation"
+        slug: orientation
+        inputType: DROPDOWN
+        values:
+          - name: "This Side Up"
+            slug: this-side-up
+          - name: "Flat Only"
+            slug: flat
+          - name: "Any Orientation"
+            slug: any
+      - name: "Temperature Control"
+        slug: temp-control
+        inputType: DROPDOWN
+        values:
+          - name: "None Required"
+            slug: none
+          - name: "Keep Cool"
+            slug: cool
+          - name: "Refrigerated"
+            slug: refrigerated
+          - name: "Frozen"
+            slug: frozen
+          - name: "Climate Controlled"
+            slug: climate
+
+  - name: "Freight Product"
+    slug: freight-product
+    isShippingRequired: true
+    productAttributes:
+      - attribute: shipping-class
+      - attribute: dimensions
+      - attribute: weight
+      - name: "Freight Class"
+        slug: freight-class
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Class 50"
+            slug: class-50
+          - name: "Class 55"
+            slug: class-55
+          - name: "Class 60"
+            slug: class-60
+          - name: "Class 65"
+            slug: class-65
+          - name: "Class 70"
+            slug: class-70
+          - name: "Class 77.5"
+            slug: class-77-5
+          - name: "Class 85"
+            slug: class-85
+          - name: "Class 92.5"
+            slug: class-92-5
+          - name: "Class 100"
+            slug: class-100
+      - name: "Loading Requirements"
+        slug: loading-requirements
+        inputType: MULTISELECT
+        values:
+          - name: "Liftgate Required"
+            slug: liftgate
+          - name: "Forklift Available"
+            slug: forklift
+          - name: "Loading Dock"
+            slug: dock
+          - name: "Inside Delivery"
+            slug: inside
+          - name: "Residential Delivery"
+            slug: residential
+      - name: "Number of Pallets"
+        slug: pallet-count
+        inputType: NUMERIC
+      - name: "NMFC Code"
+        slug: nmfc-code
+        inputType: PLAIN_TEXT
+
+pageTypes:
+  - name: "Shipping Zone"
+    slug: shipping-zone
+    attributes:
+      - name: "Zone Name"
+        slug: zone-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Zone Type"
+        slug: zone-type
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Domestic"
+            slug: domestic
+          - name: "International"
+            slug: international
+          - name: "Regional"
+            slug: regional
+          - name: "Metro"
+            slug: metro
+      - name: "Countries"
+        slug: countries
+        inputType: MULTILINE
+        metadata:
+          help: "List of countries in this zone"
+      - name: "States/Provinces"
+        slug: states
+        inputType: MULTILINE
+      - name: "Zip/Postal Codes"
+        slug: zip-codes
+        inputType: MULTILINE
+        metadata:
+          help: "Ranges supported (e.g., 10001-10099)"
+      - name: "Base Rate"
+        slug: base-rate
+        inputType: NUMERIC
+        unit: "USD"
+      - name: "Rate Type"
+        slug: rate-type
+        inputType: DROPDOWN
+        values:
+          - name: "Flat Rate"
+            slug: flat
+          - name: "Weight Based"
+            slug: weight
+          - name: "Price Based"
+            slug: price
+          - name: "Quantity Based"
+            slug: quantity
+          - name: "Calculated"
+            slug: calculated
+      - name: "Rate Table"
+        slug: rate-table
+        inputType: RICH_TEXT
+        metadata:
+          help: "Define tiers for weight/price/quantity"
+      - name: "Free Shipping Threshold"
+        slug: free-threshold
+        inputType: NUMERIC
+        unit: "USD"
+      - name: "Delivery Time"
+        slug: delivery-time
+        inputType: PLAIN_TEXT
+        metadata:
+          example: "3-5 business days"
+      - name: "Cutoff Time"
+        slug: cutoff-time
+        inputType: PLAIN_TEXT
+        metadata:
+          example: "2:00 PM EST"
+      - name: "Excluded Products"
+        slug: excluded-products
+        inputType: MULTILINE
+      - name: "Surcharges"
+        slug: surcharges
+        inputType: RICH_TEXT
+
+  - name: "Carrier Service"
+    slug: carrier-service
+    attributes:
+      - name: "Carrier Name"
+        slug: carrier-name
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "FedEx"
+            slug: fedex
+          - name: "UPS"
+            slug: ups
+          - name: "USPS"
+            slug: usps
+          - name: "DHL"
+            slug: dhl
+          - name: "OnTrac"
+            slug: ontrac
+          - name: "Regional Carrier"
+            slug: regional
+          - name: "White Glove Service"
+            slug: white-glove
+          - name: "LTL Freight"
+            slug: ltl
+      - name: "Service Level"
+        slug: service-level
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Ground"
+            slug: ground
+          - name: "2-Day"
+            slug: 2-day
+          - name: "Next Day"
+            slug: next-day
+          - name: "Priority"
+            slug: priority
+          - name: "Express"
+            slug: express
+          - name: "Economy"
+            slug: economy
+      - name: "Account Number"
+        slug: account-number
+        inputType: PLAIN_TEXT
+      - name: "API Credentials"
+        slug: api-credentials
+        inputType: MULTILINE
+        metadata:
+          secure: "true"
+      - name: "Tracking URL"
+        slug: tracking-url
+        inputType: PLAIN_TEXT
+      - name: "Label Format"
+        slug: label-format
+        inputType: DROPDOWN
+        values:
+          - name: "PDF"
+            slug: pdf
+          - name: "PNG"
+            slug: png
+          - name: "ZPL"
+            slug: zpl
+      - name: "Insurance Available"
+        slug: insurance-available
+        inputType: BOOLEAN
+      - name: "Max Weight"
+        slug: max-weight
+        inputType: NUMERIC
+        unit: "lbs"
+      - name: "Max Dimensions"
+        slug: max-dimensions
+        inputType: PLAIN_TEXT
+      - name: "Prohibited Items"
+        slug: prohibited
+        inputType: MULTILINE
+      - name: "Service Areas"
+        slug: service-areas
+        inputType: MULTILINE
+
+  - name: "Shipping Rule"
+    slug: shipping-rule
+    attributes:
+      - name: "Rule Name"
+        slug: rule-name
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Priority"
+        slug: priority
+        inputType: NUMERIC
+        metadata:
+          help: "Lower numbers = higher priority"
+      - name: "Conditions"
+        slug: conditions
+        inputType: RICH_TEXT
+        metadata:
+          help: "Define when this rule applies"
+      - name: "Actions"
+        slug: actions
+        inputType: RICH_TEXT
+        metadata:
+          help: "What happens when conditions are met"
+      - name: "Rule Type"
+        slug: rule-type
+        inputType: DROPDOWN
+        values:
+          - name: "Discount"
+            slug: discount
+          - name: "Surcharge"
+            slug: surcharge
+          - name: "Method Restriction"
+            slug: restriction
+          - name: "Free Shipping"
+            slug: free
+          - name: "Upgrade Service"
+            slug: upgrade
+      - name: "Active"
+        slug: active
+        inputType: BOOLEAN
+      - name: "Start Date"
+        slug: start-date
+        inputType: DATE
+      - name: "End Date"
+        slug: end-date
+        inputType: DATE
+
+categories:
+  - name: "Standard Shipping"
+    slug: "standard-shipping"
+    subcategories:
+      - name: "Small Parcel"
+        slug: "small-parcel"
+        metadata:
+          max_weight: "70"
+          max_length: "108"
+      - name: "Large Package"
+        slug: "large-package"
+        metadata:
+          max_weight: "150"
+          surcharge: "true"
+      - name: "Envelope"
+        slug: "envelope"
+        metadata:
+          max_weight: "1"
+          flat_rate: "true"
+
+  - name: "Express Shipping"
+    slug: "express-shipping"
+    subcategories:
+      - name: "Next Day AM"
+        slug: "next-day-am"
+        metadata:
+          cutoff: "6:00 PM"
+          delivery: "10:30 AM"
+      - name: "Next Day PM"
+        slug: "next-day-pm"
+        metadata:
+          cutoff: "8:00 PM"
+          delivery: "3:00 PM"
+      - name: "2-Day"
+        slug: "2-day"
+      - name: "Same Day"
+        slug: "same-day"
+        metadata:
+          cutoff: "10:00 AM"
+          metro_only: "true"
+
+  - name: "Freight Shipping"
+    slug: "freight-shipping"
+    subcategories:
+      - name: "LTL (Less Than Truckload)"
+        slug: "ltl"
+        metadata:
+          min_weight: "150"
+          max_weight: "15000"
+      - name: "FTL (Full Truckload)"
+        slug: "ftl"
+        metadata:
+          min_weight: "15000"
+      - name: "Flatbed"
+        slug: "flatbed"
+      - name: "Refrigerated"
+        slug: "refrigerated-freight"
+
+  - name: "Specialty Shipping"
+    slug: "specialty-shipping"
+    subcategories:
+      - name: "White Glove"
+        slug: "white-glove"
+        metadata:
+          includes: "unpacking, assembly, removal"
+      - name: "Medical/Pharmaceutical"
+        slug: "medical"
+        metadata:
+          temp_controlled: "true"
+          chain_of_custody: "true"
+      - name: "Hazmat"
+        slug: "hazmat-shipping"
+        metadata:
+          certification_required: "true"
+      - name: "Fine Art"
+        slug: "fine-art"
+        metadata:
+          custom_crating: "true"
+          climate_controlled: "true"
+
+  - name: "International Shipping"
+    slug: "international"
+    subcategories:
+      - name: "Economy International"
+        slug: "economy-intl"
+        metadata:
+          delivery: "10-20 days"
+      - name: "Priority International"
+        slug: "priority-intl"
+        metadata:
+          delivery: "6-10 days"
+      - name: "Express International"
+        slug: "express-intl"
+        metadata:
+          delivery: "1-3 days"
