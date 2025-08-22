@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CategoryInput } from "../config/schema/schema";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
-import type { CategoryInput } from "../config/schema/schema";
 
 // Mock category repository
 const mockRepository: CategoryOperations = {

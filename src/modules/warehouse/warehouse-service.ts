@@ -37,14 +37,7 @@ export class WarehouseService {
     if (!input.name?.trim()) {
       throw new WarehouseValidationError("Warehouse name is required", "name");
     }
-    if (!input.email?.trim()) {
-      throw new WarehouseValidationError("Warehouse email is required", "email");
-    }
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input.email)) {
-      throw new WarehouseValidationError("Warehouse email is invalid", "email");
-    }
+    // Email is now optional - validation is handled by Zod schema
     if (!input.address) {
       throw new WarehouseValidationError("Warehouse address is required", "address");
     }
@@ -66,7 +59,7 @@ export class WarehouseService {
     return object.filterUndefinedValues({
       name: input.name,
       slug: input.slug,
-      email: input.email,
+      email: input.email || undefined,
       address: {
         streetAddress1: input.address.streetAddress1,
         streetAddress2: input.address.streetAddress2,
@@ -87,7 +80,7 @@ export class WarehouseService {
     return object.filterUndefinedValues({
       name: input.name,
       slug: input.slug,
-      email: input.email,
+      email: input.email || undefined,
       address: input.address
         ? {
             streetAddress1: input.address.streetAddress1,
