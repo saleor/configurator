@@ -345,6 +345,10 @@ const currencyCodeSchema = z.enum([
   "CLP",
   "COP",
   "PEN",
+  // Balkan/Eastern European currencies
+  "BAM", // Bosnia and Herzegovina Convertible Mark
+  "HRK", // Croatian Kuna
+  "RSD", // Serbian Dinar
 ]);
 
 export type CurrencyCode = z.infer<typeof currencyCodeSchema>;
