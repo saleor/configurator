@@ -1,5 +1,44 @@
 # saleor-configurator
 
+## 0.11.0
+
+### Minor Changes
+
+- f5b85c7: Added support for warehouses and shipping zones configuration. You can now manage warehouse locations, shipping zones, and shipping methods as code, enabling multi-region fulfillment setups and complex shipping rules across your Saleor instances.
+- 551c736: Introduce recipe system with 7 production-ready e-commerce templates
+
+  Launch a new recipe system that enables developers to instantly bootstrap Saleor stores for specific business models. Each recipe provides a complete, production-ready configuration that can be deployed with a single command.
+
+  Available recipes:
+
+  - **Marketplace**: Multi-vendor platform with vendor management, commission tracking, and order splitting
+  - **Fashion**: Apparel and accessories with size charts, color swatches, and seasonal collections
+  - **B2B**: Wholesale operations with volume pricing, payment terms, and approval workflows
+  - **Digital Products**: Software, ebooks, and subscriptions with automatic delivery and license management
+  - **Multi-Region**: International commerce with multiple currencies, channels, and localized experiences
+  - **Click & Collect**: Omnichannel retail with BOPIS, curbside pickup, and store integration
+  - **Custom Shipping**: Advanced logistics with complex rules, multi-carrier support, and freight options
+
+  Quick start: `npx @saleor/configurator init --recipe marketplace`
+
+  Each recipe includes comprehensive documentation, customization guides, and industry best practices.
+
+### Patch Changes
+
+- 7bc0629: Added support for product channel listings and fixed entity identification issues
+
+  - Products and variants can now be configured with channel-specific pricing and visibility settings
+  - Fixed duplicate detection by using slugs as identifiers for categories, channels, and products instead of names
+  - Enables multi-channel commerce with per-channel product availability and pricing
+
+- 5d1cb70: Fixed channel creation for Balkan countries by adding missing currency codes to validation schema
+
+  - Added support for BAM (Bosnia and Herzegovina Convertible Mark), HRK (Croatian Kuna), and RSD (Serbian Dinar)
+  - Channels for Croatia, Slovenia, Bosnia and Herzegovina, and Serbia can now be created successfully
+  - Issue was caused by overly restrictive currency validation that didn't match Saleor's actual capabilities
+
+- ffb34d2: Fixed recursive subcategory support to handle unlimited hierarchy depths. Previously, introspection would flatten category hierarchies, and deployment only supported single-level nesting. Now categories maintain their full tree structure during introspection, deployment, and diff operations, enabling proper round-trip integrity for complex category hierarchies.
+
 ## 0.10.6
 
 ### Patch Changes
