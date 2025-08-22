@@ -58,10 +58,13 @@ export class ProductComparator extends BaseEntityComparator<
   }
 
   /**
-   * Gets the name of a product entity
+   * Gets the identifier of a product entity (uses slug for identification)
    */
   protected getEntityName(entity: ProductEntity): string {
-    return entity.name;
+    if (!entity.slug) {
+      throw new Error("Product must have a valid slug");
+    }
+    return entity.slug;
   }
 
   /**

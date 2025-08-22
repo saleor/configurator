@@ -6,6 +6,7 @@ describe("ProductComparator", () => {
 
   const sampleProduct = {
     name: "Sample Product",
+    slug: "sample-product",
     productType: "Clothing",
     category: "Apparel",
     attributes: {
@@ -31,7 +32,7 @@ describe("ProductComparator", () => {
       expect(results[0]).toEqual({
         operation: "CREATE",
         entityType: "Products",
-        entityName: "Sample Product",
+        entityName: "sample-product",
         desired: sampleProduct,
       });
     });
@@ -46,7 +47,7 @@ describe("ProductComparator", () => {
       expect(results[0]).toEqual({
         operation: "DELETE",
         entityType: "Products",
-        entityName: "Sample Product",
+        entityName: "sample-product",
         current: sampleProduct,
       });
     });
@@ -64,7 +65,7 @@ describe("ProductComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].entityType).toBe("Products");
-      expect(results[0].entityName).toBe("Sample Product");
+      expect(results[0].entityName).toBe("sample-product");
       expect(results[0].changes).toContainEqual({
         field: "productType",
         currentValue: "Clothing",
@@ -131,6 +132,7 @@ describe("ProductComparator", () => {
     it("should handle products with no attributes", () => {
       const productWithoutAttributes = {
         name: "Simple Product",
+        slug: "simple-product",
         productType: "Simple",
         category: "Basic",
         variants: [],
