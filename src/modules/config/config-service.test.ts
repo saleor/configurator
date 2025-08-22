@@ -125,6 +125,7 @@ describe("ConfigurationService", () => {
         categories: [],
         warehouses: [],
         shippingZones: [],
+        taxClasses: [],
       });
     });
 

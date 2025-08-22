@@ -205,6 +205,24 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    taxClasses(first: 100) {
+      edges {
+        node {
+          id
+          name
+          countries {
+            country {
+              code
+            }
+            rate
+            taxClass {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
   }
 `);
 

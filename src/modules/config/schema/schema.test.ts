@@ -804,4 +804,124 @@ describe("ShopConfigurationSchema", () => {
       expect(result.success).toBe(true);
     });
   });
+
+  describe("Balkan countries and currencies validation", () => {
+    it("should accept Bosnia and Herzegovina with BAM currency", () => {
+      // Arrange
+      const bosniaConfig = {
+        channels: [
+          {
+            name: "Bosnia Channel",
+            slug: "bosnia",
+            currencyCode: "BAM",
+            defaultCountry: "BA" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(bosniaConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept Croatia with HRK currency", () => {
+      // Arrange
+      const croatiaConfig = {
+        channels: [
+          {
+            name: "Croatia Channel",
+            slug: "croatia",
+            currencyCode: "HRK",
+            defaultCountry: "HR" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(croatiaConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept Slovenia with EUR currency", () => {
+      // Arrange
+      const sloveniaConfig = {
+        channels: [
+          {
+            name: "Slovenia Channel",
+            slug: "slovenia",
+            currencyCode: "EUR",
+            defaultCountry: "SI" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(sloveniaConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept Serbia with RSD currency", () => {
+      // Arrange
+      const serbiaConfig = {
+        channels: [
+          {
+            name: "Serbia Channel",
+            slug: "serbia",
+            currencyCode: "RSD",
+            defaultCountry: "RS" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(serbiaConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept multiple Balkan channels in single configuration", () => {
+      // Arrange
+      const multiBalkanConfig = {
+        channels: [
+          {
+            name: "Bosnia Channel",
+            slug: "bosnia",
+            currencyCode: "BAM",
+            defaultCountry: "BA" as CountryCode,
+          },
+          {
+            name: "Croatia Channel",
+            slug: "croatia",
+            currencyCode: "HRK",
+            defaultCountry: "HR" as CountryCode,
+          },
+          {
+            name: "Slovenia Channel",
+            slug: "slovenia",
+            currencyCode: "EUR",
+            defaultCountry: "SI" as CountryCode,
+          },
+          {
+            name: "Serbia Channel", 
+            slug: "serbia",
+            currencyCode: "RSD",
+            defaultCountry: "RS" as CountryCode,
+          },
+        ],
+      };
+
+      // Act
+      const result = configSchema.safeParse(multiBalkanConfig);
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+  });
 });

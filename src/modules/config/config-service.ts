@@ -13,8 +13,23 @@ import type {
   ProductTypeInput,
   SaleorConfig,
   ShippingZoneInput,
+  TaxClassInput,
   WarehouseInput,
 } from "./schema/schema";
+
+interface TaxClassType {
+  node: {
+    id: string;
+    name: string;
+    countries: TaxClassCountryRateType[];
+  };
+}
+
+interface TaxClassCountryRateType {
+  country: { code: string };
+  rate: number;
+  taxClass?: { id: string };
+}
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -265,6 +280,25 @@ export class ConfigurationService {
       }));
   }
 
+  private mapTaxClasses(taxClasses: readonly TaxClassType[]): readonly TaxClassInput[] {
+    return taxClasses.map((edge) => {
+      const taxClass = edge.node;
+
+      // Filter country rates to only include rates that belong to this tax class
+      const countryRates = taxClass.countries
+        .filter((country: TaxClassCountryRateType) => country.taxClass?.id === taxClass.id)
+        .map((country: TaxClassCountryRateType) => ({
+          countryCode: country.country.code as CountryCode,
+          rate: country.rate,
+        }));
+
+      return {
+        name: taxClass.name,
+        countryRates: countryRates.length > 0 ? countryRates : undefined,
+      };
+    });
+  }
+
   private mapShippingZones(
     rawShippingZones: RawSaleorConfig["shippingZones"]
   ): ShippingZoneInput[] {
@@ -454,6 +488,10 @@ export class ConfigurationService {
 
     if (shouldIncludeSection("shippingZones", options)) {
       config.shippingZones = this.mapShippingZones(rawConfig.shippingZones);
+    }
+
+    if (shouldIncludeSection("taxClasses", options)) {
+      config.taxClasses = this.mapTaxClasses(rawConfig.taxClasses?.edges || []);
     }
 
     const fullConfig = config as SaleorConfig;
