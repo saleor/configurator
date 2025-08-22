@@ -1,6 +1,10 @@
 import { logger } from "../../lib/logger";
 import type { CategoryInput } from "../config/schema/schema";
-import type { Category, CategoryOperations } from "./repository";
+import type {
+  Category,
+  CategoryOperations,
+  CategoryInput as RepositoryCategoryInput,
+} from "./repository";
 
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
@@ -20,7 +24,14 @@ export class CategoryService {
       parentId,
     });
 
-    const category = await this.repository.createCategory(input, parentId);
+    // Extract only the basic category fields for repository call
+    // (subcategories are handled by recursive bootstrapping)
+    const categoryInput: RepositoryCategoryInput = {
+      name: input.name,
+      slug: input.slug,
+    };
+
+    const category = await this.repository.createCategory(categoryInput, parentId);
 
     logger.debug("Created category", {
       id: category.id,
@@ -32,43 +43,48 @@ export class CategoryService {
   }
 
   async bootstrapCategories(categories: CategoryInput[]) {
-    logger.debug("Bootstrapping categories");
+    logger.debug("Bootstrapping categories", { count: categories.length });
 
+    // Process root categories (no parentId), recursion will handle subcategories
     return Promise.all(categories.map((category) => this.bootstrapCategory(category)));
   }
 
-  private async getOrCreateCategory(categoryInput: CategoryInput): Promise<Category> {
+  private async getOrCreateCategory(
+    categoryInput: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
     const existingCategory = await this.getExistingCategory(categoryInput.name);
 
     if (existingCategory) {
       return existingCategory;
     }
 
-    return this.createCategory(categoryInput);
+    return this.createCategory(categoryInput, parentId);
   }
 
-  private async bootstrapCategory(categoryInput: CategoryInput): Promise<Category> {
-    logger.debug("Bootstrapping category", { name: categoryInput.name });
+  private async bootstrapCategory(
+    categoryInput: CategoryInput,
+    parentId?: string
+  ): Promise<Category> {
+    logger.debug("Bootstrapping category", { name: categoryInput.name, parentId });
 
-    const category = await this.getOrCreateCategory(categoryInput);
+    // Create or get the category with parent if specified
+    const category = await this.getOrCreateCategory(categoryInput, parentId);
 
-    logger.debug("Existing category", {
+    logger.debug("Category bootstrapped", {
       category,
     });
 
     // Handle union type - check if this is an update input with subcategories
     if ("subcategories" in categoryInput && categoryInput.subcategories) {
-      const subcategoriesToCreate = categoryInput.subcategories.filter(
-        (subcategory) =>
-          !category?.children?.edges?.some((edge) => edge.node.name === subcategory.name)
-      );
-
-      logger.debug("Subcategories to create", {
-        subcategories: subcategoriesToCreate,
+      logger.debug("Processing subcategories", {
+        count: categoryInput.subcategories.length,
+        parentCategory: categoryInput.name,
       });
 
-      for (const subcategory of subcategoriesToCreate) {
-        await this.createCategory(subcategory, category.id);
+      // Recursively bootstrap each subcategory with this category as parent
+      for (const subcategory of categoryInput.subcategories) {
+        await this.bootstrapCategory(subcategory, category.id);
       }
     }
 

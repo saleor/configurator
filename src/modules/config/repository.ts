@@ -110,14 +110,10 @@ const getConfigQuery = graphql(`
           id
           name
           slug
-          children(first: 100) {
-            edges {
-              node {
-                id
-                name
-                slug
-              }
-            }
+          level
+          parent {
+            id
+            slug
           }
         }
       }
@@ -204,6 +200,24 @@ const getConfigQuery = graphql(`
                 amount
                 currency
               }
+            }
+          }
+        }
+      }
+    }
+    taxClasses(first: 100) {
+      edges {
+        node {
+          id
+          name
+          countries {
+            country {
+              code
+            }
+            rate
+            taxClass {
+              id
+              name
             }
           }
         }

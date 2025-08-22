@@ -9,6 +9,10 @@ const productTypeSchema = z.object({
     .optional()
     .default(false)
     .describe("Whether products of this type require shipping (false for digital products)"),
+  taxClass: z
+    .string()
+    .optional()
+    .describe("Reference to a tax class name for default tax calculation on products of this type"),
   productAttributes: z
     .array(attributeInputSchema)
     .describe("Attributes that apply to the entire product (e.g., Brand, Material)")
@@ -341,83 +345,123 @@ const currencyCodeSchema = z.enum([
   "CLP",
   "COP",
   "PEN",
+  // Balkan/Eastern European currencies
+  "BAM", // Bosnia and Herzegovina Convertible Mark
+  "HRK", // Croatian Kuna
+  "RSD", // Serbian Dinar
 ]);
 
 export type CurrencyCode = z.infer<typeof currencyCodeSchema>;
 
+// Tax Configuration Schema - defined early to be used in channel schema
+const taxCalculationStrategySchema = z.enum(["FLAT_RATES", "TAX_APP"]);
+
+const taxConfigurationSchema = z
+  .object({
+    taxCalculationStrategy: taxCalculationStrategySchema
+      .optional()
+      .describe("Method for calculating taxes - flat rates or external tax app"),
+    chargeTaxes: z.boolean().optional().describe("Whether to charge taxes in this channel"),
+    displayGrossPrices: z
+      .boolean()
+      .optional()
+      .describe("Whether to display prices including taxes"),
+    pricesEnteredWithTax: z
+      .boolean()
+      .optional()
+      .describe("Whether prices are entered including taxes"),
+    taxAppId: z
+      .string()
+      .optional()
+      .describe("ID of the external tax application when using TAX_APP strategy"),
+  })
+  .strict();
+
+export type TaxConfigurationInput = z.infer<typeof taxConfigurationSchema>;
+
 // Channel Create Schema - minimal fields for creation
-const channelCreateSchema = z.object({
-  name: z.string().describe("Display name of the channel"),
-  currencyCode: currencyCodeSchema.describe("Currency used for pricing in this channel"),
-  defaultCountry: countryCodeSchema.describe("Default country for shipping and tax calculations"),
-  slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
-  isActive: z
-    .boolean()
-    .optional()
-    .describe("Whether this channel is currently active and accepting orders")
-    .default(false),
-});
+const channelCreateSchema = z
+  .object({
+    name: z.string().describe("Display name of the channel"),
+    currencyCode: currencyCodeSchema.describe("Currency used for pricing in this channel"),
+    defaultCountry: countryCodeSchema.describe("Default country for shipping and tax calculations"),
+    slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
+    isActive: z
+      .boolean()
+      .optional()
+      .describe("Whether this channel is currently active and accepting orders")
+      .default(false),
+  })
+  .strict();
 
 // Channel Update Schema - full state representation
-const channelUpdateSchema = z.object({
-  name: z.string().describe("Display name of the channel"),
-  currencyCode: currencyCodeSchema.describe("Currency used for pricing in this channel"),
-  defaultCountry: countryCodeSchema.describe("Default country for shipping and tax calculations"),
-  slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
-  isActive: z
-    .boolean()
-    .optional()
-    .describe("Whether this channel is currently active and accepting orders")
-    .default(false),
-  settings: z
-    .object({
-      allocationStrategy: z
-        .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
-        .optional()
-        .describe("Strategy for allocating stock when multiple locations have inventory"),
-      automaticallyConfirmAllNewOrders: z
-        .boolean()
-        .optional()
-        .describe("Automatically confirm all new orders without manual review"),
-      automaticallyFulfillNonShippableGiftCard: z
-        .boolean()
-        .optional()
-        .describe("Automatically fulfill gift cards and other non-shippable items"),
-      expireOrdersAfter: z.number().optional().describe("Minutes after which unpaid orders expire"),
-      deleteExpiredOrdersAfter: z
-        .number()
-        .optional()
-        .describe("Days after which expired orders are permanently deleted"),
-      markAsPaidStrategy: z
-        .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
-        .optional()
-        .describe(
-          "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow"
-        ),
-      allowUnpaidOrders: z
-        .boolean()
-        .optional()
-        .describe("Allow creation of orders without immediate payment"),
-      includeDraftOrderInVoucherUsage: z
-        .boolean()
-        .optional()
-        .describe("Include draft orders when calculating voucher usage limits"),
-      useLegacyErrorFlow: z
-        .boolean()
-        .optional()
-        .describe("Use legacy error handling for checkout (for backward compatibility)"),
-      automaticallyCompleteFullyPaidCheckouts: z
-        .boolean()
-        .optional()
-        .describe("Automatically complete checkouts when payment is fully captured"),
-      defaultTransactionFlowStrategy: z
-        .enum(["AUTHORIZATION", "CHARGE"])
-        .optional()
-        .describe("Default payment flow - authorize first then capture, or charge immediately"),
-    })
-    .optional()
-    .describe("Advanced channel configuration options"),
-});
+const channelUpdateSchema = z
+  .object({
+    name: z.string().describe("Display name of the channel"),
+    currencyCode: currencyCodeSchema.describe("Currency used for pricing in this channel"),
+    defaultCountry: countryCodeSchema.describe("Default country for shipping and tax calculations"),
+    slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
+    isActive: z
+      .boolean()
+      .optional()
+      .describe("Whether this channel is currently active and accepting orders")
+      .default(false),
+    settings: z
+      .object({
+        allocationStrategy: z
+          .enum(["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"])
+          .optional()
+          .describe("Strategy for allocating stock when multiple locations have inventory"),
+        automaticallyConfirmAllNewOrders: z
+          .boolean()
+          .optional()
+          .describe("Automatically confirm all new orders without manual review"),
+        automaticallyFulfillNonShippableGiftCard: z
+          .boolean()
+          .optional()
+          .describe("Automatically fulfill gift cards and other non-shippable items"),
+        expireOrdersAfter: z
+          .number()
+          .optional()
+          .describe("Minutes after which unpaid orders expire"),
+        deleteExpiredOrdersAfter: z
+          .number()
+          .optional()
+          .describe("Days after which expired orders are permanently deleted"),
+        markAsPaidStrategy: z
+          .enum(["TRANSACTION_FLOW", "PAYMENT_FLOW"])
+          .optional()
+          .describe(
+            "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow"
+          ),
+        allowUnpaidOrders: z
+          .boolean()
+          .optional()
+          .describe("Allow creation of orders without immediate payment"),
+        includeDraftOrderInVoucherUsage: z
+          .boolean()
+          .optional()
+          .describe("Include draft orders when calculating voucher usage limits"),
+        useLegacyErrorFlow: z
+          .boolean()
+          .optional()
+          .describe("Use legacy error handling for checkout (for backward compatibility)"),
+        automaticallyCompleteFullyPaidCheckouts: z
+          .boolean()
+          .optional()
+          .describe("Automatically complete checkouts when payment is fully captured"),
+        defaultTransactionFlowStrategy: z
+          .enum(["AUTHORIZATION", "CHARGE"])
+          .optional()
+          .describe("Default payment flow - authorize first then capture, or charge immediately"),
+      })
+      .optional()
+      .describe("Advanced channel configuration options"),
+    taxConfiguration: taxConfigurationSchema
+      .optional()
+      .describe("Tax settings specific to this channel"),
+  })
+  .strict();
 
 // Union type that accepts either create or update input
 // Try update schema first (more specific) then create schema
@@ -575,6 +619,10 @@ const productSchema = z.object({
   slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
   productType: z.string().describe("Reference to the product type (must match a productType name)"),
   category: z.string().describe("Reference to the product category (must match a category slug)"),
+  taxClass: z
+    .string()
+    .optional()
+    .describe("Reference to a tax class name - overrides the product type's default tax class"),
   attributes: z
     .record(z.string(), z.union([z.string(), z.array(z.string())]))
     .optional()
@@ -689,6 +737,23 @@ const shippingZoneSchema = z.object({
 export type ShippingZoneInput = z.infer<typeof shippingZoneSchema>;
 export type ShippingMethodInput = z.infer<typeof shippingMethodSchema>;
 
+// Tax Class Schema
+const taxClassCountryRateSchema = z.object({
+  countryCode: countryCodeSchema.describe("ISO 3166-1 alpha-2 country code"),
+  rate: z.number().min(0).max(100).describe("Tax rate as a percentage (0-100)"),
+});
+
+const taxClassSchema = z.object({
+  name: z.string().min(1).describe("TaxClass.name - Unique identifier for the tax class"),
+  countryRates: z
+    .array(taxClassCountryRateSchema)
+    .optional()
+    .describe("TaxClass.countries - Tax rates per country for this tax class"),
+});
+
+export type TaxClassCountryRateInput = z.infer<typeof taxClassCountryRateSchema>;
+export type TaxClassInput = z.infer<typeof taxClassSchema>;
+
 // TODO: config schema should only use the full state representation of the entities, not the create/update schemas
 export const configSchema = z
   .object({
@@ -714,6 +779,12 @@ export const configSchema = z
       .optional()
       .describe(
         "Shipping zone configurations that define geographical regions, associated warehouses, and available shipping methods with pricing rules"
+      ),
+    taxClasses: z
+      .array(taxClassSchema)
+      .optional()
+      .describe(
+        "Tax class definitions that specify tax rates per country. Tax classes can be assigned to products, product types, and shipping methods to control tax calculation"
       ),
     productTypes: z
       .array(productTypeSchema)

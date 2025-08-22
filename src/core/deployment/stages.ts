@@ -182,6 +182,28 @@ export const warehousesStage: DeploymentStage = {
   },
 };
 
+export const taxClassesStage: DeploymentStage = {
+  name: "Managing tax classes",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.taxClasses?.length) {
+        logger.debug("No tax classes to manage");
+        return;
+      }
+
+      await context.configurator.services.tax.bootstrapTaxClasses(config.taxClasses);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage tax classes: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "taxClasses");
+  },
+};
+
 export const shippingZonesStage: DeploymentStage = {
   name: "Managing shipping zones",
   async execute(context) {
@@ -231,6 +253,7 @@ export function getAllStages(): DeploymentStage[] {
   return [
     validationStage,
     shopSettingsStage,
+    taxClassesStage, // Deploy tax classes early as they can be referenced by other entities
     productTypesStage,
     channelsStage,
     pageTypesStage,

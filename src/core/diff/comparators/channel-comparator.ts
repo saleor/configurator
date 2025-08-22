@@ -26,6 +26,17 @@ interface ChannelSettings {
 }
 
 /**
+ * Tax configuration that can be compared
+ */
+interface TaxConfiguration {
+  readonly taxCalculationStrategy?: "FLAT_RATES" | "TAX_APP";
+  readonly chargeTaxes?: boolean;
+  readonly displayGrossPrices?: boolean;
+  readonly pricesEnteredWithTax?: boolean;
+  readonly taxAppId?: string;
+}
+
+/**
  * Channel fields to compare (excluding settings)
  */
 const CHANNEL_FIELDS: ReadonlyArray<keyof ChannelEntity> = [
@@ -51,6 +62,17 @@ const CHANNEL_SETTINGS_FIELDS: ReadonlyArray<keyof ChannelSettings> = [
   "useLegacyErrorFlow",
   "automaticallyCompleteFullyPaidCheckouts",
   "defaultTransactionFlowStrategy",
+] as const;
+
+/**
+ * Tax configuration fields to compare
+ */
+const TAX_CONFIGURATION_FIELDS: ReadonlyArray<keyof TaxConfiguration> = [
+  "taxCalculationStrategy",
+  "chargeTaxes",
+  "displayGrossPrices",
+  "pricesEnteredWithTax",
+  "taxAppId",
 ] as const;
 
 /**
@@ -139,6 +161,14 @@ export class ChannelComparator extends BaseEntityComparator<
       changes.push(...this.compareChannelSettings(localSettings, remoteSettings));
     }
 
+    // Compare tax configuration if it exists
+    const localTaxConfig = this.getTaxConfiguration(local);
+    const remoteTaxConfig = this.getTaxConfiguration(remote);
+
+    if (localTaxConfig || remoteTaxConfig) {
+      changes.push(...this.compareTaxConfiguration(localTaxConfig, remoteTaxConfig));
+    }
+
     return changes;
   }
 
@@ -169,6 +199,39 @@ export class ChannelComparator extends BaseEntityComparator<
 
       if (localValue !== remoteValue) {
         changes.push(this.createFieldChange(`settings.${field}`, remoteValue, localValue));
+      }
+    }
+
+    return changes;
+  }
+
+  /**
+   * Safely extracts tax configuration from a channel entity
+   */
+  private getTaxConfiguration(channel: ChannelEntity): TaxConfiguration | undefined {
+    if (typeof channel === "object" && channel !== null && "taxConfiguration" in channel) {
+      return channel.taxConfiguration ?? undefined;
+    }
+    return undefined;
+  }
+
+  /**
+   * Compares tax configuration objects
+   */
+  private compareTaxConfiguration(
+    local: TaxConfiguration | undefined,
+    remote: TaxConfiguration | undefined
+  ): DiffChange[] {
+    const changes: DiffChange[] = [];
+    const localTaxConfig = local || {};
+    const remoteTaxConfig = remote || {};
+
+    for (const field of TAX_CONFIGURATION_FIELDS) {
+      const localValue = localTaxConfig[field];
+      const remoteValue = remoteTaxConfig[field];
+
+      if (localValue !== remoteValue) {
+        changes.push(this.createFieldChange(`taxConfiguration.${field}`, remoteValue, localValue));
       }
     }
 

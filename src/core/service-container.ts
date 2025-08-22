@@ -21,6 +21,8 @@ import { ShopRepository } from "../modules/shop/repository";
 import { ShopService } from "../modules/shop/shop-service";
 import { WarehouseRepository } from "../modules/warehouse/repository";
 import { WarehouseService } from "../modules/warehouse/warehouse-service";
+import { TaxRepository } from "../modules/tax/repository";
+import { TaxService } from "../modules/tax/tax-service";
 import { DiffService } from "./diff";
 
 export interface ServiceContainer {
@@ -34,6 +36,7 @@ export interface ServiceContainer {
   readonly product: ProductService;
   readonly warehouse: WarehouseService;
   readonly shippingZone: ShippingZoneService;
+  readonly tax: TaxService;
   readonly diffService: DiffService;
 }
 
@@ -52,6 +55,7 @@ export class ServiceComposer {
       product: new ProductRepository(client),
       warehouse: new WarehouseRepository(client),
       shippingZone: new ShippingZoneRepository(client),
+      tax: new TaxRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -78,6 +82,10 @@ export class ServiceComposer {
         repositories.warehouse,
         repositories.channel
       ),
+      tax: new TaxService({
+        repository: repositories.tax,
+        logger,
+      }),
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container
