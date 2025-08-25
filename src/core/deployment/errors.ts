@@ -1,3 +1,5 @@
+import { ErrorRecoveryGuide } from "../../lib/errors/recovery-guide";
+
 /**
  * Exit codes for different error types
  */
@@ -164,10 +166,6 @@ export class StageAggregateError extends DeploymentError {
     }>,
     public readonly successes: string[] = []
   ) {
-    // Not using failureDetails in constructor but keeping for potential future use
-    // const failureDetails = failures
-    //   .map((f) => `${f.entity}: ${f.error.message}`)
-    //   .join("\n  • ");
     
     const summary = `${stageName} failed for ${failures.length} of ${failures.length + successes.length} entities`;
     
@@ -219,7 +217,6 @@ export class StageAggregateError extends DeploymentError {
         lines.push(`    Error: ${error.message}`);
         
         // Get recovery suggestions for this specific error
-        const { ErrorRecoveryGuide } = require("../../lib/errors/recovery-guide");
         const suggestions = ErrorRecoveryGuide.getSuggestions(error.message);
         const formattedSuggestions = ErrorRecoveryGuide.formatSuggestions(suggestions);
         
@@ -241,9 +238,7 @@ export class StageAggregateError extends DeploymentError {
       });
     }
 
-    if (verbose) {
-      lines.push("", "Run 'saleor-configurator deploy --verbose' for detailed error traces");
-    }
+    lines.push("", "Run 'saleor-configurator deploy --verbose' for detailed error traces");
 
     return lines.join("\n");
   }

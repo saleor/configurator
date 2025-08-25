@@ -16,7 +16,7 @@ export class ErrorRecoveryGuide {
     new Map([
       // Attribute errors
       [
-        /Entity type is required for reference attribute ['"]?(\w+)['"]?/i,
+        /Entity type is required for reference attribute ['"]?([^'"]+)['"]?/i,
         (match) => ({
           fix: `Add entityType field to the '${match[1]}' reference attribute in your config`,
           check: "Valid values are: PAGE, PRODUCT, or PRODUCT_VARIANT",
@@ -24,7 +24,7 @@ export class ErrorRecoveryGuide {
         }),
       ],
       [
-        /Attribute ['"]?(\w+)['"]? not found/i,
+        /Attribute ['"]?([^'"]+)['"]? not found/i,
         (match) => ({
           fix: `Create the attribute '${match[1]}' first or reference an existing one`,
           check: "View available attributes",
@@ -68,7 +68,7 @@ export class ErrorRecoveryGuide {
 
       // Duplicate/conflict errors
       [
-        /Duplicate slug ['"]?(.+?)['"]?/i,
+        /Duplicate slug ['"]?([^'"]+)['"]?/i,
         (match) => ({
           fix: `Use a unique slug - '${match[1]}' already exists`,
           check: "View existing entities to find available slugs",
@@ -76,7 +76,7 @@ export class ErrorRecoveryGuide {
         }),
       ],
       [
-        /already exists with name ['"]?(.+?)['"]?/i,
+        /already exists with name ['"]?([^'"]+)['"]?/i,
         (match) => ({
           fix: `Entity with name '${match[1]}' already exists - use a different name or update the existing one`,
           check: "View current state",
@@ -123,7 +123,7 @@ export class ErrorRecoveryGuide {
 
       // GraphQL errors
       [
-        /Variable ["$](\w+)["']? of type/i,
+        /Variable.*?(\$\w+).*? of type/i,
         (match) => ({
           fix: `Check the ${match[1]} field type matches the GraphQL schema`,
           check: "This might be a version mismatch between configurator and Saleor",
@@ -136,6 +136,15 @@ export class ErrorRecoveryGuide {
    */
   static getSuggestions(errorMessage: string): RecoverySuggestion[] {
     const suggestions: RecoverySuggestion[] = [];
+
+    // Handle null/undefined error messages
+    if (!errorMessage) {
+      return [{
+        fix: "Review the error message for details",
+        check: "Check your configuration against the current Saleor state",
+        command: "saleor-configurator diff --verbose",
+      }];
+    }
 
     for (const [pattern, getSuggestion] of ErrorRecoveryGuide.patterns) {
       const match = errorMessage.match(pattern);
@@ -177,11 +186,25 @@ export class ErrorRecoveryGuide {
 
   /**
    * Register a custom error pattern and recovery suggestion
+   * @throws Error if pattern already exists
    */
   static registerPattern(
     pattern: RegExp,
     getSuggestion: (match: RegExpMatchArray) => RecoverySuggestion
   ): void {
+    // Check for duplicate pattern
+    for (const existingPattern of ErrorRecoveryGuide.patterns.keys()) {
+      if (existingPattern.source === pattern.source && existingPattern.flags === pattern.flags) {
+        throw new Error(`Pattern already registered: ${pattern.source}`);
+      }
+    }
+    
+    // Limit total patterns to prevent memory issues
+    const MAX_PATTERNS = 100;
+    if (ErrorRecoveryGuide.patterns.size >= MAX_PATTERNS) {
+      throw new Error(`Maximum number of patterns (${MAX_PATTERNS}) reached`);
+    }
+    
     ErrorRecoveryGuide.patterns.set(pattern, getSuggestion);
   }
 }
