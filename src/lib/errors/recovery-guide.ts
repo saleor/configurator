@@ -65,6 +65,30 @@ export class ErrorRecoveryGuide {
           command: "saleor-configurator introspect --include=productTypes",
         }),
       ],
+      [
+        /Warehouse ['"]?([\w-]+)['"]? not found/i,
+        (match) => ({
+          fix: `Ensure warehouse '${match[1]}' exists in your warehouses configuration`,
+          check: "Warehouse slugs must match exactly (case-sensitive)",
+          command: "saleor-configurator diff --include=warehouses",
+        }),
+      ],
+      [
+        /Shipping zone ['"]?([\w\s-]+)['"]? not found/i,
+        (match) => ({
+          fix: `Ensure shipping zone '${match[1]}' exists in your configuration`,
+          check: "Shipping zone names must match exactly",
+          command: "saleor-configurator diff --include=shippingZones",
+        }),
+      ],
+      [
+        /Tax class ['"]?([\w\s-]+)['"]? (?:not found|doesn't exist)/i,
+        (match) => ({
+          fix: `Ensure tax class '${match[1]}' exists in your configuration`,
+          check: "Tax class names must match exactly",
+          command: "saleor-configurator introspect --include=taxes",
+        }),
+      ],
 
       // Duplicate/conflict errors
       [
@@ -83,6 +107,22 @@ export class ErrorRecoveryGuide {
           command: "saleor-configurator diff",
         }),
       ],
+      [
+        /Duplicate (\w+) (?:names?|slugs?) found: ([\w\s,]+)/i,
+        (match) => ({
+          fix: `Remove duplicate ${match[1].toLowerCase()} entries from your config`,
+          check: `Each ${match[1].toLowerCase()} must have a unique identifier`,
+          command: `saleor-configurator diff --include=${match[1].toLowerCase()}s`,
+        }),
+      ],
+      [
+        /SKU ['"]?([\w-]+)['"]? already exists/i,
+        (match) => ({
+          fix: `Change SKU '${match[1]}' to a unique value`,
+          check: "Each product variant must have a unique SKU",
+          command: "saleor-configurator introspect --include=products",
+        }),
+      ],
 
       // Validation errors
       [
@@ -98,6 +138,62 @@ export class ErrorRecoveryGuide {
         (match) => ({
           fix: `Check that the ${match[1]} field has a valid value according to the schema`,
           check: "Review valid values in schema documentation",
+        }),
+      ],
+      [
+        /Invalid currency code ['"]?([A-Z]+)['"]?/i,
+        (match) => ({
+          fix: `Use a valid ISO 4217 currency code instead of '${match[1]}'`,
+          check: "Common codes: USD, EUR, GBP, CAD, AUD, JPY",
+          command: "See https://en.wikipedia.org/wiki/ISO_4217 for full list",
+        }),
+      ],
+      [
+        /Invalid country code ['"]?([A-Z]+)['"]?/i,
+        (match) => ({
+          fix: `Use a valid ISO 3166-1 alpha-2 country code instead of '${match[1]}'`,
+          check: "Common codes: US, GB, DE, FR, CA, AU, JP",
+          command: "See https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 for full list",
+        }),
+      ],
+      [
+        /Tax rate must be between 0 and 100/i,
+        () => ({
+          fix: "Set tax rate as a percentage between 0 and 100",
+          check: "Example: rate: 8.5 for 8.5% tax",
+          command: "Validate your tax rates in the configuration",
+        }),
+      ],
+      [
+        /Invalid country rate for ['"]?([A-Z]+)['"]?: ([\d.]+)/i,
+        (match) => ({
+          fix: `Fix tax rate for country '${match[1]}' (currently ${match[2]})`,
+          check: "Tax rates must be between 0 and 100",
+          command: "Update countryRates in your tax configuration",
+        }),
+      ],
+      [
+        /At least one country is required/i,
+        () => ({
+          fix: "Add at least one country code to the shipping zone",
+          check: "Use ISO 3166-1 alpha-2 codes (e.g., US, GB, DE)",
+          command: "countries: [US, CA, MX]",
+        }),
+      ],
+      [
+        /Shipping method (\w+) is required/i,
+        (match) => ({
+          fix: `Add required field '${match[1].toLowerCase()}' to shipping method`,
+          check: "Required fields: name, type, channelListings (with channel and price)",
+          command: "See example.yml for shipping method template",
+        }),
+      ],
+      [
+        /Failed to create subcategories for ['"]?([\w\s-]+)['"]?/i,
+        (match) => ({
+          fix: `Check subcategory configuration for parent category '${match[1]}'`,
+          check: "Ensure subcategory names and slugs are unique",
+          command: "Review category hierarchy in your configuration",
         }),
       ],
 
@@ -118,6 +214,14 @@ export class ErrorRecoveryGuide {
           fix: "Check your network connection and Saleor instance URL",
           check: "Verify the instance is accessible",
           command: "curl -I YOUR_SALEOR_URL/graphql/",
+        }),
+      ],
+      [
+        /fetch failed/i,
+        () => ({
+          fix: "Check your network connection and Saleor instance URL",
+          check: "Verify the instance is running and accessible",
+          command: "ping your-saleor-instance.com",
         }),
       ],
 

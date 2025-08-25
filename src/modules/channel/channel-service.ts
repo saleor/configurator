@@ -1,55 +1,67 @@
 import { logger } from "../../lib/logger";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { ChannelCreateInput, ChannelInput, ChannelUpdateInput } from "../config/schema/schema";
+import { ChannelCreationError, ChannelError, ChannelUpdateError } from "./errors";
 import type { ChannelOperations } from "./repository";
 
 export class ChannelService {
   constructor(private repository: ChannelOperations) {}
 
-  private async getExistingChannel(name: string) {
-    logger.debug("Looking up existing channel", { name });
-    const channels = await this.repository.getChannels();
-    const existingChannel = channels?.find((channel) => channel.name === name);
+  private async getExistingChannel(slug: string) {
+    return ServiceErrorWrapper.wrapServiceCall(
+      "fetch channel",
+      "channel",
+      slug,
+      async () => {
+        logger.debug("Looking up existing channel", { slug });
+        const channels = await this.repository.getChannels();
+        const existingChannel = channels?.find((channel) => channel.slug === slug);
 
-    if (existingChannel) {
-      logger.debug("Found existing channel", {
-        id: existingChannel.id,
-        name: existingChannel.name,
-      });
-    } else {
-      logger.debug("Channel not found", { name });
-    }
+        if (existingChannel) {
+          logger.debug("Found existing channel", {
+            id: existingChannel.id,
+            name: existingChannel.name,
+            slug: existingChannel.slug,
+          });
+        } else {
+          logger.debug("Channel not found", { slug });
+        }
 
-    return existingChannel;
+        return existingChannel;
+      },
+      ChannelError
+    );
   }
 
   async createChannel(input: ChannelCreateInput) {
-    logger.debug("Creating new channel", { name: input.name });
-    try {
-      const channel = await this.repository.createChannel({
-        name: input.name,
-        slug: input.slug,
-        currencyCode: input.currencyCode,
-        defaultCountry: input.defaultCountry,
-        isActive: false,
-      });
-      logger.debug("Successfully created channel", {
-        id: channel.id,
-        name: input.name,
-      });
-      return channel;
-    } catch (error) {
-      logger.error("Failed to create channel", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        name: input.name,
-      });
-      throw error;
-    }
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create channel",
+      "channel",
+      input.slug,
+      async () => {
+        logger.debug("Creating new channel", { name: input.name, slug: input.slug });
+        const channel = await this.repository.createChannel({
+          name: input.name,
+          slug: input.slug,
+          currencyCode: input.currencyCode,
+          defaultCountry: input.defaultCountry,
+          isActive: false,
+        });
+        logger.debug("Successfully created channel", {
+          id: channel.id,
+          name: input.name,
+          slug: input.slug,
+        });
+        return channel;
+      },
+      ChannelCreationError
+    );
   }
 
   private async getOrCreate(input: ChannelInput) {
-    logger.debug("Getting or creating channel", { name: input.name });
-    const existingChannel = await this.getExistingChannel(input.name);
+    logger.debug("Getting or creating channel", { name: input.name, slug: input.slug });
+    const existingChannel = await this.getExistingChannel(input.slug);
 
     if (existingChannel) {
       // Check if this is an update input (has settings)
@@ -74,10 +86,15 @@ export class ChannelService {
   }
 
   async updateChannel(id: string, input: ChannelUpdateInput) {
-    logger.debug("Preparing channel update", { id, name: input.name });
-    const settings = input.settings ?? {};
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update channel",
+      "channel",
+      input.slug,
+      async () => {
+        logger.debug("Preparing channel update", { id, name: input.name, slug: input.slug });
+        const settings = input.settings ?? {};
 
-    const updateInput = object.filterUndefinedValues({
+        const updateInput = object.filterUndefinedValues({
       name: input.name,
       slug: input.slug,
       defaultCountry: input.defaultCountry,
@@ -110,48 +127,58 @@ export class ChannelService {
       stockSettings: settings.allocationStrategy
         ? { allocationStrategy: settings.allocationStrategy }
         : undefined,
-    });
+        });
 
-    logger.debug("Updating channel", {
-      id,
-      name: input.name,
-      hasOrderSettings: !!updateInput.orderSettings,
-      hasCheckoutSettings: !!updateInput.checkoutSettings,
-      hasPaymentSettings: !!updateInput.paymentSettings,
-      hasStockSettings: !!updateInput.stockSettings,
-    });
+        logger.debug("Updating channel", {
+          id,
+          name: input.name,
+          slug: input.slug,
+          hasOrderSettings: !!updateInput.orderSettings,
+          hasCheckoutSettings: !!updateInput.checkoutSettings,
+          hasPaymentSettings: !!updateInput.paymentSettings,
+          hasStockSettings: !!updateInput.stockSettings,
+        });
 
-    try {
-      const updatedChannel = await this.repository.updateChannel(id, updateInput);
-      logger.debug("Successfully updated channel", {
-        id,
-        name: input.name,
-      });
-      return updatedChannel;
-    } catch (error) {
-      logger.error("Failed to update channel", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        id,
-        name: input.name,
-      });
-      throw error;
-    }
+        const updatedChannel = await this.repository.updateChannel(id, updateInput);
+        logger.debug("Successfully updated channel", {
+          id,
+          name: input.name,
+          slug: input.slug,
+        });
+        return updatedChannel;
+      },
+      ChannelUpdateError
+    );
   }
 
   async bootstrapChannels(inputs: ChannelInput[]) {
     logger.debug("Bootstrapping channels", { count: inputs.length });
-    try {
-      const channels = await Promise.all(inputs.map((input) => this.getOrCreate(input)));
-      logger.debug("Successfully bootstrapped all channels", {
-        count: channels.length,
+    
+    const results = await ServiceErrorWrapper.wrapBatch(
+      inputs,
+      "Bootstrap channels",
+      (channel) => channel.slug,
+      (input) => this.getOrCreate(input)
+    );
+
+    if (results.failures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} channels`;
+      logger.error(errorMessage, {
+        failures: results.failures.map((f) => ({
+          channel: f.item.slug,
+          error: f.error.message,
+        })),
       });
-      return channels;
-    } catch (error) {
-      logger.error("Failed to bootstrap channels", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        count: inputs.length,
-      });
-      throw error;
+      throw new ChannelError(
+        errorMessage,
+        "CHANNEL_BOOTSTRAP_ERROR",
+        results.failures.map((f) => `${f.item.slug}: ${f.error.message}`)
+      );
     }
+
+    logger.debug("Successfully bootstrapped all channels", {
+      count: results.successes.length,
+    });
+    return results.successes.map((s) => s.result);
   }
 }

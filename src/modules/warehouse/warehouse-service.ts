@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
 import { WarehouseOperationError, WarehouseValidationError } from "./errors";
@@ -13,21 +14,29 @@ export class WarehouseService {
   constructor(private repository: WarehouseOperations) {}
 
   private async getExistingWarehouse(slug: string): Promise<Warehouse | undefined> {
-    logger.debug("Looking up existing warehouse", { slug });
-    const warehouses = await this.repository.getWarehouses();
-    const existingWarehouse = warehouses.find((warehouse) => warehouse.slug === slug);
+    return ServiceErrorWrapper.wrapServiceCall(
+      "fetch warehouse",
+      "warehouse",
+      slug,
+      async () => {
+        logger.debug("Looking up existing warehouse", { slug });
+        const warehouses = await this.repository.getWarehouses();
+        const existingWarehouse = warehouses.find((warehouse) => warehouse.slug === slug);
 
-    if (existingWarehouse) {
-      logger.debug("Found existing warehouse", {
-        id: existingWarehouse.id,
-        name: existingWarehouse.name,
-        slug: existingWarehouse.slug,
-      });
-    } else {
-      logger.debug("Warehouse not found", { slug });
-    }
+        if (existingWarehouse) {
+          logger.debug("Found existing warehouse", {
+            id: existingWarehouse.id,
+            name: existingWarehouse.name,
+            slug: existingWarehouse.slug,
+          });
+        } else {
+          logger.debug("Warehouse not found", { slug });
+        }
 
-    return existingWarehouse;
+        return existingWarehouse;
+      },
+      WarehouseOperationError
+    );
   }
 
   private validateWarehouseInput(input: WarehouseInput): void {
@@ -101,85 +110,73 @@ export class WarehouseService {
 
   async createWarehouse(input: WarehouseInput): Promise<Warehouse> {
     logger.debug("Creating new warehouse", { name: input.name, slug: input.slug });
+    
+    // Validate first, before wrapping in ServiceErrorWrapper
     this.validateWarehouseInput(input);
+    
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create warehouse",
+      "warehouse",
+      input.slug,
+      async () => {
 
-    try {
-      const createInput = this.mapInputToCreateInput(input);
-      let warehouse = await this.repository.createWarehouse(createInput);
+        const createInput = this.mapInputToCreateInput(input);
+        let warehouse = await this.repository.createWarehouse(createInput);
 
-      // Check if we need to update additional fields that aren't supported in creation
-      const needsUpdate =
-        input.isPrivate !== undefined || input.clickAndCollectOption !== undefined;
+        // Check if we need to update additional fields that aren't supported in creation
+        const needsUpdate =
+          input.isPrivate !== undefined || input.clickAndCollectOption !== undefined;
 
-      if (needsUpdate) {
-        logger.debug("Updating warehouse with additional fields after creation", {
+        if (needsUpdate) {
+          logger.debug("Updating warehouse with additional fields after creation", {
+            id: warehouse.id,
+            isPrivate: input.isPrivate,
+            clickAndCollectOption: input.clickAndCollectOption,
+          });
+
+          const updateInput = this.mapInputToUpdateInput(input);
+          warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
+        }
+
+        logger.debug("Successfully created warehouse", {
           id: warehouse.id,
-          isPrivate: input.isPrivate,
-          clickAndCollectOption: input.clickAndCollectOption,
+          name: warehouse.name,
+          slug: warehouse.slug,
         });
-
-        const updateInput = this.mapInputToUpdateInput(input);
-        warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
-      }
-
-      logger.debug("Successfully created warehouse", {
-        id: warehouse.id,
-        name: warehouse.name,
-        slug: warehouse.slug,
-      });
-      return warehouse;
-    } catch (error) {
-      // Re-throw validation errors without wrapping
-      if (error instanceof WarehouseValidationError) {
-        throw error;
-      }
-
-      logger.error("Failed to create warehouse", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        name: input.name,
-        slug: input.slug,
-      });
-      throw new WarehouseOperationError(
-        "create",
-        input.name,
-        error instanceof Error ? error.message : "Unknown error"
-      );
-    }
+        return warehouse;
+      },
+      WarehouseOperationError
+    );
   }
 
   async updateWarehouse(id: string, input: WarehouseInput): Promise<Warehouse> {
-    logger.debug("Updating warehouse", { id, name: input.name, slug: input.slug });
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update warehouse",
+      "warehouse",
+      input.slug,
+      async () => {
+        logger.debug("Updating warehouse", { id, name: input.name, slug: input.slug });
 
-    try {
-      const updateInput = this.mapInputToUpdateInput(input);
-      logger.debug("Warehouse update input", {
-        id,
-        updateInput: JSON.stringify(updateInput, null, 2),
-        originalInput: JSON.stringify(input, null, 2),
-      });
+        const updateInput = this.mapInputToUpdateInput(input);
+        logger.debug("Warehouse update input", {
+          id,
+          updateInput: JSON.stringify(updateInput, null, 2),
+          originalInput: JSON.stringify(input, null, 2),
+        });
 
-      const warehouse = await this.repository.updateWarehouse(id, updateInput);
+        const warehouse = await this.repository.updateWarehouse(id, updateInput);
 
-      logger.debug("Successfully updated warehouse", {
-        id: warehouse.id,
-        name: warehouse.name,
-        slug: warehouse.slug,
-        returnedCity: warehouse.address?.city,
-        inputCity: input.address?.city,
-      });
-      return warehouse;
-    } catch (error) {
-      logger.error("Failed to update warehouse", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        id,
-        name: input.name,
-      });
-      throw new WarehouseOperationError(
-        "update",
-        input.name,
-        error instanceof Error ? error.message : "Unknown error"
-      );
-    }
+        logger.debug("Successfully updated warehouse", {
+          id: warehouse.id,
+          name: warehouse.name,
+          slug: warehouse.slug,
+          returnedCity: warehouse.address?.city,
+          inputCity: input.address?.city,
+        });
+        return warehouse;
+      },
+      WarehouseOperationError
+    );
   }
 
   async getOrCreateWarehouse(input: WarehouseInput): Promise<Warehouse> {
@@ -220,19 +217,32 @@ export class WarehouseService {
       );
     }
 
-    try {
-      const warehouses = await Promise.all(inputs.map((input) => this.getOrCreateWarehouse(input)));
-      logger.debug("Successfully bootstrapped all warehouses", {
-        count: warehouses.length,
+    const results = await ServiceErrorWrapper.wrapBatch(
+      inputs,
+      "Bootstrap warehouses",
+      (warehouse) => warehouse.slug,
+      (input) => this.getOrCreateWarehouse(input)
+    );
+
+    if (results.failures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} warehouses`;
+      logger.error(errorMessage, {
+        failures: results.failures.map((f) => ({
+          warehouse: f.item.slug,
+          error: f.error.message,
+        })),
       });
-      return warehouses;
-    } catch (error) {
-      logger.error("Failed to bootstrap warehouses", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        count: inputs.length,
-      });
-      throw error;
+      throw new WarehouseOperationError(
+        "bootstrap",
+        "warehouses",
+        results.failures.map((f) => `${f.item.slug}: ${f.error.message}`).join("; ")
+      );
     }
+
+    logger.debug("Successfully bootstrapped all warehouses", {
+      count: results.successes.length,
+    });
+    return results.successes.map((s) => s.result);
   }
 
   async syncWarehouseShippingZones(
