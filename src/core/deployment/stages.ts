@@ -120,9 +120,10 @@ export const pageTypesStage: DeploymentStage = {
         )
       );
 
-      const failures = results.filter((r) => r.status === "rejected");
+      const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
       if (failures.length > 0) {
-        throw new Error(`Failed to manage ${failures.length} page type(s)`);
+        const errorMessages = failures.map((f) => f.reason?.message || String(f.reason)).join("; ");
+        throw new Error(`Failed to manage ${failures.length} page type(s): ${errorMessages}`);
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes("Failed to manage page type")) {
@@ -200,7 +201,7 @@ export const taxClassesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "taxClasses");
+    return context.summary.results.every((r) => r.entityType !== "TaxClasses");
   },
 };
 
