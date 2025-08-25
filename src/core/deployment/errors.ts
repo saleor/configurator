@@ -1,3 +1,5 @@
+import { ErrorRecoveryGuide } from "../../lib/errors/recovery-guide";
+
 /**
  * Exit codes for different error types
  */
@@ -149,6 +151,96 @@ export class ValidationDeploymentError extends DeploymentError {
 
   protected getErrorType(): string {
     return "Validation Error";
+  }
+}
+
+/**
+ * Stage-level aggregate error for better error reporting
+ */
+export class StageAggregateError extends DeploymentError {
+  constructor(
+    stageName: string,
+    public readonly failures: Array<{
+      entity: string;
+      error: Error;
+    }>,
+    public readonly successes: string[] = []
+  ) {
+    
+    const summary = `${stageName} failed for ${failures.length} of ${failures.length + successes.length} entities`;
+    
+    const suggestions = [
+      "Review the individual errors below",
+      "Fix the issues and run deploy again",
+      "Use --include flag to deploy only specific entities",
+      "Run 'saleor-configurator diff' to check current state",
+    ];
+
+    super(summary, suggestions, {
+      stageName,
+      totalEntities: failures.length + successes.length,
+      failedCount: failures.length,
+      successCount: successes.length,
+    });
+  }
+
+  getExitCode(): number {
+    return EXIT_CODES.PARTIAL_FAILURE;
+  }
+
+  protected getErrorType(): string {
+    return "Stage Execution Failure";
+  }
+
+  getUserMessage(verbose = false): string {
+    const lines: string[] = [
+      `❌ ${this.context?.stageName} - ${this.failures.length} of ${
+        this.failures.length + this.successes.length
+      } failed`,
+      "",
+    ];
+
+    // Show successes if any
+    if (this.successes.length > 0) {
+      lines.push("✅ Successful:");
+      this.successes.forEach((entity) => {
+        lines.push(`  • ${entity}`);
+      });
+      lines.push("");
+    }
+
+    // Show failures with recovery suggestions
+    if (this.failures.length > 0) {
+      lines.push("❌ Failed:");
+      this.failures.forEach(({ entity, error }) => {
+        lines.push(`  • ${entity}`);
+        lines.push(`    Error: ${error.message}`);
+        
+        // Get recovery suggestions for this specific error
+        const suggestions = ErrorRecoveryGuide.getSuggestions(error.message);
+        const formattedSuggestions = ErrorRecoveryGuide.formatSuggestions(suggestions);
+        
+        if (formattedSuggestions.length > 0) {
+          formattedSuggestions.forEach((suggestion) => {
+            lines.push(`    ${suggestion}`);
+          });
+        }
+        
+        lines.push("");
+      });
+    }
+
+    // Add general suggestions
+    if (this.suggestions.length > 0) {
+      lines.push("General suggestions:");
+      this.suggestions.forEach((suggestion, index) => {
+        lines.push(`  ${index + 1}. ${suggestion}`);
+      });
+    }
+
+    lines.push("", "Run 'saleor-configurator deploy --verbose' for detailed error traces");
+
+    return lines.join("\n");
   }
 }
 

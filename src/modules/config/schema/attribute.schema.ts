@@ -22,7 +22,7 @@ export type MultipleValuesAttribute = z.infer<typeof multipleValuesAttributeSche
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]).optional(),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
 // Schema for simple value attributes

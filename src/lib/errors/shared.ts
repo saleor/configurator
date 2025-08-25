@@ -13,7 +13,8 @@ export const errorFormatHelpers = {
 export abstract class BaseError extends Error {
   constructor(
     message: string,
-    public readonly code: string
+    public readonly code: string,
+    public readonly recoverySuggestions?: string[]
   ) {
     super(message);
     this.name = this.constructor.name;
@@ -22,6 +23,21 @@ export abstract class BaseError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, this.constructor);
     }
+  }
+
+  /**
+   * Get recovery suggestions for this error
+   * Can be overridden by subclasses for custom suggestions
+   */
+  getRecoverySuggestions(): string[] {
+    if (this.recoverySuggestions && this.recoverySuggestions.length > 0) {
+      return this.recoverySuggestions;
+    }
+
+    // Import dynamically to avoid circular dependency
+    const { ErrorRecoveryGuide } = require("./recovery-guide");
+    const suggestions = ErrorRecoveryGuide.getSuggestions(this.message);
+    return ErrorRecoveryGuide.formatSuggestions(suggestions);
   }
 }
 

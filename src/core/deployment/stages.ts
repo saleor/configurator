@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
@@ -51,18 +52,29 @@ export const productTypesStage: DeploymentStage = {
         config.productTypes.map((productType) =>
           context.configurator.services.productType
             .bootstrapProductType(productType)
-            .catch((error) => {
-              throw new Error(
-                `Failed to manage product type '${productType.name}': ${error instanceof Error ? error.message : String(error)}`
-              );
-            })
+            .then(() => ({ name: productType.name, success: true }))
+            .catch((error) => ({ 
+              name: productType.name, 
+              success: false, 
+              error: error instanceof Error ? error : new Error(String(error))
+            }))
         )
       );
 
-      const failures = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+      const successes = results
+        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
+          r.status === "fulfilled" && r.value.success === true
+        )
+        .map((r) => r.value.name);
+      
+      const failures = results
+        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
+          r.status === "fulfilled" && r.value.success === false
+        )
+        .map((r) => ({ entity: r.value.name, error: r.value.error }));
+      
       if (failures.length > 0) {
-        const errorMessages = failures.map((f) => f.reason?.message || String(f.reason)).join("; ");
-        throw new Error(`Failed to manage ${failures.length} product type(s): ${errorMessages}`);
+        throw new StageAggregateError("Managing product types", failures, successes);
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes("Failed to manage product type")) {
@@ -112,17 +124,31 @@ export const pageTypesStage: DeploymentStage = {
 
       const results = await Promise.allSettled(
         config.pageTypes.map((pageType) =>
-          context.configurator.services.pageType.bootstrapPageType(pageType).catch((error) => {
-            throw new Error(
-              `Failed to manage page type '${pageType.name}': ${error instanceof Error ? error.message : String(error)}`
-            );
-          })
+          context.configurator.services.pageType
+            .bootstrapPageType(pageType)
+            .then(() => ({ name: pageType.name, success: true }))
+            .catch((error) => ({ 
+              name: pageType.name, 
+              success: false, 
+              error: error instanceof Error ? error : new Error(String(error))
+            }))
         )
       );
 
-      const failures = results.filter((r) => r.status === "rejected");
+      const successes = results
+        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
+          r.status === "fulfilled" && r.value.success === true
+        )
+        .map((r) => r.value.name);
+      
+      const failures = results
+        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
+          r.status === "fulfilled" && r.value.success === false
+        )
+        .map((r) => ({ entity: r.value.name, error: r.value.error }));
+      
       if (failures.length > 0) {
-        throw new Error(`Failed to manage ${failures.length} page type(s)`);
+        throw new StageAggregateError("Managing page types", failures, successes);
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes("Failed to manage page type")) {
@@ -200,7 +226,7 @@ export const taxClassesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "taxClasses");
+    return context.summary.results.every((r) => r.entityType !== "TaxClasses");
   },
 };
 

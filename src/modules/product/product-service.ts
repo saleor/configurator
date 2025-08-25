@@ -1,7 +1,9 @@
 import { logger } from "../../lib/logger";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
+import { ProductError } from "./errors";
 import type { Product, ProductOperations, ProductVariant } from "./repository";
 
 export class ProductService {
@@ -12,33 +14,57 @@ export class ProductService {
   }
 
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
-    const productType = await this.repository.getProductTypeByName(productTypeName);
-    if (!productType) {
-      throw new EntityNotFoundError(
-        `Product type "${productTypeName}" not found. Make sure it exists in your productTypes configuration.`
-      );
-    }
-    return productType.id;
+    return ServiceErrorWrapper.wrapServiceCall(
+      "resolve product type reference",
+      "product type",
+      productTypeName,
+      async () => {
+        const productType = await this.repository.getProductTypeByName(productTypeName);
+        if (!productType) {
+          throw new EntityNotFoundError(
+            `Product type "${productTypeName}" not found. Make sure it exists in your productTypes configuration.`
+          );
+        }
+        return productType.id;
+      },
+      ProductError
+    );
   }
 
   private async resolveCategoryReference(categoryPath: string): Promise<string> {
-    const category = await this.repository.getCategoryByPath(categoryPath);
-    if (!category) {
-      throw new EntityNotFoundError(
-        `Category "${categoryPath}" not found. Make sure it exists in your categories configuration.`
-      );
-    }
-    return category.id;
+    return ServiceErrorWrapper.wrapServiceCall(
+      "resolve category reference",
+      "category",
+      categoryPath,
+      async () => {
+        const category = await this.repository.getCategoryByPath(categoryPath);
+        if (!category) {
+          throw new EntityNotFoundError(
+            `Category "${categoryPath}" not found. Make sure it exists in your categories configuration.`
+          );
+        }
+        return category.id;
+      },
+      ProductError
+    );
   }
 
   private async resolveChannelReference(channelSlug: string): Promise<string> {
-    const channel = await this.repository.getChannelBySlug(channelSlug);
-    if (!channel) {
-      throw new EntityNotFoundError(
-        `Channel "${channelSlug}" not found. Make sure it exists in your channels configuration.`
-      );
-    }
-    return channel.id;
+    return ServiceErrorWrapper.wrapServiceCall(
+      "resolve channel reference",
+      "channel",
+      channelSlug,
+      async () => {
+        const channel = await this.repository.getChannelBySlug(channelSlug);
+        if (!channel) {
+          throw new EntityNotFoundError(
+            `Channel "${channelSlug}" not found. Make sure it exists in your channels configuration.`
+          );
+        }
+        return channel.id;
+      },
+      ProductError
+    );
   }
 
   private async resolveChannelListings(
@@ -323,9 +349,26 @@ export class ProductService {
   async bootstrapProducts(products: ProductInput[]): Promise<void> {
     logger.debug("Bootstrapping products", { count: products.length });
 
-    // Process products sequentially to handle potential cross-references
-    for (const productInput of products) {
-      await this.bootstrapProduct(productInput);
+    const results = await ServiceErrorWrapper.wrapBatch(
+      products,
+      "Bootstrap products",
+      (product) => product.name,
+      (productInput) => this.bootstrapProduct(productInput)
+    );
+
+    if (results.failures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${results.failures.length} of ${products.length} products`;
+      logger.error(errorMessage, {
+        failures: results.failures.map((f) => ({
+          product: f.item.name,
+          error: f.error.message,
+        })),
+      });
+      throw new ProductError(
+        errorMessage,
+        "PRODUCT_BOOTSTRAP_ERROR",
+        results.failures.map((f) => `${f.item.name}: ${f.error.message}`)
+      );
     }
 
     logger.info("Successfully bootstrapped all products", {

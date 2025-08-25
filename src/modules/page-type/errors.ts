@@ -37,3 +37,16 @@ export class PageTypeUpdateError extends PageTypeError {
     super(message, "PAGE_TYPE_UPDATE_ERROR");
   }
 }
+
+/**
+ * Error thrown when page type attribute operations fail
+ */
+export class PageTypeAttributeError extends PageTypeError {
+  constructor(
+    message: string,
+    public readonly pageTypeName: string,
+    public readonly operation: string
+  ) {
+    super(message, "PAGE_TYPE_ATTRIBUTE_ERROR");
+  }
+}

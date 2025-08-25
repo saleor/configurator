@@ -13,6 +13,7 @@ export type EntityType =
   | "Categories"
   | "Shop Settings"
   | "Warehouses"
+  | "TaxClasses"
   | "Shipping Zones";
 
 /**
