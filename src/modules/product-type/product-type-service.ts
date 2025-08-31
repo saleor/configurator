@@ -4,7 +4,7 @@ import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { AttributeInput, SimpleAttribute } from "../config/schema/attribute.schema";
 import type { ProductTypeInput } from "../config/schema/schema";
-import { ProductTypeError, ProductTypeCreationError, ProductTypeUpdateError } from "./errors";
+import { ProductTypeCreationError, ProductTypeUpdateError } from "./errors";
 import type { ProductType, ProductTypeOperations } from "./repository";
 
 export class ProductTypeService {

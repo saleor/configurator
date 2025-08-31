@@ -39,7 +39,7 @@ export abstract class DeploymentError extends Error {
   /**
    * Get a user-friendly error message with suggestions
    */
-  getUserMessage(verbose = false): string {
+  getUserMessage(_verbose = false): string {
     const lines: string[] = [`❌ Deployment failed: ${this.getErrorType()}`, "", this.message];
 
     if (this.context && Object.keys(this.context).length > 0) {
@@ -56,9 +56,9 @@ export abstract class DeploymentError extends Error {
       });
     }
 
-    if (verbose && this.originalError) {
+    if (_verbose && this.originalError) {
       lines.push("", "Original error:", String(this.originalError));
-    } else if (!verbose) {
+    } else if (!_verbose) {
       lines.push("", "For more details, run with --verbose flag.");
     }
 
@@ -192,7 +192,7 @@ export class StageAggregateError extends DeploymentError {
     return "Stage Execution Failure";
   }
 
-  getUserMessage(verbose = false): string {
+  getUserMessage(_verbose = false): string {
     const lines: string[] = [
       `❌ ${this.context?.stageName} - ${this.failures.length} of ${
         this.failures.length + this.successes.length
@@ -280,8 +280,8 @@ export class PartialDeploymentError extends DeploymentError {
     return "Partial Deployment Failure";
   }
 
-  getUserMessage(verbose = false): string {
-    const baseMessage = super.getUserMessage(verbose);
+  getUserMessage(_verbose = false): string {
+    const baseMessage = super.getUserMessage(_verbose);
     const lines = baseMessage.split("\n");
 
     // Insert operation status after the main error message

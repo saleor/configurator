@@ -1,7 +1,7 @@
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { ShopInput } from "../config/schema/schema";
-import { ShopError, ShopSettingsUpdateError } from "./errors";
+import { ShopSettingsUpdateError } from "./errors";
 import type { ShopOperations } from "./repository";
 
 export class ShopService {
