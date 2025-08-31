@@ -245,7 +245,7 @@ describe("ServiceErrorWrapper", () => {
       it("should not treat regular errors as CombinedErrors", async () => {
         const regularError = new Error("Regular error");
         // Add graphQLErrors property but not as array to test type guard
-        (regularError as any).graphQLErrors = "not an array";
+        (regularError as unknown as { graphQLErrors: string }).graphQLErrors = "not an array";
 
         const mockFn = vi.fn().mockRejectedValue(regularError);
 
@@ -519,7 +519,7 @@ describe("ServiceErrorWrapper", () => {
 
   describe("Edge Cases and Error Boundaries", () => {
     it("should handle undefined function parameter", async () => {
-      const undefinedFn = undefined as any;
+      const undefinedFn = undefined as unknown as () => Promise<void>;
       
       await expect(
         ServiceErrorWrapper.wrapServiceCall(
