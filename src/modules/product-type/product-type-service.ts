@@ -1,8 +1,10 @@
 import { logger } from "../../lib/logger";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { AttributeInput, SimpleAttribute } from "../config/schema/attribute.schema";
 import type { ProductTypeInput } from "../config/schema/schema";
+import { ProductTypeCreationError, ProductTypeUpdateError } from "./errors";
 import type { ProductType, ProductTypeOperations } from "./repository";
 
 export class ProductTypeService {
@@ -18,56 +20,72 @@ export class ProductTypeService {
     name: string;
     isShippingRequired?: boolean;
   }) {
-    logger.debug("Looking up product type", { name });
-    const existingProductType = await this.repository.getProductTypeByName(name);
-
-    if (existingProductType) {
-      logger.debug("Found existing product type", {
-        id: existingProductType.id,
-        name: existingProductType.name,
-      });
-      return existingProductType;
-    }
-
-    logger.debug("Creating new product type", { name, isShippingRequired });
-
-    return this.repository.createProductType({
+    return ServiceErrorWrapper.wrapServiceCall(
+      "upsert product type",
+      "product type",
       name,
-      kind: "NORMAL",
-      hasVariants: true,
-      isShippingRequired,
-      taxClass: null,
-    });
+      async () => {
+        logger.debug("Looking up product type", { name });
+        const existingProductType = await this.repository.getProductTypeByName(name);
+
+        if (existingProductType) {
+          logger.debug("Found existing product type", {
+            id: existingProductType.id,
+            name: existingProductType.name,
+          });
+          return existingProductType;
+        }
+
+        logger.debug("Creating new product type", { name, isShippingRequired });
+
+        return this.repository.createProductType({
+          name,
+          kind: "NORMAL",
+          hasVariants: true,
+          isShippingRequired,
+          taxClass: null,
+        });
+      },
+      ProductTypeCreationError
+    );
   }
 
   async updateProductType(productType: ProductType, input: ProductTypeInput) {
-    logger.debug("Updating product type", {
-      id: productType.id,
-      name: input.name,
-      input,
-    });
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update product type",
+      "product type",
+      input.name,
+      async () => {
+        logger.debug("Updating product type", {
+          id: productType.id,
+          name: input.name,
+          input,
+        });
 
-    const { createdAttributes: createdProductAttrs, updatedAttributes: updatedProductAttrs } =
-      await this.upsertAndAssignAttributes(
-        productType,
-        input.productAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
-        "PRODUCT"
-      );
+        const { createdAttributes: createdProductAttrs, updatedAttributes: updatedProductAttrs } =
+          await this.upsertAndAssignAttributes(
+            productType,
+            input.productAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
+            "PRODUCT"
+          );
 
-    const { createdAttributes: createdVariantAttrs, updatedAttributes: updatedVariantAttrs } =
-      await this.upsertAndAssignAttributes(
-        productType,
-        input.variantAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
-        "VARIANT"
-      );
+        const { createdAttributes: createdVariantAttrs, updatedAttributes: updatedVariantAttrs } =
+          await this.upsertAndAssignAttributes(
+            productType,
+            input.variantAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
+            "VARIANT"
+          );
 
-    logger.debug("Product type update completed", {
-      name: input.name,
-      createdAttributes: createdProductAttrs.length + createdVariantAttrs.length,
-      updatedAttributes: updatedProductAttrs.length + updatedVariantAttrs.length,
-    });
+        logger.debug("Product type update completed", {
+          name: input.name,
+          createdAttributes: createdProductAttrs.length + createdVariantAttrs.length,
+          updatedAttributes: updatedProductAttrs.length + updatedVariantAttrs.length,
+        });
 
-    return productType;
+        return productType;
+      },
+      ProductTypeUpdateError
+    );
   }
 
   private async getExistingAttributesToAssign(

@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
@@ -535,20 +536,31 @@ export class ShippingZoneService {
       );
     }
 
-    try {
-      const shippingZones = await Promise.all(
-        inputs.map((input) => this.getOrCreateShippingZone(input))
+    const results = await ServiceErrorWrapper.wrapBatch(
+      inputs,
+      "Bootstrap shipping zones",
+      (zone) => zone.name,
+      (input) => this.getOrCreateShippingZone(input)
+    );
+
+    if (results.failures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} shipping zones`;
+      logger.error(errorMessage, {
+        failures: results.failures.map((f) => ({
+          zone: f.item.name,
+          error: f.error.message,
+        })),
+      });
+      throw new ShippingZoneOperationError(
+        "bootstrap",
+        "shipping zones",
+        results.failures.map((f) => `${f.item.name}: ${f.error.message}`).join("; ")
       );
-      logger.debug("Successfully bootstrapped all shipping zones", {
-        count: shippingZones.length,
-      });
-      return shippingZones;
-    } catch (error) {
-      logger.error("Failed to bootstrap shipping zones", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        count: inputs.length,
-      });
-      throw error;
     }
+
+    logger.debug("Successfully bootstrapped all shipping zones", {
+      count: results.successes.length,
+    });
+    return results.successes.map((s) => s.result);
   }
 }

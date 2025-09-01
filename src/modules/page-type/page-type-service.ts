@@ -4,6 +4,7 @@ import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import type { PageTypeOperations } from "./repository";
+import { PageTypeAttributeError } from "./errors";
 
 export class PageTypeService {
   constructor(
@@ -72,25 +73,43 @@ export class PageTypeService {
       });
 
       // Create new attributes
-      const attributes = await this.attributeService.bootstrapAttributes({
-        attributeInputs: attributesToCreate
-          .filter((a) => "name" in a) // Only create new attributes, not referenced ones
-          .map((a) => ({
-            ...a,
-            type: "PAGE_TYPE" as const,
-          })),
-      });
+      let attributes: { id: string }[];
+      try {
+        attributes = await this.attributeService.bootstrapAttributes({
+          attributeInputs: attributesToCreate
+            .filter((a) => "name" in a) // Only create new attributes, not referenced ones
+            .map((a) => ({
+              ...a,
+              type: "PAGE_TYPE" as const,
+            })),
+        });
+      } catch (error) {
+        throw new PageTypeAttributeError(
+          `Failed to create attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
+          input.name,
+          "attribute_creation"
+        );
+      }
 
       // Resolve referenced attributes
       const existingAttributeNames =
         pageType.attributes
           ?.map((attr) => attr.name)
           .filter((name): name is string => name !== null) ?? [];
-      const referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
-        updateInput.attributes,
-        "PAGE_TYPE",
-        existingAttributeNames
-      );
+      let referencedAttributeIds: string[];
+      try {
+        referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
+          updateInput.attributes,
+          "PAGE_TYPE",
+          existingAttributeNames
+        );
+      } catch (error) {
+        throw new PageTypeAttributeError(
+          `Failed to resolve referenced attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
+          input.name,
+          "attribute_resolution"
+        );
+      }
 
       // Combine new and referenced attribute IDs
       const allAttributeIds = [...attributes.map((attr) => attr.id), ...referencedAttributeIds];
@@ -120,7 +139,11 @@ export class PageTypeService {
             pageType: input.name,
             attributeIds: attributesToAssign,
           });
-          throw error;
+          throw new PageTypeAttributeError(
+            `Failed to assign attributes to page type: ${error instanceof Error ? error.message : String(error)}`,
+            input.name,
+            "attribute_assignment"
+          );
         }
       } else {
         logger.debug("No new attributes to assign to page type", {
