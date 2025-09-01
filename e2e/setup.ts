@@ -11,7 +11,7 @@ export async function setup() {
     const { execa } = await import("execa");
     await execa("docker", ["version"]);
     console.log("✅ Docker is available");
-  } catch (error) {
+  } catch (_error) {
     console.error("❌ Docker is not available. Please install Docker to run E2E tests.");
     throw new Error("Docker is required for E2E tests");
   }
@@ -26,7 +26,7 @@ export async function setup() {
       execa("docker", ["pull", "redis:7.0-alpine"]),
     ]);
     console.log("✅ Docker images ready");
-  } catch (error) {
+  } catch (_error) {
     console.warn("⚠️ Could not pre-pull Docker images, tests may be slower on first run");
   }
 
