@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 0.12.0
+
+### Minor Changes
+
+- 15b5bf9: Enhanced error handling with actionable recovery suggestions. Errors now display specific fix instructions and relevant CLI commands. Fixed page type reference attributes to require entityType field. Deployment failures show clear success/failure breakdown per entity.
+
 ## 0.11.0
 
 ### Minor Changes
