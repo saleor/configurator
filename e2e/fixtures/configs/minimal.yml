@@ -1,0 +1,10 @@
+shop:
+  defaultMailSenderName: "E2E Test Store"
+  defaultMailSenderAddress: "e2e@example.com"
+  customerAllowedToSetExternalReference: false
+
+channels:
+  - name: "Test Channel"
+    slug: "test-channel"
+    currencyCode: "USD"
+    defaultCountry: "US"
