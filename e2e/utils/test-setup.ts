@@ -1,4 +1,4 @@
-import { expect } from "vitest";
+import { expect, beforeAll } from "vitest";
 import { cliMatchers } from "./assertions.js";
 
 // Extend Vitest's expect with custom CLI matchers

@@ -1,13 +1,17 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   test: {
     name: "e2e",
-    root: "./e2e",
+    root: __dirname,
     testTimeout: 60000, // 1 minute per test
     hookTimeout: 180000, // 3 minutes for hooks (container startup)
-    globalSetup: ["./setup.ts"],
+    globalSetup: [path.join(__dirname, "setup.ts")],
     globals: false,
     reporters: process.env.CI 
       ? ["default", "json", "junit"]
@@ -29,8 +33,8 @@ export default defineConfig({
     coverage: {
       enabled: false, // E2E tests don't need coverage
     },
-    setupFiles: ["./utils/test-setup.ts"],
-    include: ["**/*.{test,spec,e2e}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    setupFiles: [path.join(__dirname, "utils/test-setup.ts")],
+    include: ["tests/**/*.{test,spec,e2e}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: [
       "**/node_modules/**",
       "**/dist/**",

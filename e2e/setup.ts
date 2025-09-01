@@ -1,5 +1,3 @@
-import { beforeAll, afterAll } from "vitest";
-
 // Global setup that runs once before all test files
 export async function setup() {
   console.log("🚀 Starting E2E test suite setup...");

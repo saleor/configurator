@@ -35,6 +35,20 @@ export class SaleorTestContainer {
     const composeFilePath = path.join(__dirname, "../docker");
     
     try {
+      // Clean up any existing containers with the same project name
+      try {
+        const { execa } = await import("execa");
+        await execa("docker-compose", [
+          "-f", path.join(composeFilePath, this.config.composeFile),
+          "-p", this.config.projectName,
+          "down",
+          "--volumes",
+          "--remove-orphans"
+        ]);
+      } catch {
+        // Ignore errors if no containers exist
+      }
+      
       // Start Docker Compose environment
       this.environment = await new DockerComposeEnvironment(
         composeFilePath,
