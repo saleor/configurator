@@ -81,6 +81,103 @@ export const cliMatchers = {
           : `Expected output to match pattern ${pattern}, but it didn't.\nOutput: ${output}`,
     };
   },
+
+  toHaveUserFriendlyError(received: CliResult) {
+    const stderr = received.cleanStderr;
+    const stdout = received.cleanStdout;
+    
+    // Check for technical jargon that shouldn't be in user-facing errors
+    const hasTechnicalJargon = 
+      stderr.includes("Error: Error:") || // Nested errors
+      stderr.includes("at Object.") || // Stack traces
+      stderr.includes("node_modules/") || // Module paths
+      stderr.includes("TypeError:") || 
+      stderr.includes("ReferenceError:") ||
+      stderr.includes("ZodError") ||
+      stderr.includes("z.") ||
+      stderr.includes("\"extensions\":") || // Raw GraphQL errors
+      stderr.includes("\"locations\":") ||
+      stderr.includes("SIGTERM") ||
+      stderr.includes("killTimeout");
+    
+    // Check for positive indicators of user-friendly errors
+    const hasUserFriendlyElements = 
+      stderr.length > 0 && // Has some error message
+      !stderr.includes("undefined") && // No undefined values
+      stderr.length < 2000; // Not excessively long
+    
+    const pass = !hasTechnicalJargon && hasUserFriendlyElements;
+    
+    return {
+      pass,
+      message: () =>
+        pass
+          ? "Error message is user-friendly"
+          : `Error message contains technical jargon or is not user-friendly.\nStderr: ${stderr}\nStdout: ${stdout}`,
+    };
+  },
+
+  toContainHelpfulSuggestions(received: CliResult) {
+    const output = (received.cleanStderr + received.cleanStdout).toLowerCase();
+    
+    // Look for helpful keywords that indicate actionable guidance
+    const helpfulKeywords = [
+      "try", "check", "ensure", "verify", "make sure",
+      "suggestion", "tip", "help", "guide",
+      "see", "view", "list", "show",
+      "configure", "set", "create", "add",
+      "documentation", "docs", "example",
+      "command", "run", "execute",
+      "available", "valid", "supported"
+    ];
+    
+    const hasSuggestions = helpfulKeywords.some(keyword => 
+      output.includes(keyword)
+    );
+    
+    return {
+      pass: hasSuggestions,
+      message: () =>
+        hasSuggestions
+          ? "Output contains helpful suggestions"
+          : `Expected output to contain helpful suggestions, but found none.\nOutput: ${output}`,
+    };
+  },
+
+  toHaveConsistentErrorFormat(received: CliResult) {
+    const stderr = received.cleanStderr;
+    
+    if (!stderr || stderr.trim().length === 0) {
+      return {
+        pass: false,
+        message: () => "No error message found in stderr",
+      };
+    }
+    
+    // Check for consistent error formatting patterns
+    const hasProperFormat = 
+      // Should not start with lowercase (unless it's a continuation)
+      /^[A-Z]/.test(stderr.trim()) ||
+      // Or should start with error indicator
+      /^(Error:|❌|✗|Failed)/.test(stderr.trim());
+    
+    // Should not end with trailing periods on single lines
+    const lines = stderr.trim().split('\n');
+    const properEnding = !lines.some(line => 
+      line.trim().endsWith('.') && 
+      line.trim().split(' ').length < 20 // Short lines shouldn't end with period
+    );
+    
+    const pass = hasProperFormat && properEnding;
+    
+    return {
+      pass,
+      message: () =>
+        pass
+          ? "Error message has consistent formatting"
+          : `Error message formatting is inconsistent.\nStderr: ${stderr}`,
+    };
+  },
 };
 
 // Extend Vitest's expect with custom matchers
@@ -93,6 +190,9 @@ declare module "vitest" {
     toContainInStdout(text: string): void;
     toContainInStderr(text: string): void;
     toMatchPattern(pattern: RegExp): void;
+    toHaveUserFriendlyError(): void;
+    toContainHelpfulSuggestions(): void;
+    toHaveConsistentErrorFormat(): void;
   }
   interface AsymmetricMatchersContaining {
     toHaveSucceeded(): void;
@@ -102,6 +202,9 @@ declare module "vitest" {
     toContainInStdout(text: string): void;
     toContainInStderr(text: string): void;
     toMatchPattern(pattern: RegExp): void;
+    toHaveUserFriendlyError(): void;
+    toContainHelpfulSuggestions(): void;
+    toHaveConsistentErrorFormat(): void;
   }
 }
 
