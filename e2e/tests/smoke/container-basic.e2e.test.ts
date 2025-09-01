@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { SaleorTestContainer } from "../../utils/saleor-container.js";
 
-describe.skip("E2E Container Basic Test", () => {
+describe("E2E Container Basic Test", () => {
   let container: SaleorTestContainer;
 
   beforeAll(async () => {

@@ -55,16 +55,29 @@ export class SaleorTestContainer {
         this.config.composeFile
       )
         .withProjectName(this.config.projectName)
-        .withWaitStrategy("api", Wait.forHealthCheck())
         .withWaitStrategy("db", Wait.forHealthCheck())
         .withWaitStrategy("redis", Wait.forHealthCheck())
+        .withWaitStrategy("api", Wait.forLogMessage(/Listening at|Booting worker|Application startup complete/, 1))
         .withStartupTimeout(this.config.startTimeout)
         .up();
 
       console.log("✅ Docker Compose environment started");
 
-      // Get dynamic port mapping for API
-      const apiContainer = this.environment.getContainer("api");
+      // Wait a bit for the API to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
+      // Get the API container with better error handling
+      let apiContainer;
+      try {
+        apiContainer = this.environment.getContainer("api-1") || 
+                       this.environment.getContainer("api_1") || 
+                       this.environment.getContainer("api");
+      } catch (error) {
+        // List all containers to debug
+        console.error("Available containers:", this.environment);
+        throw new Error(`Could not find API container: ${error}`);
+      }
+      
       const apiPort = apiContainer.getMappedPort(8000);
       this.apiUrl = `http://localhost:${apiPort}/graphql/`;
 

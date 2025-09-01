@@ -8,17 +8,14 @@ services:
       REDIS_URL: "redis://redis:6379/0"
       CELERY_BROKER_URL: "redis://redis:6379/1"
       SECRET_KEY: "test-secret-key-for-e2e-testing"
-      DEBUG: "false"
-      ALLOWED_HOSTS: "*"
+      DEBUG: "True"  # Set to True for easier testing
+      ALLOWED_HOSTS: "localhost,127.0.0.1,api"
+      ALLOWED_CLIENT_HOSTS: "localhost,127.0.0.1"
       DEFAULT_FROM_EMAIL: "test@example.com"
-      ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: "false"
+      ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: "False"
       # Disable unnecessary features for faster startup
-      ENABLE_DEBUG_TOOLBAR: "false"
+      ENABLE_DEBUG_TOOLBAR: "False"
       JAEGER_AGENT_HOST: ""
-      # Create default superuser
-      CREATE_SUPERUSER: "true"
-      SUPERUSER_EMAIL: "admin@example.com"
-      SUPERUSER_PASSWORD: "admin123"
     depends_on:
       db:
         condition: service_healthy
@@ -66,6 +63,7 @@ services:
       REDIS_URL: "redis://redis:6379/0"
       CELERY_BROKER_URL: "redis://redis:6379/1"
       SECRET_KEY: "test-secret-key-for-e2e-testing"
+      DEBUG: "True"
     depends_on:
       - api
       - redis
