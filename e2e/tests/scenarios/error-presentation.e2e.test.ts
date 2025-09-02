@@ -508,6 +508,511 @@ describe("E2E Error Presentation", () => {
     }, 60000);
   });
 
+  describe("Entity-Specific Error Messages", () => {
+    it("should provide clear error messages for shop configuration errors", async () => {
+      const configPath = path.join(testDir, "shop-error-config.yml");
+      
+      console.log("🏪 Testing shop configuration error messages...");
+      
+      // Invalid shop configuration
+      const invalidShopConfig = {
+        shop: {
+          defaultMailSenderName: "Shop Error Test",
+          defaultMailSenderAddress: "not-an-email", // Invalid email format
+          reserveStockDurationAnonymousUser: -10, // Invalid negative value
+          limitQuantityPerCheckout: 0, // Invalid zero value
+          defaultDigitalMaxDownloads: -5, // Invalid negative value
+        },
+        channels: []
+      };
+      
+      await writeYaml(configPath, invalidShopConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/shop|email|invalid|negative|value/i);
+    }, 60000);
+
+    it("should provide clear error messages for tax configuration errors", async () => {
+      const configPath = path.join(testDir, "tax-error-config.yml");
+      
+      console.log("💰 Testing tax configuration error messages...");
+      
+      // Invalid tax configuration
+      const invalidTaxConfig = {
+        shop: {
+          defaultMailSenderName: "Tax Error Test",
+          defaultMailSenderAddress: "tax@test.com"
+        },
+        channels: [{
+          name: "Tax Test Channel",
+          slug: "tax-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        taxConfigurations: [
+          {
+            channel: "tax-test",
+            chargeTaxesOnShipping: true,
+            displayGrossPrices: true,
+            pricesEnteredWithTax: true,
+            countryExceptions: [
+              {
+                country: "INVALID_COUNTRY", // Invalid country code
+                chargeTaxes: true,
+                taxCalculationStrategy: "INVALID_STRATEGY", // Invalid strategy
+                displayGrossPrices: true
+              }
+            ]
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidTaxConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/tax|country|strategy|invalid/i);
+    }, 60000);
+
+    it("should provide clear error messages for warehouse configuration errors", async () => {
+      const configPath = path.join(testDir, "warehouse-error-config.yml");
+      
+      console.log("📦 Testing warehouse configuration error messages...");
+      
+      // Invalid warehouse configuration
+      const invalidWarehouseConfig = {
+        shop: {
+          defaultMailSenderName: "Warehouse Error Test",
+          defaultMailSenderAddress: "warehouse@test.com"
+        },
+        channels: [{
+          name: "Warehouse Test Channel",
+          slug: "warehouse-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        warehouses: [
+          {
+            name: "Invalid Warehouse",
+            slug: "invalid-warehouse",
+            email: "not-an-email-format", // Invalid email
+            isPrivate: "yes", // Should be boolean
+            address: {
+              streetAddress1: "",  // Empty required field
+              city: "",           // Empty required field
+              country: "INVALID", // Invalid country code
+              postalCode: "12345"
+            },
+            clickAndCollectOption: "INVALID_OPTION", // Invalid enum value
+            shippingZones: ["non-existent-zone"] // Reference to non-existent zone
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidWarehouseConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/warehouse|email|address|country|boolean/i);
+    }, 60000);
+
+    it("should provide clear error messages for shipping zone errors", async () => {
+      const configPath = path.join(testDir, "shipping-error-config.yml");
+      
+      console.log("🚚 Testing shipping zone error messages...");
+      
+      // Invalid shipping zone configuration
+      const invalidShippingConfig = {
+        shop: {
+          defaultMailSenderName: "Shipping Error Test",
+          defaultMailSenderAddress: "shipping@test.com"
+        },
+        channels: [{
+          name: "Shipping Test Channel",
+          slug: "shipping-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        warehouses: [{
+          name: "Test Warehouse",
+          slug: "test-warehouse",
+          email: "warehouse@test.com",
+          isPrivate: false,
+          address: {
+            streetAddress1: "123 Test St",
+            city: "Test City",
+            country: "US",
+            postalCode: "12345"
+          },
+          clickAndCollectOption: "DISABLED"
+        }],
+        shippingZones: [
+          {
+            name: "Invalid Shipping Zone",
+            description: "Zone with errors",
+            default: "yes", // Should be boolean
+            countries: ["INVALID_COUNTRY", "XX"], // Invalid country codes
+            warehouses: ["non-existent-warehouse"], // Non-existent warehouse
+            channels: ["non-existent-channel"], // Non-existent channel
+            shippingMethods: [
+              {
+                name: "Invalid Method",
+                type: "INVALID_TYPE", // Invalid shipping type
+                taxClass: "non-existent-tax-class", // Non-existent tax class
+                channelListings: [
+                  {
+                    channel: "shipping-test",
+                    price: -10, // Negative price
+                    minimumOrderPrice: -5, // Negative minimum
+                    maximumOrderPrice: -20 // Negative maximum, also less than minimum
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidShippingConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/shipping|country|warehouse|price|boolean/i);
+    }, 60000);
+
+    it("should provide clear error messages for product type attribute errors", async () => {
+      const configPath = path.join(testDir, "product-type-error-config.yml");
+      
+      console.log("📋 Testing product type attribute error messages...");
+      
+      // Invalid product type configuration
+      const invalidProductTypeConfig = {
+        shop: {
+          defaultMailSenderName: "Product Type Error Test",
+          defaultMailSenderAddress: "producttype@test.com"
+        },
+        channels: [{
+          name: "Product Type Test Channel",
+          slug: "product-type-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        productTypes: [
+          {
+            name: "Invalid Product Type",
+            isShippingRequired: "yes", // Should be boolean
+            productAttributes: [
+              {
+                name: "Invalid Attribute",
+                slug: "invalid attribute with spaces", // Invalid slug format
+                type: "INVALID_TYPE", // Invalid attribute type
+                inputType: "INVALID_INPUT", // Invalid input type
+                valueRequired: "always", // Should be boolean
+                visibleInStorefront: 123, // Should be boolean
+                filterableInStorefront: "yes", // Should be boolean
+                filterableInDashboard: null, // Should be boolean
+                unit: "INVALID_UNIT", // Invalid unit type
+                values: "not-an-array" // Should be array
+              }
+            ],
+            variantAttributes: [
+              {
+                name: "Variant Attribute",
+                slug: "variant-attr",
+                type: "PRODUCT_TYPE",
+                inputType: "REFERENCE",
+                entityType: "INVALID_ENTITY", // Invalid entity type
+                references: "not-an-array" // Should be array
+              }
+            ]
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidProductTypeConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/product.*type|attribute|slug|boolean|type|input/i);
+    }, 60000);
+
+    it("should provide clear error messages for page type errors", async () => {
+      const configPath = path.join(testDir, "page-type-error-config.yml");
+      
+      console.log("📄 Testing page type error messages...");
+      
+      // Invalid page type configuration
+      const invalidPageTypeConfig = {
+        shop: {
+          defaultMailSenderName: "Page Type Error Test",
+          defaultMailSenderAddress: "pagetype@test.com"
+        },
+        channels: [{
+          name: "Page Type Test Channel",
+          slug: "page-type-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        pageTypes: [
+          {
+            name: "", // Empty name
+            attributes: [
+              {
+                name: "Page Attribute",
+                slug: "", // Empty slug
+                type: "RICH_TEXT",
+                inputType: null, // Null input type
+                valueRequired: "sometimes", // Invalid boolean value
+                visibleInStorefront: "public", // Invalid boolean value
+                availableInGrid: 1, // Should be boolean
+                storefrontSearchPosition: "top" // Should be number
+              }
+            ]
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidPageTypeConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/page.*type|name|slug|attribute|boolean|required/i);
+    }, 60000);
+
+    it("should provide clear error messages for category hierarchy errors", async () => {
+      const configPath = path.join(testDir, "category-error-config.yml");
+      
+      console.log("🗂️ Testing category hierarchy error messages...");
+      
+      // Invalid category configuration
+      const invalidCategoryConfig = {
+        shop: {
+          defaultMailSenderName: "Category Error Test",
+          defaultMailSenderAddress: "category@test.com"
+        },
+        channels: [{
+          name: "Category Test Channel",
+          slug: "category-test",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        categories: [
+          {
+            name: "Parent Category",
+            slug: "parent", // Duplicate slug
+            description: "First parent"
+          },
+          {
+            name: "Another Parent",
+            slug: "parent", // Duplicate slug - should trigger error
+            description: "Second parent with same slug"
+          },
+          {
+            name: "Child Category",
+            slug: "child",
+            parent: "non-existent-parent", // Reference to non-existent parent
+            subcategories: "not-an-array" // Should be array
+          },
+          {
+            name: "", // Empty name
+            slug: "", // Empty slug
+            description: 123, // Should be string
+            subcategories: [
+              {
+                name: "Nested Child",
+                slug: "nested child with spaces", // Invalid slug format
+                parent: "circular-reference" // Potential circular reference
+              }
+            ]
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidCategoryConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/category|duplicate|slug|parent|name|required/i);
+    }, 60000);
+
+    it("should provide clear error messages for channel configuration errors", async () => {
+      const configPath = path.join(testDir, "channel-error-config.yml");
+      
+      console.log("📡 Testing channel configuration error messages...");
+      
+      // Invalid channel configuration
+      const invalidChannelConfig = {
+        shop: {
+          defaultMailSenderName: "Channel Error Test",
+          defaultMailSenderAddress: "channel@test.com"
+        },
+        channels: [
+          {
+            name: "Invalid Channel",
+            slug: "channel-1", // Duplicate slug
+            currencyCode: "INVALID_CURRENCY", // Invalid currency
+            defaultCountry: "XX", // Invalid country
+            isActive: "true" // Should be boolean, not string
+          },
+          {
+            name: "Another Channel",
+            slug: "channel-1", // Duplicate slug - should trigger error
+            currencyCode: "", // Empty currency
+            defaultCountry: "", // Empty country
+            isActive: null // Null boolean
+          },
+          {
+            name: "", // Empty name
+            slug: "", // Empty slug
+            currencyCode: 123, // Should be string
+            defaultCountry: true, // Should be string
+            isActive: "yes", // Invalid boolean string
+            settings: "not-an-object" // Should be object if present
+          }
+        ]
+      };
+      
+      await writeYaml(configPath, invalidChannelConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 10000
+      });
+      
+      expect(result).toHaveFailed();
+      expect(result).toMatchPattern(/channel|duplicate|slug|currency|country|boolean/i);
+    }, 60000);
+  });
+
+  describe("Complex Entity Relationship Error Messages", () => {
+    it("should provide clear error messages for complex entity relationships", async () => {
+      const configPath = path.join(testDir, "complex-relationship-error-config.yml");
+      
+      console.log("🔗 Testing complex entity relationship error messages...");
+      
+      // Complex configuration with multiple relationship errors
+      const complexErrorConfig = {
+        shop: {
+          defaultMailSenderName: "Complex Error Test",
+          defaultMailSenderAddress: "complex@test.com"
+        },
+        channels: [{
+          name: "Test Channel",
+          slug: "test-channel",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          isActive: true
+        }],
+        warehouses: [{
+          name: "Test Warehouse",
+          slug: "test-warehouse",
+          email: "warehouse@test.com",
+          isPrivate: false,
+          address: {
+            streetAddress1: "123 Test St",
+            city: "Test City",
+            country: "US",
+            postalCode: "12345"
+          },
+          clickAndCollectOption: "DISABLED",
+          shippingZones: ["zone-1"] // References zone defined below
+        }],
+        shippingZones: [{
+          name: "Zone 1",
+          slug: "zone-1",
+          default: false,
+          countries: ["US"],
+          warehouses: ["non-existent-warehouse"], // References non-existent warehouse
+          channels: ["non-existent-channel"], // References non-existent channel
+          shippingMethods: [{
+            name: "Standard Shipping",
+            type: "PRICE",
+            channelListings: [{
+              channel: "another-non-existent-channel", // Another non-existent channel
+              price: 10
+            }]
+          }]
+        }],
+        categories: [{
+          name: "Parent",
+          slug: "parent",
+          subcategories: [{
+            name: "Child",
+            slug: "child",
+            parent: "wrong-parent" // Inconsistent parent reference
+          }]
+        }],
+        productTypes: [{
+          name: "Type with References",
+          isShippingRequired: true,
+          productAttributes: [{
+            name: "Category Reference",
+            slug: "cat-ref",
+            type: "REFERENCE",
+            inputType: "DROPDOWN",
+            entityType: "PRODUCT",
+            references: ["non-existent-product-type"] // Non-existent product type
+          }]
+        }]
+      };
+      
+      await writeYaml(configPath, complexErrorConfig);
+      
+      const result = await cli.deploy(apiUrl, token, {
+        config: configPath,
+        timeout: 15000
+      });
+      
+      expect(result).toHaveFailed();
+      
+      // Should mention multiple relationship issues
+      const errorOutput = result.cleanStderr + result.cleanStdout;
+      const mentionsRelationshipIssues = 
+        errorOutput.includes("warehouse") ||
+        errorOutput.includes("channel") ||
+        errorOutput.includes("reference") ||
+        errorOutput.includes("not found") ||
+        errorOutput.includes("exist");
+      
+      expect(mentionsRelationshipIssues).toBe(true);
+    }, 60000);
+  });
+
   describe("Exit Code Consistency", () => {
     it("should use consistent exit codes for different error types", async () => {
       const configPath = path.join(testDir, "exit-code-config.yml");
