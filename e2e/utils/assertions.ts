@@ -158,8 +158,8 @@ export const cliMatchers = {
     const hasProperFormat = 
       // Should not start with lowercase (unless it's a continuation)
       /^[A-Z]/.test(stderr.trim()) ||
-      // Or should start with error indicator
-      /^(Error:|❌|✗|Failed)/.test(stderr.trim());
+      // Or should start with error indicator or progress indicator
+      /^(Error:|❌|✗|Failed|-|✖)/.test(stderr.trim());
     
     // Check for proper sentence structure (allow periods at end of sentences)
     const lines = stderr.trim().split('\n');

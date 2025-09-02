@@ -22,7 +22,7 @@ describe("E2E Docker Simple Test", () => {
     testDir = await createTempDir("docker-test-");
     
     // Start Docker Compose
-    await execa("docker-compose", [
+    await execa("docker", ["compose",
       "-f", composeFile,
       "-p", projectName,
       "up", "-d"
@@ -97,7 +97,7 @@ if not User.objects.filter(email='admin@example.com').exists():
     
     await cleanupTempDir(testDir);
     
-    await execa("docker-compose", [
+    await execa("docker", ["compose",
       "-f", composeFile,
       "-p", projectName,
       "down", "-v"

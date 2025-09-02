@@ -38,7 +38,7 @@ export class SaleorTestContainer {
       // Clean up any existing containers with the same project name
       try {
         const { execa } = await import("execa");
-        await execa("docker-compose", [
+        await execa("docker", ["compose",
           "-f", path.join(composeFilePath, this.config.composeFile),
           "-p", this.config.projectName,
           "down",
