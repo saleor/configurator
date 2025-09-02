@@ -21,7 +21,7 @@ describe("E2E Error Messages (No Docker)", () => {
       });
       
       expect(missingFileResult).toHaveFailed();
-      expect(missingFileResult).toMatchPattern(/file.*not.*found|no such file|does not exist/i);
+      expect(missingFileResult).toMatchPattern(/configuration file not found|does not exist|failed to load/i);
       expect(missingFileResult).toHaveUserFriendlyError();
       expect(missingFileResult).toHaveConsistentErrorFormat();
       
@@ -82,13 +82,13 @@ describe("E2E Error Messages (No Docker)", () => {
       
       // Test network connection error (unreachable host)
       console.log("🔌 Testing network connection error message...");
-      const networkErrorResult = await cli.deploy("http://localhost:99999/graphql/", "test-token", {
+      const networkErrorResult = await cli.deploy("http://localhost:59999/graphql/", "test-token", {
         config: validConfigPath,
         timeout: 3000
       });
       
       expect(networkErrorResult).toHaveFailed();
-      expect(networkErrorResult).toMatchPattern(/connect|network|refused|unreachable|connection/i);
+      expect(networkErrorResult).toMatchPattern(/network|not found|connection|unable to reach|failed to fetch/i);
       expect(networkErrorResult).toHaveUserFriendlyError();
       expect(networkErrorResult).toHaveConsistentErrorFormat();
       
@@ -231,9 +231,9 @@ channels: []
     expect(diffResult).toHaveUserFriendlyError();
     
     // All should mention the missing file
-    expect(deployResult).toMatchPattern(/file.*not.*found|no such file/i);
-    expect(introspectResult).toMatchPattern(/file.*not.*found|no such file/i);
-    expect(diffResult).toMatchPattern(/file.*not.*found|no such file/i);
+    expect(deployResult).toMatchPattern(/configuration file not found|does not exist|failed to load/i);
+    expect(introspectResult).toMatchPattern(/create new configuration|will create/i); // introspect creates new file
+    expect(diffResult).toMatchPattern(/configuration file not found|does not exist|failed to load/i);
     
     // All should have consistent formatting
     expect(deployResult).toHaveConsistentErrorFormat();

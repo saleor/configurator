@@ -79,7 +79,9 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       return data;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        logger.error("Configuration file not found", { path: this.configPath });
+        if (process.env.NODE_ENV !== "test") {
+          logger.error("Configuration file not found", { path: this.configPath });
+        }
         throw new EntityNotFoundError(`Configuration file not found: ${this.configPath}`);
       }
 

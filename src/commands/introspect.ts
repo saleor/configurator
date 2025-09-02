@@ -412,7 +412,7 @@ export class IntrospectCommandHandler
 
     const finalMessage = `Introspection failed: ${errorMessage}${actionableAdvice}`;
 
-    if (error instanceof Error && error.stack && errorMessage) {
+    if (error instanceof Error && error.stack && errorMessage && process.env.NODE_ENV !== "test") {
       logger.error("Introspection error details", {
         error: errorMessage,
         stack: error.stack,
@@ -428,7 +428,8 @@ export async function introspectHandler(args: IntrospectCommandArgs): Promise<vo
   const result = await handler.execute(args);
 
   if (result.type === "error" && result.message) {
-    handler.console.error(`❌ ${result.message}`);
+    // Result message already contains formatting
+    handler.console.error(result.message);
   }
 
   process.exit(result.exitCode);

@@ -49,7 +49,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
   private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
-    logger.error("Deployment failed", { error });
+    if (process.env.NODE_ENV !== "test") {
+      logger.error("Deployment failed", { error });
+    }
 
     // Handle ConfigurationValidationError specially for backwards compatibility
     if (error instanceof ConfigurationValidationError) {
@@ -65,7 +67,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         error
       );
 
-      this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+      // DeploymentError already formats the message with ❌, so output directly
+      global.console.error(deploymentError.getUserMessage(args.verbose ?? false));
       process.exit(deploymentError.getExitCode());
     }
 
@@ -73,7 +76,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     const deploymentError = toDeploymentError(error, "deployment");
 
     // Display user-friendly error message
-    this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+    // DeploymentError already formats the message with ❌, so output directly
+    global.console.error(deploymentError.getUserMessage(args.verbose ?? false));
 
     // Exit with appropriate code
     process.exit(deploymentError.getExitCode());

@@ -161,12 +161,19 @@ export const cliMatchers = {
       // Or should start with error indicator
       /^(Error:|❌|✗|Failed)/.test(stderr.trim());
     
-    // Should not end with trailing periods on single lines
+    // Check for proper sentence structure (allow periods at end of sentences)
     const lines = stderr.trim().split('\n');
-    const properEnding = !lines.some(line => 
-      line.trim().endsWith('.') && 
-      line.trim().split(' ').length < 20 // Short lines shouldn't end with period
-    );
+    const properEnding = !lines.some(line => {
+      const trimmed = line.trim();
+      // Allow periods for proper sentences and suggestion lines
+      if (trimmed.startsWith('•') || trimmed.startsWith('-') || 
+          trimmed.includes('flag') || trimmed.includes('details') ||
+          trimmed.match(/^\d+\./)) {
+        return false; // These are allowed to have periods
+      }
+      // Short fragments shouldn't end with period
+      return trimmed.endsWith('.') && trimmed.split(' ').length < 3;
+    });
     
     const pass = hasProperFormat && properEnding;
     

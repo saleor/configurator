@@ -25,6 +25,18 @@ function formatZodIssue(issue: z.ZodIssue): string {
   // For Zod v4, let's use the default message but improve some specific cases
   const message = issue.message;
 
+  // Handle "expected X, received undefined" to be more user-friendly
+  if (message.includes("received undefined")) {
+    const typeMatch = message.match(/expected (\w+)/i);
+    if (typeMatch) {
+      const expectedType = typeMatch[1];
+      if (expectedType === "string") {
+        return "This field is required";
+      }
+      return `This field is required (expected ${expectedType})`;
+    }
+  }
+
   // Customize common error patterns for better UX
   if (message.includes("Invalid email")) {
     return "Must be a valid email address";

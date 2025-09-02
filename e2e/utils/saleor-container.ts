@@ -1,4 +1,4 @@
-import { DockerComposeEnvironment, Wait, StartedDockerComposeEnvironment } from "testcontainers";
+import { DockerComposeEnvironment, Wait, type StartedDockerComposeEnvironment } from "testcontainers";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 

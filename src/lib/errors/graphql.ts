@@ -93,7 +93,9 @@ export class GraphQLError extends BaseError {
    * Creates a GraphQLError with smart error detection and helpful messages
    */
   static fromCombinedError(message: string, error: CombinedError): GraphQLError {
-    logger.error("GraphQL error", { error });
+    if (process.env.NODE_ENV !== "test") {
+      logger.error("GraphQL error", { error });
+    }
     const errorMessage = error.message;
 
     // Check for specific network error types

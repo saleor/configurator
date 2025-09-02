@@ -51,11 +51,31 @@ export class Console {
   }
 
   error(error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    const text = chalk.red(message);
-    global.console.error(text);
-
-    return text;
+    let formattedError = "";
+    
+    // Import BaseError dynamically to avoid circular dependency
+    const { BaseError } = require("../lib/errors/shared");
+    
+    if (error instanceof BaseError) {
+      // Format the main error message
+      formattedError = chalk.red(`❌ ${error.message}`);
+      
+      // Add recovery suggestions if available
+      const suggestions = error.getRecoverySuggestions();
+      if (suggestions && suggestions.length > 0) {
+        formattedError += "\n\n" + chalk.yellow("💡 Suggestions:");
+        for (const suggestion of suggestions) {
+          formattedError += "\n  • " + suggestion;
+        }
+      }
+    } else if (error instanceof Error) {
+      formattedError = chalk.red(`❌ ${error.message}`);
+    } else {
+      formattedError = chalk.red(`❌ ${String(error)}`);
+    }
+    
+    global.console.error(formattedError);
+    return formattedError;
   }
 
   prompt(message: string) {
