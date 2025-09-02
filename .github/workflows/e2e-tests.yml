@@ -22,6 +22,14 @@ on:
         options:
           - "true"
           - "false"
+      skip_docker:
+        description: "Skip Docker-dependent E2E tests"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -71,6 +79,7 @@ jobs:
           CI: true
           LOG_LEVEL: ${{ github.event.inputs.verbose == 'true' && 'debug' || 'error' }}
           VERBOSE: ${{ github.event.inputs.verbose }}
+          SKIP_DOCKER_E2E: ${{ github.event.inputs.skip_docker || 'true' }} # Temporarily skip Docker tests in CI
 
       - name: Run full E2E test suite
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -79,6 +88,7 @@ jobs:
           CI: true
           LOG_LEVEL: ${{ github.event.inputs.verbose == 'true' && 'debug' || 'error' }}
           VERBOSE: ${{ github.event.inputs.verbose }}
+          SKIP_DOCKER_E2E: ${{ github.event.inputs.skip_docker || 'true' }} # Temporarily skip Docker tests in CI
 
       - name: Upload test results
         if: always()

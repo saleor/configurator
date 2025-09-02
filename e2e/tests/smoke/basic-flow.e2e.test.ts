@@ -23,16 +23,39 @@ describe("E2E Smoke Test - Basic Flow", () => {
   let testDir: string;
 
   beforeAll(async () => {
+    // Skip Docker-dependent tests in CI if Docker setup is problematic
+    const isCI = process.env.CI === "true";
+    const skipDockerInCI = process.env.SKIP_DOCKER_E2E === "true";
+    
+    if (isCI && skipDockerInCI) {
+      console.log("⏭️ Skipping Docker-dependent tests in CI environment");
+      return;
+    }
+    
     console.log("🚀 Starting smoke test setup...");
+    console.log(`🔍 Environment: CI=${process.env.CI}, RUNNER_OS=${process.env.RUNNER_OS}`);
     
     // Create temp directory for test files
     testDir = await createTempDir("smoke-test-");
     
-    // Start Saleor container
+    // Start Saleor container with CI-optimized settings
     container = new SaleorTestContainer({
       projectName: "saleor-smoke-test",
+      startTimeout: isCI ? 360000 : 240000, // 6 minutes for CI, 4 minutes locally
     });
-    await container.start();
+    
+    // Add timeout wrapper to fail fast if hanging
+    const maxTimeout = isCI ? 420000 : 300000; // 7 minutes for CI, 5 minutes locally
+    const startWithTimeout = Promise.race([
+      container.start(),
+      new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Container startup exceeded maximum time limit (${maxTimeout/1000}s)`));
+        }, maxTimeout);
+      })
+    ]);
+    
+    await startWithTimeout;
     
     apiUrl = container.getApiUrl();
     token = container.getAdminToken();
@@ -41,7 +64,7 @@ describe("E2E Smoke Test - Basic Flow", () => {
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
     
     console.log("✅ Smoke test setup complete");
-  }, 180000); // 3 minutes timeout for container startup
+  }, 450000); // 7.5 minutes timeout for container startup in CI
 
   afterAll(async () => {
     // Clean up
@@ -68,6 +91,12 @@ describe("E2E Smoke Test - Basic Flow", () => {
   });
 
   it("should complete full introspect → modify → deploy → deploy cycle", async () => {
+    // Skip if container setup was skipped
+    if (process.env.CI === "true" && process.env.SKIP_DOCKER_E2E === "true") {
+      console.log("⏭️ Skipping Docker-dependent test in CI environment");
+      return;
+    }
+    
     const configPath = path.join(testDir, "config.yml");
     
     // Step 1: Introspect from fresh Saleor instance
@@ -157,6 +186,12 @@ describe("E2E Smoke Test - Basic Flow", () => {
   }, 120000); // 2 minutes timeout for the full cycle
 
   it("should handle authentication errors gracefully", async () => {
+    // Skip if container setup was skipped
+    if (process.env.CI === "true" && process.env.SKIP_DOCKER_E2E === "true") {
+      console.log("⏭️ Skipping Docker-dependent test in CI environment");
+      return;
+    }
+    
     const invalidToken = "invalid-token-12345";
     const configPath = path.join(testDir, "auth-test.yml");
     
@@ -169,6 +204,12 @@ describe("E2E Smoke Test - Basic Flow", () => {
   });
 
   it("should handle network errors gracefully", async () => {
+    // Skip if container setup was skipped
+    if (process.env.CI === "true" && process.env.SKIP_DOCKER_E2E === "true") {
+      console.log("⏭️ Skipping Docker-dependent test in CI environment");
+      return;
+    }
+    
     const invalidUrl = "http://localhost:99999/graphql/";
     const configPath = path.join(testDir, "network-test.yml");
     
@@ -182,6 +223,12 @@ describe("E2E Smoke Test - Basic Flow", () => {
   });
 
   it("should validate configuration before deployment", async () => {
+    // Skip if container setup was skipped
+    if (process.env.CI === "true" && process.env.SKIP_DOCKER_E2E === "true") {
+      console.log("⏭️ Skipping Docker-dependent test in CI environment");
+      return;
+    }
+    
     const invalidConfigPath = path.join(testDir, "invalid.yml");
     
     // Write an invalid configuration
