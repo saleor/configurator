@@ -35,6 +35,9 @@ export class SaleorTestContainer {
     const isCI = process.env.CI === "true";
     const composeFilePath = path.join(__dirname, "../docker");
     
+    // Log environment for debugging
+    console.log(`📊 Environment: CI=${isCI}, Node=${process.version}, Platform=${process.platform}`);
+    
     try {
       // Clean up any existing containers with the same project name
       try {
@@ -58,61 +61,32 @@ export class SaleorTestContainer {
         .withProjectName(this.config.projectName)
         .withWaitStrategy("db", Wait.forHealthCheck())
         .withWaitStrategy("redis", Wait.forHealthCheck())
+        .withWaitStrategy("api-init", Wait.forSuccessfulCommand("exit 0"))
         .withWaitStrategy("api", Wait.forHealthCheck())
         .withStartupTimeout(this.config.startTimeout)
         .up();
 
       console.log("✅ Docker Compose environment started");
 
-      // Wait for services to fully initialize
-      console.log("⏳ Waiting for services to initialize...");
-      const initDelay = isCI ? 15000 : 10000; // Longer delay for CI
-      await new Promise(resolve => setTimeout(resolve, initDelay));
-      console.log(`✅ Initialization delay complete (${initDelay}ms)`);
+      // Services should be ready after healthchecks pass
+      console.log("✅ All services healthy, proceeding with container discovery...");
 
-      // Get the API container with better error handling
+      // Get the API container using service name
       let apiContainer;
       try {
-        // Try different possible container names
-        const possibleNames = [
-          `${this.config.projectName}-api-1`,
-          `${this.config.projectName}_api_1`, 
-          "api-1",
-          "api_1", 
-          "api"
-        ];
-        
-        let containerFound = false;
-        for (const name of possibleNames) {
-          try {
-            apiContainer = this.environment.getContainer(name);
-            if (apiContainer) {
-              console.log(`📦 Found API container: ${name}`);
-              containerFound = true;
-              break;
-            }
-          } catch {
-            // Try next name
-          }
-        }
-        
-        if (!containerFound) {
-          // Log available containers for debugging
-          console.error("❌ Could not find API container from names:", possibleNames);
-          try {
-            console.error("Available containers:", 
-              Object.keys((this.environment as any)._startedGenericContainers || {}));
-            console.error("Environment info:", {
-              projectName: this.config.projectName,
-              composeFile: this.config.composeFile
-            });
-          } catch (debugError) {
-            console.error("Could not retrieve debug info:", debugError);
-          }
-          throw new Error("API container not found");
-        }
+        // Try the service name first (most reliable)
+        apiContainer = this.environment.getContainer("api");
+        console.log(`📦 Found API container using service name`);
       } catch (error) {
-        throw new Error(`Could not find API container: ${error}`);
+        console.error("❌ Could not find API container:", error);
+        // Log debugging info
+        try {
+          const containers = this.environment.getContainers();
+          console.error("Available containers:", containers.map(c => c.getName()));
+        } catch (debugError) {
+          console.error("Could not list containers:", debugError);
+        }
+        throw new Error("API container not found - ensure docker-compose services are named correctly");
       }
       
       const apiPort = apiContainer.getMappedPort(8000);
@@ -161,7 +135,7 @@ export class SaleorTestContainer {
     return this.adminToken;
   }
 
-  private async waitForApi(maxRetries = 60, delayMs = 3000): Promise<void> {
+  private async waitForApi(maxRetries = 30, delayMs = 2000): Promise<void> {
     console.log("⏳ Waiting for Saleor API to be ready...");
     console.log(`📊 Will attempt ${maxRetries} times with ${delayMs}ms delay (max ${Math.round((maxRetries * delayMs) / 1000)}s total)`);
     
@@ -180,6 +154,8 @@ export class SaleorTestContainer {
           if (data.data?.shop) {
             console.log("✅ Saleor API is ready");
             return;
+          } else if (data.errors) {
+            console.log(`⚠️ GraphQL errors on attempt ${i + 1}:`, data.errors);
           }
         }
         
@@ -222,28 +198,7 @@ export class SaleorTestContainer {
       throw new Error("Environment not started");
     }
 
-    // Use the same container name resolution logic
-    const possibleNames = [
-      `${this.config.projectName}-api-1`,
-      `${this.config.projectName}_api_1`, 
-      "api-1",
-      "api_1", 
-      "api"
-    ];
-    
-    let apiContainer;
-    for (const name of possibleNames) {
-      try {
-        apiContainer = this.environment.getContainer(name);
-        if (apiContainer) break;
-      } catch {
-        // Try next name
-      }
-    }
-    
-    if (!apiContainer) {
-      throw new Error("Could not find API container for superuser creation");
-    }
+    const apiContainer = this.environment.getContainer("api");
     
     // Create superuser using Django management command
     const result = await apiContainer.exec([
@@ -348,28 +303,7 @@ else:
 
     console.log("🔄 Resetting Saleor database...");
     
-    // Find DB container
-    const dbPossibleNames = [
-      `${this.config.projectName}-db-1`,
-      `${this.config.projectName}_db_1`, 
-      "db-1",
-      "db_1", 
-      "db"
-    ];
-    
-    let dbContainer;
-    for (const name of dbPossibleNames) {
-      try {
-        dbContainer = this.environment.getContainer(name);
-        if (dbContainer) break;
-      } catch {
-        // Try next name
-      }
-    }
-    
-    if (!dbContainer) {
-      throw new Error("Could not find DB container for reset");
-    }
+    const dbContainer = this.environment.getContainer("db");
     
     // Drop and recreate the database
     await dbContainer.exec([
@@ -388,28 +322,8 @@ else:
       "CREATE DATABASE saleor;",
     ]);
 
-    // Find API container for migrations
-    const apiPossibleNames = [
-      `${this.config.projectName}-api-1`,
-      `${this.config.projectName}_api_1`, 
-      "api-1",
-      "api_1", 
-      "api"
-    ];
-    
-    let apiContainer;
-    for (const name of apiPossibleNames) {
-      try {
-        apiContainer = this.environment.getContainer(name);
-        if (apiContainer) break;
-      } catch {
-        // Try next name
-      }
-    }
-    
-    if (!apiContainer) {
-      throw new Error("Could not find API container for migrations");
-    }
+    // Run migrations
+    const apiContainer = this.environment.getContainer("api");
     await apiContainer.exec(["python", "manage.py", "migrate"]);
 
     // Re-setup authentication

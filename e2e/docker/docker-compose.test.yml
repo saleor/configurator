@@ -1,4 +1,53 @@
 services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saleor
+      POSTGRES_PASSWORD: saleor
+      POSTGRES_DB: saleor
+      POSTGRES_HOST_AUTH_METHOD: trust  # Speed up connections in test env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saleor -d saleor"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    volumes:
+      - saleor-db:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.0-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  api-init:
+    image: ghcr.io/saleor/saleor:3.20
+    command: /init-saleor.sh
+    environment:
+      DATABASE_URL: "postgresql://saleor:saleor@db/saleor"
+      DATABASE_HOST: db
+      POSTGRES_USER: saleor
+      POSTGRES_PASSWORD: saleor
+      POSTGRES_DB: saleor
+      REDIS_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://redis:6379/1"
+      SECRET_KEY: "test-secret-key-for-e2e-testing"
+      DEBUG: "False"
+      ALLOWED_HOSTS: "*"
+      DJANGO_SUPERUSER_PASSWORD: admin123
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./init-saleor.sh:/init-saleor.sh:ro
+    restart: "no"
+
   api:
     image: ghcr.io/saleor/saleor:3.20
     ports:
@@ -8,73 +57,29 @@ services:
       REDIS_URL: "redis://redis:6379/0"
       CELERY_BROKER_URL: "redis://redis:6379/1"
       SECRET_KEY: "test-secret-key-for-e2e-testing"
-      DEBUG: "True"  # Set to True for easier testing
-      ALLOWED_HOSTS: "localhost,127.0.0.1,api"
-      ALLOWED_CLIENT_HOSTS: "localhost,127.0.0.1"
+      DEBUG: "False"
+      ALLOWED_HOSTS: "*"
       DEFAULT_FROM_EMAIL: "test@example.com"
       ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: "False"
-      # Disable unnecessary features for faster startup
       ENABLE_DEBUG_TOOLBAR: "False"
       JAEGER_AGENT_HOST: ""
+      # Optimize for faster startup
+      ENABLE_SILK: "False"
+      ENABLE_EMAILS: "False"
     depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
+      api-init:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8000), timeout=1).close()'"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/graphql/ -X POST -H 'Content-Type: application/json' -d '{\"query\":\"{ shop { name } }\"}' || exit 1"]
+      interval: 5s
+      timeout: 10s
       retries: 30
-      start_period: 90s
-    volumes:
-      - saleor-media:/app/media
-
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: saleor
-      POSTGRES_PASSWORD: saleor
-      POSTGRES_DB: saleor
-    volumes:
-      - ./seed:/docker-entrypoint-initdb.d:ro
-      - saleor-db:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U saleor"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
       start_period: 30s
-
-  redis:
-    image: redis:7.0-alpine
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    volumes:
-      - saleor-redis:/data
-
-  worker:
-    image: ghcr.io/saleor/saleor:3.20
-    command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info -E
-    environment:
-      DATABASE_URL: "postgresql://saleor:saleor@db/saleor"
-      REDIS_URL: "redis://redis:6379/0"
-      CELERY_BROKER_URL: "redis://redis:6379/1"
-      SECRET_KEY: "test-secret-key-for-e2e-testing"
-      DEBUG: "True"
-    depends_on:
-      - api
-      - redis
-      - db
     volumes:
       - saleor-media:/app/media
 
 volumes:
   saleor-db:
-  saleor-redis:
   saleor-media:
 
 networks:

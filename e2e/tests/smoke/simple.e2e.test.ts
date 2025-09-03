@@ -7,9 +7,16 @@ import {
   readYaml,
   createMinimalConfig 
 } from "../../utils/test-helpers.js";
+import { TestCategory, shouldRunTest } from "../../utils/test-categories.js";
 import path from "node:path";
 
-describe("E2E Simple Tests (No Docker)", () => {
+// This test suite doesn't require Docker
+const TEST_CONFIG = {
+  category: TestCategory.NO_DOCKER,
+  skipInCI: false,
+};
+
+describe.skipIf(!shouldRunTest(TEST_CONFIG))("E2E Simple Tests (No Docker)", () => {
   it("should show version correctly", async () => {
     const cli = new CliRunner();
     const result = await cli.version();

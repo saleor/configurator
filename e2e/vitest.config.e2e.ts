@@ -5,12 +5,14 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isCI = process.env.CI === "true";
+
 export default defineConfig({
   test: {
     name: "e2e",
     root: __dirname,
-    testTimeout: 60000, // 1 minute per test
-    hookTimeout: 180000, // 3 minutes for hooks (container startup)
+    testTimeout: isCI ? 120000 : 60000, // 2 minutes in CI, 1 minute locally
+    hookTimeout: isCI ? 360000 : 180000, // 6 minutes in CI, 3 minutes locally
     globalSetup: [path.join(__dirname, "setup.ts")],
     globals: false,
     reporters: process.env.CI 
