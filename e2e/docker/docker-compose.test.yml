@@ -22,11 +22,11 @@ services:
       redis:
         condition: service_started
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/graphql/').raise_for_status()"]
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8000), timeout=1).close()'"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 30
+      start_period: 90s
     volumes:
       - saleor-media:/app/media
 
@@ -43,7 +43,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -U saleor"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 30s
 
   redis:
     image: redis:7.0-alpine

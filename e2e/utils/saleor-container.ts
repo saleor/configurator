@@ -32,6 +32,7 @@ export class SaleorTestContainer {
   async start(): Promise<void> {
     console.log("🚀 Starting Saleor test container...");
     
+    const isCI = process.env.CI === "true";
     const composeFilePath = path.join(__dirname, "../docker");
     
     try {
@@ -57,15 +58,17 @@ export class SaleorTestContainer {
         .withProjectName(this.config.projectName)
         .withWaitStrategy("db", Wait.forHealthCheck())
         .withWaitStrategy("redis", Wait.forHealthCheck())
-        .withWaitStrategy("api", Wait.forLogMessage(/Listening at|Booting worker|Application startup complete/, 1))
+        .withWaitStrategy("api", Wait.forHealthCheck())
         .withStartupTimeout(this.config.startTimeout)
         .up();
 
       console.log("✅ Docker Compose environment started");
 
-      // Wait longer for the API to fully initialize in CI environments
+      // Wait for services to fully initialize
       console.log("⏳ Waiting for services to initialize...");
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      const initDelay = isCI ? 15000 : 10000; // Longer delay for CI
+      await new Promise(resolve => setTimeout(resolve, initDelay));
+      console.log(`✅ Initialization delay complete (${initDelay}ms)`);
 
       // Get the API container with better error handling
       let apiContainer;
@@ -95,8 +98,17 @@ export class SaleorTestContainer {
         
         if (!containerFound) {
           // Log available containers for debugging
-          console.error("❌ Could not find API container. Available containers:", 
-            Object.keys((this.environment as any)._startedGenericContainers || {}));
+          console.error("❌ Could not find API container from names:", possibleNames);
+          try {
+            console.error("Available containers:", 
+              Object.keys((this.environment as any)._startedGenericContainers || {}));
+            console.error("Environment info:", {
+              projectName: this.config.projectName,
+              composeFile: this.config.composeFile
+            });
+          } catch (debugError) {
+            console.error("Could not retrieve debug info:", debugError);
+          }
           throw new Error("API container not found");
         }
       } catch (error) {
