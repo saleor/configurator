@@ -85,12 +85,12 @@ class MockProductService {
         }
         
         if (product.name === "GraphQLError") {
-          const combinedError: CombinedError = {
-            message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-            graphQLErrors: [{ message: 'Variable "$input" of type ProductCreateInput! was provided invalid value' }],
-            networkError: null,
-            response: {},
-          } as CombinedError;
+          const combinedError = new (class extends Error implements Partial<CombinedError> {
+            name = 'CombinedError';
+            graphQLErrors = [{ message: 'Variable "$input" of type ProductCreateInput! was provided invalid value' } as any];
+            networkError: Error | undefined = undefined;
+            response = {};
+          })('Variable "$input" of type ProductCreateInput! was provided invalid value');
           throw combinedError;
         }
         
@@ -222,8 +222,11 @@ describe("Error Handling Integration", () => {
     orchestrator = new MockDeploymentOrchestrator();
     
     // Mock GraphQL error conversion
-    mockedGraphQLError.fromCombinedError.mockImplementation((message) => {
-      return new Error(`GraphQL Error: ${message}`);
+    mockedGraphQLError.fromCombinedError.mockImplementation((message: string, error: CombinedError) => {
+      const graphQLError = new Error(`GraphQL Error: ${message}`) as any;
+      graphQLError.code = "GRAPHQL_ERROR";
+      graphQLError.getRecoverySuggestions = () => [];
+      return graphQLError;
     });
   });
 

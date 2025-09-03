@@ -2,7 +2,7 @@ import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
-import { WarehouseOperationError, WarehouseValidationError } from "./errors";
+import { WarehouseOperationError, WarehouseValidationError, WarehouseError } from "./errors";
 import type {
   Warehouse,
   WarehouseCreateInput,
@@ -35,7 +35,7 @@ export class WarehouseService {
 
         return existingWarehouse;
       },
-      WarehouseOperationError
+      (message: string) => new WarehouseError(message)
     );
   }
 
@@ -82,7 +82,7 @@ export class WarehouseService {
       },
       // Note: isPrivate and clickAndCollectOption are not supported in warehouse creation
       // These fields can only be updated after creation or are set via other mutations
-    });
+    }) as WarehouseCreateInput;
   }
 
   private mapInputToUpdateInput(input: WarehouseInput): WarehouseUpdateInput {
@@ -145,7 +145,7 @@ export class WarehouseService {
         });
         return warehouse;
       },
-      WarehouseOperationError
+      (message: string) => new WarehouseError(message)
     );
   }
 
@@ -175,7 +175,7 @@ export class WarehouseService {
         });
         return warehouse;
       },
-      WarehouseOperationError
+      (message: string) => new WarehouseError(message)
     );
   }
 

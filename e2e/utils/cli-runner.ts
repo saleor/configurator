@@ -58,11 +58,8 @@ export class CliRunner {
       cwd: options.cwd || process.cwd(),
       reject: false, // Don't throw on non-zero exit codes
       all: true, // Combine stdout and stderr
+      input: options.input,
     };
-
-    if (options.input) {
-      execaOptions.input = options.input;
-    }
 
     try {
       const result = await execa(this.cliPath, args, execaOptions);
@@ -117,12 +114,20 @@ export class CliRunner {
   async introspect(
     url: string,
     token: string,
-    options: { config?: string; env?: Record<string, string> } & CliRunnerOptions = {}
+    options: { config?: string; include?: string[]; exclude?: string[]; env?: Record<string, string> } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["introspect", "--url", url, "--token", token];
     
     if (options.config) {
       args.push("--config", options.config);
+    }
+
+    if (options.include?.length) {
+      args.push("--include", options.include.join(","));
+    }
+
+    if (options.exclude?.length) {
+      args.push("--exclude", options.exclude.join(","));
     }
 
     return this.run(args, options);
@@ -137,6 +142,8 @@ export class CliRunner {
       ci?: boolean;
       include?: string[];
       exclude?: string[];
+      quiet?: boolean;
+      dryRun?: boolean;
     } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["deploy", "--url", url, "--token", token];
@@ -159,6 +166,14 @@ export class CliRunner {
 
     if (options.exclude?.length) {
       args.push("--exclude", options.exclude.join(","));
+    }
+
+    if (options.quiet) {
+      args.push("--quiet");
+    }
+
+    if (options.dryRun) {
+      args.push("--dry-run");
     }
 
     return this.run(args, options);
@@ -253,13 +268,150 @@ export class CliRunner {
       cwd: options.cwd || process.cwd(),
       reject: false,
       all: true,
+      timeout: options.timeout || this.defaultTimeout,
     };
 
-    if (options.timeout) {
-      execaOptions.timeout = options.timeout;
+    return execa(this.cliPath, args, execaOptions);
+  }
+
+  // Bash command runner for utility operations
+  async bash(command: string, options: CliRunnerOptions = {}): Promise<CliResult> {
+    const startTime = Date.now();
+    const timeout = options.timeout || this.defaultTimeout;
+
+    if (this.verbose || options.verbose) {
+      console.log(`🔧 Running bash: ${command}`);
     }
 
-    return execa(this.cliPath, args, execaOptions);
+    const execaOptions: ExecaOptions = {
+      timeout,
+      env: {
+        ...process.env,
+        ...options.env,
+      },
+      cwd: options.cwd || process.cwd(),
+      reject: false,
+      shell: true,
+    };
+
+    try {
+      const result = await execa(command, { ...execaOptions });
+
+      const cliResult: CliResult = {
+        exitCode: result.exitCode || 0,
+        stdout: result.stdout || "",
+        stderr: result.stderr || "",
+        cleanStdout: stripAnsi(result.stdout || ""),
+        cleanStderr: stripAnsi(result.stderr || ""),
+        success: (result.exitCode || 0) === 0,
+        duration: Date.now() - startTime,
+        command,
+      };
+
+      return cliResult;
+    } catch (error: unknown) {
+      const execaError = error as any;
+      return {
+        exitCode: execaError.exitCode ?? 1,
+        stdout: execaError.stdout ?? "",
+        stderr: execaError.stderr ?? execaError.message ?? "Unknown error",
+        cleanStdout: stripAnsi(execaError.stdout ?? ""),
+        cleanStderr: stripAnsi(execaError.stderr ?? execaError.message ?? "Unknown error"),
+        success: false,
+        duration: Date.now() - startTime,
+        command,
+      };
+    }
+  }
+
+  // Deploy with environment variables
+  async deployWithEnv(
+    url: string | undefined,
+    token: string | undefined,
+    options: {
+      config?: string;
+      skipDiff?: boolean;
+      ci?: boolean;
+      include?: string[];
+      exclude?: string[];
+      quiet?: boolean;
+      dryRun?: boolean;
+      env?: Record<string, string>;
+    } & CliRunnerOptions = {}
+  ): Promise<CliResult> {
+    const args = ["deploy"];
+    
+    if (url) {
+      args.push("--url", url);
+    }
+    
+    if (token) {
+      args.push("--token", token);
+    }
+    
+    if (options.config) {
+      args.push("--config", options.config);
+    }
+    
+    if (options.ci !== false) {
+      args.push("--ci");
+    }
+    
+    if (options.skipDiff) {
+      args.push("--skip-diff");
+    }
+
+    if (options.include?.length) {
+      args.push("--include", options.include.join(","));
+    }
+
+    if (options.exclude?.length) {
+      args.push("--exclude", options.exclude.join(","));
+    }
+
+    if (options.quiet) {
+      args.push("--quiet");
+    }
+
+    if (options.dryRun) {
+      args.push("--dry-run");
+    }
+
+    return this.run(args, options);
+  }
+
+  // Deploy in non-TTY mode
+  async deployNonTty(
+    url: string | undefined,
+    token: string | undefined,
+    options: {
+      config?: string;
+      skipDiff?: boolean;
+      ci?: boolean;
+      include?: string[];
+      exclude?: string[];
+      quiet?: boolean;
+      dryRun?: boolean;
+      env?: Record<string, string>;
+    } & CliRunnerOptions = {}
+  ): Promise<CliResult> {
+    // Set environment to simulate non-TTY
+    const nonTtyEnv = {
+      ...options.env,
+      CI: "true",
+      TERM: "dumb",
+    };
+    
+    return this.deployWithEnv(url, token, {
+      ...options,
+      env: nonTtyEnv,
+      ci: true,
+    });
+  }
+
+  // Get help for deploy command
+  async deployHelp(): Promise<CliResult> {
+    return this.run(["deploy", "--help"]);
   }
 
   private logResult(result: CliResult): void {

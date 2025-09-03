@@ -277,18 +277,16 @@ export function assertArrayContainsItem(
     Object.entries(properties).every(([key, value]) => item[key] === value)
   );
   
-  expect(found).toBe(
-    true,
-    `Array does not contain item with properties: ${JSON.stringify(properties)}`
-  );
+  if (!found) {
+    throw new Error(`Array does not contain item with properties: ${JSON.stringify(properties)}`);
+  }
 }
 
 // Assert command completed within time limit
 export function assertCompletedWithin(result: CliResult, maxDuration: number): void {
-  expect(result.duration).toBeLessThanOrEqual(
-    maxDuration,
-    `Command took ${result.duration}ms, expected less than ${maxDuration}ms`
-  );
+  if (result.duration > maxDuration) {
+    throw new Error(`Command took ${result.duration}ms, expected less than ${maxDuration}ms`);
+  }
 }
 
 // Helper to create a custom assertion for specific output patterns

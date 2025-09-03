@@ -400,10 +400,12 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
       
       // Deploy using environment variables instead of CLI arguments
       const envResult = await cli.deployWithEnv(
-        { SALEOR_API_URL: apiUrl, SALEOR_TOKEN: token },
+        undefined,
+        undefined,
         {
           config: configPath,
-          skipDiff: true
+          skipDiff: true,
+          env: { SALEOR_API_URL: apiUrl, SALEOR_TOKEN: token }
         }
       );
       
@@ -429,16 +431,16 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
       // Set environment variables to wrong values
       // But provide correct values via CLI arguments
       const priorityResult = await cli.deployWithEnv(
-        { 
-          SALEOR_API_URL: "http://wrong-url.com/graphql/",
-          SALEOR_TOKEN: "wrong-token" 
-        },
+        apiUrl, // Correct URL via CLI
+        token,  // Correct token via CLI
         {
           config: configPath,
-          skipDiff: true
-        },
-        apiUrl, // Correct URL via CLI
-        token  // Correct token via CLI
+          skipDiff: true,
+          env: { 
+            SALEOR_API_URL: "http://wrong-url.com/graphql/",
+            SALEOR_TOKEN: "wrong-token" 
+          }
+        }
       );
       
       // Should succeed because CLI arguments take priority
@@ -463,12 +465,13 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
       
       // Try to deploy without setting environment variables and without CLI args
       const missingEnvResult = await cli.deployWithEnv(
-        {}, // No environment variables set
+        undefined, // No CLI URL
+        undefined, // No CLI token
         {
           config: configPath,
-          timeout: 10000
+          timeout: 10000,
+          env: {} // No environment variables set
         }
-        // No CLI args provided either
       );
       
       expect(missingEnvResult).toHaveFailed();
@@ -501,14 +504,16 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
       
       // Use environment variable for config path
       const envConfigResult = await cli.deployWithEnv(
-        { 
-          SALEOR_API_URL: apiUrl,
-          SALEOR_TOKEN: token,
-          SALEOR_CONFIG: envConfigPath
-        },
+        undefined, // No CLI URL - use env
+        undefined, // No CLI token - use env
         {
-          skipDiff: true
+          skipDiff: true,
           // No config specified in args - should use env var
+          env: { 
+            SALEOR_API_URL: apiUrl,
+            SALEOR_TOKEN: token,
+            SALEOR_CONFIG: envConfigPath
+          }
         }
       );
       
