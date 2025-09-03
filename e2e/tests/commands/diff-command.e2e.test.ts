@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { SaleorTestContainer } from "../../utils/saleor-container.js";
+import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import {
   createTempDir,
@@ -11,7 +11,6 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import path from "node:path";
 
 describe("E2E Diff Command - Critical Accuracy Tests", () => {
-  let container: SaleorTestContainer;
   let cli: CliRunner;
   let apiUrl: string;
   let token: string;
@@ -22,20 +21,16 @@ describe("E2E Diff Command - Critical Accuracy Tests", () => {
     
     testDir = await createTempDir("diff-command-test-");
     
-    container = new SaleorTestContainer({
-      projectName: "saleor-diff-command-test",
-    });
-    await container.start();
-    
-    apiUrl = container.getApiUrl();
-    token = container.getAdminToken();
+    const config = getTestConfig();
+    apiUrl = config.apiUrl;
+    await waitForApi(apiUrl);
+    token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
     
     console.log("✅ Diff command test setup complete");
-  }, 180000);
+  }, 60000);
 
   afterAll(async () => {
-    await container?.stop();
     await cleanupTempDir(testDir);
   });
 

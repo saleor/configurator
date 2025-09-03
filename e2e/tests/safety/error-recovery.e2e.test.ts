@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { SaleorTestContainer } from "../../utils/saleor-container.js";
+import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import {
   createTempDir,
@@ -11,7 +11,6 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import path from "node:path";
 
 describe("E2E Error Recovery and Partial Failure Tests", () => {
-  let container: SaleorTestContainer;
   let cli: CliRunner;
   let apiUrl: string;
   let token: string;
@@ -22,20 +21,16 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
     
     testDir = await createTempDir("error-recovery-test-");
     
-    container = new SaleorTestContainer({
-      projectName: "saleor-error-recovery-test",
-    });
-    await container.start();
-    
-    apiUrl = container.getApiUrl();
-    token = container.getAdminToken();
+    const config = getTestConfig();
+    apiUrl = config.apiUrl;
+    await waitForApi(apiUrl);
+    token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
     
     console.log("✅ Error recovery test setup complete");
-  }, 180000);
+  }, 60000);
 
   afterAll(async () => {
-    await container?.stop();
     await cleanupTempDir(testDir);
   });
 
@@ -290,7 +285,7 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
       });
       
       expect(finalIntrospectResult).toHaveSucceeded();
-    }, 180000);
+    }, 60000);
   });
 
   describe("Network and Connection Recovery", () => {
@@ -358,7 +353,7 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
         console.log("✅ Retry with longer timeout succeeded");
         assertDeploymentSuccess(retryResult);
       }
-    }, 180000);
+    }, 60000);
 
     it("should recover from connection interruptions", async () => {
       const configPath = path.join(testDir, "connection-test-config.yml");

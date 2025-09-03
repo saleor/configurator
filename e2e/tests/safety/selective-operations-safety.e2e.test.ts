@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { SaleorTestContainer } from "../../utils/saleor-container.js";
+import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import {
   createTempDir,
@@ -11,7 +11,6 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import path from "node:path";
 
 describe("E2E Selective Operations Safety Tests", () => {
-  let container: SaleorTestContainer;
   let cli: CliRunner;
   let apiUrl: string;
   let token: string;
@@ -22,20 +21,16 @@ describe("E2E Selective Operations Safety Tests", () => {
     
     testDir = await createTempDir("selective-safety-test-");
     
-    container = new SaleorTestContainer({
-      projectName: "saleor-selective-safety-test",
-    });
-    await container.start();
-    
-    apiUrl = container.getApiUrl();
-    token = container.getAdminToken();
+    const config = getTestConfig();
+    apiUrl = config.apiUrl;
+    await waitForApi(apiUrl);
+    token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
     
     console.log("✅ Selective operations safety test setup complete");
-  }, 180000);
+  }, 60000);
 
   afterAll(async () => {
-    await container?.stop();
     await cleanupTempDir(testDir);
   });
 
@@ -191,7 +186,7 @@ describe("E2E Selective Operations Safety Tests", () => {
       });
       
       expect(categoryDiffResult).toContainInOutput("differences"); // Categories still need updates
-    }, 180000);
+    }, 60000);
 
     it("should handle multiple include sections correctly", async () => {
       const configPath = path.join(testDir, "multiple-include-config.yml");
@@ -418,7 +413,7 @@ describe("E2E Selective Operations Safety Tests", () => {
       });
       
       expect(channelDiffResult).toContainInOutput("differences"); // Channel changes still pending
-    }, 180000);
+    }, 60000);
 
     it("should handle exclude with CREATE operations safely", async () => {
       const configPath = path.join(testDir, "exclude-create-config.yml");
@@ -769,7 +764,7 @@ describe("E2E Selective Operations Safety Tests", () => {
       });
       
       expect(dangerousDiffResult).toContainInOutput("differences"); // Would show deletions if not excluded
-    }, 180000);
+    }, 60000);
   });
 
   describe("Selective Operations Error Handling", () => {
