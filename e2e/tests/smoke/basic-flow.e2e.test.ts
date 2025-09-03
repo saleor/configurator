@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { SaleorTestContainer } from "../../utils/saleor-container.js";
 import { CliRunner } from "../../utils/cli-runner.js";
+import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
 import {
   createTempDir,
   cleanupTempDir,
@@ -16,7 +16,6 @@ import {
 import path from "node:path";
 
 describe("E2E Smoke Test - Basic Flow", () => {
-  let container: SaleorTestContainer;
   let cli: CliRunner;
   let apiUrl: string;
   let token: string;
@@ -24,9 +23,6 @@ describe("E2E Smoke Test - Basic Flow", () => {
 
   beforeAll(async () => {
     console.log("🚀 Starting smoke test setup...");
-    console.log(`🔍 Environment: CI=${process.env.CI}, RUNNER_OS=${process.env.RUNNER_OS}`);
-    
-    const isCI = process.env.CI === "true";
     
     // Always initialize CLI runner for version/help tests
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
@@ -34,34 +30,21 @@ describe("E2E Smoke Test - Basic Flow", () => {
     // Create temp directory for test files
     testDir = await createTempDir("smoke-test-");
     
-    // Start Saleor container with CI-optimized settings
-    container = new SaleorTestContainer({
-      projectName: "saleor-smoke-test",
-      startTimeout: isCI ? 360000 : 240000, // 6 minutes for CI, 4 minutes locally
-    });
+    // Get test configuration
+    const config = getTestConfig();
+    apiUrl = config.apiUrl;
     
-    // Add timeout wrapper to fail fast if hanging
-    const maxTimeout = isCI ? 420000 : 300000; // 7 minutes for CI, 5 minutes locally
-    const startWithTimeout = Promise.race([
-      container.start(),
-      new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error(`Container startup exceeded maximum time limit (${maxTimeout/1000}s)`));
-        }, maxTimeout);
-      })
-    ]);
+    // Wait for API to be ready (in case of CI startup timing)
+    await waitForApi(apiUrl);
     
-    await startWithTimeout;
-    
-    apiUrl = container.getApiUrl();
-    token = container.getAdminToken();
+    // Get admin token
+    token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     
     console.log("✅ Smoke test setup complete");
-  }, 450000); // 7.5 minutes timeout for container startup in CI
+  }, 120000); // 2 minutes timeout for setup
 
   afterAll(async () => {
-    // Clean up
-    await container?.stop();
+    // Clean up temp directory
     if (testDir) {
       await cleanupTempDir(testDir);
     }

@@ -22,14 +22,6 @@ on:
         options:
           - "true"
           - "false"
-      skip_docker:
-        description: "Skip Docker-dependent E2E tests"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -40,6 +32,52 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: saleor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      saleor:
+        image: ghcr.io/saleor/saleor:3.20
+        ports:
+          - 8000:8000
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/saleor
+          REDIS_URL: redis://redis:6379/0
+          CELERY_BROKER_URL: redis://redis:6379/1
+          SECRET_KEY: test-secret-key-for-e2e
+          DEBUG: 'True'
+          ALLOWED_HOSTS: '*'
+          ALLOWED_CLIENT_HOSTS: '*'
+          DEFAULT_FROM_EMAIL: admin@example.com
+          ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: 'False'
+        options: >-
+          --health-cmd "curl -f http://localhost:8000/graphql/ -X POST -H 'Content-Type: application/json' -d '{\"query\":\"{ shop { name } }\"}' || exit 1"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 30
+          --health-start-period 90s
 
     steps:
       - name: Checkout code
@@ -62,55 +100,48 @@ jobs:
       - name: Build CLI
         run: pnpm build
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Pre-pull Docker images
+      - name: Initialize Saleor
         run: |
-          echo "🐳 Pre-pulling Docker images in parallel..."
-          docker pull ghcr.io/saleor/saleor:3.20 &
-          docker pull postgres:15-alpine &
-          docker pull redis:7.0-alpine &
-          wait
-          echo "✅ Docker images ready"
+          echo "🔧 Running database migrations..."
+          docker exec ${{ job.services.saleor.id }} python manage.py migrate --no-input
+          
+          echo "👤 Creating superuser..."
+          docker exec ${{ job.services.saleor.id }} python manage.py shell -c "
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            if not User.objects.filter(email='admin@example.com').exists():
+                User.objects.create_superuser(email='admin@example.com', password='admin123')
+                print('Superuser created')
+            else:
+                print('Superuser exists')
+          "
+          
+          echo "✅ Saleor initialization complete"
 
-      - name: Verify Docker setup
-        run: |
-          echo "🔍 Docker version:"
-          docker version
-          echo "🔍 Docker Compose version:"
-          docker compose version
-          echo "🔍 Available disk space:"
-          df -h /
-          echo "🔍 Memory info:"
-          free -h
-
-      - name: Run quick smoke tests (no Docker)
+      - name: Run quick smoke tests (no Docker required)
         if: github.event_name == 'pull_request'
         run: pnpm test:smoke:quick
         env:
           CI: true
           LOG_LEVEL: error
-          SKIP_DOCKER_E2E: true
 
-      - name: Run full smoke tests (with Docker)
-        if: github.event_name == 'pull_request' && github.event.inputs.skip_docker != 'true'
+      - name: Run full smoke tests
+        if: github.event_name == 'pull_request'
         run: pnpm test:smoke
         env:
           CI: true
+          SALEOR_API_URL: http://localhost:8000/graphql/
           LOG_LEVEL: ${{ github.event.inputs.verbose == 'true' && 'debug' || 'error' }}
           VERBOSE: ${{ github.event.inputs.verbose }}
-          SKIP_DOCKER_E2E: false
-        continue-on-error: true  # Don't fail PR if Docker tests fail
 
       - name: Run full E2E test suite
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: pnpm test:e2e
         env:
           CI: true
+          SALEOR_API_URL: http://localhost:8000/graphql/
           LOG_LEVEL: ${{ github.event.inputs.verbose == 'true' && 'debug' || 'error' }}
           VERBOSE: ${{ github.event.inputs.verbose }}
-          SKIP_DOCKER_E2E: ${{ github.event.inputs.skip_docker || 'false' }}
 
       - name: Upload test results
         if: always()
@@ -120,27 +151,6 @@ jobs:
           path: |
             e2e/test-results/
           retention-days: 7
-
-      - name: Upload test logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-test-logs-${{ github.run_id }}
-          path: |
-            e2e/logs/
-            e2e/**/*.log
-          retention-days: 7
-
-      - name: Docker cleanup
-        if: always()
-        run: |
-          echo "🧹 Cleaning up Docker resources..."
-          docker ps -aq | xargs -r docker stop || true
-          docker ps -aq | xargs -r docker rm || true
-          docker volume prune -f || true
-          docker network prune -f || true
-          docker system prune -f || true
-          echo "✅ Docker cleanup complete"
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()
