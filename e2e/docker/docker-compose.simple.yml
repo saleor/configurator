@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saleor
+      POSTGRES_PASSWORD: saleor
+      POSTGRES_DB: saleor
+    ports:
+      - "5432"
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379"
+
+  api:
+    image: ghcr.io/saleor/saleor:3.20
+    ports:
+      - "8000"
+    environment:
+      DATABASE_URL: "postgresql://saleor:saleor@db/saleor"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "test-secret-key"
+      DEBUG: "True"
+      ALLOWED_HOSTS: "*"
+    depends_on:
+      - db
+      - redis

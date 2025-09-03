@@ -61,7 +61,6 @@ export class SaleorTestContainer {
         .withProjectName(this.config.projectName)
         .withWaitStrategy("db", Wait.forHealthCheck())
         .withWaitStrategy("redis", Wait.forHealthCheck())
-        .withWaitStrategy("api-init", Wait.forSuccessfulCommand("exit 0"))
         .withWaitStrategy("api", Wait.forHealthCheck())
         .withStartupTimeout(this.config.startTimeout)
         .up();
