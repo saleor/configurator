@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { attributeInputSchema } from "./attribute.schema";
+import { attributeInputSchema, simpleAttributeSchema, referencedAttributeSchema } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -754,6 +754,89 @@ const taxClassSchema = z.object({
 export type TaxClassCountryRateInput = z.infer<typeof taxClassCountryRateSchema>;
 export type TaxClassInput = z.infer<typeof taxClassSchema>;
 
+// Collection Schema
+const collectionChannelListingSchema = z.object({
+  channelSlug: z.string().describe("CollectionChannelListing.channelSlug"),
+  isPublished: z.boolean().optional().describe("CollectionChannelListing.isPublished"),
+  publishedAt: z.string().optional().describe("CollectionChannelListing.publishedAt"),
+});
+
+const collectionSchema = z.object({
+  name: z.string().describe("Collection.name"),
+  slug: z.string().describe("Collection.slug"),
+  description: z.string().optional().describe("Collection.description"),
+  isPublished: z.boolean().optional().describe("Collection.isPublished"),
+  products: z
+    .array(z.string())
+    .optional()
+    .describe("Collection.products - References to product slugs"),
+  channelListings: z
+    .array(collectionChannelListingSchema)
+    .optional()
+    .describe("Collection.channelListings - Channel-specific visibility settings"),
+});
+
+export type CollectionInput = z.infer<typeof collectionSchema>;
+
+// Menu Schema
+const menuItemSchema: z.ZodType<any> = z.lazy(() =>
+  z.object({
+    name: z.string().describe("MenuItem.name"),
+    url: z.string().optional().describe("MenuItem.url - External URL"),
+    category: z.string().optional().describe("MenuItem.category - Reference to category slug"),
+    collection: z.string().optional().describe("MenuItem.collection - Reference to collection slug"),
+    page: z.string().optional().describe("MenuItem.page - Reference to page/model slug"),
+    children: z
+      .array(menuItemSchema)
+      .optional()
+      .describe("MenuItem.children - Nested menu items"),
+  })
+);
+
+const menuSchema = z.object({
+  name: z.string().describe("Menu.name"),
+  slug: z.string().describe("Menu.slug"),
+  items: z
+    .array(menuItemSchema)
+    .optional()
+    .describe("Menu.items - Top-level menu items"),
+});
+
+export type MenuInput = z.infer<typeof menuSchema>;
+
+// Model Schema (renamed from Page)
+const modelSchema = z.object({
+  title: z.string().describe("Model.title"),
+  slug: z.string().describe("Model.slug"),
+  modelType: z.string().describe("Model.modelType - Reference to model type name"),
+  content: z.string().optional().describe("Model.content - Page content"),
+  isPublished: z.boolean().optional().describe("Model.isPublished"),
+  publishedAt: z.string().optional().describe("Model.publishedAt"),
+  attributes: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())]))
+    .optional()
+    .describe("Model.attributes - Attribute values keyed by attribute slug"),
+});
+
+export type ModelInput = z.infer<typeof modelSchema>;
+
+// Model Type Schema (renamed from PageType)
+const modelTypeSchema = z.object({
+  name: z.string().describe("ModelType.name"),
+  slug: z.string().optional().describe("ModelType.slug"),
+  attributes: z
+    .array(
+      z.union([
+        simpleAttributeSchema,
+        referencedAttributeSchema,
+      ])
+    )
+    .optional()
+    .describe("ModelType.attributes"),
+});
+
+export type ModelTypeInput = z.infer<typeof modelTypeSchema>;
+
 // TODO: config schema should only use the full state representation of the entities, not the create/update schemas
 export const configSchema = z
   .object({
@@ -798,17 +881,41 @@ export const configSchema = z
       .describe(
         "Page type templates that define the structure and attributes for CMS pages. Useful for creating structured content like blog posts, landing pages, etc"
       ),
+    modelTypes: z
+      .array(modelTypeSchema)
+      .optional()
+      .describe(
+        "Model type templates that define the structure and attributes for content models (renamed from page types). Useful for creating structured content with custom fields"
+      ),
     categories: z
       .array(categorySchema)
       .optional()
       .describe(
         "Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering"
       ),
+    collections: z
+      .array(collectionSchema)
+      .optional()
+      .describe(
+        "Product collections for grouping and merchandising products. Collections can be published to specific channels and contain curated product lists"
+      ),
     products: z
       .array(productSchema)
       .optional()
       .describe(
         "Individual product definitions including variants, attributes, and channel-specific settings like pricing and availability"
+      ),
+    models: z
+      .array(modelSchema)
+      .optional()
+      .describe(
+        "Content models/pages with structured data based on model types. Models can have custom attributes and content for flexible CMS functionality"
+      ),
+    menus: z
+      .array(menuSchema)
+      .optional()
+      .describe(
+        "Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs"
       ),
   })
   .describe(

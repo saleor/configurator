@@ -23,6 +23,12 @@ import { WarehouseRepository } from "../modules/warehouse/repository";
 import { WarehouseService } from "../modules/warehouse/warehouse-service";
 import { TaxRepository } from "../modules/tax/repository";
 import { TaxService } from "../modules/tax/tax-service";
+import { CollectionService } from "../modules/collection/collection-service";
+import { CollectionRepository } from "../modules/collection/repository";
+import { MenuService } from "../modules/menu/menu-service";
+import { MenuRepository } from "../modules/menu/repository";
+import { ModelService } from "../modules/model/model-service";
+import { ModelRepository } from "../modules/model/repository";
 import { DiffService } from "./diff";
 
 export interface ServiceContainer {
@@ -37,6 +43,9 @@ export interface ServiceContainer {
   readonly warehouse: WarehouseService;
   readonly shippingZone: ShippingZoneService;
   readonly tax: TaxService;
+  readonly collection: CollectionService;
+  readonly menu: MenuService;
+  readonly model: ModelService;
   readonly diffService: DiffService;
 }
 
@@ -56,6 +65,9 @@ export class ServiceComposer {
       warehouse: new WarehouseRepository(client),
       shippingZone: new ShippingZoneRepository(client),
       tax: new TaxRepository(client),
+      collection: new CollectionRepository(client),
+      menu: new MenuRepository(client),
+      model: new ModelRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -86,6 +98,17 @@ export class ServiceComposer {
         repository: repositories.tax,
         logger,
       }),
+      collection: new CollectionService(
+        repositories.collection,
+        new ProductService(repositories.product),
+        new ChannelService(repositories.channel)
+      ),
+      menu: new MenuService(repositories.menu),
+      model: new ModelService(
+        repositories.model,
+        new PageTypeService(repositories.pageType, attributeService),
+        attributeService
+      ),
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container

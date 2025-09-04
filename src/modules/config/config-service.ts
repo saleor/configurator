@@ -8,8 +8,13 @@ import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
 import type {
   CategoryInput,
   CategoryUpdateInput,
+  CollectionInput,
   CountryCode,
   CurrencyCode,
+  MenuInput,
+  MenuItemInput,
+  ModelInput,
+  ModelTypeInput,
   ProductTypeInput,
   SaleorConfig,
   ShippingZoneInput,
@@ -494,10 +499,99 @@ export class ConfigurationService {
       config.taxClasses = this.mapTaxClasses(rawConfig.taxClasses?.edges || []);
     }
 
+    if (shouldIncludeSection("collections", options)) {
+      config.collections = this.mapCollections(rawConfig.collections?.edges || []);
+    }
+
+    if (shouldIncludeSection("menus", options)) {
+      config.menus = this.mapMenus(rawConfig.menus?.edges || []);
+    }
+
+    if (shouldIncludeSection("models", options)) {
+      config.models = this.mapModels(rawConfig.pages?.edges || []);
+    }
+
+    if (shouldIncludeSection("modelTypes", options)) {
+      config.modelTypes = this.mapModelTypes(rawConfig.pageTypes?.edges || []);
+    }
+
     const fullConfig = config as SaleorConfig;
 
     // Normalize attribute references to prevent duplication errors during deployment
     return this.normalizeAttributeReferences(fullConfig);
+  }
+
+  private mapCollections(edges: NonNullable<RawSaleorConfig["collections"]>["edges"]): CollectionInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      description: node.description || undefined,
+      products: node.products?.edges?.map(edge => edge.node.slug).filter(Boolean) || [],
+      channelListings: node.channelListings?.map(listing => ({
+        channelSlug: listing.channel.slug,
+        isPublished: listing.isPublished,
+        publishedAt: listing.publishedAt || undefined,
+      })) || [],
+    }));
+  }
+
+  private mapMenus(edges: NonNullable<RawSaleorConfig["menus"]>["edges"]): MenuInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      items: this.mapMenuItems(node.items || []),
+    }));
+  }
+
+  private mapMenuItems(items: any[]): MenuItemInput[] {
+    return items.map(item => ({
+      name: item.name,
+      url: item.url || undefined,
+      categorySlug: item.category?.slug || undefined,
+      collectionSlug: item.collection?.slug || undefined,
+      pageSlug: item.page?.slug || undefined,
+      items: item.children ? this.mapMenuItems(item.children) : undefined,
+    }));
+  }
+
+  private mapModels(edges: NonNullable<RawSaleorConfig["pages"]>["edges"]): ModelInput[] {
+    return edges.map(({ node }) => ({
+      title: node.title,
+      slug: node.slug,
+      content: node.content || undefined,
+      isPublished: node.isPublished,
+      publishedAt: node.publishedAt || undefined,
+      modelType: node.pageType?.name || undefined,
+      attributes: this.mapModelAttributes(node.attributes || []),
+    }));
+  }
+
+  private mapModelAttributes(attributes: any[]): Record<string, any> {
+    const result: Record<string, any> = {};
+    
+    for (const attr of attributes) {
+      const slug = attr.attribute?.slug;
+      if (slug) {
+        if (attr.values && attr.values.length > 0) {
+          // Multi-value attribute
+          result[slug] = attr.values.map((v: any) => v.name || v.slug || v.value || v).filter(Boolean);
+        } else if (attr.value) {
+          // Single value attribute
+          result[slug] = attr.value;
+        }
+      }
+    }
+    
+    return result;
+  }
+
+  private mapModelTypes(edges: NonNullable<RawSaleorConfig["pageTypes"]>["edges"]): ModelTypeInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      attributes: node.attributes?.map(attr => ({
+        attribute: attr.name, // Reference existing attribute by name
+      })) || [],
+    }));
   }
 }
 
