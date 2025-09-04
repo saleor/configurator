@@ -88,7 +88,13 @@ export const productTypesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "Product Types");
+    // Product Types stage should run if:
+    // 1. Product Types have changes, OR
+    // 2. Products have changes (since products depend on product types)
+    const hasProductTypeChanges = context.summary.results.some((r) => r.entityType === "Product Types");
+    const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
+    
+    return !hasProductTypeChanges && !hasProductChanges;
   },
 };
 
@@ -110,7 +116,13 @@ export const channelsStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "Channels");
+    // Channels stage should run if:
+    // 1. Channels have changes, OR
+    // 2. Products have changes (since products may have channel listings)
+    const hasChannelChanges = context.summary.results.some((r) => r.entityType === "Channels");
+    const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
+    
+    return !hasChannelChanges && !hasProductChanges;
   },
 };
 
@@ -186,7 +198,13 @@ export const categoriesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "Categories");
+    // Categories stage should run if:
+    // 1. Categories have changes, OR
+    // 2. Products have changes (since products depend on categories)
+    const hasCategoryChanges = context.summary.results.some((r) => r.entityType === "Categories");
+    const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
+    
+    return !hasCategoryChanges && !hasProductChanges;
   },
 };
 

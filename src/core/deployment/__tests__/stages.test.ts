@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SaleorConfigurator } from "../../configurator";
-import { getAllStages, productTypesStage, shopSettingsStage, validationStage } from "../stages";
+import { getAllStages, categoriesStage, channelsStage, productTypesStage, shopSettingsStage, validationStage } from "../stages";
 import type { DeploymentContext } from "../types";
 
 describe("Deployment Stages", () => {
@@ -101,7 +101,7 @@ describe("Deployment Stages", () => {
       });
     });
 
-    it("skips when no product type changes", () => {
+    it("skips when no product type changes and no product changes", () => {
       const context = createMockContext({
         summary: {
           totalChanges: 0,
@@ -113,6 +113,134 @@ describe("Deployment Stages", () => {
       });
 
       expect(productTypesStage.skip?.(context)).toBe(true);
+    });
+
+    it("does not skip when product type changes exist", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Product Types", entityName: "Electronics", action: "create" }
+          ],
+        },
+      });
+
+      expect(productTypesStage.skip?.(context)).toBe(false);
+    });
+
+    it("does not skip when product changes exist (dependency-aware)", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Products", entityName: "smartphone", action: "create" }
+          ],
+        },
+      });
+
+      expect(productTypesStage.skip?.(context)).toBe(false);
+    });
+  });
+
+  describe("categoriesStage", () => {
+    it("skips when no category changes and no product changes", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 0,
+          creates: 0,
+          updates: 0,
+          deletes: 0,
+          results: [],
+        },
+      });
+
+      expect(categoriesStage.skip?.(context)).toBe(true);
+    });
+
+    it("does not skip when category changes exist", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Categories", entityName: "electronics", action: "create" }
+          ],
+        },
+      });
+
+      expect(categoriesStage.skip?.(context)).toBe(false);
+    });
+
+    it("does not skip when product changes exist (dependency-aware)", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Products", entityName: "smartphone", action: "create" }
+          ],
+        },
+      });
+
+      expect(categoriesStage.skip?.(context)).toBe(false);
+    });
+  });
+
+  describe("channelsStage", () => {
+    it("skips when no channel changes and no product changes", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 0,
+          creates: 0,
+          updates: 0,
+          deletes: 0,
+          results: [],
+        },
+      });
+
+      expect(channelsStage.skip?.(context)).toBe(true);
+    });
+
+    it("does not skip when channel changes exist", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Channels", entityName: "default", action: "create" }
+          ],
+        },
+      });
+
+      expect(channelsStage.skip?.(context)).toBe(false);
+    });
+
+    it("does not skip when product changes exist (dependency-aware)", () => {
+      const context = createMockContext({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [
+            { entityType: "Products", entityName: "smartphone", action: "create" }
+          ],
+        },
+      });
+
+      expect(channelsStage.skip?.(context)).toBe(false);
     });
   });
 
