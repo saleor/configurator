@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "../config/config-service";
 import type { ConfigurationOperations } from "../config/repository";
+import type { CategoryInput } from "../config/schema/schema";
 import type { ConfigurationStorage } from "../config/yaml-manager";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
+
+// Type for category with subcategories (used in configuration)
+type CategoryWithSubcategories = CategoryInput & {
+  subcategories?: CategoryWithSubcategories[];
+};
 
 describe("Category Round-Trip Integrity", () => {
   it("should maintain category hierarchy through deploy and introspect cycle", async () => {
@@ -118,33 +124,36 @@ describe("Category Round-Trip Integrity", () => {
     expect(introspectedConfig.categories).toHaveLength(2); // Two root categories
 
     // Check Electronics hierarchy
-    const electronics = introspectedConfig.categories?.find((c) => c.slug === "electronics");
+    const electronics = introspectedConfig.categories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "electronics"
+    );
     expect(electronics).toBeDefined();
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(electronics?.subcategories).toHaveLength(2);
 
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
     const computers = electronics?.subcategories?.find(
-      (c: { slug: string }) => c.slug === "computers"
+      (c): c is CategoryWithSubcategories => c.slug === "computers"
     );
     expect(computers).toBeDefined();
-    const computersWithSubs = computers as { subcategories?: Array<{ slug: string }> } | undefined;
-    expect(computersWithSubs?.subcategories).toHaveLength(2);
-    expect(computersWithSubs?.subcategories?.map((c) => c.slug)).toContain("laptops");
-    expect(computersWithSubs?.subcategories?.map((c) => c.slug)).toContain("desktops");
+    expect(computers?.subcategories).toHaveLength(2);
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain(
+      "laptops"
+    );
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain(
+      "desktops"
+    );
 
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
-    const audio = electronics?.subcategories?.find((c: { slug: string }) => c.slug === "audio");
+    const audio = electronics?.subcategories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "audio"
+    );
     expect(audio).toBeDefined();
-    const audioWithSubs = audio as { subcategories?: unknown } | undefined;
-    expect(audioWithSubs?.subcategories).toBeUndefined();
+    expect(audio?.subcategories).toBeUndefined();
 
     // Check Clothing hierarchy
-    const clothing = introspectedConfig.categories?.find((c) => c.slug === "clothing");
+    const clothing = introspectedConfig.categories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "clothing"
+    );
     expect(clothing).toBeDefined();
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(clothing?.subcategories).toHaveLength(1);
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(clothing?.subcategories?.[0].slug).toBe("mens");
 
     // Step 5: Verify the structure matches the original
@@ -209,9 +218,11 @@ describe("Category Round-Trip Integrity", () => {
     // Should still build correct hierarchy despite out-of-order data
     expect(config.categories).toHaveLength(1);
     expect(config.categories?.[0].slug).toBe("electronics");
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
-    expect(config.categories?.[0].subcategories?.[0].slug).toBe("computers");
-    // @ts-expect-error - subcategories is not in the type but exists in runtime
-    expect(config.categories?.[0].subcategories?.[0].subcategories?.[0].slug).toBe("laptops");
+
+    const electronicsCategory = config.categories?.[0] as CategoryWithSubcategories;
+    expect(electronicsCategory.subcategories?.[0].slug).toBe("computers");
+
+    const computersCategory = electronicsCategory.subcategories?.[0] as CategoryWithSubcategories;
+    expect(computersCategory.subcategories?.[0].slug).toBe("laptops");
   });
 });

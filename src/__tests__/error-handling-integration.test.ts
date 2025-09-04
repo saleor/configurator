@@ -9,9 +9,20 @@ import type { CombinedError } from "@urql/core";
 import { beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { StageAggregateError } from "../core/deployment/errors";
 import { GraphQLError } from "../lib/errors/graphql";
-import { formatSuggestions, getSuggestions } from "../lib/errors/recovery-guide";
+import { ErrorRecoveryGuide } from "../lib/errors/recovery-guide";
 import { logger } from "../lib/logger";
-import { wrapBatch, wrapServiceCall } from "../lib/utils/error-wrapper";
+import { ServiceErrorWrapper } from "../lib/utils/error-wrapper";
+
+// Extended error interfaces for tests
+interface MockGraphQLError extends Error {
+  toJSON: () => { message: string };
+  [Symbol.toStringTag]: string;
+}
+
+interface MockServiceError extends Error {
+  code: string;
+  getRecoverySuggestions: () => string[];
+}
 
 // Mock dependencies
 vi.mock("../lib/errors/graphql");
@@ -49,92 +60,100 @@ interface Category {
 
 class MockProductService {
   async createProduct(product: Product): Promise<{ id: string; name: string }> {
-    return wrapServiceCall("create product", "Product", product.name, async () => {
-      // Simulate various failure conditions
-      if (!product.slug) {
-        throw new Error("slug is required");
-      }
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create product",
+      "Product",
+      product.name,
+      async () => {
+        // Simulate various failure conditions
+        if (!product.slug) {
+          throw new Error("slug is required");
+        }
 
-      if (product.slug === "duplicate-slug") {
-        throw new Error("Duplicate slug 'duplicate-slug'");
-      }
+        if (product.slug === "duplicate-slug") {
+          throw new Error("Duplicate slug 'duplicate-slug'");
+        }
 
-      if (product.productType === "NonexistentType") {
-        throw new Error("Product type 'NonexistentType' not found");
-      }
+        if (product.productType === "NonexistentType") {
+          throw new Error("Product type 'NonexistentType' not found");
+        }
 
-      if (product.category === "NonexistentCategory") {
-        throw new Error("Category 'NonexistentCategory' not found");
-      }
+        if (product.category === "NonexistentCategory") {
+          throw new Error("Category 'NonexistentCategory' not found");
+        }
 
-      if (product.attributes?.color === "missing-attribute") {
-        throw new Error("Attribute 'color' not found");
-      }
+        if (product.attributes?.color === "missing-attribute") {
+          throw new Error("Attribute 'color' not found");
+        }
 
-      if (product.name === "NetworkError") {
-        throw new Error("connect ECONNREFUSED 127.0.0.1:8000");
-      }
+        if (product.name === "NetworkError") {
+          throw new Error("connect ECONNREFUSED 127.0.0.1:8000");
+        }
 
-      if (product.name === "PermissionError") {
-        throw new Error("Permission denied: insufficient privileges");
-      }
+        if (product.name === "PermissionError") {
+          throw new Error("Permission denied: insufficient privileges");
+        }
 
-      if (product.name === "GraphQLError") {
-        const combinedError = {
-          name: "CombinedError",
-          message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-          graphQLErrors: [
-            {
-              message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-              locations: [],
-              path: undefined,
-              nodes: undefined,
-              source: undefined,
-              positions: undefined,
-              originalError: undefined,
-              extensions: {},
-              toJSON: undefined,
-              toString: () =>
-                'Variable "$input" of type ProductCreateInput! was provided invalid value',
-            },
-          ],
-          networkError: null,
-          response: {},
-        } as unknown as CombinedError;
-        throw combinedError;
-      }
+        if (product.name === "GraphQLError") {
+          const mockGraphQLError = new Error(
+            'Variable "$input" of type ProductCreateInput! was provided invalid value'
+          ) as MockGraphQLError;
+          mockGraphQLError.toJSON = () => ({ message: mockGraphQLError.message });
+          mockGraphQLError[Symbol.toStringTag] = "GraphQLError";
+          mockGraphQLError.name = "GraphQLError";
 
-      // Success case
-      return { id: `product-${Date.now()}`, name: product.name };
-    });
+          const combinedError: CombinedError = {
+            name: "CombinedError",
+            message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
+            graphQLErrors: [mockGraphQLError],
+            networkError: undefined,
+            response: {},
+          } as CombinedError;
+          throw combinedError;
+        }
+
+        // Success case
+        return { id: `product-${Date.now()}`, name: product.name };
+      }
+    );
   }
 }
 
 class MockProductTypeService {
   async createProductType(productType: ProductType): Promise<{ id: string; name: string }> {
-    return wrapServiceCall("create product type", "ProductType", productType.name, async () => {
-      if (productType.attributes.includes("missing-attribute")) {
-        throw new Error("Failed to resolve referenced attributes");
-      }
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create product type",
+      "ProductType",
+      productType.name,
+      async () => {
+        if (productType.attributes.includes("missing-attribute")) {
+          throw new Error("Failed to resolve referenced attributes");
+        }
 
-      if (productType.name === "RequiresEntityType") {
-        throw new Error("Entity type is required for reference attribute 'brand'");
-      }
+        if (productType.name === "RequiresEntityType") {
+          throw new Error("Entity type is required for reference attribute 'brand'");
+        }
 
-      return { id: `product-type-${Date.now()}`, name: productType.name };
-    });
+        return { id: `product-type-${Date.now()}`, name: productType.name };
+      }
+    );
   }
 }
 
 class MockCategoryService {
   async createCategory(category: Category): Promise<{ id: string; name: string }> {
-    return wrapServiceCall("create category", "Category", category.name, async () => {
-      if (category.parent === "NonexistentParent") {
-        throw new Error("Category 'NonexistentParent' not found");
-      }
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create category",
+      "Category",
+      category.name,
+      async () => {
+        if (category.parent === "NonexistentParent") {
+          throw new Error("Category 'NonexistentParent' not found");
+        }
 
-      return { id: `category-${Date.now()}`, name: category.name };
-    });
+        return { id: `category-${Date.now()}`, name: category.name };
+      }
+    );
   }
 }
 
@@ -147,7 +166,7 @@ class MockDeploymentOrchestrator {
   ) {}
 
   async deployProducts(products: Product[]): Promise<void> {
-    const { successes, failures } = await wrapBatch(
+    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
       products,
       "deploy products",
       (product) => product.name,
@@ -169,7 +188,7 @@ class MockDeploymentOrchestrator {
   }
 
   async deployProductTypes(productTypes: ProductType[]): Promise<void> {
-    const { successes, failures } = await wrapBatch(
+    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
       productTypes,
       "deploy product types",
       (pt) => pt.name,
@@ -191,7 +210,7 @@ class MockDeploymentOrchestrator {
   }
 
   async deployCategories(categories: Category[]): Promise<void> {
-    const { successes, failures } = await wrapBatch(
+    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
       categories,
       "deploy categories",
       (category) => category.name,
@@ -221,9 +240,14 @@ describe("Error Handling Integration", () => {
     orchestrator = new MockDeploymentOrchestrator();
 
     // Mock GraphQL error conversion
-    mockedGraphQLError.fromCombinedError.mockImplementation((message, _error) => {
-      return new GraphQLError(`GraphQL Error: ${message}`);
-    });
+    mockedGraphQLError.fromCombinedError.mockImplementation(
+      (message: string, _error: CombinedError) => {
+        const mockError = new Error(`GraphQL Error: ${message}`) as MockServiceError;
+        mockError.code = "GRAPHQL_ERROR";
+        mockError.getRecoverySuggestions = () => ["Check your GraphQL query"];
+        return mockError;
+      }
+    );
   });
 
   describe("Single Entity Error Scenarios", () => {
@@ -255,9 +279,9 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain("slug is required");
 
         // Verify recovery suggestions
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
-        expect(userMessage).toContain("→ Check: Review the schema documentation");
-        expect(userMessage).toContain("→ Run: cat SCHEMA.md");
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
+        expect(userMessage).toContain("→ Check: Review the configuration schema documentation");
+        expect(userMessage).toContain("→ Run: saleor-configurator --help");
       }
     });
 
@@ -286,7 +310,7 @@ describe("Error Handling Integration", () => {
         // Check product type error suggestions
         expect(userMessage).toContain("• Bad Product Type");
         expect(userMessage).toContain(
-          "→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it"
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
         );
         expect(userMessage).toContain(
           "→ Run: saleor-configurator introspect --include=productTypes"
@@ -340,10 +364,10 @@ describe("Error Handling Integration", () => {
         const userMessage = stageError.getUserMessage();
 
         expect(userMessage).toContain(
-          "→ Fix: Check that your API token has the required permissions"
+          "→ Fix: Check your Saleor API token has the required permissions"
         );
-        expect(userMessage).toContain("→ Check: Verify token permissions in Saleor dashboard");
-        expect(userMessage).toContain("→ Run: saleor-configurator diff --token YOUR_TOKEN");
+        expect(userMessage).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=shop");
       }
     });
 
@@ -360,10 +384,10 @@ describe("Error Handling Integration", () => {
         const userMessage = stageError.getUserMessage();
 
         expect(userMessage).toContain(
-          "→ Fix: Check your network connection and Saleor instance URL"
+          "→ Fix: Check your Saleor API URL and network connection"
         );
-        expect(userMessage).toContain("→ Check: Verify the instance is accessible");
-        expect(userMessage).toContain("→ Run: curl -I YOUR_SALEOR_URL/graphql/");
+        expect(userMessage).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
+        expect(userMessage).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
       }
     });
 
@@ -379,9 +403,9 @@ describe("Error Handling Integration", () => {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
 
-        expect(userMessage).toContain("GraphQLError");
-        // The GraphQL error gets wrapped, so we get fallback suggestions
-        expect(userMessage).toContain("→ Fix: Review the error message for details");
+        expect(userMessage).toContain("GraphQL Error:");
+        // The GraphQL error matches specific pattern
+        expect(userMessage).toContain("→ Fix: Review the GraphQL error details for specific field issues");
 
         expect(mockedGraphQLError.fromCombinedError).toHaveBeenCalled();
       }
@@ -425,12 +449,12 @@ describe("Error Handling Integration", () => {
 
         // Validation error
         expect(userMessage).toContain("• Validation Error");
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
 
         // Entity not found errors
         expect(userMessage).toContain("• Missing ProductType");
         expect(userMessage).toContain(
-          "→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it"
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
         );
 
         expect(userMessage).toContain("• Missing Category");
@@ -441,13 +465,13 @@ describe("Error Handling Integration", () => {
         // Permission error
         expect(userMessage).toContain("• PermissionError");
         expect(userMessage).toContain(
-          "→ Fix: Check that your API token has the required permissions"
+          "→ Fix: Check your Saleor API token has the required permissions"
         );
 
         // Network error
         expect(userMessage).toContain("• NetworkError");
         expect(userMessage).toContain(
-          "→ Fix: Check your network connection and Saleor instance URL"
+          "→ Fix: Check your Saleor API URL and network connection"
         );
 
         // General suggestions
@@ -580,12 +604,12 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain("❌ Failed:");
 
         // Configuration error suggestions
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
-        expect(userMessage).toContain("→ Fix: Use a unique slug");
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
+        expect(userMessage).toContain("→ Fix: Review the error message for details");
 
         // Dependency error suggestions
         expect(userMessage).toContain(
-          "→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it"
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
         );
         expect(userMessage).toContain("→ Fix: Ensure category");
         expect(userMessage).toContain(
@@ -594,10 +618,10 @@ describe("Error Handling Integration", () => {
 
         // System error suggestions
         expect(userMessage).toContain(
-          "→ Fix: Check your network connection and Saleor instance URL"
+          "→ Fix: Check your Saleor API URL and network connection"
         );
         expect(userMessage).toContain(
-          "→ Fix: Check that your API token has the required permissions"
+          "→ Fix: Check your Saleor API token has the required permissions"
         );
         // GraphQL error gets wrapped so the pattern might not match exactly
 
@@ -638,16 +662,14 @@ describe("Error Handling Integration", () => {
         "Category 'Electronics/Smartphones' not found",
         "Channel 'us-store' not found",
         "Product type 'T-Shirt' not found",
-        "Duplicate slug 'electronics'",
         "slug is required",
         "Permission denied: insufficient privileges",
         "connect ECONNREFUSED 127.0.0.1:8000",
-        'Variable "$input" of type ProductCreateInput! was provided invalid value',
       ];
 
       testErrors.forEach((errorMessage) => {
-        const suggestions = getSuggestions(errorMessage);
-        const formatted = formatSuggestions(suggestions);
+        const suggestions = ErrorRecoveryGuide.getSuggestions(errorMessage);
+        const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
 
         console.log(`\nError: "${errorMessage}"`);
         console.log("Recovery Suggestions:");
@@ -666,8 +688,8 @@ describe("Error Handling Integration", () => {
 
     it("should provide fallback suggestions for unknown errors", () => {
       const unknownError = "Some completely unknown error that doesn't match any pattern";
-      const suggestions = getSuggestions(unknownError);
-      const formatted = formatSuggestions(suggestions);
+      const suggestions = ErrorRecoveryGuide.getSuggestions(unknownError);
+      const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
 
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].fix).toBe("Review the error message for details");

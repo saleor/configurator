@@ -178,8 +178,16 @@ const createShippingZoneMutation = graphql(`
           name
           description
           type
-          minimumDeliveryDays
           maximumDeliveryDays
+          minimumDeliveryDays
+          maximumOrderWeight {
+            unit
+            value
+          }
+          minimumOrderWeight {
+            unit
+            value
+          }
           channelListings {
             channel {
               slug
@@ -188,12 +196,11 @@ const createShippingZoneMutation = graphql(`
               amount
               currency
             }
-            currency
-            minimumOrderPrice {
+            maximumOrderPrice {
               amount
               currency
             }
-            maximumOrderPrice {
+            minimumOrderPrice {
               amount
               currency
             }
@@ -236,8 +243,16 @@ const updateShippingZoneMutation = graphql(`
           name
           description
           type
-          minimumDeliveryDays
           maximumDeliveryDays
+          minimumDeliveryDays
+          maximumOrderWeight {
+            unit
+            value
+          }
+          minimumOrderWeight {
+            unit
+            value
+          }
           channelListings {
             channel {
               slug
@@ -246,12 +261,11 @@ const updateShippingZoneMutation = graphql(`
               amount
               currency
             }
-            currency
-            minimumOrderPrice {
+            maximumOrderPrice {
               amount
               currency
             }
-            maximumOrderPrice {
+            minimumOrderPrice {
               amount
               currency
             }
@@ -273,44 +287,6 @@ const createShippingPriceMutation = graphql(`
       shippingMethod {
         id
         name
-        description
-        type
-        minimumDeliveryDays
-        maximumDeliveryDays
-        maximumOrderWeight {
-          unit
-          value
-        }
-        minimumOrderWeight {
-          unit
-          value
-        }
-        postalCodeRules {
-          id
-          start
-          end
-          inclusionType
-        }
-        excludedProducts {
-          id
-        }
-        channelListings {
-          channel {
-            slug
-          }
-          price {
-            amount
-            currency
-          }
-          minimumOrderPrice {
-            amount
-            currency
-          }
-          maximumOrderPrice {
-            amount
-            currency
-          }
-        }
       }
       errors {
         field
@@ -327,44 +303,6 @@ const updateShippingPriceMutation = graphql(`
       shippingMethod {
         id
         name
-        description
-        type
-        minimumDeliveryDays
-        maximumDeliveryDays
-        maximumOrderWeight {
-          unit
-          value
-        }
-        minimumOrderWeight {
-          unit
-          value
-        }
-        postalCodeRules {
-          id
-          start
-          end
-          inclusionType
-        }
-        excludedProducts {
-          id
-        }
-        channelListings {
-          channel {
-            slug
-          }
-          price {
-            amount
-            currency
-          }
-          minimumOrderPrice {
-            amount
-            currency
-          }
-          maximumOrderPrice {
-            amount
-            currency
-          }
-        }
       }
       errors {
         field
@@ -397,27 +335,6 @@ const shippingMethodChannelListingUpdateMutation = graphql(`
       shippingMethod {
         id
         name
-        description
-        type
-        minimumDeliveryDays
-        maximumDeliveryDays
-        maximumOrderWeight {
-          unit
-          value
-        }
-        minimumOrderWeight {
-          unit
-          value
-        }
-        postalCodeRules {
-          id
-          start
-          end
-          inclusionType
-        }
-        excludedProducts {
-          id
-        }
         channelListings {
           channel {
             slug

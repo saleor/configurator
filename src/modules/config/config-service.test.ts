@@ -55,10 +55,12 @@ describe("ConfigurationService", () => {
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -93,10 +95,12 @@ describe("ConfigurationService", () => {
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const repository = new MockRepository(mockRawConfig);
@@ -117,10 +121,12 @@ describe("ConfigurationService", () => {
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -134,11 +140,14 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
+        modelTypes: [],
         categories: [],
-        products: [],
         warehouses: [],
         shippingZones: [],
         taxClasses: [],
+        collections: [],
+        models: [],
+        menus: [],
       });
     });
 
@@ -230,10 +239,12 @@ describe("ConfigurationService", () => {
           ],
         },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(
@@ -304,10 +315,12 @@ describe("ConfigurationService", () => {
         },
         pageTypes: { edges: [] },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -364,10 +377,12 @@ describe("ConfigurationService", () => {
             },
           ],
         },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -422,10 +437,12 @@ describe("ConfigurationService", () => {
             },
           ],
         },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -489,10 +506,12 @@ describe("ConfigurationService", () => {
             },
           ],
         },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -564,10 +583,12 @@ describe("ConfigurationService", () => {
             },
           ],
         },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -604,10 +625,12 @@ describe("ConfigurationService", () => {
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
         categories: { edges: [] },
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
@@ -623,10 +646,12 @@ describe("ConfigurationService", () => {
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
         categories: null,
-        products: null,
         warehouses: { edges: [] },
         shippingZones: { edges: [] },
         taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());

@@ -1,4 +1,4 @@
-import type { logger } from "../../lib/logger";
+import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { TaxClassInput, TaxConfigurationInput } from "../config/schema/schema";
 import { DuplicateTaxClassError, InvalidCountryRateError, TaxClassValidationError } from "./errors";
@@ -10,16 +10,13 @@ interface TaxClassWithId extends TaxClassInput {
 
 export interface TaxServiceDependencies {
   repository: TaxRepository;
-  logger: typeof logger;
 }
 
 export class TaxService {
   private repository: TaxRepository;
-  private logger: typeof logger;
 
-  constructor({ repository, logger }: TaxServiceDependencies) {
+  constructor({ repository }: TaxServiceDependencies) {
     this.repository = repository;
-    this.logger = logger;
   }
 
   async getAllTaxClasses() {
@@ -28,7 +25,7 @@ export class TaxService {
       "tax classes",
       undefined,
       async () => {
-        this.logger.info("Fetching all tax classes");
+        logger.info("Fetching all tax classes");
         return await this.repository.getAllTaxClasses();
       },
       TaxClassValidationError
@@ -54,7 +51,7 @@ export class TaxService {
       "tax class",
       input.name,
       async () => {
-        this.logger.info(`Creating tax class: ${input.name}`);
+        logger.info(`Creating tax class: ${input.name}`);
 
         this.validateTaxClass(input);
 
@@ -83,7 +80,7 @@ export class TaxService {
       "tax class",
       input.name,
       async () => {
-        this.logger.info(`Updating tax class: ${id}`);
+        logger.info(`Updating tax class: ${id}`);
 
         this.validateTaxClass(input);
 
@@ -102,7 +99,7 @@ export class TaxService {
   }
 
   async deleteTaxClass(id: string) {
-    this.logger.info(`Deleting tax class: ${id}`);
+    logger.info(`Deleting tax class: ${id}`);
     await this.repository.deleteTaxClass(id);
   }
 
@@ -110,7 +107,7 @@ export class TaxService {
     const existing = await this.getExistingTaxClass(input.name);
 
     if (existing) {
-      this.logger.info(`Tax class '${input.name}' already exists`);
+      logger.info(`Tax class '${input.name}' already exists`);
       return { ...existing, ...input };
     }
 
@@ -119,7 +116,7 @@ export class TaxService {
   }
 
   async bootstrapTaxClasses(taxClasses: TaxClassInput[]) {
-    this.logger.info(`Bootstrapping ${taxClasses.length} tax classes`);
+    logger.info(`Bootstrapping ${taxClasses.length} tax classes`);
 
     const batchResults = await ServiceErrorWrapper.wrapBatch(
       taxClasses,
@@ -130,7 +127,7 @@ export class TaxService {
 
     if (batchResults.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${batchResults.failures.length} of ${taxClasses.length} tax classes`;
-      this.logger.error(errorMessage, {
+      logger.error(errorMessage, {
         failures: batchResults.failures.map((f) => ({
           taxClass: f.item.name,
           error: f.error.message,
@@ -148,12 +145,12 @@ export class TaxService {
     const existing = await this.getExistingTaxClass(input.name);
 
     if (!existing) {
-      this.logger.info(`Creating new tax class: ${input.name}`);
+      logger.info(`Creating new tax class: ${input.name}`);
       const created = await this.createTaxClass(input);
       return { ...created, ...input };
     }
 
-    this.logger.info(`Updating existing tax class: ${input.name}`);
+    logger.info(`Updating existing tax class: ${input.name}`);
 
     const needsUpdate = this.taxClassNeedsUpdate(existing, input);
 
@@ -162,7 +159,7 @@ export class TaxService {
       return { ...updated, ...input };
     }
 
-    this.logger.info(`Tax class '${input.name}' is up to date`);
+    logger.info(`Tax class '${input.name}' is up to date`);
     return { ...existing, ...input };
   }
 
@@ -172,7 +169,7 @@ export class TaxService {
       "tax configurations",
       undefined,
       async () => {
-        this.logger.info("Fetching all tax configurations");
+        logger.info("Fetching all tax configurations");
         return await this.repository.getAllTaxConfigurations();
       },
       TaxClassValidationError
@@ -185,7 +182,7 @@ export class TaxService {
       "tax configuration",
       channelId,
       async () => {
-        this.logger.info(`Updating tax configuration for channel: ${channelId}`);
+        logger.info(`Updating tax configuration for channel: ${channelId}`);
 
         const configurations = await this.getAllTaxConfigurations();
         const config = configurations.find((c) => c.channelId === channelId);
@@ -205,7 +202,7 @@ export class TaxService {
       return;
     }
 
-    this.logger.info(`Syncing country rates for tax class: ${taxClass.name}`);
+    logger.info(`Syncing country rates for tax class: ${taxClass.name}`);
 
     for (const countryRate of taxClass.countryRates) {
       await this.repository.updateTaxCountryConfiguration(countryRate.countryCode, [

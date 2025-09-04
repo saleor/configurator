@@ -214,7 +214,7 @@ describe("TaxClassComparator", () => {
     });
 
     it("should throw error for tax class without name", () => {
-      const entity = { countryRates: [] } as unknown as TaxClassEntity;
+      const entity = { name: "", countryRates: [] } as unknown as TaxClassEntity;
       // Access private method for testing
       expect(() => (comparator as TestComparator).getEntityName(entity)).toThrow(
         "Tax class must have a valid name"

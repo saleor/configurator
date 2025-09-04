@@ -1,5 +1,5 @@
 import { logger } from "../../lib/logger";
-import { wrapBatch, wrapServiceCall } from "../../lib/utils/error-wrapper";
+import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
 import { WarehouseOperationError, WarehouseValidationError } from "./errors";
@@ -14,23 +14,34 @@ export class WarehouseService {
   constructor(private repository: WarehouseOperations) {}
 
   private async getExistingWarehouse(slug: string): Promise<Warehouse | undefined> {
-    return wrapServiceCall("fetch warehouse", "warehouse", slug, async () => {
-      logger.debug("Looking up existing warehouse", { slug });
-      const warehouses = await this.repository.getWarehouses();
-      const existingWarehouse = warehouses.find((warehouse) => warehouse.slug === slug);
+    return ServiceErrorWrapper.wrapServiceCall(
+      "fetch warehouse",
+      "warehouse",
+      slug,
+      async () => {
+        logger.debug("Looking up existing warehouse", { slug });
+        const warehouses = await this.repository.getWarehouses();
+        const existingWarehouse = warehouses.find((warehouse) => warehouse.slug === slug);
 
-      if (existingWarehouse) {
-        logger.debug("Found existing warehouse", {
-          id: existingWarehouse.id,
-          name: existingWarehouse.name,
-          slug: existingWarehouse.slug,
-        });
-      } else {
-        logger.debug("Warehouse not found", { slug });
+        if (existingWarehouse) {
+          logger.debug("Found existing warehouse", {
+            id: existingWarehouse.id,
+            name: existingWarehouse.name,
+            slug: existingWarehouse.slug,
+          });
+        } else {
+          logger.debug("Warehouse not found", { slug });
+        }
+
+        return existingWarehouse;
+      },
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
       }
-
-      return existingWarehouse;
-    });
+    );
   }
 
   private validateWarehouseInput(input: WarehouseInput): void {
@@ -108,56 +119,78 @@ export class WarehouseService {
     // Validate first, before wrapping in ServiceErrorWrapper
     this.validateWarehouseInput(input);
 
-    return wrapServiceCall("create warehouse", "warehouse", input.slug, async () => {
-      const createInput = this.mapInputToCreateInput(input);
-      let warehouse = await this.repository.createWarehouse(createInput);
+    return ServiceErrorWrapper.wrapServiceCall(
+      "create warehouse",
+      "warehouse",
+      input.slug,
+      async () => {
+        const createInput = this.mapInputToCreateInput(input);
+        let warehouse = await this.repository.createWarehouse(createInput);
 
-      // Check if we need to update additional fields that aren't supported in creation
-      const needsUpdate =
-        input.isPrivate !== undefined || input.clickAndCollectOption !== undefined;
+        // Check if we need to update additional fields that aren't supported in creation
+        const needsUpdate =
+          input.isPrivate !== undefined || input.clickAndCollectOption !== undefined;
 
-      if (needsUpdate) {
-        logger.debug("Updating warehouse with additional fields after creation", {
+        if (needsUpdate) {
+          logger.debug("Updating warehouse with additional fields after creation", {
+            id: warehouse.id,
+            isPrivate: input.isPrivate,
+            clickAndCollectOption: input.clickAndCollectOption,
+          });
+
+          const updateInput = this.mapInputToUpdateInput(input);
+          warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
+        }
+
+        logger.debug("Successfully created warehouse", {
           id: warehouse.id,
-          isPrivate: input.isPrivate,
-          clickAndCollectOption: input.clickAndCollectOption,
+          name: warehouse.name,
+          slug: warehouse.slug,
         });
-
-        const updateInput = this.mapInputToUpdateInput(input);
-        warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
+        return warehouse;
+      },
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
       }
-
-      logger.debug("Successfully created warehouse", {
-        id: warehouse.id,
-        name: warehouse.name,
-        slug: warehouse.slug,
-      });
-      return warehouse;
-    });
+    );
   }
 
   async updateWarehouse(id: string, input: WarehouseInput): Promise<Warehouse> {
-    return wrapServiceCall("update warehouse", "warehouse", input.slug, async () => {
-      logger.debug("Updating warehouse", { id, name: input.name, slug: input.slug });
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update warehouse",
+      "warehouse",
+      input.slug,
+      async () => {
+        logger.debug("Updating warehouse", { id, name: input.name, slug: input.slug });
 
-      const updateInput = this.mapInputToUpdateInput(input);
-      logger.debug("Warehouse update input", {
-        id,
-        updateInput: JSON.stringify(updateInput, null, 2),
-        originalInput: JSON.stringify(input, null, 2),
-      });
+        const updateInput = this.mapInputToUpdateInput(input);
+        logger.debug("Warehouse update input", {
+          id,
+          updateInput: JSON.stringify(updateInput, null, 2),
+          originalInput: JSON.stringify(input, null, 2),
+        });
 
-      const warehouse = await this.repository.updateWarehouse(id, updateInput);
+        const warehouse = await this.repository.updateWarehouse(id, updateInput);
 
-      logger.debug("Successfully updated warehouse", {
-        id: warehouse.id,
-        name: warehouse.name,
-        slug: warehouse.slug,
-        returnedCity: warehouse.address?.city,
-        inputCity: input.address?.city,
-      });
-      return warehouse;
-    });
+        logger.debug("Successfully updated warehouse", {
+          id: warehouse.id,
+          name: warehouse.name,
+          slug: warehouse.slug,
+          returnedCity: warehouse.address?.city,
+          inputCity: input.address?.city,
+        });
+        return warehouse;
+      },
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
+      }
+    );
   }
 
   async getOrCreateWarehouse(input: WarehouseInput): Promise<Warehouse> {
@@ -198,7 +231,7 @@ export class WarehouseService {
       );
     }
 
-    const results = await wrapBatch(
+    const results = await ServiceErrorWrapper.wrapBatch(
       inputs,
       "Bootstrap warehouses",
       (warehouse) => warehouse.slug,

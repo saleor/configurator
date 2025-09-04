@@ -247,7 +247,7 @@ describe("DeploymentError Classes", () => {
       expect(message).toContain("→ Run: saleor-configurator introspect --include=attributes");
 
       expect(message).toContain(
-        "→ Fix: Ensure channel 'default-channel' exists or is defined in your config"
+        "→ Fix: Create the channel 'default-channel' in the channels section first"
       );
       expect(message).toContain("→ Check: View existing channels");
       expect(message).toContain("→ Run: saleor-configurator introspect --include=channels");
@@ -263,9 +263,9 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Check that permission-specific recovery suggestions are included
-      expect(message).toContain("→ Fix: Check that your API token has the required permissions");
-      expect(message).toContain("→ Check: Verify token permissions in Saleor dashboard");
-      expect(message).toContain("→ Run: saleor-configurator diff --token YOUR_TOKEN");
+      expect(message).toContain("→ Fix: Check your Saleor API token has the required permissions");
+      expect(message).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+      expect(message).toContain("→ Run: saleor-configurator introspect --include=shop");
     });
 
     it("should handle network errors with appropriate suggestions", () => {
@@ -278,9 +278,9 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Check that network-specific recovery suggestions are included
-      expect(message).toContain("→ Fix: Check your network connection and Saleor instance URL");
-      expect(message).toContain("→ Check: Verify the instance is accessible");
-      expect(message).toContain("→ Run: curl -I YOUR_SALEOR_URL/graphql/");
+      expect(message).toContain("→ Fix: Check your Saleor API URL and network connection");
+      expect(message).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
+      expect(message).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
     });
 
     it("should provide fallback suggestions for unknown errors", () => {
@@ -359,7 +359,7 @@ describe("DeploymentError Classes", () => {
 
       expect(message).toContain("• Product Basic Tee");
       expect(message).toContain(
-        "→ Fix: Ensure product type 'T-Shirt' exists or is defined before products that use it"
+        "→ Fix: Create the product type 'T-Shirt' in the productTypes section first"
       );
 
       expect(message).toContain("• Product Premium Tee");
@@ -387,12 +387,12 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Should contain different types of recovery suggestions
-      expect(message).toContain("→ Fix: Check that your API token has the required permissions");
+      expect(message).toContain("→ Fix: Check your Saleor API token has the required permissions");
       expect(message).toContain(
         "→ Fix: Create the attribute 'processor' first or reference an existing one"
       );
-      expect(message).toContain("→ Fix: Check your network connection and Saleor instance URL");
-      expect(message).toContain("→ Fix: Add the required field 'slug' to your configuration");
+      expect(message).toContain("→ Fix: Check your Saleor API URL and network connection");
+      expect(message).toContain("→ Fix: Add the required field to your configuration");
     });
 
     it("should handle edge cases gracefully", () => {

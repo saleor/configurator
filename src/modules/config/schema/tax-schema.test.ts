@@ -15,7 +15,7 @@ describe("Tax Schema Validation", () => {
     });
 
     it("should validate basic tax class", async () => {
-      const taxClass: TaxClassInput = {
+      const taxClass = {
         name: "Standard Rate",
         countryRates: [
           { countryCode: "US" as const, rate: 8.5 },
@@ -30,7 +30,7 @@ describe("Tax Schema Validation", () => {
     });
 
     it("should validate tax class without country rates", async () => {
-      const taxClass: TaxClassInput = {
+      const taxClass = {
         name: "Standard Rate",
       };
 
@@ -54,10 +54,9 @@ describe("Tax Schema Validation", () => {
 
     it("should reject missing tax class name", async () => {
       const taxClass = {
-        // biome-ignore lint/suspicious/noExplicitAny: testing invalid input
-        name: undefined as any,
         countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
-      };
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
+      } as any;
 
       const config = createTestConfig([taxClass]);
       const schema = await getConfigSchema();
@@ -68,7 +67,7 @@ describe("Tax Schema Validation", () => {
     it("should reject invalid country codes", async () => {
       const taxClass = {
         name: "Standard Rate",
-        // biome-ignore lint/suspicious/noExplicitAny: testing invalid input
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
         countryRates: [{ countryCode: "INVALID" as any, rate: 8.5 }],
       };
 
@@ -207,7 +206,7 @@ describe("Tax Schema Validation", () => {
 
     it("should reject invalid tax calculation strategy", async () => {
       const taxConfig = {
-        // biome-ignore lint/suspicious/noExplicitAny: testing invalid input
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
         taxCalculationStrategy: "INVALID_STRATEGY" as any,
         chargeTaxes: true,
       };
@@ -226,7 +225,6 @@ describe("Tax Schema Validation", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "default",
-            isActive: true,
           },
         ],
       };
@@ -344,13 +342,13 @@ describe("Tax Schema Validation", () => {
           {
             name: "Standard Rate",
             countryRates: [
-              { countryCode: "US", rate: 8.5 },
-              { countryCode: "GB", rate: 20 },
+              { countryCode: "US" as const, rate: 8.5 },
+              { countryCode: "GB" as const, rate: 20 },
             ],
           },
           {
             name: "Reduced Rate",
-            countryRates: [{ countryCode: "US", rate: 4.0 }],
+            countryRates: [{ countryCode: "US" as const, rate: 4.0 }],
           },
         ],
         channels: [
@@ -370,7 +368,7 @@ describe("Tax Schema Validation", () => {
         productTypes: [
           {
             name: "Book",
-            isShippingRequired: true,
+            isShippingRequired: false,
             taxClass: "Standard Rate",
           },
         ],

@@ -12,6 +12,14 @@ export class PageTypeService {
     private attributeService: AttributeService
   ) {}
 
+  async getPageTypeByName(name: string) {
+    return this.repository.getPageTypeByName(name);
+  }
+
+  async getPageType(id: string) {
+    return this.repository.getPageType(id);
+  }
+
   private async getOrCreate(name: string) {
     logger.debug("Looking up page type", { name });
     const pageType = await this.repository.getPageTypeByName(name);

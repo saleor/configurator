@@ -37,6 +37,7 @@ describe("ShippingZoneService", () => {
     getChannels: vi
       .fn()
       .mockResolvedValue([{ id: "c1", name: "Default Channel", slug: "default-channel" }]),
+    getChannelBySlug: vi.fn(),
     createChannel: vi.fn(),
     updateChannel: vi.fn(),
   });
@@ -62,7 +63,7 @@ describe("ShippingZoneService", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"],
+    countries: ["US" as const],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -77,8 +78,6 @@ describe("ShippingZoneService", () => {
     maximumDeliveryDays: 5,
     maximumOrderWeight: null,
     minimumOrderWeight: null,
-    postalCodeRules: null,
-    excludedProducts: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
@@ -87,6 +86,8 @@ describe("ShippingZoneService", () => {
         maximumOrderPrice: { amount: 1000, currency: "USD" },
       },
     ],
+    postalCodeRules: [],
+    excludedProducts: { edges: [] },
   };
 
   const mockShippingZone: ShippingZone = {
@@ -344,8 +345,10 @@ describe("ShippingZoneService", () => {
 
   describe("bootstrapShippingZones", () => {
     it("should validate unique names", async () => {
-      const duplicateZone: ShippingZoneInput = { ...mockShippingZoneInput, countries: ["CA"] };
-      const duplicateZones = [mockShippingZoneInput, duplicateZone];
+      const duplicateZones = [
+        mockShippingZoneInput,
+        { ...mockShippingZoneInput, countries: ["CA" as const] },
+      ];
 
       const mockOperations = {
         getShippingZones: vi.fn().mockResolvedValue([]),
@@ -370,12 +373,14 @@ describe("ShippingZoneService", () => {
     });
 
     it("should process multiple zones successfully", async () => {
-      const euZone: ShippingZoneInput = {
-        ...mockShippingZoneInput,
-        name: "EU Zone",
-        countries: ["FR", "DE", "IT"],
-      };
-      const zones = [mockShippingZoneInput, euZone];
+      const zones = [
+        mockShippingZoneInput,
+        {
+          ...mockShippingZoneInput,
+          name: "EU Zone",
+          countries: ["FR" as const, "DE" as const, "IT" as const],
+        },
+      ];
 
       const mockOperations = {
         getShippingZones: vi.fn().mockResolvedValue([]),

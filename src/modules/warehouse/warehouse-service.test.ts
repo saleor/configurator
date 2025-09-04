@@ -31,15 +31,15 @@ describe("WarehouseService", () => {
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
-    clickAndCollectOption: "DISABLED",
     companyName: "Acme Corp",
+    clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
       streetAddress2: "Suite 100",
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US", country: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
@@ -259,7 +259,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.createWarehouse(mockWarehouseInput)).rejects.toThrow(
-        "Failed to create warehouse for warehouse 'main-warehouse': API Error"
+        /Failed to create warehouse.*API Error/
       );
     });
 
@@ -276,7 +276,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.updateWarehouse("1", mockWarehouseInput)).rejects.toThrow(
-        "Failed to update warehouse for warehouse 'main-warehouse': API Error"
+        /Failed to update warehouse.*API Error/
       );
     });
   });

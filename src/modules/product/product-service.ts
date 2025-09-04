@@ -31,6 +31,10 @@ export class ProductService {
     );
   }
 
+  async getProductBySlug(slug: string): Promise<Product | null | undefined> {
+    return this.repository.getProductBySlug(slug);
+  }
+
   private async resolveCategoryReference(categoryPath: string): Promise<string> {
     return ServiceErrorWrapper.wrapServiceCall(
       "resolve category reference",

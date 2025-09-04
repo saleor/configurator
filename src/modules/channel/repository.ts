@@ -55,6 +55,7 @@ type ChannelUpdateInput = VariablesOf<typeof updateChannelMutation>["input"];
 export interface ChannelOperations {
   createChannel(input: ChannelCreateInput): Promise<Channel>;
   getChannels(): Promise<Channel[] | null | undefined>;
+  getChannelBySlug(slug: string): Promise<Channel | null | undefined>;
   updateChannel(id: string, input: ChannelUpdateInput): Promise<Channel | null | undefined>;
 }
 
@@ -83,6 +84,12 @@ export class ChannelRepository implements ChannelOperations {
   async getChannels() {
     const result = await this.client.query(getChannelsQuery, {});
     return result.data?.channels;
+  }
+
+  async getChannelBySlug(slug: string) {
+    const result = await this.client.query(getChannelsQuery, {});
+    const channels = result.data?.channels;
+    return channels?.find((channel) => channel.slug === slug);
   }
 
   async updateChannel(id: string, input: ChannelUpdateInput) {

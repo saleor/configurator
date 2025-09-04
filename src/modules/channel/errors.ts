@@ -4,16 +4,8 @@ import { BaseError } from "../../lib/errors/shared";
  * Base error class for channel-related errors
  */
 export class ChannelError extends BaseError {
-  constructor(message: string, entityIdentifier?: string);
-  constructor(message: string, code?: string, recoverySuggestions?: string[]);
-  constructor(message: string, codeOrEntityIdentifier?: string, recoverySuggestions?: string[]) {
-    if (recoverySuggestions) {
-      // Old signature: (message, code, recoverySuggestions)
-      super(message, codeOrEntityIdentifier || "CHANNEL_ERROR", recoverySuggestions);
-    } else {
-      // New signature: (message, entityIdentifier?)
-      super(message, "CHANNEL_ERROR");
-    }
+  constructor(message: string, recoverySuggestions?: string[]) {
+    super(message, "CHANNEL_ERROR", recoverySuggestions);
   }
 }
 
@@ -29,8 +21,8 @@ export class ChannelNotFoundError extends ChannelError {
 /**
  * Error thrown when channel creation fails
  */
-export class ChannelCreationError extends BaseError {
-  constructor(message: string, _entityIdentifier?: string) {
+export class ChannelCreationError extends ChannelError {
+  constructor(message: string, _channelSlug?: string) {
     super(message, "CHANNEL_CREATION_ERROR");
   }
 }
@@ -38,8 +30,8 @@ export class ChannelCreationError extends BaseError {
 /**
  * Error thrown when channel update fails
  */
-export class ChannelUpdateError extends BaseError {
-  constructor(message: string, _entityIdentifier?: string) {
+export class ChannelUpdateError extends ChannelError {
+  constructor(message: string, _channelId?: string) {
     super(message, "CHANNEL_UPDATE_ERROR");
   }
 }

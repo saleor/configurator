@@ -182,17 +182,17 @@ describe("introspect command", () => {
       // Mock the repository to return nested categories
       const mockRawConfig: RawSaleorConfig = {
         shop: {
-          defaultMailSenderName: "Test Store",
+          defaultMailSenderName: "Test Shop",
           defaultMailSenderAddress: "test@example.com",
           displayGrossPrices: false,
-          enableAccountConfirmationByEmail: false,
-          limitQuantityPerCheckout: 10,
-          trackInventoryByDefault: false,
-          reserveStockDurationAnonymousUser: 60,
-          reserveStockDurationAuthenticatedUser: 60,
-          defaultDigitalMaxDownloads: 10,
-          defaultDigitalUrlValidDays: 10,
-          defaultWeightUnit: "KG" as const,
+          enableAccountConfirmationByEmail: true,
+          limitQuantityPerCheckout: null,
+          trackInventoryByDefault: true,
+          reserveStockDurationAnonymousUser: null,
+          reserveStockDurationAuthenticatedUser: null,
+          defaultDigitalMaxDownloads: null,
+          defaultDigitalUrlValidDays: null,
+          defaultWeightUnit: "KG",
           allowLoginWithoutConfirmation: false,
         },
         channels: [],
@@ -247,10 +247,12 @@ describe("introspect command", () => {
             },
           ],
         },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        menus: { edges: [] },
+        pages: { edges: [] },
         shippingZones: null,
         warehouses: null,
-        products: { edges: [] },
-        taxClasses: { edges: [] },
       };
 
       const mockRepository = {
@@ -289,17 +291,17 @@ describe("introspect command", () => {
     it("should produce valid YAML with proper indentation for nested categories", async () => {
       const mockRawConfig: RawSaleorConfig = {
         shop: {
-          defaultMailSenderName: "Test Store",
+          defaultMailSenderName: "Test Shop",
           defaultMailSenderAddress: "test@example.com",
           displayGrossPrices: false,
-          enableAccountConfirmationByEmail: false,
-          limitQuantityPerCheckout: 10,
-          trackInventoryByDefault: false,
-          reserveStockDurationAnonymousUser: 60,
-          reserveStockDurationAuthenticatedUser: 60,
-          defaultDigitalMaxDownloads: 10,
-          defaultDigitalUrlValidDays: 10,
-          defaultWeightUnit: "KG" as const,
+          enableAccountConfirmationByEmail: true,
+          limitQuantityPerCheckout: null,
+          trackInventoryByDefault: true,
+          reserveStockDurationAnonymousUser: null,
+          reserveStockDurationAuthenticatedUser: null,
+          defaultDigitalMaxDownloads: null,
+          defaultDigitalUrlValidDays: null,
+          defaultWeightUnit: "KG",
           allowLoginWithoutConfirmation: false,
         },
         channels: [],
@@ -327,10 +329,12 @@ describe("introspect command", () => {
             },
           ],
         },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        menus: { edges: [] },
+        pages: { edges: [] },
         shippingZones: null,
         warehouses: null,
-        products: { edges: [] },
-        taxClasses: { edges: [] },
       };
 
       const mockRepository = {

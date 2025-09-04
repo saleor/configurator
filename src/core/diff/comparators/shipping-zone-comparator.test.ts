@@ -39,7 +39,7 @@ describe("ShippingZoneComparator", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"],
+    countries: ["US" as const],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -54,8 +54,6 @@ describe("ShippingZoneComparator", () => {
     maximumDeliveryDays: 5,
     maximumOrderWeight: null,
     minimumOrderWeight: null,
-    postalCodeRules: null,
-    excludedProducts: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
@@ -64,6 +62,8 @@ describe("ShippingZoneComparator", () => {
         maximumOrderPrice: { amount: 1000, currency: "USD" },
       },
     ],
+    postalCodeRules: [],
+    excludedProducts: { edges: [] },
   };
 
   const mockRemoteZone: ShippingZone = {
@@ -84,8 +84,8 @@ describe("ShippingZoneComparator", () => {
 
       const results = comparator.compare(local, remote);
 
-      // With improved type handling, the comparator now correctly identifies
-      // equivalent structures and normalizes them properly for comparison
+      // The comparator now correctly handles structural differences in channel listings
+      // and recognizes that local flat values and remote nested objects are equivalent
       expect(results).toHaveLength(0);
     });
 
@@ -154,11 +154,12 @@ describe("ShippingZoneComparator", () => {
     });
 
     it("should detect country changes", () => {
-      const zoneWithMultipleCountries: ShippingZoneInput = {
-        ...mockLocalZone,
-        countries: ["US", "CA"],
-      };
-      const local = [zoneWithMultipleCountries];
+      const local = [
+        {
+          ...mockLocalZone,
+          countries: ["US" as const, "CA" as const],
+        },
+      ];
       const remote = [mockRemoteZone];
 
       const results = comparator.compare(local, remote);

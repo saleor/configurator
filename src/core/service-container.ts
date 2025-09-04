@@ -6,9 +6,15 @@ import { CategoryService } from "../modules/category/category-service";
 import { CategoryRepository } from "../modules/category/repository";
 import { ChannelService } from "../modules/channel/channel-service";
 import { ChannelRepository } from "../modules/channel/repository";
+import { CollectionService } from "../modules/collection/collection-service";
+import { CollectionRepository } from "../modules/collection/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import { MenuService } from "../modules/menu/menu-service";
+import { MenuRepository } from "../modules/menu/repository";
+import { ModelService } from "../modules/model/model-service";
+import { ModelRepository } from "../modules/model/repository";
 import { PageTypeService } from "../modules/page-type/page-type-service";
 import { PageTypeRepository } from "../modules/page-type/repository";
 import { ProductService } from "../modules/product/product-service";
@@ -37,6 +43,9 @@ export interface ServiceContainer {
   readonly warehouse: WarehouseService;
   readonly shippingZone: ShippingZoneService;
   readonly tax: TaxService;
+  readonly collection: CollectionService;
+  readonly menu: MenuService;
+  readonly model: ModelService;
   readonly diffService: DiffService;
 }
 
@@ -56,6 +65,9 @@ export class ServiceComposer {
       warehouse: new WarehouseRepository(client),
       shippingZone: new ShippingZoneRepository(client),
       tax: new TaxRepository(client),
+      collection: new CollectionRepository(client),
+      menu: new MenuRepository(client),
+      model: new ModelRepository(client),
     } as const;
 
     logger.debug("Creating services");
@@ -84,8 +96,18 @@ export class ServiceComposer {
       ),
       tax: new TaxService({
         repository: repositories.tax,
-        logger,
       }),
+      collection: new CollectionService(
+        repositories.collection,
+        new ProductService(repositories.product),
+        new ChannelService(repositories.channel)
+      ),
+      menu: new MenuService(repositories.menu),
+      model: new ModelService(
+        repositories.model,
+        new PageTypeService(repositories.pageType, attributeService),
+        attributeService
+      ),
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container

@@ -171,6 +171,25 @@ const warehouseShippingZoneAssignMutation = graphql(`
       warehouse {
         id
         name
+        slug
+        email
+        isPrivate
+        address {
+          streetAddress1
+          streetAddress2
+          city
+          cityArea
+          postalCode
+          country {
+            code
+            country
+          }
+          countryArea
+          companyName
+          phone
+        }
+        companyName
+        clickAndCollectOption
         shippingZones(first: 100) {
           edges {
             node {
@@ -195,6 +214,25 @@ const warehouseShippingZoneUnassignMutation = graphql(`
       warehouse {
         id
         name
+        slug
+        email
+        isPrivate
+        address {
+          streetAddress1
+          streetAddress2
+          city
+          cityArea
+          postalCode
+          country {
+            code
+            country
+          }
+          countryArea
+          companyName
+          phone
+        }
+        companyName
+        clickAndCollectOption
         shippingZones(first: 100) {
           edges {
             node {

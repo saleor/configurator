@@ -44,6 +44,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       { id: "c2", name: "EU Channel", slug: "eu-channel" },
       { id: "c3", name: "US B2B", slug: "us-b2b" },
     ]),
+    getChannelBySlug: vi.fn(),
     createChannel: vi.fn(),
     updateChannel: vi.fn(),
   });
@@ -63,7 +64,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Test Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         warehouses: ["europe", "asia"],
         channels: ["default-channel"],
       };
@@ -94,7 +95,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Test Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         warehouses: ["non-existent-warehouse"],
       };
 
@@ -120,7 +121,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Test Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         channels: ["default-channel", "eu-channel"],
         shippingMethods: [
           {
@@ -175,7 +176,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Test Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         channels: ["non-existent-channel"],
       };
 
@@ -190,6 +191,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const warehouseOperations = createMockWarehouseOperations();
       const channelOperations: ChannelOperations = {
         getChannels: vi.fn().mockResolvedValue(null),
+        getChannelBySlug: vi.fn(),
         createChannel: vi.fn(),
         updateChannel: vi.fn(),
       };
@@ -203,7 +205,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Test Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         channels: ["default-channel"],
       };
 
@@ -236,7 +238,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Updated Zone",
         default: false,
-        countries: ["US", "CA"],
+        countries: ["US" as const, "CA" as const],
         warehouses: ["americas"],
         channels: ["us-b2b"],
       };
@@ -270,7 +272,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const input: ShippingZoneInput = {
         name: "Multi-Warehouse Zone",
         default: false,
-        countries: ["US"],
+        countries: ["US" as const],
         warehouses: ["europe", "asia", "americas"],
       };
 

@@ -39,7 +39,7 @@ export const simpleAttributeSchema = z.discriminatedUnion("inputType", [
 
 export type SimpleAttribute = z.infer<typeof simpleAttributeSchema>;
 
-const referencedAttributeSchema = z
+export const referencedAttributeSchema = z
   .object({
     attribute: z.string(), // ? maybe should be called "slug"
   })

@@ -8,11 +8,13 @@ import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
 import type {
   CategoryInput,
   CategoryUpdateInput,
+  CollectionInput,
   CountryCode,
   CurrencyCode,
-  ProductInput,
+  MenuInput,
+  ModelInput,
+  ModelTypeInput,
   ProductTypeInput,
-  ProductVariantInput,
   SaleorConfig,
   ShippingZoneInput,
   TaxClassInput,
@@ -30,7 +32,7 @@ interface TaxClassType {
 interface TaxClassCountryRateType {
   country: { code: string };
   rate: number;
-  taxClass?: { id: string } | null;
+  taxClass: { id: string; name: string } | null;
 }
 
 import type { ConfigurationStorage } from "./yaml-manager";
@@ -137,12 +139,10 @@ export class ConfigurationService {
     }
 
     if (this.isReferenceAttribute(attribute.inputType)) {
-      // Default entityType to PRODUCT if not specified in the raw data
-      const entityType = attribute.entityType || "PRODUCT";
       return {
         name: attribute.name,
         inputType: "REFERENCE" as const,
-        entityType: entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT",
+        entityType: attribute.entityType || "PRODUCT",
         type: attributeType,
       };
     }
@@ -255,167 +255,6 @@ export class ConfigurationService {
     return tree;
   }
 
-  private mapProducts(rawProducts: RawSaleorConfig["products"]): SaleorConfig["products"] {
-    if (!rawProducts?.edges) {
-      return [];
-    }
-
-    return rawProducts.edges
-      .map((edge) => edge.node)
-      .filter(Boolean)
-      .map((product) => {
-        // Map basic product information with required variants field
-        const mappedProduct: ProductInput = {
-          name: product.name,
-          slug: product.slug,
-          productType: product.productType.name,
-          category: product.category?.slug || "",
-          variants: [], // Initialize with empty array, will be populated below
-        };
-
-        // Map product attributes
-        if (product.attributes && product.attributes.length > 0) {
-          const attributes: Record<string, string | string[]> = {};
-
-          for (const attr of product.attributes) {
-            const attributeName = attr.attribute.name;
-            const values = attr.values || [];
-
-            if (!attributeName || values.length === 0) continue;
-
-            // Handle different attribute types
-            if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
-              // Multi-value attribute
-              attributes[attributeName] = values
-                .map((v) => v?.name || v?.slug || v?.value || "")
-                .filter(Boolean);
-            } else if (values.length === 1) {
-              // Single value attribute
-              const value = values[0];
-              if (value) {
-                let stringValue: string | null = null;
-                if (value.name && typeof value.name === "string") stringValue = value.name;
-                else if (value.slug && typeof value.slug === "string") stringValue = value.slug;
-                else if (value.plainText && typeof value.plainText === "string")
-                  stringValue = value.plainText;
-                else if (value.richText && typeof value.richText === "string")
-                  stringValue = value.richText;
-                else if (value.boolean !== null && value.boolean !== undefined)
-                  stringValue = String(value.boolean);
-                else if (value.date && typeof value.date === "string") stringValue = value.date;
-                else if (value.dateTime && typeof value.dateTime === "string")
-                  stringValue = value.dateTime;
-                else if (typeof value.reference === "string") stringValue = value.reference;
-                else if (value.value && typeof value.value === "string") stringValue = value.value;
-                if (stringValue) {
-                  attributes[attributeName] = stringValue;
-                }
-              }
-            }
-          }
-
-          if (Object.keys(attributes).length > 0) {
-            mappedProduct.attributes = attributes;
-          }
-        }
-
-        // Map channel listings
-        if (product.channelListings && product.channelListings.length > 0) {
-          mappedProduct.channelListings = product.channelListings.map((listing) => {
-            type ChannelListing = {
-              channel: string;
-              isPublished: boolean;
-              visibleInListings: boolean;
-              availableForPurchase?: string;
-              publishedAt?: string;
-            };
-            const channelListing: ChannelListing = {
-              channel: listing.channel.slug,
-              isPublished: listing.isPublished ?? true,
-              visibleInListings: listing.visibleInListings ?? true,
-            };
-
-            if (listing.availableForPurchaseAt) {
-              channelListing.availableForPurchase = String(listing.availableForPurchaseAt);
-            }
-            if (listing.publicationDate) {
-              channelListing.publishedAt = String(listing.publicationDate);
-            }
-
-            return channelListing;
-          });
-        }
-
-        // Map variants
-        if (product.variants && product.variants.length > 0) {
-          mappedProduct.variants = product.variants.map((variant) => {
-            const mappedVariant: ProductVariantInput = {
-              name: variant.name || product.name, // Use variant name or fallback to product name
-              sku: variant.sku || "",
-            };
-
-            // Add weight if present
-            if (variant.weight?.value) {
-              mappedVariant.weight = variant.weight.value;
-            }
-
-            // Map variant attributes
-            if (variant.attributes && variant.attributes.length > 0) {
-              const variantAttributes: Record<string, string | string[]> = {};
-
-              for (const attr of variant.attributes) {
-                const attributeName = attr.attribute.name;
-                const values = attr.values || [];
-
-                if (!attributeName || values.length === 0) continue;
-
-                if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
-                  variantAttributes[attributeName] = values
-                    .map((v) => v?.name || v?.slug || v?.value || "")
-                    .filter(Boolean);
-                } else if (values.length === 1) {
-                  const value = values[0];
-                  if (value) {
-                    let stringValue: string | null = null;
-                    if (value.name && typeof value.name === "string") stringValue = value.name;
-                    else if (value.slug && typeof value.slug === "string") stringValue = value.slug;
-                    else if (value.plainText && typeof value.plainText === "string")
-                      stringValue = value.plainText;
-                    else if (value.boolean !== null && value.boolean !== undefined)
-                      stringValue = String(value.boolean);
-                    else if (value.value && typeof value.value === "string")
-                      stringValue = value.value;
-                    if (stringValue) {
-                      variantAttributes[attributeName] = stringValue;
-                    }
-                  }
-                }
-              }
-
-              if (Object.keys(variantAttributes).length > 0) {
-                mappedVariant.attributes = variantAttributes;
-              }
-            }
-
-            // Map variant channel listings
-            if (variant.channelListings && variant.channelListings.length > 0) {
-              mappedVariant.channelListings = variant.channelListings.map((listing) => {
-                return {
-                  channel: listing.channel.slug,
-                  price: listing.price?.amount || 0, // Default to 0 if no price
-                  ...(listing.costPrice?.amount && { costPrice: listing.costPrice.amount }),
-                };
-              });
-            }
-
-            return mappedVariant;
-          });
-        }
-
-        return mappedProduct;
-      });
-  }
-
   private mapWarehouses(rawWarehouses: RawSaleorConfig["warehouses"]): WarehouseInput[] {
     if (!rawWarehouses?.edges) {
       return [];
@@ -446,7 +285,7 @@ export class ConfigurationService {
       }));
   }
 
-  private mapTaxClasses(taxClasses: TaxClassType[]): TaxClassInput[] {
+  private mapTaxClasses(taxClasses: readonly TaxClassType[]): TaxClassInput[] {
     return taxClasses.map((edge) => {
       const taxClass = edge.node;
 
@@ -648,10 +487,6 @@ export class ConfigurationService {
       config.categories = this.mapCategories(rawConfig.categories);
     }
 
-    if (shouldIncludeSection("products", options)) {
-      config.products = this.mapProducts(rawConfig.products);
-    }
-
     if (shouldIncludeSection("warehouses", options)) {
       config.warehouses = this.mapWarehouses(rawConfig.warehouses);
     }
@@ -661,15 +496,131 @@ export class ConfigurationService {
     }
 
     if (shouldIncludeSection("taxClasses", options)) {
-      config.taxClasses = this.mapTaxClasses(
-        rawConfig.taxClasses?.edges ? [...rawConfig.taxClasses.edges] : []
-      );
+      config.taxClasses = this.mapTaxClasses(rawConfig.taxClasses?.edges || []);
+    }
+
+    if (shouldIncludeSection("collections", options)) {
+      config.collections = this.mapCollections(rawConfig.collections?.edges || []);
+    }
+
+    if (shouldIncludeSection("menus", options)) {
+      config.menus = this.mapMenus(rawConfig.menus?.edges || []);
+    }
+
+    if (shouldIncludeSection("models", options)) {
+      config.models = this.mapModels(rawConfig.pages?.edges || []);
+    }
+
+    if (shouldIncludeSection("modelTypes", options)) {
+      config.modelTypes = this.mapModelTypes(rawConfig.pageTypes?.edges || []);
     }
 
     const fullConfig = config as SaleorConfig;
 
     // Normalize attribute references to prevent duplication errors during deployment
     return this.normalizeAttributeReferences(fullConfig);
+  }
+
+  private mapCollections(
+    edges: NonNullable<RawSaleorConfig["collections"]>["edges"]
+  ): CollectionInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      description: typeof node.description === "string" ? node.description : undefined,
+      products: node.products?.edges?.map((edge) => edge.node.slug).filter(Boolean) || [],
+      channelListings:
+        node.channelListings?.map((listing) => ({
+          channelSlug: listing.channel.slug,
+          isPublished: listing.isPublished,
+          publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
+        })) || [],
+    }));
+  }
+
+  private mapMenus(edges: NonNullable<RawSaleorConfig["menus"]>["edges"]): MenuInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      items: this.mapMenuItems(node.items || []),
+    }));
+  }
+
+  private mapMenuItems(
+    items: NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+  ): NonNullable<MenuInput["items"]> {
+    if (!items) return [];
+
+    return items.map((item) => ({
+      name: item.name,
+      url: item.url ?? undefined,
+      category: item.category?.slug ?? undefined,
+      collection: item.collection?.slug ?? undefined,
+      page: item.page?.slug ?? undefined,
+      children: item.children ? this.mapMenuChildren(item.children) : undefined,
+    }));
+  }
+
+  private mapMenuChildren(
+    children: NonNullable<
+      NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+    >[0]["children"]
+  ): NonNullable<MenuInput["items"]> {
+    if (!children) return [];
+
+    return children.map((child) => ({
+      name: child.name,
+      url: child.url ?? undefined,
+      category: child.category?.slug ?? undefined,
+      collection: child.collection?.slug ?? undefined,
+      page: child.page?.slug ?? undefined,
+    }));
+  }
+
+  private mapModels(edges: NonNullable<RawSaleorConfig["pages"]>["edges"]): ModelInput[] {
+    return edges.map(({ node }) => ({
+      title: node.title,
+      slug: node.slug,
+      content: typeof node.content === "string" ? node.content : undefined,
+      isPublished: node.isPublished,
+      publishedAt: typeof node.publishedAt === "string" ? node.publishedAt : undefined,
+      modelType: node.pageType?.name || "",
+      attributes: this.mapModelAttributes(node.attributes || []),
+    }));
+  }
+
+  private mapModelAttributes(
+    attributes: NonNullable<RawSaleorConfig["pages"]>["edges"][0]["node"]["attributes"]
+  ): Record<string, string | number | boolean | string[]> {
+    const result: Record<string, string | number | boolean | string[]> = {};
+
+    if (!attributes) return result;
+
+    for (const attr of attributes) {
+      const slug = attr.attribute?.slug;
+      if (slug) {
+        if (attr.values && attr.values.length > 0) {
+          // Multi-value attribute
+          result[slug] = attr.values
+            .map((v) => v.name || v.slug || v.value)
+            .filter((value): value is string => value !== null && value !== undefined);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private mapModelTypes(
+    edges: NonNullable<RawSaleorConfig["pageTypes"]>["edges"]
+  ): ModelTypeInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      attributes:
+        node.attributes?.map((attr) => ({
+          attribute: attr.name || "", // Reference existing attribute by name
+        })) || [],
+    }));
   }
 }
 

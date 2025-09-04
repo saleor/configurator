@@ -48,187 +48,203 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     }),
   ],
   [
-    /Channel ['"]?(.+?)['"]? not found/i,
+    /Collection ['"]?(.+?)['"]? not found/i,
     (match) => ({
-      fix: `Ensure channel '${match[1]}' exists or is defined in your config`,
-      check: "View existing channels",
-      command: "saleor-configurator introspect --include=channels",
+      fix: `Ensure collection '${match[1]}' exists or will be created earlier in deployment`,
+      check: "View existing collections",
+      command: "saleor-configurator introspect --include=collections",
     }),
   ],
   [
     /Product type ['"]?(.+?)['"]? not found/i,
     (match) => ({
-      fix: `Ensure product type '${match[1]}' exists or is defined before products that use it`,
+      fix: `Create the product type '${match[1]}' in the productTypes section first`,
       check: "View existing product types",
       command: "saleor-configurator introspect --include=productTypes",
     }),
   ],
   [
-    /Warehouse ['"]?([\w-]+)['"]? not found/i,
+    /Page type ['"]?(.+?)['"]? not found/i,
     (match) => ({
-      fix: `Ensure warehouse '${match[1]}' exists in your warehouses configuration`,
-      check: "Warehouse slugs must match exactly (case-sensitive)",
-      command: "saleor-configurator diff --include=warehouses",
-    }),
-  ],
-  [
-    /Shipping zone ['"]?([\w\s-]+)['"]? not found/i,
-    (match) => ({
-      fix: `Ensure shipping zone '${match[1]}' exists in your configuration`,
-      check: "Shipping zone names must match exactly",
-      command: "saleor-configurator diff --include=shippingZones",
-    }),
-  ],
-  [
-    /Tax class ['"]?([\w\s-]+)['"]? (?:not found|doesn't exist)/i,
-    (match) => ({
-      fix: `Ensure tax class '${match[1]}' exists in your configuration`,
-      check: "Tax class names must match exactly",
-      command: "saleor-configurator introspect --include=taxes",
+      fix: `Create the page type '${match[1]}' in the pageTypes section first`,
+      check: "View existing page types",
+      command: "saleor-configurator introspect --include=pageTypes",
     }),
   ],
 
-  // Duplicate/conflict errors
+  // Duplicate entity errors
   [
-    /Duplicate slug ['"]?([^'"]+)['"]?/i,
+    /Duplicate.*['"]?(.+?)['"]?.*found/i,
     (match) => ({
-      fix: `Use a unique slug - '${match[1]}' already exists`,
-      check: "View existing entities to find available slugs",
-      command: "saleor-configurator introspect",
-    }),
-  ],
-  [
-    /already exists with name ['"]?([^'"]+)['"]?/i,
-    (match) => ({
-      fix: `Entity with name '${match[1]}' already exists - use a different name or update the existing one`,
-      check: "View current state",
-      command: "saleor-configurator diff",
-    }),
-  ],
-  [
-    /Duplicate (\w+) (?:names?|slugs?) found: ([\w\s,]+)/i,
-    (match) => ({
-      fix: `Remove duplicate ${match[1].toLowerCase()} entries from your config`,
-      check: `Each ${match[1].toLowerCase()} must have a unique identifier`,
-      command: `saleor-configurator diff --include=${match[1].toLowerCase()}s`,
-    }),
-  ],
-  [
-    /SKU ['"]?([\w-]+)['"]? already exists/i,
-    (match) => ({
-      fix: `Change SKU '${match[1]}' to a unique value`,
-      check: "Each product variant must have a unique SKU",
-      command: "saleor-configurator introspect --include=products",
-    }),
-  ],
-
-  // Validation errors
-  [
-    /(\w+) is required/i,
-    (match) => ({
-      fix: `Add the required field '${match[1]}' to your configuration`,
-      check: "Review the schema documentation",
-      command: "cat SCHEMA.md",
-    }),
-  ],
-  [
-    /Invalid (\w+) value/i,
-    (match) => ({
-      fix: `Check that the ${match[1]} field has a valid value according to the schema`,
-      check: "Review valid values in schema documentation",
-    }),
-  ],
-  [
-    /Invalid currency code ['"]?([A-Z]+)['"]?/i,
-    (match) => ({
-      fix: `Use a valid ISO 4217 currency code instead of '${match[1]}'`,
-      check: "Common codes: USD, EUR, GBP, CAD, AUD, JPY",
-      command: "See https://en.wikipedia.org/wiki/ISO_4217 for full list",
-    }),
-  ],
-  [
-    /Invalid country code ['"]?([A-Z]+)['"]?/i,
-    (match) => ({
-      fix: `Use a valid ISO 3166-1 alpha-2 country code instead of '${match[1]}'`,
-      check: "Common codes: US, GB, DE, FR, CA, AU, JP",
-      command: "See https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2 for full list",
-    }),
-  ],
-  [
-    /Tax rate must be between 0 and 100/i,
-    () => ({
-      fix: "Set tax rate as a percentage between 0 and 100",
-      check: "Example: rate: 8.5 for 8.5% tax",
-      command: "Validate your tax rates in the configuration",
-    }),
-  ],
-  [
-    /Invalid country rate for ['"]?([A-Z]+)['"]?: ([\d.]+)/i,
-    (match) => ({
-      fix: `Fix tax rate for country '${match[1]}' (currently ${match[2]})`,
-      check: "Tax rates must be between 0 and 100",
-      command: "Update countryRates in your tax configuration",
-    }),
-  ],
-  [
-    /At least one country is required/i,
-    () => ({
-      fix: "Add at least one country code to the shipping zone",
-      check: "Use ISO 3166-1 alpha-2 codes (e.g., US, GB, DE)",
-      command: "countries: [US, CA, MX]",
-    }),
-  ],
-  [
-    /Shipping method (\w+) is required/i,
-    (match) => ({
-      fix: `Add required field '${match[1].toLowerCase()}' to shipping method`,
-      check: "Required fields: name, type, channelListings (with channel and price)",
-      command: "See example.yml for shipping method template",
-    }),
-  ],
-  [
-    /Failed to create subcategories for ['"]?([\w\s-]+)['"]?/i,
-    (match) => ({
-      fix: `Check subcategory configuration for parent category '${match[1]}'`,
-      check: "Ensure subcategory names and slugs are unique",
-      command: "Review category hierarchy in your configuration",
+      fix: `Remove duplicate '${match[1]}' from your configuration`,
+      check: "Search for the duplicate entity name",
+      command: "saleor-configurator diff --verbose",
     }),
   ],
 
   // Permission errors
   [
-    /permission denied|unauthorized|forbidden/i,
+    /Permission denied|You do not have permission/i,
     () => ({
-      fix: "Check that your API token has the required permissions",
-      check: "Verify token permissions in Saleor dashboard",
-      command: "saleor-configurator diff --token YOUR_TOKEN",
+      fix: "Check your Saleor API token has the required permissions",
+      check: "Ensure you have admin permissions for the operations you're trying to perform",
+      command: "saleor-configurator introspect --include=shop",
     }),
   ],
 
   // Network errors
   [
-    /ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i,
+    /Network error|Connection failed|ECONNREFUSED/i,
     () => ({
-      fix: "Check your network connection and Saleor instance URL",
-      check: "Verify the instance is accessible",
-      command: "curl -I YOUR_SALEOR_URL/graphql/",
-    }),
-  ],
-  [
-    /fetch failed/i,
-    () => ({
-      fix: "Check your network connection and Saleor instance URL",
-      check: "Verify the instance is running and accessible",
-      command: "ping your-saleor-instance.com",
+      fix: "Check your Saleor API URL and network connection",
+      check: "Verify the SALEOR_API_URL environment variable is correct",
+      command: "curl -I $SALEOR_API_URL/graphql/",
     }),
   ],
 
-  // GraphQL errors
+  // Authentication errors
   [
-    /Variable.*?(\$\w+).*? of type/i,
+    /Authentication failed|Invalid token|Unauthorized/i,
+    () => ({
+      fix: "Check your Saleor API token is valid and not expired",
+      check: "Verify the SALEOR_BEARER_TOKEN environment variable is set correctly",
+      command: "saleor-configurator introspect --include=shop",
+    }),
+  ],
+
+  // Validation errors
+  [
+    /is required/i,
+    () => ({
+      fix: "Add the required field to your configuration",
+      check: "Review the configuration schema documentation",
+      command: "saleor-configurator --help",
+    }),
+  ],
+  [
+    /must be unique/i,
+    () => ({
+      fix: "Ensure all entity names/slugs are unique within their type",
+      check: "Review your configuration for duplicate names or slugs",
+      command: "saleor-configurator diff --verbose",
+    }),
+  ],
+
+  // Deployment errors
+  [
+    /Entity.*failed.*validation/i,
+    () => ({
+      fix: "Fix the validation error in your configuration",
+      check: "Review the entity definition and ensure all required fields are present",
+      command: "saleor-configurator diff --verbose",
+    }),
+  ],
+
+  // Currency/Country errors
+  [
+    /Invalid currency code ['"]?([^'"]+)['"]?/i,
     (match) => ({
-      fix: `Check the ${match[1]} field type matches the GraphQL schema`,
-      check: "This might be a version mismatch between configurator and Saleor",
+      fix: `Use a valid ISO 4217 currency code instead of '${match[1]}'`,
+      check: "Common codes: USD, EUR, GBP, JPY, etc.",
+      command: "saleor-configurator introspect --include=channels",
+    }),
+  ],
+  [
+    /Invalid country code ['"]?([^'"]+)['"]?/i,
+    (match) => ({
+      fix: `Use a valid ISO 3166-1 alpha-2 country code instead of '${match[1]}'`,
+      check: "Common codes: US, GB, DE, FR, etc.",
+      command: "saleor-configurator introspect --include=channels",
+    }),
+  ],
+
+  // Tax class errors
+  [
+    /Tax class ['"]?(.+?)['"]? not found/i,
+    (match) => ({
+      fix: `Create the tax class '${match[1]}' in the taxClasses section first`,
+      check: "View existing tax classes",
+      command: "saleor-configurator introspect --include=taxClasses",
+    }),
+  ],
+
+  // Warehouse errors
+  [
+    /Warehouse ['"]?(.+?)['"]? not found/i,
+    (match) => ({
+      fix: `Create the warehouse '${match[1]}' in the warehouses section first`,
+      check: "View existing warehouses",
+      command: "saleor-configurator introspect --include=warehouses",
+    }),
+  ],
+
+  // Shipping zone errors
+  [
+    /Shipping zone ['"]?(.+?)['"]? not found/i,
+    (match) => ({
+      fix: `Create the shipping zone '${match[1]}' in the shippingZones section first`,
+      check: "View existing shipping zones",
+      command: "saleor-configurator introspect --include=shippingZones",
+    }),
+  ],
+
+  // Channel errors
+  [
+    /Channel ['"]?(.+?)['"]? not found/i,
+    (match) => ({
+      fix: `Create the channel '${match[1]}' in the channels section first`,
+      check: "View existing channels",
+      command: "saleor-configurator introspect --include=channels",
+    }),
+  ],
+
+  // Generic configuration errors
+  [
+    /Configuration.*invalid/i,
+    () => ({
+      fix: "Review your YAML configuration for syntax errors",
+      check: "Ensure proper YAML formatting and indentation",
+      command: "saleor-configurator diff --verbose",
+    }),
+  ],
+
+  // File errors
+  [
+    /ENOENT.*config/i,
+    () => ({
+      fix: "Create a config.yml file in your project directory",
+      check: "Run the start command to generate a sample configuration",
+      command: "saleor-configurator start",
+    }),
+  ],
+
+  // Unknown GraphQL errors
+  [
+    /GraphQL error/i,
+    () => ({
+      fix: "Review the GraphQL error details for specific field issues",
+      check: "Verify your configuration matches the current Saleor schema",
+      command: "saleor-configurator diff --verbose",
+    }),
+  ],
+
+  // Schema version mismatch
+  [
+    /Unsupported.*version|Schema.*mismatch/i,
+    () => ({
+      fix: "Update your configurator to match your Saleor version",
+      check: "Verify your Saleor instance version matches the configurator requirements",
+      command: "npm update @saleor/configurator",
+    }),
+  ],
+
+  // Rate limiting
+  [
+    /Rate limit|Too many requests/i,
+    () => ({
+      fix: "Wait a few seconds and retry the operation",
+      check: "Consider batching large operations or adding delays",
+      command: "saleor-configurator deploy --verbose",
     }),
   ],
 ]);
@@ -236,19 +252,17 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
 /**
  * Get recovery suggestions for an error message
  */
-export function getSuggestions(errorMessage: string): RecoverySuggestion[] {
-  const suggestions: RecoverySuggestion[] = [];
-
-  // Handle null/undefined error messages
-  if (!errorMessage) {
+export function getSuggestions(errorMessage: string | undefined | null): RecoverySuggestion[] {
+  if (!errorMessage || typeof errorMessage !== "string") {
     return [
       {
-        fix: "Review the error message for details",
-        check: "Check your configuration against the current Saleor state",
+        fix: "Review the error for details",
         command: "saleor-configurator diff --verbose",
       },
     ];
   }
+
+  const suggestions: RecoverySuggestion[] = [];
 
   for (const [pattern, getSuggestion] of patterns) {
     const match = errorMessage.match(pattern);
@@ -312,9 +326,7 @@ export function registerPattern(
   patterns.set(pattern, getSuggestion);
 }
 
-/**
- * @deprecated Use named exports instead of the ErrorRecoveryGuide class
- */
+// Keep the class as a namespace for backward compatibility
 export const ErrorRecoveryGuide = {
   getSuggestions,
   formatSuggestions,

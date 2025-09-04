@@ -3,6 +3,25 @@ import type { Warehouse } from "../../../modules/warehouse/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
+// Type for country in remote warehouse address
+type RemoteCountry = {
+  code: string;
+  country: string;
+};
+
+// Type for address with potential country variations
+type AddressWithVariableCountry = {
+  streetAddress1?: string | null;
+  streetAddress2?: string | null;
+  city?: string | null;
+  cityArea?: string | null;
+  postalCode?: string | null;
+  country?: string | RemoteCountry | null;
+  countryArea?: string | null;
+  companyName?: string | null;
+  phone?: string | null;
+};
+
 type WarehouseUnion = WarehouseInput | Warehouse;
 
 export class WarehouseComparator extends BaseEntityComparator<
@@ -75,9 +94,21 @@ export class WarehouseComparator extends BaseEntityComparator<
   }
 
   private normalizeAddress(
-    address: WarehouseInput["address"] | Warehouse["address"]
+    address: AddressWithVariableCountry | null | undefined
   ): Record<string, string> | null {
     if (!address) return null;
+
+    // Handle country field - can be string or object with code/country properties
+    let countryCode = "";
+    if (typeof address.country === "string") {
+      countryCode = address.country;
+    } else if (
+      address.country &&
+      typeof address.country === "object" &&
+      "code" in address.country
+    ) {
+      countryCode = (address.country as RemoteCountry).code;
+    }
 
     return {
       streetAddress1: address.streetAddress1 || "",
@@ -85,7 +116,7 @@ export class WarehouseComparator extends BaseEntityComparator<
       city: address.city || "",
       cityArea: address.cityArea || "",
       postalCode: address.postalCode || "",
-      country: typeof address.country === "object" ? address.country.code : address.country || "",
+      country: countryCode,
       countryArea: address.countryArea || "",
       companyName: address.companyName || "",
       phone: address.phone || "",
