@@ -241,21 +241,28 @@ export class CollectionRepository implements CollectionOperations {
 
   async getCollections(): Promise<Collection[]> {
     logger.debug("Fetching collections from Saleor");
-    const data = await this.query(GetCollections, { first: 100 }) as ResultOf<typeof GetCollections>;
-    const collections = data.collections?.edges?.map(edge => edge.node).filter(node => node !== null) ?? [];
+    const data = (await this.query(GetCollections, { first: 100 })) as ResultOf<
+      typeof GetCollections
+    >;
+    const collections =
+      data.collections?.edges?.map((edge) => edge.node).filter((node) => node !== null) ?? [];
     logger.debug(`Fetched ${collections.length} collections`);
     return collections as Collection[];
   }
 
   async getCollectionBySlug(slug: string): Promise<Collection | null> {
     logger.debug("Fetching collection by slug", { slug });
-    const data = await this.query(GetCollectionBySlug, { slug }) as ResultOf<typeof GetCollectionBySlug>;
+    const data = (await this.query(GetCollectionBySlug, { slug })) as ResultOf<
+      typeof GetCollectionBySlug
+    >;
     return data.collection as Collection | null;
   }
 
   async createCollection(input: CollectionCreateInput): Promise<Collection> {
     logger.debug("Creating collection", { name: input.name, slug: input.slug });
-    const data = await this.mutation(CreateCollection, { input }) as ResultOf<typeof CreateCollection>;
+    const data = (await this.mutation(CreateCollection, { input })) as ResultOf<
+      typeof CreateCollection
+    >;
 
     if (data.collectionCreate?.errors && data.collectionCreate.errors.length > 0) {
       const error = data.collectionCreate.errors[0];
@@ -276,7 +283,9 @@ export class CollectionRepository implements CollectionOperations {
 
   async updateCollection(id: string, input: CollectionInput): Promise<Collection> {
     logger.debug("Updating collection", { id, input });
-    const data = await this.mutation(UpdateCollection, { id, input }) as ResultOf<typeof UpdateCollection>;
+    const data = (await this.mutation(UpdateCollection, { id, input })) as ResultOf<
+      typeof UpdateCollection
+    >;
 
     if (data.collectionUpdate?.errors && data.collectionUpdate.errors.length > 0) {
       const error = data.collectionUpdate.errors[0];
@@ -305,10 +314,10 @@ export class CollectionRepository implements CollectionOperations {
       collectionId,
       productCount: productIds.length,
     });
-    const data = await this.mutation(AssignProductsToCollection, {
+    const data = (await this.mutation(AssignProductsToCollection, {
       collectionId,
       productIds,
-    }) as ResultOf<typeof AssignProductsToCollection>;
+    })) as ResultOf<typeof AssignProductsToCollection>;
 
     if (data.collectionAddProducts?.errors && data.collectionAddProducts.errors.length > 0) {
       const error = data.collectionAddProducts.errors[0];
@@ -331,10 +340,10 @@ export class CollectionRepository implements CollectionOperations {
       collectionId,
       productCount: productIds.length,
     });
-    const data = await this.mutation(RemoveProductsFromCollection, {
+    const data = (await this.mutation(RemoveProductsFromCollection, {
       collectionId,
       productIds,
-    }) as ResultOf<typeof RemoveProductsFromCollection>;
+    })) as ResultOf<typeof RemoveProductsFromCollection>;
 
     if (data.collectionRemoveProducts?.errors && data.collectionRemoveProducts.errors.length > 0) {
       const error = data.collectionRemoveProducts.errors[0];
@@ -352,7 +361,9 @@ export class CollectionRepository implements CollectionOperations {
     input: CollectionChannelListingUpdateInput
   ): Promise<void> {
     logger.debug("Updating collection channel listings", { id, input });
-    const data = await this.mutation(UpdateCollectionChannelListings, { id, input }) as ResultOf<typeof UpdateCollectionChannelListings>;
+    const data = (await this.mutation(UpdateCollectionChannelListings, { id, input })) as ResultOf<
+      typeof UpdateCollectionChannelListings
+    >;
 
     if (
       data.collectionChannelListingUpdate?.errors &&

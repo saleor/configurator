@@ -375,7 +375,11 @@ describe("ShippingZoneService", () => {
     it("should process multiple zones successfully", async () => {
       const zones = [
         mockShippingZoneInput,
-        { ...mockShippingZoneInput, name: "EU Zone", countries: ["FR" as const, "DE" as const, "IT" as const] },
+        {
+          ...mockShippingZoneInput,
+          name: "EU Zone",
+          countries: ["FR" as const, "DE" as const, "IT" as const],
+        },
       ];
 
       const mockOperations = {

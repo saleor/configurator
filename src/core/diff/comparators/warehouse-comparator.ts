@@ -83,7 +83,11 @@ export class WarehouseComparator extends BaseEntityComparator<
     let countryCode = "";
     if (typeof address.country === "string") {
       countryCode = address.country;
-    } else if (address.country && typeof address.country === "object" && "code" in address.country) {
+    } else if (
+      address.country &&
+      typeof address.country === "object" &&
+      "code" in address.country
+    ) {
       countryCode = (address.country as RemoteCountry).code;
     }
 

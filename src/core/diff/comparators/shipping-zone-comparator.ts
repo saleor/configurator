@@ -12,6 +12,7 @@ interface NormalizedChannelListing {
   maximumOrderPrice: number | null;
 }
 
+// Input format (from config schema)
 type InputChannelListing = {
   channel: string;
   price: number;
@@ -20,13 +21,15 @@ type InputChannelListing = {
   maximumOrderPrice?: number;
 };
 
+// Remote format (from GraphQL API)
 type RemoteChannelListing = {
-  channel?: { slug?: string } | string;
-  price?: { amount?: number } | number;
-  currency?: string;
-  minimumOrderPrice?: { amount?: number };
-  maximumOrderPrice?: { amount?: number };
+  channel: { slug: string };
+  price: { amount: number; currency: string } | null;
+  minimumOrderPrice: { amount: number; currency: string } | null;
+  maximumOrderPrice: { amount: number; currency: string } | null;
 };
+
+type ChannelListing = InputChannelListing | RemoteChannelListing;
 
 export class ShippingZoneComparator extends BaseEntityComparator<
   readonly ShippingZoneInput[],
@@ -230,31 +233,36 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
       // Handle both input and remote channel listings by checking the structure
       normalized.channelListings = method.channelListings
-        .map((listing: any): NormalizedChannelListing => {
-          // Check if this is a remote listing (has nested objects) or input listing (has primitives)
-          const isRemoteListing = typeof listing.channel === 'object' || typeof listing.price === 'object';
-          
-          if (isRemoteListing) {
+        .map((listing: ChannelListing): NormalizedChannelListing => {
+          // Type guard to check if this is a remote listing
+          const isRemoteListing = (l: ChannelListing): l is RemoteChannelListing => {
+            return typeof l.channel === "object" && l.channel !== null && "slug" in l.channel;
+          };
+
+          if (isRemoteListing(listing)) {
             // Handle remote listing structure
             return {
-              channel: (typeof listing.channel === 'object' ? listing.channel?.slug : listing.channel) || '',
-              price: (typeof listing.price === 'object' ? listing.price?.amount : listing.price) || 0,
-              currency: (typeof listing.price === 'object' ? listing.price?.currency : listing.currency) || "USD",
+              channel: listing.channel.slug || "",
+              price: listing.price?.amount || 0,
+              currency: listing.price?.currency || "USD",
               minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
               maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
             };
           } else {
-            // Handle input listing structure  
+            // Handle input listing structure (already typed correctly)
+            const inputListing = listing as InputChannelListing;
             return {
-              channel: listing.channel || '',
-              price: listing.price || 0,
-              currency: listing.currency || "USD",
-              minimumOrderPrice: listing.minimumOrderPrice || null,
-              maximumOrderPrice: listing.maximumOrderPrice || null,
+              channel: inputListing.channel || "",
+              price: inputListing.price || 0,
+              currency: inputListing.currency || "USD",
+              minimumOrderPrice: inputListing.minimumOrderPrice || null,
+              maximumOrderPrice: inputListing.maximumOrderPrice || null,
             };
           }
         })
-        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) => a.channel.localeCompare(b.channel));
+        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) =>
+          a.channel.localeCompare(b.channel)
+        );
     }
 
     return normalized;

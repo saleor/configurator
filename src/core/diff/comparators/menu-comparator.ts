@@ -84,13 +84,19 @@ export class MenuComparator extends BaseEntityComparator<
       name: item.name,
       url: item.url ?? undefined,
       category:
-        "category" in item && item.category && typeof item.category === "object" && "slug" in item.category
+        "category" in item &&
+        item.category &&
+        typeof item.category === "object" &&
+        "slug" in item.category
           ? (item.category as { slug: string }).slug
           : typeof item.category === "string"
             ? item.category
             : undefined,
       collection:
-        "collection" in item && item.collection && typeof item.collection === "object" && "slug" in item.collection
+        "collection" in item &&
+        item.collection &&
+        typeof item.collection === "object" &&
+        "slug" in item.collection
           ? (item.collection as { slug: string }).slug
           : typeof item.collection === "string"
             ? item.collection
@@ -101,7 +107,10 @@ export class MenuComparator extends BaseEntityComparator<
           : typeof item.page === "string"
             ? item.page
             : undefined,
-      children: ("children" in item && item.children) ? this.normalizeMenuItems(item.children as any) : undefined,
+      children:
+        "children" in item && item.children
+          ? this.normalizeMenuItems(item.children as MenuItemInput[])
+          : undefined,
     }));
   }
 

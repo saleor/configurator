@@ -527,13 +527,13 @@ export class ConfigurationService {
     return edges.map(({ node }) => ({
       name: node.name,
       slug: node.slug,
-      description: typeof node.description === 'string' ? node.description : undefined,
+      description: typeof node.description === "string" ? node.description : undefined,
       products: node.products?.edges?.map((edge) => edge.node.slug).filter(Boolean) || [],
       channelListings:
         node.channelListings?.map((listing) => ({
           channelSlug: listing.channel.slug,
           isPublished: listing.isPublished,
-          publishedAt: typeof listing.publishedAt === 'string' ? listing.publishedAt : undefined,
+          publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
         })) || [],
     }));
   }
@@ -562,7 +562,9 @@ export class ConfigurationService {
   }
 
   private mapMenuChildren(
-    children: NonNullable<NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]>[0]["children"]
+    children: NonNullable<
+      NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+    >[0]["children"]
   ): NonNullable<MenuInput["items"]> {
     if (!children) return [];
 
@@ -579,10 +581,10 @@ export class ConfigurationService {
     return edges.map(({ node }) => ({
       title: node.title,
       slug: node.slug,
-      content: typeof node.content === 'string' ? node.content : undefined,
+      content: typeof node.content === "string" ? node.content : undefined,
       isPublished: node.isPublished,
-      publishedAt: typeof node.publishedAt === 'string' ? node.publishedAt : undefined,
-      modelType: node.pageType?.name || '',
+      publishedAt: typeof node.publishedAt === "string" ? node.publishedAt : undefined,
+      modelType: node.pageType?.name || "",
       attributes: this.mapModelAttributes(node.attributes || []),
     }));
   }
@@ -616,7 +618,7 @@ export class ConfigurationService {
       name: node.name,
       attributes:
         node.attributes?.map((attr) => ({
-          attribute: attr.name || '', // Reference existing attribute by name
+          attribute: attr.name || "", // Reference existing attribute by name
         })) || [],
     }));
   }

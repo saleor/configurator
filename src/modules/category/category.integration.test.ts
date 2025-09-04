@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "../config/config-service";
 import type { ConfigurationOperations } from "../config/repository";
-import type { ConfigurationStorage } from "../config/yaml-manager";
 import type { CategoryInput } from "../config/schema/schema";
+import type { ConfigurationStorage } from "../config/yaml-manager";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
 
@@ -135,8 +135,12 @@ describe("Category Round-Trip Integrity", () => {
     );
     expect(computers).toBeDefined();
     expect(computers?.subcategories).toHaveLength(2);
-    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain("laptops");
-    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain("desktops");
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain(
+      "laptops"
+    );
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain(
+      "desktops"
+    );
 
     const audio = electronics?.subcategories?.find(
       (c): c is CategoryWithSubcategories => c.slug === "audio"
@@ -214,10 +218,10 @@ describe("Category Round-Trip Integrity", () => {
     // Should still build correct hierarchy despite out-of-order data
     expect(config.categories).toHaveLength(1);
     expect(config.categories?.[0].slug).toBe("electronics");
-    
+
     const electronicsCategory = config.categories?.[0] as CategoryWithSubcategories;
     expect(electronicsCategory.subcategories?.[0].slug).toBe("computers");
-    
+
     const computersCategory = electronicsCategory.subcategories?.[0] as CategoryWithSubcategories;
     expect(computersCategory.subcategories?.[0].slug).toBe("laptops");
   });

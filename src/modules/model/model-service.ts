@@ -25,27 +25,22 @@ export class ModelService {
   ) {}
 
   private async getExistingModel(slug: string): Promise<Page | null> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "fetch model",
-      "model",
-      slug,
-      async () => {
-        logger.debug("Looking up existing model/page", { slug });
-        const page = await this.repository.getPageBySlug(slug);
+    return ServiceErrorWrapper.wrapServiceCall("fetch model", "model", slug, async () => {
+      logger.debug("Looking up existing model/page", { slug });
+      const page = await this.repository.getPageBySlug(slug);
 
-        if (page) {
-          logger.debug("Found existing model/page", {
-            id: page.id,
-            title: page.title,
-            slug: page.slug,
-          });
-        } else {
-          logger.debug("Model/page not found", { slug });
-        }
-
-        return page;
+      if (page) {
+        logger.debug("Found existing model/page", {
+          id: page.id,
+          title: page.title,
+          slug: page.slug,
+        });
+      } else {
+        logger.debug("Model/page not found", { slug });
       }
-    );
+
+      return page;
+    });
   }
 
   private validateModelInput(input: ModelInputConfig): void {
@@ -112,55 +107,45 @@ export class ModelService {
 
     this.validateModelInput(input);
 
-    return ServiceErrorWrapper.wrapServiceCall(
-      "create model",
-      "model",
-      input.slug,
-      async () => {
-        const pageTypeId = await this.resolvePageTypeId(input.modelType);
-        const createInput = this.mapInputToCreateInput(input, pageTypeId);
-        const page = await this.repository.createPage(createInput);
+    return ServiceErrorWrapper.wrapServiceCall("create model", "model", input.slug, async () => {
+      const pageTypeId = await this.resolvePageTypeId(input.modelType);
+      const createInput = this.mapInputToCreateInput(input, pageTypeId);
+      const page = await this.repository.createPage(createInput);
 
-        // Set attributes if provided
-        if (input.attributes && Object.keys(input.attributes).length > 0) {
-          await this.updateModelAttributes(page.id, input.attributes, pageTypeId);
-        }
-
-        logger.debug("Successfully created model/page", {
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-        });
-        return page;
+      // Set attributes if provided
+      if (input.attributes && Object.keys(input.attributes).length > 0) {
+        await this.updateModelAttributes(page.id, input.attributes, pageTypeId);
       }
-    );
+
+      logger.debug("Successfully created model/page", {
+        id: page.id,
+        title: page.title,
+        slug: page.slug,
+      });
+      return page;
+    });
   }
 
   async updateModel(id: string, input: ModelInputConfig): Promise<Page> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "update model",
-      "model",
-      input.slug,
-      async () => {
-        logger.debug("Updating model/page", { id, title: input.title, slug: input.slug });
+    return ServiceErrorWrapper.wrapServiceCall("update model", "model", input.slug, async () => {
+      logger.debug("Updating model/page", { id, title: input.title, slug: input.slug });
 
-        const updateInput = this.mapInputToUpdateInput(input);
-        const page = await this.repository.updatePage(id, updateInput);
+      const updateInput = this.mapInputToUpdateInput(input);
+      const page = await this.repository.updatePage(id, updateInput);
 
-        // Update attributes if provided
-        if (input.attributes !== undefined) {
-          const pageTypeId = await this.resolvePageTypeId(input.modelType);
-          await this.updateModelAttributes(id, input.attributes, pageTypeId);
-        }
-
-        logger.debug("Successfully updated model/page", {
-          id: page.id,
-          title: page.title,
-          slug: page.slug,
-        });
-        return page;
+      // Update attributes if provided
+      if (input.attributes !== undefined) {
+        const pageTypeId = await this.resolvePageTypeId(input.modelType);
+        await this.updateModelAttributes(id, input.attributes, pageTypeId);
       }
-    );
+
+      logger.debug("Successfully updated model/page", {
+        id: page.id,
+        title: page.title,
+        slug: page.slug,
+      });
+      return page;
+    });
   }
 
   async getOrCreateModel(input: ModelInputConfig): Promise<Page> {
@@ -249,12 +234,16 @@ export class ModelService {
     const attributeValues: AttributeValueInput[] = [];
 
     for (const [slug, value] of Object.entries(attributes)) {
-      const attribute = pageType.attributes.find((attr: any) => attr.slug === slug);
+      const attribute = pageType.attributes.find(
+        (attr: { id: string; name: string | null }) => attr.name === slug
+      );
 
       if (!attribute) {
         logger.warn(`Attribute "${slug}" not found in page type, skipping`, {
           pageTypeId,
-          availableAttributes: pageType.attributes.map((a: any) => a.slug),
+          availableAttributes: pageType.attributes.map(
+            (a: { id: string; name: string | null }) => a.name || "<unnamed>"
+          ),
         });
         continue;
       }
@@ -296,17 +285,12 @@ export class ModelService {
   }
 
   async getAllModels(): Promise<Page[]> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "fetch all models",
-      "models",
-      "all",
-      async () => {
-        logger.debug("Fetching all models/pages");
-        const pages = await this.repository.getPages();
-        logger.debug(`Fetched ${pages.length} models/pages`);
-        return pages;
-      }
-    );
+    return ServiceErrorWrapper.wrapServiceCall("fetch all models", "models", "all", async () => {
+      logger.debug("Fetching all models/pages");
+      const pages = await this.repository.getPages();
+      logger.debug(`Fetched ${pages.length} models/pages`);
+      return pages;
+    });
   }
 
   async getModelBySlug(slug: string): Promise<Page | null> {

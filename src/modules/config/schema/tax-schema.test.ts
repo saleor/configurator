@@ -55,7 +55,8 @@ describe("Tax Schema Validation", () => {
     it("should reject missing tax class name", async () => {
       const taxClass = {
         countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
-      } as any; // Intentionally invalid for testing validation
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
+      } as any;
 
       const config = createTestConfig([taxClass]);
       const schema = await getConfigSchema();
@@ -66,6 +67,7 @@ describe("Tax Schema Validation", () => {
     it("should reject invalid country codes", async () => {
       const taxClass = {
         name: "Standard Rate",
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
         countryRates: [{ countryCode: "INVALID" as any, rate: 8.5 }],
       };
 
@@ -147,7 +149,9 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    const createChannelWithTaxConfig = (taxConfiguration: TaxConfigurationInput): Partial<SaleorConfig> => ({
+    const createChannelWithTaxConfig = (
+      taxConfiguration: TaxConfigurationInput
+    ): Partial<SaleorConfig> => ({
       channels: [
         {
           name: "Default",
@@ -202,6 +206,7 @@ describe("Tax Schema Validation", () => {
 
     it("should reject invalid tax calculation strategy", async () => {
       const taxConfig = {
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
         taxCalculationStrategy: "INVALID_STRATEGY" as any,
         chargeTaxes: true,
       };

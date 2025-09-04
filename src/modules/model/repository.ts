@@ -324,7 +324,10 @@ export class ModelRepository implements ModelOperations {
     }
 
     logger.debug("Updating page attributes", { id, attributeCount: attributes.length });
-    const data = await this.mutation(UpdatePageAttributes, { id, input: attributes as any });
+    const data = await this.mutation(UpdatePageAttributes, {
+      id,
+      input: attributes as VariablesOf<typeof UpdatePageAttributes>["input"],
+    });
 
     if (data.pageAttributeAssign?.errors && data.pageAttributeAssign.errors.length > 0) {
       const error = data.pageAttributeAssign.errors[0];

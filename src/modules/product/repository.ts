@@ -350,7 +350,13 @@ export type ProductVariantChannelListingAddInput = VariablesOf<
   typeof productVariantChannelListingUpdateMutation
 >["input"][number];
 
-export type Channel = any;
+// Extract Channel type from query result using any to bypass type issues
+export type Channel = {
+  id: string;
+  name: string;
+  slug: string;
+  currencyCode?: string;
+};
 
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
@@ -655,7 +661,11 @@ export class ProductRepository implements ProductOperations {
     const result = await this.client.query(getChannelBySlugQuery, { slug });
 
     // Find exact match among search results
-    const exactMatch = (result.data?.channels as any)?.edges?.find((edge: any) => edge.node?.slug === slug);
+    // Use any to bypass gql.tada typing issues with channels.edges
+    // biome-ignore lint/suspicious/noExplicitAny: GraphQL typing workaround
+    const channels = result.data?.channels as any;
+    // biome-ignore lint/suspicious/noExplicitAny: GraphQL typing workaround
+    const exactMatch = channels?.edges?.find((edge: any) => edge.node?.slug === slug);
 
     const channel = exactMatch?.node;
 
@@ -720,7 +730,7 @@ export class ProductRepository implements ProductOperations {
       channelListings: product.channelListings?.length || 0,
     });
 
-    return product as any;
+    return product as unknown as Product;
   }
 
   async updateProductVariantChannelListings(
@@ -767,7 +777,7 @@ export class ProductRepository implements ProductOperations {
       return null;
     }
 
-    const variant = result.data.productVariantChannelListingUpdate.productVariant as any;
+    const variant = result.data.productVariantChannelListingUpdate.productVariant as ProductVariant;
 
     logger.info("Product variant channel listings updated", {
       variantId: variant.id,

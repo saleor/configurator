@@ -6,7 +6,14 @@ import type { CategoryService } from "../category/category-service";
 import type { CollectionService } from "../collection/collection-service";
 import type { ModelService } from "../model/model-service";
 import { MenuError, MenuOperationError, MenuValidationError } from "./errors";
-import type { Menu, MenuItem, MenuOperations, MenuCreateInput, MenuInput, MenuItemCreateInput } from "./repository";
+import type {
+  Menu,
+  MenuCreateInput,
+  MenuInput,
+  MenuItem,
+  MenuItemCreateInput,
+  MenuOperations,
+} from "./repository";
 
 export interface MenuItemInputConfig {
   name: string;
