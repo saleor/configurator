@@ -72,12 +72,16 @@ jobs:
           ALLOWED_CLIENT_HOSTS: '*'
           DEFAULT_FROM_EMAIL: admin@example.com
           ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: 'False'
+          ENABLE_SSL: 'False'
+          ENABLE_DEBUG_TOOLBAR: 'False'
+          MAX_CHECKOUT_LINE_QUANTITY: '50'
+          PLAYGROUND_ENABLED: 'True'
         options: >-
-          --health-cmd "curl -f http://localhost:8000/graphql/ -X POST -H 'Content-Type: application/json' -d '{\"query\":\"{ shop { name } }\"}' || exit 1"
-          --health-interval 10s
+          --health-cmd "curl -f http://localhost:8000/health/ || curl -f http://localhost:8000/ || exit 1"
+          --health-interval 15s
           --health-timeout 10s
-          --health-retries 30
-          --health-start-period 90s
+          --health-retries 40
+          --health-start-period 120s
 
     steps:
       - name: Checkout code
@@ -100,13 +104,47 @@ jobs:
       - name: Build CLI
         run: pnpm build
 
+      - name: Wait for Saleor service to be ready
+        run: |
+          echo "🔍 Checking Saleor service health..."
+          
+          # Wait up to 5 minutes for the service to be healthy
+          for i in {1..60}; do
+            if docker ps --filter "ancestor=ghcr.io/saleor/saleor:3.20" --format "table {{.ID}}\t{{.Status}}" | grep -q "healthy"; then
+              echo "✅ Saleor service is healthy"
+              break
+            elif docker ps --filter "ancestor=ghcr.io/saleor/saleor:3.20" --format "table {{.ID}}\t{{.Status}}" | grep -q "unhealthy"; then
+              echo "❌ Saleor service is unhealthy"
+              echo "📝 Container logs:"
+              docker logs $(docker ps --filter "ancestor=ghcr.io/saleor/saleor:3.20" -q) --tail 50
+              exit 1
+            else
+              echo "⏳ Waiting for Saleor service (attempt $i/60)..."
+              sleep 5
+            fi
+          done
+          
+          # Final check
+          if ! docker ps --filter "ancestor=ghcr.io/saleor/saleor:3.20" --format "table {{.ID}}\t{{.Status}}" | grep -q "healthy"; then
+            echo "❌ Saleor service did not become healthy within 5 minutes"
+            echo "📝 Final container logs:"
+            docker logs $(docker ps --filter "ancestor=ghcr.io/saleor/saleor:3.20" -q) --tail 100
+            exit 1
+          fi
+
       - name: Initialize Saleor
         run: |
+          SALEOR_CONTAINER_ID="${{ job.services.saleor.id }}"
+          
           echo "🔧 Running database migrations..."
-          docker exec ${{ job.services.saleor.id }} python manage.py migrate --no-input
+          if ! docker exec $SALEOR_CONTAINER_ID python manage.py migrate --no-input; then
+            echo "❌ Database migrations failed"
+            docker logs $SALEOR_CONTAINER_ID --tail 50
+            exit 1
+          fi
           
           echo "👤 Creating superuser..."
-          docker exec ${{ job.services.saleor.id }} python manage.py shell -c "
+          if ! docker exec $SALEOR_CONTAINER_ID python manage.py shell -c "
             from django.contrib.auth import get_user_model
             User = get_user_model()
             if not User.objects.filter(email='admin@example.com').exists():
@@ -114,7 +152,22 @@ jobs:
                 print('Superuser created')
             else:
                 print('Superuser exists')
-          "
+          "; then
+            echo "❌ Superuser creation failed"
+            docker logs $SALEOR_CONTAINER_ID --tail 50
+            exit 1
+          fi
+          
+          echo "🧪 Testing GraphQL endpoint..."
+          if ! curl -f http://localhost:8000/graphql/ \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -d '{"query":"{ shop { name } }"}' \
+            --max-time 30; then
+            echo "❌ GraphQL endpoint test failed"
+            docker logs $SALEOR_CONTAINER_ID --tail 50
+            exit 1
+          fi
           
           echo "✅ Saleor initialization complete"
 
