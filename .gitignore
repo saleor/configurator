@@ -3,7 +3,7 @@ node_modules
 config.yml
 .biome
 deployment-report-*.json
-CLAUDE.md
+/CLAUDE.md
 .serena
 dist
 FEATURE-ROADMAP.md
