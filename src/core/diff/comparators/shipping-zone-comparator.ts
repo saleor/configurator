@@ -66,7 +66,10 @@ export class ShippingZoneComparator extends BaseEntityComparator<
         results.push(this.createCreateResult(localZone));
       } else {
         // Shipping zone exists, check for updates
-        const changes = this.compareEntityFields(localZone, remoteZone);
+        const changes = this.compareEntityFields(
+          localZone as ShippingZoneInput,
+          remoteZone as ShippingZone
+        );
         if (changes.length > 0) {
           results.push(this.createUpdateResult(localZone, remoteZone, changes));
         }
@@ -98,10 +101,10 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if (Array.isArray(countries)) {
       // Check if it's an array of objects with code property (remote)
       if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
-        return countries.map((c: { code: string }) => c.code).sort();
+        return (countries as { code: string }[]).map((c) => c.code).sort();
       }
       // Otherwise it's already an array of country codes (local)
-      return countries.sort();
+      return (countries as string[]).sort();
     }
 
     return [];
@@ -128,7 +131,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of warehouse slugs (local)
-      return entity.warehouses.sort();
+      return (entity.warehouses as string[]).sort();
     }
 
     return [];
@@ -144,7 +147,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of channel slugs (local)
-      return entity.channels.sort();
+      return (entity.channels as string[]).sort();
     }
 
     return [];
@@ -196,30 +199,44 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
       normalized.channelListings = method.channelListings
         .map((listing) => ({
-          channel: listing.channel,
-          price: listing.price,
-          currency: listing.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice || null,
-          maximumOrderPrice: listing.maximumOrderPrice || null,
+          channel: typeof listing.channel === "string" ? listing.channel : listing.channel.slug,
+          price: typeof listing.price === "number" ? listing.price : listing.price?.amount || 0,
+          currency:
+            (listing as { currency?: string }).currency ||
+            (typeof listing.price === "object" && listing.price && "currency" in listing.price
+              ? listing.price.currency
+              : null) ||
+            "USD",
+          minimumOrderPrice:
+            typeof listing.minimumOrderPrice === "number"
+              ? listing.minimumOrderPrice
+              : listing.minimumOrderPrice?.amount || null,
+          maximumOrderPrice:
+            typeof listing.maximumOrderPrice === "number"
+              ? listing.maximumOrderPrice
+              : listing.maximumOrderPrice?.amount || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
-        );
+        .sort((a, b) => a.channel.localeCompare(b.channel));
     } else if (
       "channelListings" in method &&
       Array.isArray((method as ShippingMethod).channelListings)
     ) {
       normalized.channelListings = (method as ShippingMethod).channelListings
-        .map((listing) => ({
-          channel: listing.channel?.slug || listing.channel,
-          price: listing.price?.amount || listing.price || 0,
+        ?.map((listing) => ({
+          channel:
+            typeof listing.channel === "string" ? listing.channel : listing.channel?.slug || "",
+          price: typeof listing.price === "number" ? listing.price : listing.price?.amount || 0,
           currency: listing.price?.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
-          maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
+          minimumOrderPrice:
+            typeof listing.minimumOrderPrice === "number"
+              ? listing.minimumOrderPrice
+              : listing.minimumOrderPrice?.amount || null,
+          maximumOrderPrice:
+            typeof listing.maximumOrderPrice === "number"
+              ? listing.maximumOrderPrice
+              : listing.maximumOrderPrice?.amount || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
-        );
+        .sort((a, b) => a.channel.localeCompare(b.channel));
     }
 
     return normalized;
@@ -235,14 +252,14 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     const remoteNormalized = (remoteMethods || []).map((m) => this.normalizeShippingMethod(m));
 
     // Create maps by name for comparison
-    const localMap = new Map(localNormalized.map((m) => [m.name, m]));
-    const remoteMap = new Map(remoteNormalized.map((m) => [m.name, m]));
+    const localMap = new Map(localNormalized.map((m) => [m.name as string, m]));
+    const remoteMap = new Map(remoteNormalized.map((m) => [m.name as string, m]));
 
     // Find methods to add
-    const toAdd = localNormalized.filter((m) => !remoteMap.has(m.name));
+    const toAdd = localNormalized.filter((m) => !remoteMap.has(m.name as string));
 
     // Find methods to remove
-    const toRemove = remoteNormalized.filter((m) => !localMap.has(m.name));
+    const toRemove = remoteNormalized.filter((m) => !localMap.has(m.name as string));
 
     // Find methods to update
     const toUpdate: string[] = [];
@@ -334,7 +351,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Compare shipping methods
     const methodChanges = this.compareShippingMethods(
       local.shippingMethods,
-      remote.shippingMethods
+      remote.shippingMethods || undefined
     );
     changes.push(...methodChanges);
 

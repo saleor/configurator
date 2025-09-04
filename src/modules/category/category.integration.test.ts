@@ -106,7 +106,7 @@ describe("Category Round-Trip Integrity", () => {
 
     const mockStorage: ConfigurationStorage = {
       save: vi.fn(),
-      read: vi.fn(),
+      load: vi.fn(),
     };
 
     const configService = new ConfigurationService(mockConfigRepository, mockStorage);
@@ -120,22 +120,31 @@ describe("Category Round-Trip Integrity", () => {
     // Check Electronics hierarchy
     const electronics = introspectedConfig.categories?.find((c) => c.slug === "electronics");
     expect(electronics).toBeDefined();
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(electronics?.subcategories).toHaveLength(2);
 
-    const computers = electronics?.subcategories?.find((c) => c.slug === "computers");
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
+    const computers = electronics?.subcategories?.find(
+      (c: { slug: string }) => c.slug === "computers"
+    );
     expect(computers).toBeDefined();
-    expect(computers?.subcategories).toHaveLength(2);
-    expect(computers?.subcategories?.map((c) => c.slug)).toContain("laptops");
-    expect(computers?.subcategories?.map((c) => c.slug)).toContain("desktops");
+    const computersWithSubs = computers as { subcategories?: Array<{ slug: string }> } | undefined;
+    expect(computersWithSubs?.subcategories).toHaveLength(2);
+    expect(computersWithSubs?.subcategories?.map((c) => c.slug)).toContain("laptops");
+    expect(computersWithSubs?.subcategories?.map((c) => c.slug)).toContain("desktops");
 
-    const audio = electronics?.subcategories?.find((c) => c.slug === "audio");
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
+    const audio = electronics?.subcategories?.find((c: { slug: string }) => c.slug === "audio");
     expect(audio).toBeDefined();
-    expect(audio?.subcategories).toBeUndefined();
+    const audioWithSubs = audio as { subcategories?: unknown } | undefined;
+    expect(audioWithSubs?.subcategories).toBeUndefined();
 
     // Check Clothing hierarchy
     const clothing = introspectedConfig.categories?.find((c) => c.slug === "clothing");
     expect(clothing).toBeDefined();
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(clothing?.subcategories).toHaveLength(1);
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(clothing?.subcategories?.[0].slug).toBe("mens");
 
     // Step 5: Verify the structure matches the original
@@ -191,7 +200,7 @@ describe("Category Round-Trip Integrity", () => {
 
     const mockStorage: ConfigurationStorage = {
       save: vi.fn(),
-      read: vi.fn(),
+      load: vi.fn(),
     };
 
     const configService = new ConfigurationService(mockConfigRepository, mockStorage);
@@ -200,7 +209,9 @@ describe("Category Round-Trip Integrity", () => {
     // Should still build correct hierarchy despite out-of-order data
     expect(config.categories).toHaveLength(1);
     expect(config.categories?.[0].slug).toBe("electronics");
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(config.categories?.[0].subcategories?.[0].slug).toBe("computers");
+    // @ts-expect-error - subcategories is not in the type but exists in runtime
     expect(config.categories?.[0].subcategories?.[0].subcategories?.[0].slug).toBe("laptops");
   });
 });

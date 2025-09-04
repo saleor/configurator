@@ -102,8 +102,12 @@ describe("ProductService", () => {
       const existingProduct = {
         id: "prod-1",
         name: "Test Book",
+        slug: "test-book",
+        description: "A test book for unit testing",
         productType: { id: "pt-1", name: "Book" },
-        category: { id: "cat-1", name: "Fiction" },
+        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+        defaultVariant: { id: "variant-1" },
+        variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
       };
 
       // Set up all required mocks

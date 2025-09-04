@@ -8,6 +8,7 @@ export type DiffOperation = "CREATE" | "UPDATE" | "DELETE";
  */
 export type EntityType =
   | "Product Types"
+  | "Products"
   | "Channels"
   | "Page Types"
   | "Categories"
@@ -89,7 +90,8 @@ export type ConfigurationSection =
   | "products"
   | "attributes"
   | "warehouses"
-  | "shippingZones";
+  | "shippingZones"
+  | "taxClasses";
 
 /**
  * Parsed selective options from command line

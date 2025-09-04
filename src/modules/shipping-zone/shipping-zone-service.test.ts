@@ -75,6 +75,10 @@ describe("ShippingZoneService", () => {
     type: "PRICE",
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
+    maximumOrderWeight: null,
+    minimumOrderWeight: null,
+    postalCodeRules: null,
+    excludedProducts: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
@@ -340,10 +344,8 @@ describe("ShippingZoneService", () => {
 
   describe("bootstrapShippingZones", () => {
     it("should validate unique names", async () => {
-      const duplicateZones = [
-        mockShippingZoneInput,
-        { ...mockShippingZoneInput, countries: ["CA"] },
-      ];
+      const duplicateZone: ShippingZoneInput = { ...mockShippingZoneInput, countries: ["CA"] };
+      const duplicateZones = [mockShippingZoneInput, duplicateZone];
 
       const mockOperations = {
         getShippingZones: vi.fn().mockResolvedValue([]),
@@ -368,10 +370,12 @@ describe("ShippingZoneService", () => {
     });
 
     it("should process multiple zones successfully", async () => {
-      const zones = [
-        mockShippingZoneInput,
-        { ...mockShippingZoneInput, name: "EU Zone", countries: ["FR", "DE", "IT"] },
-      ];
+      const euZone: ShippingZoneInput = {
+        ...mockShippingZoneInput,
+        name: "EU Zone",
+        countries: ["FR", "DE", "IT"],
+      };
+      const zones = [mockShippingZoneInput, euZone];
 
       const mockOperations = {
         getShippingZones: vi.fn().mockResolvedValue([]),

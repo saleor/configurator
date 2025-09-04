@@ -1,4 +1,4 @@
-import type { SaleorConfig } from "../../../modules/config/schema/schema";
+import type { ProductVariantInput, SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
@@ -78,9 +78,7 @@ export class ProductComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("name", remote.name, local.name));
     }
 
-    if (local.description !== remote.description) {
-      changes.push(this.createFieldChange("description", remote.description, local.description));
-    }
+    // Note: description field is not part of the current product schema
 
     // Compare product type
     if (local.productType !== remote.productType) {
@@ -124,46 +122,49 @@ export class ProductComparator extends BaseEntityComparator<
     }
 
     // Compare channel listings
-    const localChannels = local.channels || [];
-    const remoteChannels = remote.channels || [];
+    const localChannelListings = local.channelListings || [];
+    const remoteChannelListings = remote.channelListings || [];
 
-    const localChannelMap = new Map(localChannels.map((c) => [c.slug, c]));
-    const remoteChannelMap = new Map(remoteChannels.map((c) => [c.slug, c]));
+    const localChannelListingMap = new Map(localChannelListings.map((c) => [c.channel, c]));
+    const remoteChannelListingMap = new Map(remoteChannelListings.map((c) => [c.channel, c]));
 
-    // Check for channel changes
-    const allChannelSlugs = new Set([...localChannelMap.keys(), ...remoteChannelMap.keys()]);
+    // Check for channel listing changes
+    const allChannels = new Set([
+      ...localChannelListingMap.keys(),
+      ...remoteChannelListingMap.keys(),
+    ]);
 
-    for (const slug of allChannelSlugs) {
-      const localChannel = localChannelMap.get(slug);
-      const remoteChannel = remoteChannelMap.get(slug);
+    for (const channel of allChannels) {
+      const localChannelListing = localChannelListingMap.get(channel);
+      const remoteChannelListing = remoteChannelListingMap.get(channel);
 
-      if (!localChannel && remoteChannel) {
+      if (!localChannelListing && remoteChannelListing) {
         changes.push(
           this.createFieldChange(
-            `channels.${slug}`,
+            `channels.${channel}`,
             undefined,
-            remoteChannel,
-            `Channel "${slug}" will be added`
+            remoteChannelListing,
+            `Channel "${channel}" will be added`
           )
         );
-      } else if (localChannel && !remoteChannel) {
+      } else if (localChannelListing && !remoteChannelListing) {
         changes.push(
           this.createFieldChange(
-            `channels.${slug}`,
-            localChannel,
+            `channels.${channel}`,
+            localChannelListing,
             undefined,
-            `Channel "${slug}" will be removed`
+            `Channel "${channel}" will be removed`
           )
         );
-      } else if (localChannel && remoteChannel) {
+      } else if (localChannelListing && remoteChannelListing) {
         // Compare channel properties
-        if (JSON.stringify(localChannel) !== JSON.stringify(remoteChannel)) {
+        if (JSON.stringify(localChannelListing) !== JSON.stringify(remoteChannelListing)) {
           changes.push(
             this.createFieldChange(
-              `channels.${slug}`,
-              remoteChannel,
-              localChannel,
-              `Channel "${slug}" settings changed`
+              `channels.${channel}`,
+              remoteChannelListing,
+              localChannelListing,
+              `Channel "${channel}" settings changed`
             )
           );
         }
@@ -216,7 +217,11 @@ export class ProductComparator extends BaseEntityComparator<
   /**
    * Compares variant fields in detail
    */
-  private compareVariants(local: any, remote: any, sku: string): DiffChange[] {
+  private compareVariants(
+    local: ProductVariantInput,
+    remote: ProductVariantInput,
+    sku: string
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare variant name

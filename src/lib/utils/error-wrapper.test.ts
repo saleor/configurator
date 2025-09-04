@@ -1,8 +1,8 @@
-import { describe, expect, it, vi, beforeEach, type MockedFunction } from "vitest";
 import type { CombinedError } from "@urql/core";
-import { ServiceErrorWrapper } from "./error-wrapper";
+import { beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { GraphQLError } from "../errors/graphql";
 import { logger } from "../logger";
+import { ServiceErrorWrapper } from "./error-wrapper";
 
 // Mock dependencies
 vi.mock("../errors/graphql");
@@ -32,11 +32,23 @@ class TestServiceError extends Error {
 // Mock CombinedError from URQL
 const createMockCombinedError = (message: string): CombinedError =>
   ({
+    name: "CombinedError",
     message,
-    graphQLErrors: [{ message }],
+    graphQLErrors: [
+      {
+        message,
+        locations: [],
+        path: [],
+        extensions: {},
+        nodes: [],
+        source: undefined,
+        positions: [],
+        originalError: undefined,
+      },
+    ],
     networkError: null,
     response: {},
-  }) as CombinedError;
+  }) as unknown as CombinedError;
 
 describe("ServiceErrorWrapper", () => {
   beforeEach(() => {
@@ -116,13 +128,13 @@ describe("ServiceErrorWrapper", () => {
       it("should handle GraphQL errors with proper context", async () => {
         const combinedError = createMockCombinedError("GraphQL validation error");
         const mockFn = vi.fn().mockRejectedValue(combinedError);
-        const wrappedError = new Error("Wrapped GraphQL error");
+        const wrappedError = new GraphQLError("Wrapped GraphQL error");
 
         mockedGraphQLError.fromCombinedError.mockReturnValue(wrappedError);
 
         await expect(
           ServiceErrorWrapper.wrapServiceCall("create", "Category", "electronics", mockFn)
-        ).rejects.toThrow(wrappedError);
+        ).rejects.toThrow(GraphQLError);
 
         expect(mockedGraphQLError.fromCombinedError).toHaveBeenCalledWith(
           "Failed to create for Category 'electronics'",
@@ -159,7 +171,7 @@ describe("ServiceErrorWrapper", () => {
           );
         } catch (error) {
           expect(error).toBeInstanceOf(TestServiceError);
-          expect(error.message).toBe(
+          expect((error as TestServiceError).message).toBe(
             "Failed to delete for Product 'product-123': Original error message"
           );
           expect((error as TestServiceError).entityIdentifier).toBe("product-123");
@@ -201,20 +213,21 @@ describe("ServiceErrorWrapper", () => {
 
     describe("GraphQL Error Detection", () => {
       it("should correctly identify CombinedError objects", async () => {
-        const validCombinedError: CombinedError = {
+        const validCombinedError = {
           message: "GraphQL error",
+          name: "CombinedError",
           graphQLErrors: [{ message: "Field error" }],
-          networkError: null,
+          networkError: undefined,
           response: {},
-        } as CombinedError;
+        } as unknown as CombinedError;
 
         const mockFn = vi.fn().mockRejectedValue(validCombinedError);
-        const wrappedError = new Error("Handled GraphQL error");
+        const wrappedError = new GraphQLError("Handled GraphQL error");
         mockedGraphQLError.fromCombinedError.mockReturnValue(wrappedError);
 
         await expect(
           ServiceErrorWrapper.wrapServiceCall("test", "Entity", "id", mockFn)
-        ).rejects.toThrow(wrappedError);
+        ).rejects.toThrow(GraphQLError);
 
         expect(mockedGraphQLError.fromCombinedError).toHaveBeenCalledTimes(1);
       });

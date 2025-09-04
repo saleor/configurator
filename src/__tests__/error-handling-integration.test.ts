@@ -5,14 +5,13 @@
  * through to user-facing error messages with actionable recovery suggestions.
  */
 
-import { describe, expect, it, vi, beforeEach, type MockedFunction } from "vitest";
 import type { CombinedError } from "@urql/core";
-
-import { ServiceErrorWrapper } from "../lib/utils/error-wrapper";
+import { beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { StageAggregateError } from "../core/deployment/errors";
-import { ErrorRecoveryGuide } from "../lib/errors/recovery-guide";
 import { GraphQLError } from "../lib/errors/graphql";
+import { formatSuggestions, getSuggestions } from "../lib/errors/recovery-guide";
 import { logger } from "../lib/logger";
+import { wrapBatch, wrapServiceCall } from "../lib/utils/error-wrapper";
 
 // Mock dependencies
 vi.mock("../lib/errors/graphql");
@@ -50,96 +49,92 @@ interface Category {
 
 class MockProductService {
   async createProduct(product: Product): Promise<{ id: string; name: string }> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "create product",
-      "Product",
-      product.name,
-      async () => {
-        // Simulate various failure conditions
-        if (!product.slug) {
-          throw new Error("slug is required");
-        }
-
-        if (product.slug === "duplicate-slug") {
-          throw new Error("Duplicate slug 'duplicate-slug'");
-        }
-
-        if (product.productType === "NonexistentType") {
-          throw new Error("Product type 'NonexistentType' not found");
-        }
-
-        if (product.category === "NonexistentCategory") {
-          throw new Error("Category 'NonexistentCategory' not found");
-        }
-
-        if (product.attributes?.color === "missing-attribute") {
-          throw new Error("Attribute 'color' not found");
-        }
-
-        if (product.name === "NetworkError") {
-          throw new Error("connect ECONNREFUSED 127.0.0.1:8000");
-        }
-
-        if (product.name === "PermissionError") {
-          throw new Error("Permission denied: insufficient privileges");
-        }
-
-        if (product.name === "GraphQLError") {
-          const combinedError: CombinedError = {
-            message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-            graphQLErrors: [
-              {
-                message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-              },
-            ],
-            networkError: null,
-            response: {},
-          } as CombinedError;
-          throw combinedError;
-        }
-
-        // Success case
-        return { id: `product-${Date.now()}`, name: product.name };
+    return wrapServiceCall("create product", "Product", product.name, async () => {
+      // Simulate various failure conditions
+      if (!product.slug) {
+        throw new Error("slug is required");
       }
-    );
+
+      if (product.slug === "duplicate-slug") {
+        throw new Error("Duplicate slug 'duplicate-slug'");
+      }
+
+      if (product.productType === "NonexistentType") {
+        throw new Error("Product type 'NonexistentType' not found");
+      }
+
+      if (product.category === "NonexistentCategory") {
+        throw new Error("Category 'NonexistentCategory' not found");
+      }
+
+      if (product.attributes?.color === "missing-attribute") {
+        throw new Error("Attribute 'color' not found");
+      }
+
+      if (product.name === "NetworkError") {
+        throw new Error("connect ECONNREFUSED 127.0.0.1:8000");
+      }
+
+      if (product.name === "PermissionError") {
+        throw new Error("Permission denied: insufficient privileges");
+      }
+
+      if (product.name === "GraphQLError") {
+        const combinedError = {
+          name: "CombinedError",
+          message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
+          graphQLErrors: [
+            {
+              message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
+              locations: [],
+              path: undefined,
+              nodes: undefined,
+              source: undefined,
+              positions: undefined,
+              originalError: undefined,
+              extensions: {},
+              toJSON: undefined,
+              toString: () =>
+                'Variable "$input" of type ProductCreateInput! was provided invalid value',
+            },
+          ],
+          networkError: null,
+          response: {},
+        } as unknown as CombinedError;
+        throw combinedError;
+      }
+
+      // Success case
+      return { id: `product-${Date.now()}`, name: product.name };
+    });
   }
 }
 
 class MockProductTypeService {
   async createProductType(productType: ProductType): Promise<{ id: string; name: string }> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "create product type",
-      "ProductType",
-      productType.name,
-      async () => {
-        if (productType.attributes.includes("missing-attribute")) {
-          throw new Error("Failed to resolve referenced attributes");
-        }
-
-        if (productType.name === "RequiresEntityType") {
-          throw new Error("Entity type is required for reference attribute 'brand'");
-        }
-
-        return { id: `product-type-${Date.now()}`, name: productType.name };
+    return wrapServiceCall("create product type", "ProductType", productType.name, async () => {
+      if (productType.attributes.includes("missing-attribute")) {
+        throw new Error("Failed to resolve referenced attributes");
       }
-    );
+
+      if (productType.name === "RequiresEntityType") {
+        throw new Error("Entity type is required for reference attribute 'brand'");
+      }
+
+      return { id: `product-type-${Date.now()}`, name: productType.name };
+    });
   }
 }
 
 class MockCategoryService {
   async createCategory(category: Category): Promise<{ id: string; name: string }> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "create category",
-      "Category",
-      category.name,
-      async () => {
-        if (category.parent === "NonexistentParent") {
-          throw new Error("Category 'NonexistentParent' not found");
-        }
-
-        return { id: `category-${Date.now()}`, name: category.name };
+    return wrapServiceCall("create category", "Category", category.name, async () => {
+      if (category.parent === "NonexistentParent") {
+        throw new Error("Category 'NonexistentParent' not found");
       }
-    );
+
+      return { id: `category-${Date.now()}`, name: category.name };
+    });
   }
 }
 
@@ -152,7 +147,7 @@ class MockDeploymentOrchestrator {
   ) {}
 
   async deployProducts(products: Product[]): Promise<void> {
-    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
+    const { successes, failures } = await wrapBatch(
       products,
       "deploy products",
       (product) => product.name,
@@ -174,7 +169,7 @@ class MockDeploymentOrchestrator {
   }
 
   async deployProductTypes(productTypes: ProductType[]): Promise<void> {
-    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
+    const { successes, failures } = await wrapBatch(
       productTypes,
       "deploy product types",
       (pt) => pt.name,
@@ -196,7 +191,7 @@ class MockDeploymentOrchestrator {
   }
 
   async deployCategories(categories: Category[]): Promise<void> {
-    const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
+    const { successes, failures } = await wrapBatch(
       categories,
       "deploy categories",
       (category) => category.name,
@@ -226,8 +221,8 @@ describe("Error Handling Integration", () => {
     orchestrator = new MockDeploymentOrchestrator();
 
     // Mock GraphQL error conversion
-    mockedGraphQLError.fromCombinedError.mockImplementation((message) => {
-      return new Error(`GraphQL Error: ${message}`);
+    mockedGraphQLError.fromCombinedError.mockImplementation((message, _error) => {
+      return new GraphQLError(`GraphQL Error: ${message}`);
     });
   });
 
@@ -384,7 +379,7 @@ describe("Error Handling Integration", () => {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
 
-        expect(userMessage).toContain("GraphQL Error:");
+        expect(userMessage).toContain("GraphQLError");
         // The GraphQL error gets wrapped, so we get fallback suggestions
         expect(userMessage).toContain("→ Fix: Review the error message for details");
 
@@ -651,8 +646,8 @@ describe("Error Handling Integration", () => {
       ];
 
       testErrors.forEach((errorMessage) => {
-        const suggestions = ErrorRecoveryGuide.getSuggestions(errorMessage);
-        const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
+        const suggestions = getSuggestions(errorMessage);
+        const formatted = formatSuggestions(suggestions);
 
         console.log(`\nError: "${errorMessage}"`);
         console.log("Recovery Suggestions:");
@@ -671,8 +666,8 @@ describe("Error Handling Integration", () => {
 
     it("should provide fallback suggestions for unknown errors", () => {
       const unknownError = "Some completely unknown error that doesn't match any pattern";
-      const suggestions = ErrorRecoveryGuide.getSuggestions(unknownError);
-      const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
+      const suggestions = getSuggestions(unknownError);
+      const formatted = formatSuggestions(suggestions);
 
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].fix).toBe("Review the error message for details");

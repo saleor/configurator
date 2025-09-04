@@ -1,8 +1,8 @@
-import type { TaxRepository } from "./repository";
-import type { TaxClassInput, TaxConfigurationInput } from "../config/schema/schema";
-import { TaxClassValidationError, DuplicateTaxClassError, InvalidCountryRateError } from "./errors";
-import type { Logger } from "../../lib/logger";
+import type { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import type { TaxClassInput, TaxConfigurationInput } from "../config/schema/schema";
+import { DuplicateTaxClassError, InvalidCountryRateError, TaxClassValidationError } from "./errors";
+import type { TaxRepository } from "./repository";
 
 interface TaxClassWithId extends TaxClassInput {
   id?: string;
@@ -10,12 +10,12 @@ interface TaxClassWithId extends TaxClassInput {
 
 export interface TaxServiceDependencies {
   repository: TaxRepository;
-  logger: Logger;
+  logger: typeof logger;
 }
 
 export class TaxService {
   private repository: TaxRepository;
-  private logger: Logger;
+  private logger: typeof logger;
 
   constructor({ repository, logger }: TaxServiceDependencies) {
     this.repository = repository;

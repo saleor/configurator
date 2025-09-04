@@ -110,6 +110,22 @@ describe("WarehouseService - Two-Step Creation", () => {
         id: "w1",
         name: "Test Warehouse",
         slug: "test-warehouse",
+        email: "test@example.com",
+        isPrivate: false,
+        clickAndCollectOption: "DISABLED",
+        address: {
+          streetAddress1: "123 Test St",
+          streetAddress2: "",
+          city: "Test City",
+          cityArea: "",
+          postalCode: "",
+          country: { code: "US", country: "United States" },
+          countryArea: "",
+          companyName: "",
+          phone: null,
+        },
+        companyName: "",
+        shippingZones: { edges: [] },
       }),
       updateWarehouse: vi.fn(),
       assignShippingZones: vi.fn(),
@@ -122,6 +138,8 @@ describe("WarehouseService - Two-Step Creation", () => {
       name: "Test Warehouse",
       slug: "test-warehouse",
       email: "test@example.com",
+      isPrivate: false, // Explicitly set to default value
+      clickAndCollectOption: "DISABLED", // Explicitly set to default value
       address: {
         streetAddress1: "123 Test St",
         city: "Test City",

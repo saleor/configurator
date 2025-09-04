@@ -62,6 +62,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Test Zone",
+        default: false,
         countries: ["US"],
         warehouses: ["europe", "asia"],
         channels: ["default-channel"],
@@ -92,6 +93,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Test Zone",
+        default: false,
         countries: ["US"],
         warehouses: ["non-existent-warehouse"],
       };
@@ -117,6 +119,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Test Zone",
+        default: false,
         countries: ["US"],
         channels: ["default-channel", "eu-channel"],
         shippingMethods: [
@@ -171,6 +174,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Test Zone",
+        default: false,
         countries: ["US"],
         channels: ["non-existent-channel"],
       };
@@ -198,6 +202,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Test Zone",
+        default: false,
         countries: ["US"],
         channels: ["default-channel"],
       };
@@ -230,6 +235,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Updated Zone",
+        default: false,
         countries: ["US", "CA"],
         warehouses: ["americas"],
         channels: ["us-b2b"],
@@ -263,6 +269,7 @@ describe("ShippingZoneService - Slug Resolution", () => {
 
       const input: ShippingZoneInput = {
         name: "Multi-Warehouse Zone",
+        default: false,
         countries: ["US"],
         warehouses: ["europe", "asia", "americas"],
       };

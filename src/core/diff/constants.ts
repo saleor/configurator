@@ -9,10 +9,14 @@ export const DIFF_ICONS = {
   },
   ENTITIES: {
     "Product Types": "📦",
+    Products: "📦",
     Channels: "🌐",
     "Page Types": "📄",
     Categories: "🏷️",
     "Shop Settings": "🏪",
+    Warehouses: "🏬",
+    TaxClasses: "💰",
+    "Shipping Zones": "🚚",
   },
   SUMMARY: {
     RESULTS: "📊",

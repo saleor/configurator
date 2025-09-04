@@ -10,6 +10,7 @@ const createProductMutation = graphql(`
         id
         name
         slug
+        description
         productType {
           id
           name
@@ -45,6 +46,7 @@ const updateProductMutation = graphql(`
         id
         name
         slug
+        description
         productType {
           id
           name
@@ -137,6 +139,7 @@ const getProductBySlugQuery = graphql(`
       id
       name
       slug
+      description
       productType {
         id
         name
@@ -290,6 +293,16 @@ const productChannelListingUpdateMutation = graphql(`
       product {
         id
         name
+        slug
+        description
+        productType {
+          id
+          name
+        }
+        category {
+          id
+          name
+        }
         channelListings {
           id
           channel {
@@ -342,9 +355,19 @@ export type Product = NonNullable<
   NonNullable<ResultOf<typeof getProductByNameQuery>["products"]>["edges"]
 >[number]["node"];
 
+export type ProductWithSlug = NonNullable<ResultOf<typeof getProductBySlugQuery>["product"]>;
+
 export type ProductVariant = NonNullable<
   NonNullable<
     ResultOf<typeof createProductVariantMutation>["productVariantCreate"]
+  >["productVariant"]
+>;
+
+export type ProductVariantWithChannelListings = NonNullable<
+  NonNullable<
+    ResultOf<
+      typeof productVariantChannelListingUpdateMutation
+    >["productVariantChannelListingUpdate"]
   >["productVariant"]
 >;
 
@@ -356,9 +379,12 @@ export type ProductVariantChannelListingAddInput = VariablesOf<
   typeof productVariantChannelListingUpdateMutation
 >["input"][number];
 
-export type Channel = NonNullable<
-  NonNullable<ResultOf<typeof getChannelBySlugQuery>["channels"]>["edges"]
->[number]["node"];
+export type Channel = {
+  id: string;
+  name: string;
+  slug: string;
+  currencyCode: string;
+};
 
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
@@ -366,7 +392,7 @@ export interface ProductOperations {
   createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
-  getProductBySlug(slug: string): Promise<Product | null>;
+  getProductBySlug(slug: string): Promise<ProductWithSlug | null>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
@@ -380,7 +406,7 @@ export interface ProductOperations {
   updateProductVariantChannelListings(
     id: string,
     input: ProductVariantChannelListingAddInput[]
-  ): Promise<ProductVariant | null>;
+  ): Promise<ProductVariantWithChannelListings | null>;
 }
 
 export type Attribute = NonNullable<
@@ -572,7 +598,7 @@ export class ProductRepository implements ProductOperations {
     return exactMatch?.node;
   }
 
-  async getProductBySlug(slug: string): Promise<Product | null> {
+  async getProductBySlug(slug: string): Promise<ProductWithSlug | null> {
     const result = await this.client.query(getProductBySlugQuery, { slug });
 
     if (result.error) {
@@ -648,7 +674,17 @@ export class ProductRepository implements ProductOperations {
     const result = await this.client.query(getChannelBySlugQuery, { slug });
 
     // Find exact match among search results
-    const exactMatch = result.data?.channels?.edges?.find((edge) => edge.node?.slug === slug);
+    type ChannelEdge = {
+      node?: {
+        id: string;
+        name: string;
+        slug: string;
+        currencyCode: string;
+      } | null;
+    };
+    const channelData = result.data?.channels as { edges?: ChannelEdge[] } | undefined;
+    const edges = channelData?.edges;
+    const exactMatch = edges?.find((edge) => edge.node?.slug === slug);
 
     const channel = exactMatch?.node;
 
@@ -719,7 +755,7 @@ export class ProductRepository implements ProductOperations {
   async updateProductVariantChannelListings(
     id: string,
     input: ProductVariantChannelListingAddInput[]
-  ): Promise<ProductVariant | null> {
+  ): Promise<ProductVariantWithChannelListings | null> {
     logger.debug("Updating product variant channel listings", {
       variantId: id,
       channelCount: input.length,
@@ -749,7 +785,7 @@ export class ProductRepository implements ProductOperations {
 
       // Handle business logic errors from the mutation response
       const businessErrors = result.data?.productVariantChannelListingUpdate?.errors;
-      if (businessErrors && businessErrors.length > 0) {
+      if (businessErrors && Array.isArray(businessErrors) && businessErrors.length > 0) {
         throw GraphQLError.fromDataErrors(
           `Failed to update variant channel listings for variant ${id}`,
           businessErrors
@@ -760,7 +796,12 @@ export class ProductRepository implements ProductOperations {
       return null;
     }
 
-    const variant = result.data.productVariantChannelListingUpdate.productVariant;
+    const variant = result.data.productVariantChannelListingUpdate.productVariant as {
+      id: string;
+      name: string;
+      sku: string;
+      channelListings?: Array<{ id: string }>;
+    };
 
     logger.info("Product variant channel listings updated", {
       variantId: variant.id,

@@ -19,10 +19,10 @@ import { ShippingZoneRepository } from "../modules/shipping-zone/repository";
 import { ShippingZoneService } from "../modules/shipping-zone/shipping-zone-service";
 import { ShopRepository } from "../modules/shop/repository";
 import { ShopService } from "../modules/shop/shop-service";
-import { WarehouseRepository } from "../modules/warehouse/repository";
-import { WarehouseService } from "../modules/warehouse/warehouse-service";
 import { TaxRepository } from "../modules/tax/repository";
 import { TaxService } from "../modules/tax/tax-service";
+import { WarehouseRepository } from "../modules/warehouse/repository";
+import { WarehouseService } from "../modules/warehouse/warehouse-service";
 import { DiffService } from "./diff";
 
 export interface ServiceContainer {

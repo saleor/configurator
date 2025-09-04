@@ -159,7 +159,7 @@ export class ProductService {
       logger.info("Updated existing product", {
         productId: product.id,
         name: product.name,
-        slug: product.slug,
+        slug: "slug" in product ? product.slug : "unknown",
       });
 
       return product;
@@ -181,7 +181,7 @@ export class ProductService {
     logger.info("Created new product", {
       productId: product.id,
       name: product.name,
-      slug: product.slug,
+      slug: "slug" in product ? product.slug : "unknown",
     });
 
     return product;
@@ -325,7 +325,7 @@ export class ProductService {
               channelListingInput
             );
             if (updatedVariant) {
-              updatedVariants[i] = updatedVariant;
+              updatedVariants[i] = updatedVariant as ProductVariant;
             }
             logger.debug("Variant channel listings updated", {
               variantId: variant.id,

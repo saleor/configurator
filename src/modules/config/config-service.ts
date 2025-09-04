@@ -30,8 +30,9 @@ interface TaxClassType {
 interface TaxClassCountryRateType {
   country: { code: string };
   rate: number;
-  taxClass?: { id: string };
+  taxClass?: { id: string } | null;
 }
+
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -263,18 +264,14 @@ export class ConfigurationService {
       .map((edge) => edge.node)
       .filter(Boolean)
       .map((product) => {
-        // Map basic product information
+        // Map basic product information with required variants field
         const mappedProduct: ProductInput = {
           name: product.name,
           slug: product.slug,
           productType: product.productType.name,
           category: product.category?.slug || "",
+          variants: [], // Initialize with empty array, will be populated below
         };
-
-        // Add description if present
-        if (product.description) {
-          mappedProduct.description = product.description;
-        }
 
         // Map product attributes
         if (product.attributes && product.attributes.length > 0) {
@@ -284,28 +281,36 @@ export class ConfigurationService {
             const attributeName = attr.attribute.name;
             const values = attr.values || [];
 
-            if (values.length === 0) continue;
+            if (!attributeName || values.length === 0) continue;
 
             // Handle different attribute types
             if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
               // Multi-value attribute
               attributes[attributeName] = values
-                .map((v) => v.name || v.slug || v.value || "")
+                .map((v) => v?.name || v?.slug || v?.value || "")
                 .filter(Boolean);
             } else if (values.length === 1) {
               // Single value attribute
               const value = values[0];
-              attributes[attributeName] =
-                value.name ||
-                value.slug ||
-                value.plainText ||
-                value.richText ||
-                (value.boolean !== null ? String(value.boolean) : "") ||
-                value.date ||
-                value.dateTime ||
-                value.reference ||
-                value.value ||
-                "";
+              if (value) {
+                let stringValue: string | null = null;
+                if (value.name && typeof value.name === "string") stringValue = value.name;
+                else if (value.slug && typeof value.slug === "string") stringValue = value.slug;
+                else if (value.plainText && typeof value.plainText === "string")
+                  stringValue = value.plainText;
+                else if (value.richText && typeof value.richText === "string")
+                  stringValue = value.richText;
+                else if (value.boolean !== null && value.boolean !== undefined)
+                  stringValue = String(value.boolean);
+                else if (value.date && typeof value.date === "string") stringValue = value.date;
+                else if (value.dateTime && typeof value.dateTime === "string")
+                  stringValue = value.dateTime;
+                else if (typeof value.reference === "string") stringValue = value.reference;
+                else if (value.value && typeof value.value === "string") stringValue = value.value;
+                if (stringValue) {
+                  attributes[attributeName] = stringValue;
+                }
+              }
             }
           }
 
@@ -316,37 +321,38 @@ export class ConfigurationService {
 
         // Map channel listings
         if (product.channelListings && product.channelListings.length > 0) {
-          mappedProduct.channelListings = product.channelListings
-            .map((listing) => {
-              const channelListing: Record<string, unknown> = {
-                channel: listing.channel.slug,
-                isPublished: listing.isPublished,
-                visibleInListings: listing.visibleInListings,
-              };
+          mappedProduct.channelListings = product.channelListings.map((listing) => {
+            type ChannelListing = {
+              channel: string;
+              isPublished: boolean;
+              visibleInListings: boolean;
+              availableForPurchase?: string;
+              publishedAt?: string;
+            };
+            const channelListing: ChannelListing = {
+              channel: listing.channel.slug,
+              isPublished: listing.isPublished ?? true,
+              visibleInListings: listing.visibleInListings ?? true,
+            };
 
-              // Only add non-null optional fields
-              if (listing.availableForPurchaseAt) {
-                channelListing.availableForPurchase = listing.availableForPurchaseAt;
-              }
-              if (listing.publicationDate) {
-                channelListing.publishedAt = listing.publicationDate;
-              }
+            if (listing.availableForPurchaseAt) {
+              channelListing.availableForPurchase = String(listing.availableForPurchaseAt);
+            }
+            if (listing.publicationDate) {
+              channelListing.publishedAt = String(listing.publicationDate);
+            }
 
-              return channelListing;
-            });
+            return channelListing;
+          });
         }
 
         // Map variants
         if (product.variants && product.variants.length > 0) {
           mappedProduct.variants = product.variants.map((variant) => {
             const mappedVariant: ProductVariantInput = {
+              name: variant.name || product.name, // Use variant name or fallback to product name
               sku: variant.sku || "",
             };
-
-            // Add variant name if different from product name
-            if (variant.name && variant.name !== product.name) {
-              mappedVariant.name = variant.name;
-            }
 
             // Add weight if present
             if (variant.weight?.value) {
@@ -361,21 +367,28 @@ export class ConfigurationService {
                 const attributeName = attr.attribute.name;
                 const values = attr.values || [];
 
-                if (values.length === 0) continue;
+                if (!attributeName || values.length === 0) continue;
 
                 if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
                   variantAttributes[attributeName] = values
-                    .map((v) => v.name || v.slug || v.value || "")
+                    .map((v) => v?.name || v?.slug || v?.value || "")
                     .filter(Boolean);
                 } else if (values.length === 1) {
                   const value = values[0];
-                  variantAttributes[attributeName] =
-                    value.name ||
-                    value.slug ||
-                    value.plainText ||
-                    (value.boolean !== null ? String(value.boolean) : "") ||
-                    value.value ||
-                    "";
+                  if (value) {
+                    let stringValue: string | null = null;
+                    if (value.name && typeof value.name === "string") stringValue = value.name;
+                    else if (value.slug && typeof value.slug === "string") stringValue = value.slug;
+                    else if (value.plainText && typeof value.plainText === "string")
+                      stringValue = value.plainText;
+                    else if (value.boolean !== null && value.boolean !== undefined)
+                      stringValue = String(value.boolean);
+                    else if (value.value && typeof value.value === "string")
+                      stringValue = value.value;
+                    if (stringValue) {
+                      variantAttributes[attributeName] = stringValue;
+                    }
+                  }
                 }
               }
 
@@ -387,21 +400,11 @@ export class ConfigurationService {
             // Map variant channel listings
             if (variant.channelListings && variant.channelListings.length > 0) {
               mappedVariant.channelListings = variant.channelListings.map((listing) => {
-                const channelData: Record<string, unknown> = {
+                return {
                   channel: listing.channel.slug,
+                  price: listing.price?.amount || 0, // Default to 0 if no price
+                  ...(listing.costPrice?.amount && { costPrice: listing.costPrice.amount }),
                 };
-
-                if (listing.price?.amount) {
-                  channelData.price = listing.price.amount;
-                }
-                if (listing.costPrice?.amount) {
-                  channelData.costPrice = listing.costPrice.amount;
-                }
-                if (listing.preorderThreshold?.quantity) {
-                  channelData.preorderThreshold = listing.preorderThreshold.quantity;
-                }
-
-                return channelData;
               });
             }
 
@@ -443,7 +446,7 @@ export class ConfigurationService {
       }));
   }
 
-  private mapTaxClasses(taxClasses: readonly TaxClassType[]): readonly TaxClassInput[] {
+  private mapTaxClasses(taxClasses: TaxClassType[]): TaxClassInput[] {
     return taxClasses.map((edge) => {
       const taxClass = edge.node;
 
@@ -658,7 +661,9 @@ export class ConfigurationService {
     }
 
     if (shouldIncludeSection("taxClasses", options)) {
-      config.taxClasses = this.mapTaxClasses(rawConfig.taxClasses?.edges || []);
+      config.taxClasses = this.mapTaxClasses(
+        rawConfig.taxClasses?.edges ? [...rawConfig.taxClasses.edges] : []
+      );
     }
 
     const fullConfig = config as SaleorConfig;

@@ -113,8 +113,8 @@ describe("ProductComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       // The BLUE-M variant exists in local but not in remote, so it will be added
-      const blueVariantChange = results[0].changes.find((change) => 
-        change.field === "variants.BLUE-M"
+      const blueVariantChange = results[0].changes?.find(
+        (change) => change.field === "variants.BLUE-M"
       );
       expect(blueVariantChange).toBeDefined();
       expect(blueVariantChange?.description).toMatch(/will be added|will be removed/);

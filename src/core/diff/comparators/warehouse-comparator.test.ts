@@ -3,8 +3,23 @@ import type { WarehouseInput } from "../../../modules/config/schema/schema";
 import type { Warehouse } from "../../../modules/warehouse/repository";
 import { WarehouseComparator } from "./warehouse-comparator";
 
+// Test subclass to expose protected methods for testing
+class TestableWarehouseComparator extends WarehouseComparator {
+  public testValidateUniqueIdentifiers(entities: readonly WarehouseInput[]): void {
+    this.validateUniqueIdentifiers(entities);
+  }
+
+  public testDeduplicateEntities(entities: readonly WarehouseInput[]): readonly WarehouseInput[] {
+    return this.deduplicateEntities(entities) as readonly WarehouseInput[];
+  }
+
+  public testGetEntityName(entity: WarehouseInput | Warehouse): string {
+    return this.getEntityName(entity);
+  }
+}
+
 describe("WarehouseComparator", () => {
-  const comparator = new WarehouseComparator();
+  const comparator = new TestableWarehouseComparator();
 
   const mockLocalWarehouse: WarehouseInput = {
     name: "Main Warehouse",
@@ -32,6 +47,7 @@ describe("WarehouseComparator", () => {
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
+    companyName: "Acme Corp",
     clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
@@ -39,7 +55,7 @@ describe("WarehouseComparator", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
@@ -236,13 +252,13 @@ describe("WarehouseComparator", () => {
 
   describe("getEntityName", () => {
     it("should use slug as identifier", () => {
-      expect(comparator.getEntityName(mockLocalWarehouse)).toBe("main-warehouse");
-      expect(comparator.getEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
+      expect(comparator.testGetEntityName(mockLocalWarehouse)).toBe("main-warehouse");
+      expect(comparator.testGetEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
     });
 
     it("should throw error when slug is missing", () => {
       const warehouseWithoutSlug = { ...mockLocalWarehouse, slug: "" };
-      expect(() => comparator.getEntityName(warehouseWithoutSlug)).toThrow(
+      expect(() => comparator.testGetEntityName(warehouseWithoutSlug)).toThrow(
         "Warehouse must have a valid slug"
       );
     });
@@ -252,7 +268,7 @@ describe("WarehouseComparator", () => {
     it("should validate unique slugs", () => {
       const warehouses = [mockLocalWarehouse, { ...mockLocalWarehouse, name: "Another Warehouse" }];
 
-      expect(() => comparator.validateUniqueIdentifiers(warehouses)).toThrow(
+      expect(() => comparator.testValidateUniqueIdentifiers(warehouses)).toThrow(
         "Duplicate entity identifiers found in Warehouses: main-warehouse"
       );
     });
@@ -266,7 +282,7 @@ describe("WarehouseComparator", () => {
         { ...mockLocalWarehouse, slug: "secondary-warehouse", name: "Secondary Warehouse" },
       ];
 
-      const deduplicated = comparator.deduplicateEntities(warehouses);
+      const deduplicated = comparator.testDeduplicateEntities(warehouses);
 
       expect(deduplicated).toHaveLength(2);
       expect(deduplicated[0].slug).toBe("main-warehouse");

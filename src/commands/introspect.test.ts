@@ -181,7 +181,20 @@ describe("introspect command", () => {
     it("should correctly write nested categories to YAML", async () => {
       // Mock the repository to return nested categories
       const mockRawConfig: RawSaleorConfig = {
-        shop: null,
+        shop: {
+          defaultMailSenderName: "Test Store",
+          defaultMailSenderAddress: "test@example.com",
+          displayGrossPrices: false,
+          enableAccountConfirmationByEmail: false,
+          limitQuantityPerCheckout: 10,
+          trackInventoryByDefault: false,
+          reserveStockDurationAnonymousUser: 60,
+          reserveStockDurationAuthenticatedUser: 60,
+          defaultDigitalMaxDownloads: 10,
+          defaultDigitalUrlValidDays: 10,
+          defaultWeightUnit: "KG" as const,
+          allowLoginWithoutConfirmation: false,
+        },
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
@@ -236,6 +249,8 @@ describe("introspect command", () => {
         },
         shippingZones: null,
         warehouses: null,
+        products: { edges: [] },
+        taxClasses: { edges: [] },
       };
 
       const mockRepository = {
@@ -273,7 +288,20 @@ describe("introspect command", () => {
 
     it("should produce valid YAML with proper indentation for nested categories", async () => {
       const mockRawConfig: RawSaleorConfig = {
-        shop: null,
+        shop: {
+          defaultMailSenderName: "Test Store",
+          defaultMailSenderAddress: "test@example.com",
+          displayGrossPrices: false,
+          enableAccountConfirmationByEmail: false,
+          limitQuantityPerCheckout: 10,
+          trackInventoryByDefault: false,
+          reserveStockDurationAnonymousUser: 60,
+          reserveStockDurationAuthenticatedUser: 60,
+          defaultDigitalMaxDownloads: 10,
+          defaultDigitalUrlValidDays: 10,
+          defaultWeightUnit: "KG" as const,
+          allowLoginWithoutConfirmation: false,
+        },
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
@@ -301,6 +329,8 @@ describe("introspect command", () => {
         },
         shippingZones: null,
         warehouses: null,
+        products: { edges: [] },
+        taxClasses: { edges: [] },
       };
 
       const mockRepository = {

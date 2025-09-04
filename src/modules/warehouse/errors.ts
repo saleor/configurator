@@ -1,8 +1,11 @@
 import { BaseError } from "../../lib/errors/shared";
 
 export class WarehouseError extends BaseError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, "WAREHOUSE_ERROR", details);
+  constructor(
+    message: string,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message, "WAREHOUSE_ERROR");
   }
 }
 

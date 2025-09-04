@@ -3,10 +3,12 @@ import type { Warehouse } from "../../../modules/warehouse/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
+type WarehouseUnion = WarehouseInput | Warehouse;
+
 export class WarehouseComparator extends BaseEntityComparator<
   readonly WarehouseInput[],
   readonly Warehouse[],
-  WarehouseInput | Warehouse
+  WarehouseUnion
 > {
   protected readonly entityType: EntityType = "Warehouses";
 
@@ -25,12 +27,27 @@ export class WarehouseComparator extends BaseEntityComparator<
 
       if (!remoteWarehouse) {
         // Warehouse doesn't exist in remote, create it
-        results.push(this.createCreateResult(localWarehouse));
+        results.push({
+          operation: "CREATE" as const,
+          entityType: this.entityType,
+          entityName: this.getEntityName(localWarehouse),
+          desired: localWarehouse as WarehouseInput | Warehouse,
+        });
       } else {
         // Warehouse exists, check for updates
-        const changes = this.compareEntityFields(localWarehouse, remoteWarehouse);
+        const changes = this.compareEntityFields(
+          localWarehouse as WarehouseInput,
+          remoteWarehouse as Warehouse
+        );
         if (changes.length > 0) {
-          results.push(this.createUpdateResult(localWarehouse, remoteWarehouse, changes));
+          results.push({
+            operation: "UPDATE" as const,
+            entityType: this.entityType,
+            entityName: this.getEntityName(localWarehouse),
+            current: remoteWarehouse as WarehouseInput | Warehouse,
+            desired: localWarehouse as WarehouseInput | Warehouse,
+            changes,
+          });
         }
       }
     }
@@ -38,14 +55,19 @@ export class WarehouseComparator extends BaseEntityComparator<
     // Check for warehouses to delete (exists in remote but not in local)
     for (const remoteWarehouse of remote) {
       if (!localMap.has(this.getEntityName(remoteWarehouse))) {
-        results.push(this.createDeleteResult(remoteWarehouse));
+        results.push({
+          operation: "DELETE" as const,
+          entityType: this.entityType,
+          entityName: this.getEntityName(remoteWarehouse),
+          current: remoteWarehouse as WarehouseInput | Warehouse,
+        });
       }
     }
 
     return results;
   }
 
-  protected getEntityName(entity: WarehouseInput | Warehouse): string {
+  protected getEntityName(entity: WarehouseUnion): string {
     if (!entity.slug) {
       throw new Error("Warehouse must have a valid slug");
     }
@@ -63,7 +85,7 @@ export class WarehouseComparator extends BaseEntityComparator<
       city: address.city || "",
       cityArea: address.cityArea || "",
       postalCode: address.postalCode || "",
-      country: address.country?.code || address.country || "",
+      country: typeof address.country === "object" ? address.country.code : address.country || "",
       countryArea: address.countryArea || "",
       companyName: address.companyName || "",
       phone: address.phone || "",
