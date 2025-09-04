@@ -488,6 +488,7 @@ pnpm dev --help
 ---
 
 **Related Documentation:**
+- [CODE_QUALITY.md](CODE_QUALITY.md) - Code quality standards and TypeScript best practices
 - [COMMANDS.md](COMMANDS.md) - CLI command reference for development testing
 - [TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md) - Detailed testing procedures
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Development issue resolution

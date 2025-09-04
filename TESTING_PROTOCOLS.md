@@ -560,6 +560,7 @@ beforeEach(() => {
 ---
 
 **Related Documentation:**
+- [CODE_QUALITY.md](CODE_QUALITY.md) - Testing best practices and patterns
 - [COMMANDS.md](COMMANDS.md) - CLI commands for testing procedures
 - [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Development process integration
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Test failure resolution procedures

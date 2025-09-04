@@ -25,6 +25,7 @@ This documentation follows a **hub-and-spoke model** for optimal information ret
 - **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Decision trees, diagnostic commands, and error recovery procedures
 
 ### 🔧 Development & Workflows  
+- **[CODE_QUALITY.md](CODE_QUALITY.md)** - TypeScript best practices, clean code, functional programming, and Zod patterns
 - **[DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md)** - Development procedures, branching, and code review processes
 - **[TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md)** - End-to-end testing procedures and validation workflows
 - **[MCP_INTEGRATION.md](MCP_INTEGRATION.md)** - Serena and Context7 MCP tool usage patterns
@@ -124,6 +125,7 @@ pnpm dev diff [credentials]          # 8. Should show no changes
 
 ### For Specific Tasks
 
+**Code Quality**: See [CODE_QUALITY.md](CODE_QUALITY.md) for TypeScript best practices and clean code patterns
 **Command Usage**: See [COMMANDS.md](COMMANDS.md) for complete syntax and examples
 **Entity Implementation**: See [ENTITY_REFERENCE.md](ENTITY_REFERENCE.md) for patterns and identification rules
 **Error Resolution**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for systematic diagnosis
