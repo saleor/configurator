@@ -3,16 +3,8 @@ import type { ModelInput } from "../config/schema/schema";
 import { ModelValidationError } from "./errors";
 import type { Model, ModelOperations } from "./repository";
 import { ModelService } from "./model-service";
-
-// Mock service interfaces for testing
-interface MockPageTypeService {
-  getPageTypeByName: (name: string) => Promise<{ id: string; name: string } | null | undefined>;
-  getPageType?: (id: string) => Promise<{ id: string; name: string; attributes: unknown[] } | null | undefined>;
-}
-
-interface MockAttributeService {
-  processModelAttributes: (attributes: unknown[]) => Promise<unknown[]>;
-}
+import type { PageTypeService } from "../page-type/page-type-service";
+import type { AttributeService } from "../attribute/attribute-service";
 
 describe("ModelService", () => {
   const mockModelInput: ModelInput = {
@@ -43,12 +35,12 @@ describe("ModelService", () => {
     it("should throw error when model title is missing", async () => {
       const invalidInput = { ...mockModelInput, title: "" };
       const mockOperations = createMockOperations();
-      const mockPageTypeService: MockPageTypeService = {
+      const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
-      };
-      const mockAttributeService: MockAttributeService = {
+      } as unknown as PageTypeService;
+      const mockAttributeService = {
         processModelAttributes: vi.fn().mockResolvedValue([]),
-      };
+      } as unknown as AttributeService;
       const service = new ModelService(mockOperations, mockPageTypeService, mockAttributeService);
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -57,12 +49,12 @@ describe("ModelService", () => {
     it("should throw error when model slug is missing", async () => {
       const invalidInput = { ...mockModelInput, slug: "" };
       const mockOperations = createMockOperations();
-      const mockPageTypeService: MockPageTypeService = {
+      const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
-      };
-      const mockAttributeService: MockAttributeService = {
+      } as unknown as PageTypeService;
+      const mockAttributeService = {
         processModelAttributes: vi.fn().mockResolvedValue([]),
-      };
+      } as unknown as AttributeService;
       const service = new ModelService(mockOperations, mockPageTypeService, mockAttributeService);
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -71,12 +63,12 @@ describe("ModelService", () => {
     it("should throw error when model type is missing", async () => {
       const invalidInput = { ...mockModelInput, modelType: "" };
       const mockOperations = createMockOperations();
-      const mockPageTypeService: MockPageTypeService = {
+      const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
-      };
-      const mockAttributeService: MockAttributeService = {
+      } as unknown as PageTypeService;
+      const mockAttributeService = {
         processModelAttributes: vi.fn().mockResolvedValue([]),
-      };
+      } as unknown as AttributeService;
       const service = new ModelService(mockOperations, mockPageTypeService, mockAttributeService);
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -149,12 +141,12 @@ describe("ModelService", () => {
       ];
 
       const mockOperations = createMockOperations();
-      const mockPageTypeService: MockPageTypeService = {
+      const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
-      };
-      const mockAttributeService: MockAttributeService = {
+      } as unknown as PageTypeService;
+      const mockAttributeService = {
         processModelAttributes: vi.fn().mockResolvedValue([]),
-      };
+      } as unknown as AttributeService;
       const service = new ModelService(mockOperations, mockPageTypeService, mockAttributeService);
 
       await expect(service.bootstrapModels(duplicateModels)).rejects.toThrow(
@@ -249,12 +241,12 @@ describe("ModelService", () => {
 
     it("should throw error for unknown page type", async () => {
       const mockOperations = createMockOperations();
-      const mockPageTypeService: MockPageTypeService = {
+      const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
-      };
-      const mockAttributeService: MockAttributeService = {
+      } as unknown as PageTypeService;
+      const mockAttributeService = {
         processModelAttributes: vi.fn().mockResolvedValue([]),
-      };
+      } as unknown as AttributeService;
       const service = new ModelService(mockOperations, mockPageTypeService, mockAttributeService);
 
       const invalidInput = { ...mockModelInput, modelType: "Unknown Type" };

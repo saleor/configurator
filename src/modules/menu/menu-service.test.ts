@@ -3,19 +3,9 @@ import type { MenuInput } from "../config/schema/schema";
 import { MenuValidationError } from "./errors";
 import type { Menu, MenuOperations } from "./repository";
 import { MenuService } from "./menu-service";
-
-// Mock service interfaces for testing
-interface MockCategoryService {
-  getCategoryBySlug: (slug: string) => Promise<{ id: string; slug: string } | null | undefined>;
-}
-
-interface MockCollectionService {
-  getCollectionBySlug: (slug: string) => Promise<{ id: string; slug: string } | null | undefined>;
-}
-
-interface MockModelService {
-  getModelBySlug: (slug: string) => Promise<{ id: string; slug: string } | null | undefined>;
-}
+import type { CategoryService } from "../category/category-service";
+import type { CollectionService } from "../collection/collection-service";
+import type { ModelService } from "../model/model-service";
 
 describe("MenuService", () => {
   const mockMenuInput: MenuInput = {
@@ -86,15 +76,15 @@ describe("MenuService", () => {
     it("should throw error when menu name is missing", async () => {
       const invalidInput = { ...mockMenuInput, name: "" };
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       await expect(service.createMenu(invalidInput)).rejects.toThrow(MenuValidationError);
@@ -103,15 +93,15 @@ describe("MenuService", () => {
     it("should throw error when menu slug is missing", async () => {
       const invalidInput = { ...mockMenuInput, slug: "" };
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       await expect(service.createMenu(invalidInput)).rejects.toThrow(MenuValidationError);
@@ -122,15 +112,15 @@ describe("MenuService", () => {
       mockOperations.createMenu.mockResolvedValue(mockMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const result = await service.createMenu(mockMenuInput);
@@ -142,15 +132,15 @@ describe("MenuService", () => {
   describe("validateMenuItemInput", () => {
     it("should accept menu item with category reference", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithCategory = { name: "Electronics", category: "electronics-technology" };
@@ -159,15 +149,15 @@ describe("MenuService", () => {
 
     it("should accept menu item with page reference", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithPage = { name: "About", page: "about" };
@@ -176,15 +166,15 @@ describe("MenuService", () => {
 
     it("should accept menu item with collection reference", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithCollection = { name: "Featured", collection: "featured-products" };
@@ -193,15 +183,15 @@ describe("MenuService", () => {
 
     it("should accept menu item with URL", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithUrl = { name: "External", url: "https://example.com" };
@@ -210,15 +200,15 @@ describe("MenuService", () => {
 
     it("should throw error when menu item has no target", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithoutTarget = { name: "Invalid Item" };
@@ -227,15 +217,15 @@ describe("MenuService", () => {
 
     it("should throw error when menu item has multiple targets", () => {
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const itemWithMultipleTargets = { name: "Invalid", category: "cat", page: "page" };
@@ -250,15 +240,15 @@ describe("MenuService", () => {
       const mockUpdatedMenu = { ...mockMenu, items: [] }; // Convert to array for syncMenuItems
       mockOperations.updateMenu.mockResolvedValue(mockUpdatedMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const result = await service.getOrCreateMenu(mockMenuInput);
@@ -273,15 +263,15 @@ describe("MenuService", () => {
       mockOperations.getMenuBySlug.mockResolvedValue(null); // Menu doesn't exist
       mockOperations.createMenu.mockResolvedValue(mockMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const result = await service.getOrCreateMenu(mockMenuInput);
@@ -299,15 +289,15 @@ describe("MenuService", () => {
       ];
 
       const mockOperations = createMockOperations();
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       await expect(service.bootstrapMenus(duplicateMenus)).rejects.toThrow(
@@ -325,15 +315,15 @@ describe("MenuService", () => {
       mockOperations.getMenus.mockResolvedValue([]);
       mockOperations.createMenu.mockResolvedValue(mockMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const results = await service.bootstrapMenus(menus);
@@ -350,15 +340,15 @@ describe("MenuService", () => {
       mockOperations.createMenu.mockResolvedValue(mockMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const result = await service.createMenu(menuWithoutItems);
@@ -398,15 +388,15 @@ describe("MenuService", () => {
       mockOperations.createMenu.mockResolvedValue(mockMenu);
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
       mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       const result = await service.createMenu(hierarchicalMenu);
@@ -420,15 +410,15 @@ describe("MenuService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getMenus.mockResolvedValue([]);
       mockOperations.createMenu.mockRejectedValue(new Error("API Error"));
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       await expect(service.createMenu(mockMenuInput)).rejects.toThrow(
@@ -440,15 +430,15 @@ describe("MenuService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getMenus.mockResolvedValue([]);
       mockOperations.updateMenu.mockRejectedValue(new Error("API Error"));
-      const mockCategoryService: MockCategoryService = {
+      const mockCategoryService = {
         getCategoryBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "electronics-technology" }),
-      };
-      const mockCollectionService: MockCollectionService = {
+      } as unknown as CategoryService;
+      const mockCollectionService = {
         getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
-      };
-      const mockModelService: MockModelService = {
+      } as unknown as CollectionService;
+      const mockModelService = {
         getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
-      };
+      } as unknown as ModelService;
       const service = new MenuService(mockOperations, mockCategoryService, mockCollectionService, mockModelService);
 
       await expect(service.updateMenu("1", mockMenuInput)).rejects.toThrow(
