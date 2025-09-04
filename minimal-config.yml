@@ -1,0 +1,40 @@
+# Minimal configuration with just new products - won't delete existing data
+
+products:
+  - name: "Boston Museum of Science Admission"
+    slug: "boston-museum-science"
+    productType: "Default Type"  # Using existing product type
+    category: "accessories"      # Using existing category
+    description: "Experience interactive science exhibits and planetarium shows at Boston's premier science museum"
+    variants:
+      - name: "Adult Ticket"
+        sku: "BOSTON-MUS-ADULT"
+        weight: 0.0
+      - name: "Child Ticket"
+        sku: "BOSTON-MUS-CHILD"
+        weight: 0.0
+      - name: "Student Ticket"
+        sku: "BOSTON-MUS-STUDENT"
+        weight: 0.0
+      - name: "Senior Ticket"
+        sku: "BOSTON-MUS-SENIOR"
+        weight: 0.0
+
+  - name: "Premium Smartphone X1"
+    slug: "premium-smartphone-x1"
+    productType: "Default Type"  # Using existing product type
+    category: "accessories"      # Using existing category
+    description: "Latest flagship smartphone with advanced camera system and all-day battery life"
+    variants:
+      - name: "128GB Black"
+        sku: "PHONE-X1-128-BLK"
+        weight: 0.18
+      - name: "256GB Black"
+        sku: "PHONE-X1-256-BLK"
+        weight: 0.18
+      - name: "128GB White"
+        sku: "PHONE-X1-128-WHT"
+        weight: 0.18
+      - name: "256GB Space Gray"
+        sku: "PHONE-X1-256-GRY"
+        weight: 0.18

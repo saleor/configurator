@@ -352,6 +352,7 @@ export class DiffService {
       "productTypes",
       "pageTypes",
       "categories",
+      "products",
       "warehouses",
       "shippingZones",
       "taxClasses",
@@ -404,6 +405,7 @@ export class DiffService {
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       categories: "categories",
+      products: "products",
       warehouses: "warehouses",
       shippingZones: "shippingZones",
     };

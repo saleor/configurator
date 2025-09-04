@@ -266,7 +266,34 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.product.bootstrapProducts(config.products);
+      // Get only the products that need to be changed based on diff results
+      const productChanges = context.summary.results.filter(r => r.entityType === "Products");
+      
+      if (productChanges.length === 0) {
+        logger.debug("No product changes detected in diff");
+        return;
+      }
+
+      // Extract product slugs that need to be processed
+      const changedProductSlugs = new Set(productChanges.map(change => change.entityName));
+      
+      // Filter config to only process changed products
+      const productsToProcess = config.products.filter(product => 
+        changedProductSlugs.has(product.slug)
+      );
+
+      logger.debug("Processing selective product changes", {
+        totalProducts: config.products.length,
+        changedProducts: productsToProcess.length,
+        slugs: Array.from(changedProductSlugs)
+      });
+
+      if (productsToProcess.length === 0) {
+        logger.debug("No products found matching diff changes");
+        return;
+      }
+
+      await context.configurator.services.product.bootstrapProducts(productsToProcess);
     } catch (error) {
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`

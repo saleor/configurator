@@ -20,6 +20,14 @@ vi.mock("../cli/command", () => ({
 }));
 vi.mock("../lib/logger");
 vi.mock("../core/deployment");
+vi.mock("../core/deployment/enhanced-pipeline", () => ({
+  executeEnhancedDeployment: vi.fn(),
+}));
+vi.mock("../core/deployment/results", () => ({
+  DeploymentResultFormatter: vi.fn(() => ({
+    format: vi.fn().mockReturnValue("Mock deployment result"),
+  })),
+}));
 vi.mock("../core/diff/formatters", () => ({
   DeployDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock diff output"),
@@ -39,12 +47,13 @@ describe("Deploy Command", () => {
     addStage: ReturnType<typeof vi.fn>;
     execute: ReturnType<typeof vi.fn>;
   };
+  let mockExecuteEnhancedDeployment: ReturnType<typeof vi.fn>;
   let mockDiffService: Record<string, ReturnType<typeof vi.fn>>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Mock process.exit
     mockExit = vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null) => {
-      throw new Error(`Process exited with code ${code}`);
+      throw new Error(`process.exit(${code})`);
     }) as never);
 
     // Mock logger to suppress output
@@ -86,6 +95,33 @@ describe("Deploy Command", () => {
           typeof deploymentModule.DeploymentPipeline
         >
     );
+
+    // Setup executeEnhancedDeployment mock
+    const { executeEnhancedDeployment } = await import("../core/deployment/enhanced-pipeline");
+    mockExecuteEnhancedDeployment = vi.mocked(executeEnhancedDeployment);
+    mockExecuteEnhancedDeployment.mockImplementation(async () => {
+      const result = {
+      metrics: {
+        startTime: new Date(),
+        endTime: new Date(),
+        duration: 100,
+        stageDurations: new Map(),
+        stageMetrics: [],
+        operationCounts: { created: 1, updated: 0, deleted: 0 },
+        errors: [],
+      },
+      result: {
+        overallStatus: 'success' as const,
+        stages: [],
+        totalOperations: 1,
+        successfulOperations: 1,
+        failedOperations: 0,
+      },
+      shouldExit: true,
+      exitCode: 0,
+      };
+      return result;
+    });
     vi.spyOn(deploymentModule, "getAllStages").mockReturnValue([]);
     vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(
       () =>
@@ -171,7 +207,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
 
       expect(mockExit).toHaveBeenCalledWith(3);
     });
@@ -201,7 +237,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 2");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(2)");
 
       expect(mockExit).toHaveBeenCalledWith(2);
     });
@@ -238,7 +274,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 4");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
 
       expect(mockExit).toHaveBeenCalledWith(4);
     });
@@ -271,7 +307,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
 
       expect(mockExit).toHaveBeenCalledWith(3);
     });
@@ -301,14 +337,14 @@ describe("Deploy Command", () => {
         verbose: true,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 3");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
 
       expect(mockExit).toHaveBeenCalledWith(3);
     });
 
     it("should handle unexpected errors with exit code 1", async () => {
       const unexpectedError = new Error("Unexpected internal error");
-      mockDeploymentPipeline.execute.mockRejectedValue(unexpectedError);
+      mockExecuteEnhancedDeployment.mockRejectedValue(unexpectedError);
 
       const args = {
         url: "https://test.saleor.cloud",
@@ -319,7 +355,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 1");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(1)");
 
       expect(mockExit).toHaveBeenCalledWith(1);
     });
@@ -349,7 +385,7 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 4");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
 
       expect(mockExit).toHaveBeenCalledWith(4);
     });
@@ -410,11 +446,11 @@ describe("Deploy Command", () => {
       };
 
       // The deployment will succeed with exit code 0
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
       // Verify that the deployment pipeline was executed
       expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
-      expect(mockDeploymentPipeline.execute).toHaveBeenCalled();
+      expect(mockExecuteEnhancedDeployment).toHaveBeenCalled();
       // And that exit(0) was called for successful deployment
       expect(mockExit).toHaveBeenCalledWith(0);
     });
@@ -429,12 +465,12 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
       // In CI mode, confirmAction should not be called because args.ci is true
       const { confirmAction } = await import("../cli/command");
       expect(confirmAction).not.toHaveBeenCalled();
-      expect(mockDeploymentPipeline.execute).toHaveBeenCalled();
+      expect(mockExecuteEnhancedDeployment).toHaveBeenCalled();
     });
 
     it("should save deployment report", async () => {
@@ -459,7 +495,7 @@ describe("Deploy Command", () => {
         reportPath: "custom-report.json",
       };
 
-      await expect(deployHandler(args)).rejects.toThrow("Process exited with code 0");
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
       expect(mockReportGenerator.saveToFile).toHaveBeenCalledWith("custom-report.json");
     });
@@ -480,10 +516,10 @@ describe("Deploy Command", () => {
         verbose: false,
       };
 
-      await deployHandler(args);
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
-      expect(mockDeploymentPipeline.execute).not.toHaveBeenCalled();
-      expect(mockExit).not.toHaveBeenCalled();
+      expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
   });
 });

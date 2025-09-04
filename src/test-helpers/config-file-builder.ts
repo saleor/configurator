@@ -4,7 +4,8 @@ import type {
   ChannelInput,
   CountryCode,
   CurrencyCode,
-  PageTypeInput,
+  PageInput,
+  ProductInput,
   ProductTypeInput,
   SaleorConfig,
   ShopInput,
@@ -14,7 +15,9 @@ import type { TempDirectory } from "./filesystem";
 // Re-export for convenience in tests
 export type ChannelConfig = ChannelInput;
 export type ProductTypeConfig = ProductTypeInput;
+export type ProductConfig = ProductInput;
 export type PageTypeConfig = PageTypeInput;
+export type PageConfig = PageInput;
 export type CategoryConfig = CategoryInput;
 export type ShopConfig = ShopInput;
 export type ConfigFileContent = SaleorConfig;
@@ -142,6 +145,28 @@ export class ConfigFileBuilder {
       this.content.categories = [];
     }
     this.content.categories.push(...categories);
+    return this;
+  }
+
+  /**
+   * Add a single product
+   */
+  withProduct(product: ProductInput): ConfigFileBuilder {
+    if (!this.content.products) {
+      this.content.products = [];
+    }
+    this.content.products.push(product);
+    return this;
+  }
+
+  /**
+   * Add multiple products
+   */
+  withProducts(products: ProductInput[]): ConfigFileBuilder {
+    if (!this.content.products) {
+      this.content.products = [];
+    }
+    this.content.products.push(...products);
     return this;
   }
 

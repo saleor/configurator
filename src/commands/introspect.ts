@@ -439,7 +439,7 @@ export const introspectCommandConfig: CommandConfig<typeof introspectCommandSche
   description: "Downloads the current configuration from the remote Saleor instance",
   schema: introspectCommandSchema,
   handler: introspectHandler,
-  requiresInteractive: false,
+  requiresInteractive: true,
   examples: [
     `${COMMAND_NAME} introspect --url https://my-shop.saleor.cloud/graphql/ --token token123`,
     `${COMMAND_NAME} introspect --config output.yml`,
