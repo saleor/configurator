@@ -140,6 +140,7 @@ describe("ConfigurationService", () => {
         channels: [],
         productTypes: [],
         pageTypes: [],
+        modelTypes: [],
         categories: [],
         warehouses: [],
         shippingZones: [],

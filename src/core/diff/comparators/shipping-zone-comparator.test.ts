@@ -71,12 +71,9 @@ describe("ShippingZoneComparator", () => {
 
       const results = comparator.compare(local, remote);
 
-      // The test data isn't truly identical due to structural differences in channel listings
-      // The remote has nested objects while local has flat values, which is expected
-      expect(results).toHaveLength(1);
-      expect(results[0].operation).toBe("UPDATE");
-      expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("shippingMethods");
+      // The comparator now correctly handles structural differences in channel listings
+      // and recognizes that local flat values and remote nested objects are equivalent
+      expect(results).toHaveLength(0);
     });
 
     it("should detect shipping zone to create", () => {

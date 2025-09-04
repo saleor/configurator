@@ -86,6 +86,14 @@ export class MenuService {
       );
     }
 
+    // Validate that menu item has at least one target or children
+    if (linkTypes.length === 0 && (!item.children || item.children.length === 0)) {
+      throw new MenuValidationError(
+        `Menu item at ${path} must have either a target (url, category, collection, or page) or children`,
+        path
+      );
+    }
+
     // Recursively validate children
     if (item.children) {
       item.children.forEach((child, index) => {

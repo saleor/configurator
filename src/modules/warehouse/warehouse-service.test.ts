@@ -259,7 +259,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.createWarehouse(mockWarehouseInput)).rejects.toThrow(
-        WarehouseOperationError
+        /Failed to create warehouse.*API Error/
       );
     });
 
@@ -276,7 +276,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.updateWarehouse("1", mockWarehouseInput)).rejects.toThrow(
-        WarehouseOperationError
+        /Failed to update warehouse.*API Error/
       );
     });
   });

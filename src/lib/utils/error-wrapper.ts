@@ -59,7 +59,7 @@ export async function wrapServiceCall<T>(
       const message = `Failed to ${operation} for ${context}: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      throw new ErrorClass(message);
+      throw new ErrorClass(message, entityIdentifier);
     }
 
     // Default error wrapping
