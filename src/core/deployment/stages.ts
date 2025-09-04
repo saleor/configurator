@@ -53,26 +53,28 @@ export const productTypesStage: DeploymentStage = {
           context.configurator.services.productType
             .bootstrapProductType(productType)
             .then(() => ({ name: productType.name, success: true }))
-            .catch((error) => ({ 
-              name: productType.name, 
-              success: false, 
-              error: error instanceof Error ? error : new Error(String(error))
+            .catch((error) => ({
+              name: productType.name,
+              success: false,
+              error: error instanceof Error ? error : new Error(String(error)),
             }))
         )
       );
 
       const successes = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
-          r.status === "fulfilled" && r.value.success === true
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+            r.status === "fulfilled" && r.value.success === true
         )
         .map((r) => r.value.name);
-      
+
       const failures = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
-          r.status === "fulfilled" && r.value.success === false
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+            r.status === "fulfilled" && r.value.success === false
         )
         .map((r) => ({ entity: r.value.name, error: r.value.error }));
-      
+
       if (failures.length > 0) {
         throw new StageAggregateError("Managing product types", failures, successes);
       }
@@ -127,26 +129,28 @@ export const pageTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(pageType)
             .then(() => ({ name: pageType.name, success: true }))
-            .catch((error) => ({ 
-              name: pageType.name, 
-              success: false, 
-              error: error instanceof Error ? error : new Error(String(error))
+            .catch((error) => ({
+              name: pageType.name,
+              success: false,
+              error: error instanceof Error ? error : new Error(String(error)),
             }))
         )
       );
 
       const successes = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
-          r.status === "fulfilled" && r.value.success === true
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+            r.status === "fulfilled" && r.value.success === true
         )
         .map((r) => r.value.name);
-      
+
       const failures = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
-          r.status === "fulfilled" && r.value.success === false
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+            r.status === "fulfilled" && r.value.success === false
         )
         .map((r) => ({ entity: r.value.name, error: r.value.error }));
-      
+
       if (failures.length > 0) {
         throw new StageAggregateError("Managing page types", failures, successes);
       }
@@ -269,9 +273,8 @@ export const productsStage: DeploymentStage = {
       );
     }
   },
-  // Products are not yet included in the diff system, so always run this stage
-  skip() {
-    return false;
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Products");
   },
 };
 

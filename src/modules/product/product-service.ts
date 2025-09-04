@@ -126,23 +126,24 @@ export class ProductService {
   }
 
   private async upsertProduct(productInput: ProductInput): Promise<Product> {
-    logger.debug("Looking up existing product", { name: productInput.name });
+    logger.debug("Looking up existing product", { slug: productInput.slug });
 
     // Resolve references first
     const productTypeId = await this.resolveProductTypeReference(productInput.productType);
     const categoryId = await this.resolveCategoryReference(productInput.category);
-    const slug = productInput.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+
+    // Use the slug from the input (required field in schema)
+    const slug = productInput.slug;
     const attributes = await this.resolveAttributeValues(productInput.attributes);
 
-    const existingProduct = await this.repository.getProductByName(productInput.name);
+    // Use slug for idempotency check (as per CLAUDE.md guidelines)
+    const existingProduct = await this.repository.getProductBySlug(slug);
 
     if (existingProduct) {
       logger.debug("Found existing product, updating", {
         id: existingProduct.id,
         name: existingProduct.name,
+        slug: existingProduct.slug,
       });
 
       // Update existing product (note: productType cannot be changed after creation)
@@ -151,14 +152,20 @@ export class ProductService {
         slug: slug,
         category: categoryId,
         attributes: attributes,
-        // TODO: Handle description (needs JSONString format for rich text)
+        description: productInput.description,
         // TODO: Handle channel listings in separate commit
+      });
+
+      logger.info("Updated existing product", {
+        productId: product.id,
+        name: product.name,
+        slug: product.slug,
       });
 
       return product;
     }
 
-    logger.debug("Creating new product", { name: productInput.name });
+    logger.debug("Creating new product", { name: productInput.name, slug: slug });
 
     // Create new product
     const product = await this.repository.createProduct({
@@ -167,8 +174,14 @@ export class ProductService {
       productType: productTypeId,
       category: categoryId,
       attributes: attributes,
-      // TODO: Handle description (needs JSONString format for rich text)
+      description: productInput.description,
       // TODO: Handle channel listings in separate commit
+    });
+
+    logger.info("Created new product", {
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
     });
 
     return product;

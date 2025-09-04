@@ -10,7 +10,9 @@ import type {
   CategoryUpdateInput,
   CountryCode,
   CurrencyCode,
+  ProductInput,
   ProductTypeInput,
+  ProductVariantInput,
   SaleorConfig,
   ShippingZoneInput,
   TaxClassInput,
@@ -134,10 +136,12 @@ export class ConfigurationService {
     }
 
     if (this.isReferenceAttribute(attribute.inputType)) {
+      // Default entityType to PRODUCT if not specified in the raw data
+      const entityType = attribute.entityType || "PRODUCT";
       return {
         name: attribute.name,
         inputType: "REFERENCE" as const,
-        entityType: attribute.entityType,
+        entityType: entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT",
         type: attributeType,
       };
     }
@@ -248,6 +252,165 @@ export class ConfigurationService {
     });
 
     return tree;
+  }
+
+  private mapProducts(rawProducts: RawSaleorConfig["products"]): SaleorConfig["products"] {
+    if (!rawProducts?.edges) {
+      return [];
+    }
+
+    return rawProducts.edges
+      .map((edge) => edge.node)
+      .filter(Boolean)
+      .map((product) => {
+        // Map basic product information
+        const mappedProduct: ProductInput = {
+          name: product.name,
+          slug: product.slug,
+          productType: product.productType.name,
+          category: product.category?.slug || "",
+        };
+
+        // Add description if present
+        if (product.description) {
+          mappedProduct.description = product.description;
+        }
+
+        // Map product attributes
+        if (product.attributes && product.attributes.length > 0) {
+          const attributes: Record<string, string | string[]> = {};
+
+          for (const attr of product.attributes) {
+            const attributeName = attr.attribute.name;
+            const values = attr.values || [];
+
+            if (values.length === 0) continue;
+
+            // Handle different attribute types
+            if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
+              // Multi-value attribute
+              attributes[attributeName] = values
+                .map((v) => v.name || v.slug || v.value || "")
+                .filter(Boolean);
+            } else if (values.length === 1) {
+              // Single value attribute
+              const value = values[0];
+              attributes[attributeName] =
+                value.name ||
+                value.slug ||
+                value.plainText ||
+                value.richText ||
+                (value.boolean !== null ? String(value.boolean) : "") ||
+                value.date ||
+                value.dateTime ||
+                value.reference ||
+                value.value ||
+                "";
+            }
+          }
+
+          if (Object.keys(attributes).length > 0) {
+            mappedProduct.attributes = attributes;
+          }
+        }
+
+        // Map channel listings
+        if (product.channelListings && product.channelListings.length > 0) {
+          mappedProduct.channelListings = product.channelListings
+            .map((listing) => {
+              const channelListing: Record<string, unknown> = {
+                channel: listing.channel.slug,
+                isPublished: listing.isPublished,
+                visibleInListings: listing.visibleInListings,
+              };
+
+              // Only add non-null optional fields
+              if (listing.availableForPurchaseAt) {
+                channelListing.availableForPurchase = listing.availableForPurchaseAt;
+              }
+              if (listing.publicationDate) {
+                channelListing.publishedAt = listing.publicationDate;
+              }
+
+              return channelListing;
+            });
+        }
+
+        // Map variants
+        if (product.variants && product.variants.length > 0) {
+          mappedProduct.variants = product.variants.map((variant) => {
+            const mappedVariant: ProductVariantInput = {
+              sku: variant.sku || "",
+            };
+
+            // Add variant name if different from product name
+            if (variant.name && variant.name !== product.name) {
+              mappedVariant.name = variant.name;
+            }
+
+            // Add weight if present
+            if (variant.weight?.value) {
+              mappedVariant.weight = variant.weight.value;
+            }
+
+            // Map variant attributes
+            if (variant.attributes && variant.attributes.length > 0) {
+              const variantAttributes: Record<string, string | string[]> = {};
+
+              for (const attr of variant.attributes) {
+                const attributeName = attr.attribute.name;
+                const values = attr.values || [];
+
+                if (values.length === 0) continue;
+
+                if (attr.attribute.inputType === "MULTISELECT" && values.length > 1) {
+                  variantAttributes[attributeName] = values
+                    .map((v) => v.name || v.slug || v.value || "")
+                    .filter(Boolean);
+                } else if (values.length === 1) {
+                  const value = values[0];
+                  variantAttributes[attributeName] =
+                    value.name ||
+                    value.slug ||
+                    value.plainText ||
+                    (value.boolean !== null ? String(value.boolean) : "") ||
+                    value.value ||
+                    "";
+                }
+              }
+
+              if (Object.keys(variantAttributes).length > 0) {
+                mappedVariant.attributes = variantAttributes;
+              }
+            }
+
+            // Map variant channel listings
+            if (variant.channelListings && variant.channelListings.length > 0) {
+              mappedVariant.channelListings = variant.channelListings.map((listing) => {
+                const channelData: Record<string, unknown> = {
+                  channel: listing.channel.slug,
+                };
+
+                if (listing.price?.amount) {
+                  channelData.price = listing.price.amount;
+                }
+                if (listing.costPrice?.amount) {
+                  channelData.costPrice = listing.costPrice.amount;
+                }
+                if (listing.preorderThreshold?.quantity) {
+                  channelData.preorderThreshold = listing.preorderThreshold.quantity;
+                }
+
+                return channelData;
+              });
+            }
+
+            return mappedVariant;
+          });
+        }
+
+        return mappedProduct;
+      });
   }
 
   private mapWarehouses(rawWarehouses: RawSaleorConfig["warehouses"]): WarehouseInput[] {
@@ -480,6 +643,10 @@ export class ConfigurationService {
 
     if (shouldIncludeSection("categories", options)) {
       config.categories = this.mapCategories(rawConfig.categories);
+    }
+
+    if (shouldIncludeSection("products", options)) {
+      config.products = this.mapProducts(rawConfig.products);
     }
 
     if (shouldIncludeSection("warehouses", options)) {

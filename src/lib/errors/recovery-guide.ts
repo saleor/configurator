@@ -243,11 +243,13 @@ export class ErrorRecoveryGuide {
 
     // Handle null/undefined error messages
     if (!errorMessage) {
-      return [{
-        fix: "Review the error message for details",
-        check: "Check your configuration against the current Saleor state",
-        command: "saleor-configurator diff --verbose",
-      }];
+      return [
+        {
+          fix: "Review the error message for details",
+          check: "Check your configuration against the current Saleor state",
+          command: "saleor-configurator diff --verbose",
+        },
+      ];
     }
 
     for (const [pattern, getSuggestion] of ErrorRecoveryGuide.patterns) {
@@ -302,13 +304,13 @@ export class ErrorRecoveryGuide {
         throw new Error(`Pattern already registered: ${pattern.source}`);
       }
     }
-    
+
     // Limit total patterns to prevent memory issues
     const MAX_PATTERNS = 100;
     if (ErrorRecoveryGuide.patterns.size >= MAX_PATTERNS) {
       throw new Error(`Maximum number of patterns (${MAX_PATTERNS}) reached`);
     }
-    
+
     ErrorRecoveryGuide.patterns.set(pattern, getSuggestion);
   }
 }

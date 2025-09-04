@@ -9,11 +9,15 @@ const mockRepository: ProductOperations = {
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
+  getProductBySlug: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
   getCategoryByPath: vi.fn(),
   getAttributeByName: vi.fn(),
+  getChannelBySlug: vi.fn(),
+  updateProductChannelListings: vi.fn(),
+  updateProductVariantChannelListings: vi.fn(),
 };
 
 describe("ProductService", () => {
@@ -42,7 +46,7 @@ describe("ProductService", () => {
 
     it("should create a new product when it doesn't exist", async () => {
       // Mock dependencies
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -103,7 +107,7 @@ describe("ProductService", () => {
       };
 
       // Set up all required mocks
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(existingProduct);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -138,7 +142,7 @@ describe("ProductService", () => {
     });
 
     it("should throw error when product type doesn't exist", async () => {
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue(null);
 
       await expect(service.bootstrapProduct(mockProductInput)).rejects.toThrow(
@@ -147,7 +151,7 @@ describe("ProductService", () => {
     });
 
     it("should throw error when category doesn't exist", async () => {
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -180,7 +184,7 @@ describe("ProductService", () => {
       ];
 
       // Mock successful responses for all calls
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",

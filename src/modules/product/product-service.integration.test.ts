@@ -9,6 +9,7 @@ const mockRepository: ProductOperations = {
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
+  getProductBySlug: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
@@ -86,7 +87,7 @@ describe("ProductService Integration", () => {
 
     it("should create product with channel listings", async () => {
       // Mock dependencies
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -230,7 +231,7 @@ describe("ProductService Integration", () => {
 
     it("should handle channel listing failures gracefully", async () => {
       // Set up basic mocks
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Book",
@@ -300,7 +301,7 @@ describe("ProductService Integration", () => {
       };
 
       // Set up mocks
-      vi.mocked(mockRepository.getProductByName).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
         id: "pt-1",
         name: "Generic",
@@ -405,15 +406,16 @@ describe("ProductService Integration", () => {
         ],
       };
 
-      // Set up mocks - getProductByName is called multiple times:
-      // 1. To check if "Accessory Product" exists (returns null)
-      // 2. To resolve "Main Product" reference (returns the product)
-      vi.mocked(mockRepository.getProductByName).mockImplementation((name) => {
-        if (name === "Accessory Product") return Promise.resolve(null);
-        if (name === "Main Product")
+      // Set up mocks - getProductBySlug is called multiple times:
+      // 1. To check if "accessory-product" slug exists (returns null)
+      // 2. To resolve "main-product" reference (returns the product)
+      vi.mocked(mockRepository.getProductBySlug).mockImplementation((slug) => {
+        if (slug === "accessory-product") return Promise.resolve(null);
+        if (slug === "main-product")
           return Promise.resolve({
             id: "ref-prod-1",
             name: "Main Product",
+            slug: "main-product",
             productType: { id: "pt-x", name: "Main" },
             category: { id: "cat-x", name: "Main" },
           });

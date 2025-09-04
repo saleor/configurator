@@ -131,6 +131,33 @@ const getProductByNameQuery = graphql(`
   }
 `);
 
+const getProductBySlugQuery = graphql(`
+  query GetProductBySlug($slug: String!) {
+    product(slug: $slug) {
+      id
+      name
+      slug
+      productType {
+        id
+        name
+      }
+      category {
+        id
+        name
+        slug
+      }
+      defaultVariant {
+        id
+      }
+      variants {
+        id
+        sku
+        name
+      }
+    }
+  }
+`);
+
 const getProductTypeByNameQuery = graphql(`
   query GetProductTypeByName($name: String!) {
     productTypes(filter: { search: $name }, first: 100) {
@@ -339,6 +366,7 @@ export interface ProductOperations {
   createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
+  getProductBySlug(slug: string): Promise<Product | null>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
@@ -542,6 +570,16 @@ export class ProductRepository implements ProductOperations {
     const exactMatch = result.data?.products?.edges?.find((edge) => edge.node?.name === name);
 
     return exactMatch?.node;
+  }
+
+  async getProductBySlug(slug: string): Promise<Product | null> {
+    const result = await this.client.query(getProductBySlugQuery, { slug });
+
+    if (result.error) {
+      throw GraphQLError.fromCombinedError(`Failed to get product by slug: ${slug}`, result.error);
+    }
+
+    return result.data?.product || null;
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {

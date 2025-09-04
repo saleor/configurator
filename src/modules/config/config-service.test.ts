@@ -123,6 +123,7 @@ describe("ConfigurationService", () => {
         productTypes: [],
         pageTypes: [],
         categories: [],
+        products: [],
         warehouses: [],
         shippingZones: [],
         taxClasses: [],

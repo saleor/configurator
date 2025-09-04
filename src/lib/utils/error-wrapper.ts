@@ -16,9 +16,7 @@ export class ServiceErrorWrapper {
     fn: () => Promise<T>,
     ErrorClass?: new (message: string, ...args: unknown[]) => Error
   ): Promise<T> {
-    const context = entityIdentifier
-      ? `${entityType} '${entityIdentifier}'`
-      : entityType;
+    const context = entityIdentifier ? `${entityType} '${entityIdentifier}'` : entityType;
 
     try {
       logger.debug(`Starting ${operation}`, { entityType, entityIdentifier });
@@ -26,10 +24,10 @@ export class ServiceErrorWrapper {
       logger.debug(`Completed ${operation}`, { entityType, entityIdentifier });
       return result;
     } catch (error) {
-      logger.error(`Failed ${operation}`, { 
-        entityType, 
+      logger.error(`Failed ${operation}`, {
+        entityType,
         entityIdentifier,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
 
       // If it's already the expected error type, re-throw it
@@ -39,10 +37,7 @@ export class ServiceErrorWrapper {
 
       // Handle GraphQL errors with proper context
       if (ServiceErrorWrapper.isCombinedError(error)) {
-        throw GraphQLError.fromCombinedError(
-          `Failed to ${operation} for ${context}`,
-          error
-        );
+        throw GraphQLError.fromCombinedError(`Failed to ${operation} for ${context}`, error);
       }
 
       // Wrap in the provided error class if available

@@ -110,16 +110,15 @@ export class WarehouseService {
 
   async createWarehouse(input: WarehouseInput): Promise<Warehouse> {
     logger.debug("Creating new warehouse", { name: input.name, slug: input.slug });
-    
+
     // Validate first, before wrapping in ServiceErrorWrapper
     this.validateWarehouseInput(input);
-    
+
     return ServiceErrorWrapper.wrapServiceCall(
       "create warehouse",
       "warehouse",
       input.slug,
       async () => {
-
         const createInput = this.mapInputToCreateInput(input);
         let warehouse = await this.repository.createWarehouse(createInput);
 

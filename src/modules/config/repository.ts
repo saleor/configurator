@@ -118,6 +118,112 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    products(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          description
+          productType {
+            id
+            name
+          }
+          category {
+            id
+            name
+            slug
+          }
+          defaultVariant {
+            id
+          }
+          attributes {
+            attribute {
+              id
+              name
+              slug
+              type
+              inputType
+            }
+            values {
+              id
+              name
+              slug
+              reference
+              file {
+                url
+              }
+              richText
+              plainText
+              boolean
+              date
+              dateTime
+              value
+            }
+          }
+          channelListings {
+            channel {
+              id
+              slug
+            }
+            isPublished
+            publicationDate
+            visibleInListings
+            availableForPurchaseAt
+          }
+          variants {
+            id
+            name
+            sku
+            weight {
+              unit
+              value
+            }
+            attributes {
+              attribute {
+                id
+                name
+                slug
+                type
+                inputType
+              }
+              values {
+                id
+                name
+                slug
+                reference
+                file {
+                  url
+                }
+                richText
+                plainText
+                boolean
+                date
+                dateTime
+                value
+              }
+            }
+            channelListings {
+              channel {
+                id
+                slug
+              }
+              price {
+                currency
+                amount
+              }
+              costPrice {
+                currency
+                amount
+              }
+              preorderThreshold {
+                quantity
+              }
+            }
+          }
+        }
+      }
+    }
     warehouses(first: 100) {
       edges {
         node {

@@ -8,6 +8,7 @@ import {
   ChannelComparator,
   type EntityComparator,
   PageTypeComparator,
+  ProductComparator,
   ProductTypeComparator,
   ShippingZoneComparator,
   ShopComparator,
@@ -278,10 +279,10 @@ export class DiffService {
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["categories", new CategoryComparator() as EntityComparator],
+      ["products", new ProductComparator() as EntityComparator],
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       ["taxClasses", new TaxClassComparator() as EntityComparator],
-      // TODO: add product comparator; also add types that force you to add newly introduced entities to the diff service
     ]);
   }
 
