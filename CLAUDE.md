@@ -237,6 +237,44 @@ interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
 - Mock file system for configuration tests
 - Use real validation for schema tests
 
+**4. TypeScript Best Practices in Tests**
+
+**CRITICAL**: Always use actual service types from imports instead of `as any` or creating mock interfaces:
+
+```typescript
+// ✅ CORRECT: Import and use actual service types
+import { ProductService } from "../product/product-service";
+import { ChannelService } from "../channel/channel-service";
+
+const mockProductService = {
+  getAllProducts: vi.fn(),
+  getProductBySlug: vi.fn(),
+} as unknown as ProductService;
+
+const mockChannelService = {
+  getAllChannels: vi.fn(),
+  getChannelBySlug: vi.fn(), 
+} as unknown as ChannelService;
+```
+
+```typescript
+// ❌ INCORRECT: Using as any or creating mock interfaces
+const mockProductService = {
+  getAllProducts: vi.fn(),
+} as any; // Avoid this
+
+// ❌ INCORRECT: Creating unnecessary mock interfaces
+interface MockProductService {
+  getAllProducts: ReturnType<typeof vi.fn>;
+}
+```
+
+**Key Principles:**
+- Always import actual service classes and use them as types
+- Use `as unknown as ServiceType` for proper type casting
+- Maintain vi.fn() mocking pattern with real service type safety
+- This ensures better type safety, IntelliSense support, and prevents breaking changes
+
 ## Development Workflow
 
 ### Scripts and Commands
