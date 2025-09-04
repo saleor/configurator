@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CollectionInput } from "../config/schema/schema";
-import { CollectionOperationError, CollectionValidationError } from "./errors";
+import { CollectionValidationError } from "./errors";
 import type { Collection, CollectionOperations } from "./repository";
 import { CollectionService } from "./collection-service";
+
+// Mock service interfaces for testing
+interface MockProductService {
+  getProductBySlug: (slug: string) => Promise<{ id: string; slug: string } | null | undefined>;
+}
+
+interface MockChannelService {
+  getChannelBySlug: (slug: string) => Promise<{ id: string; slug: string } | null | undefined>;
+}
 
 describe("CollectionService", () => {
   const mockCollectionInput: CollectionInput = {
@@ -43,13 +52,13 @@ describe("CollectionService", () => {
     it("should throw error when collection name is missing", async () => {
       const invalidInput = { ...mockCollectionInput, name: "" };
       const mockOperations = createMockOperations();
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       await expect(service.createCollection(invalidInput)).rejects.toThrow(CollectionValidationError);
     });
@@ -57,13 +66,13 @@ describe("CollectionService", () => {
     it("should throw error when collection slug is missing", async () => {
       const invalidInput = { ...mockCollectionInput, slug: "" };
       const mockOperations = createMockOperations();
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       await expect(service.createCollection(invalidInput)).rejects.toThrow(CollectionValidationError);
     });
@@ -71,13 +80,13 @@ describe("CollectionService", () => {
     it("should accept valid collection input", async () => {
       const mockOperations = createMockOperations();
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.createCollection(mockCollectionInput);
       expect(result).toBeDefined();
@@ -90,13 +99,13 @@ describe("CollectionService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getCollectionBySlug.mockResolvedValue(mockCollection); // Mock the direct lookup
       mockOperations.updateCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.getOrCreateCollection(mockCollectionInput);
 
@@ -109,13 +118,13 @@ describe("CollectionService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getCollectionBySlug.mockResolvedValue(null); // Collection doesn't exist
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.getOrCreateCollection(mockCollectionInput);
 
@@ -132,13 +141,13 @@ describe("CollectionService", () => {
       ];
 
       const mockOperations = createMockOperations();
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       await expect(service.bootstrapCollections(duplicateCollections)).rejects.toThrow(
         CollectionValidationError
@@ -154,13 +163,13 @@ describe("CollectionService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getCollections.mockResolvedValue([]);
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const results = await service.bootstrapCollections(collections);
 
@@ -174,13 +183,13 @@ describe("CollectionService", () => {
       const inputWithoutChannels = { ...mockCollectionInput, channelListings: undefined };
       const mockOperations = createMockOperations();
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.createCollection(inputWithoutChannels);
       expect(result).toBeDefined();
@@ -197,13 +206,13 @@ describe("CollectionService", () => {
       };
       const mockOperations = createMockOperations();
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.createCollection(inputWithMultipleChannels);
       expect(result).toBeDefined();
@@ -224,13 +233,13 @@ describe("CollectionService", () => {
       const inputWithoutProducts = { ...mockCollectionInput, products: undefined };
       const mockOperations = createMockOperations();
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.createCollection(inputWithoutProducts);
       expect(result).toBeDefined();
@@ -240,13 +249,13 @@ describe("CollectionService", () => {
     it("should handle collections with product assignments", async () => {
       const mockOperations = createMockOperations();
       mockOperations.createCollection.mockResolvedValue(mockCollection);
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       const result = await service.createCollection(mockCollectionInput);
       expect(result).toBeDefined();
@@ -267,13 +276,13 @@ describe("CollectionService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getCollections.mockResolvedValue([]);
       mockOperations.createCollection.mockRejectedValue(new Error("API Error"));
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       await expect(service.createCollection(mockCollectionInput)).rejects.toThrow(
         /Failed to create collection.*API Error/
@@ -284,13 +293,13 @@ describe("CollectionService", () => {
       const mockOperations = createMockOperations();
       mockOperations.getCollections.mockResolvedValue([]);
       mockOperations.updateCollection.mockRejectedValue(new Error("API Error"));
-      const mockProductService = {
+      const mockProductService: MockProductService = {
         getProductBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "product-1" }),
       };
-      const mockChannelService = {
+      const mockChannelService: MockChannelService = {
         getChannelBySlug: vi.fn().mockResolvedValue({ id: "c1", slug: "default-channel" }),
       };
-      const service = new CollectionService(mockOperations, mockProductService as any, mockChannelService as any);
+      const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
       await expect(service.updateCollection("1", mockCollectionInput)).rejects.toThrow(
         /Failed to update collection.*API Error/

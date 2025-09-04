@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
-import { WarehouseOperationError, WarehouseValidationError } from "./errors";
+import { WarehouseValidationError } from "./errors";
 import type { Warehouse } from "./repository";
 import { WarehouseService } from "./warehouse-service";
 
