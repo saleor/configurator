@@ -9,12 +9,17 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 
 - [shop](#shop)
 - [channels](#channels)
+- [taxClasses](#taxclasses)
 - [warehouses](#warehouses)
 - [shippingZones](#shippingzones)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
+- [modelTypes](#modeltypes)
 - [categories](#categories)
+- [collections](#collections)
 - [products](#products)
+- [models](#models)
+- [menus](#menus)
 
 ## shop
 
@@ -113,6 +118,40 @@ Each item is of type: `object`
 - **isActive** (`boolean`) *required*: Whether this channel is currently active and accepting orders
 - **settings** (`object`): Advanced channel configuration options
 
+## taxClasses
+
+Tax class definitions that specify tax rates by country. Tax classes can be assigned to products, product types, and shipping methods to control tax calculation
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Name of the tax class (e.g., 'Standard Rate', 'Reduced Rate', 'Zero Rate')
+- **countries** (`array<object>`) *required*: Tax rates for different countries
+  - **countryCode** (`string (enum)`) *required*: ISO country code (e.g., 'US', 'GB', 'DE')
+  - **taxRate** (`number`) *required*: Tax rate as a percentage (e.g., 20 for 20% VAT)
+
+**Example:**
+```yaml
+taxClasses:
+  - name: "Standard Rate"
+    countries:
+      - countryCode: "US"
+        taxRate: 8.5
+      - countryCode: "GB" 
+        taxRate: 20
+  - name: "Reduced Rate"
+    countries:
+      - countryCode: "US"
+        taxRate: 5
+      - countryCode: "GB"
+        taxRate: 5
+```
+
 ## warehouses
 
 Warehouse definitions with physical locations for storing and fulfilling products. Each warehouse can be assigned to shipping zones and channels for multi-location fulfillment
@@ -186,6 +225,36 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Name of the page type (e.g., 'Blog Post', 'Landing Page', 'Help Article')
 - **attributes** (`array<AttributeInput>`) *required*: Attributes available for pages of this type (e.g., Author, Published Date, Tags)
 
+## modelTypes
+
+Model type templates that define the structure and attributes for content models. Similar to page types but designed for more flexible content management with custom fields
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Name of the model type (e.g., 'Blog Post', 'Product Review', 'FAQ Item')
+- **attributes** (`array<AttributeInput>`) *required*: Attributes available for models of this type (e.g., Title, Content, Author, Published Date)
+
+**Example:**
+```yaml
+modelTypes:
+  - name: "Blog Post"
+    attributes:
+      - name: "Title"
+        inputType: "PLAIN_TEXT"
+      - name: "Content"  
+        inputType: "RICH_TEXT"
+      - name: "Published Date"
+        inputType: "DATE"
+      - name: "Author"
+        inputType: "PLAIN_TEXT"
+```
+
 ## categories
 
 Hierarchical product categorization system. Categories can have subcategories and help organize products for navigation and filtering
@@ -201,6 +270,39 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Display name of the category
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
 - **subcategories** (`array<object>`): Child categories nested under this category
+
+## collections
+
+Product collections for grouping and merchandising products. Collections can be published to specific channels and contain curated product lists for promotional or organizational purposes
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Display name of the collection
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **description** (`string`): Optional description of the collection
+- **channelListings** (`array<object>`): Channel-specific publication settings
+  - **channel** (`string`) *required*: Reference to channel slug
+  - **isPublished** (`boolean`) *required*: Whether the collection is visible in this channel
+  - **publishedAt** (`string`): Publication date (ISO format)
+
+**Example:**
+```yaml
+collections:
+  - name: "Featured Books"
+    slug: "featured-books"
+    description: "Our most popular and recommended books"
+    channelListings:
+      - channel: "us"
+        isPublished: true
+      - channel: "eu"
+        isPublished: false
+```
 
 ## products
 
@@ -221,4 +323,74 @@ Each item is of type: `object`
 - **attributes** (`object`): Product-specific attribute values
 - **channelListings** (`array<object>`): Channel-specific settings like pricing and availability
 - **variants** (`array<object>`) *required*: Product variants with different SKUs, attributes, or pricing
+
+## models
+
+Content models/pages with structured data based on model types. Models can have custom attributes and content for flexible CMS functionality like blog posts, landing pages, and other structured content
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Display name of the model/page
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **modelType** (`string`) *required*: Reference to the model type (must match a modelType name)
+- **attributes** (`object`): Model-specific attribute values based on the model type definition
+
+**Example:**
+```yaml
+models:
+  - name: "Welcome to Our Store"
+    slug: "welcome-post"
+    modelType: "Blog Post"
+    attributes:
+      Title: "Welcome to Our Store"
+      Content: "We're excited to announce the launch of our new online store..."
+      Published Date: "2024-01-15"
+      Author: "Store Manager"
+```
+
+## menus
+
+Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs for flexible site navigation
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: Display name of the menu
+- **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **items** (`array<object>`) *required*: Menu items in hierarchical structure
+  - **name** (`string`) *required*: Display text for the menu item
+  - **category** (`string`): Reference to category slug (for category links)
+  - **collection** (`string`): Reference to collection slug (for collection links)
+  - **page** (`string`): Reference to page/model slug (for page links)
+  - **url** (`string`): External URL (for external links)
+  - **items** (`array<object>`): Child menu items for nested navigation
+
+**Example:**
+```yaml
+menus:
+  - name: "Main Navigation"
+    slug: "main"
+    items:
+      - name: "Shop"
+        items:
+          - name: "Books"
+            category: "books"
+          - name: "Featured"
+            collection: "featured-books"
+      - name: "About"
+        page: "about-us"
+      - name: "Blog"
+        url: "https://blog.example.com"
+```
 
