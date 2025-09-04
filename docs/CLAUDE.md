@@ -33,11 +33,7 @@ This documentation follows a **hub-and-spoke model** for optimal information ret
 ### 🏗️ Architecture & Design
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Service patterns, design decisions, and system architecture  
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Pipeline architecture and deployment procedures
-- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Schema evolution and migration procedures
-
-### 🔒 Security & Operations
-- **[SECURITY_PATTERNS.md](SECURITY_PATTERNS.md)** - Token management and security procedures
-- **[EXAMPLES.md](EXAMPLES.md)** - Complex scenarios, case studies, and implementation examples
+- **[EXAMPLES.md](EXAMPLES.md)** - Essential configuration examples and patterns
 
 ## Quick Start Essentials
 
@@ -136,8 +132,8 @@ pnpm dev diff [credentials]          # 8. Should show no changes
 
 **System Design**: See [ARCHITECTURE.md](ARCHITECTURE.md) for service patterns and decisions
 **Deployment Logic**: See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for pipeline architecture  
-**Schema Changes**: See [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) for evolution procedures
-**Security Setup**: See [SECURITY_PATTERNS.md](SECURITY_PATTERNS.md) for token management
+**Migration Issues**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#migration-issues) for version compatibility
+**Token Management**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#token-storage) for secure storage
 
 ### For Implementation Examples
 

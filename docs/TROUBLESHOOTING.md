@@ -391,11 +391,59 @@ collections:
 3. Retry with smaller batch sizes
 4. Use selective operations for large deployments
 
+## Migration Issues
+
+### Version Compatibility
+
+**Saleor Version Compatibility:**
+| Saleor | Configurator | Status |
+|--------|-------------|---------|
+| 3.20.x | 0.14.x+ | ✅ Current |
+| 3.19.x | 0.12.x-0.14.x | ⚠️ Legacy |
+| 3.18.x | 0.10.x-0.12.x | ❌ Deprecated |
+
+### Breaking Changes
+
+**Common Breaking Changes:**
+- **Entity Identification**: Categories/channels now use slug instead of name
+- **Required Fields**: New required fields may break old configs
+- **Type Changes**: Field type changes require data migration
+
+**Migration Process:**
+```bash
+# 1. Backup current state
+pnpm dev introspect --url=$URL --token=$TOKEN
+cp config.yml config.backup.yml
+
+# 2. Update configurator version
+npm update @saleor/configurator
+
+# 3. Test with new version
+pnpm dev diff --url=$URL --token=$TOKEN
+
+# 4. Fix any validation errors
+# Review error messages and update config accordingly
+
+# 5. Deploy updated configuration
+pnpm dev deploy --url=$URL --token=$TOKEN
+```
+
+### Token Storage
+
+**Secure Token Management:**
+```bash
+# Environment variables (recommended)
+export SALEOR_TOKEN="your-token"
+export SALEOR_URL="https://store.saleor.cloud/graphql/"
+
+# Never commit tokens
+echo "SALEOR_TOKEN=token" >> .env.local
+echo ".env.local" >> .gitignore
+```
+
 ---
 
 **Related Documentation:**
 - [COMMANDS.md](COMMANDS.md) - Complete command syntax reference
 - [ENTITY_REFERENCE.md](ENTITY_REFERENCE.md) - Entity identification and patterns
-- [SECURITY_PATTERNS.md](SECURITY_PATTERNS.md) - Token management and security procedures
-- [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) - Schema evolution and migration procedures
 - [CLAUDE.md](CLAUDE.md) - Main navigation hub

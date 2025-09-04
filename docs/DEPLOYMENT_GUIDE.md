@@ -909,5 +909,4 @@ LOG_LEVEL=debug pnpm dev deploy --url=$URL --token=$TOKEN
 - [COMMANDS.md](COMMANDS.md) - Complete CLI command syntax reference
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Deployment error resolution procedures
 - [ENTITY_REFERENCE.md](ENTITY_REFERENCE.md) - Entity dependency relationships
-- [SECURITY_PATTERNS.md](SECURITY_PATTERNS.md) - Deployment security procedures  
 - [CLAUDE.md](CLAUDE.md) - Main navigation hub
