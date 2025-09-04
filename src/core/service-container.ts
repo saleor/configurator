@@ -96,7 +96,6 @@ export class ServiceComposer {
       ),
       tax: new TaxService({
         repository: repositories.tax,
-        logger,
       }),
       collection: new CollectionService(
         repositories.collection,

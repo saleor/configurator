@@ -9,11 +9,15 @@ const mockRepository: ProductOperations = {
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
+  getProductBySlug: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
   getCategoryByPath: vi.fn(),
   getAttributeByName: vi.fn(),
+  getChannelBySlug: vi.fn(),
+  updateProductChannelListings: vi.fn(),
+  updateProductVariantChannelListings: vi.fn(),
 };
 
 describe("ProductService", () => {

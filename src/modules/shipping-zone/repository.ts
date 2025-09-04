@@ -161,6 +161,50 @@ const createShippingZoneMutation = graphql(`
         description
         countries {
           code
+          country
+        }
+        channels {
+          id
+          slug
+          name
+        }
+        warehouses {
+          id
+          name
+          slug
+        }
+        shippingMethods {
+          id
+          name
+          description
+          type
+          maximumDeliveryDays
+          minimumDeliveryDays
+          maximumOrderWeight {
+            unit
+            value
+          }
+          minimumOrderWeight {
+            unit
+            value
+          }
+          channelListings {
+            channel {
+              slug
+            }
+            price {
+              amount
+              currency
+            }
+            maximumOrderPrice {
+              amount
+              currency
+            }
+            minimumOrderPrice {
+              amount
+              currency
+            }
+          }
         }
       }
       errors {
@@ -182,6 +226,50 @@ const updateShippingZoneMutation = graphql(`
         description
         countries {
           code
+          country
+        }
+        channels {
+          id
+          slug
+          name
+        }
+        warehouses {
+          id
+          name
+          slug
+        }
+        shippingMethods {
+          id
+          name
+          description
+          type
+          maximumDeliveryDays
+          minimumDeliveryDays
+          maximumOrderWeight {
+            unit
+            value
+          }
+          minimumOrderWeight {
+            unit
+            value
+          }
+          channelListings {
+            channel {
+              slug
+            }
+            price {
+              amount
+              currency
+            }
+            maximumOrderPrice {
+              amount
+              currency
+            }
+            minimumOrderPrice {
+              amount
+              currency
+            }
+          }
         }
       }
       errors {
@@ -279,7 +367,7 @@ export type ShippingZone = NonNullable<
   NonNullable<ResultOf<typeof getShippingZonesQuery>["shippingZones"]>["edges"][number]["node"]
 >;
 
-export type ShippingMethod = ShippingZone["shippingMethods"][number];
+export type ShippingMethod = NonNullable<ShippingZone["shippingMethods"]>[number];
 
 export type ShippingZoneCreateInput = VariablesOf<typeof createShippingZoneMutation>["input"];
 export type ShippingZoneUpdateInput = VariablesOf<typeof updateShippingZoneMutation>["input"];
@@ -352,7 +440,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       shippingZone: result.data.shippingZoneCreate.shippingZone,
     });
 
-    return result.data.shippingZoneCreate.shippingZone;
+    return result.data.shippingZoneCreate.shippingZone as ShippingZone;
   }
 
   async updateShippingZone(id: string, input: ShippingZoneUpdateInput): Promise<ShippingZone> {
@@ -360,8 +448,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        "Failed to update shipping zone",
-        result.error`Failed to update shipping zone ${input.name || id}`
+        `Failed to update shipping zone ${input.name || id}`,
+        result.error
       );
     }
 
@@ -382,7 +470,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       shippingZone: result.data.shippingZoneUpdate.shippingZone,
     });
 
-    return result.data.shippingZoneUpdate.shippingZone;
+    return result.data.shippingZoneUpdate.shippingZone as ShippingZone;
   }
 
   async createShippingMethod(input: ShippingPriceInput): Promise<ShippingMethod> {
@@ -405,8 +493,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       });
 
       throw GraphQLError.fromCombinedError(
-        "Failed to update shipping zone",
-        result.error`Failed to create shipping method ${input.name}`
+        `Failed to create shipping method ${input.name}`,
+        result.error
       );
     }
 
@@ -433,7 +521,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       shippingMethod: result.data.shippingPriceCreate.shippingMethod,
     });
 
-    return result.data.shippingPriceCreate.shippingMethod;
+    return result.data.shippingPriceCreate.shippingMethod as ShippingMethod;
   }
 
   async updateShippingMethod(id: string, input: ShippingPriceInput): Promise<ShippingMethod> {
@@ -441,8 +529,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        "Failed to update shipping zone",
-        result.error`Failed to update shipping method ${input.name || id}`
+        `Failed to update shipping method ${input.name || id}`,
+        result.error
       );
     }
 
@@ -463,7 +551,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       shippingMethod: result.data.shippingPriceUpdate.shippingMethod,
     });
 
-    return result.data.shippingPriceUpdate.shippingMethod;
+    return result.data.shippingPriceUpdate.shippingMethod as ShippingMethod;
   }
 
   async deleteShippingMethod(id: string): Promise<void> {
@@ -494,8 +582,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        "Failed to update shipping zone",
-        result.error`Failed to update shipping method channel listing ${id}`
+        `Failed to update shipping method channel listing ${id}`,
+        result.error
       );
     }
 
@@ -516,6 +604,6 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       shippingMethod: result.data.shippingMethodChannelListingUpdate.shippingMethod,
     });
 
-    return result.data.shippingMethodChannelListingUpdate.shippingMethod;
+    return result.data.shippingMethodChannelListingUpdate.shippingMethod as ShippingMethod;
   }
 }

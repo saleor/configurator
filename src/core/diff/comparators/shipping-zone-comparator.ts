@@ -228,27 +228,32 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 
     // Handle channel listings
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
+      // Handle both input and remote channel listings by checking the structure
       normalized.channelListings = method.channelListings
-        .map((listing: InputChannelListing): NormalizedChannelListing => ({
-          channel: listing.channel,
-          price: listing.price,
-          currency: listing.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice || null,
-          maximumOrderPrice: listing.maximumOrderPrice || null,
-        }))
-        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) => a.channel.localeCompare(b.channel));
-    } else if (
-      "channelListings" in method &&
-      Array.isArray((method as ShippingMethod).channelListings)
-    ) {
-      normalized.channelListings = (method as ShippingMethod).channelListings
-        .map((listing: RemoteChannelListing): NormalizedChannelListing => ({
-          channel: (typeof listing.channel === 'object' ? listing.channel?.slug : listing.channel) || '',
-          price: (typeof listing.price === 'object' ? listing.price?.amount : listing.price) || 0,
-          currency: listing.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
-          maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
-        }))
+        .map((listing: any): NormalizedChannelListing => {
+          // Check if this is a remote listing (has nested objects) or input listing (has primitives)
+          const isRemoteListing = typeof listing.channel === 'object' || typeof listing.price === 'object';
+          
+          if (isRemoteListing) {
+            // Handle remote listing structure
+            return {
+              channel: (typeof listing.channel === 'object' ? listing.channel?.slug : listing.channel) || '',
+              price: (typeof listing.price === 'object' ? listing.price?.amount : listing.price) || 0,
+              currency: (typeof listing.price === 'object' ? listing.price?.currency : listing.currency) || "USD",
+              minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
+              maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
+            };
+          } else {
+            // Handle input listing structure  
+            return {
+              channel: listing.channel || '',
+              price: listing.price || 0,
+              currency: listing.currency || "USD",
+              minimumOrderPrice: listing.minimumOrderPrice || null,
+              maximumOrderPrice: listing.maximumOrderPrice || null,
+            };
+          }
+        })
         .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) => a.channel.localeCompare(b.channel));
     }
 

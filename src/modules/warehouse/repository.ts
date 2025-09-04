@@ -96,12 +96,22 @@ const createWarehouseMutation = graphql(`
           postalCode
           country {
             code
+            country
           }
           countryArea
           companyName
           phone
         }
+        companyName
         clickAndCollectOption
+        shippingZones(first: 100) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
       }
       errors {
         field
@@ -129,12 +139,22 @@ const updateWarehouseMutation = graphql(`
           postalCode
           country {
             code
+            country
           }
           countryArea
           companyName
           phone
         }
+        companyName
         clickAndCollectOption
+        shippingZones(first: 100) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
       }
       errors {
         field

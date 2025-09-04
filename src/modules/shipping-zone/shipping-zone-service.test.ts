@@ -37,6 +37,7 @@ describe("ShippingZoneService", () => {
     getChannels: vi
       .fn()
       .mockResolvedValue([{ id: "c1", name: "Default Channel", slug: "default-channel" }]),
+    getChannelBySlug: vi.fn(),
     createChannel: vi.fn(),
     updateChannel: vi.fn(),
   });
@@ -62,7 +63,7 @@ describe("ShippingZoneService", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"],
+    countries: ["US" as const],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -75,6 +76,8 @@ describe("ShippingZoneService", () => {
     type: "PRICE",
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
+    maximumOrderWeight: null,
+    minimumOrderWeight: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
@@ -83,6 +86,8 @@ describe("ShippingZoneService", () => {
         maximumOrderPrice: { amount: 1000, currency: "USD" },
       },
     ],
+    postalCodeRules: [],
+    excludedProducts: { edges: [] },
   };
 
   const mockShippingZone: ShippingZone = {
@@ -342,7 +347,7 @@ describe("ShippingZoneService", () => {
     it("should validate unique names", async () => {
       const duplicateZones = [
         mockShippingZoneInput,
-        { ...mockShippingZoneInput, countries: ["CA"] },
+        { ...mockShippingZoneInput, countries: ["CA" as const] },
       ];
 
       const mockOperations = {
@@ -370,7 +375,7 @@ describe("ShippingZoneService", () => {
     it("should process multiple zones successfully", async () => {
       const zones = [
         mockShippingZoneInput,
-        { ...mockShippingZoneInput, name: "EU Zone", countries: ["FR", "DE", "IT"] },
+        { ...mockShippingZoneInput, name: "EU Zone", countries: ["FR" as const, "DE" as const, "IT" as const] },
       ];
 
       const mockOperations = {

@@ -39,15 +39,18 @@ describe("ShippingZoneComparator", () => {
     type: "PRICE",
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
+    maximumOrderWeight: null,
+    minimumOrderWeight: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
         price: { amount: 10, currency: "USD" },
-        currency: "USD",
         minimumOrderPrice: null,
         maximumOrderPrice: { amount: 1000, currency: "USD" },
       },
     ],
+    postalCodeRules: [],
+    excludedProducts: { edges: [] },
   };
 
   const mockRemoteZone: ShippingZone = {

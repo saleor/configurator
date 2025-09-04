@@ -9,6 +9,7 @@ const mockRepository: ProductOperations = {
   createProductVariant: vi.fn(),
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
+  getProductBySlug: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
