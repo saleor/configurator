@@ -1,14 +1,17 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import {
-  createTempDir,
-  cleanupTempDir,
-  readYaml,
-  writeYaml,
-} from "../../utils/test-helpers.js";
-import { assertDeploymentSuccess, assertNoChanges } from "../../utils/assertions.js";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertDeploymentSuccess, assertNoChanges } from "../../utils/assertions.js";
+import { CliRunner } from "../../utils/cli-runner.js";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
+import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
+
+// Type definitions for final state introspection
+interface IntrospectedEntity {
+  slug: string;
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+}
 
 describe("E2E Idempotency Tests - Critical Safety", () => {
   let cli: CliRunner;
@@ -18,15 +21,15 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
 
   beforeAll(async () => {
     console.log("🚀 Starting idempotency test setup...");
-    
+
     testDir = await createTempDir("idempotency-test-");
-    
+
     const config = getTestConfig();
     apiUrl = config.apiUrl;
     await waitForApi(apiUrl);
     token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
-    
+
     console.log("✅ Idempotency test setup complete");
   }, 60000);
 
@@ -37,12 +40,12 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
   describe("CREATE Idempotency", () => {
     it("should be idempotent when deploying new entities multiple times", async () => {
       const configPath = path.join(testDir, "create-idempotent-config.yml");
-      
+
       const config = {
         shop: {
           defaultMailSenderName: "Create Idempotent Store",
           defaultMailSenderAddress: "createidempotent@test.com",
-          description: "Store for testing create idempotency"
+          description: "Store for testing create idempotency",
         },
         channels: [
           {
@@ -50,60 +53,60 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "idempotent-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Idempotent Category",
             slug: "idempotent-category",
-            description: "Category for idempotency testing"
+            description: "Category for idempotency testing",
           },
           {
             name: "Another Idempotent Category",
             slug: "another-idempotent-category",
-            description: "Another category for testing"
-          }
-        ]
+            description: "Another category for testing",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       // First deployment - should create all entities
       console.log("📤 First deployment (CREATE operations)...");
       const firstDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstDeploy);
       expect(firstDeploy).toContainInOutput("Idempotent Channel");
       expect(firstDeploy).toContainInOutput("Idempotent Category");
-      
+
       // Second deployment - should be idempotent (no changes)
       console.log("🔄 Second deployment (should be idempotent)...");
       const secondDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondDeploy);
-      
+
       // Third deployment - also should be idempotent
       console.log("🔄 Third deployment (should also be idempotent)...");
       const thirdDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(thirdDeploy);
-      
+
       // Verify no differences after multiple deployments
       console.log("🔍 Checking diff after multiple deployments...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(diffResult);
     }, 180000);
   });
@@ -111,13 +114,13 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
   describe("UPDATE Idempotency - Most Critical", () => {
     it("should be idempotent when updating existing entities", async () => {
       const configPath = path.join(testDir, "update-idempotent-config.yml");
-      
+
       // Initial configuration
       const initialConfig = {
         shop: {
           defaultMailSenderName: "Update Idempotent Store",
           defaultMailSenderAddress: "updateidempotent@test.com",
-          description: "Original description"
+          description: "Original description",
         },
         channels: [
           {
@@ -125,100 +128,100 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "update-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Original Category Name",
             slug: "update-category",
-            description: "Original category description"
-          }
-        ]
+            description: "Original category description",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, initialConfig);
-      
+
       // Deploy initial config
       console.log("📤 Deploying initial configuration...");
       const initialDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(initialDeploy);
-      
+
       // Update the configuration
       const updatedConfig = {
         shop: {
           defaultMailSenderName: "UPDATED Store Name",
           defaultMailSenderAddress: "updateidempotent@test.com",
-          description: "UPDATED description with new content"
+          description: "UPDATED description with new content",
         },
         channels: [
           {
-            name: "UPDATED Channel Name", 
+            name: "UPDATED Channel Name",
             slug: "update-channel", // Same slug, different name
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Original Category Name", // Same name
             slug: "update-category",
-            description: "UPDATED category description" // Different description
-          }
-        ]
+            description: "UPDATED category description", // Different description
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, updatedConfig);
-      
+
       // First update deployment - should apply changes
       console.log("🔄 First update deployment...");
       const firstUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstUpdate);
       expect(firstUpdate).toContainInOutput("UPDATED");
-      
+
       // Second update deployment - should be idempotent (no changes needed)
       console.log("🔄 Second update deployment (should be idempotent)...");
       const secondUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondUpdate);
-      
+
       // Third update deployment - should also be idempotent
       console.log("🔄 Third update deployment (should also be idempotent)...");
       const thirdUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(thirdUpdate);
-      
+
       // Verify no differences after update idempotency
       console.log("🔍 Checking diff after update idempotency...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // Introspect to verify the updates were actually applied and persisted
       const introspectPath = path.join(testDir, "introspected-after-update.yml");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       expect(introspectResult).toHaveSucceeded();
-      
+
       const introspectedConfig = await readYaml(introspectPath);
       expect(introspectedConfig.shop.defaultMailSenderName).toBe("UPDATED Store Name");
       expect(introspectedConfig.shop.description).toBe("UPDATED description with new content");
@@ -226,7 +229,7 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
 
     it("should handle complex update scenarios idempotently", async () => {
       const configPath = path.join(testDir, "complex-update-config.yml");
-      
+
       // Initial complex configuration
       const initialConfig = {
         shop: {
@@ -234,7 +237,7 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
           defaultMailSenderAddress: "complex@test.com",
           description: "Complex store for testing",
           trackInventoryByDefault: true,
-          defaultWeightUnit: "KG"
+          defaultWeightUnit: "KG",
         },
         channels: [
           {
@@ -242,42 +245,42 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "main-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
             name: "Secondary Channel",
             slug: "secondary-channel",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: false
-          }
+            isActive: false,
+          },
         ],
         categories: [
           {
             name: "Electronics",
             slug: "electronics",
-            description: "Electronic products"
+            description: "Electronic products",
           },
           {
             name: "Laptops",
             slug: "laptops",
             description: "Laptop computers",
-            parent: "electronics"
-          }
-        ]
+            parent: "electronics",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, initialConfig);
-      
+
       // Deploy initial complex config
       console.log("📤 Deploying initial complex configuration...");
       const initialDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(initialDeploy);
-      
+
       // Make complex updates
       const updatedComplexConfig = {
         shop: {
@@ -285,7 +288,7 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
           defaultMailSenderAddress: "complex@test.com",
           description: "UPDATED complex store description",
           trackInventoryByDefault: false, // Changed boolean
-          defaultWeightUnit: "LB" // Changed enum
+          defaultWeightUnit: "LB", // Changed enum
         },
         channels: [
           {
@@ -293,72 +296,72 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "main-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
             name: "Secondary Channel",
             slug: "secondary-channel",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: true // Changed boolean
-          }
+            isActive: true, // Changed boolean
+          },
         ],
         categories: [
           {
             name: "Electronics UPDATED",
             slug: "electronics",
-            description: "UPDATED electronic products description"
+            description: "UPDATED electronic products description",
           },
           {
             name: "Laptops",
             slug: "laptops",
             description: "UPDATED laptop computers description",
-            parent: "electronics"
-          }
-        ]
+            parent: "electronics",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, updatedComplexConfig);
-      
+
       // Apply complex updates - first time
       console.log("🔄 Applying complex updates...");
       const firstComplexUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstComplexUpdate);
-      
+
       // Apply same updates again - should be idempotent
       console.log("🔄 Applying same complex updates again...");
       const secondComplexUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondComplexUpdate);
-      
+
       // Verify idempotency with diff
       console.log("🔍 Verifying complex update idempotency...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // One more deployment to be extra sure
       console.log("🔄 Final idempotency check...");
       const thirdComplexUpdate = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(thirdComplexUpdate);
-      
+
       const finalDiffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(finalDiffResult);
     }, 240000);
   });
@@ -366,12 +369,12 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
   describe("Mixed Operation Idempotency", () => {
     it("should handle mixed CREATE, UPDATE, DELETE operations idempotently", async () => {
       const configPath = path.join(testDir, "mixed-idempotent-config.yml");
-      
+
       // Start with baseline
       const baselineConfig = {
         shop: {
           defaultMailSenderName: "Mixed Operations Store",
-          defaultMailSenderAddress: "mixed@test.com"
+          defaultMailSenderAddress: "mixed@test.com",
         },
         channels: [
           {
@@ -379,53 +382,53 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "keep-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
             name: "Update Channel",
             slug: "update-channel",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: false
+            isActive: false,
           },
           {
             name: "Delete Channel",
             slug: "delete-channel",
             currencyCode: "GBP",
             defaultCountry: "GB",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Keep Category",
             slug: "keep-category",
-            description: "Will stay unchanged"
+            description: "Will stay unchanged",
           },
           {
             name: "Update Category",
-            slug: "update-category", 
-            description: "Will be updated"
-          }
-        ]
+            slug: "update-category",
+            description: "Will be updated",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, baselineConfig);
-      
+
       // Deploy baseline
       console.log("📤 Deploying baseline configuration...");
       const baselineDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(baselineDeploy);
-      
+
       // Make mixed changes
       const mixedConfig = {
         shop: {
           defaultMailSenderName: "Mixed Operations Store",
-          defaultMailSenderAddress: "mixed@test.com" // UNCHANGED
+          defaultMailSenderAddress: "mixed@test.com", // UNCHANGED
         },
         channels: [
           {
@@ -433,14 +436,14 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "keep-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true // UNCHANGED
+            isActive: true, // UNCHANGED
           },
           {
             name: "Update Channel MODIFIED",
             slug: "update-channel",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: true // UPDATE: changed from false to true
+            isActive: true, // UPDATE: changed from false to true
           },
           // DELETE: "delete-channel" removed
           {
@@ -448,100 +451,110 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "create-channel",
             currencyCode: "CAD",
             defaultCountry: "CA",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Keep Category",
             slug: "keep-category",
-            description: "Will stay unchanged" // UNCHANGED
+            description: "Will stay unchanged", // UNCHANGED
           },
           {
             name: "Update Category",
             slug: "update-category",
-            description: "UPDATED description" // UPDATE
+            description: "UPDATED description", // UPDATE
           },
           {
             name: "Create Category", // CREATE: new category
             slug: "create-category",
-            description: "Newly created category"
-          }
-        ]
+            description: "Newly created category",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, mixedConfig);
-      
+
       // Apply mixed changes - first time (should make all changes)
       console.log("🔄 Applying mixed changes...");
       const firstMixedDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstMixedDeploy);
-      
+
       // Apply same mixed changes again - should be idempotent
       console.log("🔄 Applying same mixed changes again...");
       const secondMixedDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondMixedDeploy);
-      
+
       // Verify idempotency
       console.log("🔍 Verifying mixed operation idempotency...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // Apply one more time to be absolutely sure
       console.log("🔄 Final mixed operation idempotency check...");
       const thirdMixedDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(thirdMixedDeploy);
-      
+
       const finalDiffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(finalDiffResult);
-      
+
       // Introspect to verify final state
       const introspectPath = path.join(testDir, "mixed-final-state.yml");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       expect(introspectResult).toHaveSucceeded();
-      
+
       const finalState = await readYaml(introspectPath);
-      
+
       // Verify CREATE operations persisted
-      const createChannel = finalState.channels?.find((c: any) => c.slug === "create-channel");
+      const createChannel = finalState.channels?.find(
+        (c: IntrospectedEntity) => c.slug === "create-channel"
+      );
       expect(createChannel).toBeDefined();
-      expect(createChannel.name).toBe("Create Channel");
-      
-      const createCategory = finalState.categories?.find((c: any) => c.slug === "create-category");
+      expect(createChannel?.name).toBe("Create Channel");
+
+      const createCategory = finalState.categories?.find(
+        (c: IntrospectedEntity) => c.slug === "create-category"
+      );
       expect(createCategory).toBeDefined();
-      expect(createCategory.name).toBe("Create Category");
-      
-      // Verify UPDATE operations persisted  
-      const updateChannel = finalState.channels?.find((c: any) => c.slug === "update-channel");
-      expect(updateChannel.name).toBe("Update Channel MODIFIED");
-      expect(updateChannel.isActive).toBe(true);
-      
-      const updateCategory = finalState.categories?.find((c: any) => c.slug === "update-category");
-      expect(updateCategory.description).toBe("UPDATED description");
-      
+      expect(createCategory?.name).toBe("Create Category");
+
+      // Verify UPDATE operations persisted
+      const updateChannel = finalState.channels?.find(
+        (c: IntrospectedEntity) => c.slug === "update-channel"
+      );
+      expect(updateChannel?.name).toBe("Update Channel MODIFIED");
+      expect(updateChannel?.isActive).toBe(true);
+
+      const updateCategory = finalState.categories?.find(
+        (c: IntrospectedEntity) => c.slug === "update-category"
+      );
+      expect(updateCategory?.description).toBe("UPDATED description");
+
       // Verify DELETE operations persisted (entity should not exist)
-      const deletedChannel = finalState.channels?.find((c: any) => c.slug === "delete-channel");
+      const deletedChannel = finalState.channels?.find(
+        (c: IntrospectedEntity) => c.slug === "delete-channel"
+      );
       expect(deletedChannel).toBeUndefined();
     }, 300000);
   });
@@ -549,12 +562,12 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
   describe("Selective Idempotency", () => {
     it("should be idempotent with selective operations", async () => {
       const configPath = path.join(testDir, "selective-idempotent-config.yml");
-      
+
       const config = {
         shop: {
           defaultMailSenderName: "Selective Idempotent Store",
           defaultMailSenderAddress: "selective@test.com",
-          description: "Original description"
+          description: "Original description",
         },
         channels: [
           {
@@ -562,34 +575,34 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "selective-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Selective Category",
             slug: "selective-category",
-            description: "Original category"
-          }
-        ]
+            description: "Original category",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       // Deploy initial config
       const initialDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(initialDeploy);
-      
+
       // Modify all sections
       const modifiedConfig = {
         shop: {
           defaultMailSenderName: "MODIFIED Selective Store",
           defaultMailSenderAddress: "selective@test.com",
-          description: "MODIFIED description"
+          description: "MODIFIED description",
         },
         channels: [
           {
@@ -597,80 +610,80 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
             slug: "selective-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Selective Category",
             slug: "selective-category",
-            description: "MODIFIED category description"
-          }
-        ]
+            description: "MODIFIED category description",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, modifiedConfig);
-      
+
       // Deploy only shop changes multiple times
       console.log("🎯 Deploying shop changes only (1st time)...");
       const firstShopDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
         include: ["shop"],
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstShopDeploy);
-      
+
       console.log("🎯 Deploying shop changes only (2nd time - should be idempotent)...");
       const secondShopDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
         include: ["shop"],
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondShopDeploy);
-      
+
       // Verify shop-only diff shows no changes
       const shopDiffResult = await cli.diff(apiUrl, token, {
         config: configPath,
-        include: ["shop"]
+        include: ["shop"],
       });
-      
+
       assertNoChanges(shopDiffResult);
-      
+
       // But other sections should still have differences
       const categoriesDiffResult = await cli.diff(apiUrl, token, {
         config: configPath,
-        include: ["categories"]
+        include: ["categories"],
       });
-      
+
       expect(categoriesDiffResult).toHaveSucceeded();
       expect(categoriesDiffResult).toContainInOutput("differences"); // Categories still need updates
-      
+
       // Deploy categories multiple times
       console.log("📂 Deploying category changes only (1st time)...");
       const firstCategoryDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
         include: ["categories"],
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(firstCategoryDeploy);
-      
+
       console.log("📂 Deploying category changes only (2nd time - should be idempotent)...");
       const secondCategoryDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
         include: ["categories"],
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondCategoryDeploy);
-      
+
       // Now all sections should be in sync
       const finalDiffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(finalDiffResult);
     }, 240000);
   });
@@ -678,68 +691,68 @@ describe("E2E Idempotency Tests - Critical Safety", () => {
   describe("Performance Impact of Idempotency", () => {
     it("should not degrade performance with repeated deployments", async () => {
       const configPath = path.join(testDir, "performance-idempotent-config.yml");
-      
+
       const config = {
         shop: {
           defaultMailSenderName: "Performance Test Store",
-          defaultMailSenderAddress: "performance@test.com"
+          defaultMailSenderAddress: "performance@test.com",
         },
         channels: Array.from({ length: 5 }, (_, i) => ({
           name: `Performance Channel ${i + 1}`,
           slug: `perf-channel-${i + 1}`,
           currencyCode: "USD",
           defaultCountry: "US",
-          isActive: true
+          isActive: true,
         })),
         categories: Array.from({ length: 10 }, (_, i) => ({
           name: `Performance Category ${i + 1}`,
           slug: `perf-category-${i + 1}`,
-          description: `Category ${i + 1} for performance testing`
-        }))
+          description: `Category ${i + 1} for performance testing`,
+        })),
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       // Initial deployment
       const initialStartTime = Date.now();
       const initialDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
       const initialDuration = Date.now() - initialStartTime;
-      
+
       assertDeploymentSuccess(initialDeploy);
-      
+
       // Idempotent deployments - should be faster
       const idempotentTimes: number[] = [];
-      
+
       for (let i = 0; i < 3; i++) {
         console.log(`🔄 Idempotent deployment ${i + 1}/3...`);
-        
+
         const startTime = Date.now();
         const idempotentDeploy = await cli.deploy(apiUrl, token, {
           config: configPath,
-          skipDiff: true
+          skipDiff: true,
         });
         const duration = Date.now() - startTime;
-        
+
         assertDeploymentSuccess(idempotentDeploy);
         idempotentTimes.push(duration);
-        
+
         // Each should be reasonably fast (not significantly slower than initial)
         expect(duration).toBeLessThan(initialDuration * 2); // Should not be more than 2x slower
       }
-      
+
       // Verify no differences after performance test
       const diffResult = await cli.diff(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       console.log(`📊 Performance metrics:
         - Initial deployment: ${initialDuration}ms
-        - Idempotent deployments: ${idempotentTimes.map(t => `${t}ms`).join(", ")}
+        - Idempotent deployments: ${idempotentTimes.map((t) => `${t}ms`).join(", ")}
         - Average idempotent time: ${Math.round(idempotentTimes.reduce((a, b) => a + b, 0) / idempotentTimes.length)}ms`);
     }, 180000);
   });

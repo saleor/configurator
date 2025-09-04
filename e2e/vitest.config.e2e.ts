@@ -1,6 +1,6 @@
-import { defineConfig } from "vitest/config";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,9 +15,7 @@ export default defineConfig({
     hookTimeout: isCI ? 360000 : 180000, // 6 minutes in CI, 3 minutes locally
     globalSetup: [path.join(__dirname, "setup.ts")],
     globals: false,
-    reporters: process.env.CI 
-      ? ["default", "json", "junit"]
-      : ["default"],
+    reporters: process.env.CI ? ["default", "json", "junit"] : ["default"],
     outputFile: {
       json: "./test-results/e2e-results.json",
       junit: "./test-results/e2e-results.xml",

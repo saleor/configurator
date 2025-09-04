@@ -1,14 +1,90 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import {
-  createTempDir,
-  cleanupTempDir,
-  readYaml,
-  writeYaml,
-} from "../../utils/test-helpers.js";
-import { assertDeploymentSuccess, assertIntrospectionSuccess, assertNoChanges } from "../../utils/assertions.js";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  assertDeploymentSuccess,
+  assertIntrospectionSuccess,
+  assertNoChanges,
+} from "../../utils/assertions.js";
+import { CliRunner } from "../../utils/cli-runner.js";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
+import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
+
+// Type definitions for E2E test data structures
+interface TestChannel {
+  name: string;
+  slug: string;
+  currencyCode: string;
+  defaultCountry: string;
+  isActive?: boolean;
+}
+
+interface TestCategory {
+  name: string;
+  slug: string;
+  description?: string;
+  parent?: string;
+}
+
+interface TestAttributeValue {
+  name: string;
+  slug: string;
+  value?: string; // For swatch colors
+}
+
+interface TestProductAttribute {
+  name: string;
+  slug: string;
+  type: string;
+  inputType: string;
+  valueRequired?: boolean;
+  visibleInStorefront?: boolean;
+  filterableInStorefront?: boolean;
+  filterableInDashboard?: boolean;
+  availableInGrid?: boolean;
+  choices?: string[];
+  values?: TestAttributeValue[];
+}
+
+interface TestProductType {
+  name: string;
+  slug?: string;
+  hasVariants?: boolean;
+  isShippingRequired?: boolean;
+  productAttributes: TestProductAttribute[];
+  variantAttributes: TestProductAttribute[];
+}
+
+interface TestPageAttribute {
+  name: string;
+  slug: string;
+  type: string;
+  inputType: string;
+  valueRequired?: boolean;
+  visibleInStorefront?: boolean;
+  availableInGrid?: boolean;
+  storefrontSearchPosition?: number;
+  values?: TestAttributeValue[];
+}
+
+interface TestPageType {
+  name: string;
+  slug?: string;
+  attributes: TestPageAttribute[];
+}
+
+interface TestIntrospectedData {
+  shop: {
+    defaultMailSenderName: string;
+    defaultMailSenderAddress: string;
+    description?: string;
+    trackInventoryByDefault?: boolean;
+    defaultWeightUnit?: string;
+  };
+  channels: TestChannel[];
+  categories?: TestCategory[];
+  productTypes: TestProductType[];
+  pageTypes: TestPageType[];
+}
 
 describe("E2E Complete Round-Trip Tests - All Entities", () => {
   let cli: CliRunner;
@@ -18,15 +94,15 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
 
   beforeAll(async () => {
     console.log("🚀 Starting complete round-trip test setup...");
-    
+
     testDir = await createTempDir("round-trip-complete-test-");
-    
+
     const config = getTestConfig();
     apiUrl = config.apiUrl;
     await waitForApi(apiUrl);
     token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
-    
+
     console.log("✅ Complete round-trip test setup complete");
   }, 60000);
 
@@ -39,7 +115,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
       const originalConfigPath = path.join(testDir, "complete-original.yml");
       const firstIntrospectPath = path.join(testDir, "first-introspect.yml");
       const secondIntrospectPath = path.join(testDir, "second-introspect.yml");
-      
+
       // Comprehensive configuration covering ALL supported entities
       const completeConfig = {
         shop: {
@@ -59,7 +135,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
           limitQuantityPerCheckout: 50,
           enableAccountConfirmationByEmail: true,
           allowLoginWithoutConfirmation: false,
-          displayGrossPrices: true
+          displayGrossPrices: true,
         },
         channels: [
           {
@@ -67,88 +143,88 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
             slug: "primary-sales",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
             name: "European Market Channel",
             slug: "european-market",
-            currencyCode: "EUR", 
+            currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: true
+            isActive: true,
           },
           {
             name: "UK Market Channel",
             slug: "uk-market",
             currencyCode: "GBP",
             defaultCountry: "GB",
-            isActive: false
+            isActive: false,
           },
           {
             name: "Asian Pacific Channel",
             slug: "asian-pacific",
             currencyCode: "JPY",
             defaultCountry: "JP",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Electronics",
             slug: "electronics",
-            description: "All electronic products and devices"
+            description: "All electronic products and devices",
           },
           {
-            name: "Computers & Laptops", 
+            name: "Computers & Laptops",
             slug: "computers-laptops",
             description: "Desktop computers, laptops, and accessories",
-            parent: "electronics"
+            parent: "electronics",
           },
           {
             name: "Gaming Laptops",
             slug: "gaming-laptops",
             description: "High-performance gaming laptops",
-            parent: "computers-laptops"
+            parent: "computers-laptops",
           },
           {
             name: "Smartphones & Tablets",
-            slug: "smartphones-tablets", 
+            slug: "smartphones-tablets",
             description: "Mobile devices and tablets",
-            parent: "electronics"
+            parent: "electronics",
           },
           {
             name: "Audio & Video",
             slug: "audio-video",
             description: "Audio equipment and video devices",
-            parent: "electronics"
+            parent: "electronics",
           },
           {
             name: "Headphones",
             slug: "headphones",
             description: "All types of headphones and earbuds",
-            parent: "audio-video"
+            parent: "audio-video",
           },
           {
             name: "Home & Garden",
             slug: "home-garden",
-            description: "Home improvement and garden products"
+            description: "Home improvement and garden products",
           },
           {
             name: "Kitchen Appliances",
             slug: "kitchen-appliances",
             description: "Kitchen tools and appliances",
-            parent: "home-garden"
+            parent: "home-garden",
           },
           {
             name: "Outdoor Furniture",
             slug: "outdoor-furniture",
             description: "Garden and patio furniture",
-            parent: "home-garden"
+            parent: "home-garden",
           },
           {
             name: "Fashion & Apparel",
             slug: "fashion-apparel",
-            description: "Clothing and fashion accessories"
-          }
+            description: "Clothing and fashion accessories",
+          },
         ],
         productTypes: [
           {
@@ -171,8 +247,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Sony", slug: "sony" },
                   { name: "LG", slug: "lg" },
                   { name: "Dell", slug: "dell" },
-                  { name: "HP", slug: "hp" }
-                ]
+                  { name: "HP", slug: "hp" },
+                ],
               },
               {
                 name: "Warranty Period",
@@ -187,8 +263,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "6 months", slug: "6-months" },
                   { name: "1 year", slug: "1-year" },
                   { name: "2 years", slug: "2-years" },
-                  { name: "3 years", slug: "3-years" }
-                ]
+                  { name: "3 years", slug: "3-years" },
+                ],
               },
               {
                 name: "Energy Rating",
@@ -205,8 +281,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "A+", slug: "a-plus" },
                   { name: "A", slug: "a" },
                   { name: "B", slug: "b" },
-                  { name: "C", slug: "c" }
-                ]
+                  { name: "C", slug: "c" },
+                ],
               },
               {
                 name: "Model Number",
@@ -216,8 +292,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: false,
                 visibleInStorefront: true,
                 filterableInStorefront: false,
-                filterableInDashboard: true
-              }
+                filterableInDashboard: true,
+              },
             ],
             variantAttributes: [
               {
@@ -234,8 +310,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "White", slug: "white", value: "#FFFFFF" },
                   { name: "Silver", slug: "silver", value: "#C0C0C0" },
                   { name: "Gold", slug: "gold", value: "#FFD700" },
-                  { name: "Space Gray", slug: "space-gray", value: "#4B4B4D" }
-                ]
+                  { name: "Space Gray", slug: "space-gray", value: "#4B4B4D" },
+                ],
               },
               {
                 name: "Storage Size",
@@ -251,10 +327,10 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "128GB", slug: "128gb" },
                   { name: "256GB", slug: "256gb" },
                   { name: "512GB", slug: "512gb" },
-                  { name: "1TB", slug: "1tb" }
-                ]
-              }
-            ]
+                  { name: "1TB", slug: "1tb" },
+                ],
+              },
+            ],
           },
           {
             name: "Fashion Product",
@@ -275,8 +351,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Wool", slug: "wool" },
                   { name: "Silk", slug: "silk" },
                   { name: "Leather", slug: "leather" },
-                  { name: "Denim", slug: "denim" }
-                ]
+                  { name: "Denim", slug: "denim" },
+                ],
               },
               {
                 name: "Care Instructions",
@@ -286,8 +362,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: false,
                 visibleInStorefront: true,
                 filterableInStorefront: false,
-                filterableInDashboard: false
-              }
+                filterableInDashboard: false,
+              },
             ],
             variantAttributes: [
               {
@@ -305,8 +381,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "M", slug: "m" },
                   { name: "L", slug: "l" },
                   { name: "XL", slug: "xl" },
-                  { name: "XXL", slug: "xxl" }
-                ]
+                  { name: "XXL", slug: "xxl" },
+                ],
               },
               {
                 name: "Color",
@@ -322,10 +398,10 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Blue", slug: "blue" },
                   { name: "Green", slug: "green" },
                   { name: "Black", slug: "fashion-black" },
-                  { name: "White", slug: "fashion-white" }
-                ]
-              }
-            ]
+                  { name: "White", slug: "fashion-white" },
+                ],
+              },
+            ],
           },
           {
             name: "Digital Product",
@@ -345,8 +421,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "MP4", slug: "mp4" },
                   { name: "MP3", slug: "mp3" },
                   { name: "ZIP", slug: "zip" },
-                  { name: "EXE", slug: "exe" }
-                ]
+                  { name: "EXE", slug: "exe" },
+                ],
               },
               {
                 name: "File Size",
@@ -356,8 +432,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: false,
                 visibleInStorefront: true,
                 filterableInStorefront: false,
-                filterableInDashboard: true
-              }
+                filterableInDashboard: true,
+              },
             ],
             variantAttributes: [
               {
@@ -372,11 +448,11 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 values: [
                   { name: "Personal", slug: "personal" },
                   { name: "Commercial", slug: "commercial" },
-                  { name: "Extended", slug: "extended" }
-                ]
-              }
-            ]
-          }
+                  { name: "Extended", slug: "extended" },
+                ],
+              },
+            ],
+          },
         ],
         pageTypes: [
           {
@@ -390,7 +466,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: true,
                 visibleInStorefront: true,
                 availableInGrid: true,
-                storefrontSearchPosition: 1
+                storefrontSearchPosition: 1,
               },
               {
                 name: "Publication Date",
@@ -400,7 +476,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: true,
                 visibleInStorefront: true,
                 availableInGrid: true,
-                storefrontSearchPosition: 2
+                storefrontSearchPosition: 2,
               },
               {
                 name: "Tags",
@@ -415,8 +491,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Fashion", slug: "fashion-tag" },
                   { name: "Lifestyle", slug: "lifestyle" },
                   { name: "Business", slug: "business" },
-                  { name: "Tutorial", slug: "tutorial" }
-                ]
+                  { name: "Tutorial", slug: "tutorial" },
+                ],
               },
               {
                 name: "Featured Image",
@@ -425,7 +501,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "FILE",
                 valueRequired: false,
                 visibleInStorefront: true,
-                availableInGrid: false
+                availableInGrid: false,
               },
               {
                 name: "Content Summary",
@@ -434,9 +510,9 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "RICH_TEXT",
                 valueRequired: false,
                 visibleInStorefront: true,
-                availableInGrid: false
-              }
-            ]
+                availableInGrid: false,
+              },
+            ],
           },
           {
             name: "Landing Page",
@@ -449,7 +525,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: true,
                 visibleInStorefront: true,
                 availableInGrid: true,
-                storefrontSearchPosition: 1
+                storefrontSearchPosition: 1,
               },
               {
                 name: "Meta Description",
@@ -458,7 +534,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "PLAIN_TEXT",
                 valueRequired: false,
                 visibleInStorefront: false,
-                availableInGrid: true
+                availableInGrid: true,
               },
               {
                 name: "Hero Banner",
@@ -467,7 +543,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "FILE",
                 valueRequired: false,
                 visibleInStorefront: true,
-                availableInGrid: false
+                availableInGrid: false,
               },
               {
                 name: "Call to Action",
@@ -481,10 +557,10 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Shop Now", slug: "shop-now" },
                   { name: "Learn More", slug: "learn-more" },
                   { name: "Sign Up", slug: "sign-up" },
-                  { name: "Contact Us", slug: "contact-us" }
-                ]
-              }
-            ]
+                  { name: "Contact Us", slug: "contact-us" },
+                ],
+              },
+            ],
           },
           {
             name: "FAQ Page",
@@ -503,8 +579,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Returns", slug: "returns" },
                   { name: "Payment", slug: "payment" },
                   { name: "Account", slug: "account" },
-                  { name: "Technical", slug: "technical" }
-                ]
+                  { name: "Technical", slug: "technical" },
+                ],
               },
               {
                 name: "Priority Level",
@@ -513,7 +589,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "NUMERIC",
                 valueRequired: false,
                 visibleInStorefront: false,
-                availableInGrid: true
+                availableInGrid: true,
               },
               {
                 name: "Last Updated",
@@ -522,146 +598,182 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "DATE_TIME",
                 valueRequired: false,
                 visibleInStorefront: true,
-                availableInGrid: true
-              }
-            ]
-          }
-        ]
+                availableInGrid: true,
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(originalConfigPath, completeConfig);
-      
+
       // Step 1: Deploy the comprehensive configuration
       console.log("📤 Step 1: Deploying comprehensive configuration...");
       const deployResult = await cli.deploy(apiUrl, token, {
         config: originalConfigPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
-      
+
       // Step 2: Introspect the deployed configuration
       console.log("📥 Step 2: Introspecting deployed configuration...");
       const firstIntrospectResult = await cli.introspect(apiUrl, token, {
-        config: firstIntrospectPath
+        config: firstIntrospectPath,
       });
-      
+
       assertIntrospectionSuccess(firstIntrospectResult);
       const firstIntrospectedData = await readYaml(firstIntrospectPath);
-      
+
       // Step 3: Deploy the introspected configuration (should be idempotent)
       console.log("🔄 Step 3: Deploying introspected configuration...");
       const secondDeployResult = await cli.deploy(apiUrl, token, {
         config: firstIntrospectPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(secondDeployResult);
-      
+
       // Step 4: Introspect again to verify round-trip integrity
       console.log("📥 Step 4: Second introspection for round-trip verification...");
       const secondIntrospectResult = await cli.introspect(apiUrl, token, {
-        config: secondIntrospectPath
+        config: secondIntrospectPath,
       });
-      
+
       assertIntrospectionSuccess(secondIntrospectResult);
       const secondIntrospectedData = await readYaml(secondIntrospectPath);
-      
+
       // Step 5: Verify no differences detected
       console.log("🔍 Step 5: Verifying no differences detected...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: secondIntrospectPath
+        config: secondIntrospectPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // Step 6: Deep data integrity verification
       console.log("🔬 Step 6: Deep data integrity verification...");
-      
+
       // Verify Shop data preservation
-      expect(firstIntrospectedData.shop.defaultMailSenderName).toBe(completeConfig.shop.defaultMailSenderName);
-      expect(firstIntrospectedData.shop.defaultMailSenderAddress).toBe(completeConfig.shop.defaultMailSenderAddress);
+      expect(firstIntrospectedData.shop.defaultMailSenderName).toBe(
+        completeConfig.shop.defaultMailSenderName
+      );
+      expect(firstIntrospectedData.shop.defaultMailSenderAddress).toBe(
+        completeConfig.shop.defaultMailSenderAddress
+      );
       expect(firstIntrospectedData.shop.description).toBe(completeConfig.shop.description);
-      expect(firstIntrospectedData.shop.trackInventoryByDefault).toBe(completeConfig.shop.trackInventoryByDefault);
-      expect(firstIntrospectedData.shop.defaultWeightUnit).toBe(completeConfig.shop.defaultWeightUnit);
-      
+      expect(firstIntrospectedData.shop.trackInventoryByDefault).toBe(
+        completeConfig.shop.trackInventoryByDefault
+      );
+      expect(firstIntrospectedData.shop.defaultWeightUnit).toBe(
+        completeConfig.shop.defaultWeightUnit
+      );
+
       // Verify Channels data preservation
       expect(firstIntrospectedData.channels).toHaveLength(4);
-      const primaryChannel = firstIntrospectedData.channels.find((c: any) => c.slug === "primary-sales");
+      const primaryChannel = firstIntrospectedData.channels.find(
+        (c: TestChannel) => c.slug === "primary-sales"
+      );
       expect(primaryChannel).toBeDefined();
-      expect(primaryChannel.name).toBe("Primary Sales Channel");
-      expect(primaryChannel.currencyCode).toBe("USD");
-      expect(primaryChannel.defaultCountry).toBe("US");
-      expect(primaryChannel.isActive).toBe(true);
-      
-      const europeanChannel = firstIntrospectedData.channels.find((c: any) => c.slug === "european-market");
+      expect(primaryChannel!.name).toBe("Primary Sales Channel");
+      expect(primaryChannel!.currencyCode).toBe("USD");
+      expect(primaryChannel!.defaultCountry).toBe("US");
+      expect(primaryChannel!.isActive).toBe(true);
+
+      const europeanChannel = firstIntrospectedData.channels.find(
+        (c: TestChannel) => c.slug === "european-market"
+      );
       expect(europeanChannel).toBeDefined();
-      expect(europeanChannel.currencyCode).toBe("EUR");
-      expect(europeanChannel.defaultCountry).toBe("DE");
-      
-      const ukChannel = firstIntrospectedData.channels.find((c: any) => c.slug === "uk-market");
+      expect(europeanChannel!.currencyCode).toBe("EUR");
+      expect(europeanChannel!.defaultCountry).toBe("DE");
+
+      const ukChannel = firstIntrospectedData.channels.find(
+        (c: TestChannel) => c.slug === "uk-market"
+      );
       expect(ukChannel).toBeDefined();
-      expect(ukChannel.isActive).toBe(false); // Should preserve false value
-      
+      expect(ukChannel!.isActive).toBe(false); // Should preserve false value
+
       // Verify Categories data preservation with hierarchy
       expect(firstIntrospectedData.categories).toHaveLength(10);
-      const electronicsCategory = firstIntrospectedData.categories.find((c: any) => c.slug === "electronics");
+      const electronicsCategory = firstIntrospectedData.categories!.find(
+        (c: TestCategory) => c.slug === "electronics"
+      );
       expect(electronicsCategory).toBeDefined();
-      expect(electronicsCategory.name).toBe("Electronics");
-      
-      const computersCategory = firstIntrospectedData.categories.find((c: any) => c.slug === "computers-laptops");
+      expect(electronicsCategory!.name).toBe("Electronics");
+
+      const computersCategory = firstIntrospectedData.categories!.find(
+        (c: TestCategory) => c.slug === "computers-laptops"
+      );
       expect(computersCategory).toBeDefined();
-      expect(computersCategory.parent).toBe("electronics");
-      
-      const gamingLaptopsCategory = firstIntrospectedData.categories.find((c: any) => c.slug === "gaming-laptops");
+      expect(computersCategory!.parent).toBe("electronics");
+
+      const gamingLaptopsCategory = firstIntrospectedData.categories!.find(
+        (c: TestCategory) => c.slug === "gaming-laptops"
+      );
       expect(gamingLaptopsCategory).toBeDefined();
-      expect(gamingLaptopsCategory.parent).toBe("computers-laptops");
-      
+      expect(gamingLaptopsCategory!.parent).toBe("computers-laptops");
+
       // Verify ProductTypes with attributes preservation
       expect(firstIntrospectedData.productTypes).toHaveLength(3);
-      
-      const electronicsProductType = firstIntrospectedData.productTypes.find((pt: any) => pt.name === "Electronics Product");
+
+      const electronicsProductType = firstIntrospectedData.productTypes.find(
+        (pt: TestProductType) => pt.name === "Electronics Product"
+      );
       expect(electronicsProductType).toBeDefined();
-      expect(electronicsProductType.isShippingRequired).toBe(true);
-      expect(electronicsProductType.productAttributes).toHaveLength(4);
-      expect(electronicsProductType.variantAttributes).toHaveLength(2);
-      
-      const brandAttribute = electronicsProductType.productAttributes.find((attr: any) => attr.slug === "brand");
+      expect(electronicsProductType!.isShippingRequired).toBe(true);
+      expect(electronicsProductType!.productAttributes).toHaveLength(4);
+      expect(electronicsProductType!.variantAttributes).toHaveLength(2);
+
+      const brandAttribute = electronicsProductType!.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "brand"
+      );
       expect(brandAttribute).toBeDefined();
-      expect(brandAttribute.type).toBe("DROPDOWN");
-      expect(brandAttribute.valueRequired).toBe(true);
-      expect(brandAttribute.values).toHaveLength(6);
-      
-      const colorVariantAttribute = electronicsProductType.variantAttributes.find((attr: any) => attr.slug === "color");
+      expect(brandAttribute!.type).toBe("DROPDOWN");
+      expect(brandAttribute!.valueRequired).toBe(true);
+      expect(brandAttribute!.values).toHaveLength(6);
+
+      const colorVariantAttribute = electronicsProductType!.variantAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "color"
+      );
       expect(colorVariantAttribute).toBeDefined();
-      expect(colorVariantAttribute.type).toBe("SWATCH");
-      expect(colorVariantAttribute.values).toHaveLength(5);
-      
-      const digitalProductType = firstIntrospectedData.productTypes.find((pt: any) => pt.name === "Digital Product");
+      expect(colorVariantAttribute!.type).toBe("SWATCH");
+      expect(colorVariantAttribute!.values).toHaveLength(5);
+
+      const digitalProductType = firstIntrospectedData.productTypes.find(
+        (pt: TestProductType) => pt.name === "Digital Product"
+      );
       expect(digitalProductType).toBeDefined();
-      expect(digitalProductType.isShippingRequired).toBe(false); // Digital products don't require shipping
-      
+      expect(digitalProductType!.isShippingRequired).toBe(false); // Digital products don't require shipping
+
       // Verify PageTypes with attributes preservation
       expect(firstIntrospectedData.pageTypes).toHaveLength(3);
-      
-      const blogPostPageType = firstIntrospectedData.pageTypes.find((pt: any) => pt.name === "Blog Post");
+
+      const blogPostPageType = firstIntrospectedData.pageTypes.find(
+        (pt: TestPageType) => pt.name === "Blog Post"
+      );
       expect(blogPostPageType).toBeDefined();
-      expect(blogPostPageType.attributes).toHaveLength(5);
-      
-      const authorAttribute = blogPostPageType.attributes.find((attr: any) => attr.slug === "author");
+      expect(blogPostPageType!.attributes).toHaveLength(5);
+
+      const authorAttribute = blogPostPageType!.attributes.find(
+        (attr: TestPageAttribute) => attr.slug === "author"
+      );
       expect(authorAttribute).toBeDefined();
-      expect(authorAttribute.type).toBe("PLAIN_TEXT");
-      expect(authorAttribute.valueRequired).toBe(true);
-      expect(authorAttribute.storefrontSearchPosition).toBe(1);
-      
-      const tagsAttribute = blogPostPageType.attributes.find((attr: any) => attr.slug === "tags");
+      expect(authorAttribute!.type).toBe("PLAIN_TEXT");
+      expect(authorAttribute!.valueRequired).toBe(true);
+      expect(authorAttribute!.storefrontSearchPosition).toBe(1);
+
+      const tagsAttribute = blogPostPageType!.attributes.find(
+        (attr: TestPageAttribute) => attr.slug === "tags"
+      );
       expect(tagsAttribute).toBeDefined();
-      expect(tagsAttribute.type).toBe("MULTISELECT");
-      expect(tagsAttribute.values).toHaveLength(5);
-      
+      expect(tagsAttribute!.type).toBe("MULTISELECT");
+      expect(tagsAttribute!.values).toHaveLength(5);
+
       // Verify data consistency between first and second introspection
-      expect(JSON.stringify(secondIntrospectedData, null, 2)).toBe(JSON.stringify(firstIntrospectedData, null, 2));
-      
+      expect(JSON.stringify(secondIntrospectedData, null, 2)).toBe(
+        JSON.stringify(firstIntrospectedData, null, 2)
+      );
+
       console.log("✅ Complete round-trip test passed - all data preserved perfectly!");
     }, 480000);
   });
@@ -670,13 +782,13 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
     it("should preserve data integrity in selective round-trip operations", async () => {
       const configPath = path.join(testDir, "selective-round-trip.yml");
       const introspectPath = path.join(testDir, "selective-introspected.yml");
-      
+
       // Deploy comprehensive base configuration
       const baseConfig = {
         shop: {
           defaultMailSenderName: "Selective Round-Trip Store",
           defaultMailSenderAddress: "selective@test.com",
-          description: "Store for selective round-trip testing"
+          description: "Store for selective round-trip testing",
         },
         channels: [
           {
@@ -684,85 +796,87 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
             slug: "selective-channel-1",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
+            isActive: true,
           },
           {
             name: "Selective Channel 2",
             slug: "selective-channel-2",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Selective Category 1",
             slug: "selective-category-1",
-            description: "First selective category"
+            description: "First selective category",
           },
           {
             name: "Selective Category 2",
             slug: "selective-category-2",
-            description: "Second selective category"
-          }
-        ]
+            description: "Second selective category",
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, baseConfig);
-      
+
       console.log("📤 Deploying base configuration for selective testing...");
       const baseDeployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(baseDeployResult);
-      
+
       // Introspect only shop and channels (selective)
       console.log("📥 Selective introspection (shop and channels only)...");
       const selectiveIntrospectResult = await cli.introspect(apiUrl, token, {
         config: introspectPath,
-        include: ["shop", "channels"]
+        include: ["shop", "channels"],
       });
-      
+
       assertIntrospectionSuccess(selectiveIntrospectResult);
       const selectiveIntrospectedData = await readYaml(introspectPath);
-      
+
       // Verify selective introspection contains only requested sections
       expect(selectiveIntrospectedData.shop).toBeDefined();
       expect(selectiveIntrospectedData.channels).toBeDefined();
       expect(selectiveIntrospectedData.channels).toHaveLength(2);
-      
+
       // Categories should not be included in selective introspection
       expect(selectiveIntrospectedData.categories).toBeUndefined();
-      
+
       // Deploy selective configuration back (should only affect shop and channels)
       console.log("🎯 Deploying selective configuration back...");
       const selectiveDeployResult = await cli.deploy(apiUrl, token, {
         config: introspectPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(selectiveDeployResult);
-      
+
       // Verify full introspection still contains all original data
       console.log("🔍 Verifying full data integrity after selective operations...");
       const fullIntrospectPath = path.join(testDir, "full-after-selective.yml");
       const fullIntrospectResult = await cli.introspect(apiUrl, token, {
-        config: fullIntrospectPath
+        config: fullIntrospectPath,
       });
-      
+
       assertIntrospectionSuccess(fullIntrospectResult);
       const fullIntrospectedData = await readYaml(fullIntrospectPath);
-      
+
       // All original data should still be present
       expect(fullIntrospectedData.shop.defaultMailSenderName).toBe("Selective Round-Trip Store");
       expect(fullIntrospectedData.channels).toHaveLength(2);
       expect(fullIntrospectedData.categories).toHaveLength(2);
-      
-      const originalCategory1 = fullIntrospectedData.categories.find((c: any) => c.slug === "selective-category-1");
+
+      const originalCategory1 = fullIntrospectedData.categories!.find(
+        (c: TestCategory) => c.slug === "selective-category-1"
+      );
       expect(originalCategory1).toBeDefined();
-      expect(originalCategory1.description).toBe("First selective category");
+      expect(originalCategory1!.description).toBe("First selective category");
     }, 240000);
   });
 
@@ -770,7 +884,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
     it("should preserve complex nested structures and relationships", async () => {
       const configPath = path.join(testDir, "complex-structures.yml");
       const introspectPath = path.join(testDir, "complex-introspected.yml");
-      
+
       // Complex configuration with deep nesting and relationships
       const complexConfig = {
         shop: {
@@ -784,7 +898,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
           limitQuantityPerCheckout: 100,
           enableAccountConfirmationByEmail: true,
           allowLoginWithoutConfirmation: false,
-          displayGrossPrices: true
+          displayGrossPrices: true,
         },
         channels: [
           {
@@ -792,51 +906,51 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
             slug: "multi-region-channel",
             currencyCode: "USD",
             defaultCountry: "US",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
             name: "Root Category",
             slug: "root-category",
-            description: "Top-level root category"
+            description: "Top-level root category",
           },
           {
             name: "Level 1 Category A",
             slug: "level-1-category-a",
             description: "First level 1 category",
-            parent: "root-category"
+            parent: "root-category",
           },
           {
             name: "Level 1 Category B",
             slug: "level-1-category-b",
             description: "Second level 1 category",
-            parent: "root-category"
+            parent: "root-category",
           },
           {
             name: "Level 2 Category A1",
             slug: "level-2-category-a1",
             description: "First level 2 under A",
-            parent: "level-1-category-a"
+            parent: "level-1-category-a",
           },
           {
             name: "Level 2 Category A2",
             slug: "level-2-category-a2",
             description: "Second level 2 under A",
-            parent: "level-1-category-a"
+            parent: "level-1-category-a",
           },
           {
             name: "Level 2 Category B1",
             slug: "level-2-category-b1",
             description: "First level 2 under B",
-            parent: "level-1-category-b"
+            parent: "level-1-category-b",
           },
           {
             name: "Level 3 Deep Category",
             slug: "level-3-deep-category",
             description: "Deep nested category",
-            parent: "level-2-category-a1"
-          }
+            parent: "level-2-category-a1",
+          },
         ],
         productTypes: [
           {
@@ -861,8 +975,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Option Epsilon", slug: "option-epsilon" },
                   { name: "Option Zeta", slug: "option-zeta" },
                   { name: "Option Eta", slug: "option-eta" },
-                  { name: "Option Theta", slug: "option-theta" }
-                ]
+                  { name: "Option Theta", slug: "option-theta" },
+                ],
               },
               {
                 name: "Rich Text Description",
@@ -873,7 +987,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 visibleInStorefront: true,
                 filterableInStorefront: false,
                 filterableInDashboard: false,
-                availableInGrid: false
+                availableInGrid: false,
               },
               {
                 name: "Numeric Rating",
@@ -884,8 +998,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 visibleInStorefront: true,
                 filterableInStorefront: true,
                 filterableInDashboard: true,
-                availableInGrid: true
-              }
+                availableInGrid: true,
+              },
             ],
             variantAttributes: [
               {
@@ -903,8 +1017,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Crimson Red", slug: "crimson-red", value: "#DC143C" },
                   { name: "Golden Yellow", slug: "golden-yellow", value: "#FFD700" },
                   { name: "Royal Purple", slug: "royal-purple", value: "#7851A9" },
-                  { name: "Ocean Teal", slug: "ocean-teal", value: "#008080" }
-                ]
+                  { name: "Ocean Teal", slug: "ocean-teal", value: "#008080" },
+                ],
               },
               {
                 name: "Complex Variant Dropdown",
@@ -920,11 +1034,11 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Configuration B", slug: "configuration-b" },
                   { name: "Configuration C", slug: "configuration-c" },
                   { name: "Premium Configuration", slug: "premium-configuration" },
-                  { name: "Enterprise Configuration", slug: "enterprise-configuration" }
-                ]
-              }
-            ]
-          }
+                  { name: "Enterprise Configuration", slug: "enterprise-configuration" },
+                ],
+              },
+            ],
+          },
         ],
         pageTypes: [
           {
@@ -944,8 +1058,8 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                   { name: "Primary Level 2", slug: "primary-level-2" },
                   { name: "Secondary Level 1", slug: "secondary-level-1" },
                   { name: "Secondary Level 2", slug: "secondary-level-2" },
-                  { name: "Tertiary Advanced", slug: "tertiary-advanced" }
-                ]
+                  { name: "Tertiary Advanced", slug: "tertiary-advanced" },
+                ],
               },
               {
                 name: "Complex File Upload",
@@ -954,7 +1068,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "FILE",
                 valueRequired: false,
                 visibleInStorefront: false,
-                availableInGrid: false
+                availableInGrid: false,
               },
               {
                 name: "Advanced Date Time",
@@ -964,7 +1078,7 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: false,
                 visibleInStorefront: true,
                 availableInGrid: true,
-                storefrontSearchPosition: 2
+                storefrontSearchPosition: 2,
               },
               {
                 name: "Complex Boolean Logic",
@@ -973,83 +1087,99 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 inputType: "BOOLEAN",
                 valueRequired: false,
                 visibleInStorefront: true,
-                availableInGrid: true
-              }
-            ]
-          }
-        ]
+                availableInGrid: true,
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, complexConfig);
-      
+
       console.log("📤 Deploying complex structure configuration...");
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
-      
+
       console.log("📥 Introspecting complex structures...");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       assertIntrospectionSuccess(introspectResult);
       const introspectedData = await readYaml(introspectPath);
-      
+
       console.log("🔄 Re-deploying introspected complex structures...");
       const redeployResult = await cli.deploy(apiUrl, token, {
         config: introspectPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(redeployResult);
-      
+
       console.log("🔍 Verifying complex structure preservation...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // Verify complex nested category hierarchy
       expect(introspectedData.categories).toHaveLength(7);
-      const rootCategory = introspectedData.categories.find((c: any) => c.slug === "root-category");
+      const rootCategory = introspectedData.categories!.find(
+        (c: TestCategory) => c.slug === "root-category"
+      );
       expect(rootCategory).toBeDefined();
-      expect(rootCategory.parent).toBeUndefined(); // Root has no parent
-      
-      const level3Category = introspectedData.categories.find((c: any) => c.slug === "level-3-deep-category");
+      expect(rootCategory!.parent).toBeUndefined(); // Root has no parent
+
+      const level3Category = introspectedData.categories!.find(
+        (c: TestCategory) => c.slug === "level-3-deep-category"
+      );
       expect(level3Category).toBeDefined();
-      expect(level3Category.parent).toBe("level-2-category-a1");
-      
+      expect(level3Category!.parent).toBe("level-2-category-a1");
+
       // Verify complex product type with all attribute types
-      const complexProductType = introspectedData.productTypes.find((pt: any) => pt.name === "Complex Product Type");
+      const complexProductType = introspectedData.productTypes.find(
+        (pt: TestProductType) => pt.name === "Complex Product Type"
+      );
       expect(complexProductType).toBeDefined();
-      expect(complexProductType.productAttributes).toHaveLength(3);
-      expect(complexProductType.variantAttributes).toHaveLength(2);
-      
-      const multiselectAttr = complexProductType.productAttributes.find((attr: any) => attr.type === "MULTISELECT");
+      expect(complexProductType!.productAttributes).toHaveLength(3);
+      expect(complexProductType!.variantAttributes).toHaveLength(2);
+
+      const multiselectAttr = complexProductType!.productAttributes.find(
+        (attr: TestProductAttribute) => attr.type === "MULTISELECT"
+      );
       expect(multiselectAttr).toBeDefined();
-      expect(multiselectAttr.values).toHaveLength(8);
-      
-      const swatchAttr = complexProductType.variantAttributes.find((attr: any) => attr.type === "SWATCH");
+      expect(multiselectAttr!.values).toHaveLength(8);
+
+      const swatchAttr = complexProductType!.variantAttributes.find(
+        (attr: TestProductAttribute) => attr.type === "SWATCH"
+      );
       expect(swatchAttr).toBeDefined();
-      expect(swatchAttr.values).toHaveLength(6);
-      expect(swatchAttr.values[0].value).toBe("#191970"); // Midnight Blue hex value
-      
+      expect(swatchAttr!.values).toHaveLength(6);
+      expect(swatchAttr!.values![0].value).toBe("#191970"); // Midnight Blue hex value
+
       // Verify complex page type with all attribute types
-      const complexPageType = introspectedData.pageTypes.find((pt: any) => pt.name === "Complex Page Type");
+      const complexPageType = introspectedData.pageTypes.find(
+        (pt: TestPageType) => pt.name === "Complex Page Type"
+      );
       expect(complexPageType).toBeDefined();
-      expect(complexPageType.attributes).toHaveLength(4);
-      
-      const fileAttr = complexPageType.attributes.find((attr: any) => attr.type === "FILE");
+      expect(complexPageType!.attributes).toHaveLength(4);
+
+      const fileAttr = complexPageType!.attributes.find(
+        (attr: TestPageAttribute) => attr.type === "FILE"
+      );
       expect(fileAttr).toBeDefined();
-      
-      const dateTimeAttr = complexPageType.attributes.find((attr: any) => attr.type === "DATE_TIME");
+
+      const dateTimeAttr = complexPageType!.attributes.find(
+        (attr: TestPageAttribute) => attr.type === "DATE_TIME"
+      );
       expect(dateTimeAttr).toBeDefined();
-      expect(dateTimeAttr.storefrontSearchPosition).toBe(2);
-      
+      expect(dateTimeAttr!.storefrontSearchPosition).toBe(2);
+
       console.log("✅ Complex structure round-trip test passed!");
     }, 360000);
   });
@@ -1058,13 +1188,13 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
     it("should handle edge cases and special characters in round-trip", async () => {
       const configPath = path.join(testDir, "edge-cases.yml");
       const introspectPath = path.join(testDir, "edge-cases-introspected.yml");
-      
+
       // Configuration with edge cases and special characters
       const edgeCaseConfig = {
         shop: {
           defaultMailSenderName: "Edge-Case Store with Special Characters: éàü & Co.",
           defaultMailSenderAddress: "edge-case@test-domain.com",
-          description: "Store with émojis 🛒, spëcial chars & \"quotes\", and (parentheses)"
+          description: 'Store with émojis 🛒, spëcial chars & "quotes", and (parentheses)',
         },
         channels: [
           {
@@ -1072,20 +1202,21 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
             slug: "special-name-channel",
             currencyCode: "EUR",
             defaultCountry: "DE",
-            isActive: true
-          }
+            isActive: true,
+          },
         ],
         categories: [
           {
-            name: "Category with \"Quotes\" & Spëcials",
+            name: 'Category with "Quotes" & Spëcials',
             slug: "category-with-quotes-specials",
-            description: "Description with émojis 📦, newlines\nand special chars: ñáéíóú"
+            description: "Description with émojis 📦, newlines\nand special chars: ñáéíóú",
           },
           {
             name: "Very Long Category Name That Exceeds Normal Length Expectations And Contains Many Words",
             slug: "very-long-category-name",
-            description: "A very detailed description that contains multiple sentences. It includes various punctuation marks, such as commas, semicolons; and even em-dashes—like this one. The purpose is to test how well the system handles longer text content."
-          }
+            description:
+              "A very detailed description that contains multiple sentences. It includes various punctuation marks, such as commas, semicolons; and even em-dashes—like this one. The purpose is to test how well the system handles longer text content.",
+          },
         ],
         productTypes: [
           {
@@ -1103,14 +1234,14 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 filterableInDashboard: true,
                 values: [
                   { name: "Optiön Ålpha", slug: "option-alpha-special" },
-                  { name: "Choice with \"quotes\"", slug: "choice-with-quotes" },
+                  { name: 'Choice with "quotes"', slug: "choice-with-quotes" },
                   { name: "Émoji Choice 🎉", slug: "emoji-choice" },
-                  { name: "Numbers & Symbols: 123!@#", slug: "numbers-symbols" }
-                ]
-              }
+                  { name: "Numbers & Symbols: 123!@#", slug: "numbers-symbols" },
+                ],
+              },
             ],
-            variantAttributes: []
-          }
+            variantAttributes: [],
+          },
         ],
         pageTypes: [
           {
@@ -1124,78 +1255,92 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
                 valueRequired: false,
                 visibleInStorefront: true,
                 availableInGrid: true,
-                storefrontSearchPosition: 1
-              }
-            ]
-          }
-        ]
+                storefrontSearchPosition: 1,
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, edgeCaseConfig);
-      
+
       console.log("📤 Deploying edge case configuration...");
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
-      
+
       console.log("📥 Introspecting edge case data...");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       assertIntrospectionSuccess(introspectResult);
       const introspectedData = await readYaml(introspectPath);
-      
+
       console.log("🔄 Re-deploying edge case introspected data...");
       const redeployResult = await cli.deploy(apiUrl, token, {
         config: introspectPath,
-        skipDiff: true
+        skipDiff: true,
       });
-      
+
       assertDeploymentSuccess(redeployResult);
-      
+
       console.log("🔍 Verifying edge case data preservation...");
       const diffResult = await cli.diff(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       assertNoChanges(diffResult);
-      
+
       // Verify special characters are preserved
-      expect(introspectedData.shop.defaultMailSenderName).toBe("Edge-Case Store with Special Characters: éàü & Co.");
+      expect(introspectedData.shop.defaultMailSenderName).toBe(
+        "Edge-Case Store with Special Characters: éàü & Co."
+      );
       expect(introspectedData.shop.description).toContain("émojis 🛒");
       expect(introspectedData.shop.description).toContain("spëcial");
-      expect(introspectedData.shop.description).toContain("\"quotes\"");
-      
-      const specialChannel = introspectedData.channels.find((c: any) => c.slug === "special-name-channel");
+      expect(introspectedData.shop.description).toContain('"quotes"');
+
+      const specialChannel = introspectedData.channels.find(
+        (c: TestChannel) => c.slug === "special-name-channel"
+      );
       expect(specialChannel).toBeDefined();
-      expect(specialChannel.name).toBe("Spëcial Ñamé Channel");
-      
-      const categoryWithQuotes = introspectedData.categories.find((c: any) => c.slug === "category-with-quotes-specials");
+      expect(specialChannel!.name).toBe("Spëcial Ñamé Channel");
+
+      const categoryWithQuotes = introspectedData.categories!.find(
+        (c: TestCategory) => c.slug === "category-with-quotes-specials"
+      );
       expect(categoryWithQuotes).toBeDefined();
-      expect(categoryWithQuotes.name).toContain("\"Quotes\"");
-      expect(categoryWithQuotes.description).toContain("📦");
-      expect(categoryWithQuotes.description).toContain("\n");
-      
-      const longCategory = introspectedData.categories.find((c: any) => c.slug === "very-long-category-name");
+      expect(categoryWithQuotes!.name).toContain('"Quotes"');
+      expect(categoryWithQuotes!.description).toContain("📦");
+      expect(categoryWithQuotes!.description).toContain("\n");
+
+      const longCategory = introspectedData.categories!.find(
+        (c: TestCategory) => c.slug === "very-long-category-name"
+      );
       expect(longCategory).toBeDefined();
-      expect(longCategory.name.length).toBeGreaterThan(80);
-      expect(longCategory.description).toContain("em-dashes—like");
-      
-      const edgeProductType = introspectedData.productTypes.find((pt: any) => pt.name === "Edge Case Product Type");
+      expect(longCategory!.name.length).toBeGreaterThan(80);
+      expect(longCategory!.description!).toContain("em-dashes—like");
+
+      const edgeProductType = introspectedData.productTypes.find(
+        (pt: TestProductType) => pt.name === "Edge Case Product Type"
+      );
       expect(edgeProductType).toBeDefined();
-      
-      const specialAttribute = edgeProductType.productAttributes.find((attr: any) => attr.slug === "attribute-with-special-chars");
+
+      const specialAttribute = edgeProductType!.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "attribute-with-special-chars"
+      );
       expect(specialAttribute).toBeDefined();
-      expect(specialAttribute.name).toContain("Spëcial");
-      
-      const emojiValue = specialAttribute.values.find((val: any) => val.slug === "emoji-choice");
+      expect(specialAttribute!.name).toContain("Spëcial");
+
+      const emojiValue = specialAttribute!.values!.find(
+        (val: TestAttributeValue) => val.slug === "emoji-choice"
+      );
       expect(emojiValue).toBeDefined();
-      expect(emojiValue.name).toContain("🎉");
-      
+      expect(emojiValue!.name).toContain("🎉");
+
       console.log("✅ Edge case round-trip test passed!");
     }, 300000);
   });

@@ -85,29 +85,29 @@ export const cliMatchers = {
   toHaveUserFriendlyError(received: CliResult) {
     const stderr = received.cleanStderr;
     const stdout = received.cleanStdout;
-    
+
     // Check for technical jargon that shouldn't be in user-facing errors
-    const hasTechnicalJargon = 
+    const hasTechnicalJargon =
       stderr.includes("Error: Error:") || // Nested errors
       stderr.includes("at Object.") || // Stack traces
       stderr.includes("node_modules/") || // Module paths
-      stderr.includes("TypeError:") || 
+      stderr.includes("TypeError:") ||
       stderr.includes("ReferenceError:") ||
       stderr.includes("ZodError") ||
       stderr.includes("z.") ||
-      stderr.includes("\"extensions\":") || // Raw GraphQL errors
-      stderr.includes("\"locations\":") ||
+      stderr.includes('"extensions":') || // Raw GraphQL errors
+      stderr.includes('"locations":') ||
       stderr.includes("SIGTERM") ||
       stderr.includes("killTimeout");
-    
+
     // Check for positive indicators of user-friendly errors
-    const hasUserFriendlyElements = 
+    const hasUserFriendlyElements =
       stderr.length > 0 && // Has some error message
       !stderr.includes("undefined") && // No undefined values
       stderr.length < 2000; // Not excessively long
-    
+
     const pass = !hasTechnicalJargon && hasUserFriendlyElements;
-    
+
     return {
       pass,
       message: () =>
@@ -119,22 +119,39 @@ export const cliMatchers = {
 
   toContainHelpfulSuggestions(received: CliResult) {
     const output = (received.cleanStderr + received.cleanStdout).toLowerCase();
-    
+
     // Look for helpful keywords that indicate actionable guidance
     const helpfulKeywords = [
-      "try", "check", "ensure", "verify", "make sure",
-      "suggestion", "tip", "help", "guide",
-      "see", "view", "list", "show",
-      "configure", "set", "create", "add",
-      "documentation", "docs", "example",
-      "command", "run", "execute",
-      "available", "valid", "supported"
+      "try",
+      "check",
+      "ensure",
+      "verify",
+      "make sure",
+      "suggestion",
+      "tip",
+      "help",
+      "guide",
+      "see",
+      "view",
+      "list",
+      "show",
+      "configure",
+      "set",
+      "create",
+      "add",
+      "documentation",
+      "docs",
+      "example",
+      "command",
+      "run",
+      "execute",
+      "available",
+      "valid",
+      "supported",
     ];
-    
-    const hasSuggestions = helpfulKeywords.some(keyword => 
-      output.includes(keyword)
-    );
-    
+
+    const hasSuggestions = helpfulKeywords.some((keyword) => output.includes(keyword));
+
     return {
       pass: hasSuggestions,
       message: () =>
@@ -146,37 +163,41 @@ export const cliMatchers = {
 
   toHaveConsistentErrorFormat(received: CliResult) {
     const stderr = received.cleanStderr;
-    
+
     if (!stderr || stderr.trim().length === 0) {
       return {
         pass: false,
         message: () => "No error message found in stderr",
       };
     }
-    
+
     // Check for consistent error formatting patterns
-    const hasProperFormat = 
+    const hasProperFormat =
       // Should not start with lowercase (unless it's a continuation)
       /^[A-Z]/.test(stderr.trim()) ||
       // Or should start with error indicator or progress indicator
       /^(Error:|❌|✗|Failed|-|✖)/.test(stderr.trim());
-    
+
     // Check for proper sentence structure (allow periods at end of sentences)
-    const lines = stderr.trim().split('\n');
-    const properEnding = !lines.some(line => {
+    const lines = stderr.trim().split("\n");
+    const properEnding = !lines.some((line) => {
       const trimmed = line.trim();
       // Allow periods for proper sentences and suggestion lines
-      if (trimmed.startsWith('•') || trimmed.startsWith('-') || 
-          trimmed.includes('flag') || trimmed.includes('details') ||
-          trimmed.match(/^\d+\./)) {
+      if (
+        trimmed.startsWith("•") ||
+        trimmed.startsWith("-") ||
+        trimmed.includes("flag") ||
+        trimmed.includes("details") ||
+        trimmed.match(/^\d+\./)
+      ) {
         return false; // These are allowed to have periods
       }
       // Short fragments shouldn't end with period
-      return trimmed.endsWith('.') && trimmed.split(' ').length < 3;
+      return trimmed.endsWith(".") && trimmed.split(" ").length < 3;
     });
-    
+
     const pass = hasProperFormat && properEnding;
-    
+
     return {
       pass,
       message: () =>
@@ -259,24 +280,21 @@ export function assertValidationError(result: CliResult): void {
 export function assertConfigContains(config: any, path: string, value: any): void {
   const keys = path.split(".");
   let current = config;
-  
+
   for (const key of keys) {
     expect(current).toHaveProperty(key);
     current = current[key];
   }
-  
+
   expect(current).toEqual(value);
 }
 
 // Assert array contains item with properties
-export function assertArrayContainsItem(
-  array: any[],
-  properties: Record<string, any>
-): void {
+export function assertArrayContainsItem(array: any[], properties: Record<string, any>): void {
   const found = array.some((item) =>
     Object.entries(properties).every(([key, value]) => item[key] === value)
   );
-  
+
   if (!found) {
     throw new Error(`Array does not contain item with properties: ${JSON.stringify(properties)}`);
   }
@@ -290,22 +308,24 @@ export function assertCompletedWithin(result: CliResult, maxDuration: number): v
 }
 
 // Helper to create a custom assertion for specific output patterns
-export function createOutputAssertion(
-  patterns: { success?: string[]; error?: string[]; warning?: string[] }
-) {
+export function createOutputAssertion(patterns: {
+  success?: string[];
+  error?: string[];
+  warning?: string[];
+}) {
   return (result: CliResult) => {
     if (patterns.success) {
       for (const pattern of patterns.success) {
         expect(result).toContainInOutput(pattern);
       }
     }
-    
+
     if (patterns.error && result.exitCode !== 0) {
       for (const pattern of patterns.error) {
         expect(result).toContainInStderr(pattern);
       }
     }
-    
+
     if (patterns.warning) {
       for (const pattern of patterns.warning) {
         expect(result).toContainInOutput(pattern);

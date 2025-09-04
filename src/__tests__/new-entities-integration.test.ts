@@ -7,7 +7,8 @@ describe("New Entities Integration", () => {
       {
         title: "Test Model",
         slug: "test-model",
-        content: '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test content"}}], "version": "2.24.3"}',
+        content:
+          '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test content"}}], "version": "2.24.3"}',
         isPublished: true,
         publishedAt: "2024-12-22T00:00:00+00:00",
         modelType: "Simple",
@@ -18,7 +19,8 @@ describe("New Entities Integration", () => {
       {
         name: "Test Collection",
         slug: "test-collection",
-        description: '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
+        description:
+          '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
         products: ["product-1"],
         channelListings: [
           {
@@ -57,7 +59,7 @@ describe("New Entities Integration", () => {
     it("should validate that new entity types are properly defined", () => {
       // Test that our new entity types exist in the type system
       const entityTypes = ["Models", "Collections", "Menus", "Model Types"];
-      
+
       entityTypes.forEach((entityType) => {
         expect(entityType).toBeDefined();
         expect(typeof entityType).toBe("string");

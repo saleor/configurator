@@ -1,8 +1,8 @@
 import { promises as fs } from "node:fs";
-import path from "node:path";
 import os from "node:os";
-import yaml from "yaml";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import yaml from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,7 +174,7 @@ export function parseCliOutput(output: string): {
 
   for (const line of lines) {
     const cleanLine = line.trim();
-    
+
     if (cleanLine.includes("✅") || cleanLine.toLowerCase().includes("success")) {
       success = true;
       message = cleanLine;
@@ -283,12 +283,7 @@ export async function retry<T>(
     factor?: number;
   } = {}
 ): Promise<T> {
-  const {
-    maxAttempts = 3,
-    initialDelay = 1000,
-    maxDelay = 10000,
-    factor = 2,
-  } = options;
+  const { maxAttempts = 3, initialDelay = 1000, maxDelay = 10000, factor = 2 } = options;
 
   let lastError: Error | undefined;
   let delay = initialDelay;
@@ -298,14 +293,14 @@ export async function retry<T>(
       return await fn();
     } catch (error) {
       lastError = error as Error;
-      
+
       if (attempt === maxAttempts) {
         break;
       }
 
       console.log(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
       await sleep(delay);
-      
+
       delay = Math.min(delay * factor, maxDelay);
     }
   }

@@ -1,16 +1,71 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import {
-  createTempDir,
   cleanupTempDir,
+  createTempDir,
+  fileExists,
   readYaml,
   writeYaml,
-  fileExists,
 } from "../../utils/test-helpers.js";
-import { assertIntrospectionSuccess, assertDeploymentSuccess } from "../../utils/assertions.js";
-import path from "node:path";
-import fs from "node:fs/promises";
+
+// Type definitions for test data structures
+interface TestChannel {
+  slug: string;
+  currencyCode: string;
+  name?: string;
+  defaultCountry?: string;
+  isActive?: boolean;
+}
+
+interface TestCategory {
+  slug: string;
+  parent?: string;
+  name?: string;
+  description?: string;
+}
+
+interface TestProductAttribute {
+  slug: string;
+  choices?: string[];
+  type?: string;
+  inputType?: string;
+}
+
+interface TestProductType {
+  slug: string;
+  hasVariants: boolean;
+  productAttributes: TestProductAttribute[];
+  variantAttributes: TestProductAttribute[];
+  name?: string;
+}
+
+interface TestPageAttribute {
+  slug: string;
+  type?: string;
+  inputType?: string;
+}
+
+interface TestPageType {
+  slug: string;
+  attributes: TestPageAttribute[];
+  name?: string;
+}
+
+interface TestConfig {
+  shop: {
+    defaultMailSenderName: string;
+    defaultMailSenderAddress: string;
+    description?: string;
+  };
+  channels: TestChannel[];
+  categories?: TestCategory[];
+  productTypes?: TestProductType[];
+  pageTypes?: TestPageType[];
+}
 
 describe("E2E Introspect Command", () => {
   let cli: CliRunner;
@@ -20,15 +75,15 @@ describe("E2E Introspect Command", () => {
 
   beforeAll(async () => {
     console.log("🚀 Starting introspect command test setup...");
-    
+
     testDir = await createTempDir("introspect-test-");
-    
+
     const config = getTestConfig();
     apiUrl = config.apiUrl;
     await waitForApi(apiUrl);
     token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
-    
+
     console.log("✅ Introspect command test setup complete");
   }, 60000);
 
@@ -39,22 +94,22 @@ describe("E2E Introspect Command", () => {
   describe("Introspect Command Basic Operations", () => {
     it("should introspect from clean Saleor instance", async () => {
       const configPath = path.join(testDir, "clean-introspect.yml");
-      
+
       console.log("📥 Introspecting from clean Saleor instance...");
       const result = await cli.introspect(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertIntrospectionSuccess(result);
       expect(result).toContainInOutput("completed");
       expect(await fileExists(configPath)).toBe(true);
-      
+
       // Verify the introspected configuration structure
       const config = await readYaml(configPath);
       expect(config).toHaveProperty("shop");
       expect(config).toHaveProperty("channels");
       expect(config.channels).toBeInstanceOf(Array);
-      
+
       // Should have basic shop configuration
       expect(config.shop).toHaveProperty("defaultMailSenderName");
       expect(config.shop).toHaveProperty("defaultMailSenderAddress");
@@ -62,30 +117,30 @@ describe("E2E Introspect Command", () => {
 
     it("should create backup when overwriting existing config", async () => {
       const configPath = path.join(testDir, "backup-test.yml");
-      
+
       // Create initial config file
       const initialConfig = {
         shop: {
           defaultMailSenderName: "Initial Store",
-          defaultMailSenderAddress: "initial@test.com"
+          defaultMailSenderAddress: "initial@test.com",
         },
-        channels: []
+        channels: [],
       };
-      
+
       await writeYaml(configPath, initialConfig);
-      
+
       console.log("💾 Testing backup creation on overwrite...");
       const result = await cli.introspect(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertIntrospectionSuccess(result);
-      
+
       // Should create a backup file
       const files = await fs.readdir(testDir);
-      const backupFiles = files.filter(f => f.includes("backup-test") && f.includes(".bak"));
+      const backupFiles = files.filter((f) => f.includes("backup-test") && f.includes(".bak"));
       expect(backupFiles.length).toBeGreaterThan(0);
-      
+
       // Backup should contain the initial config
       const backupPath = path.join(testDir, backupFiles[0]);
       const backupConfig = await readYaml(backupPath);
@@ -97,40 +152,40 @@ describe("E2E Introspect Command", () => {
     it("should introspect after deploying complex configuration", async () => {
       const deployConfigPath = path.join(testDir, "deploy-complex.yml");
       const introspectConfigPath = path.join(testDir, "introspect-complex.yml");
-      
+
       // First deploy a complex configuration
       const complexConfig = {
         shop: {
           defaultMailSenderName: "Complex Introspect Store",
           defaultMailSenderAddress: "complex@introspect.com",
-          description: "A store for testing complex introspection"
+          description: "A store for testing complex introspection",
         },
         channels: [
           {
             name: "Introspect Channel A",
             slug: "introspect-channel-a",
             currencyCode: "USD",
-            defaultCountry: "US"
+            defaultCountry: "US",
           },
           {
             name: "Introspect Channel B",
             slug: "introspect-channel-b",
             currencyCode: "EUR",
-            defaultCountry: "DE"
-          }
+            defaultCountry: "DE",
+          },
         ],
         categories: [
           {
             name: "Electronics Introspect",
             slug: "electronics-introspect",
-            description: "Electronics for introspection testing"
+            description: "Electronics for introspection testing",
           },
           {
             name: "Mobile Introspect",
             slug: "mobile-introspect",
             description: "Mobile devices for testing",
-            parent: "electronics-introspect"
-          }
+            parent: "electronics-introspect",
+          },
         ],
         productTypes: [
           {
@@ -143,8 +198,8 @@ describe("E2E Introspect Command", () => {
                 slug: "introspect-brand",
                 type: "DROPDOWN",
                 inputType: "DROPDOWN",
-                choices: ["Brand A", "Brand B", "Brand C"]
-              }
+                choices: ["Brand A", "Brand B", "Brand C"],
+              },
             ],
             variantAttributes: [
               {
@@ -152,10 +207,10 @@ describe("E2E Introspect Command", () => {
                 slug: "introspect-color",
                 type: "DROPDOWN",
                 inputType: "DROPDOWN",
-                choices: ["Red", "Blue", "Green"]
-              }
-            ]
-          }
+                choices: ["Red", "Blue", "Green"],
+              },
+            ],
+          },
         ],
         pageTypes: [
           {
@@ -166,77 +221,95 @@ describe("E2E Introspect Command", () => {
                 name: "Introspect Title",
                 slug: "introspect-title",
                 type: "PLAIN_TEXT",
-                inputType: "PLAIN_TEXT"
-              }
-            ]
-          }
-        ]
+                inputType: "PLAIN_TEXT",
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(deployConfigPath, complexConfig);
-      
+
       console.log("🚀 Deploying complex configuration first...");
       const deployResult = await cli.deploy(apiUrl, token, {
         config: deployConfigPath,
-        skipDiff: true
+        skipDiff: true,
       });
       assertDeploymentSuccess(deployResult);
-      
+
       // Now introspect the deployed configuration
       console.log("📥 Introspecting deployed complex configuration...");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectConfigPath
+        config: introspectConfigPath,
       });
-      
+
       assertIntrospectionSuccess(introspectResult);
-      
+
       const introspectedConfig = await readYaml(introspectConfigPath);
-      
+
       // Verify shop configuration
       expect(introspectedConfig.shop.defaultMailSenderName).toBe("Complex Introspect Store");
       expect(introspectedConfig.shop.defaultMailSenderAddress).toBe("complex@introspect.com");
       expect(introspectedConfig.shop.description).toBe("A store for testing complex introspection");
-      
+
       // Verify channels
       expect(introspectedConfig.channels).toBeDefined();
       expect(introspectedConfig.channels.length).toBeGreaterThanOrEqual(2);
-      
-      const channelA = introspectedConfig.channels.find((c: any) => c.slug === "introspect-channel-a");
-      const channelB = introspectedConfig.channels.find((c: any) => c.slug === "introspect-channel-b");
+
+      const channelA = introspectedConfig.channels.find(
+        (c: TestChannel) => c.slug === "introspect-channel-a"
+      );
+      const channelB = introspectedConfig.channels.find(
+        (c: TestChannel) => c.slug === "introspect-channel-b"
+      );
       expect(channelA).toBeDefined();
       expect(channelB).toBeDefined();
-      expect(channelA.currencyCode).toBe("USD");
-      expect(channelB.currencyCode).toBe("EUR");
-      
+      expect(channelA?.currencyCode).toBe("USD");
+      expect(channelB?.currencyCode).toBe("EUR");
+
       // Verify category hierarchy
       expect(introspectedConfig.categories).toBeDefined();
-      const electronicsCategory = introspectedConfig.categories.find((c: any) => c.slug === "electronics-introspect");
-      const mobileCategory = introspectedConfig.categories.find((c: any) => c.slug === "mobile-introspect");
+      const electronicsCategory = introspectedConfig.categories.find(
+        (c: TestCategory) => c.slug === "electronics-introspect"
+      );
+      const mobileCategory = introspectedConfig.categories.find(
+        (c: TestCategory) => c.slug === "mobile-introspect"
+      );
       expect(electronicsCategory).toBeDefined();
       expect(mobileCategory).toBeDefined();
-      expect(mobileCategory.parent).toBe("electronics-introspect");
-      
+      expect(mobileCategory?.parent).toBe("electronics-introspect");
+
       // Verify product types with attributes
       expect(introspectedConfig.productTypes).toBeDefined();
-      const productType = introspectedConfig.productTypes.find((pt: any) => pt.slug === "introspect-product-type");
+      const productType = introspectedConfig.productTypes.find(
+        (pt: TestProductType) => pt.slug === "introspect-product-type"
+      );
       expect(productType).toBeDefined();
-      expect(productType.hasVariants).toBe(true);
-      
-      const brandAttribute = productType.productAttributes.find((attr: any) => attr.slug === "introspect-brand");
-      const colorAttribute = productType.variantAttributes.find((attr: any) => attr.slug === "introspect-color");
+      expect(productType?.hasVariants).toBe(true);
+
+      const brandAttribute = productType?.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "introspect-brand"
+      );
+      const colorAttribute = productType?.variantAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "introspect-color"
+      );
       expect(brandAttribute).toBeDefined();
       expect(colorAttribute).toBeDefined();
-      expect(brandAttribute.choices).toContain("Brand A");
-      expect(colorAttribute.choices).toContain("Red");
-      
+      expect(brandAttribute?.choices).toContain("Brand A");
+      expect(colorAttribute?.choices).toContain("Red");
+
       // Verify page types
       expect(introspectedConfig.pageTypes).toBeDefined();
-      const pageType = introspectedConfig.pageTypes.find((pt: any) => pt.slug === "introspect-page-type");
+      const pageType = introspectedConfig.pageTypes.find(
+        (pt: TestPageType) => pt.slug === "introspect-page-type"
+      );
       expect(pageType).toBeDefined();
-      
-      const titleAttribute = pageType.attributes.find((attr: any) => attr.slug === "introspect-title");
+
+      const titleAttribute = pageType?.attributes.find(
+        (attr: TestPageAttribute) => attr.slug === "introspect-title"
+      );
       expect(titleAttribute).toBeDefined();
-      
+
       console.log("✅ Complex configuration introspected successfully");
     }, 240000);
   });
@@ -244,25 +317,25 @@ describe("E2E Introspect Command", () => {
   describe("Introspect Command Error Handling", () => {
     it("should handle authentication errors gracefully", async () => {
       const configPath = path.join(testDir, "auth-error-introspect.yml");
-      
+
       console.log("🔐 Testing introspect authentication error...");
       const result = await cli.introspect(apiUrl, "invalid-token-12345", {
-        config: configPath
+        config: configPath,
       });
-      
+
       expect(result).toHaveFailed();
       expect(result).toMatchPattern(/auth|permission|unauthorized|token/i);
     }, 60000);
 
     it("should handle network errors gracefully", async () => {
       const configPath = path.join(testDir, "network-error-introspect.yml");
-      
+
       console.log("🌐 Testing introspect network error...");
       const result = await cli.introspect("http://localhost:99999/graphql/", token, {
         config: configPath,
-        timeout: 5000
+        timeout: 5000,
       });
-      
+
       expect(result).toHaveFailed();
       expect(result).toMatchPattern(/connect|network|ECONNREFUSED|timeout/i);
     }, 30000);
@@ -271,15 +344,15 @@ describe("E2E Introspect Command", () => {
       const readOnlyDir = path.join(testDir, "readonly");
       await fs.mkdir(readOnlyDir, { mode: 0o444 }); // Read-only directory
       const readOnlyConfigPath = path.join(readOnlyDir, "readonly.yml");
-      
+
       console.log("📁 Testing write permission error...");
       const result = await cli.introspect(apiUrl, token, {
-        config: readOnlyConfigPath
+        config: readOnlyConfigPath,
       });
-      
+
       expect(result).toHaveFailed();
       expect(result).toMatchPattern(/permission|access|write|EACCES|EPERM/i);
-      
+
       // Clean up - restore write permissions
       await fs.chmod(readOnlyDir, 0o755);
     }, 60000);
@@ -288,32 +361,32 @@ describe("E2E Introspect Command", () => {
   describe("Introspect Command Output Validation", () => {
     it("should generate valid YAML output", async () => {
       const configPath = path.join(testDir, "yaml-validation.yml");
-      
+
       console.log("📝 Testing YAML output validation...");
       const result = await cli.introspect(apiUrl, token, {
-        config: configPath
+        config: configPath,
       });
-      
+
       assertIntrospectionSuccess(result);
-      
+
       // Should be able to parse the generated YAML without errors
-      let config;
+      let config: TestConfig;
       try {
         config = await readYaml(configPath);
       } catch (error) {
         throw new Error(`Generated YAML is invalid: ${error}`);
       }
-      
+
       // Verify required top-level structure
       expect(typeof config).toBe("object");
       expect(config).toHaveProperty("shop");
       expect(config).toHaveProperty("channels");
-      
+
       // Verify shop structure
       expect(typeof config.shop).toBe("object");
       expect(typeof config.shop.defaultMailSenderName).toBe("string");
       expect(typeof config.shop.defaultMailSenderAddress).toBe("string");
-      
+
       // Verify channels structure
       expect(Array.isArray(config.channels)).toBe(true);
     }, 120000);
@@ -321,21 +394,21 @@ describe("E2E Introspect Command", () => {
     it("should preserve data types and structures", async () => {
       const deployConfigPath = path.join(testDir, "types-deploy.yml");
       const introspectConfigPath = path.join(testDir, "types-introspect.yml");
-      
+
       // Deploy configuration with various data types
       const typesConfig = {
         shop: {
           defaultMailSenderName: "Types Test Store",
           defaultMailSenderAddress: "types@test.com",
-          description: "Testing data type preservation"
+          description: "Testing data type preservation",
         },
         channels: [
           {
             name: "Types Channel",
             slug: "types-channel",
             currencyCode: "USD",
-            defaultCountry: "US"
-          }
+            defaultCountry: "US",
+          },
         ],
         productTypes: [
           {
@@ -347,61 +420,69 @@ describe("E2E Introspect Command", () => {
                 name: "Numeric Attribute",
                 slug: "numeric-attribute",
                 type: "NUMERIC",
-                inputType: "NUMERIC"
+                inputType: "NUMERIC",
               },
               {
                 name: "Boolean Attribute",
                 slug: "boolean-attribute",
                 type: "BOOLEAN",
-                inputType: "BOOLEAN"
+                inputType: "BOOLEAN",
               },
               {
                 name: "Date Attribute",
                 slug: "date-attribute",
                 type: "DATE",
-                inputType: "DATE"
-              }
-            ]
-          }
-        ]
+                inputType: "DATE",
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(deployConfigPath, typesConfig);
-      
+
       // Deploy first
       const deployResult = await cli.deploy(apiUrl, token, {
         config: deployConfigPath,
-        skipDiff: true
+        skipDiff: true,
       });
       assertDeploymentSuccess(deployResult);
-      
+
       // Introspect back
       console.log("🔍 Testing data type preservation...");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectConfigPath
+        config: introspectConfigPath,
       });
-      
+
       assertIntrospectionSuccess(introspectResult);
-      
+
       const introspectedConfig = await readYaml(introspectConfigPath);
-      
+
       // Verify boolean values are preserved
-      const productType = introspectedConfig.productTypes.find((pt: any) => pt.slug === "types-product");
+      const productType = introspectedConfig.productTypes.find(
+        (pt: TestProductType) => pt.slug === "types-product"
+      );
       expect(productType).toBeDefined();
-      expect(typeof productType.hasVariants).toBe("boolean");
-      expect(productType.hasVariants).toBe(true);
-      
+      expect(typeof productType?.hasVariants).toBe("boolean");
+      expect(productType?.hasVariants).toBe(true);
+
       // Verify attribute types are preserved
-      const numericAttr = productType.productAttributes.find((attr: any) => attr.slug === "numeric-attribute");
-      const booleanAttr = productType.productAttributes.find((attr: any) => attr.slug === "boolean-attribute");
-      const dateAttr = productType.productAttributes.find((attr: any) => attr.slug === "date-attribute");
-      
+      const numericAttr = productType?.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "numeric-attribute"
+      );
+      const booleanAttr = productType?.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "boolean-attribute"
+      );
+      const dateAttr = productType?.productAttributes.find(
+        (attr: TestProductAttribute) => attr.slug === "date-attribute"
+      );
+
       expect(numericAttr).toBeDefined();
       expect(booleanAttr).toBeDefined();
       expect(dateAttr).toBeDefined();
-      expect(numericAttr.type).toBe("NUMERIC");
-      expect(booleanAttr.type).toBe("BOOLEAN");
-      expect(dateAttr.type).toBe("DATE");
+      expect(numericAttr?.type).toBe("NUMERIC");
+      expect(booleanAttr?.type).toBe("BOOLEAN");
+      expect(dateAttr?.type).toBe("DATE");
     }, 60000);
   });
 
@@ -411,30 +492,30 @@ describe("E2E Introspect Command", () => {
       const nestedDir = path.join(testDir, "nested", "config");
       await fs.mkdir(nestedDir, { recursive: true });
       const nestedConfigPath = path.join(nestedDir, "nested-config.yml");
-      
+
       console.log("📂 Testing nested directory creation...");
       const nestedResult = await cli.introspect(apiUrl, token, {
-        config: nestedConfigPath
+        config: nestedConfigPath,
       });
-      
+
       assertIntrospectionSuccess(nestedResult);
       expect(await fileExists(nestedConfigPath)).toBe(true);
-      
+
       // Test with existing file overwrite
       const existingConfigPath = path.join(testDir, "existing-config.yml");
       const existingConfig = {
         shop: { defaultMailSenderName: "Old Store", defaultMailSenderAddress: "old@test.com" },
-        channels: []
+        channels: [],
       };
       await writeYaml(existingConfigPath, existingConfig);
-      
+
       console.log("🔄 Testing existing file overwrite...");
       const overwriteResult = await cli.introspect(apiUrl, token, {
-        config: existingConfigPath
+        config: existingConfigPath,
       });
-      
+
       assertIntrospectionSuccess(overwriteResult);
-      
+
       // Should contain new introspected data, not old data
       const newConfig = await readYaml(existingConfigPath);
       expect(newConfig.shop.defaultMailSenderName).not.toBe("Old Store");

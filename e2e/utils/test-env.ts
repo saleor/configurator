@@ -14,25 +14,29 @@ export interface TestConfig {
  * Get test configuration based on environment
  */
 export function getTestConfig(): TestConfig {
-  const isCI = process.env.CI === 'true';
-  
+  const isCI = process.env.CI === "true";
+
   return {
-    apiUrl: process.env.SALEOR_API_URL || 'http://localhost:8000/graphql/',
-    adminEmail: 'admin@example.com',
-    adminPassword: 'admin123',
-    dbUrl: isCI 
-      ? 'postgresql://postgres:postgres@localhost:5432/saleor'
-      : 'postgresql://saleor:saleor@localhost:5432/saleor',
+    apiUrl: process.env.SALEOR_API_URL || "http://localhost:8000/graphql/",
+    adminEmail: "admin@example.com",
+    adminPassword: "admin123",
+    dbUrl: isCI
+      ? "postgresql://postgres:postgres@localhost:5432/saleor"
+      : "postgresql://saleor:saleor@localhost:5432/saleor",
   };
 }
 
 /**
  * Get admin authentication token from Saleor API
  */
-export async function getAdminToken(apiUrl: string, email: string = 'admin@example.com', password: string = 'admin123'): Promise<string> {
+export async function getAdminToken(
+  apiUrl: string,
+  email: string = "admin@example.com",
+  password: string = "admin123"
+): Promise<string> {
   const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query: `
         mutation TokenCreate($email: String!, $password: String!) {
@@ -54,7 +58,7 @@ export async function getAdminToken(apiUrl: string, email: string = 'admin@examp
   }
 
   const data = await response.json();
-  
+
   if (data.errors) {
     throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
   }
@@ -65,7 +69,7 @@ export async function getAdminToken(apiUrl: string, email: string = 'admin@examp
 
   const token = data.data?.tokenCreate?.token;
   if (!token) {
-    throw new Error('No authentication token received');
+    throw new Error("No authentication token received");
   }
 
   return token;
@@ -74,21 +78,25 @@ export async function getAdminToken(apiUrl: string, email: string = 'admin@examp
 /**
  * Wait for Saleor API to be ready
  */
-export async function waitForApi(apiUrl: string, maxRetries: number = 30, delayMs: number = 2000): Promise<void> {
+export async function waitForApi(
+  apiUrl: string,
+  maxRetries: number = 30,
+  delayMs: number = 2000
+): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: '{ shop { name } }',
+          query: "{ shop { name } }",
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.data?.shop) {
-          console.log('✅ Saleor API is ready');
+          console.log("✅ Saleor API is ready");
           return;
         }
       }
@@ -97,7 +105,7 @@ export async function waitForApi(apiUrl: string, maxRetries: number = 30, delayM
     }
 
     if (i < maxRetries - 1) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 

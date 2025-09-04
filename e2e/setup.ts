@@ -1,11 +1,11 @@
 // Global setup that runs once before all test files
 export async function setup() {
   console.log("🚀 Starting E2E test suite setup...");
-  
+
   // Set up any global test state
   process.env.E2E_TEST_RUN = "true";
   process.env.NODE_ENV = "test";
-  
+
   // Ensure Docker is available
   try {
     const { execa } = await import("execa");
@@ -36,19 +36,14 @@ export async function setup() {
 // Global teardown that runs once after all test files
 export async function teardown() {
   console.log("🧹 Cleaning up E2E test suite...");
-  
+
   // Clean up any Docker containers that might be left running
   try {
     const { execa } = await import("execa");
-    
+
     // Stop any containers with our test label
-    const { stdout } = await execa("docker", [
-      "ps",
-      "-q",
-      "--filter",
-      "label=saleor-e2e-test",
-    ]);
-    
+    const { stdout } = await execa("docker", ["ps", "-q", "--filter", "label=saleor-e2e-test"]);
+
     if (stdout) {
       const containerIds = stdout.split("\n").filter(Boolean);
       for (const id of containerIds) {

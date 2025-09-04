@@ -1,14 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { getTestConfig, getAdminToken, waitForApi } from "../../utils/test-env.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import {
-  createTempDir,
-  cleanupTempDir,
-  readYaml,
-  writeYaml,
-} from "../../utils/test-helpers.js";
-import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
 import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
+import { CliRunner } from "../../utils/cli-runner.js";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
+import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
 
 describe("E2E Entity Operations - Complete Coverage", () => {
   let cli: CliRunner;
@@ -18,15 +13,15 @@ describe("E2E Entity Operations - Complete Coverage", () => {
 
   beforeAll(async () => {
     console.log("🚀 Starting comprehensive entity operations test...");
-    
+
     testDir = await createTempDir("entity-ops-test-");
-    
+
     const config = getTestConfig();
     apiUrl = config.apiUrl;
     await waitForApi(apiUrl);
     token = await getAdminToken(apiUrl, config.adminEmail, config.adminPassword);
     cli = new CliRunner({ verbose: process.env.VERBOSE === "true" });
-    
+
     console.log("✅ Entity operations test setup complete");
   }, 60000);
 
@@ -37,7 +32,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Shop Configuration", () => {
     it("should manage global shop settings", async () => {
       const configPath = path.join(testDir, "shop-config.yml");
-      
+
       const config = {
         shop: {
           headerText: "Welcome to Our Store",
@@ -53,27 +48,27 @@ describe("E2E Entity Operations - Complete Coverage", () => {
           automaticFulfillmentDigitalProducts: true,
           fulfillmentAutoApprove: false,
           fulfillmentAllowUnpaid: false,
-          limitQuantityPerCheckout: 50
-        }
+          limitQuantityPerCheckout: 50,
+        },
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       // Deploy shop configuration
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("shop");
-      
+
       // Verify idempotency
       const secondDeployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(secondDeployResult);
       expect(secondDeployResult).toContainInOutput("No changes");
     });
@@ -82,7 +77,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Channel Operations", () => {
     it("should create and manage multiple channels", async () => {
       const configPath = path.join(testDir, "channels-config.yml");
-      
+
       const config = {
         channels: [
           {
@@ -92,14 +87,14 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             defaultCountry: "US",
             isActive: true,
             stockSettings: {
-              allocationStrategy: "PRIORITIZE_HIGH_STOCK"
+              allocationStrategy: "PRIORITIZE_HIGH_STOCK",
             },
             orderSettings: {
               automaticallyConfirmAllNewOrders: false,
               automaticallyFulfillNonShippableGiftCard: true,
               deleteExpiredOrdersAfter: 30,
-              markAsPaidStrategy: "PAYMENT_FLOW"
-            }
+              markAsPaidStrategy: "PAYMENT_FLOW",
+            },
           },
           {
             name: "EU Store",
@@ -107,25 +102,25 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             currencyCode: "EUR",
             defaultCountry: "DE",
             isActive: true,
-            countries: ["DE", "FR", "IT", "ES", "NL"]
+            countries: ["DE", "FR", "IT", "ES", "NL"],
           },
           {
             name: "UK Store",
             slug: "uk-store",
             currencyCode: "GBP",
             defaultCountry: "GB",
-            isActive: true
-          }
-        ]
+            isActive: true,
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("channels");
       expect(deployResult).toContainInOutput("US Store");
@@ -137,7 +132,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Tax Configuration", () => {
     it("should manage tax classes and country-specific rates", async () => {
       const configPath = path.join(testDir, "tax-config.yml");
-      
+
       const config = {
         taxClasses: [
           {
@@ -148,8 +143,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               { countryCode: "GB", rate: 20 },
               { countryCode: "DE", rate: 19 },
               { countryCode: "FR", rate: 20 },
-              { countryCode: "JP", rate: 10 }
-            ]
+              { countryCode: "JP", rate: 10 },
+            ],
           },
           {
             name: "Reduced Tax",
@@ -157,17 +152,17 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               { countryCode: "US", rate: 5 },
               { countryCode: "GB", rate: 5 },
               { countryCode: "DE", rate: 7 },
-              { countryCode: "FR", rate: 5.5 }
-            ]
+              { countryCode: "FR", rate: 5.5 },
+            ],
           },
           {
             name: "Zero Tax",
             countries: [
               { countryCode: "US", rate: 0 },
               { countryCode: "GB", rate: 0 },
-              { countryCode: "DE", rate: 0 }
-            ]
-          }
+              { countryCode: "DE", rate: 0 },
+            ],
+          },
         ],
         channels: [
           {
@@ -179,19 +174,19 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               displayGrossPrices: true,
               pricesEnteredWithTax: true,
               chargeTaxesOnShipping: true,
-              taxCalculationStrategy: "FLAT_RATES"
-            }
-          }
-        ]
+              taxCalculationStrategy: "FLAT_RATES",
+            },
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("taxClasses");
       expect(deployResult).toContainInOutput("Standard Tax");
@@ -202,7 +197,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Warehouse Operations", () => {
     it("should create and manage warehouses with address details", async () => {
       const configPath = path.join(testDir, "warehouse-config.yml");
-      
+
       const config = {
         warehouses: [
           {
@@ -220,8 +215,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               country: "US",
               countryArea: "NY",
               phone: "+1-555-0100",
-              companyName: "Main Distribution Center"
-            }
+              companyName: "Main Distribution Center",
+            },
           },
           {
             name: "European Distribution Center",
@@ -235,8 +230,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               postalCode: "10115",
               country: "DE",
               phone: "+49-30-12345678",
-              companyName: "EU Distribution Hub"
-            }
+              companyName: "EU Distribution Hub",
+            },
           },
           {
             name: "Dropship Partner Warehouse",
@@ -249,19 +244,19 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               city: "Los Angeles",
               postalCode: "90001",
               country: "US",
-              countryArea: "CA"
-            }
-          }
-        ]
+              countryArea: "CA",
+            },
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("warehouses");
       expect(deployResult).toContainInOutput("Main Warehouse");
@@ -273,7 +268,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Shipping Zones and Methods", () => {
     it("should configure shipping zones with multiple methods and channel assignments", async () => {
       const configPath = path.join(testDir, "shipping-config.yml");
-      
+
       // First ensure we have channels and warehouses
       const setupConfig = {
         channels: [
@@ -281,8 +276,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             name: "Shipping Test Channel",
             slug: "shipping-test",
             currencyCode: "USD",
-            defaultCountry: "US"
-          }
+            defaultCountry: "US",
+          },
         ],
         warehouses: [
           {
@@ -293,16 +288,16 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               city: "Miami",
               postalCode: "33101",
               country: "US",
-              countryArea: "FL"
-            }
-          }
-        ]
+              countryArea: "FL",
+            },
+          },
+        ],
       };
-      
+
       const setupPath = path.join(testDir, "shipping-setup.yml");
       await writeYaml(setupPath, setupConfig);
       await cli.deploy(apiUrl, token, { config: setupPath, ci: true });
-      
+
       // Now create shipping zones
       const config = {
         shippingZones: [
@@ -324,9 +319,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                     channel: "shipping-test",
                     price: 9.99,
                     minimumOrderPrice: 0,
-                    maximumOrderPrice: 100
-                  }
-                ]
+                    maximumOrderPrice: 100,
+                  },
+                ],
               },
               {
                 name: "Express Shipping",
@@ -336,9 +331,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   {
                     channel: "shipping-test",
                     price: 19.99,
-                    minimumOrderPrice: 0
-                  }
-                ]
+                    minimumOrderPrice: 0,
+                  },
+                ],
               },
               {
                 name: "Free Shipping",
@@ -348,11 +343,11 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   {
                     channel: "shipping-test",
                     price: 0,
-                    minimumOrderPrice: 100
-                  }
-                ]
-              }
-            ]
+                    minimumOrderPrice: 100,
+                  },
+                ],
+              },
+            ],
           },
           {
             name: "Europe",
@@ -368,22 +363,22 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 channelListings: [
                   {
                     channel: "shipping-test",
-                    price: 15
-                  }
-                ]
-              }
-            ]
-          }
-        ]
+                    price: 15,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("shippingZones");
       expect(deployResult).toContainInOutput("North America");
@@ -396,7 +391,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Category Hierarchy", () => {
     it("should create nested category structures", async () => {
       const configPath = path.join(testDir, "categories-config.yml");
-      
+
       const config = {
         categories: [
           {
@@ -412,14 +407,14 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   {
                     name: "Laptops",
                     slug: "laptops",
-                    description: "Portable computers"
+                    description: "Portable computers",
                   },
                   {
                     name: "Desktops",
                     slug: "desktops",
-                    description: "Desktop computers"
-                  }
-                ]
+                    description: "Desktop computers",
+                  },
+                ],
               },
               {
                 name: "Mobile Devices",
@@ -428,15 +423,15 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 subcategories: [
                   {
                     name: "Smartphones",
-                    slug: "smartphones"
+                    slug: "smartphones",
                   },
                   {
                     name: "Tablets",
-                    slug: "tablets"
-                  }
-                ]
-              }
-            ]
+                    slug: "tablets",
+                  },
+                ],
+              },
+            ],
           },
           {
             name: "Clothing",
@@ -445,28 +440,28 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             subcategories: [
               {
                 name: "Men's Clothing",
-                slug: "mens-clothing"
+                slug: "mens-clothing",
               },
               {
                 name: "Women's Clothing",
-                slug: "womens-clothing"
+                slug: "womens-clothing",
               },
               {
                 name: "Kids' Clothing",
-                slug: "kids-clothing"
-              }
-            ]
-          }
-        ]
+                slug: "kids-clothing",
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("categories");
       expect(deployResult).toContainInOutput("Electronics");
@@ -478,7 +473,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Product Types with Attributes", () => {
     it("should create product types with various attribute types", async () => {
       const configPath = path.join(testDir, "product-types-config.yml");
-      
+
       const config = {
         productTypes: [
           {
@@ -499,7 +494,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 visibleInStorefront: true,
                 filterableInStorefront: true,
                 filterableInDashboard: true,
-                storefrontSearchPosition: 1
+                storefrontSearchPosition: 1,
               },
               {
                 name: "ISBN",
@@ -507,7 +502,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PRODUCT_TYPE",
                 inputType: "PLAIN_TEXT",
                 valueRequired: true,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "Publication Year",
@@ -516,7 +511,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 inputType: "NUMERIC",
                 valueRequired: false,
                 visibleInStorefront: true,
-                filterableInStorefront: true
+                filterableInStorefront: true,
               },
               {
                 name: "Genre",
@@ -531,10 +526,10 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   { name: "Non-Fiction", slug: "non-fiction" },
                   { name: "Science Fiction", slug: "sci-fi" },
                   { name: "Mystery", slug: "mystery" },
-                  { name: "Romance", slug: "romance" }
-                ]
-              }
-            ]
+                  { name: "Romance", slug: "romance" },
+                ],
+              },
+            ],
           },
           {
             name: "T-Shirt",
@@ -557,8 +552,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   { name: "M", slug: "m" },
                   { name: "L", slug: "l" },
                   { name: "XL", slug: "xl" },
-                  { name: "XXL", slug: "xxl" }
-                ]
+                  { name: "XXL", slug: "xxl" },
+                ],
               },
               {
                 name: "Color",
@@ -573,9 +568,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   { name: "White", slug: "white", value: "#FFFFFF" },
                   { name: "Red", slug: "red", value: "#FF0000" },
                   { name: "Blue", slug: "blue", value: "#0000FF" },
-                  { name: "Green", slug: "green", value: "#00FF00" }
-                ]
-              }
+                  { name: "Green", slug: "green", value: "#00FF00" },
+                ],
+              },
             ],
             productAttributes: [
               {
@@ -590,8 +585,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   { name: "Cotton", slug: "cotton" },
                   { name: "Polyester", slug: "polyester" },
                   { name: "Wool", slug: "wool" },
-                  { name: "Silk", slug: "silk" }
-                ]
+                  { name: "Silk", slug: "silk" },
+                ],
               },
               {
                 name: "Care Instructions",
@@ -599,9 +594,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PRODUCT_TYPE",
                 inputType: "RICH_TEXT",
                 valueRequired: false,
-                visibleInStorefront: true
-              }
-            ]
+                visibleInStorefront: true,
+              },
+            ],
           },
           {
             name: "Digital Product",
@@ -617,7 +612,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 inputType: "PLAIN_TEXT",
                 valueRequired: false,
                 visibleInStorefront: true,
-                unit: "MB"
+                unit: "MB",
               },
               {
                 name: "License Type",
@@ -629,21 +624,21 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 choices: [
                   { name: "Personal", slug: "personal" },
                   { name: "Commercial", slug: "commercial" },
-                  { name: "Enterprise", slug: "enterprise" }
-                ]
-              }
-            ]
-          }
-        ]
+                  { name: "Enterprise", slug: "enterprise" },
+                ],
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("productTypes");
       expect(deployResult).toContainInOutput("Book");
@@ -655,7 +650,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Page Types for CMS", () => {
     it("should create page types with structured content attributes", async () => {
       const configPath = path.join(testDir, "page-types-config.yml");
-      
+
       const config = {
         pageTypes: [
           {
@@ -668,7 +663,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "PLAIN_TEXT",
                 valueRequired: true,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "Content",
@@ -676,7 +671,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "RICH_TEXT",
                 valueRequired: true,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "Featured Image",
@@ -684,7 +679,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "FILE",
                 valueRequired: false,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "Tags",
@@ -697,8 +692,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                   { name: "Technology", slug: "technology" },
                   { name: "Business", slug: "business" },
                   { name: "Marketing", slug: "marketing" },
-                  { name: "Design", slug: "design" }
-                ]
+                  { name: "Design", slug: "design" },
+                ],
               },
               {
                 name: "Publication Date",
@@ -706,9 +701,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "DATE",
                 valueRequired: true,
-                visibleInStorefront: true
-              }
-            ]
+                visibleInStorefront: true,
+              },
+            ],
           },
           {
             name: "Landing Page",
@@ -720,7 +715,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "PLAIN_TEXT",
                 valueRequired: true,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "Hero Image",
@@ -728,7 +723,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "FILE",
                 valueRequired: false,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "CTA Button Text",
@@ -736,7 +731,7 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "PLAIN_TEXT",
                 valueRequired: false,
-                visibleInStorefront: true
+                visibleInStorefront: true,
               },
               {
                 name: "CTA Button URL",
@@ -744,20 +739,20 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "PLAIN_TEXT",
                 valueRequired: false,
-                visibleInStorefront: true
-              }
-            ]
-          }
-        ]
+                visibleInStorefront: true,
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, config);
-      
+
       const deployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(deployResult);
       expect(deployResult).toContainInOutput("pageTypes");
       expect(deployResult).toContainInOutput("Blog Post");
@@ -768,21 +763,21 @@ describe("E2E Entity Operations - Complete Coverage", () => {
   describe("Complete E-commerce Setup", () => {
     it("should deploy a complete store configuration with all entities", async () => {
       const configPath = path.join(testDir, "complete-store.yml");
-      
+
       const completeConfig = {
         shop: {
           defaultMailSenderName: "Complete Store",
           defaultMailSenderAddress: "info@complete-store.com",
           includeTaxesInPrices: true,
-          trackInventoryByDefault: true
+          trackInventoryByDefault: true,
         },
         channels: [
           {
             name: "Main Store",
             slug: "main",
             currencyCode: "USD",
-            defaultCountry: "US"
-          }
+            defaultCountry: "US",
+          },
         ],
         warehouses: [
           {
@@ -793,9 +788,9 @@ describe("E2E Entity Operations - Complete Coverage", () => {
               city: "Boston",
               postalCode: "02101",
               country: "US",
-              countryArea: "MA"
-            }
-          }
+              countryArea: "MA",
+            },
+          },
         ],
         shippingZones: [
           {
@@ -810,21 +805,21 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 channelListings: [
                   {
                     channel: "main",
-                    price: 25
-                  }
-                ]
-              }
-            ]
-          }
+                    price: 25,
+                  },
+                ],
+              },
+            ],
+          },
         ],
         taxClasses: [
           {
             name: "General Tax",
             countries: [
               { countryCode: "US", rate: 10 },
-              { countryCode: "GB", rate: 20 }
-            ]
-          }
+              { countryCode: "GB", rate: 20 },
+            ],
+          },
         ],
         categories: [
           {
@@ -833,14 +828,14 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             subcategories: [
               {
                 name: "Featured",
-                slug: "featured"
+                slug: "featured",
               },
               {
                 name: "Sale",
-                slug: "sale"
-              }
-            ]
-          }
+                slug: "sale",
+              },
+            ],
+          },
         ],
         productTypes: [
           {
@@ -848,8 +843,8 @@ describe("E2E Entity Operations - Complete Coverage", () => {
             slug: "simple-product",
             hasVariants: false,
             isShippingRequired: true,
-            taxClass: "General Tax"
-          }
+            taxClass: "General Tax",
+          },
         ],
         pageTypes: [
           {
@@ -862,23 +857,23 @@ describe("E2E Entity Operations - Complete Coverage", () => {
                 type: "PAGE_TYPE",
                 inputType: "RICH_TEXT",
                 valueRequired: true,
-                visibleInStorefront: true
-              }
-            ]
-          }
-        ]
+                visibleInStorefront: true,
+              },
+            ],
+          },
+        ],
       };
-      
+
       await writeYaml(configPath, completeConfig);
-      
+
       // First deployment
       const firstDeployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(firstDeployResult);
-      
+
       // Verify all entities were created
       expect(firstDeployResult).toContainInOutput("shop");
       expect(firstDeployResult).toContainInOutput("channels");
@@ -888,30 +883,30 @@ describe("E2E Entity Operations - Complete Coverage", () => {
       expect(firstDeployResult).toContainInOutput("categories");
       expect(firstDeployResult).toContainInOutput("productTypes");
       expect(firstDeployResult).toContainInOutput("pageTypes");
-      
+
       // Second deployment should be idempotent
       const secondDeployResult = await cli.deploy(apiUrl, token, {
         config: configPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(secondDeployResult);
       expect(secondDeployResult).toContainInOutput("No changes");
-      
+
       // Introspect and verify round-trip
       const introspectPath = path.join(testDir, "introspected.yml");
       const introspectResult = await cli.introspect(apiUrl, token, {
-        config: introspectPath
+        config: introspectPath,
       });
-      
+
       assertIntrospectionSuccess(introspectResult);
-      
+
       // Deploy introspected config should also show no changes
       const roundTripResult = await cli.deploy(apiUrl, token, {
         config: introspectPath,
-        ci: true
+        ci: true,
       });
-      
+
       assertDeploymentSuccess(roundTripResult);
       expect(roundTripResult).toContainInOutput("No changes");
     });

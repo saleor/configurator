@@ -1,6 +1,6 @@
-import { execa, type ExecaChildProcess, type Options as ExecaOptions } from "execa";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { type ExecaChildProcess, type Options as ExecaOptions, execa } from "execa";
 import stripAnsi from "strip-ansi";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -84,7 +84,7 @@ export class CliRunner {
       // Handle timeout and other execution errors
       const execaError = error as any;
       const isTimeout = execaError.timedOut || false;
-      
+
       const cliResult: CliResult = {
         exitCode: execaError.exitCode ?? 1,
         stdout: execaError.stdout ?? "",
@@ -114,10 +114,15 @@ export class CliRunner {
   async introspect(
     url: string,
     token: string,
-    options: { config?: string; include?: string[]; exclude?: string[]; env?: Record<string, string> } & CliRunnerOptions = {}
+    options: {
+      config?: string;
+      include?: string[];
+      exclude?: string[];
+      env?: Record<string, string>;
+    } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["introspect", "--url", url, "--token", token];
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
@@ -147,15 +152,15 @@ export class CliRunner {
     } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["deploy", "--url", url, "--token", token];
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
-    
+
     if (options.ci !== false) {
       args.push("--ci"); // Default to CI mode for tests
     }
-    
+
     if (options.skipDiff) {
       args.push("--skip-diff");
     }
@@ -190,7 +195,7 @@ export class CliRunner {
     } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["diff", "--url", url, "--token", token];
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
@@ -219,15 +224,15 @@ export class CliRunner {
     } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["start"];
-    
+
     if (options.url) {
       args.push("--url", options.url);
     }
-    
+
     if (options.token) {
       args.push("--token", options.token);
     }
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
@@ -340,23 +345,23 @@ export class CliRunner {
     } & CliRunnerOptions = {}
   ): Promise<CliResult> {
     const args = ["deploy"];
-    
+
     if (url) {
       args.push("--url", url);
     }
-    
+
     if (token) {
       args.push("--token", token);
     }
-    
+
     if (options.config) {
       args.push("--config", options.config);
     }
-    
+
     if (options.ci !== false) {
       args.push("--ci");
     }
-    
+
     if (options.skipDiff) {
       args.push("--skip-diff");
     }
@@ -401,7 +406,7 @@ export class CliRunner {
       CI: "true",
       TERM: "dumb",
     };
-    
+
     return this.deployWithEnv(url, token, {
       ...options,
       env: nonTtyEnv,
@@ -417,12 +422,12 @@ export class CliRunner {
   private logResult(result: CliResult): void {
     console.log(`📊 Exit code: ${result.exitCode}`);
     console.log(`⏱️ Duration: ${result.duration}ms`);
-    
+
     if (result.cleanStdout) {
       console.log("📤 Stdout:");
       console.log(result.cleanStdout);
     }
-    
+
     if (result.cleanStderr) {
       console.log("📤 Stderr:");
       console.log(result.cleanStderr);
