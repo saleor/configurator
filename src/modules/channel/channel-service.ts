@@ -34,6 +34,10 @@ export class ChannelService {
     );
   }
 
+  async getChannelBySlug(slug: string) {
+    return this.getExistingChannel(slug);
+  }
+
   async createChannel(input: ChannelCreateInput) {
     return ServiceErrorWrapper.wrapServiceCall(
       "create channel",

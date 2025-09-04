@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
-import { WarehouseError, WarehouseOperationError, WarehouseValidationError } from "./errors";
+import { WarehouseValidationError } from "./errors";
 import type { Warehouse } from "./repository";
 import { WarehouseService } from "./warehouse-service";
 
@@ -31,6 +31,7 @@ describe("WarehouseService", () => {
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
+    companyName: "Acme Corp",
     clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
@@ -258,7 +259,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.createWarehouse(mockWarehouseInput)).rejects.toThrow(
-        WarehouseError
+        /Failed to create warehouse.*API Error/
       );
     });
 
@@ -275,7 +276,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.updateWarehouse("1", mockWarehouseInput)).rejects.toThrow(
-        WarehouseError
+        /Failed to update warehouse.*API Error/
       );
     });
   });

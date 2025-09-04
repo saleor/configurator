@@ -13,9 +13,8 @@ export class WarehouseNotFoundError extends WarehouseError {
 }
 
 export class WarehouseValidationError extends WarehouseError {
-  constructor(message: string, field?: string) {
-    const fullMessage = field ? `Warehouse validation failed for field '${field}': ${message}` : `Warehouse validation failed: ${message}`;
-    super(fullMessage);
+  constructor(message: string, _field?: string) {
+    super(`Warehouse validation failed: ${message}`);
   }
 }
 

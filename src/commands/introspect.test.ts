@@ -182,10 +182,10 @@ describe("introspect command", () => {
       // Mock the repository to return nested categories
       const mockRawConfig: RawSaleorConfig = {
         shop: {
-          defaultMailSenderName: null,
-          defaultMailSenderAddress: null,
-          displayGrossPrices: true,
-          enableAccountConfirmationByEmail: null,
+          defaultMailSenderName: "Test Shop",
+          defaultMailSenderAddress: "test@example.com",
+          displayGrossPrices: false,
+          enableAccountConfirmationByEmail: true,
           limitQuantityPerCheckout: null,
           trackInventoryByDefault: true,
           reserveStockDurationAnonymousUser: null,
@@ -193,7 +193,7 @@ describe("introspect command", () => {
           defaultDigitalMaxDownloads: null,
           defaultDigitalUrlValidDays: null,
           defaultWeightUnit: "KG",
-          allowLoginWithoutConfirmation: null,
+          allowLoginWithoutConfirmation: false,
         },
         channels: [],
         productTypes: { edges: [] },
@@ -247,9 +247,12 @@ describe("introspect command", () => {
             },
           ],
         },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        menus: { edges: [] },
+        pages: { edges: [] },
         shippingZones: null,
         warehouses: null,
-        taxClasses: null,
       };
 
       const mockRepository = {
@@ -288,10 +291,10 @@ describe("introspect command", () => {
     it("should produce valid YAML with proper indentation for nested categories", async () => {
       const mockRawConfig: RawSaleorConfig = {
         shop: {
-          defaultMailSenderName: null,
-          defaultMailSenderAddress: null,
-          displayGrossPrices: true,
-          enableAccountConfirmationByEmail: null,
+          defaultMailSenderName: "Test Shop",
+          defaultMailSenderAddress: "test@example.com",
+          displayGrossPrices: false,
+          enableAccountConfirmationByEmail: true,
           limitQuantityPerCheckout: null,
           trackInventoryByDefault: true,
           reserveStockDurationAnonymousUser: null,
@@ -299,7 +302,7 @@ describe("introspect command", () => {
           defaultDigitalMaxDownloads: null,
           defaultDigitalUrlValidDays: null,
           defaultWeightUnit: "KG",
-          allowLoginWithoutConfirmation: null,
+          allowLoginWithoutConfirmation: false,
         },
         channels: [],
         productTypes: { edges: [] },
@@ -326,9 +329,12 @@ describe("introspect command", () => {
             },
           ],
         },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        menus: { edges: [] },
+        pages: { edges: [] },
         shippingZones: null,
         warehouses: null,
-        taxClasses: null,
       };
 
       const mockRepository = {

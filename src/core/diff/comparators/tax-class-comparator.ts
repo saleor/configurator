@@ -5,7 +5,7 @@ import type {
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
-interface TaxClassEntity extends TaxClassInput {
+interface TaxClassEntity extends TaxClassInput, Record<string, unknown> {
   id?: string;
   [key: string]: unknown;
 }

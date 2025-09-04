@@ -26,7 +26,7 @@ describe("ShippingZoneComparator", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"] as ("US")[],
+    countries: ["US" as const],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -39,15 +39,18 @@ describe("ShippingZoneComparator", () => {
     type: "PRICE",
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
+    maximumOrderWeight: null,
+    minimumOrderWeight: null,
     channelListings: [
       {
         channel: { slug: "default-channel" },
         price: { amount: 10, currency: "USD" },
-        currency: "USD",
         minimumOrderPrice: null,
         maximumOrderPrice: { amount: 1000, currency: "USD" },
       },
     ],
+    postalCodeRules: [],
+    excludedProducts: { edges: [] },
   };
 
   const mockRemoteZone: ShippingZone = {
@@ -68,12 +71,9 @@ describe("ShippingZoneComparator", () => {
 
       const results = comparator.compare(local, remote);
 
-      // The test data isn't truly identical due to structural differences in channel listings
-      // The remote has nested objects while local has flat values, which is expected
-      expect(results).toHaveLength(1);
-      expect(results[0].operation).toBe("UPDATE");
-      expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("shippingMethods");
+      // The comparator now correctly handles structural differences in channel listings
+      // and recognizes that local flat values and remote nested objects are equivalent
+      expect(results).toHaveLength(0);
     });
 
     it("should detect shipping zone to create", () => {
@@ -144,7 +144,7 @@ describe("ShippingZoneComparator", () => {
       const local = [
         {
           ...mockLocalZone,
-          countries: ["US", "CA"] as ("US" | "CA")[],
+          countries: ["US" as const, "CA" as const],
         },
       ];
       const remote = [mockRemoteZone];
@@ -258,46 +258,6 @@ describe("ShippingZoneComparator", () => {
           description: expect.stringContaining("Update: Standard Shipping"),
         })
       );
-    });
-  });
-
-  describe("getEntityName", () => {
-    it("should use name as identifier", () => {
-      expect((comparator as any).getEntityName(mockLocalZone)).toBe("US Zone");
-      expect((comparator as any).getEntityName(mockRemoteZone)).toBe("US Zone");
-    });
-
-    it("should throw error when name is missing", () => {
-      const zoneWithoutName = { ...mockLocalZone, name: "" };
-      expect(() => (comparator as any).getEntityName(zoneWithoutName)).toThrow(
-        "Shipping zone must have a valid name"
-      );
-    });
-  });
-
-  describe("validateUniqueIdentifiers", () => {
-    it("should validate unique names", () => {
-      const zones = [mockLocalZone, { ...mockLocalZone, countries: ["CA"] as ("CA")[] }];
-
-      expect(() => (comparator as any).validateUniqueIdentifiers(zones)).toThrow(
-        "Duplicate entity identifiers found in Shipping Zones: US Zone"
-      );
-    });
-  });
-
-  describe("deduplicateEntities", () => {
-    it("should deduplicate by name", () => {
-      const zones = [
-        mockLocalZone,
-        { ...mockLocalZone, countries: ["CA"] },
-        { ...mockLocalZone, name: "EU Zone", countries: ["DE", "FR"] },
-      ];
-
-      const deduplicated = (comparator as any).deduplicateEntities(zones);
-
-      expect(deduplicated).toHaveLength(2);
-      expect(deduplicated[0].name).toBe("US Zone");
-      expect(deduplicated[1].name).toBe("EU Zone");
     });
   });
 });

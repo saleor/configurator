@@ -9,9 +9,16 @@ export const AVAILABLE_SECTIONS = [
   "channels",
   "productTypes",
   "pageTypes",
+  "modelTypes",
   "categories",
+  "collections",
+  "menus",
+  "models",
   "products",
   "attributes",
+  "warehouses",
+  "shippingZones",
+  "taxClasses",
 ] as const satisfies readonly ConfigurationSection[];
 
 export const selectiveOptionsSchema = z.object({

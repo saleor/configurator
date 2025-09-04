@@ -3,7 +3,7 @@ import type { TaxClassInput } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { TaxClassComparator } from "./tax-class-comparator";
 
-interface TaxClassEntity extends TaxClassInput {
+interface TaxClassEntity extends TaxClassInput, Record<string, unknown> {
   id?: string;
 }
 
@@ -214,7 +214,7 @@ describe("TaxClassComparator", () => {
     });
 
     it("should throw error for tax class without name", () => {
-      const entity = { name: "", countryRates: [] } as TaxClassEntity;
+      const entity = { name: "", countryRates: [] } as unknown as TaxClassEntity;
       // Access private method for testing
       expect(() => (comparator as TestComparator).getEntityName(entity)).toThrow(
         "Tax class must have a valid name"

@@ -309,7 +309,7 @@ export class ShippingZoneService {
     try {
       // Get current shipping zone to calculate warehouse/channel changes
       const currentZone = await this.repository.getShippingZone(id);
-      const updateInput = await this.mapInputToUpdateInput(input, currentZone);
+      const updateInput = await this.mapInputToUpdateInput(input, currentZone ?? undefined);
       const shippingZone = await this.repository.updateShippingZone(id, updateInput);
 
       // Update shipping methods if provided
@@ -317,7 +317,7 @@ export class ShippingZoneService {
         await this.syncShippingMethods(
           shippingZone.id,
           input.shippingMethods,
-          shippingZone.shippingMethods
+          shippingZone.shippingMethods ?? []
         );
       }
 
