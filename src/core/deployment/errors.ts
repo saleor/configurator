@@ -166,9 +166,8 @@ export class StageAggregateError extends DeploymentError {
     }>,
     public readonly successes: string[] = []
   ) {
-    
     const summary = `${stageName} failed for ${failures.length} of ${failures.length + successes.length} entities`;
-    
+
     const suggestions = [
       "Review the individual errors below",
       "Fix the issues and run deploy again",
@@ -215,17 +214,17 @@ export class StageAggregateError extends DeploymentError {
       this.failures.forEach(({ entity, error }) => {
         lines.push(`  • ${entity}`);
         lines.push(`    Error: ${error.message}`);
-        
+
         // Get recovery suggestions for this specific error
         const suggestions = ErrorRecoveryGuide.getSuggestions(error.message);
         const formattedSuggestions = ErrorRecoveryGuide.formatSuggestions(suggestions);
-        
+
         if (formattedSuggestions.length > 0) {
           formattedSuggestions.forEach((suggestion) => {
             lines.push(`    ${suggestion}`);
           });
         }
-        
+
         lines.push("");
       });
     }

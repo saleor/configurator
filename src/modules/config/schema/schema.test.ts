@@ -909,7 +909,7 @@ describe("ShopConfigurationSchema", () => {
             defaultCountry: "SI" as CountryCode,
           },
           {
-            name: "Serbia Channel", 
+            name: "Serbia Channel",
             slug: "serbia",
             currencyCode: "RSD",
             defaultCountry: "RS" as CountryCode,

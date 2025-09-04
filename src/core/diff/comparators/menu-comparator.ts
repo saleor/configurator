@@ -1,7 +1,7 @@
-import { BaseEntityComparator } from "./base-comparator";
-import type { DiffResult, DiffChange, EntityType } from "../types";
 import type { MenuInput } from "../../../modules/config/schema/schema";
 import type { Menu, MenuItem } from "../../../modules/menu/repository";
+import type { DiffChange, DiffResult, EntityType } from "../types";
+import { BaseEntityComparator } from "./base-comparator";
 
 interface MenuItemInput {
   name: string;
@@ -61,7 +61,7 @@ export class MenuComparator extends BaseEntityComparator<
     return entity.slug;
   }
 
-  protected compareEntityFields(local: MenuInput, remote: Menu): DiffChange[] {
+  protected compareEntityFields(local: MenuInput | Menu, remote: MenuInput | Menu): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic fields
@@ -71,7 +71,7 @@ export class MenuComparator extends BaseEntityComparator<
 
     // Compare menu items
     const localItems = this.normalizeMenuItems(local.items ?? []);
-    const remoteItems = this.normalizeMenuItems(remote.items ?? []);
+    const remoteItems = this.normalizeMenuItems(remote.items ? remote.items : []);
 
     const itemChanges = this.compareMenuItems(localItems, remoteItems, "items");
     changes.push(...itemChanges);
@@ -80,13 +80,28 @@ export class MenuComparator extends BaseEntityComparator<
   }
 
   private normalizeMenuItems(items: MenuItemInput[] | MenuItem[]): MenuItemInput[] {
-    return items.map((item: any) => ({
+    return items.map((item: MenuItemInput | MenuItem) => ({
       name: item.name,
-      url: item.url || undefined,
-      category: item.category?.slug || item.category || undefined,
-      collection: item.collection?.slug || item.collection || undefined,
-      page: item.page?.slug || item.page || undefined,
-      children: item.children ? this.normalizeMenuItems(item.children) : undefined,
+      url: item.url ?? undefined,
+      category:
+        "category" in item && item.category && typeof item.category === "object" && "slug" in item.category
+          ? (item.category as { slug: string }).slug
+          : typeof item.category === "string"
+            ? item.category
+            : undefined,
+      collection:
+        "collection" in item && item.collection && typeof item.collection === "object" && "slug" in item.collection
+          ? (item.collection as { slug: string }).slug
+          : typeof item.collection === "string"
+            ? item.collection
+            : undefined,
+      page:
+        "page" in item && item.page && typeof item.page === "object" && "slug" in item.page
+          ? (item.page as { slug: string }).slug
+          : typeof item.page === "string"
+            ? item.page
+            : undefined,
+      children: ("children" in item && item.children) ? this.normalizeMenuItems(item.children as any) : undefined,
     }));
   }
 
@@ -104,19 +119,18 @@ export class MenuComparator extends BaseEntityComparator<
     // Find added items
     for (const localItem of local) {
       const remoteItem = remoteMap.get(localItem.name);
-      
+
       if (!remoteItem) {
         changes.push(
-          this.createFieldChange(
-            path,
-            null,
-            localItem.name,
-            `Menu item "${localItem.name}" added`
-          )
+          this.createFieldChange(path, null, localItem.name, `Menu item "${localItem.name}" added`)
         );
       } else {
         // Compare existing items
-        const itemChanges = this.compareMenuItem(localItem, remoteItem, `${path}/${localItem.name}`);
+        const itemChanges = this.compareMenuItem(
+          localItem,
+          remoteItem,
+          `${path}/${localItem.name}`
+        );
         changes.push(...itemChanges);
       }
     }
@@ -136,12 +150,14 @@ export class MenuComparator extends BaseEntityComparator<
     }
 
     // Check if order has changed
-    const localNames = local.map(item => item.name);
-    const remoteNames = remote.map(item => item.name);
-    
-    if (JSON.stringify(localNames) !== JSON.stringify(remoteNames) && 
-        localNames.length === remoteNames.length &&
-        localNames.every(name => remoteNames.includes(name))) {
+    const localNames = local.map((item) => item.name);
+    const remoteNames = remote.map((item) => item.name);
+
+    if (
+      JSON.stringify(localNames) !== JSON.stringify(remoteNames) &&
+      localNames.length === remoteNames.length &&
+      localNames.every((name) => remoteNames.includes(name))
+    ) {
       changes.push(
         this.createFieldChange(
           `${path}.order`,
@@ -155,32 +171,18 @@ export class MenuComparator extends BaseEntityComparator<
     return changes;
   }
 
-  private compareMenuItem(
-    local: MenuItemInput,
-    remote: MenuItemInput,
-    path: string
-  ): DiffChange[] {
+  private compareMenuItem(local: MenuItemInput, remote: MenuItemInput, path: string): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare URL
     if (local.url !== remote.url) {
-      changes.push(
-        this.createFieldChange(
-          `${path}.url`,
-          remote.url || null,
-          local.url || null
-        )
-      );
+      changes.push(this.createFieldChange(`${path}.url`, remote.url || null, local.url || null));
     }
 
     // Compare category reference
     if (local.category !== remote.category) {
       changes.push(
-        this.createFieldChange(
-          `${path}.category`,
-          remote.category || null,
-          local.category || null
-        )
+        this.createFieldChange(`${path}.category`, remote.category || null, local.category || null)
       );
     }
 
@@ -197,13 +199,7 @@ export class MenuComparator extends BaseEntityComparator<
 
     // Compare page reference
     if (local.page !== remote.page) {
-      changes.push(
-        this.createFieldChange(
-          `${path}.page`,
-          remote.page || null,
-          local.page || null
-        )
-      );
+      changes.push(this.createFieldChange(`${path}.page`, remote.page || null, local.page || null));
     }
 
     // Recursively compare children

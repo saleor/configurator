@@ -1,7 +1,7 @@
 import { BaseError } from "../../lib/errors/shared";
 
 export class ShippingZoneError extends BaseError {
-  constructor(message: string, details?: Record<string, unknown>) {
+  constructor(message: string, details?: string[]) {
     super(message, "SHIPPING_ZONE_ERROR", details);
   }
 }

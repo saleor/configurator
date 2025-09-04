@@ -1,8 +1,8 @@
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
-import { type AnyVariables, type Client } from "@urql/core";
+import type { AnyVariables, Client } from "@urql/core";
+import { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import { GraphQLError } from "../../lib/errors/graphql";
 
 const GetPages = graphql(`
   query GetPages($first: Int!) {
@@ -228,13 +228,13 @@ export class ModelRepository implements ModelOperations {
   constructor(private client: Client) {}
 
   private async query<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.query(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("GraphQL query failed", result.error);
     }
 
     if (!result.data) {
@@ -245,13 +245,13 @@ export class ModelRepository implements ModelOperations {
   }
 
   private async mutation<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.mutation(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("GraphQL mutation failed", result.error);
     }
 
     if (!result.data) {
@@ -264,7 +264,7 @@ export class ModelRepository implements ModelOperations {
   async getPages(): Promise<Page[]> {
     logger.debug("Fetching pages from Saleor");
     const data = await this.query(GetPages, { first: 100 });
-    const pages = data.pages?.edges?.map(edge => edge.node) ?? [];
+    const pages = data.pages?.edges?.map((edge) => edge.node) ?? [];
     logger.debug(`Fetched ${pages.length} pages`);
     return pages as Page[];
   }
@@ -281,11 +281,7 @@ export class ModelRepository implements ModelOperations {
 
     if (data.pageCreate?.errors && data.pageCreate.errors.length > 0) {
       const error = data.pageCreate.errors[0];
-      throw new GraphQLError(`Failed to create page: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-        attributes: error.attributes,
-      });
+      throw new GraphQLError(`Failed to create page: ${error.message}`);
     }
 
     if (!data.pageCreate?.page) {
@@ -306,11 +302,7 @@ export class ModelRepository implements ModelOperations {
 
     if (data.pageUpdate?.errors && data.pageUpdate.errors.length > 0) {
       const error = data.pageUpdate.errors[0];
-      throw new GraphQLError(`Failed to update page: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-        attributes: error.attributes,
-      });
+      throw new GraphQLError(`Failed to update page: ${error.message}`);
     }
 
     if (!data.pageUpdate?.page) {
@@ -332,15 +324,11 @@ export class ModelRepository implements ModelOperations {
     }
 
     logger.debug("Updating page attributes", { id, attributeCount: attributes.length });
-    const data = await this.mutation(UpdatePageAttributes, { id, input: attributes });
+    const data = await this.mutation(UpdatePageAttributes, { id, input: attributes as any });
 
     if (data.pageAttributeAssign?.errors && data.pageAttributeAssign.errors.length > 0) {
       const error = data.pageAttributeAssign.errors[0];
-      throw new GraphQLError(`Failed to update page attributes: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-        attributes: error.attributes,
-      });
+      throw new GraphQLError(`Failed to update page attributes: ${error.message}`);
     }
 
     logger.debug("Successfully updated page attributes", { id });
@@ -357,11 +345,7 @@ export class ModelRepository implements ModelOperations {
 
     if (data.pageAttributeUnassign?.errors && data.pageAttributeUnassign.errors.length > 0) {
       const error = data.pageAttributeUnassign.errors[0];
-      throw new GraphQLError(`Failed to unassign page attributes: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-        attributes: error.attributes,
-      });
+      throw new GraphQLError(`Failed to unassign page attributes: ${error.message}`);
     }
 
     logger.debug("Successfully unassigned page attributes", { id });

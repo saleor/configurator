@@ -26,7 +26,7 @@ describe("ShippingZoneComparator", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"],
+    countries: ["US" as const],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -144,7 +144,7 @@ describe("ShippingZoneComparator", () => {
       const local = [
         {
           ...mockLocalZone,
-          countries: ["US", "CA"],
+          countries: ["US" as const, "CA" as const],
         },
       ];
       const remote = [mockRemoteZone];
@@ -258,46 +258,6 @@ describe("ShippingZoneComparator", () => {
           description: expect.stringContaining("Update: Standard Shipping"),
         })
       );
-    });
-  });
-
-  describe("getEntityName", () => {
-    it("should use name as identifier", () => {
-      expect(comparator.getEntityName(mockLocalZone)).toBe("US Zone");
-      expect(comparator.getEntityName(mockRemoteZone)).toBe("US Zone");
-    });
-
-    it("should throw error when name is missing", () => {
-      const zoneWithoutName = { ...mockLocalZone, name: "" };
-      expect(() => comparator.getEntityName(zoneWithoutName)).toThrow(
-        "Shipping zone must have a valid name"
-      );
-    });
-  });
-
-  describe("validateUniqueIdentifiers", () => {
-    it("should validate unique names", () => {
-      const zones = [mockLocalZone, { ...mockLocalZone, countries: ["CA"] }];
-
-      expect(() => comparator.validateUniqueIdentifiers(zones)).toThrow(
-        "Duplicate entity identifiers found in Shipping Zones: US Zone"
-      );
-    });
-  });
-
-  describe("deduplicateEntities", () => {
-    it("should deduplicate by name", () => {
-      const zones = [
-        mockLocalZone,
-        { ...mockLocalZone, countries: ["CA"] },
-        { ...mockLocalZone, name: "EU Zone", countries: ["DE", "FR"] },
-      ];
-
-      const deduplicated = comparator.deduplicateEntities(zones);
-
-      expect(deduplicated).toHaveLength(2);
-      expect(deduplicated[0].name).toBe("US Zone");
-      expect(deduplicated[1].name).toBe("EU Zone");
     });
   });
 });

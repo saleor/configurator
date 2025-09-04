@@ -130,6 +130,27 @@ const getProductByNameQuery = graphql(`
     }
   }
 `);
+const getProductBySlugQuery = graphql(`
+  query GetProductBySlug($slug: String!) {
+    products(filter: { slugs: [$slug] }, first: 1) {
+      edges {
+        node {
+          id
+          name
+          slug
+          productType {
+            id
+            name
+          }
+          category {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`);
 
 const getProductTypeByNameQuery = graphql(`
   query GetProductTypeByName($name: String!) {
@@ -329,9 +350,7 @@ export type ProductVariantChannelListingAddInput = VariablesOf<
   typeof productVariantChannelListingUpdateMutation
 >["input"][number];
 
-export type Channel = NonNullable<
-  NonNullable<ResultOf<typeof getChannelBySlugQuery>["channels"]>["edges"]
->[number]["node"];
+export type Channel = any;
 
 export interface ProductOperations {
   createProduct(input: ProductCreateInput): Promise<Product>;
@@ -339,6 +358,7 @@ export interface ProductOperations {
   createProductVariant(input: ProductVariantCreateInput): Promise<ProductVariant>;
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
+  getProductBySlug(slug: string): Promise<Product | null | undefined>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
@@ -544,6 +564,31 @@ export class ProductRepository implements ProductOperations {
     return exactMatch?.node;
   }
 
+  async getProductBySlug(slug: string): Promise<Product | null | undefined> {
+    logger.debug("Looking up product by slug", { slug });
+
+    const result = await this.client.query(getProductBySlugQuery, { slug });
+
+    logger.debug("Product slug query result", {
+      productCount: result.data?.products?.edges?.length || 0,
+      error: result.error?.message,
+    });
+
+    const product = result.data?.products?.edges?.[0]?.node;
+
+    if (product) {
+      logger.debug("Found existing product", {
+        id: product.id,
+        slug: product.slug,
+        name: product.name,
+      });
+    } else {
+      logger.debug("No product found with slug", { slug });
+    }
+
+    return product || null;
+  }
+
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getProductTypeByNameQuery, { name });
 
@@ -610,7 +655,7 @@ export class ProductRepository implements ProductOperations {
     const result = await this.client.query(getChannelBySlugQuery, { slug });
 
     // Find exact match among search results
-    const exactMatch = result.data?.channels?.edges?.find((edge) => edge.node?.slug === slug);
+    const exactMatch = (result.data?.channels as any)?.edges?.find((edge: any) => edge.node?.slug === slug);
 
     const channel = exactMatch?.node;
 
@@ -675,7 +720,7 @@ export class ProductRepository implements ProductOperations {
       channelListings: product.channelListings?.length || 0,
     });
 
-    return product;
+    return product as any;
   }
 
   async updateProductVariantChannelListings(
@@ -722,7 +767,7 @@ export class ProductRepository implements ProductOperations {
       return null;
     }
 
-    const variant = result.data.productVariantChannelListingUpdate.productVariant;
+    const variant = result.data.productVariantChannelListingUpdate.productVariant as any;
 
     logger.info("Product variant channel listings updated", {
       variantId: variant.id,

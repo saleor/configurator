@@ -309,7 +309,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
     const result = await this.client.query(getShippingZonesQuery, { channel });
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error, "Failed to fetch shipping zones");
+      throw GraphQLError.fromCombinedError("Failed to fetch shipping zones", result.error);
     }
 
     return result.data?.shippingZones?.edges.map((edge) => edge.node) ?? [];
@@ -319,7 +319,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
     const result = await this.client.query(getShippingZoneQuery, { id, channel });
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error, `Failed to fetch shipping zone ${id}`);
+      throw GraphQLError.fromCombinedError(`Failed to fetch shipping zone ${id}`, result.error);
     }
 
     return result.data?.shippingZone ?? null;
@@ -330,8 +330,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to create shipping zone ${input.name}`
+        `Failed to create shipping zone ${input.name}`,
+        result.error
       );
     }
 
@@ -360,8 +360,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to update shipping zone ${input.name || id}`
+        "Failed to update shipping zone",
+        result.error`Failed to update shipping zone ${input.name || id}`
       );
     }
 
@@ -405,8 +405,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
       });
 
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to create shipping method ${input.name}`
+        "Failed to update shipping zone",
+        result.error`Failed to create shipping method ${input.name}`
       );
     }
 
@@ -441,8 +441,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to update shipping method ${input.name || id}`
+        "Failed to update shipping zone",
+        result.error`Failed to update shipping method ${input.name || id}`
       );
     }
 
@@ -470,7 +470,7 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
     const result = await this.client.mutation(deleteShippingPriceMutation, { id });
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error, `Failed to delete shipping method ${id}`);
+      throw GraphQLError.fromCombinedError(`Failed to delete shipping method ${id}`, result.error);
     }
 
     if (result.data?.shippingPriceDelete?.errors?.length) {
@@ -494,8 +494,8 @@ export class ShippingZoneRepository implements ShippingZoneOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to update shipping method channel listing ${id}`
+        "Failed to update shipping zone",
+        result.error`Failed to update shipping method channel listing ${id}`
       );
     }
 

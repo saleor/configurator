@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { attributeInputSchema, simpleAttributeSchema, referencedAttributeSchema } from "./attribute.schema";
+import {
+  attributeInputSchema,
+  referencedAttributeSchema,
+  simpleAttributeSchema,
+} from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -779,27 +783,33 @@ const collectionSchema = z.object({
 export type CollectionInput = z.infer<typeof collectionSchema>;
 
 // Menu Schema
-const menuItemSchema: z.ZodType<any> = z.lazy(() =>
+interface MenuItemInputSchema {
+  name: string;
+  url?: string;
+  category?: string;
+  collection?: string;
+  page?: string;
+  children?: MenuItemInputSchema[];
+}
+
+const menuItemSchema: z.ZodType<MenuItemInputSchema> = z.lazy(() =>
   z.object({
     name: z.string().describe("MenuItem.name"),
     url: z.string().optional().describe("MenuItem.url - External URL"),
     category: z.string().optional().describe("MenuItem.category - Reference to category slug"),
-    collection: z.string().optional().describe("MenuItem.collection - Reference to collection slug"),
-    page: z.string().optional().describe("MenuItem.page - Reference to page/model slug"),
-    children: z
-      .array(menuItemSchema)
+    collection: z
+      .string()
       .optional()
-      .describe("MenuItem.children - Nested menu items"),
+      .describe("MenuItem.collection - Reference to collection slug"),
+    page: z.string().optional().describe("MenuItem.page - Reference to page/model slug"),
+    children: z.array(menuItemSchema).optional().describe("MenuItem.children - Nested menu items"),
   })
 );
 
 const menuSchema = z.object({
   name: z.string().describe("Menu.name"),
   slug: z.string().describe("Menu.slug"),
-  items: z
-    .array(menuItemSchema)
-    .optional()
-    .describe("Menu.items - Top-level menu items"),
+  items: z.array(menuItemSchema).optional().describe("Menu.items - Top-level menu items"),
 });
 
 export type MenuInput = z.infer<typeof menuSchema>;
@@ -825,12 +835,7 @@ const modelTypeSchema = z.object({
   name: z.string().describe("ModelType.name"),
   slug: z.string().optional().describe("ModelType.slug"),
   attributes: z
-    .array(
-      z.union([
-        simpleAttributeSchema,
-        referencedAttributeSchema,
-      ])
-    )
+    .array(z.union([simpleAttributeSchema, referencedAttributeSchema]))
     .optional()
     .describe("ModelType.attributes"),
 });

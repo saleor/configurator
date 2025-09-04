@@ -1,7 +1,7 @@
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
-import { type AnyVariables, type Client } from "@urql/core";
-import { logger } from "../../lib/logger";
+import type { AnyVariables, Client } from "@urql/core";
+import { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
+import { logger } from "../../lib/logger";
 
 const GetMenus = graphql(`
   query GetMenus($first: Int!) {
@@ -269,7 +269,9 @@ const DeleteMenuItem = graphql(`
 
 // Type exports for external use
 export type Menu = NonNullable<ResultOf<typeof GetMenuBySlug>["menu"]>;
-export type MenuItem = NonNullable<ResultOf<typeof CreateMenuItem>["menuItemCreate"]["menuItem"]>;
+export type MenuItem = NonNullable<
+  NonNullable<ResultOf<typeof CreateMenuItem>["menuItemCreate"]>["menuItem"]
+>;
 export type MenuCreateInput = VariablesOf<typeof CreateMenu>["input"];
 export type MenuInput = VariablesOf<typeof UpdateMenu>["input"];
 export type MenuItemCreateInput = VariablesOf<typeof CreateMenuItem>["input"];
@@ -289,13 +291,13 @@ export class MenuRepository implements MenuOperations {
   constructor(private client: Client) {}
 
   private async query<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.query(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("Query failed", result.error);
     }
 
     if (!result.data) {
@@ -306,13 +308,13 @@ export class MenuRepository implements MenuOperations {
   }
 
   private async mutation<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.mutation(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("Query failed", result.error);
     }
 
     if (!result.data) {
@@ -325,7 +327,7 @@ export class MenuRepository implements MenuOperations {
   async getMenus(): Promise<Menu[]> {
     logger.debug("Fetching menus from Saleor");
     const data = await this.query(GetMenus, { first: 100 });
-    const menus = data.menus?.edges?.map(edge => edge.node) ?? [];
+    const menus = data.menus?.edges?.map((edge) => edge.node) ?? [];
     logger.debug(`Fetched ${menus.length} menus`);
     return menus as Menu[];
   }
@@ -342,10 +344,7 @@ export class MenuRepository implements MenuOperations {
 
     if (data.menuCreate?.errors && data.menuCreate.errors.length > 0) {
       const error = data.menuCreate.errors[0];
-      throw new GraphQLError(`Failed to create menu: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to create menu: ${error.message}`);
     }
 
     if (!data.menuCreate?.menu) {
@@ -366,10 +365,7 @@ export class MenuRepository implements MenuOperations {
 
     if (data.menuUpdate?.errors && data.menuUpdate.errors.length > 0) {
       const error = data.menuUpdate.errors[0];
-      throw new GraphQLError(`Failed to update menu: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to update menu: ${error.message}`);
     }
 
     if (!data.menuUpdate?.menu) {
@@ -390,10 +386,7 @@ export class MenuRepository implements MenuOperations {
 
     if (data.menuItemCreate?.errors && data.menuItemCreate.errors.length > 0) {
       const error = data.menuItemCreate.errors[0];
-      throw new GraphQLError(`Failed to create menu item: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to create menu item: ${error.message}`);
     }
 
     if (!data.menuItemCreate?.menuItem) {
@@ -414,10 +407,7 @@ export class MenuRepository implements MenuOperations {
 
     if (data.menuItemUpdate?.errors && data.menuItemUpdate.errors.length > 0) {
       const error = data.menuItemUpdate.errors[0];
-      throw new GraphQLError(`Failed to update menu item: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to update menu item: ${error.message}`);
     }
 
     if (!data.menuItemUpdate?.menuItem) {
@@ -438,10 +428,7 @@ export class MenuRepository implements MenuOperations {
 
     if (data.menuItemDelete?.errors && data.menuItemDelete.errors.length > 0) {
       const error = data.menuItemDelete.errors[0];
-      throw new GraphQLError(`Failed to delete menu item: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to delete menu item: ${error.message}`);
     }
 
     logger.debug("Successfully deleted menu item", {

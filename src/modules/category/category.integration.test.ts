@@ -2,8 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "../config/config-service";
 import type { ConfigurationOperations } from "../config/repository";
 import type { ConfigurationStorage } from "../config/yaml-manager";
+import type { CategoryInput } from "../config/schema/schema";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
+
+// Type for category with subcategories (used in configuration)
+type CategoryWithSubcategories = CategoryInput & {
+  subcategories?: CategoryWithSubcategories[];
+};
 
 describe("Category Round-Trip Integrity", () => {
   it("should maintain category hierarchy through deploy and introspect cycle", async () => {
@@ -106,7 +112,7 @@ describe("Category Round-Trip Integrity", () => {
 
     const mockStorage: ConfigurationStorage = {
       save: vi.fn(),
-      read: vi.fn(),
+      load: vi.fn(),
     };
 
     const configService = new ConfigurationService(mockConfigRepository, mockStorage);
@@ -118,22 +124,30 @@ describe("Category Round-Trip Integrity", () => {
     expect(introspectedConfig.categories).toHaveLength(2); // Two root categories
 
     // Check Electronics hierarchy
-    const electronics = introspectedConfig.categories?.find((c) => c.slug === "electronics");
+    const electronics = introspectedConfig.categories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "electronics"
+    );
     expect(electronics).toBeDefined();
     expect(electronics?.subcategories).toHaveLength(2);
 
-    const computers = electronics?.subcategories?.find((c) => c.slug === "computers");
+    const computers = electronics?.subcategories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "computers"
+    );
     expect(computers).toBeDefined();
     expect(computers?.subcategories).toHaveLength(2);
-    expect(computers?.subcategories?.map((c) => c.slug)).toContain("laptops");
-    expect(computers?.subcategories?.map((c) => c.slug)).toContain("desktops");
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain("laptops");
+    expect(computers?.subcategories?.map((c: CategoryWithSubcategories) => c.slug)).toContain("desktops");
 
-    const audio = electronics?.subcategories?.find((c) => c.slug === "audio");
+    const audio = electronics?.subcategories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "audio"
+    );
     expect(audio).toBeDefined();
     expect(audio?.subcategories).toBeUndefined();
 
     // Check Clothing hierarchy
-    const clothing = introspectedConfig.categories?.find((c) => c.slug === "clothing");
+    const clothing = introspectedConfig.categories?.find(
+      (c): c is CategoryWithSubcategories => c.slug === "clothing"
+    );
     expect(clothing).toBeDefined();
     expect(clothing?.subcategories).toHaveLength(1);
     expect(clothing?.subcategories?.[0].slug).toBe("mens");
@@ -191,7 +205,7 @@ describe("Category Round-Trip Integrity", () => {
 
     const mockStorage: ConfigurationStorage = {
       save: vi.fn(),
-      read: vi.fn(),
+      load: vi.fn(),
     };
 
     const configService = new ConfigurationService(mockConfigRepository, mockStorage);
@@ -200,7 +214,11 @@ describe("Category Round-Trip Integrity", () => {
     // Should still build correct hierarchy despite out-of-order data
     expect(config.categories).toHaveLength(1);
     expect(config.categories?.[0].slug).toBe("electronics");
-    expect(config.categories?.[0].subcategories?.[0].slug).toBe("computers");
-    expect(config.categories?.[0].subcategories?.[0].subcategories?.[0].slug).toBe("laptops");
+    
+    const electronicsCategory = config.categories?.[0] as CategoryWithSubcategories;
+    expect(electronicsCategory.subcategories?.[0].slug).toBe("computers");
+    
+    const computersCategory = electronicsCategory.subcategories?.[0] as CategoryWithSubcategories;
+    expect(computersCategory.subcategories?.[0].slug).toBe("laptops");
   });
 });

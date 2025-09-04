@@ -1,23 +1,12 @@
 import { logger } from "../../lib/logger";
-import type {
-  Menu,
-  MenuItem,
-  MenuCreateInput,
-  MenuItemCreateInput,
-  MenuInput,
-  MenuItemInput,
-} from "../../lib/graphql/graphql-types";
+// Note: Menu-related GraphQL types are handled via gql.tada typed queries
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import type { MenuOperations } from "./repository";
-import {
-  MenuOperationError,
-  MenuValidationError,
-  MenuItemError,
-} from "./errors";
 import type { CategoryService } from "../category/category-service";
 import type { CollectionService } from "../collection/collection-service";
-import type { PageService } from "../page/page-service";
+import type { ModelService } from "../model/model-service";
+import { MenuError, MenuOperationError, MenuValidationError } from "./errors";
+import type { Menu, MenuItem, MenuOperations, MenuCreateInput, MenuInput, MenuItemCreateInput } from "./repository";
 
 export interface MenuItemInputConfig {
   name: string;
@@ -39,7 +28,7 @@ export class MenuService {
     private repository: MenuOperations,
     private categoryService?: CategoryService,
     private collectionService?: CollectionService,
-    private pageService?: PageService
+    private modelService?: ModelService
   ) {}
 
   private async getExistingMenu(slug: string): Promise<Menu | null> {
@@ -63,7 +52,7 @@ export class MenuService {
 
         return menu;
       },
-      MenuOperationError
+      MenuError
     );
   }
 
@@ -99,11 +88,13 @@ export class MenuService {
   }
 
   private mapInputToCreateInput(input: MenuInputConfig): MenuCreateInput {
-    return object.filterUndefinedValues({
+    const result = object.filterUndefinedValues({
       name: input.name,
       slug: input.slug,
       items: [], // Items will be created separately
     });
+    // Ensure name is always present
+    return { ...result, name: input.name } as MenuCreateInput;
   }
 
   private mapInputToUpdateInput(input: MenuInputConfig): MenuInput {
@@ -115,9 +106,9 @@ export class MenuService {
 
   async createMenu(input: MenuInputConfig): Promise<Menu> {
     logger.debug("Creating new menu", { name: input.name, slug: input.slug });
-    
+
     this.validateMenuInput(input);
-    
+
     return ServiceErrorWrapper.wrapServiceCall(
       "create menu",
       "menu",
@@ -138,7 +129,7 @@ export class MenuService {
         });
         return menu;
       },
-      MenuOperationError
+      MenuError
     );
   }
 
@@ -165,7 +156,7 @@ export class MenuService {
         });
         return menu;
       },
-      MenuOperationError
+      MenuError
     );
   }
 
@@ -292,9 +283,9 @@ export class MenuService {
       }
     }
 
-    if (item.page && this.pageService) {
+    if (item.page && this.modelService) {
       try {
-        const page = await this.pageService.getPageBySlug(item.page);
+        const page = await this.modelService.getModelBySlug(item.page);
         if (page) {
           input.page = page.id;
         } else {
@@ -345,7 +336,7 @@ export class MenuService {
         logger.debug(`Fetched ${menus.length} menus`);
         return menus;
       },
-      MenuOperationError
+      MenuError
     );
   }
 }

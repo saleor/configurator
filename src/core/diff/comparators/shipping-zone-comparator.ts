@@ -3,6 +3,31 @@ import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zon
 import type { DiffChange, DiffResult, EntityType } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
+// Type definitions for channel listings
+interface NormalizedChannelListing {
+  channel: string;
+  price: number;
+  currency: string;
+  minimumOrderPrice: number | null;
+  maximumOrderPrice: number | null;
+}
+
+type InputChannelListing = {
+  channel: string;
+  price: number;
+  currency?: string;
+  minimumOrderPrice?: number;
+  maximumOrderPrice?: number;
+};
+
+type RemoteChannelListing = {
+  channel?: { slug?: string } | string;
+  price?: { amount?: number } | number;
+  currency?: string;
+  minimumOrderPrice?: { amount?: number };
+  maximumOrderPrice?: { amount?: number };
+};
+
 export class ShippingZoneComparator extends BaseEntityComparator<
   readonly ShippingZoneInput[],
   readonly ShippingZone[],
@@ -63,12 +88,21 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 
       if (!remoteZone) {
         // Shipping zone doesn't exist in remote, create it
-        results.push(this.createCreateResult(localZone));
+        results.push(this.createCreateResult(localZone as ShippingZoneInput));
       } else {
         // Shipping zone exists, check for updates
-        const changes = this.compareEntityFields(localZone, remoteZone);
+        const changes = this.compareEntityFields(
+          localZone as ShippingZoneInput,
+          remoteZone as ShippingZone
+        );
         if (changes.length > 0) {
-          results.push(this.createUpdateResult(localZone, remoteZone, changes));
+          results.push(
+            this.createUpdateResult(
+              localZone as ShippingZoneInput,
+              remoteZone as ShippingZone,
+              changes
+            )
+          );
         }
       }
     }
@@ -76,7 +110,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Check for shipping zones to delete (exists in remote but not in local)
     for (const remoteZone of remote) {
       if (!localMap.has(this.getEntityName(remoteZone))) {
-        results.push(this.createDeleteResult(remoteZone));
+        results.push(this.createDeleteResult(remoteZone as ShippingZone));
       }
     }
 
@@ -98,10 +132,10 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if (Array.isArray(countries)) {
       // Check if it's an array of objects with code property (remote)
       if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
-        return countries.map((c: { code: string }) => c.code).sort();
+        return (countries as { code: string }[]).map((c) => c.code).sort();
       }
       // Otherwise it's already an array of country codes (local)
-      return countries.sort();
+      return (countries as string[]).sort();
     }
 
     return [];
@@ -128,7 +162,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of warehouse slugs (local)
-      return entity.warehouses.sort();
+      return (entity.warehouses as string[]).sort();
     }
 
     return [];
@@ -144,7 +178,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of channel slugs (local)
-      return entity.channels.sort();
+      return (entity.channels as string[]).sort();
     }
 
     return [];
@@ -195,31 +229,27 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Handle channel listings
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
       normalized.channelListings = method.channelListings
-        .map((listing) => ({
+        .map((listing: InputChannelListing): NormalizedChannelListing => ({
           channel: listing.channel,
           price: listing.price,
           currency: listing.currency || "USD",
           minimumOrderPrice: listing.minimumOrderPrice || null,
           maximumOrderPrice: listing.maximumOrderPrice || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
-        );
+        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) => a.channel.localeCompare(b.channel));
     } else if (
       "channelListings" in method &&
       Array.isArray((method as ShippingMethod).channelListings)
     ) {
       normalized.channelListings = (method as ShippingMethod).channelListings
-        .map((listing) => ({
-          channel: listing.channel?.slug || listing.channel,
-          price: listing.price?.amount || listing.price || 0,
-          currency: listing.price?.currency || "USD",
+        .map((listing: RemoteChannelListing): NormalizedChannelListing => ({
+          channel: (typeof listing.channel === 'object' ? listing.channel?.slug : listing.channel) || '',
+          price: (typeof listing.price === 'object' ? listing.price?.amount : listing.price) || 0,
+          currency: listing.currency || "USD",
           minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
           maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
-        );
+        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) => a.channel.localeCompare(b.channel));
     }
 
     return normalized;
@@ -249,7 +279,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     for (const [name, localMethod] of localMap) {
       const remoteMethod = remoteMap.get(name);
       if (remoteMethod && JSON.stringify(localMethod) !== JSON.stringify(remoteMethod)) {
-        toUpdate.push(name);
+        toUpdate.push(name as string);
       }
     }
 
@@ -334,7 +364,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Compare shipping methods
     const methodChanges = this.compareShippingMethods(
       local.shippingMethods,
-      remote.shippingMethods
+      remote.shippingMethods || undefined
     );
     changes.push(...methodChanges);
 

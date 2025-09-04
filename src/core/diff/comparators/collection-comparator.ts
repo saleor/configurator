@@ -1,7 +1,7 @@
-import { BaseEntityComparator } from "./base-comparator";
-import type { DiffResult, DiffChange, EntityType } from "../types";
-import type { CollectionInput } from "../../../modules/config/schema/schema";
 import type { Collection } from "../../../modules/collection/repository";
+import type { CollectionInput } from "../../../modules/config/schema/schema";
+import type { DiffChange, DiffResult, EntityType } from "../types";
+import { BaseEntityComparator } from "./base-comparator";
 
 export class CollectionComparator extends BaseEntityComparator<
   readonly CollectionInput[],
@@ -78,7 +78,7 @@ export class CollectionComparator extends BaseEntityComparator<
       // For local input
       const input = entity as CollectionInput;
       return (input.channelListings ?? [])
-        .map(listing => ({
+        .map((listing) => ({
           channelSlug: listing.channelSlug,
           isPublished: listing.isPublished ?? false,
         }))
@@ -89,7 +89,7 @@ export class CollectionComparator extends BaseEntityComparator<
     const collection = entity as Collection;
     if (collection.channelListings) {
       return collection.channelListings
-        .map(listing => ({
+        .map((listing) => ({
           channelSlug: listing.channel.slug,
           isPublished: listing.isPublished,
         }))
@@ -99,7 +99,10 @@ export class CollectionComparator extends BaseEntityComparator<
     return [];
   }
 
-  protected compareEntityFields(local: CollectionInput, remote: Collection): DiffChange[] {
+  protected compareEntityFields(
+    local: CollectionInput | Collection,
+    remote: CollectionInput | Collection
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic fields
@@ -108,18 +111,14 @@ export class CollectionComparator extends BaseEntityComparator<
     }
 
     // Compare description
-    const localDescription = local.description || undefined;
-    const remoteDescription = remote.description || undefined;
+    const localDescription = typeof local.description === "string" ? local.description : undefined;
+    const remoteDescription =
+      typeof remote.description === "string" ? remote.description : undefined;
     if (localDescription !== remoteDescription) {
       changes.push(this.createFieldChange("description", remoteDescription, localDescription));
     }
 
-    // Compare isPublished (default to false if not specified)
-    const localIsPublished = local.isPublished ?? false;
-    const remoteIsPublished = remote.isPublished ?? false;
-    if (localIsPublished !== remoteIsPublished) {
-      changes.push(this.createFieldChange("isPublished", remoteIsPublished, localIsPublished));
-    }
+    // Note: isPublished is handled via channelListings, not as a top-level field
 
     // Compare products
     const localProducts = this.getProductSlugs(local);
@@ -142,14 +141,12 @@ export class CollectionComparator extends BaseEntityComparator<
 
     // Create a comparison key for channel listings
     const channelKey = (channels: typeof localChannels) =>
-      channels
-        .map(ch => `${ch.channelSlug}:${ch.isPublished}`)
-        .join(",");
+      channels.map((ch) => `${ch.channelSlug}:${ch.isPublished}`).join(",");
 
     if (channelKey(localChannels) !== channelKey(remoteChannels)) {
       const formatChannels = (channels: typeof localChannels) =>
         channels
-          .map(ch => `${ch.channelSlug}(${ch.isPublished ? "published" : "unpublished"})`)
+          .map((ch) => `${ch.channelSlug}(${ch.isPublished ? "published" : "unpublished"})`)
           .join(", ");
 
       changes.push(

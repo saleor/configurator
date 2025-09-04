@@ -1,21 +1,11 @@
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import type {
-  Page,
-  PageCreateInput,
-  PageInput,
-  AttributeValueInput,
-} from "../../lib/graphql/graphql-types";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import type { ModelOperations } from "./repository";
-import {
-  ModelOperationError,
-  ModelValidationError,
-  ModelAttributeError,
-  ModelTypeError,
-} from "./errors";
-import type { PageTypeService } from "../page-type/page-type-service";
 import type { AttributeService } from "../attribute/attribute-service";
+import type { PageTypeService } from "../page-type/page-type-service";
+import { ModelOperationError, ModelTypeError, ModelValidationError } from "./errors";
+import type { ModelOperations, Page, PageCreateInput, PageInput } from "./repository";
 
 export interface ModelInputConfig {
   title: string;
@@ -54,8 +44,7 @@ export class ModelService {
         }
 
         return page;
-      },
-      ModelOperationError
+      }
     );
   }
 
@@ -94,11 +83,8 @@ export class ModelService {
     }
   }
 
-  private mapInputToCreateInput(
-    input: ModelInputConfig,
-    pageTypeId: string
-  ): PageCreateInput {
-    return object.filterUndefinedValues({
+  private mapInputToCreateInput(input: ModelInputConfig, pageTypeId: string): PageCreateInput {
+    const result = object.filterUndefinedValues({
       title: input.title,
       slug: input.slug,
       pageType: pageTypeId,
@@ -107,6 +93,8 @@ export class ModelService {
       publishedAt: input.publishedAt,
       attributes: [], // Attributes will be set after creation
     });
+    // Ensure required fields are always present
+    return { ...result, pageType: pageTypeId } as PageCreateInput;
   }
 
   private mapInputToUpdateInput(input: ModelInputConfig): PageInput {
@@ -121,9 +109,9 @@ export class ModelService {
 
   async createModel(input: ModelInputConfig): Promise<Page> {
     logger.debug("Creating new model/page", { title: input.title, slug: input.slug });
-    
+
     this.validateModelInput(input);
-    
+
     return ServiceErrorWrapper.wrapServiceCall(
       "create model",
       "model",
@@ -144,8 +132,7 @@ export class ModelService {
           slug: page.slug,
         });
         return page;
-      },
-      ModelOperationError
+      }
     );
   }
 
@@ -172,8 +159,7 @@ export class ModelService {
           slug: page.slug,
         });
         return page;
-      },
-      ModelOperationError
+      }
     );
   }
 
@@ -245,7 +231,7 @@ export class ModelService {
 
   private async updateModelAttributes(
     pageId: string,
-    attributes: Record<string, any>,
+    attributes: Record<string, string | number | boolean | string[]>,
     pageTypeId: string
   ): Promise<void> {
     logger.debug("Updating model attributes", {
@@ -261,14 +247,14 @@ export class ModelService {
     }
 
     const attributeValues: AttributeValueInput[] = [];
-    
+
     for (const [slug, value] of Object.entries(attributes)) {
-      const attribute = pageType.attributes.find(attr => attr.slug === slug);
-      
+      const attribute = pageType.attributes.find((attr: any) => attr.slug === slug);
+
       if (!attribute) {
         logger.warn(`Attribute "${slug}" not found in page type, skipping`, {
           pageTypeId,
-          availableAttributes: pageType.attributes.map(a => a.slug),
+          availableAttributes: pageType.attributes.map((a: any) => a.slug),
         });
         continue;
       }
@@ -281,16 +267,21 @@ export class ModelService {
 
       // Convert value to appropriate format
       if (Array.isArray(value)) {
-        attributeValue.values = value.map(v => String(v));
+        attributeValue.values = value.map((v) => String(v));
       } else if (typeof value === "boolean") {
         attributeValue.boolean = value;
-      } else if (value instanceof Date) {
-        attributeValue.date = value.toISOString().split("T")[0];
+      } else if (value && typeof value === "object" && "toISOString" in value) {
+        const dateValue = value as Date;
+        attributeValue.date = dateValue.toISOString().split("T")[0];
       } else if (value !== null && value !== undefined) {
         attributeValue.values = [String(value)];
       }
 
-      if (attributeValue.values?.length > 0 || attributeValue.boolean !== undefined || attributeValue.date) {
+      if (
+        (attributeValue.values && attributeValue.values.length > 0) ||
+        attributeValue.boolean !== undefined ||
+        attributeValue.date
+      ) {
         attributeValues.push(attributeValue);
       }
     }
@@ -314,8 +305,7 @@ export class ModelService {
         const pages = await this.repository.getPages();
         logger.debug(`Fetched ${pages.length} models/pages`);
         return pages;
-      },
-      ModelOperationError
+      }
     );
   }
 

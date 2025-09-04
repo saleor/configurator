@@ -1,24 +1,19 @@
-import { logger } from "../../lib/logger";
 import type {
   CollectionChannelListingUpdateInput,
   PublishableChannelListingInput,
 } from "../../lib/graphql/graphql-types";
+import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
+import type { ChannelService } from "../channel/channel-service";
+import type { ProductService } from "../product/product-service";
+import { CollectionOperationError, CollectionValidationError } from "./errors";
 import type {
   Collection,
   CollectionCreateInput,
   CollectionInput,
+  CollectionOperations,
 } from "./repository";
-import type { CollectionOperations } from "./repository";
-import {
-  CollectionOperationError,
-  CollectionValidationError,
-  CollectionProductError,
-  CollectionChannelError,
-} from "./errors";
-import type { ProductService } from "../product/product-service";
-import type { ChannelService } from "../channel/channel-service";
 
 export interface CollectionInputConfig {
   name: string;
@@ -41,28 +36,28 @@ export class CollectionService {
   ) {}
 
   private async getExistingCollection(slug: string): Promise<Collection | null> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "fetch collection",
-      "collection",
-      slug,
-      async () => {
-        logger.debug("Looking up existing collection", { slug });
-        const collection = await this.repository.getCollectionBySlug(slug);
+    try {
+      logger.debug("Looking up existing collection", { slug });
+      const collection = await this.repository.getCollectionBySlug(slug);
 
-        if (collection) {
-          logger.debug("Found existing collection", {
-            id: collection.id,
-            name: collection.name,
-            slug: collection.slug,
-          });
-        } else {
-          logger.debug("Collection not found", { slug });
-        }
+      if (collection) {
+        logger.debug("Found existing collection", {
+          id: collection.id,
+          name: collection.name,
+          slug: collection.slug,
+        });
+      } else {
+        logger.debug("Collection not found", { slug });
+      }
 
-        return collection;
-      },
-      CollectionOperationError
-    );
+      return collection;
+    } catch (error) {
+      throw new CollectionOperationError(
+        "fetch",
+        slug,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
   }
 
   private validateCollectionInput(input: CollectionInputConfig): void {
@@ -95,73 +90,74 @@ export class CollectionService {
 
   async createCollection(input: CollectionInputConfig): Promise<Collection> {
     logger.debug("Creating new collection", { name: input.name, slug: input.slug });
-    
+
     this.validateCollectionInput(input);
-    
-    return ServiceErrorWrapper.wrapServiceCall(
-      "create collection",
-      "collection",
-      input.slug,
-      async () => {
-        const createInput = this.mapInputToCreateInput(input);
-        const collection = await this.repository.createCollection(createInput);
 
-        // Handle product assignments
-        if (input.products && input.products.length > 0) {
-          await this.syncCollectionProducts(collection.id, input.products, []);
-        }
+    try {
+      const createInput = this.mapInputToCreateInput(input);
+      const collection = await this.repository.createCollection(createInput);
 
-        // Handle channel listings
-        if (input.channelListings && input.channelListings.length > 0) {
-          await this.updateChannelListings(collection.id, input.channelListings);
-        }
+      // Handle product assignments
+      if (input.products && input.products.length > 0) {
+        await this.syncCollectionProducts(collection.id, input.products, []);
+      }
 
-        logger.debug("Successfully created collection", {
-          id: collection.id,
-          name: collection.name,
-          slug: collection.slug,
-        });
-        return collection;
-      },
-      CollectionOperationError
-    );
+      // Handle channel listings
+      if (input.channelListings && input.channelListings.length > 0) {
+        await this.updateChannelListings(collection.id, input.channelListings);
+      }
+
+      logger.debug("Successfully created collection", {
+        id: collection.id,
+        name: collection.name,
+        slug: collection.slug,
+      });
+      return collection;
+    } catch (error) {
+      throw new CollectionOperationError(
+        "create",
+        input.slug,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
   }
 
   async updateCollection(id: string, input: CollectionInputConfig): Promise<Collection> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "update collection",
-      "collection",
-      input.slug,
-      async () => {
-        logger.debug("Updating collection", { id, name: input.name, slug: input.slug });
+    try {
+      logger.debug("Updating collection", { id, name: input.name, slug: input.slug });
 
-        const updateInput = this.mapInputToUpdateInput(input);
-        const collection = await this.repository.updateCollection(id, updateInput);
+      const updateInput = this.mapInputToUpdateInput(input);
+      const collection = await this.repository.updateCollection(id, updateInput);
 
-        // Handle product updates if provided
-        if (input.products !== undefined) {
-          const existingCollection = await this.repository.getCollectionBySlug(input.slug);
-          const currentProductSlugs = existingCollection?.products?.edges
-            ?.map(edge => edge.node.slug)
+      // Handle product updates if provided
+      if (input.products !== undefined) {
+        const existingCollection = await this.repository.getCollectionBySlug(input.slug);
+        const currentProductSlugs =
+          existingCollection?.products?.edges
+            ?.map((edge) => edge.node.slug)
             .filter((slug): slug is string => !!slug) ?? [];
-          
-          await this.syncCollectionProducts(id, input.products, currentProductSlugs);
-        }
 
-        // Handle channel listing updates
-        if (input.channelListings && input.channelListings.length > 0) {
-          await this.updateChannelListings(id, input.channelListings);
-        }
+        await this.syncCollectionProducts(id, input.products, currentProductSlugs);
+      }
 
-        logger.debug("Successfully updated collection", {
-          id: collection.id,
-          name: collection.name,
-          slug: collection.slug,
-        });
-        return collection;
-      },
-      CollectionOperationError
-    );
+      // Handle channel listing updates
+      if (input.channelListings && input.channelListings.length > 0) {
+        await this.updateChannelListings(id, input.channelListings);
+      }
+
+      logger.debug("Successfully updated collection", {
+        id: collection.id,
+        name: collection.name,
+        slug: collection.slug,
+      });
+      return collection;
+    } catch (error) {
+      throw new CollectionOperationError(
+        "update",
+        input.slug,
+        error instanceof Error ? error.message : String(error)
+      );
+    }
   }
 
   async getOrCreateCollection(input: CollectionInputConfig): Promise<Collection> {
@@ -235,15 +231,15 @@ export class CollectionService {
     desiredProductSlugs: string[],
     currentProductSlugs: string[]
   ): Promise<void> {
-    const toAdd = desiredProductSlugs.filter(slug => !currentProductSlugs.includes(slug));
-    const toRemove = currentProductSlugs.filter(slug => !desiredProductSlugs.includes(slug));
+    const toAdd = desiredProductSlugs.filter((slug) => !currentProductSlugs.includes(slug));
+    const toRemove = currentProductSlugs.filter((slug) => !desiredProductSlugs.includes(slug));
 
     if (toAdd.length > 0) {
       logger.debug("Adding products to collection", {
         collectionId,
         productSlugs: toAdd,
       });
-      
+
       // Resolve product slugs to IDs
       const productIds: string[] = [];
       for (const slug of toAdd) {
@@ -269,7 +265,7 @@ export class CollectionService {
         collectionId,
         productSlugs: toRemove,
       });
-      
+
       // Resolve product slugs to IDs
       const productIds: string[] = [];
       for (const slug of toRemove) {
@@ -303,7 +299,7 @@ export class CollectionService {
     });
 
     const addChannels: PublishableChannelListingInput[] = [];
-    
+
     for (const listing of channelListings) {
       try {
         const channel = await this.channelService.getChannelBySlug(listing.channelSlug);
@@ -331,17 +327,21 @@ export class CollectionService {
   }
 
   async getAllCollections(): Promise<Collection[]> {
-    return ServiceErrorWrapper.wrapServiceCall(
-      "fetch all collections",
-      "collections",
-      "all",
-      async () => {
-        logger.debug("Fetching all collections");
-        const collections = await this.repository.getCollections();
-        logger.debug(`Fetched ${collections.length} collections`);
-        return collections;
-      },
-      CollectionOperationError
-    );
+    try {
+      logger.debug("Fetching all collections");
+      const collections = await this.repository.getCollections();
+      logger.debug(`Fetched ${collections.length} collections`);
+      return collections;
+    } catch (error) {
+      throw new CollectionOperationError(
+        "fetch",
+        "all",
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+
+  async getCollectionBySlug(slug: string): Promise<Collection | null> {
+    return this.getExistingCollection(slug);
   }
 }

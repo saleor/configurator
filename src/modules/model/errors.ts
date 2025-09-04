@@ -14,7 +14,10 @@ export class ModelOperationError extends BaseError {
 }
 
 export class ModelValidationError extends BaseError {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(
       field ? `Model validation error in field "${field}": ${message}` : message,
       "MODEL_VALIDATION_ERROR"

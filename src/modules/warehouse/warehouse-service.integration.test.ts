@@ -122,6 +122,8 @@ describe("WarehouseService - Two-Step Creation", () => {
       name: "Test Warehouse",
       slug: "test-warehouse",
       email: "test@example.com",
+      isPrivate: false,
+      clickAndCollectOption: "DISABLED",
       address: {
         streetAddress1: "123 Test St",
         city: "Test City",

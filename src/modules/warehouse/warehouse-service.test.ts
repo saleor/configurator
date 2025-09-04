@@ -31,6 +31,7 @@ describe("WarehouseService", () => {
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
+    companyName: "Acme Corp",
     clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
@@ -38,7 +39,7 @@ describe("WarehouseService", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
@@ -53,9 +54,11 @@ describe("WarehouseService", () => {
       const invalidInput = { ...mockWarehouseInput, slug: "" };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn(),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -67,9 +70,11 @@ describe("WarehouseService", () => {
       const invalidInput = { ...mockWarehouseInput, name: "" };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn(),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -81,9 +86,11 @@ describe("WarehouseService", () => {
       const inputWithoutEmail = { ...mockWarehouseInput, email: undefined };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
         updateWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -97,9 +104,11 @@ describe("WarehouseService", () => {
       const inputWithEmptyEmail = { ...mockWarehouseInput, email: "" };
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
         updateWarehouse: vi.fn().mockResolvedValue({ ...mockWarehouse, email: "" }),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -114,9 +123,11 @@ describe("WarehouseService", () => {
     it("should not create a warehouse that already exists", async () => {
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([mockWarehouse]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn().mockResolvedValue(mockWarehouse),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -157,9 +168,11 @@ describe("WarehouseService", () => {
 
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn(),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -197,6 +210,7 @@ describe("WarehouseService", () => {
     it("should assign warehouse to shipping zones", async () => {
       const mockOperations = {
         getWarehouses: vi.fn(),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn(),
         assignShippingZones: vi.fn(),
@@ -216,6 +230,7 @@ describe("WarehouseService", () => {
     it("should handle empty shipping zones", async () => {
       const mockOperations = {
         getWarehouses: vi.fn(),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn(),
         assignShippingZones: vi.fn(),
@@ -234,9 +249,11 @@ describe("WarehouseService", () => {
     it("should throw WarehouseOperationError on create failure", async () => {
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn().mockRejectedValue(new Error("API Error")),
         updateWarehouse: vi.fn(),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);
@@ -249,9 +266,11 @@ describe("WarehouseService", () => {
     it("should throw WarehouseOperationError on update failure", async () => {
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([]),
+        getWarehouse: vi.fn(),
         createWarehouse: vi.fn(),
         updateWarehouse: vi.fn().mockRejectedValue(new Error("API Error")),
-        assignWarehouseToShippingZones: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
       };
 
       const service = new WarehouseService(mockOperations);

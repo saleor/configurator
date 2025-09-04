@@ -34,6 +34,10 @@ export class ChannelService {
     );
   }
 
+  async getChannelBySlug(slug: string) {
+    return this.getExistingChannel(slug);
+  }
+
   async createChannel(input: ChannelCreateInput) {
     return ServiceErrorWrapper.wrapServiceCall(
       "create channel",
@@ -95,38 +99,38 @@ export class ChannelService {
         const settings = input.settings ?? {};
 
         const updateInput = object.filterUndefinedValues({
-      name: input.name,
-      slug: input.slug,
-      defaultCountry: input.defaultCountry,
-      orderSettings:
-        Object.keys(settings).length > 0
-          ? object.filterUndefinedValues({
-              automaticallyConfirmAllNewOrders: settings.automaticallyConfirmAllNewOrders,
-              automaticallyFulfillNonShippableGiftCard:
-                settings.automaticallyFulfillNonShippableGiftCard,
-              expireOrdersAfter: settings.expireOrdersAfter?.toString(),
-              deleteExpiredOrdersAfter: settings.deleteExpiredOrdersAfter?.toString(),
-              markAsPaidStrategy: settings.markAsPaidStrategy,
-              allowUnpaidOrders: settings.allowUnpaidOrders,
-              includeDraftOrderInVoucherUsage: settings.includeDraftOrderInVoucherUsage,
-            })
-          : undefined,
-      checkoutSettings:
-        Object.keys(settings).length > 0
-          ? object.filterUndefinedValues({
-              useLegacyErrorFlow: settings.useLegacyErrorFlow,
-              automaticallyCompleteFullyPaidCheckouts:
-                settings.automaticallyCompleteFullyPaidCheckouts,
-            })
-          : undefined,
-      paymentSettings: settings.defaultTransactionFlowStrategy
-        ? {
-            defaultTransactionFlowStrategy: settings.defaultTransactionFlowStrategy,
-          }
-        : undefined,
-      stockSettings: settings.allocationStrategy
-        ? { allocationStrategy: settings.allocationStrategy }
-        : undefined,
+          name: input.name,
+          slug: input.slug,
+          defaultCountry: input.defaultCountry,
+          orderSettings:
+            Object.keys(settings).length > 0
+              ? object.filterUndefinedValues({
+                  automaticallyConfirmAllNewOrders: settings.automaticallyConfirmAllNewOrders,
+                  automaticallyFulfillNonShippableGiftCard:
+                    settings.automaticallyFulfillNonShippableGiftCard,
+                  expireOrdersAfter: settings.expireOrdersAfter?.toString(),
+                  deleteExpiredOrdersAfter: settings.deleteExpiredOrdersAfter?.toString(),
+                  markAsPaidStrategy: settings.markAsPaidStrategy,
+                  allowUnpaidOrders: settings.allowUnpaidOrders,
+                  includeDraftOrderInVoucherUsage: settings.includeDraftOrderInVoucherUsage,
+                })
+              : undefined,
+          checkoutSettings:
+            Object.keys(settings).length > 0
+              ? object.filterUndefinedValues({
+                  useLegacyErrorFlow: settings.useLegacyErrorFlow,
+                  automaticallyCompleteFullyPaidCheckouts:
+                    settings.automaticallyCompleteFullyPaidCheckouts,
+                })
+              : undefined,
+          paymentSettings: settings.defaultTransactionFlowStrategy
+            ? {
+                defaultTransactionFlowStrategy: settings.defaultTransactionFlowStrategy,
+              }
+            : undefined,
+          stockSettings: settings.allocationStrategy
+            ? { allocationStrategy: settings.allocationStrategy }
+            : undefined,
         });
 
         logger.debug("Updating channel", {
@@ -153,7 +157,7 @@ export class ChannelService {
 
   async bootstrapChannels(inputs: ChannelInput[]) {
     logger.debug("Bootstrapping channels", { count: inputs.length });
-    
+
     const results = await ServiceErrorWrapper.wrapBatch(
       inputs,
       "Bootstrap channels",

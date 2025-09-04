@@ -14,7 +14,10 @@ export class CollectionOperationError extends BaseError {
 }
 
 export class CollectionValidationError extends BaseError {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(
       field ? `Collection validation error in field "${field}": ${message}` : message,
       "COLLECTION_VALIDATION_ERROR"

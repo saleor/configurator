@@ -1,10 +1,8 @@
-import { graphql, type VariablesOf, type ResultOf } from "gql.tada";
-import { type AnyVariables, type Client } from "@urql/core";
-import type {
-  CollectionChannelListingUpdateInput,
-} from "../../lib/graphql/graphql-types";
-import { logger } from "../../lib/logger";
+import type { AnyVariables, Client } from "@urql/core";
+import { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
+import type { CollectionChannelListingUpdateInput } from "../../lib/graphql/graphql-types";
+import { logger } from "../../lib/logger";
 
 const GetCollections = graphql(`
   query GetCollections($first: Int!) {
@@ -208,13 +206,13 @@ export class CollectionRepository implements CollectionOperations {
   constructor(private client: Client) {}
 
   private async query<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.query(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("Query failed", result.error);
     }
 
     if (!result.data) {
@@ -225,13 +223,13 @@ export class CollectionRepository implements CollectionOperations {
   }
 
   private async mutation<TData, TVariables extends AnyVariables>(
-    document: TypedDocumentString<TData, TVariables>,
+    document: TadaDocumentNode<TData, TVariables>,
     variables: TVariables
   ): Promise<TData> {
     const result = await this.client.mutation(document, variables).toPromise();
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
+      throw GraphQLError.fromCombinedError("Query failed", result.error);
     }
 
     if (!result.data) {
@@ -243,28 +241,25 @@ export class CollectionRepository implements CollectionOperations {
 
   async getCollections(): Promise<Collection[]> {
     logger.debug("Fetching collections from Saleor");
-    const data = await this.query(GetCollections, { first: 100 });
-    const collections = data.collections?.edges?.map(edge => edge.node) ?? [];
+    const data = await this.query(GetCollections, { first: 100 }) as ResultOf<typeof GetCollections>;
+    const collections = data.collections?.edges?.map(edge => edge.node).filter(node => node !== null) ?? [];
     logger.debug(`Fetched ${collections.length} collections`);
     return collections as Collection[];
   }
 
   async getCollectionBySlug(slug: string): Promise<Collection | null> {
     logger.debug("Fetching collection by slug", { slug });
-    const data = await this.query(GetCollectionBySlug, { slug });
+    const data = await this.query(GetCollectionBySlug, { slug }) as ResultOf<typeof GetCollectionBySlug>;
     return data.collection as Collection | null;
   }
 
   async createCollection(input: CollectionCreateInput): Promise<Collection> {
     logger.debug("Creating collection", { name: input.name, slug: input.slug });
-    const data = await this.mutation(CreateCollection, { input });
+    const data = await this.mutation(CreateCollection, { input }) as ResultOf<typeof CreateCollection>;
 
     if (data.collectionCreate?.errors && data.collectionCreate.errors.length > 0) {
       const error = data.collectionCreate.errors[0];
-      throw new GraphQLError(`Failed to create collection: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to create collection: ${error.message}`);
     }
 
     if (!data.collectionCreate?.collection) {
@@ -281,14 +276,11 @@ export class CollectionRepository implements CollectionOperations {
 
   async updateCollection(id: string, input: CollectionInput): Promise<Collection> {
     logger.debug("Updating collection", { id, input });
-    const data = await this.mutation(UpdateCollection, { id, input });
+    const data = await this.mutation(UpdateCollection, { id, input }) as ResultOf<typeof UpdateCollection>;
 
     if (data.collectionUpdate?.errors && data.collectionUpdate.errors.length > 0) {
       const error = data.collectionUpdate.errors[0];
-      throw new GraphQLError(`Failed to update collection: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to update collection: ${error.message}`);
     }
 
     if (!data.collectionUpdate?.collection) {
@@ -309,18 +301,18 @@ export class CollectionRepository implements CollectionOperations {
       return;
     }
 
-    logger.debug("Assigning products to collection", { collectionId, productCount: productIds.length });
-    const data = await this.mutation(AssignProductsToCollection, { 
-      collectionId, 
-      productIds 
+    logger.debug("Assigning products to collection", {
+      collectionId,
+      productCount: productIds.length,
     });
+    const data = await this.mutation(AssignProductsToCollection, {
+      collectionId,
+      productIds,
+    }) as ResultOf<typeof AssignProductsToCollection>;
 
     if (data.collectionAddProducts?.errors && data.collectionAddProducts.errors.length > 0) {
       const error = data.collectionAddProducts.errors[0];
-      throw new GraphQLError(`Failed to assign products to collection: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to assign products to collection: ${error.message}`);
     }
 
     logger.debug("Successfully assigned products to collection", {
@@ -335,18 +327,18 @@ export class CollectionRepository implements CollectionOperations {
       return;
     }
 
-    logger.debug("Removing products from collection", { collectionId, productCount: productIds.length });
-    const data = await this.mutation(RemoveProductsFromCollection, { 
-      collectionId, 
-      productIds 
+    logger.debug("Removing products from collection", {
+      collectionId,
+      productCount: productIds.length,
     });
+    const data = await this.mutation(RemoveProductsFromCollection, {
+      collectionId,
+      productIds,
+    }) as ResultOf<typeof RemoveProductsFromCollection>;
 
     if (data.collectionRemoveProducts?.errors && data.collectionRemoveProducts.errors.length > 0) {
       const error = data.collectionRemoveProducts.errors[0];
-      throw new GraphQLError(`Failed to remove products from collection: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to remove products from collection: ${error.message}`);
     }
 
     logger.debug("Successfully removed products from collection", {
@@ -355,16 +347,19 @@ export class CollectionRepository implements CollectionOperations {
     });
   }
 
-  async updateChannelListings(id: string, input: CollectionChannelListingUpdateInput): Promise<void> {
+  async updateChannelListings(
+    id: string,
+    input: CollectionChannelListingUpdateInput
+  ): Promise<void> {
     logger.debug("Updating collection channel listings", { id, input });
-    const data = await this.mutation(UpdateCollectionChannelListings, { id, input });
+    const data = await this.mutation(UpdateCollectionChannelListings, { id, input }) as ResultOf<typeof UpdateCollectionChannelListings>;
 
-    if (data.collectionChannelListingUpdate?.errors && data.collectionChannelListingUpdate.errors.length > 0) {
+    if (
+      data.collectionChannelListingUpdate?.errors &&
+      data.collectionChannelListingUpdate.errors.length > 0
+    ) {
       const error = data.collectionChannelListingUpdate.errors[0];
-      throw new GraphQLError(`Failed to update collection channel listings: ${error.message}`, {
-        field: error.field ?? undefined,
-        code: error.code ?? undefined,
-      });
+      throw new GraphQLError(`Failed to update collection channel listings: ${error.message}`);
     }
 
     logger.debug("Successfully updated collection channel listings", { id });

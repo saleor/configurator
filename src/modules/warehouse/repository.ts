@@ -151,6 +151,25 @@ const warehouseShippingZoneAssignMutation = graphql(`
       warehouse {
         id
         name
+        slug
+        email
+        isPrivate
+        address {
+          streetAddress1
+          streetAddress2
+          city
+          cityArea
+          postalCode
+          country {
+            code
+            country
+          }
+          countryArea
+          companyName
+          phone
+        }
+        companyName
+        clickAndCollectOption
         shippingZones(first: 100) {
           edges {
             node {
@@ -175,6 +194,25 @@ const warehouseShippingZoneUnassignMutation = graphql(`
       warehouse {
         id
         name
+        slug
+        email
+        isPrivate
+        address {
+          streetAddress1
+          streetAddress2
+          city
+          cityArea
+          postalCode
+          country {
+            code
+            country
+          }
+          countryArea
+          companyName
+          phone
+        }
+        companyName
+        clickAndCollectOption
         shippingZones(first: 100) {
           edges {
             node {
@@ -216,7 +254,7 @@ export class WarehouseRepository implements WarehouseOperations {
     const result = await this.client.query(getWarehousesQuery, {});
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error, "Failed to fetch warehouses");
+      throw GraphQLError.fromCombinedError("Failed to fetch warehouses", result.error);
     }
 
     return result.data?.warehouses?.edges.map((edge) => edge.node) ?? [];
@@ -226,7 +264,7 @@ export class WarehouseRepository implements WarehouseOperations {
     const result = await this.client.query(getWarehouseQuery, { id });
 
     if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error, `Failed to fetch warehouse ${id}`);
+      throw GraphQLError.fromCombinedError(`Failed to fetch warehouse ${id}`, result.error);
     }
 
     return result.data?.warehouse ?? null;
@@ -237,8 +275,8 @@ export class WarehouseRepository implements WarehouseOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to create warehouse ${input.name}`
+        `Failed to create warehouse ${input.name}`,
+        result.error
       );
     }
 
@@ -273,8 +311,8 @@ export class WarehouseRepository implements WarehouseOperations {
         input: JSON.stringify(input, null, 2),
       });
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to update warehouse ${input.name || id}`
+        `Failed to update warehouse ${input.name || id}`,
+        result.error
       );
     }
 
@@ -304,8 +342,8 @@ export class WarehouseRepository implements WarehouseOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to assign shipping zones to warehouse ${warehouseId}`
+        `Failed to assign shipping zones to warehouse ${warehouseId}`,
+        result.error
       );
     }
 
@@ -338,8 +376,8 @@ export class WarehouseRepository implements WarehouseOperations {
 
     if (result.error) {
       throw GraphQLError.fromCombinedError(
-        result.error,
-        `Failed to unassign shipping zones from warehouse ${warehouseId}`
+        `Failed to unassign shipping zones from warehouse ${warehouseId}`,
+        result.error
       );
     }
 
