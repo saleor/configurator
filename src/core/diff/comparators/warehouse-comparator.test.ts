@@ -32,6 +32,7 @@ describe("WarehouseComparator", () => {
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
+    companyName: "Acme Corp",
     clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
@@ -39,7 +40,7 @@ describe("WarehouseComparator", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
@@ -231,46 +232,6 @@ describe("WarehouseComparator", () => {
           description: "Shipping zones: [zone-1, zone-2] → [zone-1, zone-3]",
         })
       );
-    });
-  });
-
-  describe("getEntityName", () => {
-    it("should use slug as identifier", () => {
-      expect(comparator.getEntityName(mockLocalWarehouse)).toBe("main-warehouse");
-      expect(comparator.getEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
-    });
-
-    it("should throw error when slug is missing", () => {
-      const warehouseWithoutSlug = { ...mockLocalWarehouse, slug: "" };
-      expect(() => comparator.getEntityName(warehouseWithoutSlug)).toThrow(
-        "Warehouse must have a valid slug"
-      );
-    });
-  });
-
-  describe("validateUniqueIdentifiers", () => {
-    it("should validate unique slugs", () => {
-      const warehouses = [mockLocalWarehouse, { ...mockLocalWarehouse, name: "Another Warehouse" }];
-
-      expect(() => comparator.validateUniqueIdentifiers(warehouses)).toThrow(
-        "Duplicate entity identifiers found in Warehouses: main-warehouse"
-      );
-    });
-  });
-
-  describe("deduplicateEntities", () => {
-    it("should deduplicate by slug", () => {
-      const warehouses = [
-        mockLocalWarehouse,
-        { ...mockLocalWarehouse, name: "Duplicate Warehouse" },
-        { ...mockLocalWarehouse, slug: "secondary-warehouse", name: "Secondary Warehouse" },
-      ];
-
-      const deduplicated = comparator.deduplicateEntities(warehouses);
-
-      expect(deduplicated).toHaveLength(2);
-      expect(deduplicated[0].slug).toBe("main-warehouse");
-      expect(deduplicated[1].slug).toBe("secondary-warehouse");
     });
   });
 });

@@ -8,8 +8,12 @@ import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
 import type {
   CategoryInput,
   CategoryUpdateInput,
+  CollectionInput,
   CountryCode,
   CurrencyCode,
+  MenuInput,
+  ModelInput,
+  ModelTypeInput,
   ProductTypeInput,
   SaleorConfig,
   ShippingZoneInput,
@@ -28,8 +32,9 @@ interface TaxClassType {
 interface TaxClassCountryRateType {
   country: { code: string };
   rate: number;
-  taxClass?: { id: string };
+  taxClass: { id: string; name: string } | null;
 }
+
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -137,7 +142,7 @@ export class ConfigurationService {
       return {
         name: attribute.name,
         inputType: "REFERENCE" as const,
-        entityType: attribute.entityType,
+        entityType: attribute.entityType || "PRODUCT",
         type: attributeType,
       };
     }
@@ -280,7 +285,7 @@ export class ConfigurationService {
       }));
   }
 
-  private mapTaxClasses(taxClasses: readonly TaxClassType[]): readonly TaxClassInput[] {
+  private mapTaxClasses(taxClasses: readonly TaxClassType[]): TaxClassInput[] {
     return taxClasses.map((edge) => {
       const taxClass = edge.node;
 
@@ -494,10 +499,128 @@ export class ConfigurationService {
       config.taxClasses = this.mapTaxClasses(rawConfig.taxClasses?.edges || []);
     }
 
+    if (shouldIncludeSection("collections", options)) {
+      config.collections = this.mapCollections(rawConfig.collections?.edges || []);
+    }
+
+    if (shouldIncludeSection("menus", options)) {
+      config.menus = this.mapMenus(rawConfig.menus?.edges || []);
+    }
+
+    if (shouldIncludeSection("models", options)) {
+      config.models = this.mapModels(rawConfig.pages?.edges || []);
+    }
+
+    if (shouldIncludeSection("modelTypes", options)) {
+      config.modelTypes = this.mapModelTypes(rawConfig.pageTypes?.edges || []);
+    }
+
     const fullConfig = config as SaleorConfig;
 
     // Normalize attribute references to prevent duplication errors during deployment
     return this.normalizeAttributeReferences(fullConfig);
+  }
+
+  private mapCollections(
+    edges: NonNullable<RawSaleorConfig["collections"]>["edges"]
+  ): CollectionInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      description: typeof node.description === "string" ? node.description : undefined,
+      products: node.products?.edges?.map((edge) => edge.node.slug).filter(Boolean) || [],
+      channelListings:
+        node.channelListings?.map((listing) => ({
+          channelSlug: listing.channel.slug,
+          isPublished: listing.isPublished,
+          publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
+        })) || [],
+    }));
+  }
+
+  private mapMenus(edges: NonNullable<RawSaleorConfig["menus"]>["edges"]): MenuInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      slug: node.slug,
+      items: this.mapMenuItems(node.items || []),
+    }));
+  }
+
+  private mapMenuItems(
+    items: NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+  ): NonNullable<MenuInput["items"]> {
+    if (!items) return [];
+
+    return items.map((item) => ({
+      name: item.name,
+      url: item.url ?? undefined,
+      category: item.category?.slug ?? undefined,
+      collection: item.collection?.slug ?? undefined,
+      page: item.page?.slug ?? undefined,
+      children: item.children ? this.mapMenuChildren(item.children) : undefined,
+    }));
+  }
+
+  private mapMenuChildren(
+    children: NonNullable<
+      NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+    >[0]["children"]
+  ): NonNullable<MenuInput["items"]> {
+    if (!children) return [];
+
+    return children.map((child) => ({
+      name: child.name,
+      url: child.url ?? undefined,
+      category: child.category?.slug ?? undefined,
+      collection: child.collection?.slug ?? undefined,
+      page: child.page?.slug ?? undefined,
+    }));
+  }
+
+  private mapModels(edges: NonNullable<RawSaleorConfig["pages"]>["edges"]): ModelInput[] {
+    return edges.map(({ node }) => ({
+      title: node.title,
+      slug: node.slug,
+      content: typeof node.content === "string" ? node.content : undefined,
+      isPublished: node.isPublished,
+      publishedAt: typeof node.publishedAt === "string" ? node.publishedAt : undefined,
+      modelType: node.pageType?.name || "",
+      attributes: this.mapModelAttributes(node.attributes || []),
+    }));
+  }
+
+  private mapModelAttributes(
+    attributes: NonNullable<RawSaleorConfig["pages"]>["edges"][0]["node"]["attributes"]
+  ): Record<string, string | number | boolean | string[]> {
+    const result: Record<string, string | number | boolean | string[]> = {};
+
+    if (!attributes) return result;
+
+    for (const attr of attributes) {
+      const slug = attr.attribute?.slug;
+      if (slug) {
+        if (attr.values && attr.values.length > 0) {
+          // Multi-value attribute
+          result[slug] = attr.values
+            .map((v) => v.name || v.slug || v.value)
+            .filter((value): value is string => value !== null && value !== undefined);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  private mapModelTypes(
+    edges: NonNullable<RawSaleorConfig["pageTypes"]>["edges"]
+  ): ModelTypeInput[] {
+    return edges.map(({ node }) => ({
+      name: node.name,
+      attributes:
+        node.attributes?.map((attr) => ({
+          attribute: attr.name || "", // Reference existing attribute by name
+        })) || [],
+    }));
   }
 }
 

@@ -209,7 +209,10 @@ describe("DeploymentError Classes", () => {
 
     it("should format user message with only failures", () => {
       const failures = [
-        { entity: "Attribute Color", error: new Error("Entity type is required for reference attribute 'color'") },
+        {
+          entity: "Attribute Color",
+          error: new Error("Entity type is required for reference attribute 'color'"),
+        },
       ];
 
       const error = new StageAggregateError("Creating Attributes", failures, []);
@@ -237,11 +240,15 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Check that recovery suggestions are included
-      expect(message).toContain("→ Fix: Create the attribute 'size' first or reference an existing one");
+      expect(message).toContain(
+        "→ Fix: Create the attribute 'size' first or reference an existing one"
+      );
       expect(message).toContain("→ Check: View available attributes");
       expect(message).toContain("→ Run: saleor-configurator introspect --include=attributes");
 
-      expect(message).toContain("→ Fix: Ensure channel 'default-channel' exists or is defined in your config");
+      expect(message).toContain(
+        "→ Fix: Create the channel 'default-channel' in the channels section first"
+      );
       expect(message).toContain("→ Check: View existing channels");
       expect(message).toContain("→ Run: saleor-configurator introspect --include=channels");
     });
@@ -256,9 +263,9 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Check that permission-specific recovery suggestions are included
-      expect(message).toContain("→ Fix: Check that your API token has the required permissions");
-      expect(message).toContain("→ Check: Verify token permissions in Saleor dashboard");
-      expect(message).toContain("→ Run: saleor-configurator diff --token YOUR_TOKEN");
+      expect(message).toContain("→ Fix: Check your Saleor API token has the required permissions");
+      expect(message).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+      expect(message).toContain("→ Run: saleor-configurator introspect --include=shop");
     });
 
     it("should handle network errors with appropriate suggestions", () => {
@@ -271,14 +278,17 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Check that network-specific recovery suggestions are included
-      expect(message).toContain("→ Fix: Check your network connection and Saleor instance URL");
-      expect(message).toContain("→ Check: Verify the instance is accessible");
-      expect(message).toContain("→ Run: curl -I YOUR_SALEOR_URL/graphql/");
+      expect(message).toContain("→ Fix: Check your Saleor API URL and network connection");
+      expect(message).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
+      expect(message).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
     });
 
     it("should provide fallback suggestions for unknown errors", () => {
       const failures = [
-        { entity: "Unknown Operation", error: new Error("Something completely unexpected happened") },
+        {
+          entity: "Unknown Operation",
+          error: new Error("Something completely unexpected happened"),
+        },
       ];
 
       const error = new StageAggregateError("Processing Items", failures);
@@ -286,44 +296,48 @@ describe("DeploymentError Classes", () => {
 
       // Check that fallback recovery suggestions are included
       expect(message).toContain("→ Fix: Review the error message for details");
-      expect(message).toContain("→ Check: Check your configuration against the current Saleor state");
+      expect(message).toContain(
+        "→ Check: Check your configuration against the current Saleor state"
+      );
       expect(message).toContain("→ Run: saleor-configurator diff --verbose");
     });
 
     it("should handle verbose mode hint", () => {
-      const failures = [
-        { entity: "Test Entity", error: new Error("Test error") },
-      ];
+      const failures = [{ entity: "Test Entity", error: new Error("Test error") }];
 
       const error = new StageAggregateError("Test Stage", failures);
-      
+
       const normalMessage = error.getUserMessage(false);
       const verboseMessage = error.getUserMessage(true);
 
-      expect(normalMessage).toContain("Run 'saleor-configurator deploy --verbose' for detailed error traces");
-      expect(verboseMessage).toContain("Run 'saleor-configurator deploy --verbose' for detailed error traces");
+      expect(normalMessage).toContain(
+        "Run 'saleor-configurator deploy --verbose' for detailed error traces"
+      );
+      expect(verboseMessage).toContain(
+        "Run 'saleor-configurator deploy --verbose' for detailed error traces"
+      );
     });
 
     it("should format complex real-world scenario", () => {
       const failures = [
-        { 
-          entity: "Product Type T-Shirt", 
-          error: new Error("Failed to resolve referenced attributes: 'color', 'size' not found") 
+        {
+          entity: "Product Type T-Shirt",
+          error: new Error("Failed to resolve referenced attributes: 'color', 'size' not found"),
         },
-        { 
-          entity: "Product Basic Tee", 
-          error: new Error("Product type 'T-Shirt' not found") 
+        {
+          entity: "Product Basic Tee",
+          error: new Error("Product type 'T-Shirt' not found"),
         },
-        { 
-          entity: "Product Premium Tee", 
-          error: new Error("Category 'Clothing/T-Shirts' not found") 
+        {
+          entity: "Product Premium Tee",
+          error: new Error("Category 'Clothing/T-Shirts' not found"),
         },
       ];
       const successes = [
-        "Product Type Hoodie", 
+        "Product Type Hoodie",
         "Product Type Jeans",
         "Product Basic Hoodie",
-        "Product Premium Jeans"
+        "Product Premium Jeans",
       ];
 
       const error = new StageAggregateError("Deploying Product Catalog", failures, successes);
@@ -331,7 +345,7 @@ describe("DeploymentError Classes", () => {
 
       // Verify comprehensive error reporting
       expect(message).toContain("❌ Deploying Product Catalog - 3 of 7 failed");
-      
+
       // Verify successes are shown
       expect(message).toContain("✅ Successful:");
       expect(message).toContain("• Product Type Hoodie");
@@ -339,13 +353,19 @@ describe("DeploymentError Classes", () => {
 
       // Verify failures with specific recovery suggestions
       expect(message).toContain("• Product Type T-Shirt");
-      expect(message).toContain("→ Fix: Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)");
-      
+      expect(message).toContain(
+        "→ Fix: Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)"
+      );
+
       expect(message).toContain("• Product Basic Tee");
-      expect(message).toContain("→ Fix: Ensure product type 'T-Shirt' exists or is defined before products that use it");
-      
+      expect(message).toContain(
+        "→ Fix: Create the product type 'T-Shirt' in the productTypes section first"
+      );
+
       expect(message).toContain("• Product Premium Tee");
-      expect(message).toContain("→ Fix: Ensure category 'Clothing/T-Shirts' exists or will be created earlier in deployment");
+      expect(message).toContain(
+        "→ Fix: Ensure category 'Clothing/T-Shirts' exists or will be created earlier in deployment"
+      );
 
       // Verify general suggestions
       expect(message).toContain("General suggestions:");
@@ -367,10 +387,12 @@ describe("DeploymentError Classes", () => {
       const message = error.getUserMessage();
 
       // Should contain different types of recovery suggestions
-      expect(message).toContain("→ Fix: Check that your API token has the required permissions");
-      expect(message).toContain("→ Fix: Create the attribute 'processor' first or reference an existing one");
-      expect(message).toContain("→ Fix: Check your network connection and Saleor instance URL");
-      expect(message).toContain("→ Fix: Add the required field 'slug' to your configuration");
+      expect(message).toContain("→ Fix: Check your Saleor API token has the required permissions");
+      expect(message).toContain(
+        "→ Fix: Create the attribute 'processor' first or reference an existing one"
+      );
+      expect(message).toContain("→ Fix: Check your Saleor API URL and network connection");
+      expect(message).toContain("→ Fix: Add the required field to your configuration");
     });
 
     it("should handle edge cases gracefully", () => {
@@ -380,7 +402,7 @@ describe("DeploymentError Classes", () => {
 
       // Error with empty message
       const error2 = new StageAggregateError("Test", [
-        { entity: "Test Entity", error: new Error("") }
+        { entity: "Test Entity", error: new Error("") },
       ]);
       const message2 = error2.getUserMessage();
       expect(message2).toContain("• Test Entity");
@@ -388,7 +410,7 @@ describe("DeploymentError Classes", () => {
 
       // Error with null entity name
       const error3 = new StageAggregateError("Test", [
-        { entity: "", error: new Error("Test error") }
+        { entity: "", error: new Error("Test error") },
       ]);
       const message3 = error3.getUserMessage();
       expect(message3).toContain("• ");

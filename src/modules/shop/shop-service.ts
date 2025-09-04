@@ -19,15 +19,15 @@ export class ShopService {
           return null; // No settings to update for create case
         }
 
-        logger.debug("Updating shop settings", { 
-          hasName: 'name' in input,
-          hasEmail: 'email' in input,
-          hasCheckoutSettings: 'checkoutSettings' in input 
+        logger.debug("Updating shop settings", {
+          hasName: "name" in input,
+          hasEmail: "email" in input,
+          hasCheckoutSettings: "checkoutSettings" in input,
         });
-        
+
         // TODO: check diff between current and new settings to avoid unnecessary updates
         const result = await this.repository.updateShopSettings(input);
-        
+
         logger.debug("Successfully updated shop settings");
         return result;
       },

@@ -1,6 +1,6 @@
 import type { Client } from "@urql/core";
-import { graphql } from "../../lib/graphql/index";
 import { GraphQLError } from "../../lib/errors/graphql";
+import { graphql } from "../../lib/graphql/index";
 import type { CountryCode } from "../config/schema/schema";
 
 const getAllTaxClassesDocument = graphql(`

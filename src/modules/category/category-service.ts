@@ -21,6 +21,19 @@ export class CategoryService {
     );
   }
 
+  async getCategoryBySlug(slug: string) {
+    return ServiceErrorWrapper.wrapServiceCall(
+      "fetch category by slug",
+      "category",
+      slug,
+      async () => {
+        const categories = await this.repository.getAllCategories();
+        return categories.find((category) => category.slug === slug) || null;
+      },
+      CategoryError
+    );
+  }
+
   private async getExistingCategory(name: string) {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch category",
@@ -83,7 +96,6 @@ export class CategoryService {
       });
       throw new CategoryError(
         errorMessage,
-        "CATEGORY_BOOTSTRAP_ERROR",
         results.failures.map((f) => `${f.item.name}: ${f.error.message}`)
       );
     }
@@ -149,7 +161,6 @@ export class CategoryService {
           if (subcategoryResults.failures.length > 0) {
             throw new CategoryError(
               `Failed to create subcategories for '${categoryInput.name}'`,
-              "SUBCATEGORY_CREATION_ERROR",
               subcategoryResults.failures.map((f) => `${f.item.name}: ${f.error.message}`)
             );
           }

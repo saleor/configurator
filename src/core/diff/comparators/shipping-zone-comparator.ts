@@ -3,6 +3,34 @@ import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zon
 import type { DiffChange, DiffResult, EntityType } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
 
+// Type definitions for channel listings
+interface NormalizedChannelListing {
+  channel: string;
+  price: number;
+  currency: string;
+  minimumOrderPrice: number | null;
+  maximumOrderPrice: number | null;
+}
+
+// Input format (from config schema)
+type InputChannelListing = {
+  channel: string;
+  price: number;
+  currency?: string;
+  minimumOrderPrice?: number;
+  maximumOrderPrice?: number;
+};
+
+// Remote format (from GraphQL API)
+type RemoteChannelListing = {
+  channel: { slug: string };
+  price: { amount: number; currency: string } | null;
+  minimumOrderPrice: { amount: number; currency: string } | null;
+  maximumOrderPrice: { amount: number; currency: string } | null;
+};
+
+type ChannelListing = InputChannelListing | RemoteChannelListing;
+
 export class ShippingZoneComparator extends BaseEntityComparator<
   readonly ShippingZoneInput[],
   readonly ShippingZone[],
@@ -63,12 +91,21 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 
       if (!remoteZone) {
         // Shipping zone doesn't exist in remote, create it
-        results.push(this.createCreateResult(localZone));
+        results.push(this.createCreateResult(localZone as ShippingZoneInput));
       } else {
         // Shipping zone exists, check for updates
-        const changes = this.compareEntityFields(localZone, remoteZone);
+        const changes = this.compareEntityFields(
+          localZone as ShippingZoneInput,
+          remoteZone as ShippingZone
+        );
         if (changes.length > 0) {
-          results.push(this.createUpdateResult(localZone, remoteZone, changes));
+          results.push(
+            this.createUpdateResult(
+              localZone as ShippingZoneInput,
+              remoteZone as ShippingZone,
+              changes
+            )
+          );
         }
       }
     }
@@ -76,7 +113,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Check for shipping zones to delete (exists in remote but not in local)
     for (const remoteZone of remote) {
       if (!localMap.has(this.getEntityName(remoteZone))) {
-        results.push(this.createDeleteResult(remoteZone));
+        results.push(this.createDeleteResult(remoteZone as ShippingZone));
       }
     }
 
@@ -98,10 +135,10 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if (Array.isArray(countries)) {
       // Check if it's an array of objects with code property (remote)
       if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
-        return countries.map((c: { code: string }) => c.code).sort();
+        return (countries as { code: string }[]).map((c) => c.code).sort();
       }
       // Otherwise it's already an array of country codes (local)
-      return countries.sort();
+      return (countries as string[]).sort();
     }
 
     return [];
@@ -128,7 +165,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of warehouse slugs (local)
-      return entity.warehouses.sort();
+      return (entity.warehouses as string[]).sort();
     }
 
     return [];
@@ -144,7 +181,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of channel slugs (local)
-      return entity.channels.sort();
+      return (entity.channels as string[]).sort();
     }
 
     return [];
@@ -194,31 +231,37 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 
     // Handle channel listings
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
+      // Handle both input and remote channel listings by checking the structure
       normalized.channelListings = method.channelListings
-        .map((listing) => ({
-          channel: listing.channel,
-          price: listing.price,
-          currency: listing.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice || null,
-          maximumOrderPrice: listing.maximumOrderPrice || null,
-        }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
-        );
-    } else if (
-      "channelListings" in method &&
-      Array.isArray((method as ShippingMethod).channelListings)
-    ) {
-      normalized.channelListings = (method as ShippingMethod).channelListings
-        .map((listing) => ({
-          channel: listing.channel?.slug || listing.channel,
-          price: listing.price?.amount || listing.price || 0,
-          currency: listing.price?.currency || "USD",
-          minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
-          maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
-        }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
+        .map((listing: ChannelListing): NormalizedChannelListing => {
+          // Type guard to check if this is a remote listing
+          const isRemoteListing = (l: ChannelListing): l is RemoteChannelListing => {
+            return typeof l.channel === "object" && l.channel !== null && "slug" in l.channel;
+          };
+
+          if (isRemoteListing(listing)) {
+            // Handle remote listing structure
+            return {
+              channel: listing.channel.slug || "",
+              price: listing.price?.amount || 0,
+              currency: listing.price?.currency || "USD",
+              minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
+              maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
+            };
+          } else {
+            // Handle input listing structure (already typed correctly)
+            const inputListing = listing as InputChannelListing;
+            return {
+              channel: inputListing.channel || "",
+              price: inputListing.price || 0,
+              currency: inputListing.currency || "USD",
+              minimumOrderPrice: inputListing.minimumOrderPrice || null,
+              maximumOrderPrice: inputListing.maximumOrderPrice || null,
+            };
+          }
+        })
+        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) =>
+          a.channel.localeCompare(b.channel)
         );
     }
 
@@ -249,7 +292,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     for (const [name, localMethod] of localMap) {
       const remoteMethod = remoteMap.get(name);
       if (remoteMethod && JSON.stringify(localMethod) !== JSON.stringify(remoteMethod)) {
-        toUpdate.push(name);
+        toUpdate.push(name as string);
       }
     }
 
@@ -334,7 +377,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Compare shipping methods
     const methodChanges = this.compareShippingMethods(
       local.shippingMethods,
-      remote.shippingMethods
+      remote.shippingMethods || undefined
     );
     changes.push(...methodChanges);
 

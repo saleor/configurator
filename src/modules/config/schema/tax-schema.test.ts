@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type { SaleorConfig } from "./schema";
+import type { SaleorConfig, TaxClassInput, TaxConfigurationInput } from "./schema";
 
 describe("Tax Schema Validation", () => {
   describe("TaxClassInput", () => {
@@ -10,7 +10,7 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    const createTestConfig = (taxClasses: unknown[]): Partial<SaleorConfig> => ({
+    const createTestConfig = (taxClasses: TaxClassInput[]): Partial<SaleorConfig> => ({
       taxClasses,
     });
 
@@ -18,8 +18,8 @@ describe("Tax Schema Validation", () => {
       const taxClass = {
         name: "Standard Rate",
         countryRates: [
-          { countryCode: "US", rate: 8.5 },
-          { countryCode: "GB", rate: 20 },
+          { countryCode: "US" as const, rate: 8.5 },
+          { countryCode: "GB" as const, rate: 20 },
         ],
       };
 
@@ -43,7 +43,7 @@ describe("Tax Schema Validation", () => {
     it("should reject empty tax class name", async () => {
       const taxClass = {
         name: "",
-        countryRates: [{ countryCode: "US", rate: 8.5 }],
+        countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
       };
 
       const config = createTestConfig([taxClass]);
@@ -54,8 +54,9 @@ describe("Tax Schema Validation", () => {
 
     it("should reject missing tax class name", async () => {
       const taxClass = {
-        countryRates: [{ countryCode: "US", rate: 8.5 }],
-      };
+        countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
+      } as any;
 
       const config = createTestConfig([taxClass]);
       const schema = await getConfigSchema();
@@ -66,7 +67,8 @@ describe("Tax Schema Validation", () => {
     it("should reject invalid country codes", async () => {
       const taxClass = {
         name: "Standard Rate",
-        countryRates: [{ countryCode: "INVALID", rate: 8.5 }],
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
+        countryRates: [{ countryCode: "INVALID" as any, rate: 8.5 }],
       };
 
       const config = createTestConfig([taxClass]);
@@ -78,7 +80,7 @@ describe("Tax Schema Validation", () => {
     it("should reject negative tax rates", async () => {
       const taxClass = {
         name: "Standard Rate",
-        countryRates: [{ countryCode: "US", rate: -5 }],
+        countryRates: [{ countryCode: "US" as const, rate: -5 }],
       };
 
       const config = createTestConfig([taxClass]);
@@ -90,7 +92,7 @@ describe("Tax Schema Validation", () => {
     it("should reject tax rates over 100%", async () => {
       const taxClass = {
         name: "Standard Rate",
-        countryRates: [{ countryCode: "US", rate: 150 }],
+        countryRates: [{ countryCode: "US" as const, rate: 150 }],
       };
 
       const config = createTestConfig([taxClass]);
@@ -103,17 +105,17 @@ describe("Tax Schema Validation", () => {
       const taxClasses = [
         {
           name: "Standard Rate",
-          countryRates: [{ countryCode: "US", rate: 8.5 }],
+          countryRates: [{ countryCode: "US" as const, rate: 8.5 }],
         },
         {
           name: "Reduced Rate",
-          countryRates: [{ countryCode: "GB", rate: 5 }],
+          countryRates: [{ countryCode: "GB" as const, rate: 5 }],
         },
         {
           name: "Zero Rate",
           countryRates: [
-            { countryCode: "US", rate: 0 },
-            { countryCode: "GB", rate: 0 },
+            { countryCode: "US" as const, rate: 0 },
+            { countryCode: "GB" as const, rate: 0 },
           ],
         },
       ];
@@ -128,9 +130,9 @@ describe("Tax Schema Validation", () => {
       const taxClass = {
         name: "Edge Cases",
         countryRates: [
-          { countryCode: "US", rate: 0 }, // minimum valid rate
-          { countryCode: "GB", rate: 100 }, // maximum valid rate
-          { countryCode: "FR", rate: 19.6 }, // decimal rate
+          { countryCode: "US" as const, rate: 0 }, // minimum valid rate
+          { countryCode: "GB" as const, rate: 100 }, // maximum valid rate
+          { countryCode: "FR" as const, rate: 19.6 }, // decimal rate
         ],
       };
 
@@ -147,13 +149,16 @@ describe("Tax Schema Validation", () => {
       return module.configSchema;
     };
 
-    const createChannelWithTaxConfig = (taxConfiguration: unknown): Partial<SaleorConfig> => ({
+    const createChannelWithTaxConfig = (
+      taxConfiguration: TaxConfigurationInput
+    ): Partial<SaleorConfig> => ({
       channels: [
         {
           name: "Default",
           currencyCode: "USD",
           defaultCountry: "US",
           slug: "default",
+          isActive: true,
           taxConfiguration,
         },
       ],
@@ -161,7 +166,7 @@ describe("Tax Schema Validation", () => {
 
     it("should validate basic tax configuration", async () => {
       const taxConfig = {
-        taxCalculationStrategy: "FLAT_RATES",
+        taxCalculationStrategy: "FLAT_RATES" as const,
         chargeTaxes: true,
         displayGrossPrices: true,
         pricesEnteredWithTax: false,
@@ -175,7 +180,7 @@ describe("Tax Schema Validation", () => {
 
     it("should validate tax app configuration", async () => {
       const taxConfig = {
-        taxCalculationStrategy: "TAX_APP",
+        taxCalculationStrategy: "TAX_APP" as const,
         chargeTaxes: true,
         displayGrossPrices: false,
         pricesEnteredWithTax: true,
@@ -201,7 +206,8 @@ describe("Tax Schema Validation", () => {
 
     it("should reject invalid tax calculation strategy", async () => {
       const taxConfig = {
-        taxCalculationStrategy: "INVALID_STRATEGY",
+        // biome-ignore lint/suspicious/noExplicitAny: Intentionally invalid for testing validation
+        taxCalculationStrategy: "INVALID_STRATEGY" as any,
         chargeTaxes: true,
       };
 
@@ -336,13 +342,13 @@ describe("Tax Schema Validation", () => {
           {
             name: "Standard Rate",
             countryRates: [
-              { countryCode: "US", rate: 8.5 },
-              { countryCode: "GB", rate: 20 },
+              { countryCode: "US" as const, rate: 8.5 },
+              { countryCode: "GB" as const, rate: 20 },
             ],
           },
           {
             name: "Reduced Rate",
-            countryRates: [{ countryCode: "US", rate: 4.0 }],
+            countryRates: [{ countryCode: "US" as const, rate: 4.0 }],
           },
         ],
         channels: [
@@ -351,8 +357,9 @@ describe("Tax Schema Validation", () => {
             currencyCode: "USD",
             defaultCountry: "US",
             slug: "default",
+            isActive: true,
             taxConfiguration: {
-              taxCalculationStrategy: "FLAT_RATES",
+              taxCalculationStrategy: "FLAT_RATES" as const,
               chargeTaxes: true,
               displayGrossPrices: true,
             },
@@ -361,6 +368,7 @@ describe("Tax Schema Validation", () => {
         productTypes: [
           {
             name: "Book",
+            isShippingRequired: false,
             taxClass: "Standard Rate",
           },
         ],

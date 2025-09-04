@@ -46,7 +46,7 @@ const getConfigQuery = graphql(`
         includeDraftOrderInVoucherUsage
       }
     }
-    productTypes(first: 100) {
+    productTypes(first: 50) {
       edges {
         node {
           id
@@ -57,7 +57,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
-            choices(first: 100) {
+            choices(first: 10) {
               edges {
                 node {
                   name
@@ -71,7 +71,7 @@ const getConfigQuery = graphql(`
               name
               type
               inputType
-              choices(first: 100) {
+              choices(first: 10) {
                 edges {
                   node {
                     name
@@ -83,7 +83,7 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    pageTypes(first: 100) {
+    pageTypes(first: 50) {
       edges {
         node {
           id
@@ -93,7 +93,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
-            choices(first: 100) {
+            choices(first: 10) {
               edges {
                 node {
                   name
@@ -104,7 +104,7 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    categories(first: 100) {
+    categories(first: 50) {
       edges {
         node {
           id
@@ -118,7 +118,7 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    warehouses(first: 100) {
+    warehouses(first: 50) {
       edges {
         node {
           id
@@ -140,7 +140,7 @@ const getConfigQuery = graphql(`
             companyName
             phone
           }
-          shippingZones(first: 100) {
+          shippingZones(first: 50) {
             edges {
               node {
                 id
@@ -151,7 +151,7 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    shippingZones(first: 100) {
+    shippingZones(first: 50) {
       edges {
         node {
           id
@@ -205,7 +205,7 @@ const getConfigQuery = graphql(`
         }
       }
     }
-    taxClasses(first: 100) {
+    taxClasses(first: 50) {
       edges {
         node {
           id
@@ -218,6 +218,137 @@ const getConfigQuery = graphql(`
             taxClass {
               id
               name
+            }
+          }
+        }
+      }
+    }
+    collections(first: 50) {
+      edges {
+        node {
+          id
+          name
+          slug
+          description
+          backgroundImage {
+            url
+            alt
+          }
+          products(first: 20) {
+            edges {
+              node {
+                id
+                slug
+                name
+              }
+            }
+          }
+          channelListings {
+            id
+            isPublished
+            publishedAt
+            channel {
+              id
+              slug
+              name
+            }
+          }
+        }
+      }
+    }
+    menus(first: 50) {
+      edges {
+        node {
+          id
+          name
+          slug
+          items {
+            id
+            name
+            menu {
+              id
+            }
+            parent {
+              id
+              name
+            }
+            category {
+              id
+              slug
+              name
+            }
+            collection {
+              id
+              slug
+              name
+            }
+            page {
+              id
+              slug
+              title
+            }
+            level
+            children {
+              id
+              name
+              url
+              category {
+                id
+                slug
+              }
+              collection {
+                id
+                slug
+              }
+              page {
+                id
+                slug
+              }
+            }
+            url
+          }
+        }
+      }
+    }
+    pages(first: 50) {
+      edges {
+        node {
+          id
+          title
+          slug
+          content
+          isPublished
+          publishedAt
+          pageType {
+            id
+            name
+            attributes {
+              id
+              name
+              type
+              inputType
+              choices(first: 10) {
+                edges {
+                  node {
+                    name
+                  }
+                }
+              }
+            }
+          }
+          attributes {
+            attribute {
+              id
+              slug
+              name
+              type
+              inputType
+            }
+            values {
+              id
+              name
+              slug
+              value
             }
           }
         }

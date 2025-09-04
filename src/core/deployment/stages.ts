@@ -53,26 +53,28 @@ export const productTypesStage: DeploymentStage = {
           context.configurator.services.productType
             .bootstrapProductType(productType)
             .then(() => ({ name: productType.name, success: true }))
-            .catch((error) => ({ 
-              name: productType.name, 
-              success: false, 
-              error: error instanceof Error ? error : new Error(String(error))
+            .catch((error) => ({
+              name: productType.name,
+              success: false,
+              error: error instanceof Error ? error : new Error(String(error)),
             }))
         )
       );
 
       const successes = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
-          r.status === "fulfilled" && r.value.success === true
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+            r.status === "fulfilled" && r.value.success === true
         )
         .map((r) => r.value.name);
-      
+
       const failures = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
-          r.status === "fulfilled" && r.value.success === false
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+            r.status === "fulfilled" && r.value.success === false
         )
         .map((r) => ({ entity: r.value.name, error: r.value.error }));
-      
+
       if (failures.length > 0) {
         throw new StageAggregateError("Managing product types", failures, successes);
       }
@@ -127,26 +129,28 @@ export const pageTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(pageType)
             .then(() => ({ name: pageType.name, success: true }))
-            .catch((error) => ({ 
-              name: pageType.name, 
-              success: false, 
-              error: error instanceof Error ? error : new Error(String(error))
+            .catch((error) => ({
+              name: pageType.name,
+              success: false,
+              error: error instanceof Error ? error : new Error(String(error)),
             }))
         )
       );
 
       const successes = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: true }> => 
-          r.status === "fulfilled" && r.value.success === true
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+            r.status === "fulfilled" && r.value.success === true
         )
         .map((r) => r.value.name);
-      
+
       const failures = results
-        .filter((r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> => 
-          r.status === "fulfilled" && r.value.success === false
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+            r.status === "fulfilled" && r.value.success === false
         )
         .map((r) => ({ entity: r.value.name, error: r.value.error }));
-      
+
       if (failures.length > 0) {
         throw new StageAggregateError("Managing page types", failures, successes);
       }
@@ -161,6 +165,126 @@ export const pageTypesStage: DeploymentStage = {
   },
   skip(context) {
     return context.summary.results.every((r) => r.entityType !== "Page Types");
+  },
+};
+
+export const modelTypesStage: DeploymentStage = {
+  name: "Managing model types",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.modelTypes?.length) {
+        logger.debug("No model types to manage");
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        config.modelTypes.map((modelType) =>
+          context.configurator.services.pageType
+            .bootstrapPageType(modelType)
+            .then(() => ({ name: modelType.name, success: true }))
+            .catch((error) => ({
+              name: modelType.name,
+              success: false,
+              error: error instanceof Error ? error : new Error(String(error)),
+            }))
+        )
+      );
+
+      const successes = results
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+            r.status === "fulfilled" && r.value.success === true
+        )
+        .map((r) => r.value.name);
+
+      const failures = results
+        .filter(
+          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+            r.status === "fulfilled" && r.value.success === false
+        )
+        .map((r) => ({ entity: r.value.name, error: r.value.error }));
+
+      if (failures.length > 0) {
+        throw new StageAggregateError("Managing model types", failures, successes);
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Failed to manage model type")) {
+        throw error;
+      }
+      throw new Error(
+        `Failed to manage model types: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Models");
+  },
+};
+
+export const collectionsStage: DeploymentStage = {
+  name: "Managing collections",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.collections?.length) {
+        logger.debug("No collections to manage");
+        return;
+      }
+
+      await context.configurator.services.collection.bootstrapCollections(config.collections);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage collections: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Collections");
+  },
+};
+
+export const menusStage: DeploymentStage = {
+  name: "Managing menus",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.menus?.length) {
+        logger.debug("No menus to manage");
+        return;
+      }
+
+      await context.configurator.services.menu.bootstrapMenus(config.menus);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage menus: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Menus");
+  },
+};
+
+export const modelsStage: DeploymentStage = {
+  name: "Managing models",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.models?.length) {
+        logger.debug("No models to manage");
+        return;
+      }
+
+      await context.configurator.services.model.bootstrapModels(config.models);
+    } catch (error) {
+      throw new Error(
+        `Failed to manage models: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Models");
   },
 };
 
@@ -283,7 +407,11 @@ export function getAllStages(): DeploymentStage[] {
     productTypesStage,
     channelsStage,
     pageTypesStage,
+    modelTypesStage, // Deploy model types for models
     categoriesStage,
+    collectionsStage, // Deploy collections after categories (they may reference products)
+    menusStage, // Deploy menus after categories and collections (they may reference them)
+    modelsStage, // Deploy models after model types
     warehousesStage,
     shippingZonesStage,
     productsStage,

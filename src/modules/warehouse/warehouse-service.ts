@@ -35,7 +35,12 @@ export class WarehouseService {
 
         return existingWarehouse;
       },
-      WarehouseOperationError
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
+      }
     );
   }
 
@@ -82,7 +87,7 @@ export class WarehouseService {
       },
       // Note: isPrivate and clickAndCollectOption are not supported in warehouse creation
       // These fields can only be updated after creation or are set via other mutations
-    });
+    }) as WarehouseCreateInput;
   }
 
   private mapInputToUpdateInput(input: WarehouseInput): WarehouseUpdateInput {
@@ -110,16 +115,15 @@ export class WarehouseService {
 
   async createWarehouse(input: WarehouseInput): Promise<Warehouse> {
     logger.debug("Creating new warehouse", { name: input.name, slug: input.slug });
-    
+
     // Validate first, before wrapping in ServiceErrorWrapper
     this.validateWarehouseInput(input);
-    
+
     return ServiceErrorWrapper.wrapServiceCall(
       "create warehouse",
       "warehouse",
       input.slug,
       async () => {
-
         const createInput = this.mapInputToCreateInput(input);
         let warehouse = await this.repository.createWarehouse(createInput);
 
@@ -145,7 +149,12 @@ export class WarehouseService {
         });
         return warehouse;
       },
-      WarehouseOperationError
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
+      }
     );
   }
 
@@ -175,7 +184,12 @@ export class WarehouseService {
         });
         return warehouse;
       },
-      WarehouseOperationError
+      class extends Error {
+        constructor(message: string) {
+          super(message);
+          this.name = "WarehouseOperationError";
+        }
+      }
     );
   }
 

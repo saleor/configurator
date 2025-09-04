@@ -14,6 +14,7 @@ describe("ChannelService", () => {
 
       const mockOperations = {
         getChannels: vi.fn().mockResolvedValue([existingChannel]),
+        getChannelBySlug: vi.fn(),
         createChannel: vi.fn(),
         updateChannel: vi.fn(),
       };

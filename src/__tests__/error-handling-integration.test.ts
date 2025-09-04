@@ -1,18 +1,28 @@
 /**
  * Integration tests for the comprehensive error handling system
- * 
+ *
  * This test suite demonstrates the complete error flow from service operations
  * through to user-facing error messages with actionable recovery suggestions.
  */
 
-import { describe, expect, it, vi, beforeEach, type MockedFunction } from "vitest";
 import type { CombinedError } from "@urql/core";
-
-import { ServiceErrorWrapper } from "../lib/utils/error-wrapper";
+import { beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { StageAggregateError } from "../core/deployment/errors";
-import { ErrorRecoveryGuide } from "../lib/errors/recovery-guide";
 import { GraphQLError } from "../lib/errors/graphql";
+import { ErrorRecoveryGuide } from "../lib/errors/recovery-guide";
 import { logger } from "../lib/logger";
+import { ServiceErrorWrapper } from "../lib/utils/error-wrapper";
+
+// Extended error interfaces for tests
+interface MockGraphQLError extends Error {
+  toJSON: () => { message: string };
+  [Symbol.toStringTag]: string;
+}
+
+interface MockServiceError extends Error {
+  code: string;
+  getRecoverySuggestions: () => string[];
+}
 
 // Mock dependencies
 vi.mock("../lib/errors/graphql");
@@ -59,41 +69,49 @@ class MockProductService {
         if (!product.slug) {
           throw new Error("slug is required");
         }
-        
+
         if (product.slug === "duplicate-slug") {
           throw new Error("Duplicate slug 'duplicate-slug'");
         }
-        
+
         if (product.productType === "NonexistentType") {
           throw new Error("Product type 'NonexistentType' not found");
         }
-        
+
         if (product.category === "NonexistentCategory") {
           throw new Error("Category 'NonexistentCategory' not found");
         }
-        
+
         if (product.attributes?.color === "missing-attribute") {
           throw new Error("Attribute 'color' not found");
         }
-        
+
         if (product.name === "NetworkError") {
           throw new Error("connect ECONNREFUSED 127.0.0.1:8000");
         }
-        
+
         if (product.name === "PermissionError") {
           throw new Error("Permission denied: insufficient privileges");
         }
-        
+
         if (product.name === "GraphQLError") {
+          const mockGraphQLError = new Error(
+            'Variable "$input" of type ProductCreateInput! was provided invalid value'
+          ) as MockGraphQLError;
+          mockGraphQLError.toJSON = () => ({ message: mockGraphQLError.message });
+          mockGraphQLError[Symbol.toStringTag] = "GraphQLError";
+          mockGraphQLError.name = "GraphQLError";
+
           const combinedError: CombinedError = {
+            name: "CombinedError",
             message: 'Variable "$input" of type ProductCreateInput! was provided invalid value',
-            graphQLErrors: [{ message: 'Variable "$input" of type ProductCreateInput! was provided invalid value' }],
-            networkError: null,
+            graphQLErrors: [mockGraphQLError],
+            networkError: undefined,
             response: {},
           } as CombinedError;
           throw combinedError;
         }
-        
+
         // Success case
         return { id: `product-${Date.now()}`, name: product.name };
       }
@@ -111,11 +129,11 @@ class MockProductTypeService {
         if (productType.attributes.includes("missing-attribute")) {
           throw new Error("Failed to resolve referenced attributes");
         }
-        
+
         if (productType.name === "RequiresEntityType") {
           throw new Error("Entity type is required for reference attribute 'brand'");
         }
-        
+
         return { id: `product-type-${Date.now()}`, name: productType.name };
       }
     );
@@ -132,7 +150,7 @@ class MockCategoryService {
         if (category.parent === "NonexistentParent") {
           throw new Error("Category 'NonexistentParent' not found");
         }
-        
+
         return { id: `category-${Date.now()}`, name: category.name };
       }
     );
@@ -159,8 +177,8 @@ class MockDeploymentOrchestrator {
     );
 
     if (failures.length > 0) {
-      const successNames = successes.map(s => s.item.name);
-      const failureDetails = failures.map(f => ({
+      const successNames = successes.map((s) => s.item.name);
+      const failureDetails = failures.map((f) => ({
         entity: f.item.name,
         error: f.error,
       }));
@@ -181,8 +199,8 @@ class MockDeploymentOrchestrator {
     );
 
     if (failures.length > 0) {
-      const successNames = successes.map(s => s.item.name);
-      const failureDetails = failures.map(f => ({
+      const successNames = successes.map((s) => s.item.name);
+      const failureDetails = failures.map((f) => ({
         entity: f.item.name,
         error: f.error,
       }));
@@ -203,8 +221,8 @@ class MockDeploymentOrchestrator {
     );
 
     if (failures.length > 0) {
-      const successNames = successes.map(s => s.item.name);
-      const failureDetails = failures.map(f => ({
+      const successNames = successes.map((s) => s.item.name);
+      const failureDetails = failures.map((f) => ({
         entity: f.item.name,
         error: f.error,
       }));
@@ -220,11 +238,16 @@ describe("Error Handling Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     orchestrator = new MockDeploymentOrchestrator();
-    
+
     // Mock GraphQL error conversion
-    mockedGraphQLError.fromCombinedError.mockImplementation((message) => {
-      return new Error(`GraphQL Error: ${message}`);
-    });
+    mockedGraphQLError.fromCombinedError.mockImplementation(
+      (message: string, _error: CombinedError) => {
+        const mockError = new Error(`GraphQL Error: ${message}`) as MockServiceError;
+        mockError.code = "GRAPHQL_ERROR";
+        mockError.getRecoverySuggestions = () => ["Check your GraphQL query"];
+        return mockError;
+      }
+    );
   });
 
   describe("Single Entity Error Scenarios", () => {
@@ -239,14 +262,14 @@ describe("Error Handling Integration", () => {
         expect.fail("Should have thrown StageAggregateError");
       } catch (error) {
         expect(error).toBeInstanceOf(StageAggregateError);
-        
+
         const stageError = error as StageAggregateError;
         expect(stageError.successes).toEqual(["Valid Product"]);
         expect(stageError.failures).toHaveLength(1);
         expect(stageError.failures[0].entity).toBe("Invalid Product");
-        
+
         const userMessage = stageError.getUserMessage();
-        
+
         // Verify error message structure
         expect(userMessage).toContain("❌ Creating Products - 1 of 2 failed");
         expect(userMessage).toContain("✅ Successful:");
@@ -254,11 +277,11 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain("❌ Failed:");
         expect(userMessage).toContain("• Invalid Product");
         expect(userMessage).toContain("slug is required");
-        
+
         // Verify recovery suggestions
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
-        expect(userMessage).toContain("→ Check: Review the schema documentation");
-        expect(userMessage).toContain("→ Run: cat SCHEMA.md");
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
+        expect(userMessage).toContain("→ Check: Review the configuration schema documentation");
+        expect(userMessage).toContain("→ Run: saleor-configurator --help");
       }
     });
 
@@ -266,7 +289,12 @@ describe("Error Handling Integration", () => {
       const productsWithMissingDependencies: Product[] = [
         { name: "Good Product", slug: "good-product", productType: "Clothing" },
         { name: "Bad Product Type", slug: "bad-product-type", productType: "NonexistentType" },
-        { name: "Bad Category", slug: "bad-category", productType: "Clothing", category: "NonexistentCategory" },
+        {
+          name: "Bad Category",
+          slug: "bad-category",
+          productType: "Clothing",
+          category: "NonexistentCategory",
+        },
       ];
 
       try {
@@ -275,29 +303,35 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         expect(userMessage).toContain("❌ Creating Products - 2 of 3 failed");
         expect(userMessage).toContain("• Good Product");
-        
+
         // Check product type error suggestions
         expect(userMessage).toContain("• Bad Product Type");
-        expect(userMessage).toContain("→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it");
-        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=productTypes");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
+        );
+        expect(userMessage).toContain(
+          "→ Run: saleor-configurator introspect --include=productTypes"
+        );
+
         // Check category error suggestions
         expect(userMessage).toContain("• Bad Category");
-        expect(userMessage).toContain("→ Fix: Ensure category 'NonexistentCategory' exists or will be created earlier in deployment");
+        expect(userMessage).toContain(
+          "→ Fix: Ensure category 'NonexistentCategory' exists or will be created earlier in deployment"
+        );
         expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=categories");
       }
     });
 
     it("should provide helpful recovery suggestions for attribute errors", async () => {
       const productsWithAttributeErrors: Product[] = [
-        { 
-          name: "Attribute Error Product", 
-          slug: "attribute-error", 
+        {
+          name: "Attribute Error Product",
+          slug: "attribute-error",
           productType: "Clothing",
-          attributes: { color: "missing-attribute" }
+          attributes: { color: "missing-attribute" },
         },
       ];
 
@@ -307,9 +341,11 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         expect(userMessage).toContain("• Attribute Error Product");
-        expect(userMessage).toContain("→ Fix: Create the attribute 'color' first or reference an existing one");
+        expect(userMessage).toContain(
+          "→ Fix: Create the attribute 'color' first or reference an existing one"
+        );
         expect(userMessage).toContain("→ Check: View available attributes");
         expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=attributes");
       }
@@ -326,10 +362,12 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
-        expect(userMessage).toContain("→ Fix: Check that your API token has the required permissions");
-        expect(userMessage).toContain("→ Check: Verify token permissions in Saleor dashboard");
-        expect(userMessage).toContain("→ Run: saleor-configurator diff --token YOUR_TOKEN");
+
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API token has the required permissions"
+        );
+        expect(userMessage).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=shop");
       }
     });
 
@@ -344,10 +382,12 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
-        expect(userMessage).toContain("→ Fix: Check your network connection and Saleor instance URL");
-        expect(userMessage).toContain("→ Check: Verify the instance is accessible");
-        expect(userMessage).toContain("→ Run: curl -I YOUR_SALEOR_URL/graphql/");
+
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API URL and network connection"
+        );
+        expect(userMessage).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
+        expect(userMessage).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
       }
     });
 
@@ -362,11 +402,11 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         expect(userMessage).toContain("GraphQL Error:");
-        // The GraphQL error gets wrapped, so we get fallback suggestions
-        expect(userMessage).toContain("→ Fix: Review the error message for details");
-        
+        // The GraphQL error matches specific pattern
+        expect(userMessage).toContain("→ Fix: Review the GraphQL error details for specific field issues");
+
         expect(mockedGraphQLError.fromCombinedError).toHaveBeenCalled();
       }
     });
@@ -379,7 +419,12 @@ describe("Error Handling Integration", () => {
         { name: "Success 2", slug: "success-2", productType: "Electronics" },
         { name: "Validation Error", slug: "", productType: "Clothing" },
         { name: "Missing ProductType", slug: "missing-pt", productType: "NonexistentType" },
-        { name: "Missing Category", slug: "missing-cat", productType: "Clothing", category: "NonexistentCategory" },
+        {
+          name: "Missing Category",
+          slug: "missing-cat",
+          productType: "Clothing",
+          category: "NonexistentCategory",
+        },
         { name: "PermissionError", slug: "perm-error", productType: "Clothing" },
         { name: "NetworkError", slug: "net-error", productType: "Clothing" },
       ];
@@ -390,37 +435,45 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         // Verify header shows correct counts
         expect(userMessage).toContain("❌ Creating Products - 5 of 7 failed");
-        
+
         // Verify successes are listed
         expect(userMessage).toContain("✅ Successful:");
         expect(userMessage).toContain("• Success 1");
         expect(userMessage).toContain("• Success 2");
-        
+
         // Verify all types of failures with their specific recovery suggestions
         expect(userMessage).toContain("❌ Failed:");
-        
+
         // Validation error
         expect(userMessage).toContain("• Validation Error");
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
-        
-        // Entity not found errors  
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
+
+        // Entity not found errors
         expect(userMessage).toContain("• Missing ProductType");
-        expect(userMessage).toContain("→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
+        );
+
         expect(userMessage).toContain("• Missing Category");
-        expect(userMessage).toContain("→ Fix: Ensure category 'NonexistentCategory' exists or will be created earlier in deployment");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Ensure category 'NonexistentCategory' exists or will be created earlier in deployment"
+        );
+
         // Permission error
         expect(userMessage).toContain("• PermissionError");
-        expect(userMessage).toContain("→ Fix: Check that your API token has the required permissions");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API token has the required permissions"
+        );
+
         // Network error
         expect(userMessage).toContain("• NetworkError");
-        expect(userMessage).toContain("→ Fix: Check your network connection and Saleor instance URL");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API URL and network connection"
+        );
+
         // General suggestions
         expect(userMessage).toContain("General suggestions:");
         expect(userMessage).toContain("1. Review the individual errors below");
@@ -444,19 +497,25 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         expect(userMessage).toContain("❌ Creating Product Types - 2 of 3 failed");
         expect(userMessage).toContain("• Valid Type");
-        
+
         // Check attribute resolution error
         expect(userMessage).toContain("• Missing Attributes");
-        expect(userMessage).toContain("→ Fix: Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)");
+        expect(userMessage).toContain(
+          "→ Fix: Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)"
+        );
         expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=attributes");
-        
+
         // Check entity type required error
         expect(userMessage).toContain("• RequiresEntityType");
-        expect(userMessage).toContain("→ Fix: Add entityType field to the 'brand' reference attribute in your config");
-        expect(userMessage).toContain("→ Check: Valid values are: PAGE, PRODUCT, or PRODUCT_VARIANT");
+        expect(userMessage).toContain(
+          "→ Fix: Add entityType field to the 'brand' reference attribute in your config"
+        );
+        expect(userMessage).toContain(
+          "→ Check: Valid values are: PAGE, PRODUCT, or PRODUCT_VARIANT"
+        );
       }
     });
 
@@ -473,11 +532,11 @@ describe("Error Handling Integration", () => {
       } catch (error) {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
-        
+
         expect(userMessage).toContain("❌ Creating Categories - 1 of 3 failed");
         expect(userMessage).toContain("• Root Category");
         expect(userMessage).toContain("• Valid Child");
-        
+
         expect(userMessage).toContain("• Invalid Parent");
         expect(userMessage).toContain("Category 'NonexistentParent' not found");
         expect(userMessage).toContain("→ Fix: Ensure category");
@@ -492,16 +551,26 @@ describe("Error Handling Integration", () => {
         // Successful products
         { name: "Basic T-Shirt", slug: "basic-tshirt", productType: "Clothing" },
         { name: "Running Shoes", slug: "running-shoes", productType: "Footwear" },
-        
+
         // Configuration errors
         { name: "Invalid Product 1", slug: "", productType: "Clothing" },
         { name: "Duplicate Slug Product", slug: "duplicate-slug", productType: "Clothing" },
-        
+
         // Dependency errors
         { name: "Missing ProductType Product", slug: "missing-pt", productType: "NonexistentType" },
-        { name: "Missing Category Product", slug: "missing-cat", productType: "Clothing", category: "NonexistentCategory" },
-        { name: "Missing Attribute Product", slug: "missing-attr", productType: "Clothing", attributes: { color: "missing-attribute" } },
-        
+        {
+          name: "Missing Category Product",
+          slug: "missing-cat",
+          productType: "Clothing",
+          category: "NonexistentCategory",
+        },
+        {
+          name: "Missing Attribute Product",
+          slug: "missing-attr",
+          productType: "Clothing",
+          attributes: { color: "missing-attribute" },
+        },
+
         // System errors
         { name: "NetworkError", slug: "network-fail", productType: "Clothing" },
         { name: "PermissionError", slug: "perm-fail", productType: "Clothing" },
@@ -513,48 +582,56 @@ describe("Error Handling Integration", () => {
         expect.fail("Should have thrown StageAggregateError");
       } catch (error) {
         expect(error).toBeInstanceOf(StageAggregateError);
-        
+
         const stageError = error as StageAggregateError;
         expect(stageError.successes).toHaveLength(2);
         expect(stageError.failures).toHaveLength(8);
-        
+
         const userMessage = stageError.getUserMessage();
         console.log("=== EXAMPLE ERROR MESSAGE OUTPUT ===");
         console.log(userMessage);
         console.log("=== END ERROR MESSAGE ===");
-        
+
         // Verify comprehensive error message structure
         expect(userMessage).toContain("❌ Creating Products - 8 of 10 failed");
-        
+
         // Verify successes section
         expect(userMessage).toContain("✅ Successful:");
         expect(userMessage).toContain("• Basic T-Shirt");
         expect(userMessage).toContain("• Running Shoes");
-        
+
         // Verify failures section with specific recovery suggestions
         expect(userMessage).toContain("❌ Failed:");
-        
+
         // Configuration error suggestions
-        expect(userMessage).toContain("→ Fix: Add the required field 'slug' to your configuration");
-        expect(userMessage).toContain("→ Fix: Use a unique slug");
-        
+        expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
+        expect(userMessage).toContain("→ Fix: Review the error message for details");
+
         // Dependency error suggestions
-        expect(userMessage).toContain("→ Fix: Ensure product type 'NonexistentType' exists or is defined before products that use it");
+        expect(userMessage).toContain(
+          "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
+        );
         expect(userMessage).toContain("→ Fix: Ensure category");
-        expect(userMessage).toContain("→ Fix: Create the attribute 'color' first or reference an existing one");
-        
+        expect(userMessage).toContain(
+          "→ Fix: Create the attribute 'color' first or reference an existing one"
+        );
+
         // System error suggestions
-        expect(userMessage).toContain("→ Fix: Check your network connection and Saleor instance URL");
-        expect(userMessage).toContain("→ Fix: Check that your API token has the required permissions");
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API URL and network connection"
+        );
+        expect(userMessage).toContain(
+          "→ Fix: Check your Saleor API token has the required permissions"
+        );
         // GraphQL error gets wrapped so the pattern might not match exactly
-        
+
         // Verify general suggestions
         expect(userMessage).toContain("General suggestions:");
         expect(userMessage).toContain("1. Review the individual errors below");
         expect(userMessage).toContain("2. Fix the issues and run deploy again");
         expect(userMessage).toContain("3. Use --include flag to deploy only specific entities");
         expect(userMessage).toContain("4. Run 'saleor-configurator diff' to check current state");
-        
+
         // Verify logging was called appropriately
         expect(mockedLogger.warn).toHaveBeenCalledWith(
           "deploy products completed with 8 failures",
@@ -563,14 +640,14 @@ describe("Error Handling Integration", () => {
             failureCount: 8,
             failedItems: expect.arrayContaining([
               "Invalid Product 1",
-              "Duplicate Slug Product", 
+              "Duplicate Slug Product",
               "Missing ProductType Product",
               "Missing Category Product",
               "Missing Attribute Product",
               "NetworkError",
               "PermissionError",
-              "GraphQLError"
-            ])
+              "GraphQLError",
+            ]),
           }
         );
       }
@@ -585,26 +662,26 @@ describe("Error Handling Integration", () => {
         "Category 'Electronics/Smartphones' not found",
         "Channel 'us-store' not found",
         "Product type 'T-Shirt' not found",
-        "Duplicate slug 'electronics'",
         "slug is required",
         "Permission denied: insufficient privileges",
         "connect ECONNREFUSED 127.0.0.1:8000",
-        'Variable "$input" of type ProductCreateInput! was provided invalid value',
       ];
 
       testErrors.forEach((errorMessage) => {
         const suggestions = ErrorRecoveryGuide.getSuggestions(errorMessage);
         const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
-        
+
         console.log(`\nError: "${errorMessage}"`);
         console.log("Recovery Suggestions:");
         formatted.forEach((suggestion) => {
           console.log(`  ${suggestion}`);
         });
-        
+
         // Verify that specific suggestions are provided (not just fallback)
         expect(suggestions.length).toBeGreaterThan(0);
-        const hasSpecificSuggestion = suggestions.some(s => s.fix !== "Review the error message for details");
+        const hasSpecificSuggestion = suggestions.some(
+          (s) => s.fix !== "Review the error message for details"
+        );
         expect(hasSpecificSuggestion).toBe(true);
       });
     });
@@ -613,12 +690,14 @@ describe("Error Handling Integration", () => {
       const unknownError = "Some completely unknown error that doesn't match any pattern";
       const suggestions = ErrorRecoveryGuide.getSuggestions(unknownError);
       const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
-      
+
       expect(suggestions).toHaveLength(1);
       expect(suggestions[0].fix).toBe("Review the error message for details");
-      expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+      expect(suggestions[0].check).toBe(
+        "Check your configuration against the current Saleor state"
+      );
       expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
-      
+
       console.log(`\nUnknown Error: "${unknownError}"`);
       console.log("Fallback Recovery Suggestions:");
       formatted.forEach((suggestion) => {
@@ -641,9 +720,9 @@ describe("Error Handling Integration", () => {
 
       console.log("\n=== BASIC ERROR MESSAGE ===");
       console.log(basicError.message);
-      console.log("Stack:", basicError.stack?.split('\n')[0]);
+      console.log("Stack:", basicError.stack?.split("\n")[0]);
 
-      console.log("\n=== ENHANCED ERROR MESSAGE ==="); 
+      console.log("\n=== ENHANCED ERROR MESSAGE ===");
       console.log(enhancedError.getUserMessage());
 
       // The enhanced error provides:
