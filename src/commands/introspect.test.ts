@@ -181,7 +181,20 @@ describe("introspect command", () => {
     it("should correctly write nested categories to YAML", async () => {
       // Mock the repository to return nested categories
       const mockRawConfig: RawSaleorConfig = {
-        shop: null,
+        shop: {
+          defaultMailSenderName: null,
+          defaultMailSenderAddress: null,
+          displayGrossPrices: true,
+          enableAccountConfirmationByEmail: null,
+          limitQuantityPerCheckout: null,
+          trackInventoryByDefault: true,
+          reserveStockDurationAnonymousUser: null,
+          reserveStockDurationAuthenticatedUser: null,
+          defaultDigitalMaxDownloads: null,
+          defaultDigitalUrlValidDays: null,
+          defaultWeightUnit: "KG",
+          allowLoginWithoutConfirmation: null,
+        },
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
@@ -236,6 +249,7 @@ describe("introspect command", () => {
         },
         shippingZones: null,
         warehouses: null,
+        taxClasses: null,
       };
 
       const mockRepository = {
@@ -273,7 +287,20 @@ describe("introspect command", () => {
 
     it("should produce valid YAML with proper indentation for nested categories", async () => {
       const mockRawConfig: RawSaleorConfig = {
-        shop: null,
+        shop: {
+          defaultMailSenderName: null,
+          defaultMailSenderAddress: null,
+          displayGrossPrices: true,
+          enableAccountConfirmationByEmail: null,
+          limitQuantityPerCheckout: null,
+          trackInventoryByDefault: true,
+          reserveStockDurationAnonymousUser: null,
+          reserveStockDurationAuthenticatedUser: null,
+          defaultDigitalMaxDownloads: null,
+          defaultDigitalUrlValidDays: null,
+          defaultWeightUnit: "KG",
+          allowLoginWithoutConfirmation: null,
+        },
         channels: [],
         productTypes: { edges: [] },
         pageTypes: { edges: [] },
@@ -301,6 +328,7 @@ describe("introspect command", () => {
         },
         shippingZones: null,
         warehouses: null,
+        taxClasses: null,
       };
 
       const mockRepository = {

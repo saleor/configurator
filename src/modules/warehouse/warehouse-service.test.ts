@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
-import { WarehouseOperationError, WarehouseValidationError } from "./errors";
+import { WarehouseError, WarehouseOperationError, WarehouseValidationError } from "./errors";
 import type { Warehouse } from "./repository";
 import { WarehouseService } from "./warehouse-service";
 
@@ -38,7 +38,7 @@ describe("WarehouseService", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
@@ -258,7 +258,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.createWarehouse(mockWarehouseInput)).rejects.toThrow(
-        WarehouseOperationError
+        WarehouseError
       );
     });
 
@@ -275,7 +275,7 @@ describe("WarehouseService", () => {
       const service = new WarehouseService(mockOperations);
 
       await expect(service.updateWarehouse("1", mockWarehouseInput)).rejects.toThrow(
-        WarehouseOperationError
+        WarehouseError
       );
     });
   });

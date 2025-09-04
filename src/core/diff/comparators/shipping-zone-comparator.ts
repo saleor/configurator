@@ -98,10 +98,10 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     if (Array.isArray(countries)) {
       // Check if it's an array of objects with code property (remote)
       if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
-        return countries.map((c: { code: string }) => c.code).sort();
+        return (countries as Array<{ code: string }>).map(c => c.code).sort();
       }
       // Otherwise it's already an array of country codes (local)
-      return countries.sort();
+      return (countries as string[]).sort();
     }
 
     return [];
@@ -128,7 +128,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of warehouse slugs (local)
-      return entity.warehouses.sort();
+      return (entity.warehouses as string[]).sort();
     }
 
     return [];
@@ -144,7 +144,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
           .sort();
       }
       // Otherwise it's already an array of channel slugs (local)
-      return entity.channels.sort();
+      return (entity.channels as string[]).sort();
     }
 
     return [];
@@ -195,30 +195,30 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Handle channel listings
     if ("channelListings" in method && Array.isArray(method.channelListings)) {
       normalized.channelListings = method.channelListings
-        .map((listing) => ({
+        .map((listing: any) => ({
           channel: listing.channel,
           price: listing.price,
           currency: listing.currency || "USD",
           minimumOrderPrice: listing.minimumOrderPrice || null,
           maximumOrderPrice: listing.maximumOrderPrice || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
+        .sort((a: any, b: any) =>
+          a.channel.localeCompare(b.channel)
         );
     } else if (
       "channelListings" in method &&
       Array.isArray((method as ShippingMethod).channelListings)
     ) {
       normalized.channelListings = (method as ShippingMethod).channelListings
-        .map((listing) => ({
+        .map((listing: any) => ({
           channel: listing.channel?.slug || listing.channel,
           price: listing.price?.amount || listing.price || 0,
           currency: listing.price?.currency || "USD",
           minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
           maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
         }))
-        .sort((a, b) =>
-          (a as { channel: string }).channel.localeCompare((b as { channel: string }).channel)
+        .sort((a: any, b: any) =>
+          a.channel.localeCompare(b.channel)
         );
     }
 
@@ -249,7 +249,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     for (const [name, localMethod] of localMap) {
       const remoteMethod = remoteMap.get(name);
       if (remoteMethod && JSON.stringify(localMethod) !== JSON.stringify(remoteMethod)) {
-        toUpdate.push(name);
+        toUpdate.push(name as string);
       }
     }
 
@@ -334,7 +334,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     // Compare shipping methods
     const methodChanges = this.compareShippingMethods(
       local.shippingMethods,
-      remote.shippingMethods
+      remote.shippingMethods as any
     );
     changes.push(...methodChanges);
 

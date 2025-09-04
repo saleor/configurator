@@ -52,18 +52,22 @@ export class Console {
 
   error(error: unknown) {
     let formattedError = "";
-    
+
     // Type guard to check if error has BaseError-like properties
-    const isBaseError = (err: unknown): err is { message: string; getRecoverySuggestions: () => string[] } => {
-      return err instanceof Error && 
-             'getRecoverySuggestions' in err && 
-             typeof (err as any).getRecoverySuggestions === 'function';
+    const isBaseError = (
+      err: unknown
+    ): err is { message: string; getRecoverySuggestions: () => string[] } => {
+      return (
+        err instanceof Error &&
+        "getRecoverySuggestions" in err &&
+        typeof (err as any).getRecoverySuggestions === "function"
+      );
     };
-    
+
     if (isBaseError(error)) {
       // Format the main error message
       formattedError = chalk.red(`❌ ${error.message}`);
-      
+
       // Add recovery suggestions if available
       const suggestions = error.getRecoverySuggestions();
       if (suggestions && suggestions.length > 0) {
@@ -77,7 +81,7 @@ export class Console {
     } else {
       formattedError = chalk.red(`❌ ${String(error)}`);
     }
-    
+
     global.console.error(formattedError);
     return formattedError;
   }

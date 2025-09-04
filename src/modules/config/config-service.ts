@@ -30,6 +30,7 @@ interface TaxClassCountryRateType {
   rate: number;
   taxClass?: { id: string };
 }
+
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {

@@ -3,8 +3,8 @@ import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
-import type { PageTypeOperations } from "./repository";
 import { PageTypeAttributeError } from "./errors";
+import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
   constructor(

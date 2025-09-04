@@ -1,12 +1,13 @@
-import { BaseEntityComparator } from "./base-comparator";
-import type { DiffChange } from "../types";
 import type {
-  TaxClassInput,
   TaxClassCountryRateInput,
+  TaxClassInput,
 } from "../../../modules/config/schema/schema";
+import type { DiffChange } from "../types";
+import { BaseEntityComparator } from "./base-comparator";
 
 interface TaxClassEntity extends TaxClassInput {
   id?: string;
+  [key: string]: unknown;
 }
 
 export class TaxClassComparator extends BaseEntityComparator<

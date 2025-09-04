@@ -63,7 +63,9 @@ export class WarehouseComparator extends BaseEntityComparator<
       city: address.city || "",
       cityArea: address.cityArea || "",
       postalCode: address.postalCode || "",
-      country: address.country?.code || address.country || "",
+      country: (typeof address.country === "object" && address.country?.code) 
+        ? address.country.code 
+        : (address.country as string) || "",
       countryArea: address.countryArea || "",
       companyName: address.companyName || "",
       phone: address.phone || "",

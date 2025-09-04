@@ -26,7 +26,7 @@ describe("ShippingZoneComparator", () => {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: ["US"],
+    countries: ["US"] as ("US")[],
     warehouses: ["main-warehouse"],
     channels: ["default-channel"],
     shippingMethods: [mockShippingMethodInput],
@@ -144,7 +144,7 @@ describe("ShippingZoneComparator", () => {
       const local = [
         {
           ...mockLocalZone,
-          countries: ["US", "CA"],
+          countries: ["US", "CA"] as ("US" | "CA")[],
         },
       ];
       const remote = [mockRemoteZone];
@@ -263,13 +263,13 @@ describe("ShippingZoneComparator", () => {
 
   describe("getEntityName", () => {
     it("should use name as identifier", () => {
-      expect(comparator.getEntityName(mockLocalZone)).toBe("US Zone");
-      expect(comparator.getEntityName(mockRemoteZone)).toBe("US Zone");
+      expect((comparator as any).getEntityName(mockLocalZone)).toBe("US Zone");
+      expect((comparator as any).getEntityName(mockRemoteZone)).toBe("US Zone");
     });
 
     it("should throw error when name is missing", () => {
       const zoneWithoutName = { ...mockLocalZone, name: "" };
-      expect(() => comparator.getEntityName(zoneWithoutName)).toThrow(
+      expect(() => (comparator as any).getEntityName(zoneWithoutName)).toThrow(
         "Shipping zone must have a valid name"
       );
     });
@@ -277,9 +277,9 @@ describe("ShippingZoneComparator", () => {
 
   describe("validateUniqueIdentifiers", () => {
     it("should validate unique names", () => {
-      const zones = [mockLocalZone, { ...mockLocalZone, countries: ["CA"] }];
+      const zones = [mockLocalZone, { ...mockLocalZone, countries: ["CA"] as ("CA")[] }];
 
-      expect(() => comparator.validateUniqueIdentifiers(zones)).toThrow(
+      expect(() => (comparator as any).validateUniqueIdentifiers(zones)).toThrow(
         "Duplicate entity identifiers found in Shipping Zones: US Zone"
       );
     });
@@ -293,7 +293,7 @@ describe("ShippingZoneComparator", () => {
         { ...mockLocalZone, name: "EU Zone", countries: ["DE", "FR"] },
       ];
 
-      const deduplicated = comparator.deduplicateEntities(zones);
+      const deduplicated = (comparator as any).deduplicateEntities(zones);
 
       expect(deduplicated).toHaveLength(2);
       expect(deduplicated[0].name).toBe("US Zone");

@@ -39,11 +39,12 @@ describe("WarehouseComparator", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US" },
+      country: { code: "US", country: "United States" },
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
     },
+    companyName: "Acme Corp",
     shippingZones: {
       edges: [{ node: { id: "z1", name: "zone-1" } }, { node: { id: "z2", name: "zone-2" } }],
     },
@@ -236,13 +237,13 @@ describe("WarehouseComparator", () => {
 
   describe("getEntityName", () => {
     it("should use slug as identifier", () => {
-      expect(comparator.getEntityName(mockLocalWarehouse)).toBe("main-warehouse");
-      expect(comparator.getEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
+      expect((comparator as any).getEntityName(mockLocalWarehouse)).toBe("main-warehouse");
+      expect((comparator as any).getEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
     });
 
     it("should throw error when slug is missing", () => {
       const warehouseWithoutSlug = { ...mockLocalWarehouse, slug: "" };
-      expect(() => comparator.getEntityName(warehouseWithoutSlug)).toThrow(
+      expect(() => (comparator as any).getEntityName(warehouseWithoutSlug)).toThrow(
         "Warehouse must have a valid slug"
       );
     });
@@ -252,7 +253,7 @@ describe("WarehouseComparator", () => {
     it("should validate unique slugs", () => {
       const warehouses = [mockLocalWarehouse, { ...mockLocalWarehouse, name: "Another Warehouse" }];
 
-      expect(() => comparator.validateUniqueIdentifiers(warehouses)).toThrow(
+      expect(() => (comparator as any).validateUniqueIdentifiers(warehouses)).toThrow(
         "Duplicate entity identifiers found in Warehouses: main-warehouse"
       );
     });
@@ -266,7 +267,7 @@ describe("WarehouseComparator", () => {
         { ...mockLocalWarehouse, slug: "secondary-warehouse", name: "Secondary Warehouse" },
       ];
 
-      const deduplicated = comparator.deduplicateEntities(warehouses);
+      const deduplicated = (comparator as any).deduplicateEntities(warehouses);
 
       expect(deduplicated).toHaveLength(2);
       expect(deduplicated[0].slug).toBe("main-warehouse");

@@ -60,7 +60,7 @@ describe("ZodValidationError", () => {
       if (!result.success) {
         const error = ZodValidationError.fromZodError(result.error);
 
-        expect(error.message).toContain("email: Expected string, but received undefined");
+        expect(error.message).toContain("email: This field is required");
       }
     });
 

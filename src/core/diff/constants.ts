@@ -12,7 +12,11 @@ export const DIFF_ICONS = {
     Channels: "🌐",
     "Page Types": "📄",
     Categories: "🏷️",
+    Products: "🛒",
     "Shop Settings": "🏪",
+    Warehouses: "🏭",
+    TaxClasses: "📊",
+    "Shipping Zones": "🚚",
   },
   SUMMARY: {
     RESULTS: "📊",
