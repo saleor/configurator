@@ -629,7 +629,7 @@ export class ConfigurationService {
   }
 
   private mapProducts(edges: NonNullable<RawSaleorConfig["products"]>["edges"]): ProductInput[] {
-    return edges.map(({ node }: any) => ({
+    return edges.map(({ node }) => ({
       name: node.name,
       slug: node.slug,
       description: node.description || undefined,
@@ -637,18 +637,18 @@ export class ConfigurationService {
       category: node.category?.slug || "",
       taxClass: node.taxClass?.name || undefined,
       attributes: this.mapProductAttributes(node.attributes || []),
-      variants: node.variants?.map((variant: any) => ({
+      variants: node.variants?.map((variant) => ({
         name: variant.name || node.name,
         sku: variant.sku || undefined,
         weight: variant.weight?.value || undefined,
         attributes: this.mapProductAttributes(variant.attributes || []),
-        channelListings: variant.channelListings?.map((listing: any) => ({
+        channelListings: variant.channelListings?.map((listing) => ({
           channel: listing.channel.slug,
           price: listing.price ? Number(listing.price.amount) : undefined,
           costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
         })) || [],
       })) || [],
-      channelListings: node.channelListings?.map((listing: any) => ({
+      channelListings: node.channelListings?.map((listing) => ({
         channel: listing.channel.slug,
         isPublished: listing.isPublished,
         publishedAt: listing.publishedAt || undefined,
@@ -657,18 +657,22 @@ export class ConfigurationService {
     }));
   }
 
-  private mapProductAttributes(attributes: any[]): Record<string, any> {
-    const result: Record<string, any> = {};
+  private mapProductAttributes(attributes: readonly unknown[]): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
     
     for (const attr of attributes) {
-      const attributeName = attr.attribute.name;
+      const typedAttr = attr as {
+        attribute: { name: string; inputType: string };
+        values?: Array<{ name?: string; value?: string }>;
+      };
+      const attributeName = typedAttr.attribute.name;
       
       // Handle different attribute input types
-      if (attr.attribute.inputType === "DROPDOWN" || 
-          attr.attribute.inputType === "MULTISELECT" || 
-          attr.attribute.inputType === "SWATCH") {
+      if (typedAttr.attribute.inputType === "DROPDOWN" || 
+          typedAttr.attribute.inputType === "MULTISELECT" || 
+          typedAttr.attribute.inputType === "SWATCH") {
         // For choice-based attributes, use the choice names
-        const values = attr.values?.map((v: any) => v.name).filter(Boolean) || [];
+        const values = typedAttr.values?.map((v) => v.name).filter(Boolean) || [];
         if (values.length === 1) {
           result[attributeName] = values[0];
         } else if (values.length > 1) {
@@ -676,7 +680,7 @@ export class ConfigurationService {
         }
       } else {
         // For plain text and other basic attributes, use the raw value
-        const values = attr.values?.map((v: any) => v.value || v.name).filter(Boolean) || [];
+        const values = typedAttr.values?.map((v) => v.value || v.name).filter(Boolean) || [];
         if (values.length === 1) {
           result[attributeName] = values[0];
         } else if (values.length > 1) {
