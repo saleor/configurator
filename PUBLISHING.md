@@ -17,7 +17,7 @@ npm install -g @saleor/configurator
 pnpm add -g @saleor/configurator
 
 # After global install
-saleor-configurator start
+configurator start
 ```
 
 ## Publishing Workflows
@@ -57,7 +57,7 @@ pnpm run publish:ci-dev
 
 ```bash
 # Test CLI functionality
-./bin/saleor-configurator.js --help
+./bin/cli.mjs --help
 
 # Run tests
 pnpm run test:ci
@@ -71,8 +71,8 @@ pnpm run lint
 The package includes comprehensive publishing scripts following Saleor patterns:
 
 - **`publish:ci-prod`**: Production publishing with git tagging
-  - Publishes to npm
   - Creates git tags with `changeset tag`
+  - Publishes to npm
   - Pushes tags to repository
 
 - **`publish:ci-dev`**: Development snapshot publishing
@@ -109,7 +109,7 @@ Before publishing to production, thoroughly test all publishing-related function
 
 ```bash
 # 1. Verify CLI works locally
-./bin/saleor-configurator.js --help
+./bin/cli.mjs --help
 
 # 2. Test package contents
 npm pack --dry-run
@@ -130,12 +130,12 @@ If all these pass, you're ready for detailed testing:
 npm pkg get name version bin files
 
 # Verify all required files exist
-ls -la bin/saleor-configurator.js
+ls -la bin/cli.mjs
 ls -la src/
 ls -la README.md LICENSE
 
 # Test file permissions (CLI must be executable)
-ls -la bin/saleor-configurator.js | grep -q "x" && echo "✓ Executable" || echo "✗ Not executable"
+ls -la bin/cli.mjs | grep -q "x" && echo "✓ Executable" || echo "✗ Not executable"
 ```
 
 ### 2. Test Package Contents
@@ -153,7 +153,7 @@ rm saleor-configurator-*.tgz
 ```
 
 Expected contents:
-- `bin/saleor-configurator.js` (executable CLI script)
+- `bin/cli.mjs` (executable CLI script)
 - `src/` directory with all TypeScript source files
 - `package.json`, `README.md`, `LICENSE`
 - No `dist/`, `node_modules/`, or test files
@@ -162,23 +162,23 @@ Expected contents:
 
 ```bash
 # Verify the bin file exists and is executable
-ls -la bin/saleor-configurator.js
+ls -la bin/cli.mjs
 
 # Test basic CLI functionality
-./bin/saleor-configurator.js --help
-./bin/saleor-configurator.js --version
+./bin/cli.mjs --help
+./bin/cli.mjs --version
 
 # Test all commands work
-./bin/saleor-configurator.js push --help
-./bin/saleor-configurator.js diff --help
-./bin/saleor-configurator.js introspect --help
-./bin/saleor-configurator.js start --help
+./bin/cli.mjs push --help
+./bin/cli.mjs diff --help
+./bin/cli.mjs introspect --help
+./bin/cli.mjs start --help
 
 # Test that tsx dependency is accessible
 node -e "console.log(require.resolve('tsx'))"
 
 # Test TypeScript compilation works
-./bin/saleor-configurator.js --version | grep -q "0\." && echo "✓ CLI works" || echo "✗ CLI failed"
+./bin/cli.mjs --version | grep -q "0\." && echo "✓ CLI works" || echo "✗ CLI failed"
 ```
 
 ### 4. Test Publishing Scripts
@@ -256,7 +256,7 @@ Before your first production release:
 
 **CLI not executable**: 
 ```bash
-chmod +x bin/saleor-configurator.js
+chmod +x bin/cli.mjs
 ```
 
 **tsx not found**: Ensure `tsx` is in `dependencies`, not `devDependencies`
@@ -273,7 +273,7 @@ chmod +x bin/saleor-configurator.js
 
 ```
 bin/                    # CLI executables
-└── saleor-configurator.js
+└── cli.mjs
 
 src/                    # Source TypeScript files (included for tsx execution)
 ├── cli/                # CLI modules
@@ -298,27 +298,29 @@ src/                    # Source TypeScript files (included for tsx execution)
 
 ## How It Works
 
-This package uses a **no-build approach**:
+This package uses a **built distribution approach**:
 
-1. **`bin/saleor-configurator.js`**: A lightweight wrapper script that:
-   - Spawns `tsx` to run the TypeScript source directly
+1. **`bin/cli.mjs`**: An ES module wrapper script that:
+   - Imports and executes the built `dist/main.js` file
    - Passes all command-line arguments through
-   - No compilation or build step required
+   - Uses the compiled JavaScript for better performance
 
-2. **TypeScript source**: All source files in `src/` are included in the npm package
+2. **Build process**: TypeScript source is compiled to `dist/` using `tsup`
+   - Triggered automatically by `prepublishOnly` hook
+   - Creates optimized ES modules with code splitting
 
-3. **Runtime execution**: `tsx` compiles and runs TypeScript on-the-fly
+3. **Distribution**: Built files in `dist/` are included in the npm package
 
 This approach provides:
-- ✅ **Faster development**: No build step needed
-- ✅ **Simpler publishing**: Just ship the source
-- ✅ **Better debugging**: Source maps work perfectly
-- ✅ **Type safety**: Full TypeScript experience
+- ✅ **Better performance**: Pre-compiled JavaScript
+- ✅ **Smaller package size**: Code splitting and optimization
+- ✅ **Faster startup**: No runtime compilation
+- ✅ **Type safety**: Full TypeScript development experience
 
 ## Dependencies
 
 The package requires:
-- `tsx`: Runtime TypeScript execution (in `dependencies`)
-- TypeScript source files in `src/` directory
-- All runtime dependencies properly declared
-- No build tools or compilation needed for publishing
+- All runtime dependencies properly declared in `dependencies`
+- Build tools (`tsup`, `typescript`) in `devDependencies`
+- Built distribution files in `dist/` directory
+- CLI wrapper script in `bin/` directory
