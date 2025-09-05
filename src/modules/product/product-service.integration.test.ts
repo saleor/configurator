@@ -13,6 +13,7 @@ const mockRepository: ProductOperations = {
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
+  getCategoryBySlug: vi.fn(),
   getCategoryByPath: vi.fn(),
   getAttributeByName: vi.fn(),
   getChannelBySlug: vi.fn(),
@@ -537,7 +538,7 @@ describe("ProductService Integration", () => {
               {
                 channel: "online-store",
                 price: 45.99,
-                costPrice: 25.00,
+                costPrice: 25.0,
               },
             ],
           },
@@ -553,7 +554,7 @@ describe("ProductService Integration", () => {
               {
                 channel: "online-store",
                 price: 29.99,
-                costPrice: 15.00,
+                costPrice: 15.0,
               },
             ],
           },
@@ -572,17 +573,21 @@ describe("ProductService Integration", () => {
       });
 
       // Mock attributes for both product and variant attributes
-      vi.mocked(mockRepository.getAttributeByName)
-        .mockImplementation(async (name) => {
-          const attributes = {
-            author: { id: "attr-author", name: "author", inputType: "PLAIN_TEXT", choices: null },
-            isbn: { id: "attr-isbn", name: "isbn", inputType: "PLAIN_TEXT", choices: null },
-            publisher: { id: "attr-publisher", name: "publisher", inputType: "PLAIN_TEXT", choices: null },
-            format: { id: "attr-format", name: "format", inputType: "PLAIN_TEXT", choices: null },
-            pages: { id: "attr-pages", name: "pages", inputType: "PLAIN_TEXT", choices: null },
-          };
-          return attributes[name] || null;
-        });
+      vi.mocked(mockRepository.getAttributeByName).mockImplementation(async (name) => {
+        const attributes = {
+          author: { id: "attr-author", name: "author", inputType: "PLAIN_TEXT", choices: null },
+          isbn: { id: "attr-isbn", name: "isbn", inputType: "PLAIN_TEXT", choices: null },
+          publisher: {
+            id: "attr-publisher",
+            name: "publisher",
+            inputType: "PLAIN_TEXT",
+            choices: null,
+          },
+          format: { id: "attr-format", name: "format", inputType: "PLAIN_TEXT", choices: null },
+          pages: { id: "attr-pages", name: "pages", inputType: "PLAIN_TEXT", choices: null },
+        };
+        return (attributes as any)[name] || null;
+      });
 
       // Mock channel
       vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue({
@@ -691,7 +696,7 @@ describe("ProductService Integration", () => {
         {
           channelId: "ch-online",
           price: 45.99,
-          costPrice: 25.00,
+          costPrice: 25.0,
         },
       ]);
     });
@@ -750,7 +755,7 @@ describe("ProductService Integration", () => {
         channelListings: [],
       });
 
-      const result = await service.bootstrapProduct(updateInput);
+      const _result = await service.bootstrapProduct(updateInput);
 
       // Should update, not create
       expect(mockRepository.updateProduct).toHaveBeenCalledWith("prod-existing", {

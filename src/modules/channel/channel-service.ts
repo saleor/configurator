@@ -175,7 +175,6 @@ export class ChannelService {
       });
       throw new ChannelError(
         errorMessage,
-        "CHANNEL_BOOTSTRAP_ERROR",
         results.failures.map((f) => `${f.item.slug}: ${f.error.message}`)
       );
     }

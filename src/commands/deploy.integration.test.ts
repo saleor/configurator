@@ -430,11 +430,16 @@ invalid_yaml: [
             variants: [
               {
                 name: "Default",
-                sku: "VALID-001"
-              }
+                sku: "VALID-001",
+              },
             ],
-            isPublished: true,
-            isAvailableForPurchase: true,
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
           },
           {
             name: "Invalid Product",
@@ -444,20 +449,25 @@ invalid_yaml: [
             category: "nonexistent-category",
             variants: [
               {
-                name: "Default", 
-                sku: "INVALID-001"
-              }
+                name: "Default",
+                sku: "INVALID-001",
+              },
             ],
-            isPublished: true,
-            isAvailableForPurchase: true,
-          }
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
+          },
         ])
         .saveToFile(tempDir, "config.json");
 
       // Mock partial failure for product creation
       fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
         const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
-        
+
         // Handle shop settings successfully
         if (body.query?.includes("shopSettingsUpdate")) {
           return new Response(
@@ -465,14 +475,14 @@ invalid_yaml: [
               data: {
                 shopSettingsUpdate: {
                   errors: [],
-                  shop: { defaultMailSenderName: "Updated Shop Name" }
-                }
-              }
+                  shop: { defaultMailSenderName: "Updated Shop Name" },
+                },
+              },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        
+
         // Handle product creation with partial failure
         if (body.query?.includes("productCreate")) {
           const variables = body.variables;
@@ -481,10 +491,12 @@ invalid_yaml: [
               JSON.stringify({
                 data: {
                   productCreate: {
-                    errors: [{ message: "Category 'nonexistent-category' not found", field: "category" }],
-                    product: null
-                  }
-                }
+                    errors: [
+                      { message: "Category 'nonexistent-category' not found", field: "category" },
+                    ],
+                    product: null,
+                  },
+                },
               }),
               { status: 200, headers: { "Content-Type": "application/json" } }
             );
@@ -495,14 +507,14 @@ invalid_yaml: [
               data: {
                 productCreate: {
                   errors: [],
-                  product: { id: "test-product-id", slug: variables?.input?.slug }
-                }
-              }
+                  product: { id: "test-product-id", slug: variables?.input?.slug },
+                },
+              },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        
+
         // Default mock response for other queries
         return new Response(
           JSON.stringify({
@@ -512,8 +524,8 @@ invalid_yaml: [
               productTypes: { edges: [] },
               pageTypes: { edges: [] },
               categories: { edges: [] },
-              products: { edges: [] }
-            }
+              products: { edges: [] },
+            },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
@@ -554,28 +566,28 @@ invalid_yaml: [
       const configPath = createConfigFile()
         .withShop({ defaultMailSenderName: "Updated Shop Name" })
         .withChannel({
-          name: "New Channel", 
+          name: "New Channel",
           slug: "new-channel",
           currencyCode: "EUR",
           defaultCountry: "GB",
-          isActive: true
+          isActive: true,
         })
         .saveToFile(tempDir);
 
       // Mock shop failure but channel success
       fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
         const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
-        
+
         // Shop update fails
         if (body.query?.includes("shopSettingsUpdate")) {
           return new Response(
             JSON.stringify({
-              errors: [{ message: "Insufficient permissions to update shop settings" }]
+              errors: [{ message: "Insufficient permissions to update shop settings" }],
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        
+
         // Channel creation succeeds
         if (body.query?.includes("channelCreate")) {
           return new Response(
@@ -583,14 +595,14 @@ invalid_yaml: [
               data: {
                 channelCreate: {
                   errors: [],
-                  channel: { id: "channel-id", slug: "new-channel" }
-                }
-              }
+                  channel: { id: "channel-id", slug: "new-channel" },
+                },
+              },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        
+
         // Default mock for diff queries
         return new Response(
           JSON.stringify({
@@ -598,8 +610,8 @@ invalid_yaml: [
               shop: { defaultMailSenderName: "Old Shop Name" },
               channels: [],
               productTypes: { edges: [] },
-              pageTypes: { edges: [] }
-            }
+              pageTypes: { edges: [] },
+            },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
@@ -646,36 +658,43 @@ invalid_yaml: [
             variants: [
               {
                 name: "Default",
-                sku: "BAD-CAT-001"
-              }
+                sku: "BAD-CAT-001",
+              },
             ],
-            isPublished: true,
-            isAvailableForPurchase: true,
-          }
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
+          },
         ])
         .saveToFile(tempDir, "config.json");
 
       // Mock category not found error
       fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
         const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
-        
+
         if (body.query?.includes("productCreate")) {
           return new Response(
             JSON.stringify({
               data: {
                 productCreate: {
-                  errors: [{ 
-                    message: "Category 'electronics' not found",
-                    field: "category"
-                  }],
-                  product: null
-                }
-              }
+                  errors: [
+                    {
+                      message: "Category 'electronics' not found",
+                      field: "category",
+                    },
+                  ],
+                  product: null,
+                },
+              },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
           );
         }
-        
+
         return new Response(
           JSON.stringify({
             data: {
@@ -684,8 +703,8 @@ invalid_yaml: [
               productTypes: { edges: [] },
               pageTypes: { edges: [] },
               categories: { edges: [] },
-              products: { edges: [] }
-            }
+              products: { edges: [] },
+            },
           }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );

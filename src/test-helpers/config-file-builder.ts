@@ -4,7 +4,7 @@ import type {
   ChannelInput,
   CountryCode,
   CurrencyCode,
-  PageInput,
+  PageTypeInput,
   ProductInput,
   ProductTypeInput,
   SaleorConfig,
@@ -17,7 +17,6 @@ export type ChannelConfig = ChannelInput;
 export type ProductTypeConfig = ProductTypeInput;
 export type ProductConfig = ProductInput;
 export type PageTypeConfig = PageTypeInput;
-export type PageConfig = PageInput;
 export type CategoryConfig = CategoryInput;
 export type ShopConfig = ShopInput;
 export type ConfigFileContent = SaleorConfig;

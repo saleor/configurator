@@ -1,21 +1,18 @@
-import { describe, it, expect, vi, beforeEach, type MockInstance } from "vitest";
-import type { Client } from "@urql/core";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { ProductError } from "./errors";
 import { ProductService } from "./product-service";
 import { ProductRepository } from "./repository";
-import { AttributeResolver } from "./attribute-resolver";
-import { ProductError } from "./errors";
-import { EntityNotFoundError } from "../config/errors";
 
 describe("ServiceErrorWrapper Integration - ProductService", () => {
-  let mockClient: MockInstance<Client>;
+  let mockClient: any;
   let repository: ProductRepository;
   let service: ProductService;
 
   beforeEach(() => {
-    mockClient = vi.mocked({
+    mockClient = {
       mutation: vi.fn(),
       query: vi.fn(),
-    } as unknown as Client);
+    };
 
     repository = new ProductRepository(mockClient);
     service = new ProductService(repository);
@@ -29,7 +26,9 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         data: null,
       });
 
-      await expect(repository.getProductBySlug("test-product")).rejects.toThrow("GraphQL network error");
+      await expect(repository.getProductBySlug("test-product")).rejects.toThrow(
+        "GraphQL network error"
+      );
     });
 
     it("should throw raw business errors from repository methods", async () => {
@@ -37,21 +36,20 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         data: {
           productCreate: {
             product: null,
-            errors: [
-              { message: "Product name is required" },
-              { message: "Invalid category" }
-            ]
-          }
+            errors: [{ message: "Product name is required" }, { message: "Invalid category" }],
+          },
         },
         error: null,
       });
 
-      await expect(repository.createProduct({
-        name: "Test Product",
-        slug: "test-product",
-        productType: "type-1",
-        category: "cat-1",
-      })).rejects.toThrow("Failed to create product: Product name is required, Invalid category");
+      await expect(
+        repository.createProduct({
+          name: "Test Product",
+          slug: "test-product",
+          productType: "type-1",
+          category: "cat-1",
+        })
+      ).rejects.toThrow("Failed to create product: Product name is required, Invalid category");
     });
 
     it("should not wrap errors in repository layer", async () => {
@@ -61,9 +59,13 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         data: null,
       });
 
-      await expect(repository.updateProduct("prod-1", { name: "Updated" })).rejects.toThrow("Raw repository error");
+      await expect(repository.updateProduct("prod-1", { name: "Updated" })).rejects.toThrow(
+        "Raw repository error"
+      );
       // Ensure error is not wrapped with ProductError or ServiceErrorWrapper context
-      await expect(repository.updateProduct("prod-1", { name: "Updated" })).rejects.not.toBeInstanceOf(ProductError);
+      await expect(
+        repository.updateProduct("prod-1", { name: "Updated" })
+      ).rejects.not.toBeInstanceOf(ProductError);
     });
   });
 
@@ -72,7 +74,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
       const rawError = new Error("Raw GraphQL error");
 
       // Mock other dependencies to succeed
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -82,7 +84,9 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] } },
+            data: {
+              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
+            },
             error: null,
           });
         }
@@ -101,16 +105,18 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "Book",
         category: "fiction",
-        variants: []
+        variants: [],
       };
 
       await expect(service.bootstrapProduct(productInput)).rejects.toThrow(ProductError);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Failed to lookup product by slug for product 'test-book'/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Failed to lookup product by slug for product 'test-book'/
+      );
     });
 
     it("should provide business-friendly error messages", async () => {
       // Mock successful reference resolution
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -126,16 +132,20 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "NonexistentType",
         category: "fiction",
-        variants: []
+        variants: [],
       };
 
       await expect(service.bootstrapProduct(productInput)).rejects.toThrow(ProductError);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Product type "NonexistentType" not found/);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Make sure it exists in your productTypes configuration/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Product type "NonexistentType" not found/
+      );
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Make sure it exists in your productTypes configuration/
+      );
     });
 
     it("should include entity context in error messages", async () => {
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -155,18 +165,20 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
       const productInput = {
         name: "Test Book",
         slug: "test-book",
-        productType: "Book", 
+        productType: "Book",
         category: "nonexistent-category",
-        variants: []
+        variants: [],
       };
 
       await expect(service.bootstrapProduct(productInput)).rejects.toThrow(ProductError);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Failed to resolve category reference for category 'nonexistent-category'/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Failed to resolve category reference for category 'nonexistent-category'/
+      );
     });
 
     it("should handle product creation errors with proper context", async () => {
       // Mock successful reference resolution
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -176,7 +188,9 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] } },
+            data: {
+              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
+            },
             error: null,
           });
         }
@@ -201,16 +215,18 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "Book",
         category: "fiction",
-        variants: []
+        variants: [],
       };
 
       await expect(service.bootstrapProduct(productInput)).rejects.toThrow(ProductError);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Failed to create product for product 'Test Book'/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Failed to create product for product 'Test Book'/
+      );
     });
 
     it("should handle variant creation errors with proper context", async () => {
       // Mock successful product creation
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -220,7 +236,9 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] } },
+            data: {
+              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
+            },
             error: null,
           });
         }
@@ -239,15 +257,15 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         return Promise.resolve({ data: {}, error: null });
       });
 
-      mockClient.mutation.mockImplementation((mutation) => {
+      (mockClient.mutation as any).mockImplementation((mutation: any) => {
         const mutationName = mutation?.definitions?.[0]?.name?.value;
         if (mutationName === "CreateProduct") {
           return Promise.resolve({
             data: {
               productCreate: {
                 product: { id: "prod-1", name: "Test Book" },
-                errors: []
-              }
+                errors: [],
+              },
             },
             error: null,
           });
@@ -266,39 +284,43 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "Book",
         category: "fiction",
-        variants: [{
-          name: "Hardcover",
-          sku: "BOOK-HC-001"
-        }]
+        variants: [
+          {
+            name: "Hardcover",
+            sku: "BOOK-HC-001",
+          },
+        ],
       };
 
       await expect(service.bootstrapProduct(productInput)).rejects.toThrow(ProductError);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Failed to create product variant for product variant 'BOOK-HC-001'/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Failed to create product variant for product variant 'BOOK-HC-001'/
+      );
     });
   });
 
   describe("Architecture Compliance", () => {
     it("should not import GraphQL error types in repository", async () => {
       // This is a design test - ensures repository doesn't import GraphQL error handling
-      const fs = await import('fs');
-      const path = await import('path');
-      const repositoryPath = path.resolve(__dirname, './repository.ts');
-      const repositorySource = fs.readFileSync(repositoryPath, 'utf8');
-      
-      expect(repositorySource).not.toContain('GraphQLError');
-      expect(repositorySource).not.toContain('GraphQLUnknownError');
-      expect(repositorySource).not.toContain('fromCombinedError');
-      expect(repositorySource).not.toContain('fromGraphQLErrors');
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const repositoryPath = path.resolve(__dirname, "./repository.ts");
+      const repositorySource = fs.readFileSync(repositoryPath, "utf8");
+
+      expect(repositorySource).not.toContain("GraphQLError");
+      expect(repositorySource).not.toContain("GraphQLUnknownError");
+      expect(repositorySource).not.toContain("fromCombinedError");
+      expect(repositorySource).not.toContain("fromGraphQLErrors");
     });
 
     it("should use ServiceErrorWrapper in service layer", async () => {
-      const fs = await import('fs');
-      const path = await import('path');
-      const servicePath = path.resolve(__dirname, './product-service.ts');
-      const serviceSource = fs.readFileSync(servicePath, 'utf8');
-      
-      expect(serviceSource).toContain('ServiceErrorWrapper');
-      expect(serviceSource).toContain('wrapServiceCall');
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const servicePath = path.resolve(__dirname, "./product-service.ts");
+      const serviceSource = fs.readFileSync(servicePath, "utf8");
+
+      expect(serviceSource).toContain("ServiceErrorWrapper");
+      expect(serviceSource).toContain("wrapServiceCall");
     });
 
     it("should follow proper error handling pattern", async () => {
@@ -316,21 +338,21 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
           slug: "test",
           productType: "Type",
           category: "cat",
-          variants: []
+          variants: [],
         });
         expect.fail("Should have thrown an error");
       } catch (error) {
         // Error should be wrapped with business context by ServiceErrorWrapper
         expect(error).toBeInstanceOf(ProductError);
-        expect(error.message).toContain("Failed to resolve product type reference");
-        expect(error.message).toContain("product type 'Type'");
+        expect((error as Error).message).toContain("Failed to resolve product type reference");
+        expect((error as Error).message).toContain("product type 'Type'");
       }
     });
   });
 
   describe("Error Message Quality", () => {
     it("should provide helpful suggestions for category errors", async () => {
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -352,15 +374,19 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "Book",
         category: "invalid/nested/path",
-        variants: []
+        variants: [],
       };
 
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/For nested categories, use the format 'parent-slug\/child-slug'/);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/Run introspect command to see available categories/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /For nested categories, use the format 'parent-slug\/child-slug'/
+      );
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /Run introspect command to see available categories/
+      );
     });
 
     it("should provide different suggestions for simple vs nested categories", async () => {
-      mockClient.query.mockImplementation((query) => {
+      (mockClient.query as any).mockImplementation((query: any) => {
         const queryName = query?.definitions?.[0]?.name?.value;
         if (queryName === "GetProductTypeByName") {
           return Promise.resolve({
@@ -382,11 +408,15 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         slug: "test-book",
         productType: "Book",
         category: "simple-category",
-        variants: []
+        variants: [],
       };
 
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/For subcategories, you can reference them directly by slug/);
-      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(/or with full path \(e.g., 'groceries\/juices'\)/);
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /For subcategories, you can reference them directly by slug/
+      );
+      await expect(service.bootstrapProduct(productInput)).rejects.toThrow(
+        /or with full path \(e.g., 'groceries\/juices'\)/
+      );
     });
   });
 });

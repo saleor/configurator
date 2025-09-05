@@ -446,7 +446,7 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productCreate?.product) {
       const businessErrors = result.data?.productCreate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to create product: ${errorMessage}`);
       }
       throw new Error(`Failed to create product: Unknown error`);
@@ -454,7 +454,7 @@ export class ProductRepository implements ProductOperations {
 
     const product = result.data.productCreate.product;
     logger.debug("Product created", { id: product.id, name: product.name });
-    
+
     return product;
   }
 
@@ -473,7 +473,7 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productUpdate?.product) {
       const businessErrors = result.data?.productUpdate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to update product: ${errorMessage}`);
       }
       throw new Error(`Failed to update product: Unknown error`);
@@ -503,14 +503,18 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productVariantCreate?.productVariant) {
       const businessErrors = result.data?.productVariantCreate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to create product variant: ${errorMessage}`);
       }
       throw new Error(`Failed to create product variant: Unknown error`);
     }
 
     const variant = result.data.productVariantCreate.productVariant;
-    logger.debug("Product variant created", { id: variant.id, name: variant.name, sku: variant.sku });
+    logger.debug("Product variant created", {
+      id: variant.id,
+      name: variant.name,
+      sku: variant.sku,
+    });
 
     return variant;
   }
@@ -533,14 +537,18 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productVariantUpdate?.productVariant) {
       const businessErrors = result.data?.productVariantUpdate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to update product variant: ${errorMessage}`);
       }
       throw new Error(`Failed to update product variant: Unknown error`);
     }
 
     const variant = result.data.productVariantUpdate.productVariant;
-    logger.debug("Product variant updated", { id: variant.id, name: variant.name, sku: variant.sku });
+    logger.debug("Product variant updated", {
+      id: variant.id,
+      name: variant.name,
+      sku: variant.sku,
+    });
 
     return variant;
   }
@@ -595,7 +603,7 @@ export class ProductRepository implements ProductOperations {
 
     logger.debug("Product slug query result", {
       productCount: result.data?.products?.edges?.length || 0,
-      error: result.error?.message,
+      // error: result.error?.message,
     });
 
     const product = result.data?.products?.edges?.[0]?.node;
@@ -631,7 +639,9 @@ export class ProductRepository implements ProductOperations {
     return exactMatch?.node || null;
   }
 
-  async getCategoryBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null> {
+  async getCategoryBySlug(
+    slug: string
+  ): Promise<{ id: string; name: string; slug: string } | null> {
     logger.debug("Looking up category by slug", { slug });
 
     const result = await this.client.query(getCategoryBySlugQuery, { slug });
@@ -667,13 +677,15 @@ export class ProductRepository implements ProductOperations {
     return this.resolveCategoryHierarchy(parts);
   }
 
-  private async resolveCategoryHierarchy(slugParts: string[]): Promise<{ id: string; name: string } | null> {
+  private async resolveCategoryHierarchy(
+    slugParts: string[]
+  ): Promise<{ id: string; name: string } | null> {
     const path = slugParts.join("/");
-    
+
     // First, try to find the final category slug directly
     const finalCategorySlug = slugParts[slugParts.length - 1];
     const categoryBySlug = await this.getCategoryBySlug(finalCategorySlug);
-    
+
     if (!categoryBySlug) {
       logger.warn("Category not found by final slug", {
         path,
@@ -686,14 +698,18 @@ export class ProductRepository implements ProductOperations {
     // TODO: Add full hierarchy verification by checking parent chain
     logger.debug("Found category by final slug", {
       path,
-      foundCategory: { id: categoryBySlug.id, name: categoryBySlug.name, slug: categoryBySlug.slug }
+      foundCategory: {
+        id: categoryBySlug.id,
+        name: categoryBySlug.name,
+        slug: categoryBySlug.slug,
+      },
     });
-    
+
     if (slugParts.length > 1) {
       logger.info("Hierarchical path resolution simplified", {
         path,
         resolvedSlug: finalCategorySlug,
-        note: "Full hierarchy verification will be added in future enhancement"
+        note: "Full hierarchy verification will be added in future enhancement",
       });
     }
 
@@ -766,7 +782,7 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productChannelListingUpdate?.product) {
       const businessErrors = result.data?.productChannelListingUpdate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to update product channel listings: ${errorMessage}`);
       }
       logger.warn("Product channel listings update returned no product", { productId: id });
@@ -774,7 +790,10 @@ export class ProductRepository implements ProductOperations {
     }
 
     const product = result.data.productChannelListingUpdate.product;
-    logger.debug("Product channel listings updated", { productId: product.id, channelListings: product.channelListings?.length || 0 });
+    logger.debug("Product channel listings updated", {
+      productId: product.id,
+      channelListings: product.channelListings?.length || 0,
+    });
 
     return product as unknown as Product;
   }
@@ -800,7 +819,7 @@ export class ProductRepository implements ProductOperations {
     if (!result.data?.productVariantChannelListingUpdate?.productVariant) {
       const businessErrors = result.data?.productVariantChannelListingUpdate?.errors;
       if (businessErrors && Array.isArray(businessErrors) && businessErrors.length > 0) {
-        const errorMessage = businessErrors.map(e => e.message).join(", ");
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
         throw new Error(`Failed to update variant channel listings: ${errorMessage}`);
       }
       logger.warn("Variant channel listings update returned no variant", { variantId: id });

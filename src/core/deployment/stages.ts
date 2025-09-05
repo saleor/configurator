@@ -91,9 +91,11 @@ export const productTypesStage: DeploymentStage = {
     // Product Types stage should run if:
     // 1. Product Types have changes, OR
     // 2. Products have changes (since products depend on product types)
-    const hasProductTypeChanges = context.summary.results.some((r) => r.entityType === "Product Types");
+    const hasProductTypeChanges = context.summary.results.some(
+      (r) => r.entityType === "Product Types"
+    );
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
-    
+
     return !hasProductTypeChanges && !hasProductChanges;
   },
 };
@@ -121,7 +123,7 @@ export const channelsStage: DeploymentStage = {
     // 2. Products have changes (since products may have channel listings)
     const hasChannelChanges = context.summary.results.some((r) => r.entityType === "Channels");
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
-    
+
     return !hasChannelChanges && !hasProductChanges;
   },
 };
@@ -323,7 +325,7 @@ export const categoriesStage: DeploymentStage = {
     // 2. Products have changes (since products depend on categories)
     const hasCategoryChanges = context.summary.results.some((r) => r.entityType === "Categories");
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
-    
+
     return !hasCategoryChanges && !hasProductChanges;
   },
 };
@@ -405,25 +407,25 @@ export const productsStage: DeploymentStage = {
       }
 
       // Get only the products that need to be changed based on diff results
-      const productChanges = context.summary.results.filter(r => r.entityType === "Products");
-      
+      const productChanges = context.summary.results.filter((r) => r.entityType === "Products");
+
       if (productChanges.length === 0) {
         logger.debug("No product changes detected in diff");
         return;
       }
 
       // Extract product slugs that need to be processed
-      const changedProductSlugs = new Set(productChanges.map(change => change.entityName));
-      
+      const changedProductSlugs = new Set(productChanges.map((change) => change.entityName));
+
       // Filter config to only process changed products
-      const productsToProcess = config.products.filter(product => 
+      const productsToProcess = config.products.filter((product) =>
         changedProductSlugs.has(product.slug)
       );
 
       logger.debug("Processing selective product changes", {
         totalProducts: config.products.length,
         changedProducts: productsToProcess.length,
-        slugs: Array.from(changedProductSlugs)
+        slugs: Array.from(changedProductSlugs),
       });
 
       if (productsToProcess.length === 0) {

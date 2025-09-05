@@ -12,6 +12,7 @@ const mockRepository: ProductOperations = {
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
+  getCategoryBySlug: vi.fn(),
   getCategoryByPath: vi.fn(),
   getAttributeByName: vi.fn(),
   getChannelBySlug: vi.fn(),
@@ -171,12 +172,8 @@ describe("AttributeResolver", () => {
       vi.mocked(mockRepository.getProductByName).mockResolvedValue({
         id: "prod-123",
         name: "Related Book",
-        slug: "related-book",
-        description: "A related book",
         productType: { id: "pt-1", name: "Book" },
-        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
-        defaultVariant: { id: "var-1" },
-        variants: [],
+        category: { id: "cat-1", name: "Fiction" },
       });
 
       const attributes = {
@@ -246,12 +243,8 @@ describe("AttributeResolver", () => {
       vi.mocked(mockRepository.getProductByName).mockResolvedValue({
         id: "prod-series",
         name: "Book Series",
-        slug: "book-series",
-        description: "A book series",
         productType: { id: "pt-1", name: "Book" },
-        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
-        defaultVariant: { id: "var-1" },
-        variants: [],
+        category: { id: "cat-1", name: "Fiction" },
       });
 
       const attributes = {

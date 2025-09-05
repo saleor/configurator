@@ -1,14 +1,14 @@
 import { logger } from "../../lib/logger";
+import { StageAggregateError } from "./errors";
 import { MetricsCollector } from "./metrics";
 import { ProgressIndicator } from "./progress";
-import { 
-  DeploymentResultCollector, 
+import {
+  type DeploymentResult,
+  DeploymentResultCollector,
   DeploymentResultFormatter,
   extractEntityResults,
-  type DeploymentResult, 
-  type StageStatus 
+  type StageStatus,
 } from "./results";
-import { StageAggregateError } from "./errors";
 import type { DeploymentContext, DeploymentMetrics, DeploymentStage } from "./types";
 
 export class EnhancedDeploymentPipeline {
@@ -22,7 +22,9 @@ export class EnhancedDeploymentPipeline {
     return this;
   }
 
-  async execute(context: DeploymentContext): Promise<{ metrics: DeploymentMetrics; result: DeploymentResult }> {
+  async execute(
+    context: DeploymentContext
+  ): Promise<{ metrics: DeploymentMetrics; result: DeploymentResult }> {
     logger.info("Starting enhanced deployment pipeline", {
       stageCount: this.stages.length,
     });
@@ -46,7 +48,7 @@ export class EnhancedDeploymentPipeline {
   private handleSkippedStage(stage: DeploymentStage): void {
     const stageResult = this.resultCollector.createStageResult(
       stage.name,
-      'skipped',
+      "skipped",
       new Date(),
       new Date()
     );
@@ -54,7 +56,7 @@ export class EnhancedDeploymentPipeline {
   }
 
   private async executeStageWithResultCollection(
-    stage: DeploymentStage, 
+    stage: DeploymentStage,
     context: DeploymentContext
   ): Promise<void> {
     const startTime = new Date();
@@ -76,14 +78,13 @@ export class EnhancedDeploymentPipeline {
       // Record successful stage result
       const stageResult = this.resultCollector.createStageResult(
         stage.name,
-        'success',
+        "success",
         startTime,
         endTime
       );
       this.resultCollector.addStageResult(stageResult);
 
       logger.debug(`Stage completed: ${stage.name}`, { duration });
-
     } catch (error) {
       // Stage failed - collect information and continue
       const endTime = new Date();
@@ -91,7 +92,7 @@ export class EnhancedDeploymentPipeline {
       stopSpinner();
 
       const isPartialFailure = this.isPartialFailure(error);
-      const status: StageStatus = isPartialFailure ? 'partial' : 'failed';
+      const status: StageStatus = isPartialFailure ? "partial" : "failed";
 
       // Show appropriate progress indicator
       if (isPartialFailure) {
@@ -114,10 +115,10 @@ export class EnhancedDeploymentPipeline {
       );
       this.resultCollector.addStageResult(stageResult);
 
-      logger.error(`Stage ${status}: ${stage.name}`, { 
+      logger.error(`Stage ${status}: ${stage.name}`, {
         error,
         successCount: stageResult.successCount,
-        failureCount: stageResult.failureCount
+        failureCount: stageResult.failureCount,
       });
 
       // Continue to next stage instead of throwing
@@ -138,19 +139,24 @@ export class EnhancedDeploymentPipeline {
 export async function executeEnhancedDeployment(
   stages: DeploymentStage[],
   context: DeploymentContext
-): Promise<{ metrics: DeploymentMetrics; result: DeploymentResult; shouldExit: boolean; exitCode: number }> {
+): Promise<{
+  metrics: DeploymentMetrics;
+  result: DeploymentResult;
+  shouldExit: boolean;
+  exitCode: number;
+}> {
   const pipeline = new EnhancedDeploymentPipeline();
-  
+
   // Add all stages to pipeline
-  stages.forEach(stage => pipeline.addStage(stage));
-  
+  stages.forEach((stage) => pipeline.addStage(stage));
+
   // Execute pipeline and collect results
   const { metrics, result } = await pipeline.execute(context);
-  
+
   // Determine exit behavior based on results
   const formatter = new DeploymentResultFormatter();
   const exitCode = formatter.getExitCode(result.overallStatus);
-  const shouldExit = result.overallStatus === 'failed';
-  
+  const shouldExit = result.overallStatus === "failed";
+
   return { metrics, result, shouldExit, exitCode };
 }

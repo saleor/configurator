@@ -46,8 +46,9 @@ describe("ProductService", () => {
     it("should throw ProductError when product type not found", async () => {
       vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue(null);
 
-      await expect((service as any).resolveProductTypeReference("NonexistentType"))
-        .rejects.toThrow('Product type "NonexistentType" not found. Make sure it exists in your productTypes configuration.');
+      await expect((service as any).resolveProductTypeReference("NonexistentType")).rejects.toThrow(
+        'Product type "NonexistentType" not found. Make sure it exists in your productTypes configuration.'
+      );
     });
   });
 
@@ -56,7 +57,6 @@ describe("ProductService", () => {
       vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
         id: "cat-456",
         name: "Fiction",
-        slug: "fiction",
       });
 
       const result = await (service as any).resolveCategoryReference("fiction");
@@ -68,15 +68,19 @@ describe("ProductService", () => {
     it("should throw ProductError when category not found", async () => {
       vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue(null);
 
-      await expect((service as any).resolveCategoryReference("nonexistent"))
-        .rejects.toThrow('Category "nonexistent" not found. Make sure it exists in your categories configuration. Categories must be referenced by their slug (not name). For subcategories, you can reference them directly by slug (e.g., \'juices\') or with full path (e.g., \'groceries/juices\'). Run introspect command to see available categories.');
+      await expect((service as any).resolveCategoryReference("nonexistent")).rejects.toThrow(
+        "Category \"nonexistent\" not found. Make sure it exists in your categories configuration. Categories must be referenced by their slug (not name). For subcategories, you can reference them directly by slug (e.g., 'juices') or with full path (e.g., 'groceries/juices'). Run introspect command to see available categories."
+      );
     });
 
     it("should throw ProductError with hierarchical path guidance when nested category not found", async () => {
       vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue(null);
 
-      await expect((service as any).resolveCategoryReference("groceries/nonexistent"))
-        .rejects.toThrow('Category "groceries/nonexistent" not found. Make sure it exists in your categories configuration. Categories must be referenced by their slug (not name). For nested categories, use the format \'parent-slug/child-slug\'. Run introspect command to see available categories.');
+      await expect(
+        (service as any).resolveCategoryReference("groceries/nonexistent")
+      ).rejects.toThrow(
+        "Category \"groceries/nonexistent\" not found. Make sure it exists in your categories configuration. Categories must be referenced by their slug (not name). For nested categories, use the format 'parent-slug/child-slug'. Run introspect command to see available categories."
+      );
     });
   });
 
@@ -98,8 +102,9 @@ describe("ProductService", () => {
     it("should throw ProductError when channel not found", async () => {
       vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue(null);
 
-      await expect((service as any).resolveChannelReference("nonexistent-channel"))
-        .rejects.toThrow('Channel "nonexistent-channel" not found. Make sure it exists in your channels configuration.');
+      await expect((service as any).resolveChannelReference("nonexistent-channel")).rejects.toThrow(
+        'Channel "nonexistent-channel" not found. Make sure it exists in your channels configuration.'
+      );
     });
   });
 
@@ -182,7 +187,7 @@ describe("ProductService", () => {
         {
           channel: "us-store",
           price: 29.99,
-          costPrice: 15.00,
+          costPrice: 15.0,
         },
         {
           channel: "eu-store",
@@ -196,7 +201,7 @@ describe("ProductService", () => {
         {
           channelId: "ch-1",
           price: 29.99,
-          costPrice: 15.00,
+          costPrice: 15.0,
         },
         {
           channelId: "ch-2",

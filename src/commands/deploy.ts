@@ -5,14 +5,13 @@ import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
 import {
-  DeploymentPipeline,
   DeploymentReportGenerator,
   DeploymentSummaryReport,
   getAllStages,
 } from "../core/deployment";
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
-import { DeploymentResultFormatter } from "../core/deployment/results";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
+import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
@@ -197,26 +196,23 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
 
     // Use enhanced deployment that collects results instead of throwing on first failure
-    const { metrics, result, shouldExit, exitCode } = await executeEnhancedDeployment(
-      getAllStages(),
-      context
-    );
+    const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
 
     this.console.text(""); // Add spacing before summary
 
     // Format and display deployment result
     const formatter = new DeploymentResultFormatter();
     const formattedResult = formatter.format(result);
-    
+
     // Display result with appropriate console method based on status
     switch (result.overallStatus) {
-      case 'success':
+      case "success":
         this.console.success(formattedResult);
         break;
-      case 'partial':
+      case "partial":
         this.console.warn(formattedResult);
         break;
-      case 'failed':
+      case "failed":
         this.console.error(formattedResult);
         break;
     }
@@ -252,10 +248,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       );
     }
 
-    return { 
-      metrics, 
-      exitCode, 
-      hasPartialSuccess: result.overallStatus === 'partial' 
+    return {
+      metrics,
+      exitCode,
+      hasPartialSuccess: result.overallStatus === "partial",
     };
   }
 

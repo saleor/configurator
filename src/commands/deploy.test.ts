@@ -101,24 +101,24 @@ describe("Deploy Command", () => {
     mockExecuteEnhancedDeployment = vi.mocked(executeEnhancedDeployment);
     mockExecuteEnhancedDeployment.mockImplementation(async () => {
       const result = {
-      metrics: {
-        startTime: new Date(),
-        endTime: new Date(),
-        duration: 100,
-        stageDurations: new Map(),
-        stageMetrics: [],
-        operationCounts: { created: 1, updated: 0, deleted: 0 },
-        errors: [],
-      },
-      result: {
-        overallStatus: 'success' as const,
-        stages: [],
-        totalOperations: 1,
-        successfulOperations: 1,
-        failedOperations: 0,
-      },
-      shouldExit: true,
-      exitCode: 0,
+        metrics: {
+          startTime: new Date(),
+          endTime: new Date(),
+          duration: 100,
+          stageDurations: new Map(),
+          stageMetrics: [],
+          operationCounts: { created: 1, updated: 0, deleted: 0 },
+          errors: [],
+        },
+        result: {
+          overallStatus: "success" as const,
+          stages: [],
+          totalOperations: 1,
+          successfulOperations: 1,
+          failedOperations: 0,
+        },
+        shouldExit: true,
+        exitCode: 0,
       };
       return result;
     });

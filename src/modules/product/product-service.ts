@@ -44,9 +44,7 @@ export class ProductService {
         const category = await this.repository.getCategoryByPath(categoryPath);
         if (!category) {
           const suggestions = this.buildCategorySuggestions(categoryPath);
-          throw new EntityNotFoundError(
-            `Category "${categoryPath}" not found. ${suggestions}`
-          );
+          throw new EntityNotFoundError(`Category "${categoryPath}" not found. ${suggestions}`);
         }
         return category.id;
       },
@@ -64,7 +62,9 @@ export class ProductService {
     if (categoryPath.includes("/")) {
       suggestions.push("For nested categories, use the format 'parent-slug/child-slug'.");
     } else {
-      suggestions.push("For subcategories, you can reference them directly by slug (e.g., 'juices') or with full path (e.g., 'groceries/juices').");
+      suggestions.push(
+        "For subcategories, you can reference them directly by slug (e.g., 'juices') or with full path (e.g., 'groceries/juices')."
+      );
     }
 
     suggestions.push("Run introspect command to see available categories.");
@@ -172,7 +172,7 @@ export class ProductService {
       logger.debug("Found existing product, updating", {
         id: existingProduct.id,
         name: existingProduct.name,
-        slug: existingProduct.slug,
+        // slug: existingProduct.slug,
       });
 
       // Update existing product (note: productType cannot be changed after creation)
@@ -180,14 +180,15 @@ export class ProductService {
         "update product",
         "product",
         productInput.name,
-        async () => this.repository.updateProduct(existingProduct.id, {
-          name: productInput.name,
-          slug: slug,
-          category: categoryId,
-          attributes: attributes,
-          description: productInput.description,
-          // TODO: Handle channel listings in separate commit
-        }),
+        async () =>
+          this.repository.updateProduct(existingProduct.id, {
+            name: productInput.name,
+            slug: slug,
+            category: categoryId,
+            attributes: attributes,
+            description: productInput.description,
+            // TODO: Handle channel listings in separate commit
+          }),
         ProductError
       );
 
@@ -207,15 +208,16 @@ export class ProductService {
       "create product",
       "product",
       productInput.name,
-      async () => this.repository.createProduct({
-        name: productInput.name,
-        slug: slug,
-        productType: productTypeId,
-        category: categoryId,
-        attributes: attributes,
-        description: productInput.description,
-        // TODO: Handle channel listings in separate commit
-      }),
+      async () =>
+        this.repository.createProduct({
+          name: productInput.name,
+          slug: slug,
+          productType: productTypeId,
+          category: categoryId,
+          attributes: attributes,
+          description: productInput.description,
+          // TODO: Handle channel listings in separate commit
+        }),
       ProductError
     );
 
@@ -266,14 +268,15 @@ export class ProductService {
             "update product variant",
             "product variant",
             variantInput.sku,
-            async () => this.repository.updateProductVariant(existingVariant.id, {
-              name: variantInput.name,
-              sku: variantInput.sku,
-              trackInventory: true,
-              weight: variantInput.weight,
-              attributes: variantAttributes,
-              // TODO: Handle channelListings in separate commit
-            }),
+            async () =>
+              this.repository.updateProductVariant(existingVariant.id, {
+                name: variantInput.name,
+                sku: variantInput.sku,
+                trackInventory: true,
+                weight: variantInput.weight,
+                attributes: variantAttributes,
+                // TODO: Handle channelListings in separate commit
+              }),
             ProductError
           );
 
@@ -293,15 +296,16 @@ export class ProductService {
             "create product variant",
             "product variant",
             variantInput.sku,
-            async () => this.repository.createProductVariant({
-              product: product.id,
-              name: variantInput.name,
-              sku: variantInput.sku,
-              trackInventory: true,
-              weight: variantInput.weight,
-              attributes: variantAttributes,
-              // TODO: Handle channelListings in separate commit
-            }),
+            async () =>
+              this.repository.createProductVariant({
+                product: product.id,
+                name: variantInput.name,
+                sku: variantInput.sku,
+                trackInventory: true,
+                weight: variantInput.weight,
+                attributes: variantAttributes,
+                // TODO: Handle channelListings in separate commit
+              }),
             ProductError
           );
 
@@ -350,10 +354,8 @@ export class ProductService {
             "update product channel listings",
             "product",
             product.id,
-            async () => this.repository.updateProductChannelListings(
-              product.id,
-              channelListingInput
-            ),
+            async () =>
+              this.repository.updateProductChannelListings(product.id, channelListingInput),
             ProductError
           );
           if (updatedProduct) {
@@ -389,10 +391,11 @@ export class ProductService {
               "update product variant channel listings",
               "product variant",
               variant.id,
-              async () => this.repository.updateProductVariantChannelListings(
-                variant.id,
-                channelListingInput
-              ),
+              async () =>
+                this.repository.updateProductVariantChannelListings(
+                  variant.id,
+                  channelListingInput
+                ),
               ProductError
             );
             if (updatedVariant) {

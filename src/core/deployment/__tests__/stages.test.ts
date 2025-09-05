@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SaleorConfigurator } from "../../configurator";
-import { getAllStages, categoriesStage, channelsStage, productTypesStage, shopSettingsStage, validationStage } from "../stages";
+import {
+  categoriesStage,
+  channelsStage,
+  getAllStages,
+  productTypesStage,
+  shopSettingsStage,
+  validationStage,
+} from "../stages";
 import type { DeploymentContext } from "../types";
 
 describe("Deployment Stages", () => {
@@ -123,7 +130,7 @@ describe("Deployment Stages", () => {
           updates: 0,
           deletes: 0,
           results: [
-            { entityType: "Product Types", entityName: "Electronics", action: "create" }
+            { entityType: "Product Types", entityName: "Electronics", operation: "CREATE" },
           ],
         },
       });
@@ -138,9 +145,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [
-            { entityType: "Products", entityName: "smartphone", action: "create" }
-          ],
+          results: [{ entityType: "Products", entityName: "smartphone", operation: "CREATE" }],
         },
       });
 
@@ -170,9 +175,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [
-            { entityType: "Categories", entityName: "electronics", action: "create" }
-          ],
+          results: [{ entityType: "Categories", entityName: "electronics", operation: "CREATE" }],
         },
       });
 
@@ -186,9 +189,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [
-            { entityType: "Products", entityName: "smartphone", action: "create" }
-          ],
+          results: [{ entityType: "Products", entityName: "smartphone", operation: "CREATE" }],
         },
       });
 
@@ -218,9 +219,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [
-            { entityType: "Channels", entityName: "default", action: "create" }
-          ],
+          results: [{ entityType: "Channels", entityName: "default", operation: "CREATE" }],
         },
       });
 
@@ -234,9 +233,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [
-            { entityType: "Products", entityName: "smartphone", action: "create" }
-          ],
+          results: [{ entityType: "Products", entityName: "smartphone", operation: "CREATE" }],
         },
       });
 
