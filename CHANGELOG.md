@@ -1,5 +1,21 @@
 # saleor-configurator
 
+## 0.13.0
+
+### Minor Changes
+
+- 8ea51cd: Added support for Collections, Menus, and Models entity types. These can now be managed through configuration files with full introspect, diff, and deploy functionality. The deployment pipeline was extended from 10 to 14 stages to accommodate the new entity types.
+
+### Patch Changes
+
+- 180e8a2: Update documentation for comprehensive bootstrap guidance
+
+  - **README.md**: Enhanced configuration example showcasing all entity types (taxClasses, collections, models, menus, etc.), improved quickstart flow, and complete entity reference guide
+  - **SCHEMA.md**: Added documentation for missing entities (taxClasses, collections, models, menus, modelTypes) with examples and field descriptions
+  - **example.yml**: Added strategic comments, section organization, and educational patterns for better bootstrap experience
+  - Removed outdated limitations and misleading information
+  - Documentation now accurately reflects the tool's evolution into a comprehensive "commerce as code" platform
+
 ## 0.12.0
 
 ### Minor Changes
