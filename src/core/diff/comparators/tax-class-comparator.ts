@@ -7,6 +7,7 @@ import { BaseEntityComparator } from "./base-comparator";
 
 interface TaxClassEntity extends TaxClassInput, Record<string, unknown> {
   id?: string;
+  [key: string]: unknown;
 }
 
 export class TaxClassComparator extends BaseEntityComparator<

@@ -211,6 +211,7 @@ const UnassignPageAttributes = graphql(`
 `);
 
 // Type exports for external use
+export type Model = NonNullable<ResultOf<typeof GetPageBySlug>["page"]>;
 export type Page = NonNullable<ResultOf<typeof GetPageBySlug>["page"]>;
 export type PageCreateInput = VariablesOf<typeof CreatePage>["input"];
 export type PageInput = VariablesOf<typeof UpdatePage>["input"];

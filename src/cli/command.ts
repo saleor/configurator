@@ -199,7 +199,9 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
       let validatedArgs: z.infer<T>;
 
       const args = options as Partial<z.infer<T>>;
-      if (config.requiresInteractive && (!args.url || !args.token)) {
+      // Disable interactive mode in test environment
+      const isTestEnvironment = process.env.NODE_ENV === "test";
+      if (config.requiresInteractive && (!args.url || !args.token) && !isTestEnvironment) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(args);
         const result = config.schema.safeParse(interactiveArgs);

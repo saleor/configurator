@@ -1,0 +1,149 @@
+shop:
+  defaultMailSenderName: "Full Feature Store"
+  defaultMailSenderAddress: "store@example.com"
+  customerAllowedToSetExternalReference: true
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: false
+  limitQuantityPerCheckout: 100
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: true
+
+channels:
+  - name: "US Market"
+    slug: "us-market"
+    currencyCode: "USD"
+    defaultCountry: "US"
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 60
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
+  
+  - name: "EU Market"
+    slug: "eu-market"
+    currencyCode: "EUR"
+    defaultCountry: "DE"
+    settings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: false
+      expireOrdersAfter: 60
+
+productTypes:
+  - name: "Book"
+    slug: "book"
+    isShippingRequired: true
+    isDigital: false
+    productAttributes:
+      - name: "Author"
+        slug: "author"
+        inputType: "PLAIN_TEXT"
+      - name: "ISBN"
+        slug: "isbn"
+        inputType: "PLAIN_TEXT"
+      - name: "Genre"
+        slug: "genre"
+        inputType: "DROPDOWN"
+        values:
+          - name: "Fiction"
+          - name: "Non-Fiction"
+          - name: "Science Fiction"
+          - name: "Mystery"
+    variantAttributes:
+      - name: "Format"
+        slug: "format"
+        inputType: "DROPDOWN"
+        values:
+          - name: "Hardcover"
+          - name: "Paperback"
+          - name: "E-book"
+
+  - name: "Digital Product"
+    slug: "digital-product"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "File Size"
+        slug: "file-size"
+        inputType: "PLAIN_TEXT"
+      - name: "License Type"
+        slug: "license-type"
+        inputType: "DROPDOWN"
+        values:
+          - name: "Personal"
+          - name: "Commercial"
+          - name: "Enterprise"
+
+categories:
+  - name: "Books"
+    slug: "books"
+    description: "All book categories"
+    children:
+      - name: "Fiction"
+        slug: "fiction"
+        description: "Fiction books"
+        children:
+          - name: "Science Fiction"
+            slug: "science-fiction"
+            description: "Sci-fi books"
+          - name: "Fantasy"
+            slug: "fantasy"
+            description: "Fantasy books"
+      - name: "Non-Fiction"
+        slug: "non-fiction"
+        description: "Non-fiction books"
+        children:
+          - name: "Technology"
+            slug: "technology"
+            description: "Tech books"
+          - name: "History"
+            slug: "history"
+            description: "History books"
+  
+  - name: "Digital Products"
+    slug: "digital-products"
+    description: "Downloadable products"
+    children:
+      - name: "Software"
+        slug: "software"
+        description: "Software products"
+      - name: "Media"
+        slug: "media"
+        description: "Digital media"
+
+pageTypes:
+  - name: "Landing Page"
+    slug: "landing-page"
+    attributes:
+      - name: "Hero Title"
+        slug: "hero-title"
+        inputType: "PLAIN_TEXT"
+      - name: "Hero Image"
+        slug: "hero-image"
+        inputType: "FILE"
+  
+  - name: "Blog Post"
+    slug: "blog-post"
+    attributes:
+      - name: "Author"
+        slug: "author"
+        inputType: "PLAIN_TEXT"
+      - name: "Published Date"
+        slug: "published-date"
+        inputType: "DATE"
+      - name: "Tags"
+        slug: "tags"
+        inputType: "MULTISELECT"
+        values:
+          - name: "News"
+          - name: "Tutorial"
+          - name: "Review"

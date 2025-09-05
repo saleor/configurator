@@ -110,6 +110,10 @@ describe("WarehouseService - Two-Step Creation", () => {
         id: "w1",
         name: "Test Warehouse",
         slug: "test-warehouse",
+        email: "test@example.com",
+        isPrivate: false,
+        clickAndCollectOption: "DISABLED",
+        address: { city: "TEST CITY" },
       }),
       updateWarehouse: vi.fn(),
       assignShippingZones: vi.fn(),
@@ -118,17 +122,16 @@ describe("WarehouseService - Two-Step Creation", () => {
 
     const service = new WarehouseService(mockRepository);
 
-    const input: WarehouseInput = {
+    const input = {
       name: "Test Warehouse",
       slug: "test-warehouse",
       email: "test@example.com",
-      // isPrivate and clickAndCollectOption are undefined to skip update step
       address: {
         streetAddress1: "123 Test St",
         city: "Test City",
         country: "US",
       },
-    };
+    } as WarehouseInput;
 
     await service.createWarehouse(input);
 
