@@ -621,6 +621,7 @@ const productVariantSchema = z.object({
 const productSchema = z.object({
   name: z.string().describe("Product name as displayed to customers"),
   slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
+  description: z.string().optional().describe("Product description"),
   productType: z.string().describe("Reference to the product type (must match a productType name)"),
   category: z.string().describe("Reference to the product category (must match a category slug)"),
   taxClass: z

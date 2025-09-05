@@ -1,6 +1,5 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
-import { GraphQLError, GraphQLUnknownError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 
 const createProductMutation = graphql(`
@@ -10,6 +9,7 @@ const createProductMutation = graphql(`
         id
         name
         slug
+        description
         productType {
           id
           name
@@ -45,6 +45,7 @@ const updateProductMutation = graphql(`
         id
         name
         slug
+        description
         productType {
           id
           name
@@ -172,6 +173,26 @@ const getCategoryByNameQuery = graphql(`
         node {
           id
           name
+          slug
+        }
+      }
+    }
+  }
+`);
+
+const getCategoryBySlugQuery = graphql(`
+  query GetCategoryBySlug($slug: String!) {
+    categories(filter: { slugs: [$slug] }, first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          parent {
+            id
+            name
+            slug
+          }
         }
       }
     }
@@ -284,6 +305,16 @@ const productChannelListingUpdateMutation = graphql(`
       product {
         id
         name
+        slug
+        description
+        productType {
+          id
+          name
+        }
+        category {
+          id
+          name
+        }
         channelListings {
           id
           channel {
@@ -336,9 +367,21 @@ export type Product = NonNullable<
   NonNullable<ResultOf<typeof getProductByNameQuery>["products"]>["edges"]
 >[number]["node"];
 
+export type ProductWithSlug = NonNullable<
+  NonNullable<ResultOf<typeof getProductBySlugQuery>["products"]>["edges"]
+>[number]["node"];
+
 export type ProductVariant = NonNullable<
   NonNullable<
     ResultOf<typeof createProductVariantMutation>["productVariantCreate"]
+  >["productVariant"]
+>;
+
+export type ProductVariantWithChannelListings = NonNullable<
+  NonNullable<
+    ResultOf<
+      typeof productVariantChannelListingUpdateMutation
+    >["productVariantChannelListingUpdate"]
   >["productVariant"]
 >;
 
@@ -368,6 +411,7 @@ export interface ProductOperations {
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
+  getCategoryBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
   getChannelBySlug(slug: string): Promise<Channel | null>;
@@ -378,7 +422,7 @@ export interface ProductOperations {
   updateProductVariantChannelListings(
     id: string,
     input: ProductVariantChannelListingAddInput[]
-  ): Promise<ProductVariant | null>;
+  ): Promise<ProductVariantWithChannelListings | null>;
 }
 
 export type Attribute = NonNullable<
@@ -395,44 +439,21 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
-    logger.debug("Product creation result", {
-      success: !!result.data?.productCreate?.product,
-      error: result.error?.message,
-      errors: result.data?.productCreate?.errors,
-    });
+    if (result.error) {
+      throw result.error;
+    }
 
     if (!result.data?.productCreate?.product) {
-      // Handle GraphQL errors from the response
-      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
-        throw GraphQLError.fromGraphQLErrors(
-          result.error.graphQLErrors,
-          `Failed to create product ${input.name}`
-        );
-      }
-
-      // Handle network errors
-      if (result.error && !result.error.graphQLErrors) {
-        throw GraphQLError.fromCombinedError(
-          `Failed to create product ${input.name}`,
-          result.error
-        );
-      }
-
-      // Handle business logic errors from the mutation response
       const businessErrors = result.data?.productCreate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        throw GraphQLError.fromDataErrors(`Failed to create product ${input.name}`, businessErrors);
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to create product: ${errorMessage}`);
       }
-
-      throw new GraphQLUnknownError("Failed to create product");
+      throw new Error(`Failed to create product: Unknown error`);
     }
 
     const product = result.data.productCreate.product;
-
-    logger.info("Product created", {
-      id: product.id,
-      name: product.name,
-    });
+    logger.debug("Product created", { id: product.id, name: product.name });
 
     return product;
   }
@@ -445,25 +466,21 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
-    logger.debug("Product update result", {
-      success: !!result.data?.productUpdate?.product,
-      error: result.error?.message,
-      errors: result.data?.productUpdate?.errors,
-    });
+    if (result.error) {
+      throw result.error;
+    }
 
     if (!result.data?.productUpdate?.product) {
-      throw GraphQLError.fromGraphQLErrors(
-        result.error?.graphQLErrors ?? [],
-        `Failed to update product ${input.name}`
-      );
+      const businessErrors = result.data?.productUpdate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to update product: ${errorMessage}`);
+      }
+      throw new Error(`Failed to update product: Unknown error`);
     }
 
     const product = result.data.productUpdate.product;
-
-    logger.info("Product updated", {
-      id: product.id,
-      name: product.name,
-    });
+    logger.debug("Product updated", { id: product.id, name: product.name });
 
     return product;
   }
@@ -479,16 +496,21 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
+    if (result.error) {
+      throw result.error;
+    }
+
     if (!result.data?.productVariantCreate?.productVariant) {
-      throw GraphQLError.fromGraphQLErrors(
-        result.error?.graphQLErrors ?? [],
-        `Failed to create product variant ${input.name}`
-      );
+      const businessErrors = result.data?.productVariantCreate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to create product variant: ${errorMessage}`);
+      }
+      throw new Error(`Failed to create product variant: Unknown error`);
     }
 
     const variant = result.data.productVariantCreate.productVariant;
-
-    logger.info("Product variant created", {
+    logger.debug("Product variant created", {
       id: variant.id,
       name: variant.name,
       sku: variant.sku,
@@ -508,21 +530,21 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
-    logger.debug("Update variant result", {
-      success: !!result.data?.productVariantUpdate?.productVariant,
-      error: result.error?.message,
-    });
+    if (result.error) {
+      throw result.error;
+    }
 
     if (!result.data?.productVariantUpdate?.productVariant) {
-      throw GraphQLError.fromGraphQLErrors(
-        result.error?.graphQLErrors ?? [],
-        `Failed to update product variant ${input.name}`
-      );
+      const businessErrors = result.data?.productVariantUpdate?.errors;
+      if (businessErrors && businessErrors.length > 0) {
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to update product variant: ${errorMessage}`);
+      }
+      throw new Error(`Failed to update product variant: Unknown error`);
     }
 
     const variant = result.data.productVariantUpdate.productVariant;
-
-    logger.info("Product variant updated", {
+    logger.debug("Product variant updated", {
       id: variant.id,
       name: variant.name,
       sku: variant.sku,
@@ -575,9 +597,13 @@ export class ProductRepository implements ProductOperations {
 
     const result = await this.client.query(getProductBySlugQuery, { slug });
 
+    if (result.error) {
+      throw result.error;
+    }
+
     logger.debug("Product slug query result", {
       productCount: result.data?.products?.edges?.length || 0,
-      error: result.error?.message,
+      // error: result.error?.message,
     });
 
     const product = result.data?.products?.edges?.[0]?.node;
@@ -613,25 +639,81 @@ export class ProductRepository implements ProductOperations {
     return exactMatch?.node || null;
   }
 
+  async getCategoryBySlug(
+    slug: string
+  ): Promise<{ id: string; name: string; slug: string } | null> {
+    logger.debug("Looking up category by slug", { slug });
+
+    const result = await this.client.query(getCategoryBySlugQuery, { slug });
+
+    // Find exact match among all categories by slug
+    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.slug === slug);
+    const category = exactMatch?.node;
+
+    if (category) {
+      logger.debug("Found category by slug", {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+      });
+    } else {
+      logger.debug("No category found with slug", { slug });
+    }
+
+    return category || null;
+  }
+
   async getCategoryByPath(path: string): Promise<{ id: string; name: string } | null> {
-    // Handle nested category paths like "Fiction/Fantasy"
+    logger.debug("Resolving category path", { path });
+
     const parts = path.split("/");
 
     if (parts.length === 1) {
-      // Simple category lookup
-      return this.getCategoryByName(parts[0]);
+      // Simple category lookup by slug (as per schema requirement)
+      return this.getCategoryBySlug(parts[0]);
     }
 
-    // For nested categories, we need to implement a more sophisticated lookup
-    // For now, we'll try to find the final category name and hope it's unique
-    const finalCategoryName = parts[parts.length - 1];
-    logger.warn("Category path resolution simplified", {
+    // For nested categories, try to resolve by hierarchical path
+    return this.resolveCategoryHierarchy(parts);
+  }
+
+  private async resolveCategoryHierarchy(
+    slugParts: string[]
+  ): Promise<{ id: string; name: string } | null> {
+    const path = slugParts.join("/");
+
+    // First, try to find the final category slug directly
+    const finalCategorySlug = slugParts[slugParts.length - 1];
+    const categoryBySlug = await this.getCategoryBySlug(finalCategorySlug);
+
+    if (!categoryBySlug) {
+      logger.warn("Category not found by final slug", {
+        path,
+        finalSlug: finalCategorySlug,
+      });
+      return null;
+    }
+
+    // For now, return the found category
+    // TODO: Add full hierarchy verification by checking parent chain
+    logger.debug("Found category by final slug", {
       path,
-      resolving: finalCategoryName,
-      note: "Full path resolution not yet implemented",
+      foundCategory: {
+        id: categoryBySlug.id,
+        name: categoryBySlug.name,
+        slug: categoryBySlug.slug,
+      },
     });
 
-    return this.getCategoryByName(finalCategoryName);
+    if (slugParts.length > 1) {
+      logger.info("Hierarchical path resolution simplified", {
+        path,
+        resolvedSlug: finalCategorySlug,
+        note: "Full hierarchy verification will be added in future enhancement",
+      });
+    }
+
+    return categoryBySlug;
   }
 
   async getAttributeByName(name: string): Promise<Attribute | null> {
@@ -693,39 +775,22 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
+    if (result.error) {
+      throw result.error;
+    }
+
     if (!result.data?.productChannelListingUpdate?.product) {
-      // Handle GraphQL errors from the response
-      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
-        throw GraphQLError.fromGraphQLErrors(
-          result.error.graphQLErrors,
-          `Failed to update product channel listings for product ${id}`
-        );
-      }
-
-      // Handle network errors
-      if (result.error && !result.error.graphQLErrors) {
-        throw GraphQLError.fromCombinedError(
-          `Failed to update product channel listings for product ${id}`,
-          result.error
-        );
-      }
-
-      // Handle business logic errors from the mutation response
       const businessErrors = result.data?.productChannelListingUpdate?.errors;
       if (businessErrors && businessErrors.length > 0) {
-        throw GraphQLError.fromDataErrors(
-          `Failed to update product channel listings for product ${id}`,
-          businessErrors
-        );
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to update product channel listings: ${errorMessage}`);
       }
-
       logger.warn("Product channel listings update returned no product", { productId: id });
       return null;
     }
 
     const product = result.data.productChannelListingUpdate.product;
-
-    logger.info("Product channel listings updated", {
+    logger.debug("Product channel listings updated", {
       productId: product.id,
       channelListings: product.channelListings?.length || 0,
     });
@@ -736,7 +801,7 @@ export class ProductRepository implements ProductOperations {
   async updateProductVariantChannelListings(
     id: string,
     input: ProductVariantChannelListingAddInput[]
-  ): Promise<ProductVariant | null> {
+  ): Promise<ProductVariantWithChannelListings | null> {
     logger.debug("Updating product variant channel listings", {
       variantId: id,
       channelCount: input.length,
@@ -747,39 +812,23 @@ export class ProductRepository implements ProductOperations {
       input,
     });
 
+    if (result.error) {
+      throw result.error;
+    }
+
     if (!result.data?.productVariantChannelListingUpdate?.productVariant) {
-      // Handle GraphQL errors from the response
-      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
-        throw GraphQLError.fromGraphQLErrors(
-          result.error.graphQLErrors,
-          `Failed to update variant channel listings for variant ${id}`
-        );
-      }
-
-      // Handle network errors
-      if (result.error && !result.error.graphQLErrors) {
-        throw GraphQLError.fromCombinedError(
-          `Failed to update variant channel listings for variant ${id}`,
-          result.error
-        );
-      }
-
-      // Handle business logic errors from the mutation response
       const businessErrors = result.data?.productVariantChannelListingUpdate?.errors;
-      if (businessErrors && businessErrors.length > 0) {
-        throw GraphQLError.fromDataErrors(
-          `Failed to update variant channel listings for variant ${id}`,
-          businessErrors
-        );
+      if (businessErrors && Array.isArray(businessErrors) && businessErrors.length > 0) {
+        const errorMessage = businessErrors.map((e) => e.message).join(", ");
+        throw new Error(`Failed to update variant channel listings: ${errorMessage}`);
       }
-
       logger.warn("Variant channel listings update returned no variant", { variantId: id });
       return null;
     }
 
     const variant = result.data.productVariantChannelListingUpdate.productVariant as ProductVariant;
 
-    logger.info("Product variant channel listings updated", {
+    logger.debug("Product variant channel listings updated", {
       variantId: variant.id,
       channelListings: variant.channelListings?.length || 0,
     });

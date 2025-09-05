@@ -110,6 +110,12 @@ describe("WarehouseService - Two-Step Creation", () => {
         id: "w1",
         name: "Test Warehouse",
         slug: "test-warehouse",
+        email: "test@example.com",
+        address: {
+          streetAddress1: "123 Test St",
+          city: "Test City",
+          country: "US",
+        },
       }),
       updateWarehouse: vi.fn(),
       assignShippingZones: vi.fn(),
@@ -122,13 +128,12 @@ describe("WarehouseService - Two-Step Creation", () => {
       name: "Test Warehouse",
       slug: "test-warehouse",
       email: "test@example.com",
-      // isPrivate and clickAndCollectOption are undefined to skip update step
       address: {
         streetAddress1: "123 Test St",
         city: "Test City",
         country: "US",
       },
-    };
+    } as WarehouseInput;
 
     await service.createWarehouse(input);
 

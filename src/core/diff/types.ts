@@ -8,6 +8,7 @@ export type DiffOperation = "CREATE" | "UPDATE" | "DELETE";
  */
 export type EntityType =
   | "Product Types"
+  | "Products"
   | "Channels"
   | "Page Types"
   | "Categories"

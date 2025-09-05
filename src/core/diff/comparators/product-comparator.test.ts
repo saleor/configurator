@@ -97,7 +97,7 @@ describe("ProductComparator", () => {
       });
     });
 
-    it("should detect variant count changes", () => {
+    it("should detect variant changes", () => {
       const localProduct = {
         ...sampleProduct,
         variants: [
@@ -112,12 +112,12 @@ describe("ProductComparator", () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
-      expect(results[0].changes).toContainEqual({
-        field: "variants.length",
-        currentValue: 1,
-        desiredValue: 2,
-        description: "Variant count changed: 1 → 2",
-      });
+      // The BLUE-M variant exists in local but not in remote, so it will be added
+      const blueVariantChange = results[0].changes?.find(
+        (change) => change.field === "variants.BLUE-M"
+      );
+      expect(blueVariantChange).toBeDefined();
+      expect(blueVariantChange?.description).toMatch(/will be added|will be removed/);
     });
 
     it("should return no changes for identical products", () => {

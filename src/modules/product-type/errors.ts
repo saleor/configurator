@@ -20,7 +20,7 @@ export class ProductTypeNotFoundError extends ProductTypeError {
 export class ProductTypeCreationError extends ProductTypeError {
   constructor(
     message: string,
-    public readonly productTypeName: string
+    public readonly productTypeName?: string
   ) {
     super(message, "PRODUCT_TYPE_CREATION_ERROR");
   }
@@ -32,7 +32,7 @@ export class ProductTypeCreationError extends ProductTypeError {
 export class ProductTypeUpdateError extends ProductTypeError {
   constructor(
     message: string,
-    public readonly productTypeId: string
+    public readonly productTypeId?: string
   ) {
     super(message, "PRODUCT_TYPE_UPDATE_ERROR");
   }

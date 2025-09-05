@@ -1,16 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
+import type { ChannelService } from "../channel/channel-service";
 import type { CollectionInput } from "../config/schema/schema";
+import type { ProductService } from "../product/product-service";
+import { CollectionService } from "./collection-service";
 import { CollectionValidationError } from "./errors";
 import type { Collection, CollectionOperations } from "./repository";
-import { CollectionService } from "./collection-service";
-import type { ProductService } from "../product/product-service";
-import type { ChannelService } from "../channel/channel-service";
 
 describe("CollectionService", () => {
   const mockCollectionInput: CollectionInput = {
     name: "Test Collection",
     slug: "test-collection",
-    description: '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
+    description:
+      '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
     products: ["product-1", "product-2"],
     channelListings: [
       {
@@ -25,16 +26,19 @@ describe("CollectionService", () => {
     id: "1",
     name: "Test Collection",
     slug: "test-collection",
-    description: '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
+    description:
+      '{"time": 1234567890, "blocks": [{"id": "block1", "type": "paragraph", "data": {"text": "Test description"}}], "version": "2.24.3"}',
+    backgroundImage: null,
     products: {
       edges: [
-        { node: { id: "p1", slug: "product-1" } },
-        { node: { id: "p2", slug: "product-2" } },
+        { node: { id: "p1", slug: "product-1", name: "Product 1" } },
+        { node: { id: "p2", slug: "product-2", name: "Product 2" } },
       ],
     },
     channelListings: [
       {
-        channel: { slug: "default-channel" },
+        id: "cl1",
+        channel: { id: "ch1", slug: "default-channel", name: "Default Channel" },
         isPublished: true,
         publishedAt: "2024-12-22T00:00:00+00:00",
       },
@@ -53,7 +57,9 @@ describe("CollectionService", () => {
       } as unknown as ChannelService;
       const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
-      await expect(service.createCollection(invalidInput)).rejects.toThrow(CollectionValidationError);
+      await expect(service.createCollection(invalidInput)).rejects.toThrow(
+        CollectionValidationError
+      );
     });
 
     it("should throw error when collection slug is missing", async () => {
@@ -67,7 +73,9 @@ describe("CollectionService", () => {
       } as unknown as ChannelService;
       const service = new CollectionService(mockOperations, mockProductService, mockChannelService);
 
-      await expect(service.createCollection(invalidInput)).rejects.toThrow(CollectionValidationError);
+      await expect(service.createCollection(invalidInput)).rejects.toThrow(
+        CollectionValidationError
+      );
     });
 
     it("should accept valid collection input", async () => {
@@ -193,7 +201,11 @@ describe("CollectionService", () => {
       const inputWithMultipleChannels = {
         ...mockCollectionInput,
         channelListings: [
-          { channelSlug: "default-channel", isPublished: true, publishedAt: "2024-12-22T00:00:00+00:00" },
+          {
+            channelSlug: "default-channel",
+            isPublished: true,
+            publishedAt: "2024-12-22T00:00:00+00:00",
+          },
           { channelSlug: "eu", isPublished: false, publishedAt: "2024-12-22T00:00:00+00:00" },
         ],
       };
@@ -255,7 +267,7 @@ describe("CollectionService", () => {
       expect(mockOperations.createCollection).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Test Collection",
-          slug: "test-collection", 
+          slug: "test-collection",
           description: expect.any(String),
           products: [], // Products handled separately
         })
@@ -301,7 +313,9 @@ describe("CollectionService", () => {
   });
 });
 
-function createMockOperations(): CollectionOperations & { [K in keyof CollectionOperations]: ReturnType<typeof vi.fn> } {
+function createMockOperations(): CollectionOperations & {
+  [K in keyof CollectionOperations]: ReturnType<typeof vi.fn>;
+} {
   return {
     getCollections: vi.fn(),
     getCollectionBySlug: vi.fn(),

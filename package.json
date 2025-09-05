@@ -37,6 +37,7 @@
     "prepare": "husky",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
+    "typecheck": "tsc --noEmit",
     "changeset": "changeset",
     "version": "changeset version",
     "publish:ci-prod": "pnpm publish --no-git-checks && pnpm exec changeset tag && git push --follow-tags",

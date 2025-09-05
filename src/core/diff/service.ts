@@ -11,6 +11,7 @@ import {
   MenuComparator,
   ModelComparator,
   PageTypeComparator,
+  ProductComparator,
   ProductTypeComparator,
   ShippingZoneComparator,
   ShopComparator,
@@ -282,13 +283,13 @@ export class DiffService {
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator
       ["categories", new CategoryComparator() as EntityComparator],
+      ["products", new ProductComparator() as EntityComparator],
       ["collections", new CollectionComparator() as EntityComparator],
       ["menus", new MenuComparator() as EntityComparator],
       ["models", new ModelComparator() as EntityComparator],
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       ["taxClasses", new TaxClassComparator() as EntityComparator],
-      // TODO: add product comparator; also add types that force you to add newly introduced entities to the diff service
     ]);
   }
 
@@ -359,6 +360,7 @@ export class DiffService {
       "pageTypes",
       "modelTypes",
       "categories",
+      "products",
       "collections",
       "menus",
       "models",
@@ -415,6 +417,7 @@ export class DiffService {
       pageTypes: "pageTypes",
       modelTypes: "modelTypes",
       categories: "categories",
+      products: "products",
       collections: "collections",
       menus: "menus",
       models: "models",

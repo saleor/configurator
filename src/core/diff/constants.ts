@@ -9,6 +9,7 @@ export const DIFF_ICONS = {
   },
   ENTITIES: {
     "Product Types": "📦",
+    Products: "📦",
     Channels: "🌐",
     "Page Types": "📄",
     Categories: "🏷️",
@@ -19,7 +20,6 @@ export const DIFF_ICONS = {
     Warehouses: "🏭",
     TaxClasses: "💰",
     "Shipping Zones": "🚚",
-    Products: "🛍️",
   },
   SUMMARY: {
     RESULTS: "📊",

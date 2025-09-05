@@ -354,6 +354,91 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    products(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          description
+          productType {
+            id
+            name
+          }
+          category {
+            id
+            name
+            slug
+          }
+          taxClass {
+            id
+            name
+          }
+          attributes {
+            attribute {
+              id
+              name
+              slug
+              inputType
+            }
+            values {
+              id
+              name
+              slug
+              value
+            }
+          }
+          variants {
+            id
+            name
+            sku
+            weight {
+              unit
+              value
+            }
+            attributes {
+              attribute {
+                id
+                name
+                slug
+                inputType
+              }
+              values {
+                id
+                name
+                slug
+                value
+              }
+            }
+            channelListings {
+              id
+              channel {
+                id
+                slug
+              }
+              price {
+                amount
+                currency
+              }
+              costPrice {
+                amount
+                currency
+              }
+            }
+          }
+          channelListings {
+            id
+            channel {
+              id
+              slug
+            }
+            isPublished
+            publishedAt
+            visibleInListings
+          }
+        }
+      }
+    }
   }
 `);
 
