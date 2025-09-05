@@ -58,27 +58,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-      saleor:
-        image: ghcr.io/saleor/saleor:3.20
-        ports:
-          - 8000:8000
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/saleor
-          REDIS_URL: redis://redis:6379/0
-          CELERY_BROKER_URL: redis://redis:6379/1
-          SECRET_KEY: test-secret-key-for-e2e
-          DEBUG: 'True'
-          ALLOWED_HOSTS: '*'
-          ALLOWED_CLIENT_HOSTS: '*'
-          DEFAULT_FROM_EMAIL: admin@example.com
-          ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL: 'False'
-          ENABLE_SSL: 'False'
-          ENABLE_DEBUG_TOOLBAR: 'False'
-          MAX_CHECKOUT_LINE_QUANTITY: '50'
-          PLAYGROUND_ENABLED: 'True'
-        options: >-
-          --restart=no
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -100,69 +79,122 @@ jobs:
       - name: Build CLI
         run: pnpm build
 
-      - name: Wait for Saleor service to be ready
+      - name: Initialize Saleor Database
         run: |
-          echo "🔍 Waiting for Saleor service to be ready..."
-          echo "⏳ Initial 30-second delay for service startup..."
-          sleep 30
+          echo "🔧 Initializing Saleor database..."
           
-          # Wait up to 4 minutes with simple HTTP checks
-          for i in {1..48}; do
-            if curl -f http://localhost:8000/health/ >/dev/null 2>&1 || curl -f http://localhost:8000/ >/dev/null 2>&1; then
-              echo "✅ Saleor service is responding"
-              break
-            else
-              echo "⏳ Waiting for Saleor service (attempt $i/36)..."
-              sleep 5
-            fi
-          done
+          # Define Saleor environment variables
+          export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/saleor"
+          export REDIS_URL="redis://localhost:6379/0"
+          export CELERY_BROKER_URL="redis://localhost:6379/1"
+          export SECRET_KEY="test-secret-key-for-e2e"
+          export DEBUG="True"
+          export ALLOWED_HOSTS="*"
+          export ALLOWED_CLIENT_HOSTS="*"
+          export DEFAULT_FROM_EMAIL="admin@example.com"
+          export ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL="False"
+          export ENABLE_SSL="False"
+          export ENABLE_DEBUG_TOOLBAR="False"
+          export MAX_CHECKOUT_LINE_QUANTITY="50"
+          export PLAYGROUND_ENABLED="True"
           
-          # Final check
-          if ! curl -f http://localhost:8000/health/ >/dev/null 2>&1 && ! curl -f http://localhost:8000/ >/dev/null 2>&1; then
-            echo "❌ Saleor service is not responding after 4 minutes"
-            echo "📝 Container logs:"
-            docker logs ${{ job.services.saleor.id }} --tail 100 || true
-            exit 1
-          fi
-
-      - name: Initialize Saleor
-        run: |
-          SALEOR_CONTAINER_ID="${{ job.services.saleor.id }}"
+          echo "📦 Pulling Saleor image..."
+          docker pull ghcr.io/saleor/saleor:3.20
           
           echo "🔧 Running database migrations..."
-          if ! docker exec $SALEOR_CONTAINER_ID python manage.py migrate --no-input; then
-            echo "❌ Database migrations failed"
-            docker logs $SALEOR_CONTAINER_ID --tail 50
-            exit 1
-          fi
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e REDIS_URL="$REDIS_URL" \
+            -e CELERY_BROKER_URL="$CELERY_BROKER_URL" \
+            -e SECRET_KEY="$SECRET_KEY" \
+            -e DEBUG="$DEBUG" \
+            -e ALLOWED_HOSTS="$ALLOWED_HOSTS" \
+            ghcr.io/saleor/saleor:3.20 \
+            python manage.py migrate --no-input
           
           echo "👤 Creating superuser..."
-          if ! docker exec $SALEOR_CONTAINER_ID python manage.py shell -c "
+          docker run --rm \
+            --network host \
+            -e DATABASE_URL="$DATABASE_URL" \
+            -e REDIS_URL="$REDIS_URL" \
+            -e CELERY_BROKER_URL="$CELERY_BROKER_URL" \
+            -e SECRET_KEY="$SECRET_KEY" \
+            -e DEBUG="$DEBUG" \
+            -e ALLOWED_HOSTS="$ALLOWED_HOSTS" \
+            ghcr.io/saleor/saleor:3.20 \
+            python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 if not User.objects.filter(email='admin@example.com').exists():
     User.objects.create_superuser(email='admin@example.com', password='admin123')
-    print('Superuser created')
+    print('✅ Superuser created')
 else:
-    print('Superuser exists')
-          "; then
-            echo "❌ Superuser creation failed"
-            docker logs $SALEOR_CONTAINER_ID --tail 50
-            exit 1
-          fi
+    print('✅ Superuser already exists')
+          "
           
-          echo "🧪 Testing GraphQL endpoint..."
-          if ! curl -f http://localhost:8000/graphql/ \
+          echo "✅ Database initialization complete"
+
+      - name: Start Saleor API Server
+        run: |
+          echo "🚀 Starting Saleor API server..."
+          
+          # Start Saleor in background
+          docker run -d \
+            --name saleor-api \
+            --network host \
+            -e DATABASE_URL="postgresql://postgres:postgres@localhost:5432/saleor" \
+            -e REDIS_URL="redis://localhost:6379/0" \
+            -e CELERY_BROKER_URL="redis://localhost:6379/1" \
+            -e SECRET_KEY="test-secret-key-for-e2e" \
+            -e DEBUG="True" \
+            -e ALLOWED_HOSTS="*" \
+            -e ALLOWED_CLIENT_HOSTS="*" \
+            -e DEFAULT_FROM_EMAIL="admin@example.com" \
+            -e ENABLE_ACCOUNT_CONFIRMATION_BY_EMAIL="False" \
+            -e ENABLE_SSL="False" \
+            -e ENABLE_DEBUG_TOOLBAR="False" \
+            -e MAX_CHECKOUT_LINE_QUANTITY="50" \
+            -e PLAYGROUND_ENABLED="True" \
+            ghcr.io/saleor/saleor:3.20
+          
+          echo "⏳ Waiting for Saleor API to be ready..."
+          
+          # Give the server a moment to start
+          sleep 5
+          
+          # Wait for API to be ready (should be much faster now)
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/graphql/ \
+              -X POST \
+              -H "Content-Type: application/json" \
+              -d '{"query":"{ shop { name } }"}' \
+              --max-time 5 --silent > /tmp/shop_test.json 2>&1; then
+              if grep -q '"shop"' /tmp/shop_test.json; then
+                echo "✅ Saleor API is ready (attempt $i/30)"
+                break
+              fi
+            fi
+            
+            if [ $i -eq 30 ]; then
+              echo "❌ Saleor API failed to become ready"
+              echo "📝 Container logs:"
+              docker logs saleor-api --tail 50
+              exit 1
+            fi
+            
+            echo "⏳ Waiting for API (attempt $i/30)..."
+            sleep 2
+          done
+          
+          echo "🧪 Verifying GraphQL endpoint..."
+          curl -f http://localhost:8000/graphql/ \
             -X POST \
             -H "Content-Type: application/json" \
-            -d '{"query":"{ __schema { queryType { name } } }"}' \
-            --max-time 30 >/dev/null 2>&1; then
-            echo "⚠️ GraphQL endpoint not fully ready, but proceeding..."
-          else
-            echo "✅ GraphQL endpoint is responding"
-          fi
+            -d '{"query":"{ shop { name } }"}' \
+            --max-time 10 --silent --show-error | jq '.'
           
-          echo "✅ Saleor initialization complete"
+          echo "✅ Saleor API server is running and ready"
 
       - name: Run quick smoke tests (no Docker required)
         if: github.event_name == 'pull_request'
@@ -198,6 +230,12 @@ else:
             e2e/test-results/
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Cleanup Saleor container
+        if: always()
+        run: |
+          docker stop saleor-api || true
+          docker rm saleor-api || true
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()

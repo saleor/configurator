@@ -77,12 +77,16 @@ export async function getAdminToken(
 
 /**
  * Wait for Saleor API to be ready
+ * Enhanced with progressive backoff, better logging and longer timeout for CI environments
  */
 export async function waitForApi(
   apiUrl: string,
-  maxRetries: number = 30,
-  delayMs: number = 2000
+  maxRetries: number = 150, // 5 minutes with progressive backoff
+  baseDelayMs: number = 1000
 ): Promise<void> {
+  const startTime = Date.now();
+  console.log(`🔍 Waiting for Saleor API at ${apiUrl} (max ${maxRetries} attempts with progressive backoff)`);
+  
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await fetch(apiUrl, {
@@ -96,18 +100,36 @@ export async function waitForApi(
       if (response.ok) {
         const data = await response.json();
         if (data.data?.shop) {
-          console.log("✅ Saleor API is ready");
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          console.log(`✅ Saleor API is ready (took ${elapsed}s, attempt ${i + 1}/${maxRetries})`);
           return;
+        } else {
+          console.log(`⏳ GraphQL response incomplete (attempt ${i + 1}/${maxRetries}):`, JSON.stringify(data).slice(0, 200));
         }
+      } else {
+        console.log(`⏳ HTTP ${response.status} ${response.statusText} (attempt ${i + 1}/${maxRetries})`);
       }
-    } catch {
-      // API not ready yet, continue waiting
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.log(`⏳ Connection failed (attempt ${i + 1}/${maxRetries}): ${errorMessage}`);
     }
 
     if (i < maxRetries - 1) {
+      // Progressive backoff: start with 1s, increase to max 5s after attempt 10
+      const delayMs = Math.min(baseDelayMs * (1 + Math.floor(i / 10)), 5000);
+      
+      // Log progress every 30 attempts or when delay changes
+      if ((i + 1) % 30 === 0 || (i > 0 && i % 10 === 0)) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`🔄 Still waiting for API... ${elapsed}s elapsed, ${maxRetries - i - 1} attempts remaining (next delay: ${delayMs}ms)`);
+      }
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
-  throw new Error(`Saleor API failed to become ready after ${maxRetries} attempts`);
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  throw new Error(
+    `Saleor API failed to become ready after ${maxRetries} attempts (${totalTime}s). ` +
+    `Check that Saleor service is running and accessible at ${apiUrl}`
+  );
 }
