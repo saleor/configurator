@@ -1,11 +1,24 @@
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { assertDeploymentSuccess } from "../../utils/assertions.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
-import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
-import type { Channel } from "../../../src/modules/channel/repository.js";
-import type { Category } from "../../../src/modules/category/repository.js";
+import { assertDeploymentSuccess } from "../../utils/assertions.ts";
+import { CliRunner } from "../../utils/cli-runner.ts";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.ts";
+import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.ts";
+
+interface TestChannel {
+  name: string;
+  slug: string;
+  currencyCode: string;
+  defaultCountry: string;
+  isActive?: boolean;
+}
+
+interface TestCategory {
+  name: string;
+  slug: string;
+  description?: string;
+  parent?: string;
+}
 
 describe("E2E Error Recovery and Partial Failure Tests", () => {
   let cli: CliRunner;
@@ -259,14 +272,14 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
       expect(integrityState.categories).toBeDefined();
 
       const baselineChannel = integrityState.channels?.find(
-        (c: Channel) => c.slug === "baseline-channel"
+        (c: TestChannel) => c.slug === "baseline-channel"
       );
       expect(baselineChannel).toBeDefined();
       expect(baselineChannel.name).toBe("Baseline Channel");
       expect(baselineChannel.currencyCode).toBe("USD");
 
       const baselineCategory = integrityState.categories?.find(
-        (c: Category) => c.slug === "baseline-category"
+        (c: TestCategory) => c.slug === "baseline-category"
       );
       expect(baselineCategory).toBeDefined();
       expect(baselineCategory.name).toBe("Baseline Category");

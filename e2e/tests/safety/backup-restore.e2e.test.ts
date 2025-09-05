@@ -1,16 +1,16 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
+import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.ts";
+import { CliRunner } from "../../utils/cli-runner.ts";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.ts";
 import {
   cleanupTempDir,
   createTempDir,
   fileExists,
   readYaml,
   writeYaml,
-} from "../../utils/test-helpers.js";
+} from "../../utils/test-helpers.ts";
 
 // Type definitions for E2E test data structures
 

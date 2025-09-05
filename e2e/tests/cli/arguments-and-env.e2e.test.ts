@@ -1,10 +1,17 @@
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { assertDeploymentSuccess } from "../../utils/assertions.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
-import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
-import type { Channel } from "../../../src/modules/channel/repository.js";
+import { assertDeploymentSuccess } from "../../utils/assertions.ts";
+import { CliRunner } from "../../utils/cli-runner.ts";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.ts";
+import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.ts";
+
+interface TestChannel {
+  name: string;
+  slug: string;
+  currencyCode: string;
+  defaultCountry: string;
+  isActive?: boolean;
+}
 
 describe("E2E CLI Arguments and Environment Variables Tests", () => {
   let cli: CliRunner;
@@ -331,7 +338,7 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
 
       // Channel should be unchanged (excluded from modification)
       const baselineChannel = resultData.channels?.find(
-        (c: Channel) => c.slug === "baseline-channel"
+        (c: TestChannel) => c.slug === "baseline-channel"
       );
       expect(baselineChannel).toBeDefined();
       expect(baselineChannel!.name).toBe("Baseline Channel"); // Original name

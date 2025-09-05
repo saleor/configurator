@@ -1,9 +1,9 @@
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
-import { CliRunner } from "../../utils/cli-runner.js";
-import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
-import { cleanupTempDir, createTempDir, writeYaml } from "../../utils/test-helpers.js";
+import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.ts";
+import { CliRunner } from "../../utils/cli-runner.ts";
+import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.ts";
+import { cleanupTempDir, createTempDir, writeYaml } from "../../utils/test-helpers.ts";
 
 describe("E2E Entity Operations - Complete Coverage", () => {
   let cli: CliRunner;

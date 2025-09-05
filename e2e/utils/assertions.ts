@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import type { CliResult } from "./cli-runner.js";
+import type { CliResult } from "./cli-runner.ts";
 
 // Custom matchers for CLI testing
 export const cliMatchers = {

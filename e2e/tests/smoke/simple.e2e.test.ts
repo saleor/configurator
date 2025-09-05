@@ -1,13 +1,13 @@
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { CliRunner } from "../../utils/cli-runner.js";
+import { CliRunner } from "../../utils/cli-runner.ts";
 import {
   cleanupTempDir,
   createMinimalConfig,
   createTempDir,
   readYaml,
   writeYaml,
-} from "../../utils/test-helpers.js";
+} from "../../utils/test-helpers.ts";
 
 describe("E2E Simple Tests (No Docker)", () => {
   it("should show version correctly", async () => {
