@@ -1,36 +1,62 @@
+# ============================================================================
+# COMPLETE SALEOR CONFIGURATOR EXAMPLE
+# ============================================================================
+# This example demonstrates all major features of Saleor Configurator.
+# Start with introspection, then customize based on your needs.
+#
+# Quick Start:
+#   1. pnpm dlx @saleor/configurator introspect --url <your-url> --token <your-token>
+#   2. Modify this configuration based on your requirements
+#   3. pnpm dlx @saleor/configurator deploy --url <your-url> --token <your-token>
+#
+# Documentation: See SCHEMA.md for complete field reference
+# ============================================================================
+
+# Global store settings - applies across all channels
 shop:
-  customerAllowedToSetExternalReference: false
   defaultMailSenderName: "Saleor Store"
   defaultMailSenderAddress: "store@example.com"
-  displayGrossPrices: true
+  displayGrossPrices: true              # Show prices with tax included
   enableAccountConfirmationByEmail: true
-  limitQuantityPerCheckout: 50
-  trackInventoryByDefault: true
-  reserveStockDurationAnonymousUser: 60
-  reserveStockDurationAuthenticatedUser: 120
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-  defaultWeightUnit: KG
-  allowLoginWithoutConfirmation: false
+  trackInventoryByDefault: true         # New products track inventory by default
+  limitQuantityPerCheckout: 50          # Maximum items per checkout session
+  reserveStockDurationAnonymousUser: 60     # Minutes to hold stock for anonymous users
+  reserveStockDurationAuthenticatedUser: 120  # Minutes to hold stock for logged-in users
+  defaultDigitalMaxDownloads: 5         # Download limit for digital products
+  defaultDigitalUrlValidDays: 30        # Days download links remain valid
+  defaultWeightUnit: KG                 # Default unit for product weights
 
+# Sales channels - different storefronts or markets
 channels:
   - name: Poland
-    currencyCode: PLN
-    defaultCountry: PL
-    slug: poland
+    currencyCode: PLN                   # Currency for this channel
+    defaultCountry: PL                  # Default country for shipping/tax
+    slug: poland                        # URL identifier
     settings:
+      # Order processing automation
       allocationStrategy: PRIORITIZE_SORTING_ORDER
       automaticallyConfirmAllNewOrders: true
       automaticallyFulfillNonShippableGiftCard: true
-      expireOrdersAfter: 30
-      deleteExpiredOrdersAfter: 60
+      
+      # Order lifecycle management
+      expireOrdersAfter: 30             # Days before orders expire
+      deleteExpiredOrdersAfter: 60      # Days before expired orders are deleted
+      
+      # Payment processing
       markAsPaidStrategy: TRANSACTION_FLOW
-      allowUnpaidOrders: false
-      includeDraftOrderInVoucherUsage: true
-      useLegacyErrorFlow: false
+      allowUnpaidOrders: false          # Require payment before fulfillment
       automaticallyCompleteFullyPaidCheckouts: true
       defaultTransactionFlowStrategy: AUTHORIZATION
+      
+      # Business rules  
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
 
+# ============================================================================
+# PRODUCT CATALOG STRUCTURE
+# ============================================================================
+
+# Product type templates - define structure and attributes for similar products
 productTypes:
   - name: Book
     isShippingRequired: true
@@ -54,17 +80,19 @@ productTypes:
           - name: Medium
           - name: Large
   - name: E-Book
-    isShippingRequired: false
+    isShippingRequired: false           # Digital products don't need shipping
     productAttributes:
-      - attribute: Author # Reference an existing attribute by slug
-      - attribute: Genre # Reference an existing attribute by slug
-      - name: File Format # New attribute
+      # Attribute reuse pattern - reference existing attributes by name
+      - attribute: Author               # Reuses the "Author" attribute from Book type
+      - attribute: Genre                # Reuses the "Genre" attribute from Book type
+      - name: File Format               # Define new attribute specific to E-Books
         inputType: DROPDOWN
         values:
           - name: PDF
           - name: EPUB
           - name: MOBI
 
+# Content management - structured pages and content
 pageTypes:
   - name: Blog Post
     attributes:
@@ -121,6 +149,11 @@ products:
           Cover: "Paperback"
         channelListings: []
 
+# ============================================================================
+# LOGISTICS & FULFILLMENT
+# ============================================================================
+
+# Physical storage locations for inventory management
 warehouses:
   - name: "Main Warehouse"
     slug: "main-warehouse"
@@ -152,13 +185,14 @@ warehouses:
       companyName: "Example Store Ltd."
     shippingZones: ["poland-zone", "europe-zone"]
 
+# Geographic shipping regions with methods and pricing
 shippingZones:
   - name: "Poland Zone"
     slug: "poland-zone"
     description: "Shipping zone for Poland"
-    countries: ["PL"]
-    warehouses: ["main-warehouse", "secondary-dc"]
-    channels: ["poland"]
+    countries: ["PL"]                   # Countries served by this zone
+    warehouses: ["main-warehouse", "secondary-dc"]  # Warehouses that can fulfill orders
+    channels: ["poland"]                # Channels this zone serves
     shippingMethods:
       - name: "Standard Shipping"
         type: "PRICE"

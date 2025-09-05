@@ -29,35 +29,40 @@ saleor-configurator start
 1. Create an app token with all permissions in your Saleor dashboard.
 
 > [!TIP]
-> You can also use the `start` command to explore the features interactively.
+> Use the `start` command to explore features interactively and see what's possible.
 
-2. Introspect your current configuration from your remote Saleor instance to `config.yml`:
+2. Introspect your current configuration from your remote Saleor instance:
 
 ```bash
 pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
-3. Modify the pulled configuration according to your needs.
+3. Modify the configuration to define your commerce setup. You can configure:
+   - **Store settings** (shop configuration, channels, tax classes)
+   - **Product catalog** (product types, categories, collections, products)
+   - **Fulfillment** (warehouses, shipping zones and methods)
+   - **Content management** (page types, models, menus)
 
 > [!NOTE]
+> **Key Resources for Configuration:**
 >
-> Here are a bunch of tips for working with the configuration file:
+> 🔧 **[example.yml](example.yml)** - Comprehensive working example with all entity types
 >
-> 👉🏻 **Writing Configuration**: You can find the example configuration in [example.yml](example.yml) and [SCHEMA.md](SCHEMA.md) for detailed documentation of all available fields.
+> 📖 **[SCHEMA.md](SCHEMA.md)** - Complete field documentation and validation rules
 >
-> 👉🏻 **Incremental Changes**: Introduce your changes incrementally. Add a small change, run `pnpm dlx @saleor/configurator diff` to see what would be applied, and then push it.
->
-> 👉🏻 **Backup Your Data**: Before applying changes, make sure to back up your database or snapshot your instance in Saleor Cloud.
->
-> 👉🏻 **Configuration as Source of Truth**: Configurator treats your local configuration file as the authoritative source for your Saleor instance. This means any entities (channels, product types, attributes, etc.) that exist in your Saleor instance but are not defined in your configuration will be flagged for removal during the deploy operation.
+> 💡 **Best Practices:**
+> - Start with introspection to understand your current setup
+> - Make incremental changes and test with `diff` before deploying
+> - Configuration is treated as source of truth - undefined entities will be removed
+> - Always backup your data before major changes
 
-1. Review changes with the diff command to see what changes would be applied to your Saleor instance:
+4. Preview changes before applying:
 
 ```bash
 pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
 ```
 
-5. If you're happy with the changes, push them to your Saleor instance:
+5. Deploy your configuration:
 
 ```bash
 pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
@@ -156,78 +161,165 @@ pnpm dlx @saleor/configurator introspect --help
 Define your Saleor configuration in a YAML file (default: `config.yml`). For detailed documentation of all available fields, see [SCHEMA.md](SCHEMA.md).
 
 ```yaml
+# Complete store configuration example
 shop:
-  customerAllowedToSetExternalReference: false
-  defaultMailSenderName: "Saleor Store"
+  defaultMailSenderName: "My Store"
   defaultMailSenderAddress: "store@example.com"
   displayGrossPrices: true
+  trackInventoryByDefault: true
 
 channels:
-  - name: Poland
-    currencyCode: PLN
-    defaultCountry: PL
-    slug: poland
-    isActive: false
+  - name: "United States"
+    slug: "us"
+    currencyCode: "USD"
+    defaultCountry: "US"
+    isActive: true
 
+# Tax management
+taxClasses:
+  - name: "Standard Rate"
+    countries:
+      - countryCode: "US"
+        taxRate: 8.5
+
+# Warehouse and shipping
+warehouses:
+  - name: "Main Warehouse"
+    slug: "main-warehouse"
+    email: "warehouse@example.com"
+    isPrivate: false
+    clickAndCollectOption: "LOCAL"
+    address:
+      streetAddress1: "123 Commerce Street"
+      city: "New York"
+      postalCode: "10001"
+      country: "US"
+
+shippingZones:
+  - name: "US Zone"
+    slug: "us-zone"
+    countries: ["US"]
+    warehouses: ["main-warehouse"]
+    channels: ["us"]
+    shippingMethods:
+      - name: "Standard Shipping"
+        type: "PRICE"
+        channelListings:
+          - channel: "us"
+            price: 9.99
+
+# Product catalog structure  
 productTypes:
-  - name: Book
-    isShippingRequired: false
+  - name: "Book"
+    isShippingRequired: true
     productAttributes:
-      - name: Author
-        inputType: PLAIN_TEXT
-      - name: Genre
-        inputType: DROPDOWN
+      - name: "Author"
+        inputType: "PLAIN_TEXT"
+      - name: "Genre"
+        inputType: "DROPDOWN"
         values:
-          - name: Fiction
-          - name: Non-Fiction
-    variantAttributes:
-      - name: Size
-        inputType: DROPDOWN
-        values:
-          - name: Small
-          - name: Medium
-          - name: Large
+          - name: "Fiction"
+          - name: "Non-Fiction"
 
+categories:
+  - name: "Books"
+    slug: "books"
+
+collections:
+  - name: "Featured Books"
+    slug: "featured-books"
+    channelListings:
+      - channel: "us"
+        isPublished: true
+
+# Content management
+pageTypes:
+  - name: "Blog Post"
+    attributes:
+      - name: "Published Date"
+        inputType: "DATE"
+
+models:
+  - name: "Welcome Post"
+    slug: "welcome"
+    modelType: "Blog Post"
+    attributes:
+      Published Date: "2024-01-01"
+
+menus:
+  - name: "Main Menu"
+    slug: "main"
+    items:
+      - name: "Books"
+        category: "books"
+
+# Products
 products:
-  - name: "Sample Fiction Book"
+  - name: "Sample Book"
+    slug: "sample-book"
     productType: "Book"
-    category: "Fiction"
+    category: "books"
     attributes:
       Author: "Jane Doe"
       Genre: "Fiction"
     variants:
       - name: "Hardcover"
-        sku: "BOOK-001-HC"
+        sku: "BOOK-001"
         weight: 1.2
-        attributes:
-          Size: "Large"
-        channelListings: []
 ```
 
-**Tips:**
+## Configuration Entities
 
-1. See [example.yml](example.yml) for an example configuration and [SCHEMA.md](SCHEMA.md) for detailed documentation of all available fields.
-2. If you need to reuse an attribute across multiple product or page types, you can define it once and reference with the `attribute: <attribute-name>` property. Here is an example:
+The configurator supports comprehensive store management through these entity types:
+
+### Core Store Configuration
+- **shop** - Global store settings (email, pricing, inventory defaults)
+- **channels** - Sales channels with currency, country, and channel-specific settings
+- **taxClasses** - Tax rate definitions by country for products and shipping
+
+### Logistics & Fulfillment  
+- **warehouses** - Physical storage locations with addresses and settings
+- **shippingZones** - Geographical regions with associated warehouses and shipping methods
+
+### Product Catalog
+- **productTypes** - Templates defining product structure and attributes
+- **categories** - Hierarchical product organization with subcategories
+- **collections** - Curated product groupings for merchandising
+- **products** - Individual products with variants, pricing, and attributes
+
+### Content Management
+- **pageTypes** - Templates for structured content pages
+- **models** - Content instances based on page types (like blog posts, landing pages)
+- **menus** - Navigation structures linking to categories, collections, or external URLs
+
+### Advanced Patterns
+
+**Attribute Reuse** - Define attributes once, reference across entity types:
 
 ```yaml
 pageTypes:
-  - name: Blog Post
+  - name: "Blog Post"
     attributes:
-      - name: Published Date # Define a new attribute
-        inputType: DATE
-  - name: Article
+      - name: "Published Date"  # Define once
+        inputType: "DATE"
+  - name: "Article" 
     attributes:
-      - attribute: Published Date # Reference the existing attribute
+      - attribute: "Published Date"  # Reuse existing
 ```
 
-### Limitations
+**Entity References** - Link entities using their identifiers (slugs for most, names for types):
+```yaml
+products:
+  - name: "Sample Book"
+    productType: "Book"        # Reference by name
+    category: "fiction"        # Reference by slug
+    collections: ["featured"]  # Reference by slug
+```
 
-The following features are not yet supported in the current version:
+**Resources:**
+- **[example.yml](example.yml)** - Complete working configuration
+- **[SCHEMA.md](SCHEMA.md)** - Detailed field documentation
 
-- **Attribute Values**: Cannot add attribute values directly to products or variants
-- **Variant Channel Listings**: Cannot add channel listings to individual variants
-
-These limitations will be addressed in future releases.
 
 ## Development
 
