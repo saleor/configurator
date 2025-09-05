@@ -1,10 +1,6 @@
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import {
-  assertDeploymentSuccess,
-  assertIntrospectionSuccess,
-  assertNoChanges,
-} from "../../utils/assertions.js";
+import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import {

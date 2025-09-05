@@ -12,6 +12,15 @@ import {
   writeYaml,
 } from "../../utils/test-helpers.js";
 
+// Type definitions for E2E test data structures
+
+interface TestCategory {
+  name: string;
+  slug: string;
+  description?: string;
+  parent?: string;
+}
+
 describe("E2E Backup and Restore Tests", () => {
   let cli: CliRunner;
   let apiUrl: string;
@@ -265,7 +274,7 @@ describe("E2E Backup and Restore Tests", () => {
 
       expect(backupContent.categories).toHaveLength(2);
       const nestedCategory = backupContent.categories.find(
-        (c: any) => c.slug === "nested-category"
+        (c: TestCategory) => c.slug === "nested-category"
       );
       expect(nestedCategory).toBeDefined();
       expect(nestedCategory.parent).toBe("valid-backup-category");
@@ -466,7 +475,9 @@ describe("E2E Backup and Restore Tests", () => {
       expect(backupContent.channels[1].isActive).toBe(false);
 
       expect(backupContent.categories).toHaveLength(2);
-      const childCategory = backupContent.categories.find((c: any) => c.slug === "integrity-child");
+      const childCategory = backupContent.categories.find(
+        (c: TestCategory) => c.slug === "integrity-child"
+      );
       expect(childCategory.parent).toBe("integrity-parent");
 
       console.log("✅ Backup content integrity verified - all fields preserved exactly");

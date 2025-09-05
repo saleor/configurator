@@ -87,29 +87,29 @@ describe("New Entities Integration", () => {
       const config = mockConfig as SaleorConfig;
 
       // Validate model structure
-      const model = config.models![0];
+      const model = config.models?.[0];
       expect(model.title).toBe("Test Model");
       expect(model.slug).toBe("test-model");
       expect(model.modelType).toBe("Simple");
       expect(model.isPublished).toBe(true);
 
       // Validate collection structure
-      const collection = config.collections![0];
+      const collection = config.collections?.[0];
       expect(collection.name).toBe("Test Collection");
       expect(collection.slug).toBe("test-collection");
       expect(collection.products).toEqual(["product-1"]);
       expect(collection.channelListings).toHaveLength(1);
 
       // Validate menu structure
-      const menu = config.menus![0];
+      const menu = config.menus?.[0];
       expect(menu.name).toBe("Test Menu");
       expect(menu.slug).toBe("test-menu");
       expect(menu.items).toHaveLength(2);
-      expect(menu.items![0].category).toBe("electronics-technology");
-      expect(menu.items![1].page).toBe("about");
+      expect(menu.items?.[0].category).toBe("electronics-technology");
+      expect(menu.items?.[1].page).toBe("about");
 
       // Validate model type structure
-      const modelType = config.modelTypes![0];
+      const modelType = config.modelTypes?.[0];
       expect(modelType.name).toBe("Simple");
       expect(modelType.attributes).toEqual([]);
     });

@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertDeploymentSuccess, assertIntrospectionSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
-import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
+import { cleanupTempDir, createTempDir, writeYaml } from "../../utils/test-helpers.js";
 
 describe("E2E Entity Operations - Complete Coverage", () => {
   let cli: CliRunner;

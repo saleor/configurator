@@ -23,7 +23,7 @@ export async function cleanupTempDir(dirPath: string): Promise<void> {
 }
 
 // Read a YAML file
-export async function readYaml<T = any>(filePath: string): Promise<T> {
+export async function readYaml<T = unknown>(filePath: string): Promise<T> {
   const content = await fs.readFile(filePath, "utf-8");
   return yaml.parse(content) as T;
 }
@@ -41,7 +41,7 @@ export async function copyFixture(fixtureName: string, destPath: string): Promis
 }
 
 // Load a fixture configuration
-export async function loadFixture<T = any>(fixturePath: string): Promise<T> {
+export async function loadFixture<T = unknown>(fixturePath: string): Promise<T> {
   const fullPath = path.join(__dirname, "../fixtures", fixturePath);
   return readYaml<T>(fullPath);
 }
@@ -100,17 +100,17 @@ export function sleep(ms: number): Promise<void> {
 }
 
 // Extract specific sections from YAML config
-export function extractConfigSection(config: any, section: string): any {
-  return config[section];
+export function extractConfigSection(config: unknown, section: string): unknown {
+  return (config as Record<string, unknown>)[section];
 }
 
 // Compare two configurations and return differences
 export function compareConfigs(
-  config1: any,
-  config2: any,
+  config1: unknown,
+  config2: unknown,
   path = ""
-): { path: string; value1: any; value2: any }[] {
-  const differences: { path: string; value1: any; value2: any }[] = [];
+): { path: string; value1: unknown; value2: unknown }[] {
+  const differences: { path: string; value1: unknown; value2: unknown }[] = [];
 
   // Handle null/undefined cases
   if (config1 === config2) return differences;
@@ -137,15 +137,17 @@ export function compareConfigs(
 
   // Handle objects
   if (typeof config1 === "object" && typeof config2 === "object") {
-    const keys = new Set([...Object.keys(config1), ...Object.keys(config2)]);
+    const obj1 = config1 as Record<string, unknown>;
+    const obj2 = config2 as Record<string, unknown>;
+    const keys = new Set([...Object.keys(obj1), ...Object.keys(obj2)]);
     for (const key of keys) {
       const keyPath = path ? `${path}.${key}` : key;
-      if (!(key in config1)) {
-        differences.push({ path: keyPath, value1: undefined, value2: config2[key] });
-      } else if (!(key in config2)) {
-        differences.push({ path: keyPath, value1: config1[key], value2: undefined });
+      if (!(key in obj1)) {
+        differences.push({ path: keyPath, value1: undefined, value2: obj2[key] });
+      } else if (!(key in obj2)) {
+        differences.push({ path: keyPath, value1: obj1[key], value2: undefined });
       } else {
-        differences.push(...compareConfigs(config1[key], config2[key], keyPath));
+        differences.push(...compareConfigs(obj1[key], obj2[key], keyPath));
       }
     }
     return differences;
@@ -189,7 +191,7 @@ export function parseCliOutput(output: string): {
 }
 
 // Create a minimal test configuration
-export function createMinimalConfig(): any {
+export function createMinimalConfig(): unknown {
   return {
     shop: {
       defaultMailSenderName: "Test Store",
@@ -208,7 +210,7 @@ export function createMinimalConfig(): any {
 }
 
 // Create a complex test configuration
-export function createComplexConfig(): any {
+export function createComplexConfig(): unknown {
   return {
     shop: {
       defaultMailSenderName: "Complex Test Store",

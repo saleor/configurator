@@ -159,7 +159,7 @@ describe("MenuService", () => {
       );
 
       const itemWithCategory = { name: "Electronics", category: "electronics-technology" };
-      expect(() => service["validateMenuItemInput"](itemWithCategory)).not.toThrow();
+      expect(() => service.validateMenuItemInput(itemWithCategory)).not.toThrow();
     });
 
     it("should accept menu item with page reference", () => {
@@ -181,7 +181,7 @@ describe("MenuService", () => {
       );
 
       const itemWithPage = { name: "About", page: "about" };
-      expect(() => service["validateMenuItemInput"](itemWithPage)).not.toThrow();
+      expect(() => service.validateMenuItemInput(itemWithPage)).not.toThrow();
     });
 
     it("should accept menu item with collection reference", () => {
@@ -203,7 +203,7 @@ describe("MenuService", () => {
       );
 
       const itemWithCollection = { name: "Featured", collection: "featured-products" };
-      expect(() => service["validateMenuItemInput"](itemWithCollection)).not.toThrow();
+      expect(() => service.validateMenuItemInput(itemWithCollection)).not.toThrow();
     });
 
     it("should accept menu item with URL", () => {
@@ -225,7 +225,7 @@ describe("MenuService", () => {
       );
 
       const itemWithUrl = { name: "External", url: "https://example.com" };
-      expect(() => service["validateMenuItemInput"](itemWithUrl)).not.toThrow();
+      expect(() => service.validateMenuItemInput(itemWithUrl)).not.toThrow();
     });
 
     it("should throw error when menu item has no target", () => {
@@ -247,7 +247,7 @@ describe("MenuService", () => {
       );
 
       const itemWithoutTarget = { name: "Invalid Item" };
-      expect(() => service["validateMenuItemInput"](itemWithoutTarget)).toThrow(
+      expect(() => service.validateMenuItemInput(itemWithoutTarget)).toThrow(
         MenuValidationError
       );
     });
@@ -271,7 +271,7 @@ describe("MenuService", () => {
       );
 
       const itemWithMultipleTargets = { name: "Invalid", category: "cat", page: "page" };
-      expect(() => service["validateMenuItemInput"](itemWithMultipleTargets)).toThrow(
+      expect(() => service.validateMenuItemInput(itemWithMultipleTargets)).toThrow(
         MenuValidationError
       );
     });

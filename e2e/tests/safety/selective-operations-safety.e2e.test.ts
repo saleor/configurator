@@ -4,6 +4,8 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
+import type { Channel } from "../../../src/modules/channel/repository.js";
+import type { Category } from "../../../src/modules/category/repository.js";
 
 describe("E2E Selective Operations Safety Tests", () => {
   let cli: CliRunner;
@@ -154,18 +156,18 @@ describe("E2E Selective Operations Safety Tests", () => {
       // Channels should be UNCHANGED (not modified by --include shop)
       expect(afterShopState.channels).toEqual(initialState.channels);
       const originalChannel = afterShopState.channels?.find(
-        (c: any) => c.slug === "original-channel"
+        (c: Channel) => c.slug === "original-channel"
       );
       expect(originalChannel.name).toBe("Original Channel"); // NOT modified
 
-      const secondChannel = afterShopState.channels?.find((c: any) => c.slug === "second-channel");
+      const secondChannel = afterShopState.channels?.find((c: Channel) => c.slug === "second-channel");
       expect(secondChannel.name).toBe("Second Channel"); // NOT modified
       expect(secondChannel.isActive).toBe(false); // NOT changed to true
 
       // Categories should be UNCHANGED (not modified by --include shop)
       expect(afterShopState.categories).toEqual(initialState.categories);
       const originalCategory = afterShopState.categories?.find(
-        (c: any) => c.slug === "original-category"
+        (c: Category) => c.slug === "original-category"
       );
       expect(originalCategory.name).toBe("Original Category"); // NOT modified
       expect(originalCategory.description).toBe("Original category description"); // NOT modified
@@ -334,7 +336,7 @@ describe("E2E Selective Operations Safety Tests", () => {
       });
 
       expect(initialIntrospect).toHaveSucceeded();
-      const initialState = await readYaml(initialStateIntrospectPath);
+      const _initialState = await readYaml(initialStateIntrospectPath);
 
       // Modify ALL sections (including critical ones that should be excluded)
       const modifiedConfig = {
@@ -388,7 +390,7 @@ describe("E2E Selective Operations Safety Tests", () => {
 
       // Channels should be UNCHANGED (protected by --exclude)
       const criticalChannel = afterExcludeState.channels?.find(
-        (c: any) => c.slug === "critical-channel"
+        (c: Channel) => c.slug === "critical-channel"
       );
       expect(criticalChannel.name).toBe("Critical Channel");
       expect(criticalChannel.currencyCode).toBe("USD"); // NOT changed to EUR
@@ -397,7 +399,7 @@ describe("E2E Selective Operations Safety Tests", () => {
 
       // Categories should be MODIFIED (not excluded)
       const safeCategory = afterExcludeState.categories?.find(
-        (c: any) => c.slug === "safe-category"
+        (c: Category) => c.slug === "safe-category"
       );
       expect(safeCategory.name).toBe("SAFE: Modified Category");
       expect(safeCategory.description).toBe("This change should be applied");
@@ -490,11 +492,11 @@ describe("E2E Selective Operations Safety Tests", () => {
       expect(state.shop.defaultMailSenderName).toBe("MODIFIED Exclude Create Store");
 
       // Channel should NOT exist (excluded from CREATE)
-      const excludedChannel = state.channels?.find((c: any) => c.slug === "excluded-new-channel");
+      const excludedChannel = state.channels?.find((c: Channel) => c.slug === "excluded-new-channel");
       expect(excludedChannel).toBeUndefined();
 
       // Category should exist (not excluded)
-      const allowedCategory = state.categories?.find((c: any) => c.slug === "allowed-new-category");
+      const allowedCategory = state.categories?.find((c: Category) => c.slug === "allowed-new-category");
       expect(allowedCategory).toBeDefined();
       expect(allowedCategory.name).toBe("New Category - Should be created");
 
@@ -633,24 +635,24 @@ describe("E2E Selective Operations Safety Tests", () => {
       expect(complexResult.shop.description).toBe("MODIFIED baseline description");
 
       // Categories should be modified (included)
-      const categoryA = complexResult.categories?.find((c: any) => c.slug === "category-a");
+      const categoryA = complexResult.categories?.find((c: Category) => c.slug === "category-a");
       expect(categoryA.name).toBe("MODIFIED Category A");
       expect(categoryA.description).toBe("MODIFIED Category A description");
 
-      const categoryC = complexResult.categories?.find((c: any) => c.slug === "category-c");
+      const categoryC = complexResult.categories?.find((c: Category) => c.slug === "category-c");
       expect(categoryC.name).toBe("MODIFIED Category C");
 
-      const categoryD = complexResult.categories?.find((c: any) => c.slug === "category-d");
+      const categoryD = complexResult.categories?.find((c: Category) => c.slug === "category-d");
       expect(categoryD).toBeDefined(); // Should be created
       expect(categoryD.name).toBe("Category D");
 
       // Channels should be UNTOUCHED (not included)
       // Secondary channel should still exist (DELETE operation ignored)
-      const primaryChannel = complexResult.channels?.find((c: any) => c.slug === "primary-channel");
+      const primaryChannel = complexResult.channels?.find((c: Channel) => c.slug === "primary-channel");
       expect(primaryChannel.name).toBe("Primary Channel"); // NOT modified
 
       const secondaryChannel = complexResult.channels?.find(
-        (c: any) => c.slug === "secondary-channel"
+        (c: Channel) => c.slug === "secondary-channel"
       );
       expect(secondaryChannel).toBeDefined(); // Still exists (not deleted)
       expect(secondaryChannel.name).toBe("Secondary Channel");
@@ -754,14 +756,14 @@ describe("E2E Selective Operations Safety Tests", () => {
 
       // Production channel should still exist (protected from deletion)
       const productionChannel = protectedResult.channels?.find(
-        (c: any) => c.slug === "production-channel"
+        (c: Channel) => c.slug === "production-channel"
       );
       expect(productionChannel).toBeDefined();
       expect(productionChannel.name).toBe("Production Channel");
 
       // Critical category should still exist (protected from deletion)
       const criticalCategory = protectedResult.categories?.find(
-        (c: any) => c.slug === "critical-category"
+        (c: Category) => c.slug === "critical-category"
       );
       expect(criticalCategory).toBeDefined();
       expect(criticalCategory.name).toBe("Critical Category");

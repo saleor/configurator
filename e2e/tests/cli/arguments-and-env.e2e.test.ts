@@ -4,32 +4,7 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
-
-// Type definitions for E2E test data structures
-interface TestChannel {
-  name: string;
-  slug: string;
-  currencyCode: string;
-  defaultCountry: string;
-  isActive?: boolean;
-}
-
-interface TestCategory {
-  name: string;
-  slug: string;
-  description?: string;
-  parent?: string;
-}
-
-interface TestIntrospectedData {
-  shop: {
-    defaultMailSenderName: string;
-    defaultMailSenderAddress: string;
-    description?: string;
-  };
-  channels: TestChannel[];
-  categories?: TestCategory[];
-}
+import type { Channel } from "../../../src/modules/channel/repository.js";
 
 describe("E2E CLI Arguments and Environment Variables Tests", () => {
   let cli: CliRunner;
@@ -356,7 +331,7 @@ describe("E2E CLI Arguments and Environment Variables Tests", () => {
 
       // Channel should be unchanged (excluded from modification)
       const baselineChannel = resultData.channels?.find(
-        (c: TestChannel) => c.slug === "baseline-channel"
+        (c: Channel) => c.slug === "baseline-channel"
       );
       expect(baselineChannel).toBeDefined();
       expect(baselineChannel!.name).toBe("Baseline Channel"); // Original name

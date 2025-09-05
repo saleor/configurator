@@ -72,20 +72,6 @@ interface TestPageType {
   attributes: TestPageAttribute[];
 }
 
-interface TestIntrospectedData {
-  shop: {
-    defaultMailSenderName: string;
-    defaultMailSenderAddress: string;
-    description?: string;
-    trackInventoryByDefault?: boolean;
-    defaultWeightUnit?: string;
-  };
-  channels: TestChannel[];
-  categories?: TestCategory[];
-  productTypes: TestProductType[];
-  pageTypes: TestPageType[];
-}
-
 describe("E2E Complete Round-Trip Tests - All Entities", () => {
   let cli: CliRunner;
   let apiUrl: string;
@@ -675,43 +661,43 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
         (c: TestChannel) => c.slug === "primary-sales"
       );
       expect(primaryChannel).toBeDefined();
-      expect(primaryChannel!.name).toBe("Primary Sales Channel");
-      expect(primaryChannel!.currencyCode).toBe("USD");
-      expect(primaryChannel!.defaultCountry).toBe("US");
-      expect(primaryChannel!.isActive).toBe(true);
+      expect(primaryChannel?.name).toBe("Primary Sales Channel");
+      expect(primaryChannel?.currencyCode).toBe("USD");
+      expect(primaryChannel?.defaultCountry).toBe("US");
+      expect(primaryChannel?.isActive).toBe(true);
 
       const europeanChannel = firstIntrospectedData.channels.find(
         (c: TestChannel) => c.slug === "european-market"
       );
       expect(europeanChannel).toBeDefined();
-      expect(europeanChannel!.currencyCode).toBe("EUR");
-      expect(europeanChannel!.defaultCountry).toBe("DE");
+      expect(europeanChannel?.currencyCode).toBe("EUR");
+      expect(europeanChannel?.defaultCountry).toBe("DE");
 
       const ukChannel = firstIntrospectedData.channels.find(
         (c: TestChannel) => c.slug === "uk-market"
       );
       expect(ukChannel).toBeDefined();
-      expect(ukChannel!.isActive).toBe(false); // Should preserve false value
+      expect(ukChannel?.isActive).toBe(false); // Should preserve false value
 
       // Verify Categories data preservation with hierarchy
       expect(firstIntrospectedData.categories).toHaveLength(10);
-      const electronicsCategory = firstIntrospectedData.categories!.find(
+      const electronicsCategory = firstIntrospectedData.categories?.find(
         (c: TestCategory) => c.slug === "electronics"
       );
       expect(electronicsCategory).toBeDefined();
-      expect(electronicsCategory!.name).toBe("Electronics");
+      expect(electronicsCategory?.name).toBe("Electronics");
 
-      const computersCategory = firstIntrospectedData.categories!.find(
+      const computersCategory = firstIntrospectedData.categories?.find(
         (c: TestCategory) => c.slug === "computers-laptops"
       );
       expect(computersCategory).toBeDefined();
-      expect(computersCategory!.parent).toBe("electronics");
+      expect(computersCategory?.parent).toBe("electronics");
 
-      const gamingLaptopsCategory = firstIntrospectedData.categories!.find(
+      const gamingLaptopsCategory = firstIntrospectedData.categories?.find(
         (c: TestCategory) => c.slug === "gaming-laptops"
       );
       expect(gamingLaptopsCategory).toBeDefined();
-      expect(gamingLaptopsCategory!.parent).toBe("computers-laptops");
+      expect(gamingLaptopsCategory?.parent).toBe("computers-laptops");
 
       // Verify ProductTypes with attributes preservation
       expect(firstIntrospectedData.productTypes).toHaveLength(3);
@@ -720,30 +706,30 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
         (pt: TestProductType) => pt.name === "Electronics Product"
       );
       expect(electronicsProductType).toBeDefined();
-      expect(electronicsProductType!.isShippingRequired).toBe(true);
-      expect(electronicsProductType!.productAttributes).toHaveLength(4);
-      expect(electronicsProductType!.variantAttributes).toHaveLength(2);
+      expect(electronicsProductType?.isShippingRequired).toBe(true);
+      expect(electronicsProductType?.productAttributes).toHaveLength(4);
+      expect(electronicsProductType?.variantAttributes).toHaveLength(2);
 
-      const brandAttribute = electronicsProductType!.productAttributes.find(
+      const brandAttribute = electronicsProductType?.productAttributes.find(
         (attr: TestProductAttribute) => attr.slug === "brand"
       );
       expect(brandAttribute).toBeDefined();
-      expect(brandAttribute!.type).toBe("DROPDOWN");
-      expect(brandAttribute!.valueRequired).toBe(true);
-      expect(brandAttribute!.values).toHaveLength(6);
+      expect(brandAttribute?.type).toBe("DROPDOWN");
+      expect(brandAttribute?.valueRequired).toBe(true);
+      expect(brandAttribute?.values).toHaveLength(6);
 
-      const colorVariantAttribute = electronicsProductType!.variantAttributes.find(
+      const colorVariantAttribute = electronicsProductType?.variantAttributes.find(
         (attr: TestProductAttribute) => attr.slug === "color"
       );
       expect(colorVariantAttribute).toBeDefined();
-      expect(colorVariantAttribute!.type).toBe("SWATCH");
-      expect(colorVariantAttribute!.values).toHaveLength(5);
+      expect(colorVariantAttribute?.type).toBe("SWATCH");
+      expect(colorVariantAttribute?.values).toHaveLength(5);
 
       const digitalProductType = firstIntrospectedData.productTypes.find(
         (pt: TestProductType) => pt.name === "Digital Product"
       );
       expect(digitalProductType).toBeDefined();
-      expect(digitalProductType!.isShippingRequired).toBe(false); // Digital products don't require shipping
+      expect(digitalProductType?.isShippingRequired).toBe(false); // Digital products don't require shipping
 
       // Verify PageTypes with attributes preservation
       expect(firstIntrospectedData.pageTypes).toHaveLength(3);
@@ -752,22 +738,22 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
         (pt: TestPageType) => pt.name === "Blog Post"
       );
       expect(blogPostPageType).toBeDefined();
-      expect(blogPostPageType!.attributes).toHaveLength(5);
+      expect(blogPostPageType?.attributes).toHaveLength(5);
 
-      const authorAttribute = blogPostPageType!.attributes.find(
+      const authorAttribute = blogPostPageType?.attributes.find(
         (attr: TestPageAttribute) => attr.slug === "author"
       );
       expect(authorAttribute).toBeDefined();
-      expect(authorAttribute!.type).toBe("PLAIN_TEXT");
-      expect(authorAttribute!.valueRequired).toBe(true);
-      expect(authorAttribute!.storefrontSearchPosition).toBe(1);
+      expect(authorAttribute?.type).toBe("PLAIN_TEXT");
+      expect(authorAttribute?.valueRequired).toBe(true);
+      expect(authorAttribute?.storefrontSearchPosition).toBe(1);
 
-      const tagsAttribute = blogPostPageType!.attributes.find(
+      const tagsAttribute = blogPostPageType?.attributes.find(
         (attr: TestPageAttribute) => attr.slug === "tags"
       );
       expect(tagsAttribute).toBeDefined();
-      expect(tagsAttribute!.type).toBe("MULTISELECT");
-      expect(tagsAttribute!.values).toHaveLength(5);
+      expect(tagsAttribute?.type).toBe("MULTISELECT");
+      expect(tagsAttribute?.values).toHaveLength(5);
 
       // Verify data consistency between first and second introspection
       expect(JSON.stringify(secondIntrospectedData, null, 2)).toBe(
@@ -872,11 +858,11 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
       expect(fullIntrospectedData.channels).toHaveLength(2);
       expect(fullIntrospectedData.categories).toHaveLength(2);
 
-      const originalCategory1 = fullIntrospectedData.categories!.find(
+      const originalCategory1 = fullIntrospectedData.categories?.find(
         (c: TestCategory) => c.slug === "selective-category-1"
       );
       expect(originalCategory1).toBeDefined();
-      expect(originalCategory1!.description).toBe("First selective category");
+      expect(originalCategory1?.description).toBe("First selective category");
     }, 240000);
   });
 
@@ -1129,56 +1115,56 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
 
       // Verify complex nested category hierarchy
       expect(introspectedData.categories).toHaveLength(7);
-      const rootCategory = introspectedData.categories!.find(
+      const rootCategory = introspectedData.categories?.find(
         (c: TestCategory) => c.slug === "root-category"
       );
       expect(rootCategory).toBeDefined();
-      expect(rootCategory!.parent).toBeUndefined(); // Root has no parent
+      expect(rootCategory?.parent).toBeUndefined(); // Root has no parent
 
-      const level3Category = introspectedData.categories!.find(
+      const level3Category = introspectedData.categories?.find(
         (c: TestCategory) => c.slug === "level-3-deep-category"
       );
       expect(level3Category).toBeDefined();
-      expect(level3Category!.parent).toBe("level-2-category-a1");
+      expect(level3Category?.parent).toBe("level-2-category-a1");
 
       // Verify complex product type with all attribute types
       const complexProductType = introspectedData.productTypes.find(
         (pt: TestProductType) => pt.name === "Complex Product Type"
       );
       expect(complexProductType).toBeDefined();
-      expect(complexProductType!.productAttributes).toHaveLength(3);
-      expect(complexProductType!.variantAttributes).toHaveLength(2);
+      expect(complexProductType?.productAttributes).toHaveLength(3);
+      expect(complexProductType?.variantAttributes).toHaveLength(2);
 
-      const multiselectAttr = complexProductType!.productAttributes.find(
+      const multiselectAttr = complexProductType?.productAttributes.find(
         (attr: TestProductAttribute) => attr.type === "MULTISELECT"
       );
       expect(multiselectAttr).toBeDefined();
-      expect(multiselectAttr!.values).toHaveLength(8);
+      expect(multiselectAttr?.values).toHaveLength(8);
 
-      const swatchAttr = complexProductType!.variantAttributes.find(
+      const swatchAttr = complexProductType?.variantAttributes.find(
         (attr: TestProductAttribute) => attr.type === "SWATCH"
       );
       expect(swatchAttr).toBeDefined();
-      expect(swatchAttr!.values).toHaveLength(6);
-      expect(swatchAttr!.values![0].value).toBe("#191970"); // Midnight Blue hex value
+      expect(swatchAttr?.values).toHaveLength(6);
+      expect(swatchAttr?.values?.[0].value).toBe("#191970"); // Midnight Blue hex value
 
       // Verify complex page type with all attribute types
       const complexPageType = introspectedData.pageTypes.find(
         (pt: TestPageType) => pt.name === "Complex Page Type"
       );
       expect(complexPageType).toBeDefined();
-      expect(complexPageType!.attributes).toHaveLength(4);
+      expect(complexPageType?.attributes).toHaveLength(4);
 
-      const fileAttr = complexPageType!.attributes.find(
+      const fileAttr = complexPageType?.attributes.find(
         (attr: TestPageAttribute) => attr.type === "FILE"
       );
       expect(fileAttr).toBeDefined();
 
-      const dateTimeAttr = complexPageType!.attributes.find(
+      const dateTimeAttr = complexPageType?.attributes.find(
         (attr: TestPageAttribute) => attr.type === "DATE_TIME"
       );
       expect(dateTimeAttr).toBeDefined();
-      expect(dateTimeAttr!.storefrontSearchPosition).toBe(2);
+      expect(dateTimeAttr?.storefrontSearchPosition).toBe(2);
 
       console.log("✅ Complex structure round-trip test passed!");
     }, 360000);
@@ -1307,39 +1293,39 @@ describe("E2E Complete Round-Trip Tests - All Entities", () => {
         (c: TestChannel) => c.slug === "special-name-channel"
       );
       expect(specialChannel).toBeDefined();
-      expect(specialChannel!.name).toBe("Spëcial Ñamé Channel");
+      expect(specialChannel?.name).toBe("Spëcial Ñamé Channel");
 
-      const categoryWithQuotes = introspectedData.categories!.find(
+      const categoryWithQuotes = introspectedData.categories?.find(
         (c: TestCategory) => c.slug === "category-with-quotes-specials"
       );
       expect(categoryWithQuotes).toBeDefined();
-      expect(categoryWithQuotes!.name).toContain('"Quotes"');
-      expect(categoryWithQuotes!.description).toContain("📦");
-      expect(categoryWithQuotes!.description).toContain("\n");
+      expect(categoryWithQuotes?.name).toContain('"Quotes"');
+      expect(categoryWithQuotes?.description).toContain("📦");
+      expect(categoryWithQuotes?.description).toContain("\n");
 
-      const longCategory = introspectedData.categories!.find(
+      const longCategory = introspectedData.categories?.find(
         (c: TestCategory) => c.slug === "very-long-category-name"
       );
       expect(longCategory).toBeDefined();
-      expect(longCategory!.name.length).toBeGreaterThan(80);
-      expect(longCategory!.description!).toContain("em-dashes—like");
+      expect(longCategory?.name.length).toBeGreaterThan(80);
+      expect(longCategory?.description).toContain("em-dashes—like");
 
       const edgeProductType = introspectedData.productTypes.find(
         (pt: TestProductType) => pt.name === "Edge Case Product Type"
       );
       expect(edgeProductType).toBeDefined();
 
-      const specialAttribute = edgeProductType!.productAttributes.find(
+      const specialAttribute = edgeProductType?.productAttributes.find(
         (attr: TestProductAttribute) => attr.slug === "attribute-with-special-chars"
       );
       expect(specialAttribute).toBeDefined();
-      expect(specialAttribute!.name).toContain("Spëcial");
+      expect(specialAttribute?.name).toContain("Spëcial");
 
-      const emojiValue = specialAttribute!.values!.find(
+      const emojiValue = specialAttribute?.values?.find(
         (val: TestAttributeValue) => val.slug === "emoji-choice"
       );
       expect(emojiValue).toBeDefined();
-      expect(emojiValue!.name).toContain("🎉");
+      expect(emojiValue?.name).toContain("🎉");
 
       console.log("✅ Edge case round-trip test passed!");
     }, 300000);

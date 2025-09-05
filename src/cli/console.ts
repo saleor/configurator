@@ -60,7 +60,7 @@ export class Console {
       return (
         err instanceof Error &&
         "getRecoverySuggestions" in err &&
-        typeof (err as any).getRecoverySuggestions === "function"
+        typeof (err as BaseError).getRecoverySuggestions === "function"
       );
     };
 
@@ -71,9 +71,9 @@ export class Console {
       // Add recovery suggestions if available
       const suggestions = error.getRecoverySuggestions();
       if (suggestions && suggestions.length > 0) {
-        formattedError += "\n\n" + chalk.yellow("💡 Suggestions:");
+        formattedError += `\n\n${chalk.yellow("💡 Suggestions:")}`;
         for (const suggestion of suggestions) {
-          formattedError += "\n  • " + suggestion;
+          formattedError += `\n  • ${suggestion}`;
         }
       }
     } else if (error instanceof Error) {

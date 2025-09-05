@@ -321,10 +321,10 @@ describe("E2E Complex Scenarios", () => {
       expect(verifyConfig.channels).toBeDefined();
       expect(verifyConfig.channels.length).toBeGreaterThanOrEqual(4);
 
-      const naChannel = verifyConfig.channels.find((c: any) => c.slug === "north-america");
-      const euChannel = verifyConfig.channels.find((c: any) => c.slug === "europe");
-      const apChannel = verifyConfig.channels.find((c: any) => c.slug === "asia-pacific");
-      const ukChannel = verifyConfig.channels.find((c: any) => c.slug === "united-kingdom");
+      const naChannel = verifyConfig.channels.find((c: TestChannel) => c.slug === "north-america");
+      const euChannel = verifyConfig.channels.find((c: TestChannel) => c.slug === "europe");
+      const apChannel = verifyConfig.channels.find((c: TestChannel) => c.slug === "asia-pacific");
+      const ukChannel = verifyConfig.channels.find((c: TestChannel) => c.slug === "united-kingdom");
 
       expect(naChannel?.currencyCode).toBe("USD");
       expect(euChannel?.currencyCode).toBe("EUR");
@@ -332,10 +332,14 @@ describe("E2E Complex Scenarios", () => {
       expect(ukChannel?.currencyCode).toBe("GBP");
 
       // Verify category hierarchy is preserved
-      const technology = verifyConfig.categories.find((c: any) => c.slug === "technology");
-      const computers = verifyConfig.categories.find((c: any) => c.slug === "computers");
-      const smartphones = verifyConfig.categories.find((c: any) => c.slug === "smartphones");
-      const menssFashion = verifyConfig.categories.find((c: any) => c.slug === "mens-fashion");
+      const technology = verifyConfig.categories.find((c: TestCategory) => c.slug === "technology");
+      const computers = verifyConfig.categories.find((c: TestCategory) => c.slug === "computers");
+      const smartphones = verifyConfig.categories.find(
+        (c: TestCategory) => c.slug === "smartphones"
+      );
+      const menssFashion = verifyConfig.categories.find(
+        (c: TestCategory) => c.slug === "mens-fashion"
+      );
 
       expect(technology).toBeDefined();
       expect(computers).toBeDefined();
@@ -348,9 +352,11 @@ describe("E2E Complex Scenarios", () => {
 
       // Verify product types with attributes
       const electronicsType = verifyConfig.productTypes.find(
-        (pt: any) => pt.slug === "electronics"
+        (pt: TestProductType) => pt.slug === "electronics"
       );
-      const clothingType = verifyConfig.productTypes.find((pt: any) => pt.slug === "clothing");
+      const clothingType = verifyConfig.productTypes.find(
+        (pt: TestProductType) => pt.slug === "clothing"
+      );
 
       expect(electronicsType).toBeDefined();
       expect(clothingType).toBeDefined();
@@ -359,10 +365,10 @@ describe("E2E Complex Scenarios", () => {
 
       // Verify attributes are properly created
       const brandAttr = electronicsType.productAttributes.find(
-        (attr: any) => attr.slug === "brand"
+        (attr: TestAttribute) => attr.slug === "brand"
       );
       const materialAttr = clothingType.productAttributes.find(
-        (attr: any) => attr.slug === "material"
+        (attr: TestAttribute) => attr.slug === "material"
       );
 
       expect(brandAttr).toBeDefined();
@@ -373,9 +379,11 @@ describe("E2E Complex Scenarios", () => {
       // Verify page types
       expect(verifyConfig.pageTypes).toBeDefined();
       const landingPageType = verifyConfig.pageTypes.find(
-        (pt: any) => pt.slug === "product-landing-page"
+        (pt: TestPageType) => pt.slug === "product-landing-page"
       );
-      const blogType = verifyConfig.pageTypes.find((pt: any) => pt.slug === "blog-article");
+      const blogType = verifyConfig.pageTypes.find(
+        (pt: TestPageType) => pt.slug === "blog-article"
+      );
 
       expect(landingPageType).toBeDefined();
       expect(blogType).toBeDefined();
@@ -551,13 +559,21 @@ describe("E2E Complex Scenarios", () => {
 
       // Verify all phases are present
       expect(finalConfig.shop.defaultMailSenderName).toBe("Incremental Store");
-      expect(finalConfig.channels.find((c: any) => c.slug === "main-channel")).toBeDefined();
-      expect(finalConfig.categories.find((c: any) => c.slug === "home-garden")).toBeDefined();
-      expect(finalConfig.categories.find((c: any) => c.slug === "furniture")).toBeDefined();
       expect(
-        finalConfig.productTypes.find((pt: any) => pt.slug === "furniture-type")
+        finalConfig.channels.find((c: TestChannel) => c.slug === "main-channel")
       ).toBeDefined();
-      expect(finalConfig.pageTypes.find((pt: any) => pt.slug === "category-page")).toBeDefined();
+      expect(
+        finalConfig.categories.find((c: TestCategory) => c.slug === "home-garden")
+      ).toBeDefined();
+      expect(
+        finalConfig.categories.find((c: TestCategory) => c.slug === "furniture")
+      ).toBeDefined();
+      expect(
+        finalConfig.productTypes.find((pt: TestProductType) => pt.slug === "furniture-type")
+      ).toBeDefined();
+      expect(
+        finalConfig.pageTypes.find((pt: TestPageType) => pt.slug === "category-page")
+      ).toBeDefined();
 
       console.log("✅ Incremental configuration changes verified successfully");
     }, 240000); // 4 minutes timeout
@@ -658,13 +674,15 @@ describe("E2E Complex Scenarios", () => {
       const modifiedVerifyConfig = await readYaml(modifiedVerifyPath);
       expect(modifiedVerifyConfig.shop.defaultMailSenderName).toBe("Modified Rollback Store");
       expect(
-        modifiedVerifyConfig.channels.find((c: any) => c.slug === "modified-channel")
+        modifiedVerifyConfig.channels.find((c: TestChannel) => c.slug === "modified-channel")
       ).toBeDefined();
       expect(
-        modifiedVerifyConfig.categories.find((c: any) => c.slug === "modified-category")
+        modifiedVerifyConfig.categories.find((c: TestCategory) => c.slug === "modified-category")
       ).toBeDefined();
       expect(
-        modifiedVerifyConfig.productTypes?.find((pt: any) => pt.slug === "new-product-type")
+        modifiedVerifyConfig.productTypes?.find(
+          (pt: TestProductType) => pt.slug === "new-product-type"
+        )
       ).toBeDefined();
 
       // Now rollback to original configuration
@@ -686,18 +704,18 @@ describe("E2E Complex Scenarios", () => {
       expect(rollbackVerifyConfig.shop.defaultMailSenderName).toBe("Rollback Store");
       expect(rollbackVerifyConfig.shop.description).toBe("Original configuration");
       expect(
-        rollbackVerifyConfig.channels.find((c: any) => c.slug === "rollback-channel")
+        rollbackVerifyConfig.channels.find((c: TestChannel) => c.slug === "rollback-channel")
       ).toBeDefined();
       expect(
-        rollbackVerifyConfig.categories.find((c: any) => c.slug === "original-category")
+        rollbackVerifyConfig.categories.find((c: TestCategory) => c.slug === "original-category")
       ).toBeDefined();
 
       // Verify modified entities are no longer present
       expect(
-        rollbackVerifyConfig.channels.find((c: any) => c.slug === "modified-channel")
+        rollbackVerifyConfig.channels.find((c: TestChannel) => c.slug === "modified-channel")
       ).toBeUndefined();
       expect(
-        rollbackVerifyConfig.categories.find((c: any) => c.slug === "modified-category")
+        rollbackVerifyConfig.categories.find((c: TestCategory) => c.slug === "modified-category")
       ).toBeUndefined();
 
       console.log("✅ Configuration rollback verified successfully");

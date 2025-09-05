@@ -3,6 +3,14 @@ import { fileURLToPath } from "node:url";
 import { type ExecaChildProcess, type Options as ExecaOptions, execa } from "execa";
 import stripAnsi from "strip-ansi";
 
+// Interface for execa error handling
+interface ExecaError extends Error {
+  exitCode?: number;
+  stdout?: string;
+  stderr?: string;
+  timedOut?: boolean;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -82,7 +90,7 @@ export class CliRunner {
       return cliResult;
     } catch (error: unknown) {
       // Handle timeout and other execution errors
-      const execaError = error as any;
+      const execaError = error as ExecaError;
       const isTimeout = execaError.timedOut || false;
 
       const cliResult: CliResult = {
@@ -315,7 +323,7 @@ export class CliRunner {
 
       return cliResult;
     } catch (error: unknown) {
-      const execaError = error as any;
+      const execaError = error as ExecaError;
       return {
         exitCode: execaError.exitCode ?? 1,
         stdout: execaError.stdout ?? "",

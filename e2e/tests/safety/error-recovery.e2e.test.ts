@@ -4,6 +4,8 @@ import { assertDeploymentSuccess } from "../../utils/assertions.js";
 import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
+import type { Channel } from "../../../src/modules/channel/repository.js";
+import type { Category } from "../../../src/modules/category/repository.js";
 
 describe("E2E Error Recovery and Partial Failure Tests", () => {
   let cli: CliRunner;
@@ -192,7 +194,7 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
       });
 
       expect(baselineIntrospect).toHaveSucceeded();
-      const baselineState = await readYaml(baselineIntrospectPath);
+      const _baselineState = await readYaml(baselineIntrospectPath);
 
       // Create problematic config that might cause errors
       const problematicConfig = {
@@ -235,7 +237,7 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
 
       // Deploy problematic config
       console.log("⚠️ Deploying potentially problematic config...");
-      const problematicDeploy = await cli.deploy(apiUrl, token, {
+      const _problematicDeploy = await cli.deploy(apiUrl, token, {
         config: configPath,
         skipDiff: true,
         timeout: 60000, // Shorter timeout to catch hanging issues
@@ -257,14 +259,14 @@ describe("E2E Error Recovery and Partial Failure Tests", () => {
       expect(integrityState.categories).toBeDefined();
 
       const baselineChannel = integrityState.channels?.find(
-        (c: any) => c.slug === "baseline-channel"
+        (c: Channel) => c.slug === "baseline-channel"
       );
       expect(baselineChannel).toBeDefined();
       expect(baselineChannel.name).toBe("Baseline Channel");
       expect(baselineChannel.currencyCode).toBe("USD");
 
       const baselineCategory = integrityState.categories?.find(
-        (c: any) => c.slug === "baseline-category"
+        (c: Category) => c.slug === "baseline-category"
       );
       expect(baselineCategory).toBeDefined();
       expect(baselineCategory.name).toBe("Baseline Category");

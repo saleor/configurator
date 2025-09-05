@@ -5,6 +5,33 @@ import { CliRunner } from "../../utils/cli-runner.js";
 import { getAdminToken, getTestConfig, waitForApi } from "../../utils/test-env.js";
 import { cleanupTempDir, createTempDir, readYaml, writeYaml } from "../../utils/test-helpers.js";
 
+// Type definitions for config structures
+interface Category {
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+interface Channel {
+  name: string;
+  slug: string;
+  currencyCode: string;
+  defaultCountry: string;
+}
+
+interface ConfigWithCategories {
+  categories: Category[];
+  shop?: unknown;
+  productTypes?: unknown;
+}
+
+interface ConfigWithChannels {
+  channels: Channel[];
+  shop?: unknown;
+  categories?: unknown;
+  productTypes?: unknown;
+}
+
 describe("E2E Selective Operations", () => {
   let cli: CliRunner;
   let apiUrl: string;
@@ -144,7 +171,9 @@ describe("E2E Selective Operations", () => {
 
       // Verify the Electronics category is there
       expect(categoriesConfig.categories).toBeDefined();
-      const electronics = categoriesConfig.categories.find((c: any) => c.slug === "electronics");
+      const electronics = (categoriesConfig as ConfigWithCategories).categories.find(
+        (c: Category) => c.slug === "electronics"
+      );
       expect(electronics).toBeDefined();
     }, 120000);
   });
@@ -230,7 +259,9 @@ describe("E2E Selective Operations", () => {
       expect(config).toHaveProperty("productTypes");
 
       // Verify we have the expected entities
-      const excludeChannel = config.channels.find((c: any) => c.slug === "exclude-test-channel");
+      const excludeChannel = (config as ConfigWithChannels).channels.find(
+        (c: Channel) => c.slug === "exclude-test-channel"
+      );
       expect(excludeChannel).toBeDefined();
     }, 120000);
   });

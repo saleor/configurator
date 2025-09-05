@@ -210,7 +210,7 @@ export const cliMatchers = {
 
 // Extend Vitest's expect with custom matchers
 declare module "vitest" {
-  interface Assertion<T = any> {
+  interface Assertion<_T = unknown> {
     toHaveSucceeded(): void;
     toHaveFailed(): void;
     toHaveExitCode(code: number): void;
@@ -277,22 +277,27 @@ export function assertValidationError(result: CliResult): void {
 }
 
 // Assert configuration content
-export function assertConfigContains(config: any, path: string, value: any): void {
+export function assertConfigContains(config: unknown, path: string, value: unknown): void {
   const keys = path.split(".");
-  let current = config;
+  let current: unknown = config;
 
   for (const key of keys) {
     expect(current).toHaveProperty(key);
-    current = current[key];
+    current = (current as Record<string, unknown>)[key];
   }
 
   expect(current).toEqual(value);
 }
 
 // Assert array contains item with properties
-export function assertArrayContainsItem(array: any[], properties: Record<string, any>): void {
+export function assertArrayContainsItem(
+  array: unknown[],
+  properties: Record<string, unknown>
+): void {
   const found = array.some((item) =>
-    Object.entries(properties).every(([key, value]) => item[key] === value)
+    Object.entries(properties).every(
+      ([key, value]) => (item as Record<string, unknown>)[key] === value
+    )
   );
 
   if (!found) {
