@@ -91,8 +91,10 @@ async function handleCliError(error: unknown): Promise<void> {
     process.exit(0);
   }
 
-  // Log the full error for debugging
-  logger.error("CLI error occurred", { error });
+  // Log the full error for debugging (unless in test environment to avoid noise)
+  if (process.env.NODE_ENV !== "test") {
+    logger.error("CLI error occurred", { error });
+  }
 
   // Display user-friendly error message
   if (error instanceof BaseError) {

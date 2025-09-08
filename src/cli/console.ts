@@ -51,11 +51,39 @@ export class Console {
   }
 
   error(error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    const text = chalk.red(message);
-    global.console.error(text);
+    let formattedError = "";
 
-    return text;
+    // Type guard to check if error has BaseError-like properties
+    const isBaseError = (
+      err: unknown
+    ): err is { message: string; getRecoverySuggestions: () => string[] } => {
+      return (
+        err instanceof Error &&
+        "getRecoverySuggestions" in err &&
+        typeof (err as BaseError).getRecoverySuggestions === "function"
+      );
+    };
+
+    if (isBaseError(error)) {
+      // Format the main error message
+      formattedError = chalk.red(`❌ ${error.message}`);
+
+      // Add recovery suggestions if available
+      const suggestions = error.getRecoverySuggestions();
+      if (suggestions && suggestions.length > 0) {
+        formattedError += `\n\n${chalk.yellow("💡 Suggestions:")}`;
+        for (const suggestion of suggestions) {
+          formattedError += `\n  • ${suggestion}`;
+        }
+      }
+    } else if (error instanceof Error) {
+      formattedError = chalk.red(`❌ ${error.message}`);
+    } else {
+      formattedError = chalk.red(`❌ ${String(error)}`);
+    }
+
+    global.console.error(formattedError);
+    return formattedError;
   }
 
   prompt(message: string) {

@@ -366,7 +366,9 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain(
           "→ Fix: Check your Saleor API token has the required permissions"
         );
-        expect(userMessage).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+        expect(userMessage).toContain(
+          "→ Check: Ensure you have admin permissions for the operations you're trying to perform"
+        );
         expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=shop");
       }
     });
@@ -383,10 +385,10 @@ describe("Error Handling Integration", () => {
         const stageError = error as StageAggregateError;
         const userMessage = stageError.getUserMessage();
 
+        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
         expect(userMessage).toContain(
-          "→ Fix: Check your Saleor API URL and network connection"
+          "→ Check: Verify the SALEOR_API_URL environment variable is correct"
         );
-        expect(userMessage).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
         expect(userMessage).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
       }
     });
@@ -405,7 +407,9 @@ describe("Error Handling Integration", () => {
 
         expect(userMessage).toContain("GraphQL Error:");
         // The GraphQL error matches specific pattern
-        expect(userMessage).toContain("→ Fix: Review the GraphQL error details for specific field issues");
+        expect(userMessage).toContain(
+          "→ Fix: Review the GraphQL error details for specific field issues"
+        );
 
         expect(mockedGraphQLError.fromCombinedError).toHaveBeenCalled();
       }
@@ -470,9 +474,7 @@ describe("Error Handling Integration", () => {
 
         // Network error
         expect(userMessage).toContain("• NetworkError");
-        expect(userMessage).toContain(
-          "→ Fix: Check your Saleor API URL and network connection"
-        );
+        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
 
         // General suggestions
         expect(userMessage).toContain("General suggestions:");
@@ -617,9 +619,7 @@ describe("Error Handling Integration", () => {
         );
 
         // System error suggestions
-        expect(userMessage).toContain(
-          "→ Fix: Check your Saleor API URL and network connection"
-        );
+        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
         expect(userMessage).toContain(
           "→ Fix: Check your Saleor API token has the required permissions"
         );

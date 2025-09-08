@@ -264,7 +264,9 @@ describe("DeploymentError Classes", () => {
 
       // Check that permission-specific recovery suggestions are included
       expect(message).toContain("→ Fix: Check your Saleor API token has the required permissions");
-      expect(message).toContain("→ Check: Ensure you have admin permissions for the operations you're trying to perform");
+      expect(message).toContain(
+        "→ Check: Ensure you have admin permissions for the operations you're trying to perform"
+      );
       expect(message).toContain("→ Run: saleor-configurator introspect --include=shop");
     });
 
@@ -279,7 +281,9 @@ describe("DeploymentError Classes", () => {
 
       // Check that network-specific recovery suggestions are included
       expect(message).toContain("→ Fix: Check your Saleor API URL and network connection");
-      expect(message).toContain("→ Check: Verify the SALEOR_API_URL environment variable is correct");
+      expect(message).toContain(
+        "→ Check: Verify the SALEOR_API_URL environment variable is correct"
+      );
       expect(message).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
     });
 
