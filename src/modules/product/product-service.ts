@@ -4,7 +4,7 @@ import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
-import type { Product, ProductOperations, ProductVariant } from "./repository";
+import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant } from "./repository";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;
@@ -177,10 +177,11 @@ export class ProductService {
 
       // Update existing product (note: productType cannot be changed after creation)
       // Build minimal input - only include fields that are not empty to avoid GraphQL errors  
-      const updateProductInput: any = {
+      const updateProductInput: ProductUpdateInput = {
         name: productInput.name,
         slug: slug,
         category: categoryId,
+        attributes: [],
       };
 
       // Always include attributes array (tests expect this field)
@@ -213,11 +214,12 @@ export class ProductService {
 
     // Create new product
     // Build minimal input - only include fields that are not empty to avoid GraphQL errors
-    const createProductInput: any = {
+    const createProductInput: ProductCreateInput = {
       name: productInput.name,
       slug: slug,
       productType: productTypeId,
       category: categoryId,
+      attributes: [],
     };
 
     // Always include attributes array (tests expect this field)
@@ -229,7 +231,7 @@ export class ProductService {
       createProductInput.description = JSON.stringify({
         time: Date.now(),
         blocks: [{
-          id: "desc-" + Date.now(),
+          id: `desc-${Date.now()}`,
           data: { text: productInput.description },
           type: "paragraph"
         }],
