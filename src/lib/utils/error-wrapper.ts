@@ -14,15 +14,15 @@ function isCombinedError(error: unknown): error is CombinedError {
   );
 }
 
-/**
- * Wraps a service method with error handling and logging
- */
 // Type for error constructor that accepts at least a message parameter
 // Uses any[] to allow for flexible parameter types in derived error classes while maintaining compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // biome-ignore lint/suspicious/noExplicitAny: Type definition requires flexible parameter handling
 type ErrorConstructor = new (message: string, ...args: any[]) => Error;
 
+/**
+ * Wraps a service method with error handling and logging
+ */
 export async function wrapServiceCall<T>(
   operation: string,
   entityType: string,
@@ -122,8 +122,8 @@ export async function wrapBatch<T, R>(
 }
 
 /**
- * Utility for wrapping service methods with standardized error handling
- * @deprecated Use the individual functions instead
+ * Service error wrapper utility object
+ * Provides consistent error handling across service layer
  */
 export const ServiceErrorWrapper = {
   wrapServiceCall,

@@ -3,8 +3,23 @@ import type { WarehouseInput } from "../../../modules/config/schema/schema";
 import type { Warehouse } from "../../../modules/warehouse/repository";
 import { WarehouseComparator } from "./warehouse-comparator";
 
+// Test subclass to expose protected methods for testing
+class TestableWarehouseComparator extends WarehouseComparator {
+  public testValidateUniqueIdentifiers(entities: readonly WarehouseInput[]): void {
+    this.validateUniqueIdentifiers(entities);
+  }
+
+  public testDeduplicateEntities(entities: readonly WarehouseInput[]): readonly WarehouseInput[] {
+    return this.deduplicateEntities(entities) as readonly WarehouseInput[];
+  }
+
+  public testGetEntityName(entity: WarehouseInput | Warehouse): string {
+    return this.getEntityName(entity);
+  }
+}
+
 describe("WarehouseComparator", () => {
-  const comparator = new WarehouseComparator();
+  const comparator = new TestableWarehouseComparator();
 
   const mockLocalWarehouse: WarehouseInput = {
     name: "Main Warehouse",
@@ -232,6 +247,46 @@ describe("WarehouseComparator", () => {
           description: "Shipping zones: [zone-1, zone-2] → [zone-1, zone-3]",
         })
       );
+    });
+  });
+
+  describe("getEntityName", () => {
+    it("should use slug as identifier", () => {
+      expect(comparator.testGetEntityName(mockLocalWarehouse)).toBe("main-warehouse");
+      expect(comparator.testGetEntityName(mockRemoteWarehouse)).toBe("main-warehouse");
+    });
+
+    it("should throw error when slug is missing", () => {
+      const warehouseWithoutSlug = { ...mockLocalWarehouse, slug: "" };
+      expect(() => comparator.testGetEntityName(warehouseWithoutSlug)).toThrow(
+        "Warehouse must have a valid slug"
+      );
+    });
+  });
+
+  describe("validateUniqueIdentifiers", () => {
+    it("should validate unique slugs", () => {
+      const warehouses = [mockLocalWarehouse, { ...mockLocalWarehouse, name: "Another Warehouse" }];
+
+      expect(() => comparator.testValidateUniqueIdentifiers(warehouses)).toThrow(
+        "Duplicate entity identifiers found in Warehouses: main-warehouse"
+      );
+    });
+  });
+
+  describe("deduplicateEntities", () => {
+    it("should deduplicate by slug", () => {
+      const warehouses = [
+        mockLocalWarehouse,
+        { ...mockLocalWarehouse, name: "Duplicate Warehouse" },
+        { ...mockLocalWarehouse, slug: "secondary-warehouse", name: "Secondary Warehouse" },
+      ];
+
+      const deduplicated = comparator.testDeduplicateEntities(warehouses);
+
+      expect(deduplicated).toHaveLength(2);
+      expect(deduplicated[0].slug).toBe("main-warehouse");
+      expect(deduplicated[1].slug).toBe("secondary-warehouse");
     });
   });
 });

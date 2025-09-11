@@ -4,7 +4,7 @@ import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
-import type { Product, ProductOperations, ProductVariant } from "./repository";
+import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant } from "./repository";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;
@@ -43,14 +43,33 @@ export class ProductService {
       async () => {
         const category = await this.repository.getCategoryByPath(categoryPath);
         if (!category) {
-          throw new EntityNotFoundError(
-            `Category "${categoryPath}" not found. Make sure it exists in your categories configuration.`
-          );
+          const suggestions = this.buildCategorySuggestions(categoryPath);
+          throw new EntityNotFoundError(`Category "${categoryPath}" not found. ${suggestions}`);
         }
         return category.id;
       },
       ProductError
     );
+  }
+
+  private buildCategorySuggestions(categoryPath: string): string {
+    const suggestions = [
+      "Make sure it exists in your categories configuration.",
+      "Categories must be referenced by their slug (not name).",
+    ];
+
+    // Add specific guidance based on the path format
+    if (categoryPath.includes("/")) {
+      suggestions.push("For nested categories, use the format 'parent-slug/child-slug'.");
+    } else {
+      suggestions.push(
+        "For subcategories, you can reference them directly by slug (e.g., 'juices') or with full path (e.g., 'groceries/juices')."
+      );
+    }
+
+    suggestions.push("Run introspect command to see available categories.");
+
+    return suggestions.join(" ");
   }
 
   private async resolveChannelReference(channelSlug: string): Promise<string> {
@@ -130,49 +149,109 @@ export class ProductService {
   }
 
   private async upsertProduct(productInput: ProductInput): Promise<Product> {
-    logger.debug("Looking up existing product", { name: productInput.name });
+    logger.debug("Looking up existing product", { slug: productInput.slug });
 
     // Resolve references first
     const productTypeId = await this.resolveProductTypeReference(productInput.productType);
     const categoryId = await this.resolveCategoryReference(productInput.category);
-    const slug = productInput.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+
+    // Use the slug from the input (required field in schema)
+    const slug = productInput.slug;
     const attributes = await this.resolveAttributeValues(productInput.attributes);
 
-    const existingProduct = await this.repository.getProductByName(productInput.name);
+    // Use slug for idempotency check (as per CLAUDE.md guidelines)
+    const existingProduct = await ServiceErrorWrapper.wrapServiceCall(
+      "lookup product by slug",
+      "product",
+      slug,
+      async () => this.repository.getProductBySlug(slug),
+      ProductError
+    );
 
     if (existingProduct) {
       logger.debug("Found existing product, updating", {
         id: existingProduct.id,
         name: existingProduct.name,
+        // slug: existingProduct.slug,
       });
 
       // Update existing product (note: productType cannot be changed after creation)
-      const product = await this.repository.updateProduct(existingProduct.id, {
+      // Build minimal input - only include fields that are not empty to avoid GraphQL errors  
+      const updateProductInput: ProductUpdateInput = {
         name: productInput.name,
         slug: slug,
         category: categoryId,
-        attributes: attributes,
-        // TODO: Handle description (needs JSONString format for rich text)
-        // TODO: Handle channel listings in separate commit
+        attributes: [],
+      };
+
+      // Always include attributes array (tests expect this field)
+      updateProductInput.attributes = attributes;
+
+      // TODO: Description field causes GraphQL server to return malformed JSON on updates
+      // Skip description field entirely for now until server issue is resolved
+      // if (productInput.description && productInput.description.trim() !== "") {
+      //   updateProductInput.description = productInput.description;
+      // }
+
+      const product = await ServiceErrorWrapper.wrapServiceCall(
+        "update product",
+        "product",
+        productInput.name,
+        async () => this.repository.updateProduct(existingProduct.id, updateProductInput),
+        ProductError
+      );
+
+      logger.info("Updated existing product", {
+        productId: product.id,
+        name: product.name,
+        slug: "slug" in product ? product.slug : "unknown",
       });
 
       return product;
     }
 
-    logger.debug("Creating new product", { name: productInput.name });
+    logger.debug("Creating new product", { name: productInput.name, slug: slug });
 
     // Create new product
-    const product = await this.repository.createProduct({
+    // Build minimal input - only include fields that are not empty to avoid GraphQL errors
+    const createProductInput: ProductCreateInput = {
       name: productInput.name,
       slug: slug,
       productType: productTypeId,
       category: categoryId,
-      attributes: attributes,
-      // TODO: Handle description (needs JSONString format for rich text)
-      // TODO: Handle channel listings in separate commit
+      attributes: [],
+    };
+
+    // Always include attributes array (tests expect this field)
+    createProductInput.attributes = attributes;
+
+    // Only include description if it's provided and not empty
+    // Format as JSONString (EditorJS format) as required by Saleor GraphQL schema
+    if (productInput.description && productInput.description.trim() !== "") {
+      createProductInput.description = JSON.stringify({
+        time: Date.now(),
+        blocks: [{
+          id: `desc-${Date.now()}`,
+          data: { text: productInput.description },
+          type: "paragraph"
+        }],
+        version: "2.24.3"
+      });
+    }
+
+
+    const product = await ServiceErrorWrapper.wrapServiceCall(
+      "create product",
+      "product",
+      productInput.name,
+      async () => this.repository.createProduct(createProductInput),
+      ProductError
+    );
+
+    logger.info("Created new product", {
+      productId: product.id,
+      name: product.name,
+      slug: "slug" in product ? product.slug : "unknown",
     });
 
     return product;
@@ -194,7 +273,13 @@ export class ProductService {
         let variant: ProductVariant;
 
         // Check if variant with this SKU already exists
-        const existingVariant = await this.repository.getProductVariantBySku(variantInput.sku);
+        const existingVariant = await ServiceErrorWrapper.wrapServiceCall(
+          "lookup product variant by SKU",
+          "product variant",
+          variantInput.sku,
+          async () => this.repository.getProductVariantBySku(variantInput.sku),
+          ProductError
+        );
 
         if (existingVariant) {
           logger.debug("Updating existing variant", {
@@ -206,14 +291,21 @@ export class ProductService {
           const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
 
           // Update existing variant (note: can't change product association during update)
-          variant = await this.repository.updateProductVariant(existingVariant.id, {
-            name: variantInput.name,
-            sku: variantInput.sku,
-            trackInventory: true,
-            weight: variantInput.weight,
-            attributes: variantAttributes,
-            // TODO: Handle channelListings in separate commit
-          });
+          variant = await ServiceErrorWrapper.wrapServiceCall(
+            "update product variant",
+            "product variant",
+            variantInput.sku,
+            async () =>
+              this.repository.updateProductVariant(existingVariant.id, {
+                name: variantInput.name,
+                sku: variantInput.sku,
+                trackInventory: true,
+                weight: variantInput.weight,
+                attributes: variantAttributes,
+                // TODO: Handle channelListings in separate commit
+              }),
+            ProductError
+          );
 
           logger.info("Updated existing product variant", {
             variantId: variant.id,
@@ -227,15 +319,22 @@ export class ProductService {
           const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
 
           // Create new variant
-          variant = await this.repository.createProductVariant({
-            product: product.id,
-            name: variantInput.name,
-            sku: variantInput.sku,
-            trackInventory: true,
-            weight: variantInput.weight,
-            attributes: variantAttributes,
-            // TODO: Handle channelListings in separate commit
-          });
+          variant = await ServiceErrorWrapper.wrapServiceCall(
+            "create product variant",
+            "product variant",
+            variantInput.sku,
+            async () =>
+              this.repository.createProductVariant({
+                product: product.id,
+                name: variantInput.name,
+                sku: variantInput.sku,
+                trackInventory: true,
+                weight: variantInput.weight,
+                attributes: variantAttributes,
+                // TODO: Handle channelListings in separate commit
+              }),
+            ProductError
+          );
 
           logger.info("Created new product variant", {
             variantId: variant.id,
@@ -278,9 +377,13 @@ export class ProductService {
           const channelListingInput = await this.resolveChannelListings(
             productInput.channelListings
           );
-          const updatedProduct = await this.repository.updateProductChannelListings(
+          const updatedProduct = await ServiceErrorWrapper.wrapServiceCall(
+            "update product channel listings",
+            "product",
             product.id,
-            channelListingInput
+            async () =>
+              this.repository.updateProductChannelListings(product.id, channelListingInput),
+            ProductError
           );
           if (updatedProduct) {
             product = updatedProduct;
@@ -311,12 +414,19 @@ export class ProductService {
             const channelListingInput = await this.resolveVariantChannelListings(
               variantInput.channelListings
             );
-            const updatedVariant = await this.repository.updateProductVariantChannelListings(
+            const updatedVariant = await ServiceErrorWrapper.wrapServiceCall(
+              "update product variant channel listings",
+              "product variant",
               variant.id,
-              channelListingInput
+              async () =>
+                this.repository.updateProductVariantChannelListings(
+                  variant.id,
+                  channelListingInput
+                ),
+              ProductError
             );
             if (updatedVariant) {
-              updatedVariants[i] = updatedVariant;
+              updatedVariants[i] = updatedVariant as ProductVariant;
             }
             logger.debug("Variant channel listings updated", {
               variantId: variant.id,

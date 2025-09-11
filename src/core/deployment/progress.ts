@@ -18,4 +18,8 @@ export class ProgressIndicator {
   fail(text: string): void {
     this.reporter.fail(text);
   }
+
+  warn(text: string): void {
+    this.reporter.warn(text);
+  }
 }

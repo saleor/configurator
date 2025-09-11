@@ -72,7 +72,7 @@ export class MenuService {
     }
   }
 
-  private validateMenuItemInput(item: MenuItemInputConfig, path = "item"): void {
+  public validateMenuItemInput(item: MenuItemInputConfig, path = "item"): void {
     if (!item.name?.trim()) {
       throw new MenuValidationError(`Menu item name is required at ${path}`, "name");
     }

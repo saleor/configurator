@@ -385,7 +385,7 @@ export class WarehouseRepository implements WarehouseOperations {
       shippingZoneIds,
     });
 
-    return result.data.assignWarehouseShippingZone.warehouse;
+    return result.data.assignWarehouseShippingZone.warehouse as Warehouse;
   }
 
   async unassignShippingZones(warehouseId: string, shippingZoneIds: string[]): Promise<Warehouse> {
@@ -419,6 +419,6 @@ export class WarehouseRepository implements WarehouseOperations {
       shippingZoneIds,
     });
 
-    return result.data.unassignWarehouseShippingZone.warehouse;
+    return result.data.unassignWarehouseShippingZone.warehouse as Warehouse;
   }
 }

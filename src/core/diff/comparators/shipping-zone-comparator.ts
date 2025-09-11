@@ -278,14 +278,14 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     const remoteNormalized = (remoteMethods || []).map((m) => this.normalizeShippingMethod(m));
 
     // Create maps by name for comparison
-    const localMap = new Map(localNormalized.map((m) => [m.name, m]));
-    const remoteMap = new Map(remoteNormalized.map((m) => [m.name, m]));
+    const localMap = new Map(localNormalized.map((m) => [m.name as string, m]));
+    const remoteMap = new Map(remoteNormalized.map((m) => [m.name as string, m]));
 
     // Find methods to add
-    const toAdd = localNormalized.filter((m) => !remoteMap.has(m.name));
+    const toAdd = localNormalized.filter((m) => !remoteMap.has(m.name as string));
 
     // Find methods to remove
-    const toRemove = remoteNormalized.filter((m) => !localMap.has(m.name));
+    const toRemove = remoteNormalized.filter((m) => !localMap.has(m.name as string));
 
     // Find methods to update
     const toUpdate: string[] = [];

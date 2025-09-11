@@ -5,12 +5,13 @@ import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
 import {
-  DeploymentPipeline,
   DeploymentReportGenerator,
   DeploymentSummaryReport,
   getAllStages,
 } from "../core/deployment";
+import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
+import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
@@ -180,7 +181,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   private async executeDeployment(
     args: DeployCommandArgs,
     summary: DiffSummary
-  ): Promise<DeploymentMetrics> {
+  ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
     const configurator = createConfigurator(args);
     const startTime = new Date();
 
@@ -194,13 +195,28 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       startTime,
     };
 
-    const pipeline = new DeploymentPipeline();
-    getAllStages().forEach((stage) => pipeline.addStage(stage));
-
-    const metrics = await pipeline.execute(context);
+    // Use enhanced deployment that collects results instead of throwing on first failure
+    const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
 
     this.console.text(""); // Add spacing before summary
-    this.console.success("✅ Configuration deployed successfully!");
+
+    // Format and display deployment result
+    const formatter = new DeploymentResultFormatter();
+    const formattedResult = formatter.format(result);
+
+    // Display result with appropriate console method based on status
+    switch (result.overallStatus) {
+      case "success":
+        this.console.success(formattedResult);
+        break;
+      case "partial":
+        this.console.warn(formattedResult);
+        break;
+      case "failed":
+        this.console.error(formattedResult);
+        break;
+    }
+
     this.console.text("");
 
     // Check if there are items that should have been deleted
@@ -232,7 +248,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       );
     }
 
-    return metrics;
+    return {
+      metrics,
+      exitCode,
+      hasPartialSuccess: result.overallStatus === "partial",
+    };
   }
 
   private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
@@ -266,7 +286,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private async performDeploymentFlow(args: DeployCommandArgs): Promise<boolean> {
+  private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
     let diffAnalysis: Awaited<ReturnType<typeof this.analyzeDifferences>>;
 
     try {
@@ -278,7 +298,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       if (diffAnalysis.summary.totalChanges === 0) {
         this.console.status("✅ No changes detected - configuration is already in sync");
-        return false; // Exit gracefully without changes
+        return; // Exit gracefully without calling process.exit()
       }
 
       this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
@@ -296,20 +316,28 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       if (!shouldDeploy) {
         this.console.cancelled("Deployment cancelled by user");
-        return false; // Exit gracefully when cancelled
+        process.exit(0);
       }
 
-      await this.executeDeployment(args, diffAnalysis.summary);
+      const deploymentResult = await this.executeDeployment(args, diffAnalysis.summary);
 
-      logger.info("Deployment completed successfully", {
+      logger.info("Deployment completed", {
         totalChanges: diffAnalysis.summary.totalChanges,
         creates: diffAnalysis.summary.creates,
         updates: diffAnalysis.summary.updates,
         deletes: diffAnalysis.summary.deletes,
+        exitCode: deploymentResult.exitCode,
+        hasPartialSuccess: deploymentResult.hasPartialSuccess,
       });
 
-      return true; // Indicate successful deployment with changes
+      // Exit with appropriate code based on deployment result
+      process.exit(deploymentResult.exitCode);
     } catch (error) {
+      // Check if this is a process.exit() error from test mocking
+      if (error instanceof Error && error.message.startsWith("process.exit(")) {
+        // Re-throw to let test framework handle it
+        throw error;
+      }
       this.handleDeploymentError(error, args);
     }
   }
@@ -318,12 +346,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.setOptions({ quiet: args.quiet });
     this.console.header("🚀 Saleor Configuration Deploy\n");
 
-    const hasChanges = await this.performDeploymentFlow(args);
-
-    // Exit with success code only after successful deployment with changes
-    if (hasChanges) {
-      process.exit(0);
-    }
+    await this.performDeploymentFlow(args);
+    // performDeploymentFlow handles all exit scenarios
   }
 }
 

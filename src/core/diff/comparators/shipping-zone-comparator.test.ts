@@ -3,8 +3,21 @@ import type { ShippingMethodInput, ShippingZoneInput } from "../../../modules/co
 import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zone/repository";
 import { ShippingZoneComparator } from "./shipping-zone-comparator";
 
+// Test subclass to expose protected methods for testing
+class TestableShippingZoneComparator extends ShippingZoneComparator {
+  public testValidateUniqueIdentifiers(entities: readonly ShippingZoneInput[]): void {
+    this.validateUniqueIdentifiers(entities as readonly (ShippingZoneInput | ShippingZone)[]);
+  }
+
+  public testDeduplicateEntities(
+    entities: readonly ShippingZoneInput[]
+  ): readonly (ShippingZoneInput | ShippingZone)[] {
+    return this.deduplicateEntities(entities as readonly (ShippingZoneInput | ShippingZone)[]);
+  }
+}
+
 describe("ShippingZoneComparator", () => {
-  const comparator = new ShippingZoneComparator();
+  const comparator = new TestableShippingZoneComparator();
 
   const mockShippingMethodInput: ShippingMethodInput = {
     name: "Standard Shipping",
@@ -258,6 +271,37 @@ describe("ShippingZoneComparator", () => {
           description: expect.stringContaining("Update: Standard Shipping"),
         })
       );
+    });
+  });
+
+  // Note: getEntityName is protected and tested implicitly through other methods
+
+  describe("validateUniqueIdentifiers", () => {
+    it("should validate unique names", () => {
+      const duplicateZone: ShippingZoneInput = { ...mockLocalZone, countries: ["CA"] };
+      const zones = [mockLocalZone, duplicateZone];
+
+      expect(() => comparator.testValidateUniqueIdentifiers(zones)).toThrow(
+        "Duplicate entity identifiers found in Shipping Zones: US Zone"
+      );
+    });
+  });
+
+  describe("deduplicateEntities", () => {
+    it("should deduplicate by name", () => {
+      const caZone: ShippingZoneInput = { ...mockLocalZone, countries: ["CA"] };
+      const euZone: ShippingZoneInput = {
+        ...mockLocalZone,
+        name: "EU Zone",
+        countries: ["DE", "FR"],
+      };
+      const zones = [mockLocalZone, caZone, euZone];
+
+      const deduplicated = comparator.testDeduplicateEntities(zones);
+
+      expect(deduplicated).toHaveLength(2);
+      expect(deduplicated[0]?.name).toBe("US Zone");
+      expect(deduplicated[1]?.name).toBe("EU Zone");
     });
   });
 });

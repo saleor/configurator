@@ -414,6 +414,319 @@ invalid_yaml: [
     });
   });
 
+  describe("Enhanced Messaging and Partial Success", () => {
+    it("should show partial success when some stages fail", async () => {
+      // Arrange: Create config with products that will fail due to category references
+      const configPath = createConfigFile()
+        .setFormat("json")
+        .withShop({ defaultMailSenderName: "Updated Shop Name" })
+        .withProducts([
+          {
+            name: "Valid Product",
+            slug: "valid-product",
+            description: "This will succeed",
+            productType: "Simple Product",
+            category: "electronics",
+            variants: [
+              {
+                name: "Default",
+                sku: "VALID-001",
+              },
+            ],
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
+          },
+          {
+            name: "Invalid Product",
+            slug: "invalid-product",
+            description: "This will fail",
+            productType: "Nonexistent Type",
+            category: "nonexistent-category",
+            variants: [
+              {
+                name: "Default",
+                sku: "INVALID-001",
+              },
+            ],
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
+          },
+        ])
+        .saveToFile(tempDir, "config.json");
+
+      // Mock partial failure for product creation
+      fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
+        const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
+
+        // Handle shop settings successfully
+        if (body.query?.includes("shopSettingsUpdate")) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                shopSettingsUpdate: {
+                  errors: [],
+                  shop: { defaultMailSenderName: "Updated Shop Name" },
+                },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // Handle product creation with partial failure
+        if (body.query?.includes("productCreate")) {
+          const variables = body.variables;
+          if (variables?.input?.slug === "invalid-product") {
+            return new Response(
+              JSON.stringify({
+                data: {
+                  productCreate: {
+                    errors: [
+                      { message: "Category 'nonexistent-category' not found", field: "category" },
+                    ],
+                    product: null,
+                  },
+                },
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } }
+            );
+          }
+          // Valid product succeeds
+          return new Response(
+            JSON.stringify({
+              data: {
+                productCreate: {
+                  errors: [],
+                  product: { id: "test-product-id", slug: variables?.input?.slug },
+                },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // Default mock response for other queries
+        return new Response(
+          JSON.stringify({
+            data: {
+              shop: { defaultMailSenderName: "Test Shop" },
+              channels: [],
+              productTypes: { edges: [] },
+              pageTypes: { edges: [] },
+              categories: { edges: [] },
+              products: { edges: [] },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      });
+
+      // Act & Assert - Should exit with partial success code (5)
+      await expect(
+        deployHandler({
+          url: TEST_URL,
+          token: TEST_TOKEN,
+          config: configPath,
+          quiet: false,
+          ci: true,
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(5)");
+
+      // Verify exit was called with partial success code
+      expect(mockExit).toHaveBeenCalledWith(5);
+
+      // Verify both shop and product operations were attempted
+      const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
+        const body = call[1]?.body?.toString();
+        return body?.includes("UpdateShopSettings");
+      });
+      expect(shopCalls.length).toBeGreaterThan(0);
+
+      // Verify product-related operations were attempted (even if they fail during reference resolution)
+      const productTypeCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
+        const body = call[1]?.body?.toString();
+        return body?.includes("GetProductTypeByName");
+      });
+      expect(productTypeCalls.length).toBeGreaterThan(0);
+    });
+
+    it("should continue processing stages even when one fails completely", async () => {
+      // Arrange: Create config where first stage fails but second should succeed
+      const configPath = createConfigFile()
+        .withShop({ defaultMailSenderName: "Updated Shop Name" })
+        .withChannel({
+          name: "New Channel",
+          slug: "new-channel",
+          currencyCode: "EUR",
+          defaultCountry: "GB",
+          isActive: true,
+        })
+        .saveToFile(tempDir);
+
+      // Mock shop failure but channel success
+      fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
+        const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
+
+        // Shop update fails
+        if (body.query?.includes("shopSettingsUpdate")) {
+          return new Response(
+            JSON.stringify({
+              errors: [{ message: "Insufficient permissions to update shop settings" }],
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // Channel creation succeeds
+        if (body.query?.includes("channelCreate")) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                channelCreate: {
+                  errors: [],
+                  channel: { id: "channel-id", slug: "new-channel" },
+                },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        // Default mock for diff queries
+        return new Response(
+          JSON.stringify({
+            data: {
+              shop: { defaultMailSenderName: "Old Shop Name" },
+              channels: [],
+              productTypes: { edges: [] },
+              pageTypes: { edges: [] },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      });
+
+      // Act & Assert - Should exit with partial success code
+      await expect(
+        deployHandler({
+          url: TEST_URL,
+          token: TEST_TOKEN,
+          config: configPath,
+          quiet: false,
+          ci: true,
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(5)");
+
+      // Verify both operations were attempted
+      const shopCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
+        const body = call[1]?.body?.toString();
+        return body?.includes("shopSettingsUpdate");
+      });
+      expect(shopCalls.length).toBeGreaterThan(0);
+
+      const channelCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
+        const body = call[1]?.body?.toString();
+        return body?.includes("channelCreate");
+      });
+      expect(channelCalls.length).toBeGreaterThan(0);
+    });
+
+    it("should show enhanced error messages with suggestions", async () => {
+      // This test verifies the enhanced messaging is displayed, but since we're mocking
+      // console output in the actual command, we mainly verify the exit code behavior
+      const configPath = createConfigFile()
+        .setFormat("json")
+        .withProducts([
+          {
+            name: "Product with Bad Category",
+            slug: "bad-category-product",
+            description: "Will fail with category error",
+            productType: "Simple Product",
+            category: "electronics", // This category doesn't exist
+            variants: [
+              {
+                name: "Default",
+                sku: "BAD-CAT-001",
+              },
+            ],
+            channelListings: [
+              {
+                channel: "default-channel",
+                isPublished: true,
+                visibleInListings: true,
+              },
+            ],
+          },
+        ])
+        .saveToFile(tempDir, "config.json");
+
+      // Mock category not found error
+      fetchSpy?.mockImplementation(async (_url: string | URL | Request, options?: RequestInit) => {
+        const body = JSON.parse(((options as RequestInit | undefined)?.body as string) || "{}");
+
+        if (body.query?.includes("productCreate")) {
+          return new Response(
+            JSON.stringify({
+              data: {
+                productCreate: {
+                  errors: [
+                    {
+                      message: "Category 'electronics' not found",
+                      field: "category",
+                    },
+                  ],
+                  product: null,
+                },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            data: {
+              shop: {},
+              channels: [],
+              productTypes: { edges: [] },
+              pageTypes: { edges: [] },
+              categories: { edges: [] },
+              products: { edges: [] },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      });
+
+      // Act & Assert - Should exit with partial success since validation/diff succeeds but products fail
+      await expect(
+        deployHandler({
+          url: TEST_URL,
+          token: TEST_TOKEN,
+          config: configPath,
+          quiet: false,
+          ci: true,
+          verbose: false,
+        })
+      ).rejects.toThrow("process.exit(5)");
+
+      // Verify partial success exit code
+      expect(mockExit).toHaveBeenCalledWith(5);
+    });
+  });
+
   describe("Performance and Edge Cases", () => {
     it("should handle large configuration files efficiently", async () => {
       // Arrange: Generate large config

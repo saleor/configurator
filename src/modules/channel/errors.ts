@@ -3,14 +3,18 @@ import { BaseError } from "../../lib/errors/shared";
 /**
  * Base error class for channel-related errors
  */
-export class ChannelError extends BaseError {}
+export class ChannelError extends BaseError {
+  constructor(message: string, recoverySuggestions?: string[]) {
+    super(message, "CHANNEL_ERROR", recoverySuggestions);
+  }
+}
 
 /**
  * Error thrown when a channel is not found
  */
 export class ChannelNotFoundError extends ChannelError {
   constructor(channelSlug: string) {
-    super(`Channel "${channelSlug}" not found`, "CHANNEL_NOT_FOUND_ERROR");
+    super(`Channel "${channelSlug}" not found`);
   }
 }
 
@@ -19,7 +23,7 @@ export class ChannelNotFoundError extends ChannelError {
  */
 export class ChannelCreationError extends ChannelError {
   constructor(message: string, _channelSlug?: string) {
-    super(message, "CHANNEL_CREATION_ERROR");
+    super(message);
   }
 }
 
@@ -28,6 +32,6 @@ export class ChannelCreationError extends ChannelError {
  */
 export class ChannelUpdateError extends ChannelError {
   constructor(message: string, _channelId?: string) {
-    super(message, "CHANNEL_UPDATE_ERROR");
+    super(message);
   }
 }

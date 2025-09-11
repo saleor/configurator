@@ -102,7 +102,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
 
@@ -112,7 +114,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
     });
@@ -134,7 +138,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
     });
@@ -146,7 +152,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Check your Saleor API token has the required permissions");
-        expect(suggestions[0].check).toBe("Ensure you have admin permissions for the operations you're trying to perform");
+        expect(suggestions[0].check).toBe(
+          "Ensure you have admin permissions for the operations you're trying to perform"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator introspect --include=shop");
       });
 
@@ -156,7 +164,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Check your Saleor API token is valid and not expired");
-        expect(suggestions[0].check).toBe("Verify the SALEOR_BEARER_TOKEN environment variable is set correctly");
+        expect(suggestions[0].check).toBe(
+          "Verify the SALEOR_BEARER_TOKEN environment variable is set correctly"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator introspect --include=shop");
       });
 
@@ -166,7 +176,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
     });
@@ -178,7 +190,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Check your Saleor API URL and network connection");
-        expect(suggestions[0].check).toBe("Verify the SALEOR_API_URL environment variable is correct");
+        expect(suggestions[0].check).toBe(
+          "Verify the SALEOR_API_URL environment variable is correct"
+        );
         expect(suggestions[0].command).toBe("curl -I $SALEOR_API_URL/graphql/");
       });
 
@@ -188,7 +202,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
 
@@ -198,7 +214,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
     });
@@ -210,7 +228,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
 
@@ -221,7 +241,9 @@ describe("ErrorRecoveryGuide", () => {
 
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Review the error message for details");
-        expect(suggestions[0].check).toBe("Check your configuration against the current Saleor state");
+        expect(suggestions[0].check).toBe(
+          "Check your configuration against the current Saleor state"
+        );
         expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
       });
     });
@@ -234,7 +256,9 @@ describe("ErrorRecoveryGuide", () => {
 
       expect(suggestions).toHaveLength(2);
       const slugSuggestion = suggestions.find((s) => s.fix.includes("required field"));
-      const colorSuggestion = suggestions.find((s) => s.fix.includes("Create the attribute 'color'"));
+      const colorSuggestion = suggestions.find((s) =>
+        s.fix.includes("Create the attribute 'color'")
+      );
       expect(slugSuggestion).toBeDefined();
       expect(colorSuggestion).toBeDefined();
     });
@@ -433,7 +457,9 @@ describe("ErrorRecoveryGuide", () => {
       const suggestions = ErrorRecoveryGuide.getSuggestions(errorMessage);
 
       expect(suggestions.length).toBeGreaterThanOrEqual(1);
-      const permissionSuggestion = suggestions.find(s => s.fix.includes("Check your Saleor API token has the required permissions"));
+      const permissionSuggestion = suggestions.find((s) =>
+        s.fix.includes("Check your Saleor API token has the required permissions")
+      );
       expect(permissionSuggestion).toBeDefined();
     });
   });
