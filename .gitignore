@@ -6,4 +6,5 @@ deployment-report-*.json
 /CLAUDE.md
 .serena
 dist
+tests/e2e/.tmp
 FEATURE-ROADMAP.md

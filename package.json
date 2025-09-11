@@ -36,6 +36,7 @@
     "generate-schema-docs": "tsx scripts/generate-schema-docs.ts",
     "prepare": "husky",
     "test": "vitest",
+    "test:e2e": "vitest -c vitest.e2e.config.ts",
     "test:ci": "CI=true vitest --silent",
     "changeset": "changeset",
     "version": "changeset version",
