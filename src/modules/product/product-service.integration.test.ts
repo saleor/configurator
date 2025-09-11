@@ -499,7 +499,6 @@ describe("ProductService Integration", () => {
         productType: "pt-1",
         category: "cat-1",
         attributes: [],
-        description: undefined,
       });
     });
   });
@@ -644,7 +643,7 @@ describe("ProductService Integration", () => {
       expect(mockRepository.createProduct).toHaveBeenCalledWith({
         name: "The Clean Coder",
         slug: "clean-coder",
-        description: "A handbook of agile software craftsmanship",
+        description: expect.stringContaining('"A handbook of agile software craftsmanship"'),
         productType: "pt-book",
         category: "cat-programming",
         attributes: [
@@ -761,7 +760,6 @@ describe("ProductService Integration", () => {
       expect(mockRepository.updateProduct).toHaveBeenCalledWith("prod-existing", {
         name: "Updated Product Name",
         slug: "existing-product",
-        description: undefined,
         category: "cat-1",
         attributes: [],
       });
