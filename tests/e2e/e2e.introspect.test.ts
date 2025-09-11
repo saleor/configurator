@@ -48,9 +48,7 @@ describe("E2E: introspect smoke", () => {
     const { stdout } = await execa(
       "pnpm",
       [
-        "run",
         "dev",
-        "--",
         "introspect",
         `--url=${url}`,
         `--token=${TOKEN}`,
