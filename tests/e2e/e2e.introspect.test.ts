@@ -13,8 +13,8 @@ const TOKEN = process.env.TOKEN;
 
 function toGraphqlUrl(base: string): string {
   const hasGraphql = base.includes("/graphql");
-  if (hasGraphql) return base.endsWith("/") ? base : base + "/";
-  const url = new URL(base.endsWith("/") ? base : base + "/");
+  if (hasGraphql) return base.endsWith("/") ? base : `${base}/`;
+  const url = new URL(base.endsWith("/") ? base : `${base}/`);
   return new URL("graphql/", url).toString();
 }
 
