@@ -35,6 +35,7 @@ describe("AttributeResolver", () => {
         id: "attr-1",
         name: "author",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
 
@@ -58,6 +59,7 @@ describe("AttributeResolver", () => {
         id: "attr-tech",
         name: "Technology",
         inputType: "MULTISELECT",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "tech-solar", name: "Solar", value: "solar" } },
@@ -101,6 +103,7 @@ describe("AttributeResolver", () => {
         id: "attr-1",
         name: "keywords",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
 
@@ -124,6 +127,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "size",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "size-s", name: "Small", value: "small" } },
@@ -153,6 +157,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "color",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "color-red", name: "Red", value: "red" } },
@@ -182,6 +187,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "size",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "size-s", name: "Small", value: "small" } },
@@ -211,6 +217,7 @@ describe("AttributeResolver", () => {
         id: "attr-3",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: null,
         choices: null,
       });
 
@@ -243,6 +250,7 @@ describe("AttributeResolver", () => {
         id: "attr-3",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: null,
         choices: null,
       });
 
@@ -265,12 +273,14 @@ describe("AttributeResolver", () => {
           id: "attr-text",
           name: "author",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-dropdown",
           name: "genre",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "genre-fiction", name: "Fiction", value: "fiction" } },
@@ -282,6 +292,7 @@ describe("AttributeResolver", () => {
           id: "attr-ref",
           name: "series",
           inputType: "REFERENCE",
+          entityType: null,
           choices: null,
         });
 

@@ -94,8 +94,9 @@ export class ProductComparator extends BaseEntityComparator<
       try {
         const json = JSON.parse(raw);
         if (json && Array.isArray(json.blocks)) {
+          type EditorJsBlock = { data?: { text?: string } } | null | undefined;
           const parts = json.blocks
-            .map((b: any) => (b && b.data && typeof b.data.text === "string" ? b.data.text : ""))
+            .map((b: EditorJsBlock) => (b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""))
             .filter((t: string) => t.length > 0);
           const joined = parts.join(" ");
           return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
@@ -107,8 +108,8 @@ export class ProductComparator extends BaseEntityComparator<
       }
     };
 
-    const localDesc = extractText((local as any).description);
-    const remoteDesc = extractText((remote as any).description);
+    const localDesc = extractText(local.description);
+    const remoteDesc = extractText(remote.description);
     if (localDesc !== remoteDesc) {
       changes.push(
         this.createFieldChange("description", remoteDesc ?? "", localDesc ?? "", "Description text changed")
@@ -350,7 +351,7 @@ export class ProductComparator extends BaseEntityComparator<
     const normalizeDateTime = (value: unknown): string | undefined => {
       if (value === null || value === undefined) return undefined;
       if (typeof value === "string" || typeof value === "number") {
-        const d = new Date(value as any);
+        const d = new Date(value as string | number);
         if (!Number.isNaN(d.getTime())) return d.toISOString();
         // Fallback to trimmed string to avoid false diffs due to formatting
         return String(value).trim();
@@ -364,10 +365,13 @@ export class ProductComparator extends BaseEntityComparator<
     if (listing.visibleInListings !== undefined)
       normalized.visibleInListings = listing.visibleInListings;
     // availableForPurchase may exist in schema though not mapped currently; include if present
-    // @ts-expect-error - optional field not present in type
-    if (listing.availableForPurchase !== undefined)
-      // @ts-expect-error - optional field not present in type
-      normalized.availableForPurchase = normalizeDateTime(listing.availableForPurchase);
+    if (
+      typeof (listing as { availableForPurchase?: unknown }).availableForPurchase !== "undefined"
+    ) {
+      const afp = (listing as { availableForPurchase?: string | number | null | undefined })
+        .availableForPurchase;
+      normalized.availableForPurchase = normalizeDateTime(afp);
+    }
     return normalized;
   }
 

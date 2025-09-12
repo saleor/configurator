@@ -245,7 +245,7 @@ describe("Deployment Stages", () => {
     it("returns all stages in correct order", () => {
       const stages = getAllStages();
 
-      expect(stages).toHaveLength(14);
+      expect(stages).toHaveLength(15);
       expect(stages[0].name).toBe("Validating configuration");
       expect(stages[1].name).toBe("Updating shop settings");
       expect(stages[2].name).toBe("Managing tax classes");
@@ -259,7 +259,8 @@ describe("Deployment Stages", () => {
       expect(stages[10].name).toBe("Managing models");
       expect(stages[11].name).toBe("Managing warehouses");
       expect(stages[12].name).toBe("Managing shipping zones");
-      expect(stages[13].name).toBe("Managing products");
+      expect(stages[13].name).toBe("Preparing attribute choices");
+      expect(stages[14].name).toBe("Managing products");
     });
   });
 });

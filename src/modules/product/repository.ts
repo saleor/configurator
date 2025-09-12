@@ -408,7 +408,9 @@ export interface ProductOperations {
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
-  getCategoryBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null>;
+  getCategoryBySlug(
+    slug: string
+  ): Promise<{ id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
   getChannelBySlug(slug: string): Promise<Channel | null>;
@@ -638,7 +640,9 @@ export class ProductRepository implements ProductOperations {
 
   async getCategoryBySlug(
     slug: string
-  ): Promise<{ id: string; name: string; slug: string } | null> {
+  ): Promise<
+    { id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null
+  > {
     logger.debug("Looking up category by slug", { slug });
 
     const result = await this.client.query(getCategoryBySlugQuery, { slug });
@@ -692,7 +696,7 @@ export class ProductRepository implements ProductOperations {
     for (let i = slugParts.length - 2; i >= 0; i--) {
       const expectedParentSlug = slugParts[i];
       // Fetch the parent one level up if needed
-      const parentSlug = (current as any).parent?.slug as string | undefined;
+      const parentSlug = (current?.parent?.slug as string | undefined) || undefined;
       if (!parentSlug) {
         logger.warn("Category hierarchy mismatch: missing parent", {
           path,
@@ -749,9 +753,8 @@ export class ProductRepository implements ProductOperations {
     const result = await this.client.query(getChannelBySlugQuery, { slug });
 
     // channels is an array in this schema; find exact slug match
-    // biome-ignore lint/suspicious/noExplicitAny: GraphQL typing workaround
-    const channels = result.data?.channels as any[] | undefined;
-    const channel = channels?.find((c: any) => c?.slug === slug) || null;
+    const channels = result.data?.channels as Channel[] | undefined;
+    const channel = channels?.find((c) => c?.slug === slug) || null;
 
     if (channel) {
       logger.debug("Found channel", { id: channel.id, slug: channel.slug, name: channel.name });

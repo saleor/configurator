@@ -202,7 +202,19 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
   }
 
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
-    const e: any = entity;
+    type VariantPreview = {
+      sku?: string;
+      name?: string;
+      channelListings?: Array<{ channel?: string; price?: number } | undefined>;
+    };
+    type ProductPreview = {
+      productType?: string;
+      category?: string;
+      attributes?: Record<string, unknown>;
+      variants?: VariantPreview[];
+    } & Record<string, unknown>;
+
+    const e = entity as ProductPreview;
     const importantFields = ["currencyCode", "defaultCountry", "slug", "isShippingRequired"] as const;
 
     for (const field of importantFields) {
@@ -244,11 +256,11 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     // Variant preview: SKU + channel prices
     if (Array.isArray(e?.variants) && e.variants.length > 0) {
       lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
-      for (const v of e.variants as any[]) {
-        const sku = v?.sku || v?.name || "variant";
+      for (const v of e.variants) {
+        const sku = v?.sku ?? v?.name ?? "variant";
         lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
         if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
-          const list = v.channelListings.map((cl: any) => {
+          const list = v.channelListings.map((cl) => {
             const ch = cl?.channel ?? "channel";
             const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
             return `${chalk.white(ch)}=${price}`;

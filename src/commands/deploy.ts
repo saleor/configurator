@@ -10,8 +10,9 @@ import {
   getAllStages,
 } from "../core/deployment";
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
-import { DeploymentCleanupAdvisor } from "../core/deployment/cleanup-advisor";
+import { analyzeDeploymentCleanup } from "../core/deployment/cleanup-advisor";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
+import { EXIT_CODES } from "../core/deployment/errors";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import type { DuplicateIssue } from "../core/validation/preflight";
 import { DeploymentResultFormatter } from "../core/deployment/results";
@@ -64,7 +65,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         const m = v.message.match(duplicateRegex);
         if (m) {
           dupes.push({
-            section: v.path as any,
+            section: v.path as unknown as DuplicateIssue["section"],
             label: m[1],
             identifier: m[2],
             count: Number(m[3]) || 2,
@@ -75,7 +76,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       if (dupes.length > 0) {
         printDuplicateIssues(dupes, this.console, args.config);
         this.console.cancelled("\nDeployment blocked until duplicates are resolved.");
-        process.exit(ValidationDeploymentError.prototype.getExitCode.call({} as any));
+        process.exit(EXIT_CODES.VALIDATION);
       }
 
       // Fallback generic validation formatting
@@ -245,7 +246,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     // Post-deploy cleanup suggestions (analysis-only service -> console)
     try {
       const cfg = await context.configurator.services.configStorage.load();
-      const suggestions = DeploymentCleanupAdvisor.analyze(cfg, summary);
+      const suggestions = analyzeDeploymentCleanup(cfg, summary);
       if (suggestions.length > 0) {
         this.console.warn("🔎 Post-deploy cleanup suggestions:");
         for (const s of suggestions) {

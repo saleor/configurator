@@ -39,7 +39,7 @@ export class ProductService {
 
   setAttributeCacheAccessor(getter: (name: string) => Attribute | null) {
     this.refs = { ...(this.refs || {}), getAttributeByNameFromCache: getter };
-    (this.attributeResolver as any).setRefs?.(this.refs);
+    this.attributeResolver.setRefs(this.refs);
   }
 
   primeAttributeCache(attributes: Attribute[]) {
@@ -175,7 +175,7 @@ export class ProductService {
   private async resolveVariantChannelListings(
     channelListings: Array<{
       channel: string;
-      price: number;
+      price?: number;
       costPrice?: number;
     }> = []
   ): Promise<Array<{ channelId: string; price: number; costPrice?: number }>> {
@@ -183,11 +183,13 @@ export class ProductService {
 
     for (const listing of channelListings) {
       const channelId = await this.resolveChannelReference(listing.channel);
-      resolvedListings.push({
-        channelId,
-        price: listing.price,
-        costPrice: listing.costPrice,
-      });
+      if (typeof listing.price === "number") {
+        resolvedListings.push({
+          channelId,
+          price: listing.price,
+          costPrice: listing.costPrice,
+        });
+      }
     }
 
     return resolvedListings;
@@ -260,7 +262,7 @@ export class ProductService {
             });
       }
 
-      let product;
+      let product: Product;
       try {
         product = await ServiceErrorWrapper.wrapServiceCall(
           "update product",
@@ -277,8 +279,7 @@ export class ProductService {
           /description|json|string/i.test(msg)
         ) {
           logger.warn("Retrying product update without description due to error", { msg });
-          const retryInput = { ...updateProductInput };
-          delete (retryInput as any).description;
+          const retryInput: ProductUpdateInput = { ...updateProductInput, description: undefined };
           product = await ServiceErrorWrapper.wrapServiceCall(
             "update product (retry w/o description)",
             "product",

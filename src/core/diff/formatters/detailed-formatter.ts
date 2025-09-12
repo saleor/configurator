@@ -142,7 +142,21 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    * Adds specific details for entity creation
    */
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
-    const typedEntity = entity as any;
+    type VariantPreview = {
+      sku?: string;
+      name?: string;
+      channelListings?: Array<{ channel?: string; price?: number } | undefined>;
+    };
+    type ProductPreview = {
+      currencyCode?: string;
+      defaultCountry?: string;
+      productType?: string;
+      category?: string;
+      attributes?: Record<string, unknown>;
+      variants?: VariantPreview[];
+    } & Record<string, unknown>;
+
+    const typedEntity = entity as ProductPreview;
 
     // Generic common fields
     if (typedEntity?.currencyCode) {
@@ -197,11 +211,11 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
       // Variants: preview SKU and channel pricing if provided
       if (Array.isArray(typedEntity.variants) && typedEntity.variants.length > 0) {
         lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
-        for (const v of typedEntity.variants as any[]) {
-          const sku = v?.sku || v?.name || "variant";
+        for (const v of typedEntity.variants) {
+          const sku = v?.sku ?? v?.name ?? "variant";
           lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
           if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
-            const parts = v.channelListings.map((cl: any) => {
+            const parts = v.channelListings.map((cl) => {
               const ch = cl?.channel ?? "channel";
               const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
               return `${chalk.white(ch)}=${price}`;

@@ -51,7 +51,7 @@ export class ModelAttributeResolver {
 
     if (inputType === "NUMERIC") {
       const vals = ensureArray(raw).map((x) => String(x));
-      return { id: attribute.id, numeric: vals[0] ?? "" } as any;
+      return { id: attribute.id, numeric: vals[0] ?? "" } as AttributeValueInput;
     }
 
     if (inputType === "BOOLEAN") {
@@ -60,17 +60,17 @@ export class ModelAttributeResolver {
       const truthy = ["true", "1", "yes", "y"]; const falsy = ["false", "0", "no", "n"];
       let b: boolean | undefined;
       if (truthy.includes(token)) b = true; else if (falsy.includes(token)) b = false; else b = token.length > 0;
-      return { id: attribute.id, boolean: b } as any;
+      return { id: attribute.id, boolean: b } as AttributeValueInput;
     }
 
     if (inputType === "DATE") {
       const vals = ensureArray(raw).map((x) => String(x));
-      return { id: attribute.id, date: vals[0] ?? "" } as any;
+      return { id: attribute.id, date: vals[0] ?? "" } as AttributeValueInput;
     }
 
     if (inputType === "DATE_TIME") {
       const vals = ensureArray(raw).map((x) => String(x));
-      return { id: attribute.id, dateTime: vals[0] ?? "" } as any;
+      return { id: attribute.id, dateTime: vals[0] ?? "" } as AttributeValueInput;
     }
 
     if (inputType === "RICH_TEXT") {
@@ -80,32 +80,32 @@ export class ModelAttributeResolver {
       if (!(t.startsWith("{") && t.endsWith("}"))) {
         json = JSON.stringify({ time: Date.now(), blocks: [{ id: `attr-${Date.now()}`, data: { text: json }, type: "paragraph" }], version: "2.24.3" });
       }
-      return { id: attribute.id, richText: json } as any;
+      return { id: attribute.id, richText: json } as AttributeValueInput;
     }
 
     if (inputType === "FILE") {
       const vals = ensureArray(raw).map((x) => String(x));
-      return { id: attribute.id, file: vals[0] ?? "" } as any;
+      return { id: attribute.id, file: vals[0] ?? "" } as AttributeValueInput;
     }
 
     if (inputType === "DROPDOWN" || inputType === "SWATCH" || inputType === "MULTISELECT") {
       const values = ensureArray(raw).map((x) => String(x));
-      const choice = (name: string) =>
-        attribute.choices?.edges?.find((e) => e?.node?.name === name)?.node?.id
-          ? { id: attribute.choices!.edges!.find((e) => e?.node?.name === name)!.node!.id! }
-          : { value: name };
+      const choice = (name: string) => {
+        const edge = attribute.choices?.edges?.find((e) => e?.node?.name === name) ?? null;
+        const id = edge?.node?.id ?? undefined;
+        return id ? { id } : { value: name };
+      };
 
       if (inputType === "MULTISELECT") {
-        return { id: attribute.id, multiselect: values.map(choice) } as any;
+        return { id: attribute.id, multiselect: values.map(choice) } as AttributeValueInput;
       }
       if (inputType === "SWATCH") {
-        return { id: attribute.id, swatch: choice(values[0] ?? "") } as any;
+        return { id: attribute.id, swatch: choice(values[0] ?? "") } as AttributeValueInput;
       }
-      return { id: attribute.id, dropdown: choice(values[0] ?? "") } as any;
+      return { id: attribute.id, dropdown: choice(values[0] ?? "") } as AttributeValueInput;
     }
 
     logger.warn(`Unsupported page attribute input type: ${attribute.inputType}`);
     return null;
   }
 }
-

@@ -3,9 +3,8 @@ import type { Attribute, ProductOperations } from "./repository";
 
 type ReferenceResolvers = {
   getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-  // Optional attribute cache accessor
-  // biome-ignore lint/suspicious/noExplicitAny: shared shape across repos
-  getAttributeByNameFromCache?: (name: string) => any | null;
+  // Optional attribute cache accessor (shared attribute shape across repos)
+  getAttributeByNameFromCache?: (name: string) => Attribute | null;
 };
 
 // Constants
@@ -30,12 +29,19 @@ type AttributeValueInputPayload =
   | { id: string; dropdown: { id?: string; externalReference?: string; value?: string } }
   | { id: string; swatch: { id?: string; externalReference?: string; value?: string } }
   | { id: string; multiselect: Array<{ id?: string; externalReference?: string; value?: string }> }
-  | { id: string; references: string[] };
+  | { id: string; references: string[] }
+  | { id: string; numeric: string }
+  | { id: string; boolean: boolean }
+  | { id: string; date: string }
+  | { id: string; dateTime: string }
+  | { id: string; richText: string }
+  | { id: string; file: string };
 
 interface AttributeHandlerContext {
   attribute: Attribute;
   attributeName: string;
   repository: ProductOperations;
+  refs?: ReferenceResolvers;
 }
 
 // Strategy pattern for attribute handlers
@@ -72,7 +78,7 @@ class NumericAttributeHandler extends AttributeHandler {
     const vals = this.normalizeToArray(value);
     const first = vals[0] ?? "";
     // Saleor expects numeric as string
-    return { id: context.attribute.id, numeric: String(first) } as any;
+    return { id: context.attribute.id, numeric: String(first) };
   }
 }
 
@@ -91,7 +97,7 @@ class BooleanAttributeHandler extends AttributeHandler {
     if (falsy.includes(first)) boolValue = false;
     // Default: non-empty treated as true
     if (boolValue === undefined) boolValue = first.length > 0;
-    return { id: context.attribute.id, boolean: boolValue } as any;
+    return { id: context.attribute.id, boolean: boolValue };
   }
 }
 
@@ -104,7 +110,7 @@ class DateAttributeHandler extends AttributeHandler {
     const vals = this.normalizeToArray(value);
     const first = vals[0] ?? "";
     // Expect ISO date (YYYY-MM-DD)
-    return { id: context.attribute.id, date: first } as any;
+    return { id: context.attribute.id, date: first };
   }
 }
 
@@ -117,7 +123,7 @@ class DateTimeAttributeHandler extends AttributeHandler {
     const vals = this.normalizeToArray(value);
     const first = vals[0] ?? "";
     // Expect ISO datetime
-    return { id: context.attribute.id, dateTime: first } as any;
+    return { id: context.attribute.id, dateTime: first };
   }
 }
 
@@ -145,7 +151,7 @@ class RichTextAttributeHandler extends AttributeHandler {
         version: "2.24.3",
       });
     }
-    return { id: context.attribute.id, richText: jsonString } as any;
+    return { id: context.attribute.id, richText: jsonString };
   }
 }
 
@@ -158,7 +164,7 @@ class FileAttributeHandler extends AttributeHandler {
     const vals = this.normalizeToArray(value);
     const first = vals[0] ?? "";
     // Expect URL; contentType optional / not provided here
-    return { id: context.attribute.id, file: first } as any;
+    return { id: context.attribute.id, file: first };
   }
 }
 
@@ -195,12 +201,12 @@ class DropdownAttributeHandler extends AttributeHandler {
       };
     }
 
-    if (context.attribute.inputType === ATTRIBUTE_INPUT_TYPES.SWATCH) {
-      return { id: context.attribute.id, swatch: resolved[0] } as any;
-    }
+      if (context.attribute.inputType === ATTRIBUTE_INPUT_TYPES.SWATCH) {
+        return { id: context.attribute.id, swatch: resolved[0] };
+      }
 
     // Default DROPDOWN (single value)
-    return { id: context.attribute.id, dropdown: resolved[0] } as any;
+    return { id: context.attribute.id, dropdown: resolved[0] };
   }
 
   private findChoice(valueName: string, attribute: Attribute) {
@@ -238,11 +244,9 @@ class ReferenceAttributeHandler extends AttributeHandler {
     context: AttributeHandlerContext
   ): Promise<string | null> {
     // Branch resolution by attribute entity type when available
-    const entityType = (context.attribute as any).entityType as
-      | "PRODUCT"
-      | "PRODUCT_VARIANT"
-      | "PAGE"
-      | undefined;
+    const entityType = (
+      context.attribute as unknown as { entityType?: "PRODUCT" | "PRODUCT_VARIANT" | "PAGE" }
+    )?.entityType;
 
     try {
       if (entityType === "PRODUCT") {
@@ -252,8 +256,8 @@ class ReferenceAttributeHandler extends AttributeHandler {
         const variant = await context.repository.getProductVariantBySku(valueName);
         if (variant) return variant.id;
       } else if (entityType === "PAGE") {
-        if (this.refs?.getPageBySlug) {
-          const page = await this.refs.getPageBySlug(valueName);
+        if (context.refs?.getPageBySlug) {
+          const page = await context.refs.getPageBySlug(valueName);
           if (page) return page.id;
         }
       } else {
@@ -346,6 +350,7 @@ export class AttributeResolver {
         attribute,
         attributeName,
         repository: this.repository,
+        refs: this.refs,
       };
 
       const payload = await handler.handle(attributeValue, context);

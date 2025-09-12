@@ -1,7 +1,9 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf } from "gql.tada";
+import type { CombinedError } from "@urql/core";
 import { GraphQLError } from "../../lib/errors/graphql";
 
+// @ts-ignore - Large query type can exceed TS instantiation limits; runtime types remain intact
 const getConfigQuery = graphql(`
   query GetConfig {
     shop {
@@ -473,14 +475,15 @@ export class ConfigurationRepository implements ConfigurationOperations {
         },
       } as RawSaleorConfig;
       return data;
-    } catch (e) {
+    } catch (_e) {
       // If pagination fails, fall back to the original data
       return result.data as RawSaleorConfig;
     }
   }
 
   private async fetchAllProducts() {
-    const edges: NonNullable<RawSaleorConfig["products"]>["edges"] = [] as any;
+    type ProductsEdges = NonNullable<RawSaleorConfig["products"]>["edges"];
+    const edges: ProductsEdges = [] as unknown as ProductsEdges;
     let after: string | null = null;
     // Use page size 100 (Saleor default max) and paginate
     // Define the page query inline to share product node selection with main query
@@ -534,15 +537,24 @@ export class ConfigurationRepository implements ConfigurationOperations {
     `);
 
     // Loop
+    type ProductsPageResult = {
+      data?: {
+        products?: {
+          pageInfo?: { endCursor: string | null; hasNextPage: boolean } | null;
+          edges?: NonNullable<RawSaleorConfig["products"]>["edges"];
+        } | null;
+      };
+      error?: CombinedError;
+    };
     for (;;) {
-      const res = await this.client.query(pageQuery, { first: 100, after });
+      const res: ProductsPageResult = await this.client.query(pageQuery, { first: 100, after });
       if (res.error) {
         throw GraphQLError.fromCombinedError("Failed to fetch products page", res.error);
       }
       const page = res.data?.products;
       if (!page) break;
-      const pageEdges = (page.edges || []) as any[];
-      for (const e of pageEdges) edges.push(e);
+      const pageEdges = (page.edges || []) as unknown as ProductsEdges;
+      edges.push(...(pageEdges || []));
       if (!page.pageInfo?.hasNextPage) break;
       after = page.pageInfo.endCursor || null;
     }

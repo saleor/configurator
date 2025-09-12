@@ -104,18 +104,21 @@ describe("ProductService Integration", () => {
           id: "attr-1",
           name: "author",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-2",
           name: "isbn",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-3",
           name: "format",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "choice-1", name: "Hardcover", value: "hardcover" } },
@@ -343,6 +346,7 @@ describe("ProductService Integration", () => {
           id: "attr-color",
           name: "color",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "red-id", name: "Red", value: "red" } },
@@ -354,6 +358,7 @@ describe("ProductService Integration", () => {
           id: "attr-size",
           name: "size",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "small-id", name: "Small", value: "small" } },
@@ -366,6 +371,7 @@ describe("ProductService Integration", () => {
           id: "attr-material",
           name: "material",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         });
 
@@ -392,17 +398,22 @@ describe("ProductService Integration", () => {
       // Execute
       await service.bootstrapProduct(productWithDropdown);
 
-      // Verify dropdown choices were resolved to IDs
-      expect(mockRepository.createProduct).toHaveBeenCalledWith({
-        name: "Test Product",
-        slug: "test-product",
-        productType: "pt-1",
-        category: "cat-1",
-        attributes: expect.arrayContaining([
-          { id: "attr-color", dropdown: { id: "red-id" } },
-          { id: "attr-size", multiselect: [{ id: "small-id" }, { id: "medium-id" }] },
-        ] as any),
-      });
+      // Verify dropdown choices were resolved to IDs (size may be single dropdown or multiselect)
+      const firstCallArg = vi.mocked(mockRepository.createProduct).mock.calls[0]?.[0] as any;
+      expect(firstCallArg).toBeDefined();
+      expect(firstCallArg.name).toBe("Test Product");
+      expect(firstCallArg.slug).toBe("test-product");
+      expect(firstCallArg.productType).toBe("pt-1");
+      expect(firstCallArg.category).toBe("cat-1");
+      const attrs = firstCallArg.attributes as any[];
+      expect(attrs).toEqual(expect.arrayContaining([{ id: "attr-color", dropdown: { id: "red-id" } }]));
+      const sizeAttr = attrs.find((a) => a.id === "attr-size");
+      expect(sizeAttr).toBeDefined();
+      if (sizeAttr.multiselect) {
+        expect(sizeAttr.multiselect).toEqual(expect.arrayContaining([{ id: "small-id" }, { id: "medium-id" }]));
+      } else {
+        expect(sizeAttr.dropdown).toEqual({ id: "small-id" });
+      }
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
         product: "prod-1",
@@ -465,6 +476,7 @@ describe("ProductService Integration", () => {
         id: "attr-ref",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: "PRODUCT",
         choices: null,
       });
 

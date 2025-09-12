@@ -58,13 +58,14 @@ export class ConfigurationService {
   }
 
   private mapChannels(rawChannels: RawSaleorConfig["channels"]): SaleorConfig["channels"] {
+    type ChannelNode = NonNullable<RawSaleorConfig["channels"]>[number];
     return (
-      rawChannels?.map((channel) => ({
+      rawChannels?.map((channel: ChannelNode) => ({
         name: channel.name,
         currencyCode: channel.currencyCode as CurrencyCode,
         defaultCountry: channel.defaultCountry.code as CountryCode,
         slug: channel.slug,
-        isActive: (channel as any).isActive ?? false,
+        isActive: Boolean(channel.isActive ?? false),
         settings: {
           useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
           automaticallyCompleteFullyPaidCheckouts:
@@ -128,14 +129,13 @@ export class ConfigurationService {
         name: attribute.name,
         inputType: attribute.inputType,
         type: attributeType,
-        values: attribute.choices.edges
-          .filter(
-            (edge): edge is { node: { name: string } } =>
-              edge.node.name !== null && edge.node.name !== undefined
+        values: ((attribute.choices.edges as Array<{ node: { name: string | null | undefined } }>)
+          .filter((edge: { node: { name: string | null | undefined } }): edge is { node: { name: string } } =>
+            edge.node.name !== null && edge.node.name !== undefined
           )
-          .map((edge) => ({
+          .map((edge: { node: { name: string } }) => ({
             name: edge.node.name,
-          })),
+          }))),
       };
     }
 
@@ -163,17 +163,20 @@ export class ConfigurationService {
     rawAttributes: RawAttribute[],
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
   ): FullAttribute[] {
-    return rawAttributes?.map((attribute) => this.mapAttribute(attribute, attributeType)) ?? [];
+    return (
+      rawAttributes?.map((attribute: RawAttribute) => this.mapAttribute(attribute, attributeType)) ?? []
+    );
   }
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]): ProductTypeInput[] {
+    type ProductTypeEdge = NonNullable<RawSaleorConfig["productTypes"]>["edges"][number];
     return (
-      rawProductTypes?.edges?.map((edge) => ({
+      rawProductTypes?.edges?.map((edge: ProductTypeEdge) => ({
         name: edge.node.name,
         isShippingRequired: edge.node.isShippingRequired,
         productAttributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
         variantAttributes: this.mapAttributes(
-          edge.node.assignedVariantAttributes?.map((attribute) => attribute.attribute) ?? [],
+          edge.node.assignedVariantAttributes?.map((attribute: NonNullable<ProductTypeEdge>["node"]["assignedVariantAttributes"][number]) => attribute.attribute) ?? [],
           "PRODUCT_TYPE"
         ),
       })) ?? []
@@ -181,8 +184,9 @@ export class ConfigurationService {
   }
 
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
+    type PageTypeEdge = NonNullable<RawSaleorConfig["pageTypes"]>["edges"][number];
     return (
-      rawPageTypes?.edges?.map((edge) => ({
+      rawPageTypes?.edges?.map((edge: PageTypeEdge) => ({
         name: edge.node.name,
         slug: edge.node.name.toLowerCase().replace(/\s+/g, "-"),
         attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
@@ -215,14 +219,23 @@ export class ConfigurationService {
       return [];
     }
 
+    type CategoryEdge = NonNullable<RawSaleorConfig["categories"]>["edges"][number];
     const categoryMap: Record<string, CategoryInput> = {};
-    const categories = rawCategories.edges.map((edge) => edge.node).filter(Boolean);
+    const categories = rawCategories.edges
+      .map((edge: CategoryEdge) => edge.node)
+      .filter(
+        (node: CategoryEdge["node"]): node is NonNullable<CategoryEdge["node"]> =>
+          node !== null && node !== undefined
+      );
 
     // Sort categories by level to ensure parents are processed before children
-    categories.sort((a, b) => a.level - b.level);
+    categories.sort(
+      (a: NonNullable<CategoryEdge["node"]>, b: NonNullable<CategoryEdge["node"]>) =>
+        (a.level ?? 0) - (b.level ?? 0)
+    );
 
     // Initialize all categories in the map
-    categories.forEach((category) => {
+    categories.forEach((category: NonNullable<CategoryEdge["node"]>) => {
       categoryMap[category.slug] = {
         name: category.name,
         slug: category.slug,
@@ -231,7 +244,7 @@ export class ConfigurationService {
 
     // Build the tree structure
     const tree: SaleorConfig["categories"] = [];
-    categories.forEach((category) => {
+    categories.forEach((category: NonNullable<CategoryEdge["node"]>) => {
       if (!category.parent) {
         // Top-level category
         tree.push(categoryMap[category.slug]);
@@ -261,10 +274,13 @@ export class ConfigurationService {
       return [];
     }
 
+    type WarehouseEdge = NonNullable<RawSaleorConfig["warehouses"]>["edges"][number];
     return rawWarehouses.edges
-      .map((edge) => edge.node)
-      .filter((node) => node !== null)
-      .map((warehouse) => ({
+      .map((edge: WarehouseEdge) => edge.node)
+      .filter(
+        (node: WarehouseEdge["node"]): node is NonNullable<WarehouseEdge["node"]> => node !== null
+      )
+      .map((warehouse: NonNullable<WarehouseEdge["node"]>) => ({
         name: warehouse.name,
         slug: warehouse.slug,
         email: warehouse.email || undefined,
@@ -282,7 +298,9 @@ export class ConfigurationService {
           phone: warehouse.address.phone || undefined,
         },
         shippingZones:
-          warehouse.shippingZones?.edges.map((edge) => edge.node.name).filter(Boolean) || undefined,
+          warehouse.shippingZones?.edges
+            .map((edge: { node: { name: string | null | undefined } }) => edge.node.name)
+            .filter(Boolean) || undefined,
       }));
   }
 
@@ -312,19 +330,41 @@ export class ConfigurationService {
       return [];
     }
 
+    type ShippingZoneEdge = NonNullable<RawSaleorConfig["shippingZones"]>["edges"][number];
     return rawShippingZones.edges
-      .map((edge) => edge.node)
-      .filter((node) => node !== null)
-      .map((zone) => ({
+      .map((edge: ShippingZoneEdge) => edge.node)
+      .filter(
+        (node: ShippingZoneEdge["node"]): node is NonNullable<ShippingZoneEdge["node"]> =>
+          node !== null
+      )
+      .map((zone: NonNullable<ShippingZoneEdge["node"]>) => ({
         name: zone.name,
         description: zone.description || undefined,
         default: zone.default,
-        countries: zone.countries.map((country) => country.code as CountryCode),
-        warehouses: zone.warehouses.map((warehouse) => warehouse.slug).filter(Boolean) || undefined,
-        channels: zone.channels.map((channel) => channel.slug).filter(Boolean) || undefined,
+        countries: zone.countries.map((country: { code: string }) => country.code as CountryCode),
+        warehouses:
+          zone.warehouses.map((warehouse: { slug: string | null | undefined }) => warehouse.slug).filter(Boolean) ||
+          undefined,
+        channels:
+          zone.channels.map((channel: { slug: string | null | undefined }) => channel.slug).filter(Boolean) ||
+          undefined,
         shippingMethods:
           zone.shippingMethods && zone.shippingMethods.length > 0
-            ? zone.shippingMethods.map((method) => ({
+            ? zone.shippingMethods.map((method: {
+                name: string;
+                description?: string | null;
+                type: string;
+                minimumDeliveryDays?: number | null;
+                maximumDeliveryDays?: number | null;
+                minimumOrderWeight?: { unit: string; value: number } | null;
+                maximumOrderWeight?: { unit: string; value: number } | null;
+                channelListings?: Array<{
+                  channel: { slug: string };
+                  price?: { amount: number; currency: string } | null;
+                  minimumOrderPrice?: { amount: number } | null;
+                  maximumOrderPrice?: { amount: number } | null;
+                }>;
+              }) => ({
                 name: method.name,
                 description:
                   typeof method.description === "string"
@@ -347,7 +387,12 @@ export class ConfigurationService {
                   : undefined,
                 channelListings:
                   method.channelListings && method.channelListings.length > 0
-                    ? method.channelListings.map((listing) => ({
+                    ? method.channelListings.map((listing: {
+                        channel: { slug: string };
+                        price?: { amount: number; currency: string } | null;
+                        minimumOrderPrice?: { amount: number } | null;
+                        maximumOrderPrice?: { amount: number } | null;
+                      }) => ({
                         channel: listing.channel.slug,
                         price: listing.price?.amount || 0,
                         currency: (listing.price?.currency || "USD") as CurrencyCode,
@@ -529,25 +574,34 @@ export class ConfigurationService {
   private mapCollections(
     edges: NonNullable<RawSaleorConfig["collections"]>["edges"]
   ): CollectionInput[] {
-    return edges.map(({ node }) => ({
-      name: node.name,
-      slug: node.slug,
-      description: typeof node.description === "string" ? node.description : undefined,
-      products: node.products?.edges?.map((edge) => edge.node.slug).filter(Boolean) || [],
-      channelListings:
-        node.channelListings?.map((listing) => ({
-          channelSlug: listing.channel.slug,
-          isPublished: listing.isPublished,
-          publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
-        })) || [],
-    }));
+    type CollectionEdge = NonNullable<RawSaleorConfig["collections"]>["edges"][number];
+    return edges.map((edge: CollectionEdge) => {
+      const node = edge.node;
+      return {
+        name: node.name,
+        slug: node.slug,
+        description: typeof node.description === "string" ? node.description : undefined,
+        products: node.products?.edges?.map((e: { node: { slug: string } }) => e.node.slug).filter(Boolean) || [],
+        channelListings:
+          node.channelListings?.map((listing: {
+            channel: { slug: string };
+            isPublished: boolean;
+            publishedAt?: string | null;
+          }) => ({
+            channelSlug: listing.channel.slug,
+            isPublished: listing.isPublished,
+            publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
+          })) || [],
+      };
+    });
   }
 
   private mapMenus(edges: NonNullable<RawSaleorConfig["menus"]>["edges"]): MenuInput[] {
-    return edges.map(({ node }) => ({
-      name: node.name,
-      slug: node.slug,
-      items: this.mapMenuItems(node.items || []),
+    type MenuEdge = NonNullable<RawSaleorConfig["menus"]>["edges"][number];
+    return edges.map((edge: MenuEdge) => ({
+      name: edge.node.name,
+      slug: edge.node.slug,
+      items: this.mapMenuItems(edge.node.items || []),
     }));
   }
 
@@ -556,7 +610,11 @@ export class ConfigurationService {
   ): NonNullable<MenuInput["items"]> {
     if (!items) return [];
 
-    return items.map((item) => ({
+    type MenuItemNode = NonNullable<
+      NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+    >[number];
+
+    return items.map((item: MenuItemNode) => ({
       name: item.name,
       url: item.url ?? undefined,
       category: item.category?.slug ?? undefined,
@@ -573,7 +631,11 @@ export class ConfigurationService {
   ): NonNullable<MenuInput["items"]> {
     if (!children) return [];
 
-    return children.map((child) => ({
+    type MenuItemNode = NonNullable<
+      NonNullable<RawSaleorConfig["menus"]>["edges"][0]["node"]["items"]
+    >[number];
+
+    return children.map((child: MenuItemNode) => ({
       name: child.name,
       url: child.url ?? undefined,
       category: child.category?.slug ?? undefined,
@@ -583,15 +645,19 @@ export class ConfigurationService {
   }
 
   private mapModels(edges: NonNullable<RawSaleorConfig["pages"]>["edges"]): ModelInput[] {
-    return edges.map(({ node }) => ({
-      title: node.title,
-      slug: node.slug,
-      content: typeof node.content === "string" ? node.content : undefined,
-      isPublished: node.isPublished,
-      publishedAt: typeof node.publishedAt === "string" ? node.publishedAt : undefined,
-      modelType: node.pageType?.name || "",
-      attributes: this.mapModelAttributes(node.attributes || []),
-    }));
+    type PageEdge = NonNullable<RawSaleorConfig["pages"]>["edges"][number];
+    return edges.map((edge: PageEdge) => {
+      const node = edge.node;
+      return {
+        title: node.title,
+        slug: node.slug,
+        content: typeof node.content === "string" ? node.content : undefined,
+        isPublished: node.isPublished,
+        publishedAt: typeof node.publishedAt === "string" ? node.publishedAt : undefined,
+        modelType: node.pageType?.name || "",
+        attributes: this.mapModelAttributes(node.attributes || []),
+      };
+    });
   }
 
   private mapModelAttributes(
@@ -607,8 +673,10 @@ export class ConfigurationService {
         if (attr.values && attr.values.length > 0) {
           // Multi-value attribute
           result[slug] = attr.values
-            .map((v) => v.name || v.slug || v.value)
-            .filter((value): value is string => value !== null && value !== undefined);
+            .map((v: { name?: string | null; slug?: string | null; value?: string | null }) =>
+              v.name || v.slug || v.value
+            )
+            .filter((value: string | null | undefined): value is string => value !== null && value !== undefined);
         }
       }
     }
@@ -619,17 +687,21 @@ export class ConfigurationService {
   private mapModelTypes(
     edges: NonNullable<RawSaleorConfig["pageTypes"]>["edges"]
   ): ModelTypeInput[] {
-    return edges.map(({ node }) => ({
-      name: node.name,
+    type PageTypeEdge = NonNullable<RawSaleorConfig["pageTypes"]>["edges"][number];
+    return edges.map((edge: PageTypeEdge) => ({
+      name: edge.node.name,
       attributes:
-        node.attributes?.map((attr) => ({
+        edge.node.attributes?.map((attr: { name?: string | null }) => ({
           attribute: attr.name || "", // Reference existing attribute by name
         })) || [],
     }));
   }
 
   private mapProducts(edges: NonNullable<RawSaleorConfig["products"]>["edges"]): ProductInput[] {
-    return edges.map(({ node }) => ({
+    type ProductEdge = NonNullable<RawSaleorConfig["products"]>["edges"][number];
+    return edges.map((edge: ProductEdge) => {
+      const node = edge.node;
+      return ({
       name: node.name,
       slug: node.slug,
       description: node.description || undefined,
@@ -637,7 +709,18 @@ export class ConfigurationService {
       category: node.category?.slug || "",
       taxClass: node.taxClass?.name || undefined,
       attributes: this.mapProductAttributes(node.attributes || []),
-      variants: node.variants?.map((variant) => ({
+      variants: node.variants?.map((variant: {
+        name?: string | null;
+        sku?: string | null;
+        id?: string | null;
+        weight?: { value?: number | null } | null;
+        attributes?: readonly unknown[];
+        channelListings?: Array<{
+          channel: { slug: string };
+          price?: { amount?: number | null } | null;
+          costPrice?: { amount?: number | null } | null;
+        }> | null;
+      }) => ({
         name: variant.name || node.name,
         // Ensure SKU is always a string for schema validity during round-trips
         // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
@@ -646,21 +729,31 @@ export class ConfigurationService {
         attributes: this.mapProductAttributes(variant.attributes || []),
         channelListings:
           variant.channelListings
-            ?.map((listing) => ({
+            ?.map((listing: {
+              channel: { slug: string };
+              price?: { amount?: number | null } | null;
+              costPrice?: { amount?: number | null } | null;
+            }) => ({
               channel: listing.channel.slug,
               price: listing.price ? Number(listing.price.amount) : undefined,
               costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
             }))
             // Keep only listings with a defined numeric price to satisfy schema
-            .filter((l) => typeof l.price === "number") || [],
+            .filter((l: { price?: number }) => typeof l.price === "number") || [],
       })) || [],
-      channelListings: node.channelListings?.map((listing) => ({
+      channelListings: node.channelListings?.map((listing: {
+        channel: { slug: string };
+        isPublished: boolean;
+        publishedAt?: string | null;
+        visibleInListings: boolean;
+      }) => ({
         channel: listing.channel.slug,
         isPublished: listing.isPublished,
         publishedAt: listing.publishedAt || undefined,
         visibleInListings: listing.visibleInListings,
       })) || [],
-    }));
+    });
+    });
   }
 
   private mapProductAttributes(attributes: readonly unknown[]): Record<string, unknown> {

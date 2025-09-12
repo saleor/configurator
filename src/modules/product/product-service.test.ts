@@ -233,6 +233,7 @@ describe("ProductService", () => {
         id: "attr-1",
         name: "format",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
       vi.mocked(mockRepository.createProductVariant)
@@ -287,6 +288,7 @@ describe("ProductService", () => {
         id: "attr-1",
         name: "format",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
       vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
@@ -335,6 +337,7 @@ describe("ProductService", () => {
         id: "attr-1",
         name: "format",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
 

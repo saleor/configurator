@@ -1,4 +1,17 @@
-import type { SaleorConfig } from "../../modules/config/schema/schema";
+import type {
+  SaleorConfig,
+  ChannelInput,
+  WarehouseInput,
+  ShippingZoneInput,
+  ProductTypeInput,
+  PageTypeInput,
+  CategoryInput,
+  ProductInput,
+  CollectionInput,
+  MenuInput,
+  ModelInput,
+  TaxClassInput,
+} from "../../modules/config/schema/schema";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
 type EntityArrayKey =
@@ -49,18 +62,48 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     }
   };
 
-  checkDuplicates("channels", config.channels, (c: any) => c?.slug, "channel slug");
-  checkDuplicates("warehouses", config.warehouses, (w: any) => w?.slug, "warehouse slug");
-  checkDuplicates("shippingZones", config.shippingZones, (z: any) => z?.name, "shipping zone name");
-  checkDuplicates("productTypes", config.productTypes, (t: any) => t?.name, "product type name");
-  checkDuplicates("pageTypes", config.pageTypes, (t: any) => t?.name, "page type name");
-  checkDuplicates("categories", config.categories, (c: any) => c?.slug, "category slug");
-  checkDuplicates("products", config.products, (p: any) => p?.slug, "product slug");
+  checkDuplicates<ChannelInput>("channels", config.channels, (c) => c.slug, "channel slug");
+  checkDuplicates<WarehouseInput>(
+    "warehouses",
+    config.warehouses,
+    (w) => w.slug,
+    "warehouse slug"
+  );
+  checkDuplicates<ShippingZoneInput>(
+    "shippingZones",
+    config.shippingZones,
+    (z) => z.name,
+    "shipping zone name"
+  );
+  checkDuplicates<ProductTypeInput>(
+    "productTypes",
+    config.productTypes,
+    (t) => t.name,
+    "product type name"
+  );
+  checkDuplicates<PageTypeInput>("pageTypes", config.pageTypes, (t) => t.name, "page type name");
+  checkDuplicates<CategoryInput>("categories", config.categories, (c) => c.slug, "category slug");
+  checkDuplicates<ProductInput>("products", config.products, (p) => p.slug, "product slug");
   // Optional others
-  checkDuplicates("menus", config.menus as any, (m: any) => m?.slug || m?.name, "menu identifier");
-  checkDuplicates("collections", config.collections as any, (c: any) => c?.slug, "collection slug");
-  checkDuplicates("models", config.models as any, (m: any) => m?.slug || m?.name, "model identifier");
-  checkDuplicates("taxClasses", config.taxClasses as any, (t: any) => t?.name, "tax class name");
+  checkDuplicates<MenuInput>(
+    "menus",
+    config.menus,
+    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
+    "menu identifier"
+  );
+  checkDuplicates<CollectionInput>(
+    "collections",
+    config.collections,
+    (c) => c.slug,
+    "collection slug"
+  );
+  checkDuplicates<ModelInput>(
+    "models",
+    config.models,
+    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
+    "model identifier"
+  );
+  checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
 
   return issues;
 }

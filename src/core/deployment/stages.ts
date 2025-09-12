@@ -1,6 +1,9 @@
 import { logger } from "../../lib/logger";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
+import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
+import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
+import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 
 export const validationStage: DeploymentStage = {
   name: "Validating configuration",
@@ -114,16 +117,11 @@ export const channelsStage: DeploymentStage = {
 
       // Sync per-channel tax configuration if provided in config
       for (const ch of config.channels) {
-        // @ts-ignore - optional field on our config model
-        const taxCfg = (ch as any).taxConfiguration as
-          | {
-              chargeTaxes?: boolean;
-              displayGrossPrices?: boolean;
-              pricesEnteredWithTax?: boolean;
-              taxCalculationStrategy?: "FLAT_RATES" | "TAX_APP";
-              taxAppId?: string;
-            }
-          | undefined;
+        const channel = ch as ChannelInput;
+        const taxCfg: TaxConfigurationInput | undefined =
+          ("taxConfiguration" in (channel as ChannelUpdateInput) &&
+            (channel as ChannelUpdateInput).taxConfiguration) ||
+          undefined;
         if (!taxCfg) continue;
 
         const existing = await context.configurator.services.channel.getChannelBySlug(
@@ -457,7 +455,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
 
       // For each attribute, add missing choices if any
       const choiceInputTypes = new Set(["DROPDOWN", "MULTISELECT", "SWATCH"]);
-      for (const attr of existing) {
+      for (const attr of existing as AttributeMeta[]) {
         // Only process attributes that support predefined choices
         if (!choiceInputTypes.has(String(attr.inputType))) continue;
 
@@ -465,19 +463,20 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         if (!desired || desired.size === 0) continue;
 
         const existingChoices = new Set(
-          (attr.choices?.edges || []).map((e: any) => String(e.node.name).toLowerCase())
+          (attr.choices?.edges || []).map((e) => String(e?.node?.name ?? "").toLowerCase())
         );
         const missing = Array.from(desired).filter(
           (v) => !existingChoices.has(v.toLowerCase())
         );
         if (missing.length > 0) {
-          await context.configurator.services.attribute.repo.updateAttribute(attr.id, {
+          const input: AttributeUpdateInput = {
             name: attr.name,
             addValues: missing.map((m) => ({
               name: m,
               externalReference: `attr:${attr.id}:${m.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
             })),
-          } as any);
+          };
+          await context.configurator.services.attribute.repo.updateAttribute(attr.id, input);
         }
       }
 
@@ -487,7 +486,9 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         type: "PRODUCT_TYPE",
       });
       if (refreshed && refreshed.length > 0) {
-        context.configurator.services.product.primeAttributeCache(refreshed as any);
+        context.configurator.services.product.primeAttributeCache(
+          refreshed as unknown as ProductAttributeMeta[]
+        );
       }
       logger.debug("Attribute choices preflight completed", {
         attributes: refreshed?.length ?? existing.length,

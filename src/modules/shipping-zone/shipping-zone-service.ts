@@ -276,7 +276,7 @@ export class ShippingZoneService {
 
         for (const chId of channelIds) {
           try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds } as any);
+            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
             logger.debug("Assigned warehouses to channel for shipping zone preconditions", {
               channelId: chId,
               warehouseCount: warehouseIds.length,
@@ -335,7 +335,7 @@ export class ShippingZoneService {
 
         for (const chId of channelIds) {
           try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds } as any);
+            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
             logger.debug("Assigned warehouses to channel for shipping zone preconditions (update)", {
               channelId: chId,
               warehouseCount: warehouseIds.length,
