@@ -9,6 +9,7 @@ import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
+import yaml from "yaml";
 
 // CLI Command result types
 export const commandResultSchema = z.discriminatedUnion("type", [
@@ -255,7 +256,6 @@ export class IntrospectCommandHandler
 
     switch (format) {
       case "yaml": {
-        const yaml = await import("yaml");
         this.console.info(yaml.stringify(diffResult.summary));
         break;
       }

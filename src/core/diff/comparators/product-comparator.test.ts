@@ -145,5 +145,83 @@ describe("ProductComparator", () => {
 
       expect(results).toHaveLength(0);
     });
+
+    it("should ignore attribute array reordering (normalized comparison)", () => {
+      const remote = [
+        {
+          ...sampleProduct,
+          attributes: { colors: ["red", "blue", "green"] },
+        },
+      ];
+      const local = [
+        {
+          ...sampleProduct,
+          attributes: { colors: ["green", "red", "blue"] },
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+      expect(results).toHaveLength(0);
+    });
+
+    it("should treat equivalent publishedAt formats as equal", () => {
+      // Arrange
+      const remote = [
+        {
+          ...sampleProduct,
+          channelListings: [
+            {
+              channel: "default",
+              isPublished: true,
+              publishedAt: "2025-09-12T01:57:53.540000+00:00",
+              visibleInListings: true,
+            },
+          ],
+        },
+      ];
+      const local = [
+        {
+          ...sampleProduct,
+          channelListings: [
+            {
+              channel: "default",
+              isPublished: true,
+              publishedAt: "2025-09-12T01:57:53.540Z",
+              visibleInListings: true,
+            },
+          ],
+        },
+      ];
+
+      // Act
+      const results = comparator.compare(local, remote);
+
+      // Assert
+      expect(results).toHaveLength(0);
+    });
+
+    it("compares description by visible text only", () => {
+      // Arrange
+      const remote = [
+        {
+          ...sampleProduct,
+          // JSON with the same text
+          description:
+            '{"time":123,"blocks":[{"id":"b1","type":"paragraph","data":{"text":"Hello <b>world</b>!"}}]}' ,
+        },
+      ];
+      const local = [
+        {
+          ...sampleProduct,
+          description: "Hello world!",
+        },
+      ];
+
+      // Act
+      const results = comparator.compare(local, remote);
+
+      // Assert
+      expect(results).toHaveLength(0);
+    });
   });
 });

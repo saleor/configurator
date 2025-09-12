@@ -167,6 +167,13 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       if (typeof value === "number") {
         return chalk.cyan(String(value));
       }
+      if (Array.isArray(value) || typeof value === "object") {
+        try {
+          return chalk.white(JSON.stringify(value));
+        } catch {
+          return chalk.white(String(value));
+        }
+      }
       return chalk.white(`"${String(value)}"`);
     };
 
@@ -195,17 +202,71 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
   }
 
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
-    const importantFields = ["currencyCode", "defaultCountry", "slug", "isShippingRequired"];
+    type VariantPreview = {
+      sku?: string;
+      name?: string;
+      channelListings?: Array<{ channel?: string; price?: number } | undefined>;
+    };
+    type ProductPreview = {
+      productType?: string;
+      category?: string;
+      attributes?: Record<string, unknown>;
+      variants?: VariantPreview[];
+    } & Record<string, unknown>;
+
+    const e = entity as ProductPreview;
+    const importantFields = ["currencyCode", "defaultCountry", "slug", "isShippingRequired"] as const;
 
     for (const field of importantFields) {
-      if (entity[field] !== undefined) {
+      if (e[field] !== undefined) {
         const value =
-          typeof entity[field] === "boolean"
-            ? entity[field]
+          typeof e[field] === "boolean"
+            ? e[field]
               ? chalk.green("true")
               : chalk.red("false")
-            : chalk.cyan(String(entity[field]));
+            : chalk.cyan(String(e[field]));
         lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${field}: ${value}`);
+      }
+    }
+
+    // Product-specific: productType, category
+    if (e?.productType) {
+      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} productType: ${chalk.cyan(String(e.productType))}`);
+    }
+    if (e?.category) {
+      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} category: ${chalk.cyan(String(e.category))}`);
+    }
+
+    // Attributes
+    if (e?.attributes && typeof e.attributes === "object") {
+      const attrs = e.attributes as Record<string, unknown>;
+      const keys = Object.keys(attrs);
+      if (keys.length > 0) {
+        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} attributes:`);
+        for (const key of keys) {
+          const val = attrs[key];
+          const formatted = Array.isArray(val)
+            ? val.map((v) => chalk.cyan(String(v))).join(", ")
+            : chalk.cyan(String(val));
+          lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${key}: ${formatted}`);
+        }
+      }
+    }
+
+    // Variant preview: SKU + channel prices
+    if (Array.isArray(e?.variants) && e.variants.length > 0) {
+      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
+      for (const v of e.variants) {
+        const sku = v?.sku ?? v?.name ?? "variant";
+        lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
+        if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
+          const list = v.channelListings.map((cl) => {
+            const ch = cl?.channel ?? "channel";
+            const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
+            return `${chalk.white(ch)}=${price}`;
+          });
+          lines.push(`        ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} prices: ${list.join(", ")}`);
+        }
       }
     }
   }

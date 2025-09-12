@@ -352,6 +352,16 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
   if (error instanceof Error) {
     const errorMessage = error.message.toLowerCase();
 
+    // Duplicate identifier errors
+    if (errorMessage.includes("duplicate")) {
+      return new ValidationDeploymentError(
+        "Duplicate entity identifiers found",
+        [error.message],
+        { operation },
+        error
+      );
+    }
+
     // Configuration file errors
     if (
       errorMessage.includes("configuration file not found") ||

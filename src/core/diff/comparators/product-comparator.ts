@@ -24,7 +24,7 @@ export class ProductComparator extends BaseEntityComparator<
     local: readonly ProductEntity[],
     remote: readonly ProductEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique identifiers
+    // Validate unique identifiers and block on duplicates
     this.validateUniqueIdentifiers(local);
     this.validateUniqueIdentifiers(remote);
 
@@ -78,7 +78,43 @@ export class ProductComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("name", remote.name, local.name));
     }
 
-    // Note: description field is not part of the current product schema
+    // Compare description by text content only (EditorJS JSON → plain text)
+    const extractText = (value: unknown): string | undefined => {
+      if (!value || typeof value !== "string") return undefined;
+      const raw = value.trim();
+      const decodeEntities = (s: string) =>
+        s
+          .replace(/&nbsp;/gi, " ")
+          .replace(/&amp;/gi, "&")
+          .replace(/&lt;/gi, "<")
+          .replace(/&gt;/gi, ">")
+          .replace(/&quot;/gi, '"')
+          .replace(/&#39;/gi, "'");
+      const stripTags = (s: string) => s.replace(/<[^>]*>/g, "");
+      try {
+        const json = JSON.parse(raw);
+        if (json && Array.isArray(json.blocks)) {
+          type EditorJsBlock = { data?: { text?: string } } | null | undefined;
+          const parts = json.blocks
+            .map((b: EditorJsBlock) => (b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""))
+            .filter((t: string) => t.length > 0);
+          const joined = parts.join(" ");
+          return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
+        }
+        // If not EditorJS-like, fall back to raw
+        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
+      } catch {
+        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
+      }
+    };
+
+    const localDesc = extractText(local.description);
+    const remoteDesc = extractText(remote.description);
+    if (localDesc !== remoteDesc) {
+      changes.push(
+        this.createFieldChange("description", remoteDesc ?? "", localDesc ?? "", "Description text changed")
+      );
+    }
 
     // Compare product type
     if (local.productType !== remote.productType) {
@@ -99,7 +135,7 @@ export class ProductComparator extends BaseEntityComparator<
     const localAttributes = local.attributes || {};
     const remoteAttributes = remote.attributes || {};
 
-    // Check for attribute changes
+    // Check for attribute changes with normalized comparison (order-insensitive arrays)
     const allAttributeKeys = new Set([
       ...Object.keys(localAttributes),
       ...Object.keys(remoteAttributes),
@@ -109,7 +145,7 @@ export class ProductComparator extends BaseEntityComparator<
       const localValue = localAttributes[key];
       const remoteValue = remoteAttributes[key];
 
-      if (JSON.stringify(localValue) !== JSON.stringify(remoteValue)) {
+      if (!this.equalsAttributeValue(localValue, remoteValue)) {
         changes.push(
           this.createFieldChange(
             `attributes.${key}`,
@@ -157,13 +193,13 @@ export class ProductComparator extends BaseEntityComparator<
           )
         );
       } else if (localChannelListing && remoteChannelListing) {
-        // Compare channel properties
-        if (JSON.stringify(localChannelListing) !== JSON.stringify(remoteChannelListing)) {
+        // Compare channel properties with stable normalization (order-agnostic, undefineds dropped)
+        if (!this.equalsChannelListing(localChannelListing, remoteChannelListing)) {
           changes.push(
             this.createFieldChange(
               `channels.${channel}`,
-              remoteChannelListing,
-              localChannelListing,
+              this.normalizeChannelListing(remoteChannelListing),
+              this.normalizeChannelListing(localChannelListing),
               `Channel "${channel}" settings changed`
             )
           );
@@ -175,9 +211,24 @@ export class ProductComparator extends BaseEntityComparator<
     const localVariants = local.variants || [];
     const remoteVariants = remote.variants || [];
 
-    // Map variants by SKU for comparison
-    const localVariantMap = new Map(localVariants.map((v) => [v.sku, v]));
-    const remoteVariantMap = new Map(remoteVariants.map((v) => [v.sku, v]));
+    // Map variants by SKU for comparison (dedupe by picking the richer entry)
+    const pickRicher = (a: ProductVariantInput, b: ProductVariantInput) => {
+      const aLen = Array.isArray(a.channelListings) ? a.channelListings.length : 0;
+      const bLen = Array.isArray(b.channelListings) ? b.channelListings.length : 0;
+      return bLen > aLen ? b : a;
+    };
+
+    const localVariantMap = new Map<string, ProductVariantInput>();
+    for (const v of localVariants) {
+      const existing = localVariantMap.get(v.sku);
+      localVariantMap.set(v.sku, existing ? pickRicher(existing, v) : v);
+    }
+
+    const remoteVariantMap = new Map<string, ProductVariantInput>();
+    for (const v of remoteVariants) {
+      const existing = remoteVariantMap.get(v.sku);
+      remoteVariantMap.set(v.sku, existing ? pickRicher(existing, v) : v);
+    }
 
     // Check for variant changes
     const allVariantSkus = new Set([...localVariantMap.keys(), ...remoteVariantMap.keys()]);
@@ -224,17 +275,7 @@ export class ProductComparator extends BaseEntityComparator<
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    // Compare variant name
-    if (local.name !== remote.name) {
-      changes.push(
-        this.createFieldChange(
-          `variants.${sku}.name`,
-          remote.name,
-          local.name,
-          `Variant "${sku}" name changed`
-        )
-      );
-    }
+    // Skip name comparison to prevent cosmetic diffs
 
     // Compare weight
     if (local.weight !== remote.weight) {
@@ -260,18 +301,105 @@ export class ProductComparator extends BaseEntityComparator<
       );
     }
 
-    // Compare channel listings
-    if (JSON.stringify(local.channelListings) !== JSON.stringify(remote.channelListings)) {
+    // Compare channel listings per channel with stable normalization
+    const localVCL = Array.isArray(local.channelListings) ? local.channelListings : [];
+    const remoteVCL = Array.isArray(remote.channelListings) ? remote.channelListings : [];
+
+    const toMap = (
+      arr: NonNullable<ProductVariantInput["channelListings"]>
+    ): Map<string, Record<string, unknown>> =>
+      new Map(
+        arr.map((l) => [l.channel, this.normalizeVariantChannelListing(l)] as const)
+      );
+
+    const lMap = toMap(localVCL);
+    const rMap = toMap(remoteVCL);
+
+    const allVChannels = new Set([...lMap.keys(), ...rMap.keys()]);
+    const diffs: string[] = [];
+
+    for (const ch of allVChannels) {
+      const l = lMap.get(ch);
+      const r = rMap.get(ch);
+      if (!l && r) {
+        diffs.push(`+${ch}`);
+      } else if (l && !r) {
+        diffs.push(`-${ch}`);
+      } else if (l && r && JSON.stringify(l) !== JSON.stringify(r)) {
+        diffs.push(`~${ch}`);
+      }
+    }
+
+    if (diffs.length > 0) {
       changes.push(
         this.createFieldChange(
           `variants.${sku}.channelListings`,
           remote.channelListings,
           local.channelListings,
-          `Variant "${sku}" pricing/stock changed`
+          `Variant "${sku}" channel listings changed (${diffs.join(", ")})`
         )
       );
     }
 
     return changes;
+  }
+
+  private normalizeChannelListing(listing: NonNullable<ProductEntity["channelListings"]>[number]) {
+    // Keep a fixed key order and omit undefined values
+    const normalized: Record<string, unknown> = { channel: listing.channel };
+
+    const normalizeDateTime = (value: unknown): string | undefined => {
+      if (value === null || value === undefined) return undefined;
+      if (typeof value === "string" || typeof value === "number") {
+        const d = new Date(value as string | number);
+        if (!Number.isNaN(d.getTime())) return d.toISOString();
+        // Fallback to trimmed string to avoid false diffs due to formatting
+        return String(value).trim();
+      }
+      return undefined;
+    };
+
+    if (listing.isPublished !== undefined) normalized.isPublished = listing.isPublished;
+    if (listing.publishedAt !== undefined)
+      normalized.publishedAt = normalizeDateTime(listing.publishedAt);
+    if (listing.visibleInListings !== undefined)
+      normalized.visibleInListings = listing.visibleInListings;
+    // availableForPurchase may exist in schema though not mapped currently; include if present
+    if (
+      typeof (listing as { availableForPurchase?: unknown }).availableForPurchase !== "undefined"
+    ) {
+      const afp = (listing as { availableForPurchase?: string | number | null | undefined })
+        .availableForPurchase;
+      normalized.availableForPurchase = normalizeDateTime(afp);
+    }
+    return normalized;
+  }
+
+  private equalsChannelListing(
+    a: NonNullable<ProductEntity["channelListings"]>[number],
+    b: NonNullable<ProductEntity["channelListings"]>[number]
+  ): boolean {
+    const na = this.normalizeChannelListing(a);
+    const nb = this.normalizeChannelListing(b);
+    return JSON.stringify(na) === JSON.stringify(nb);
+  }
+
+  private normalizeVariantChannelListing(
+    listing: NonNullable<ProductVariantInput["channelListings"]>[number]
+  ) {
+    const normalized: Record<string, unknown> = { channel: listing.channel };
+    if (listing.price !== undefined) normalized.price = listing.price;
+    if (listing.costPrice !== undefined) normalized.costPrice = listing.costPrice;
+    return normalized;
+  }
+
+  private equalsAttributeValue(a: unknown, b: unknown): boolean {
+    const normalize = (v: unknown): unknown => {
+      if (Array.isArray(v)) {
+        return [...v].sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)));
+      }
+      return v;
+    };
+    return JSON.stringify(normalize(a)) === JSON.stringify(normalize(b));
   }
 }

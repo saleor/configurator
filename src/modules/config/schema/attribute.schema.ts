@@ -49,7 +49,7 @@ export const attributeInputSchema = z.union([simpleAttributeSchema, referencedAt
 
 export type AttributeInput = z.infer<typeof attributeInputSchema>;
 
-const fullAttributeSchema = simpleAttributeSchema.and(
+export const fullAttributeSchema = simpleAttributeSchema.and(
   z.object({
     type: attributeTypeSchema,
   })

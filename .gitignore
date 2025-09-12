@@ -7,3 +7,18 @@ deployment-report-*.json
 .serena
 dist
 FEATURE-ROADMAP.md
+
+# Local artifacts not intended for version control
+.playwright-mcp/
+RIDA_*.md
+STATUS_REPORT_*.md
+docs/CLEAN_INSTANCE_DEPLOY_NOTES.md
+docs/CRITICAL_GAPS_AND_PLAN.md
+docs/GREENPROJECT_TEST_GUIDE.md
+docs/SCHEMA_AUDIT_AND_NEXT_STEPS.md
+act50 product tracker for Mario.xlsx
+config.backup.*.yml
+scripts/append-products-to-config.ts
+scripts/convert-excel-to-yaml-products.ts
+scripts/extract-excel-data.ts
+scripts/extract-products-from-excel.ts

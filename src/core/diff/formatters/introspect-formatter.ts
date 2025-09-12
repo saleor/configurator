@@ -115,7 +115,9 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
     for (const change of result.changes) {
       // For introspect, current = remote value, desired = local value
       // We're showing what the local value will become (current/remote value)
-      const description = `${change.field}: "${change.desiredValue}" → "${change.currentValue}"`;
+      const description = `${change.field}: "${this.formatValue(
+        change.desiredValue
+      )}" → "${this.formatValue(change.currentValue)}"`;
       lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} ${description}`);
     }
   }
@@ -188,5 +190,17 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
     if (parts.length > 0) {
       lines.push(`  ${parts.join(", ")}`);
     }
+  }
+
+  private formatValue(value: unknown): string {
+    if (value === null || value === undefined) return String(value);
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[object]";
+      }
+    }
+    return String(value);
   }
 }

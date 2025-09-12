@@ -1,7 +1,9 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf } from "gql.tada";
+import type { CombinedError } from "@urql/core";
 import { GraphQLError } from "../../lib/errors/graphql";
 
+// @ts-ignore - Large query type can exceed TS instantiation limits; runtime types remain intact
 const getConfigQuery = graphql(`
   query GetConfig {
     shop {
@@ -21,6 +23,7 @@ const getConfigQuery = graphql(`
     channels {
       id
       name
+      isActive
       currencyCode
       defaultCountry {
         code
@@ -57,7 +60,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
-            choices(first: 10) {
+            choices(first: 100) {
               edges {
                 node {
                   name
@@ -71,7 +74,7 @@ const getConfigQuery = graphql(`
               name
               type
               inputType
-              choices(first: 10) {
+              choices(first: 100) {
                 edges {
                   node {
                     name
@@ -93,7 +96,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
-            choices(first: 10) {
+            choices(first: 100) {
               edges {
                 node {
                   name
@@ -310,6 +313,27 @@ const getConfigQuery = graphql(`
         }
       }
     }
+    attributes(first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          type
+          inputType
+          entityType
+          choices(first: 100) {
+            edges {
+              node {
+                id
+                name
+                value
+              }
+            }
+          }
+        }
+      }
+    }
     pages(first: 50) {
       edges {
         node {
@@ -462,6 +486,100 @@ export class ConfigurationRepository implements ConfigurationOperations {
       throw new GraphQLError("Failed to fetch config: No data returned from GraphQL query");
     }
 
-    return result.data;
+    // Fetch all products with pagination to avoid first: N truncation
+    try {
+      const allProductEdges = await this.fetchAllProducts();
+      const data: RawSaleorConfig = {
+        ...(result.data as RawSaleorConfig),
+        products: {
+          edges: allProductEdges,
+        },
+      } as RawSaleorConfig;
+      return data;
+    } catch (_e) {
+      // If pagination fails, fall back to the original data
+      return result.data as RawSaleorConfig;
+    }
+  }
+
+  private async fetchAllProducts() {
+    type ProductsEdges = NonNullable<RawSaleorConfig["products"]>["edges"];
+    const edges: ProductsEdges = [] as unknown as ProductsEdges;
+    let after: string | null = null;
+    // Use page size 100 (Saleor default max) and paginate
+    // Define the page query inline to share product node selection with main query
+    const pageQuery = graphql(`
+      query GetProductsPage($first: Int!, $after: String) {
+        products(first: $first, after: $after) {
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+          edges {
+            node {
+              id
+              name
+              slug
+              description
+              productType { id name }
+              category { id name slug }
+              taxClass { id name }
+              attributes {
+                attribute { id name slug inputType }
+                values { id name slug value }
+              }
+              variants {
+                id
+                name
+                sku
+                weight { unit value }
+                attributes {
+                  attribute { id name slug inputType }
+                  values { id name slug value }
+                }
+                channelListings {
+                  id
+                  channel { id slug }
+                  price { amount currency }
+                  costPrice { amount currency }
+                }
+              }
+              channelListings {
+                id
+                channel { id slug }
+                isPublished
+                publishedAt
+                visibleInListings
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    // Loop
+    type ProductsPageResult = {
+      data?: {
+        products?: {
+          pageInfo?: { endCursor: string | null; hasNextPage: boolean } | null;
+          edges?: NonNullable<RawSaleorConfig["products"]>["edges"];
+        } | null;
+      };
+      error?: CombinedError;
+    };
+    for (;;) {
+      const res: ProductsPageResult = await this.client.query(pageQuery, { first: 100, after });
+      if (res.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch products page", res.error);
+      }
+      const page = res.data?.products;
+      if (!page) break;
+      const pageEdges = (page.edges || []) as unknown as ProductsEdges;
+      edges.push(...(pageEdges || []));
+      if (!page.pageInfo?.hasNextPage) break;
+      after = page.pageInfo.endCursor || null;
+    }
+
+    return edges;
   }
 }

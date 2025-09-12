@@ -79,7 +79,9 @@ const getAttributesByNamesQuery = graphql(`
           choices(first: 100) {
             edges {
               node {
+                id
                 name
+                value
               }
             }
           }

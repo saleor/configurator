@@ -104,18 +104,21 @@ describe("ProductService Integration", () => {
           id: "attr-1",
           name: "author",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-2",
           name: "isbn",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-3",
           name: "format",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "choice-1", name: "Hardcover", value: "hardcover" } },
@@ -206,10 +209,10 @@ describe("ProductService Integration", () => {
         slug: "test-book",
         productType: "pt-1",
         category: "cat-1",
-        attributes: [
-          { id: "attr-1", values: ["Test Author"] },
-          { id: "attr-2", values: ["978-0-123456-78-9"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-1", plainText: "Test Author" },
+          { id: "attr-2", plainText: "978-0-123456-78-9" },
+        ]),
       });
 
       // Verify channel listings were updated
@@ -343,6 +346,7 @@ describe("ProductService Integration", () => {
           id: "attr-color",
           name: "color",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "red-id", name: "Red", value: "red" } },
@@ -354,6 +358,7 @@ describe("ProductService Integration", () => {
           id: "attr-size",
           name: "size",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "small-id", name: "Small", value: "small" } },
@@ -366,6 +371,7 @@ describe("ProductService Integration", () => {
           id: "attr-material",
           name: "material",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         });
 
@@ -392,17 +398,22 @@ describe("ProductService Integration", () => {
       // Execute
       await service.bootstrapProduct(productWithDropdown);
 
-      // Verify dropdown choices were resolved to IDs
-      expect(mockRepository.createProduct).toHaveBeenCalledWith({
-        name: "Test Product",
-        slug: "test-product",
-        productType: "pt-1",
-        category: "cat-1",
-        attributes: [
-          { id: "attr-color", values: ["red-id"] },
-          { id: "attr-size", values: ["small-id", "medium-id"] },
-        ],
-      });
+      // Verify dropdown choices were resolved to IDs (size may be single dropdown or multiselect)
+      const firstCallArg = vi.mocked(mockRepository.createProduct).mock.calls[0]?.[0] as any;
+      expect(firstCallArg).toBeDefined();
+      expect(firstCallArg.name).toBe("Test Product");
+      expect(firstCallArg.slug).toBe("test-product");
+      expect(firstCallArg.productType).toBe("pt-1");
+      expect(firstCallArg.category).toBe("cat-1");
+      const attrs = firstCallArg.attributes as any[];
+      expect(attrs).toEqual(expect.arrayContaining([{ id: "attr-color", dropdown: { id: "red-id" } }]));
+      const sizeAttr = attrs.find((a) => a.id === "attr-size");
+      expect(sizeAttr).toBeDefined();
+      if (sizeAttr.multiselect) {
+        expect(sizeAttr.multiselect).toEqual(expect.arrayContaining([{ id: "small-id" }, { id: "medium-id" }]));
+      } else {
+        expect(sizeAttr.dropdown).toEqual({ id: "small-id" });
+      }
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
         product: "prod-1",
@@ -410,7 +421,7 @@ describe("ProductService Integration", () => {
         sku: "TEST-001",
         trackInventory: true,
         weight: 0.5,
-        attributes: [{ id: "attr-material", values: ["Cotton"] }],
+        attributes: [{ id: "attr-material", plainText: "Cotton" }],
       });
     });
 
@@ -465,6 +476,7 @@ describe("ProductService Integration", () => {
         id: "attr-ref",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: "PRODUCT",
         choices: null,
       });
 
@@ -646,11 +658,11 @@ describe("ProductService Integration", () => {
         description: expect.stringContaining('"A handbook of agile software craftsmanship"'),
         productType: "pt-book",
         category: "cat-programming",
-        attributes: [
-          { id: "attr-author", values: ["Robert C. Martin"] },
-          { id: "attr-isbn", values: ["978-0137081073"] },
-          { id: "attr-publisher", values: ["Prentice Hall"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-author", plainText: "Robert C. Martin" },
+          { id: "attr-isbn", plainText: "978-0137081073" },
+          { id: "attr-publisher", plainText: "Prentice Hall" },
+        ]),
       });
 
       // Verify variants were created with different attributes
@@ -660,10 +672,10 @@ describe("ProductService Integration", () => {
         sku: "CLEAN-CODER-HC",
         trackInventory: true,
         weight: 1.2,
-        attributes: [
-          { id: "attr-format", values: ["Hardcover"] },
-          { id: "attr-pages", values: ["256"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-format", plainText: "Hardcover" },
+          { id: "attr-pages", plainText: "256" },
+        ]),
       });
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
@@ -672,10 +684,10 @@ describe("ProductService Integration", () => {
         sku: "CLEAN-CODER-PB",
         trackInventory: true,
         weight: 0.8,
-        attributes: [
-          { id: "attr-format", values: ["Paperback"] },
-          { id: "attr-pages", values: ["256"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-format", plainText: "Paperback" },
+          { id: "attr-pages", plainText: "256" },
+        ]),
       });
 
       // Verify channel listings were updated

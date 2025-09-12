@@ -35,6 +35,7 @@ describe("AttributeResolver", () => {
         id: "attr-1",
         name: "author",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
 
@@ -47,10 +48,54 @@ describe("AttributeResolver", () => {
       expect(result).toEqual([
         {
           id: "attr-1",
-          values: ["Jane Smith"],
+          plainText: "Jane Smith",
         },
       ]);
       expect(mockRepository.getAttributeByName).toHaveBeenCalledWith("author");
+    });
+
+    it("should handle multiselect attributes with valid choices", async () => {
+      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
+        id: "attr-tech",
+        name: "Technology",
+        inputType: "MULTISELECT",
+        entityType: null,
+        choices: {
+          edges: [
+            { node: { id: "tech-solar", name: "Solar", value: "solar" } },
+            { node: { id: "tech-wind", name: "Wind", value: "wind" } },
+          ],
+        },
+      });
+
+      const result = await resolver.resolveAttributes({ Technology: ["Solar", "Wind"] });
+      expect(result).toEqual([
+        {
+          id: "attr-tech",
+          multiselect: [{ id: "tech-solar" }, { id: "tech-wind" }],
+        } as any,
+      ]);
+    });
+
+    it("should resolve reference to PRODUCT_VARIANT by SKU", async () => {
+      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
+        id: "attr-ref-var",
+        name: "Related Variant",
+        inputType: "REFERENCE",
+        entityType: "PRODUCT_VARIANT",
+        choices: null,
+      } as any);
+
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue({
+        id: "var-1",
+        name: "Variant 1",
+        sku: "SKU-1",
+        weight: { value: 1 },
+        channelListings: [],
+      } as any);
+
+      const result = await resolver.resolveAttributes({ "Related Variant": "SKU-1" });
+      expect(result).toEqual([{ id: "attr-ref-var", references: ["var-1"] }]);
     });
 
     it("should handle plain text attributes with arrays", async () => {
@@ -58,6 +103,7 @@ describe("AttributeResolver", () => {
         id: "attr-1",
         name: "keywords",
         inputType: "PLAIN_TEXT",
+        entityType: null,
         choices: null,
       });
 
@@ -67,10 +113,11 @@ describe("AttributeResolver", () => {
 
       const result = await resolver.resolveAttributes(attributes);
 
+      // For plain text, we keep only the first value (consistent mapping)
       expect(result).toEqual([
         {
           id: "attr-1",
-          values: ["science", "technology", "future"],
+          plainText: "science",
         },
       ]);
     });
@@ -80,6 +127,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "size",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "size-s", name: "Small", value: "small" } },
@@ -95,10 +143,11 @@ describe("AttributeResolver", () => {
 
       const result = await resolver.resolveAttributes(attributes);
 
+      // DROPDOWN uses single value; first choice wins
       expect(result).toEqual([
         {
           id: "attr-2",
-          values: ["size-s", "size-l"],
+          dropdown: { id: "size-s" },
         },
       ]);
     });
@@ -108,6 +157,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "color",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "color-red", name: "Red", value: "red" } },
@@ -125,7 +175,7 @@ describe("AttributeResolver", () => {
       expect(result).toEqual([
         {
           id: "attr-2",
-          values: ["color-red"],
+          dropdown: { id: "color-red" },
         },
       ]);
     });
@@ -137,6 +187,7 @@ describe("AttributeResolver", () => {
         id: "attr-2",
         name: "size",
         inputType: "DROPDOWN",
+        entityType: null,
         choices: {
           edges: [
             { node: { id: "size-s", name: "Small", value: "small" } },
@@ -154,7 +205,7 @@ describe("AttributeResolver", () => {
       expect(result).toEqual([
         {
           id: "attr-2",
-          values: ["size-s"], // Only valid choice included
+          dropdown: { id: "size-s" },
         },
       ]);
 
@@ -166,6 +217,7 @@ describe("AttributeResolver", () => {
         id: "attr-3",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: null,
         choices: null,
       });
 
@@ -185,7 +237,7 @@ describe("AttributeResolver", () => {
       expect(result).toEqual([
         {
           id: "attr-3",
-          values: ["prod-123"],
+          references: ["prod-123"],
         },
       ]);
       expect(mockRepository.getProductByName).toHaveBeenCalledWith("Related Book");
@@ -198,6 +250,7 @@ describe("AttributeResolver", () => {
         id: "attr-3",
         name: "related-product",
         inputType: "REFERENCE",
+        entityType: null,
         choices: null,
       });
 
@@ -220,12 +273,14 @@ describe("AttributeResolver", () => {
           id: "attr-text",
           name: "author",
           inputType: "PLAIN_TEXT",
+          entityType: null,
           choices: null,
         })
         .mockResolvedValueOnce({
           id: "attr-dropdown",
           name: "genre",
           inputType: "DROPDOWN",
+          entityType: null,
           choices: {
             edges: [
               { node: { id: "genre-fiction", name: "Fiction", value: "fiction" } },
@@ -237,6 +292,7 @@ describe("AttributeResolver", () => {
           id: "attr-ref",
           name: "series",
           inputType: "REFERENCE",
+          entityType: null,
           choices: null,
         });
 
@@ -256,18 +312,9 @@ describe("AttributeResolver", () => {
       const result = await resolver.resolveAttributes(attributes);
 
       expect(result).toHaveLength(3);
-      expect(result).toContainEqual({
-        id: "attr-text",
-        values: ["Jane Smith"],
-      });
-      expect(result).toContainEqual({
-        id: "attr-dropdown",
-        values: ["genre-fiction"],
-      });
-      expect(result).toContainEqual({
-        id: "attr-ref",
-        values: ["prod-series"],
-      });
+      expect(result).toContainEqual({ id: "attr-text", plainText: "Jane Smith" });
+      expect(result).toContainEqual({ id: "attr-dropdown", dropdown: { id: "genre-fiction" } });
+      expect(result).toContainEqual({ id: "attr-ref", references: ["prod-series"] });
     });
 
     it("should handle empty attributes", async () => {

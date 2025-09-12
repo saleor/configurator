@@ -15,22 +15,24 @@ export type PublishableChannelListingInput = {
   publishedAt?: string | null;
 };
 
+export type AttributeValueSelectableTypeInput = {
+  id?: string | null;
+  name?: string | null;
+  value?: string | null;
+  externalReference?: string | null;
+};
+
 export type AttributeValueInput = {
   id?: string | null;
-  values?: string[] | null;
   dropdown?: AttributeValueSelectableTypeInput | null;
   multiselect?: AttributeValueSelectableTypeInput[] | null;
-  numeric?: AttributeValueInput | null;
+  swatch?: AttributeValueSelectableTypeInput | null;
+  numeric?: string | null;
   boolean?: boolean | null;
   date?: string | null;
   dateTime?: string | null;
   plainText?: string | null;
   richText?: string | null;
-  reference?: string | null;
+  references?: string[] | null;
   file?: string | null;
-};
-
-export type AttributeValueSelectableTypeInput = {
-  id?: string | null;
-  name?: string | null;
 };

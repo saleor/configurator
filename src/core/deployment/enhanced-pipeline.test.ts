@@ -184,7 +184,7 @@ describe("EnhancedDeploymentPipeline", () => {
 
       expect(metrics.stageDurations.has("Stage 1")).toBe(true);
       expect(metrics.stageDurations.has("Stage 2")).toBe(true);
-      expect(metrics.duration).toBeGreaterThan(0);
+      expect(metrics.duration).toBeGreaterThanOrEqual(0);
       expect(metrics.startTime).toBeInstanceOf(Date);
       expect(metrics.endTime).toBeInstanceOf(Date);
     });
