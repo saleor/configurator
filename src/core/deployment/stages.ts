@@ -1,6 +1,7 @@
 import { logger } from "../../lib/logger";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
+import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
 import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
 import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
@@ -100,6 +101,43 @@ export const productTypesStage: DeploymentStage = {
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
 
     return !hasProductTypeChanges && !hasProductChanges;
+  },
+};
+
+export const attributesStage: DeploymentStage = {
+  name: "Managing unassigned attributes",
+  async execute(context) {
+    const config = await context.configurator.services.configStorage.load();
+    const attributes = (config as any).attributes as FullAttribute[] | undefined;
+    if (!attributes || attributes.length === 0) return;
+
+    const service = context.configurator.services.attribute;
+    const results = await Promise.allSettled(
+      attributes.map(async (attr) => {
+        const existing = await service.repo.getAttributesByNames({
+          names: [attr.name],
+          type: attr.type,
+        });
+        if (existing && existing.length > 0) {
+          await service.updateAttribute(attr, existing[0]);
+          return { name: attr.name, success: true } as const;
+        }
+        await service.bootstrapAttributes({ attributeInputs: [attr] as any });
+        return { name: attr.name, success: true } as const;
+      })
+    );
+
+    const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+    if (failures.length > 0) {
+      throw new StageAggregateError(
+        "Managing unassigned attributes",
+        failures.map((f) => ({ entity: "attribute", error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)) }))
+      );
+    }
+  },
+  skip(context) {
+    const cfg = (context.summary as any).config as any;
+    return !cfg?.attributes || cfg.attributes.length === 0;
   },
 };
 
@@ -558,6 +596,7 @@ export function getAllStages(): DeploymentStage[] {
     validationStage,
     shopSettingsStage,
     taxClassesStage, // Deploy tax classes early as they can be referenced by other entities
+    attributesStage,
     productTypesStage,
     channelsStage,
     pageTypesStage,

@@ -19,6 +19,7 @@ import {
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
+import { AttributesComparator } from "./comparators";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,
@@ -306,6 +307,7 @@ export class DiffService {
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       ["taxClasses", new TaxClassComparator() as EntityComparator],
+      ["attributes", new AttributesComparator() as EntityComparator],
     ]);
   }
 

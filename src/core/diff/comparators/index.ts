@@ -12,3 +12,4 @@ export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { ShopComparator } from "./shop-comparator";
 export { TaxClassComparator } from "./tax-class-comparator";
 export { WarehouseComparator } from "./warehouse-comparator";
+export { AttributesComparator } from "./attributes-comparator";

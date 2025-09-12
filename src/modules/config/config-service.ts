@@ -1,6 +1,7 @@
 import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
 import { object } from "../../lib/utils/object";
+import { logger } from "../../lib/logger";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
@@ -47,6 +48,19 @@ export class ConfigurationService {
   async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
+    // Warn about attributes that exist but aren't assigned to any product type
+    try {
+      if (config.productTypes) this.warnAboutUnassignedAttributes(rawConfig, config.productTypes);
+      // Include unassigned attributes in config
+      if (config.productTypes) {
+        const unassigned = this.mapUnassignedAttributes(rawConfig, config.productTypes);
+        if (unassigned.length > 0) {
+          config.attributes = unassigned;
+        }
+      }
+    } catch {
+      // best-effort advisory
+    }
     await this.storage.save(config);
     return config;
   }
@@ -54,6 +68,12 @@ export class ConfigurationService {
   async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
+    if (config.productTypes) {
+      const unassigned = this.mapUnassignedAttributes(rawConfig, config.productTypes);
+      if (unassigned.length > 0) {
+        config.attributes = unassigned;
+      }
+    }
     return config;
   }
 
@@ -181,6 +201,88 @@ export class ConfigurationService {
         ),
       })) ?? []
     );
+  }
+
+  private warnAboutUnassignedAttributes(
+    raw: RawSaleorConfig,
+    mappedProductTypes: ProductTypeInput[]
+  ): void {
+    type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
+    const rawEdges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
+    if (!rawEdges || rawEdges.length === 0) return;
+    const productAttrNames = new Set<string>();
+    for (const edge of rawEdges) {
+      if (edge?.node?.type === "PRODUCT_TYPE" && edge.node.name) {
+        productAttrNames.add(edge.node.name);
+      }
+    }
+    if (productAttrNames.size === 0) return;
+    const mappedNames = new Set<string>();
+    const addNameFromAttributeInput = (a: AttributeInput) => {
+      if (typeof (a as any).name === "string") {
+        mappedNames.add((a as any).name as string);
+      } else if (typeof (a as any).attribute === "string") {
+        mappedNames.add((a as any).attribute as string);
+      }
+    };
+    for (const pt of mappedProductTypes) {
+      for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
+      for (const a of pt.variantAttributes ?? []) addNameFromAttributeInput(a);
+    }
+    const missing = Array.from(productAttrNames).filter((n) => !mappedNames.has(n));
+    if (missing.length > 0) {
+      logger.warn(
+        `Some product attributes exist but are not assigned to any product type and will be omitted from config: ${missing.join(", ")}`
+      );
+    }
+  }
+
+  private mapUnassignedAttributes(raw: RawSaleorConfig, mappedProductTypes: ProductTypeInput[]) {
+    type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
+    const edges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
+    if (edges.length === 0) return [] as FullAttribute[];
+
+    // Build set of names already mapped via productTypes
+    const mapped = new Set<string>();
+    const addNameFromAttributeInput = (a: AttributeInput) => {
+      if (typeof (a as any).name === "string") mapped.add((a as any).name as string);
+      else if (typeof (a as any).attribute === "string") mapped.add((a as any).attribute as string);
+    };
+    for (const pt of mappedProductTypes) {
+      for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
+      for (const a of pt.variantAttributes ?? []) addNameFromAttributeInput(a);
+    }
+
+    const unassigned = edges
+      .filter((e) => e?.node?.type === "PRODUCT_TYPE" && e.node?.name && !mapped.has(e.node.name))
+      .map((e) => e!.node!);
+
+    const toFullAttribute = (node: {
+      name: string;
+      inputType: string;
+      entityType?: string | null;
+      choices?: { edges?: Array<{ node: { name?: string | null } | null } | null> } | null;
+    }): FullAttribute => {
+      const inputType = node.inputType as FullAttribute["inputType"];
+      if (inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH") {
+        const values = (node.choices?.edges || [])
+          .map((edge) => edge?.node?.name)
+          .filter((n): n is string => !!n)
+          .map((name) => ({ name }));
+        return { name: node.name, inputType, type: "PRODUCT_TYPE", values } as FullAttribute;
+      }
+      if (inputType === "REFERENCE") {
+        return {
+          name: node.name,
+          inputType: "REFERENCE",
+          type: "PRODUCT_TYPE",
+          entityType: (node.entityType as any) || "PRODUCT",
+        } as FullAttribute;
+      }
+      return { name: node.name, inputType: inputType as any, type: "PRODUCT_TYPE" } as FullAttribute;
+    };
+
+    return unassigned.map(toFullAttribute);
   }
 
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {

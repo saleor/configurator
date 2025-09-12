@@ -20,6 +20,7 @@ export const DIFF_ICONS = {
     Warehouses: "🏭",
     TaxClasses: "💰",
     "Shipping Zones": "🚚",
+    Attributes: "🏷️",
   },
   SUMMARY: {
     RESULTS: "📊",
