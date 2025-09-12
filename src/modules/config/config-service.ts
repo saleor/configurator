@@ -88,13 +88,13 @@ export class ConfigurationService {
     const push = (k: keyof SaleorConfig) => {
       if (config[k] !== undefined) (ordered as Record<string, unknown>)[k] = config[k];
     };
-    // Desired order (attributes at the top)
-    push("attributes");
+    // Desired order: attributes appear before productTypes, but not at the very top
     push("shop");
     push("channels");
     push("warehouses");
     push("shippingZones");
     push("taxClasses");
+    push("attributes");
     push("productTypes");
     push("pageTypes");
     push("modelTypes");
