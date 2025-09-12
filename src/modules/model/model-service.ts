@@ -6,6 +6,7 @@ import type { AttributeService } from "../attribute/attribute-service";
 import type { PageTypeService } from "../page-type/page-type-service";
 import { ModelOperationError, ModelTypeError, ModelValidationError } from "./errors";
 import type { ModelOperations, Page, PageCreateInput, PageInput } from "./repository";
+import { ModelAttributeResolver } from "./model-attribute-resolver";
 
 export interface ModelInputConfig {
   title: string;
@@ -231,49 +232,9 @@ export class ModelService {
       return;
     }
 
-    const attributeValues: AttributeValueInput[] = [];
-
-    for (const [slug, value] of Object.entries(attributes)) {
-      const attribute = pageType.attributes.find(
-        (attr: { id: string; name: string | null }) => attr.name === slug
-      );
-
-      if (!attribute) {
-        logger.warn(`Attribute "${slug}" not found in page type, skipping`, {
-          pageTypeId,
-          availableAttributes: pageType.attributes.map(
-            (a: { id: string; name: string | null }) => a.name || "<unnamed>"
-          ),
-        });
-        continue;
-      }
-
-      // Build attribute value input based on type
-      const attributeValue: AttributeValueInput = {
-        id: attribute.id,
-        values: [],
-      };
-
-      // Convert value to appropriate format
-      if (Array.isArray(value)) {
-        attributeValue.values = value.map((v) => String(v));
-      } else if (typeof value === "boolean") {
-        attributeValue.boolean = value;
-      } else if (value && typeof value === "object" && "toISOString" in value) {
-        const dateValue = value as Date;
-        attributeValue.date = dateValue.toISOString().split("T")[0];
-      } else if (value !== null && value !== undefined) {
-        attributeValue.values = [String(value)];
-      }
-
-      if (
-        (attributeValue.values && attributeValue.values.length > 0) ||
-        attributeValue.boolean !== undefined ||
-        attributeValue.date
-      ) {
-        attributeValues.push(attributeValue);
-      }
-    }
+    // Resolve using typed payloads via ModelAttributeResolver
+    const attrResolver = new ModelAttributeResolver(this.attributeService.repo);
+    const attributeValues: AttributeValueInput[] = await attrResolver.resolveAttributes(attributes);
 
     if (attributeValues.length > 0) {
       await this.repository.updatePageAttributes(pageId, attributeValues);

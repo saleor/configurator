@@ -64,7 +64,7 @@ export class ConfigurationService {
         currencyCode: channel.currencyCode as CurrencyCode,
         defaultCountry: channel.defaultCountry.code as CountryCode,
         slug: channel.slug,
-        isActive: false, // Default value for channels
+        isActive: (channel as any).isActive ?? false,
         settings: {
           useLegacyErrorFlow: channel.checkoutSettings.useLegacyErrorFlow,
           automaticallyCompleteFullyPaidCheckouts:
@@ -639,14 +639,20 @@ export class ConfigurationService {
       attributes: this.mapProductAttributes(node.attributes || []),
       variants: node.variants?.map((variant) => ({
         name: variant.name || node.name,
-        sku: variant.sku || undefined,
+        // Ensure SKU is always a string for schema validity during round-trips
+        // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
+        sku: (variant.sku ?? variant.id ?? ""),
         weight: variant.weight?.value || undefined,
         attributes: this.mapProductAttributes(variant.attributes || []),
-        channelListings: variant.channelListings?.map((listing) => ({
-          channel: listing.channel.slug,
-          price: listing.price ? Number(listing.price.amount) : undefined,
-          costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
-        })) || [],
+        channelListings:
+          variant.channelListings
+            ?.map((listing) => ({
+              channel: listing.channel.slug,
+              price: listing.price ? Number(listing.price.amount) : undefined,
+              costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
+            }))
+            // Keep only listings with a defined numeric price to satisfy schema
+            .filter((l) => typeof l.price === "number") || [],
       })) || [],
       channelListings: node.channelListings?.map((listing) => ({
         channel: listing.channel.slug,

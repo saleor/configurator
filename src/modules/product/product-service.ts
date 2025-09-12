@@ -2,6 +2,7 @@ import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
 import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant } from "./repository";
@@ -9,9 +10,21 @@ import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput
 export class ProductService {
   private attributeResolver: AttributeResolver;
 
-  constructor(private repository: ProductOperations) {
-    this.attributeResolver = new AttributeResolver(repository);
+  constructor(
+    private repository: ProductOperations,
+    refs?: {
+      getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
+      getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+    }
+  ) {
+    this.attributeResolver = new AttributeResolver(repository, refs);
+    this.refs = refs;
   }
+
+  private refs?: {
+    getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
+    getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+  };
 
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
     return ServiceErrorWrapper.wrapServiceCall(
@@ -78,6 +91,12 @@ export class ProductService {
       "channel",
       channelSlug,
       async () => {
+        // Prefer injected channel resolver (channel service cache)
+        if (this.refs?.getChannelIdBySlug) {
+          const id = await this.refs.getChannelIdBySlug(channelSlug);
+          if (id) return id;
+        }
+
         const channel = await this.repository.getChannelBySlug(channelSlug);
         if (!channel) {
           throw new EntityNotFoundError(
@@ -144,8 +163,10 @@ export class ProductService {
 
   private async resolveAttributeValues(
     attributes: Record<string, string | string[]> = {}
-  ): Promise<Array<{ id: string; values: string[] }>> {
-    return this.attributeResolver.resolveAttributes(attributes);
+  ): Promise<AttributeValueInput[]> {
+    // AttributeResolver returns a union payload matching GraphQL AttributeValueInput shape
+    // Cast to our local AttributeValueInput type used in ModelService for consistency
+    return (await this.attributeResolver.resolveAttributes(attributes)) as unknown as AttributeValueInput[];
   }
 
   private async upsertProduct(productInput: ProductInput): Promise<Product> {
@@ -187,19 +208,56 @@ export class ProductService {
       // Always include attributes array (tests expect this field)
       updateProductInput.attributes = attributes;
 
-      // TODO: Description field causes GraphQL server to return malformed JSON on updates
-      // Skip description field entirely for now until server issue is resolved
-      // if (productInput.description && productInput.description.trim() !== "") {
-      //   updateProductInput.description = productInput.description;
-      // }
+      // Safely update description if provided
+      if (productInput.description && productInput.description.trim() !== "") {
+        const raw = productInput.description.trim();
+        // If the description already looks like JSON, pass through; otherwise wrap as EditorJS JSON
+        const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
+        updateProductInput.description = isJsonLike
+          ? raw
+          : JSON.stringify({
+              time: Date.now(),
+              blocks: [
+                {
+                  id: `desc-${Date.now()}`,
+                  data: { text: raw },
+                  type: "paragraph",
+                },
+              ],
+              version: "2.24.3",
+            });
+      }
 
-      const product = await ServiceErrorWrapper.wrapServiceCall(
-        "update product",
-        "product",
-        productInput.name,
-        async () => this.repository.updateProduct(existingProduct.id, updateProductInput),
-        ProductError
-      );
+      let product;
+      try {
+        product = await ServiceErrorWrapper.wrapServiceCall(
+          "update product",
+          "product",
+          productInput.name,
+          async () => this.repository.updateProduct(existingProduct.id, updateProductInput),
+          ProductError
+        );
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Fallback: retry without description if server rejects description JSON
+        if (
+          updateProductInput.description &&
+          /description|json|string/i.test(msg)
+        ) {
+          logger.warn("Retrying product update without description due to error", { msg });
+          const retryInput = { ...updateProductInput };
+          delete (retryInput as any).description;
+          product = await ServiceErrorWrapper.wrapServiceCall(
+            "update product (retry w/o description)",
+            "product",
+            productInput.name,
+            async () => this.repository.updateProduct(existingProduct.id, retryInput),
+            ProductError
+          );
+        } else {
+          throw e;
+        }
+      }
 
       logger.info("Updated existing product", {
         productId: product.id,

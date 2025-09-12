@@ -78,16 +78,30 @@ export class ServiceComposer {
       configStorage
     );
 
+    // Build shared services first so we can reuse cache-enabled instances
+    const channelService = new ChannelService(repositories.channel);
+    const productService = new ProductService(repositories.product, {
+      getPageBySlug: async (slug: string) => {
+        const page = await repositories.model.getPageBySlug(slug);
+        return page ? { id: page.id } : null;
+      },
+      // Use ChannelService cache-aware resolver
+      getChannelIdBySlug: async (slug: string) => {
+        return (await channelService.getChannelIdBySlugCached(slug));
+      },
+    });
+    const pageTypeService = new PageTypeService(repositories.pageType, attributeService);
+
     // Create service container first (without diffService to avoid circular dependency)
     const services = {
-      channel: new ChannelService(repositories.channel),
-      pageType: new PageTypeService(repositories.pageType, attributeService),
+      channel: channelService,
+      pageType: pageTypeService,
       productType: new ProductTypeService(repositories.productType, attributeService),
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,
       category: new CategoryService(repositories.category),
-      product: new ProductService(repositories.product),
+      product: productService,
       warehouse: new WarehouseService(repositories.warehouse),
       shippingZone: new ShippingZoneService(
         repositories.shippingZone,
@@ -99,13 +113,13 @@ export class ServiceComposer {
       }),
       collection: new CollectionService(
         repositories.collection,
-        new ProductService(repositories.product),
-        new ChannelService(repositories.channel)
+        productService,
+        channelService
       ),
       menu: new MenuService(repositories.menu),
       model: new ModelService(
         repositories.model,
-        new PageTypeService(repositories.pageType, attributeService),
+        pageTypeService,
         attributeService
       ),
     } as Omit<ServiceContainer, "diffService">;

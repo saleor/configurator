@@ -167,6 +167,13 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       if (typeof value === "number") {
         return chalk.cyan(String(value));
       }
+      if (Array.isArray(value) || typeof value === "object") {
+        try {
+          return chalk.white(JSON.stringify(value));
+        } catch {
+          return chalk.white(String(value));
+        }
+      }
       return chalk.white(`"${String(value)}"`);
     };
 

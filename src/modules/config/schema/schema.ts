@@ -593,7 +593,7 @@ const productChannelListingSchema = z.object({
 
 const productVariantChannelListingSchema = z.object({
   channel: z.string().describe("Channel slug reference (e.g., 'default-channel')"),
-  price: z.number().describe("Price in the channel's currency"),
+  price: z.number().optional().describe("Price in the channel's currency"),
   costPrice: z
     .number()
     .optional()

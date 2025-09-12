@@ -206,10 +206,10 @@ describe("ProductService Integration", () => {
         slug: "test-book",
         productType: "pt-1",
         category: "cat-1",
-        attributes: [
-          { id: "attr-1", values: ["Test Author"] },
-          { id: "attr-2", values: ["978-0-123456-78-9"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-1", plainText: "Test Author" },
+          { id: "attr-2", plainText: "978-0-123456-78-9" },
+        ]),
       });
 
       // Verify channel listings were updated
@@ -398,10 +398,10 @@ describe("ProductService Integration", () => {
         slug: "test-product",
         productType: "pt-1",
         category: "cat-1",
-        attributes: [
-          { id: "attr-color", values: ["red-id"] },
-          { id: "attr-size", values: ["small-id", "medium-id"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-color", dropdown: { id: "red-id" } },
+          { id: "attr-size", multiselect: [{ id: "small-id" }, { id: "medium-id" }] },
+        ] as any),
       });
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
@@ -410,7 +410,7 @@ describe("ProductService Integration", () => {
         sku: "TEST-001",
         trackInventory: true,
         weight: 0.5,
-        attributes: [{ id: "attr-material", values: ["Cotton"] }],
+        attributes: [{ id: "attr-material", plainText: "Cotton" }],
       });
     });
 
@@ -646,11 +646,11 @@ describe("ProductService Integration", () => {
         description: expect.stringContaining('"A handbook of agile software craftsmanship"'),
         productType: "pt-book",
         category: "cat-programming",
-        attributes: [
-          { id: "attr-author", values: ["Robert C. Martin"] },
-          { id: "attr-isbn", values: ["978-0137081073"] },
-          { id: "attr-publisher", values: ["Prentice Hall"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-author", plainText: "Robert C. Martin" },
+          { id: "attr-isbn", plainText: "978-0137081073" },
+          { id: "attr-publisher", plainText: "Prentice Hall" },
+        ]),
       });
 
       // Verify variants were created with different attributes
@@ -660,10 +660,10 @@ describe("ProductService Integration", () => {
         sku: "CLEAN-CODER-HC",
         trackInventory: true,
         weight: 1.2,
-        attributes: [
-          { id: "attr-format", values: ["Hardcover"] },
-          { id: "attr-pages", values: ["256"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-format", plainText: "Hardcover" },
+          { id: "attr-pages", plainText: "256" },
+        ]),
       });
 
       expect(mockRepository.createProductVariant).toHaveBeenCalledWith({
@@ -672,10 +672,10 @@ describe("ProductService Integration", () => {
         sku: "CLEAN-CODER-PB",
         trackInventory: true,
         weight: 0.8,
-        attributes: [
-          { id: "attr-format", values: ["Paperback"] },
-          { id: "attr-pages", values: ["256"] },
-        ],
+        attributes: expect.arrayContaining([
+          { id: "attr-format", plainText: "Paperback" },
+          { id: "attr-pages", plainText: "256" },
+        ]),
       });
 
       // Verify channel listings were updated

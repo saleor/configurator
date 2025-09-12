@@ -111,6 +111,31 @@ export const channelsStage: DeploymentStage = {
       }
 
       await context.configurator.services.channel.bootstrapChannels(config.channels);
+
+      // Sync per-channel tax configuration if provided in config
+      for (const ch of config.channels) {
+        // @ts-ignore - optional field on our config model
+        const taxCfg = (ch as any).taxConfiguration as
+          | {
+              chargeTaxes?: boolean;
+              displayGrossPrices?: boolean;
+              pricesEnteredWithTax?: boolean;
+              taxCalculationStrategy?: "FLAT_RATES" | "TAX_APP";
+              taxAppId?: string;
+            }
+          | undefined;
+        if (!taxCfg) continue;
+
+        const existing = await context.configurator.services.channel.getChannelBySlug(
+          ch.slug
+        );
+        if (!existing?.id) continue;
+
+        await context.configurator.services.tax.updateChannelTaxConfiguration(
+          existing.id,
+          taxCfg
+        );
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage channels: ${error instanceof Error ? error.message : String(error)}`

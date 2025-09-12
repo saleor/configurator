@@ -145,5 +145,23 @@ describe("ProductComparator", () => {
 
       expect(results).toHaveLength(0);
     });
+
+    it("should ignore attribute array reordering (normalized comparison)", () => {
+      const remote = [
+        {
+          ...sampleProduct,
+          attributes: { colors: ["red", "blue", "green"] },
+        },
+      ];
+      const local = [
+        {
+          ...sampleProduct,
+          attributes: { colors: ["green", "red", "blue"] },
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+      expect(results).toHaveLength(0);
+    });
   });
 });

@@ -315,7 +315,7 @@ describe("ProductService", () => {
         sku: "BOOK-HC-001",
         trackInventory: true,
         weight: 1.5,
-        attributes: [{ id: "attr-1", values: ["hardcover-deluxe"] }],
+        attributes: [{ id: "attr-1", plainText: "hardcover-deluxe" }],
       });
       expect(mockRepository.createProductVariant).not.toHaveBeenCalled();
     });
@@ -377,6 +377,52 @@ describe("ProductService", () => {
     });
   });
 
+  describe("description update fallback", () => {
+    it("retries product update without description when update fails due to description", async () => {
+      const existingProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        description: "Old desc",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+        defaultVariant: { id: "variant-1" },
+        variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
+      };
+
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({ id: "pt-1", name: "Book" });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({ id: "cat-1", name: "Fiction" });
+
+      // First call (with description) fails, second (without) succeeds
+      vi.mocked(mockRepository.updateProduct)
+        .mockRejectedValueOnce(new Error("Invalid JSON in description"))
+        .mockResolvedValueOnce(existingProduct);
+
+      // No variants to simplify
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
+        id: "var-1",
+        name: "Default",
+        sku: "B1",
+        weight: { value: 0 },
+        channelListings: [],
+      } as any);
+
+      const input: ProductInput = {
+        name: "Test Book",
+        slug: "test-book",
+        productType: "Book",
+        category: "Fiction",
+        description: "New description",
+        variants: [{ name: "Default", sku: "B1" }],
+      };
+
+      await service.bootstrapProduct(input);
+
+      expect(mockRepository.updateProduct).toHaveBeenCalledTimes(2);
+    });
+  });
   describe("bootstrapProduct", () => {
     const mockProductInput: ProductInput = {
       name: "Test Book",

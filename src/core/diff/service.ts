@@ -146,7 +146,7 @@ export class DiffService {
     try {
       // Load configurations concurrently for better performance
       const [localConfig, remoteConfig] = await Promise.all([
-        this.loadLocalConfiguration(),
+        this.loadLocalConfigurationTolerant(),
         this.loadRemoteConfiguration(),
       ]);
 
@@ -198,6 +198,22 @@ export class DiffService {
           error instanceof Error ? error.message : String(error)
         }`
       );
+    }
+  }
+
+  /**
+   * Loads local configuration in a tolerant mode for introspect flows.
+   * If validation fails, treat local config as empty to allow seamless overwrite.
+   */
+  private async loadLocalConfigurationTolerant(): Promise<SaleorConfig> {
+    try {
+      const config = await this.services.configStorage.load();
+      return config || {};
+    } catch (error) {
+      logger.warn("Local configuration invalid; proceeding as empty for introspect", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {} as SaleorConfig;
     }
   }
 

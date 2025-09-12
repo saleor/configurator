@@ -21,6 +21,7 @@ const getConfigQuery = graphql(`
     channels {
       id
       name
+      isActive
       currencyCode
       defaultCountry {
         code

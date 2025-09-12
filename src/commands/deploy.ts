@@ -10,6 +10,7 @@ import {
   getAllStages,
 } from "../core/deployment";
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
+import { DeploymentCleanupAdvisor } from "../core/deployment/cleanup-advisor";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
@@ -219,6 +220,21 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     this.console.text("");
 
+    // Post-deploy cleanup suggestions (analysis-only service -> console)
+    try {
+      const cfg = await context.configurator.services.configStorage.load();
+      const suggestions = DeploymentCleanupAdvisor.analyze(cfg, summary);
+      if (suggestions.length > 0) {
+        this.console.warn("🔎 Post-deploy cleanup suggestions:");
+        for (const s of suggestions) {
+          this.console.warn(`  • ${s.message}`);
+        }
+        this.console.text("");
+      }
+    } catch {
+      // Best-effort: ignore if config load fails after deploy
+    }
+
     // Check if there are items that should have been deleted
     const pendingDeletes = summary.results.filter((r) => r.operation === "DELETE");
     if (pendingDeletes.length > 0) {
@@ -254,6 +270,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       hasPartialSuccess: result.overallStatus === "partial",
     };
   }
+
 
   private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
     const configurator = createConfigurator(args);
