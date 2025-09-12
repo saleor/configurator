@@ -12,6 +12,8 @@ import {
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
 import { DeploymentCleanupAdvisor } from "../core/deployment/cleanup-advisor";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
+import { printDuplicateIssues } from "../cli/reporters/duplicates";
+import type { DuplicateIssue } from "../core/validation/preflight";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
@@ -55,8 +57,29 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     // Handle ConfigurationValidationError specially for backwards compatibility
     if (error instanceof ConfigurationValidationError) {
-      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
+      // Parse duplicates from validationErrors if present
+      const dupes: DuplicateIssue[] = [];
+      const duplicateRegex = /Duplicate\s+(.+?)\s+'(.+?)'\s+found\s+(\d+)\s+times/i;
+      for (const v of error.validationErrors) {
+        const m = v.message.match(duplicateRegex);
+        if (m) {
+          dupes.push({
+            section: v.path as any,
+            label: m[1],
+            identifier: m[2],
+            count: Number(m[3]) || 2,
+          });
+        }
+      }
 
+      if (dupes.length > 0) {
+        printDuplicateIssues(dupes, this.console, args.config);
+        this.console.cancelled("\nDeployment blocked until duplicates are resolved.");
+        process.exit(ValidationDeploymentError.prototype.getExitCode.call({} as any));
+      }
+
+      // Fallback generic validation formatting
+      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
       const deploymentError = new ValidationDeploymentError(
         "Configuration validation failed",
         validationErrors,
@@ -66,7 +89,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         },
         error
       );
-
       this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
       process.exit(deploymentError.getExitCode());
     }
@@ -277,8 +299,17 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     try {
       // Try to load the configuration to validate it
-      await configurator.services.configStorage.load();
+      const cfg = await configurator.services.configStorage.load();
+      // Preflight: block deploy on duplicate identifiers with a clear message
+      const { validateNoDuplicateIdentifiers } = await import(
+        "../core/validation/preflight"
+      );
+      validateNoDuplicateIdentifiers(cfg, args.config);
     } catch (error) {
+      if (error instanceof ConfigurationValidationError) {
+        // Preserve configuration validation errors (e.g., duplicate identifiers)
+        throw error;
+      }
       // Re-throw with proper error type
       if (error instanceof Error) {
         throw new ConfigurationLoadError(`Failed to load local configuration: ${error.message}`);

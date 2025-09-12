@@ -24,7 +24,7 @@ export class ProductComparator extends BaseEntityComparator<
     local: readonly ProductEntity[],
     remote: readonly ProductEntity[]
   ): readonly import("../types").DiffResult[] {
-    // Validate unique identifiers
+    // Validate unique identifiers and block on duplicates
     this.validateUniqueIdentifiers(local);
     this.validateUniqueIdentifiers(remote);
 
@@ -78,7 +78,42 @@ export class ProductComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("name", remote.name, local.name));
     }
 
-    // Note: description field is not part of the current product schema
+    // Compare description by text content only (EditorJS JSON → plain text)
+    const extractText = (value: unknown): string | undefined => {
+      if (!value || typeof value !== "string") return undefined;
+      const raw = value.trim();
+      const decodeEntities = (s: string) =>
+        s
+          .replace(/&nbsp;/gi, " ")
+          .replace(/&amp;/gi, "&")
+          .replace(/&lt;/gi, "<")
+          .replace(/&gt;/gi, ">")
+          .replace(/&quot;/gi, '"')
+          .replace(/&#39;/gi, "'");
+      const stripTags = (s: string) => s.replace(/<[^>]*>/g, "");
+      try {
+        const json = JSON.parse(raw);
+        if (json && Array.isArray(json.blocks)) {
+          const parts = json.blocks
+            .map((b: any) => (b && b.data && typeof b.data.text === "string" ? b.data.text : ""))
+            .filter((t: string) => t.length > 0);
+          const joined = parts.join(" ");
+          return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
+        }
+        // If not EditorJS-like, fall back to raw
+        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
+      } catch {
+        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
+      }
+    };
+
+    const localDesc = extractText((local as any).description);
+    const remoteDesc = extractText((remote as any).description);
+    if (localDesc !== remoteDesc) {
+      changes.push(
+        this.createFieldChange("description", remoteDesc ?? "", localDesc ?? "", "Description text changed")
+      );
+    }
 
     // Compare product type
     if (local.productType !== remote.productType) {
@@ -311,15 +346,28 @@ export class ProductComparator extends BaseEntityComparator<
   private normalizeChannelListing(listing: NonNullable<ProductEntity["channelListings"]>[number]) {
     // Keep a fixed key order and omit undefined values
     const normalized: Record<string, unknown> = { channel: listing.channel };
+
+    const normalizeDateTime = (value: unknown): string | undefined => {
+      if (value === null || value === undefined) return undefined;
+      if (typeof value === "string" || typeof value === "number") {
+        const d = new Date(value as any);
+        if (!Number.isNaN(d.getTime())) return d.toISOString();
+        // Fallback to trimmed string to avoid false diffs due to formatting
+        return String(value).trim();
+      }
+      return undefined;
+    };
+
     if (listing.isPublished !== undefined) normalized.isPublished = listing.isPublished;
-    if (listing.publishedAt !== undefined) normalized.publishedAt = listing.publishedAt;
+    if (listing.publishedAt !== undefined)
+      normalized.publishedAt = normalizeDateTime(listing.publishedAt);
     if (listing.visibleInListings !== undefined)
       normalized.visibleInListings = listing.visibleInListings;
     // availableForPurchase may exist in schema though not mapped currently; include if present
     // @ts-expect-error - optional field not present in type
     if (listing.availableForPurchase !== undefined)
       // @ts-expect-error - optional field not present in type
-      normalized.availableForPurchase = listing.availableForPurchase;
+      normalized.availableForPurchase = normalizeDateTime(listing.availableForPurchase);
     return normalized;
   }
 

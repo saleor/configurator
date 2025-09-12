@@ -463,6 +463,90 @@ export class ConfigurationRepository implements ConfigurationOperations {
       throw new GraphQLError("Failed to fetch config: No data returned from GraphQL query");
     }
 
-    return result.data;
+    // Fetch all products with pagination to avoid first: N truncation
+    try {
+      const allProductEdges = await this.fetchAllProducts();
+      const data: RawSaleorConfig = {
+        ...(result.data as RawSaleorConfig),
+        products: {
+          edges: allProductEdges,
+        },
+      } as RawSaleorConfig;
+      return data;
+    } catch (e) {
+      // If pagination fails, fall back to the original data
+      return result.data as RawSaleorConfig;
+    }
+  }
+
+  private async fetchAllProducts() {
+    const edges: NonNullable<RawSaleorConfig["products"]>["edges"] = [] as any;
+    let after: string | null = null;
+    // Use page size 100 (Saleor default max) and paginate
+    // Define the page query inline to share product node selection with main query
+    const pageQuery = graphql(`
+      query GetProductsPage($first: Int!, $after: String) {
+        products(first: $first, after: $after) {
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+          edges {
+            node {
+              id
+              name
+              slug
+              description
+              productType { id name }
+              category { id name slug }
+              taxClass { id name }
+              attributes {
+                attribute { id name slug inputType }
+                values { id name slug value }
+              }
+              variants {
+                id
+                name
+                sku
+                weight { unit value }
+                attributes {
+                  attribute { id name slug inputType }
+                  values { id name slug value }
+                }
+                channelListings {
+                  id
+                  channel { id slug }
+                  price { amount currency }
+                  costPrice { amount currency }
+                }
+              }
+              channelListings {
+                id
+                channel { id slug }
+                isPublished
+                publishedAt
+                visibleInListings
+              }
+            }
+          }
+        }
+      }
+    `);
+
+    // Loop
+    for (;;) {
+      const res = await this.client.query(pageQuery, { first: 100, after });
+      if (res.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch products page", res.error);
+      }
+      const page = res.data?.products;
+      if (!page) break;
+      const pageEdges = (page.edges || []) as any[];
+      for (const e of pageEdges) edges.push(e);
+      if (!page.pageInfo?.hasNextPage) break;
+      after = page.pageInfo.endCursor || null;
+    }
+
+    return edges;
   }
 }

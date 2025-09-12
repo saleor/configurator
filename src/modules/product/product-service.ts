@@ -5,7 +5,7 @@ import type { ProductInput, ProductVariantInput } from "../config/schema/schema"
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
-import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant } from "./repository";
+import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant, Attribute } from "./repository";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;
@@ -15,6 +15,9 @@ export class ProductService {
     refs?: {
       getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
       getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+      getAttributeByNameFromCache?: (name: string) => Attribute | null;
+      getProductTypeIdByName?: (name: string) => Promise<string | null>;
+      getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
     }
   ) {
     this.attributeResolver = new AttributeResolver(repository, refs);
@@ -24,7 +27,28 @@ export class ProductService {
   private refs?: {
     getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
     getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+    getAttributeByNameFromCache?: (name: string) => Attribute | null;
+    getProductTypeIdByName?: (name: string) => Promise<string | null>;
+    getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
   };
+
+  // Deployment-scoped caches
+  private attributeCache: Map<string, Attribute> = new Map(); // key: name lower
+  private productTypeIdCache: Map<string, string> = new Map(); // key: name lower
+  private categoryIdCache: Map<string, string> = new Map(); // key: slug lower
+
+  setAttributeCacheAccessor(getter: (name: string) => Attribute | null) {
+    this.refs = { ...(this.refs || {}), getAttributeByNameFromCache: getter };
+    (this.attributeResolver as any).setRefs?.(this.refs);
+  }
+
+  primeAttributeCache(attributes: Attribute[]) {
+    for (const attr of attributes) {
+      const key = (attr.name || "").toLowerCase();
+      if (key) this.attributeCache.set(key, attr);
+    }
+    this.setAttributeCacheAccessor((name: string) => this.attributeCache.get(name.toLowerCase()) || null);
+  }
 
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
     return ServiceErrorWrapper.wrapServiceCall(
@@ -32,12 +56,16 @@ export class ProductService {
       "product type",
       productTypeName,
       async () => {
+        const cached = this.productTypeIdCache.get(productTypeName.toLowerCase());
+        if (cached) return cached;
+
         const productType = await this.repository.getProductTypeByName(productTypeName);
         if (!productType) {
           throw new EntityNotFoundError(
             `Product type "${productTypeName}" not found. Make sure it exists in your productTypes configuration.`
           );
         }
+        this.productTypeIdCache.set(productTypeName.toLowerCase(), productType.id);
         return productType.id;
       },
       ProductError
@@ -54,11 +82,15 @@ export class ProductService {
       "category",
       categoryPath,
       async () => {
+        const cached = this.categoryIdCache.get(categoryPath.toLowerCase());
+        if (cached) return cached;
+
         const category = await this.repository.getCategoryByPath(categoryPath);
         if (!category) {
           const suggestions = this.buildCategorySuggestions(categoryPath);
           throw new EntityNotFoundError(`Category "${categoryPath}" not found. ${suggestions}`);
         }
+        this.categoryIdCache.set(categoryPath.toLowerCase(), category.id);
         return category.id;
       },
       ProductError
@@ -283,18 +315,24 @@ export class ProductService {
     // Always include attributes array (tests expect this field)
     createProductInput.attributes = attributes;
 
-    // Only include description if it's provided and not empty
-    // Format as JSONString (EditorJS format) as required by Saleor GraphQL schema
+    // Only include description if provided; if the value looks like JSON, pass through.
+    // Otherwise, wrap plain text into a minimal EditorJS JSON structure (Saleor expects JSONString).
     if (productInput.description && productInput.description.trim() !== "") {
-      createProductInput.description = JSON.stringify({
-        time: Date.now(),
-        blocks: [{
-          id: `desc-${Date.now()}`,
-          data: { text: productInput.description },
-          type: "paragraph"
-        }],
-        version: "2.24.3"
-      });
+      const raw = productInput.description.trim();
+      const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
+      createProductInput.description = isJsonLike
+        ? raw
+        : JSON.stringify({
+            time: Date.now(),
+            blocks: [
+              {
+                id: `desc-${Date.now()}`,
+                data: { text: raw },
+                type: "paragraph",
+              },
+            ],
+            version: "2.24.3",
+          });
     }
 
 

@@ -1,0 +1,541 @@
+shop:
+  defaultMailSenderName: ""
+  defaultMailSenderAddress: null
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: null
+  reserveStockDurationAuthenticatedUser: null
+  defaultDigitalMaxDownloads: null
+  defaultDigitalUrlValidDays: null
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: false
+channels:
+  - name: act50 Product Portfolio
+    currencyCode: USD
+    defaultCountry: US
+    slug: act-product-portfolio-channel
+    isActive: false
+    settings:
+      useLegacyErrorFlow: true
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: CHARGE
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 0
+      deleteExpiredOrdersAfter: 120
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: false
+  - name: Test Euro Channel
+    currencyCode: EUR
+    defaultCountry: DE
+    slug: test-euro-channel
+    isActive: false
+    settings:
+      useLegacyErrorFlow: true
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 0
+      deleteExpiredOrdersAfter: 5
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: true
+      includeDraftOrderInVoucherUsage: false
+productTypes:
+  - name: Carbon Offsets
+    isShippingRequired: false
+    productAttributes: []
+    variantAttributes: []
+  - name: Environmental Attribute Certificates (EACs)
+    isShippingRequired: false
+    productAttributes:
+      - name: External ID
+        inputType: PLAIN_TEXT
+      - name: Country of Production
+        inputType: DROPDOWN
+        values:
+          - name: American Samoa
+          - name: Argentina
+          - name: Australia
+          - name: Austria
+          - name: Bangladesh
+          - name: Belgium
+          - name: Bonaire, Sint Eustatius and Saba
+          - name: Brazil
+          - name: British Indian Ocean Territory
+          - name: Bulgaria
+      - name: Region of Production
+        inputType: DROPDOWN
+        values:
+          - name: Europe
+          - name: North America
+          - name: South America
+          - name: APAC
+          - name: Africa
+      - name: Technology
+        inputType: MULTISELECT
+        values:
+          - name: Renewable
+          - name: Wind
+          - name: Hydro
+          - name: Solar
+      - name: Price Type
+        inputType: DROPDOWN
+        values:
+          - name: bid
+          - name: ask
+          - name: high
+          - name: low
+          - name: mid
+    variantAttributes: []
+pageTypes:
+  - name: Default Type
+    slug: default-type
+    attributes: []
+categories:
+  - name: REC
+    slug: rec
+  - name: GOO
+    slug: goo
+  - name: I-REC
+    slug: i-rec
+warehouses:
+  - name: Test Warehouse1
+    slug: test-warehouse1
+    isPrivate: false
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: abcd
+      city: SANTORINI
+      postalCode: "84700"
+      country: GR
+    shippingZones: []
+  - name: GreenProject act50 Warehouse
+    slug: greenproject-act50-warehouse
+    isPrivate: false
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: 437 Madison Ave
+      streetAddress2: "#17A"
+      city: NEW YORK CITY
+      postalCode: "10022"
+      country: US
+      countryArea: NY
+      companyName: Green Project Technologies
+    shippingZones: []
+  - name: Default Warehouse
+    slug: default-warehouse
+    isPrivate: true
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: 437 Madison Avenue
+      streetAddress2: FL 17A
+      city: NEW YORK
+      postalCode: "10022"
+      country: US
+      countryArea: NY
+      companyName: Green Project Technologies, Inc
+      phone: "+18888288923"
+    shippingZones:
+      - Default
+shippingZones:
+  - name: Default
+    default: false
+    countries:
+      - AD
+      - AE
+      - AF
+      - AG
+      - AI
+      - AL
+      - AM
+      - AO
+      - AQ
+      - AR
+      - AS
+      - AT
+      - AU
+      - AW
+      - AX
+      - AZ
+      - BA
+      - BB
+      - BD
+      - BE
+      - BF
+      - BG
+      - BH
+      - BI
+      - BJ
+      - BL
+      - BM
+      - BN
+      - BO
+      - BQ
+      - BR
+      - BS
+      - BT
+      - BV
+      - BW
+      - BY
+      - BZ
+      - CA
+      - CC
+      - CD
+      - CF
+      - CG
+      - CH
+      - CI
+      - CK
+      - CL
+      - CM
+      - CN
+      - CO
+      - CR
+      - CU
+      - CV
+      - CW
+      - CX
+      - CY
+      - CZ
+      - DE
+      - DJ
+      - DK
+      - DM
+      - DO
+      - DZ
+      - EC
+      - EE
+      - EG
+      - EH
+      - ER
+      - ES
+      - ET
+      - FI
+      - FJ
+      - FK
+      - FM
+      - FO
+      - FR
+      - GA
+      - GB
+      - GD
+      - GE
+      - GF
+      - GG
+      - GH
+      - GI
+      - GL
+      - GM
+      - GN
+      - GP
+      - GQ
+      - GR
+      - GS
+      - GT
+      - GU
+      - GW
+      - GY
+      - HK
+      - HM
+      - HN
+      - HR
+      - HT
+      - HU
+      - ID
+      - IE
+      - IL
+      - IM
+      - IN
+      - IO
+      - IQ
+      - IR
+      - IS
+      - IT
+      - JE
+      - JM
+      - JO
+      - JP
+      - KE
+      - KG
+      - KH
+      - KI
+      - KM
+      - KN
+      - KP
+      - KR
+      - KW
+      - KY
+      - KZ
+      - LA
+      - LB
+      - LC
+      - LI
+      - LK
+      - LR
+      - LS
+      - LT
+      - LU
+      - LV
+      - LY
+      - MA
+      - MC
+      - MD
+      - ME
+      - MF
+      - MG
+      - MH
+      - MK
+      - ML
+      - MM
+      - MN
+      - MO
+      - MP
+      - MQ
+      - MR
+      - MS
+      - MT
+      - MU
+      - MV
+      - MW
+      - MX
+      - MY
+      - MZ
+      - NA
+      - NC
+      - NE
+      - NF
+      - NG
+      - NI
+      - NL
+      - NP
+      - NR
+      - NU
+      - NZ
+      - OM
+      - PA
+      - PE
+      - PF
+      - PG
+      - PH
+      - PK
+      - PL
+      - PM
+      - PN
+      - PR
+      - PS
+      - PT
+      - PW
+      - PY
+      - QA
+      - RE
+      - RO
+      - RS
+      - RU
+      - RW
+      - SA
+      - SB
+      - SC
+      - SD
+      - SE
+      - SG
+      - SH
+      - SI
+      - SJ
+      - SK
+      - SL
+      - SM
+      - SN
+      - SO
+      - SR
+      - SS
+      - ST
+      - SV
+      - SX
+      - SY
+      - SZ
+      - TC
+      - TD
+      - TF
+      - TG
+      - TH
+      - TJ
+      - TK
+      - TL
+      - TM
+      - TN
+      - TO
+      - TR
+      - TT
+      - TV
+      - TW
+      - TZ
+      - UA
+      - UG
+      - UM
+      - US
+      - UY
+      - UZ
+      - VA
+      - VC
+      - VE
+      - VG
+      - VI
+      - VN
+      - VU
+      - WF
+      - WS
+      - YE
+      - YT
+      - ZA
+      - ZM
+      - ZW
+    warehouses:
+      - default-warehouse
+    channels:
+      - act-product-portfolio-channel
+      - test-euro-channel
+    shippingMethods:
+      - name: Default
+        type: PRICE
+        minimumOrderWeight:
+          unit: KG
+          value: 0
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 5
+            currency: USD
+taxClasses: []
+collections: []
+menus:
+  - name: navbar
+    slug: navbar
+    items: []
+  - name: footer
+    slug: footer
+    items: []
+models: []
+modelTypes:
+  - name: Default Type
+    attributes: []
+products:
+  - name: GOO Wind 2025 Netherlands
+    slug: goo-wind-2025-netherlands
+    description: '{"time": 1753167628204, "blocks": [{"id": "CzqFTVi8vD", "data":
+      {"text": "GOO Wind 2025 Netherlands&nbsp;"}, "type": "paragraph"}],
+      "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d512618facb768f9cba1
+      Country of Production: Netherlands
+      Region of Production: Europe
+      Technology: Wind
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6NDE=
+        sku: UHJvZHVjdFZhcmlhbnQ6NDE=
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1.69
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-07-22T07:00:27.964208+00:00
+        visibleInListings: true
+  - name: I-REC Wind 2025 Viet Nam
+    slug: national-green-e-any-2025
+    description: '{"time": 1757571609595, "blocks": [{"id": "BRHgSun3Mm", "data":
+      {"text": "I-REC Wind 2025 Viet Nam"}, "type": "paragraph"}], "version":
+      "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rec
+    attributes:
+      External ID: 67a362d7211c24715c5fbb2b
+      Country of Production: Vietnam
+      Technology: Wind
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6NDU=
+        sku: UHJvZHVjdFZhcmlhbnQ6NDU=
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 0.5
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-07-22T07:10:42.417751+00:00
+        visibleInListings: true
+  - name: UK rego non-biomass compliance 2023
+    slug: uk-rego-non-biomass-compliance-2023
+    description: '{"time": 1755600771258, "blocks": [{"id": "EkaWiLmrXD", "data":
+      {"text": "UK rego non-biomass compliance 2023"}, "type": "paragraph"}],
+      "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 66c88266f154a906443fde63
+      Technology: Renewable
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6Mzkw
+        sku: UHJvZHVjdFZhcmlhbnQ6Mzkw
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 0.81
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-08-19T10:52:52.352700+00:00
+        visibleInListings: true
+  - name: National Green-e Any 2025
+    slug: us-and-canada-2025-goo
+    description: '{"time": 1757571564873, "blocks": [{"id": "h0uIogi1Z-", "data":
+      {"text": "National Green-e Any 2025"}, "type": "paragraph"}], "version":
+      "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 67a4e37f7c3befca8b6a8e3e
+      Technology: Renewable
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6Mzkz
+        sku: UHJvZHVjdFZhcmlhbnQ6Mzkz
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 2
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-08-21T09:45:26.477582+00:00
+        visibleInListings: true
+  - name: US Wind V23
+    slug: us-wind-v23
+    description: '{"time": 1755769741070, "blocks": [{"id": "nTcFoseD_K", "data":
+      {"text": "US Wind V23"}, "type": "paragraph"}], "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rec
+    attributes:
+      External ID: 6696cdbf4bc45058c2081f5c
+      Country of Production: United States
+      Technology: Hydro
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6Mzk0
+        sku: UHJvZHVjdFZhcmlhbnQ6Mzk0
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1.5
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-08-21T09:49:02.618265+00:00
+        visibleInListings: true

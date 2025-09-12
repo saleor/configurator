@@ -421,6 +421,88 @@ export const shippingZonesStage: DeploymentStage = {
   },
 };
 
+export const attributeChoicesPreflightStage: DeploymentStage = {
+  name: "Preparing attribute choices",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.products || config.products.length === 0) return;
+
+      const productChanges = context.summary.results.filter((r) => r.entityType === "Products");
+      if (productChanges.length === 0) return;
+
+      const changedSlugs = new Set(productChanges.map((r) => r.entityName));
+      const productsToProcess = config.products.filter((p) => changedSlugs.has(p.slug));
+      if (productsToProcess.length === 0) return;
+
+      // Collect attribute values per attribute name
+      const valuesByAttr = new Map<string, Set<string>>();
+      for (const p of productsToProcess) {
+        const attrs = p.attributes || {};
+        for (const [name, raw] of Object.entries(attrs)) {
+          const set = valuesByAttr.get(name) || new Set<string>();
+          if (Array.isArray(raw)) raw.forEach((v) => set.add(String(v).trim()));
+          else if (raw !== undefined && raw !== null) set.add(String(raw).trim());
+          valuesByAttr.set(name, set);
+        }
+      }
+      if (valuesByAttr.size === 0) return;
+
+      const names = Array.from(valuesByAttr.keys());
+      const existing = await context.configurator.services.attribute.repo.getAttributesByNames({
+        names,
+        type: "PRODUCT_TYPE",
+      });
+      if (!existing || existing.length === 0) return;
+
+      // For each attribute, add missing choices if any
+      const choiceInputTypes = new Set(["DROPDOWN", "MULTISELECT", "SWATCH"]);
+      for (const attr of existing) {
+        // Only process attributes that support predefined choices
+        if (!choiceInputTypes.has(String(attr.inputType))) continue;
+
+        const desired = valuesByAttr.get(attr.name || "");
+        if (!desired || desired.size === 0) continue;
+
+        const existingChoices = new Set(
+          (attr.choices?.edges || []).map((e: any) => String(e.node.name).toLowerCase())
+        );
+        const missing = Array.from(desired).filter(
+          (v) => !existingChoices.has(v.toLowerCase())
+        );
+        if (missing.length > 0) {
+          await context.configurator.services.attribute.repo.updateAttribute(attr.id, {
+            name: attr.name,
+            addValues: missing.map((m) => ({
+              name: m,
+              externalReference: `attr:${attr.id}:${m.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            })),
+          } as any);
+        }
+      }
+
+      // Re-fetch updated attribute metadata for cache priming
+      const refreshed = await context.configurator.services.attribute.repo.getAttributesByNames({
+        names,
+        type: "PRODUCT_TYPE",
+      });
+      if (refreshed && refreshed.length > 0) {
+        context.configurator.services.product.primeAttributeCache(refreshed as any);
+      }
+      logger.debug("Attribute choices preflight completed", {
+        attributes: refreshed?.length ?? existing.length,
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to prepare attribute choices: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Products");
+  },
+};
+
 export const productsStage: DeploymentStage = {
   name: "Managing products",
   async execute(context) {
@@ -485,6 +567,7 @@ export function getAllStages(): DeploymentStage[] {
     modelsStage, // Deploy models after model types
     warehousesStage,
     shippingZonesStage,
+    attributeChoicesPreflightStage,
     productsStage,
   ];
 }

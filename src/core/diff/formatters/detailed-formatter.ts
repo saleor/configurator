@@ -142,12 +142,13 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
    * Adds specific details for entity creation
    */
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {
-    const typedEntity = entity;
+    const typedEntity = entity as any;
 
+    // Generic common fields
     if (typedEntity?.currencyCode) {
       lines.push(
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} Currency: ${chalk.cyan(
-          typedEntity.currencyCode
+          String(typedEntity.currencyCode)
         )}`
       );
     }
@@ -155,9 +156,60 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
     if (typedEntity?.defaultCountry) {
       lines.push(
         `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} Country: ${chalk.cyan(
-          typedEntity.defaultCountry
+          String(typedEntity.defaultCountry)
         )}`
       );
+    }
+
+    // Product-specific preview: productType, category, attributes, variants
+    if (typedEntity?.productType || typedEntity?.category) {
+      if (typedEntity.productType) {
+        lines.push(
+          `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} productType: ${chalk.cyan(
+            String(typedEntity.productType)
+          )}`
+        );
+      }
+      if (typedEntity.category) {
+        lines.push(
+          `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} category: ${chalk.cyan(
+            String(typedEntity.category)
+          )}`
+        );
+      }
+
+      // Attributes (list each key/value)
+      if (typedEntity.attributes && typeof typedEntity.attributes === "object") {
+        const attrs = typedEntity.attributes as Record<string, unknown>;
+        const keys = Object.keys(attrs);
+        if (keys.length > 0) {
+          lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} attributes:`);
+          for (const key of keys) {
+            const val = attrs[key];
+            const valStr = Array.isArray(val)
+              ? val.map((v) => chalk.cyan(String(v))).join(", ")
+              : chalk.cyan(String(val));
+            lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${key}: ${valStr}`);
+          }
+        }
+      }
+
+      // Variants: preview SKU and channel pricing if provided
+      if (Array.isArray(typedEntity.variants) && typedEntity.variants.length > 0) {
+        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
+        for (const v of typedEntity.variants as any[]) {
+          const sku = v?.sku || v?.name || "variant";
+          lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
+          if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
+            const parts = v.channelListings.map((cl: any) => {
+              const ch = cl?.channel ?? "channel";
+              const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
+              return `${chalk.white(ch)}=${price}`;
+            });
+            lines.push(`        ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} prices: ${parts.join(", ")}`);
+          }
+        }
+      }
     }
   }
 

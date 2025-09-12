@@ -3,6 +3,9 @@ import type { Attribute, ProductOperations } from "./repository";
 
 type ReferenceResolvers = {
   getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
+  // Optional attribute cache accessor
+  // biome-ignore lint/suspicious/noExplicitAny: shared shape across repos
+  getAttributeByNameFromCache?: (name: string) => any | null;
 };
 
 // Constants
@@ -289,7 +292,11 @@ export class AttributeResolver {
     new DropdownAttributeHandler(),
   ];
 
-  constructor(private repository: ProductOperations, private readonly refs?: ReferenceResolvers) {}
+  constructor(private repository: ProductOperations, private refs?: ReferenceResolvers) {}
+
+  setRefs(refs?: ReferenceResolvers) {
+    this.refs = refs;
+  }
 
   async resolveAttributes(
     attributes: Record<string, string | string[]> = {}
@@ -350,6 +357,10 @@ export class AttributeResolver {
   }
 
   private async fetchAttribute(attributeName: string): Promise<Attribute | null> {
+    // Use cache accessor if provided
+    const cached = this.refs?.getAttributeByNameFromCache?.(attributeName);
+    if (cached) return cached as Attribute;
+
     const attribute = await this.repository.getAttributeByName(attributeName);
 
     if (!attribute) {

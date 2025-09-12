@@ -1,4 +1,5 @@
 import { EntityValidationError } from "../errors";
+import { logger } from "../../../lib/logger";
 import type { DiffChange, DiffResult, EntityType } from "../types";
 
 /**
@@ -106,8 +107,8 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
     }
 
     if (duplicateNames.size > 0) {
-      console.warn(
-        `⚠️  Warning: Found duplicate ${this.entityType.toLowerCase()} names: ${Array.from(duplicateNames).join(", ")}. Using first occurrence only.`
+      logger.warn(
+        `Duplicate ${this.entityType} detected: ${Array.from(duplicateNames).join(", ")}. Using first occurrence only.`
       );
     }
 

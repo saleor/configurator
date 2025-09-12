@@ -32,6 +32,7 @@ import { WarehouseService } from "../modules/warehouse/warehouse-service";
 import { DiffService } from "./diff";
 
 export interface ServiceContainer {
+  readonly attribute: AttributeService;
   readonly channel: ChannelService;
   readonly pageType: PageTypeService;
   readonly productType: ProductTypeService;
@@ -94,6 +95,7 @@ export class ServiceComposer {
 
     // Create service container first (without diffService to avoid circular dependency)
     const services = {
+      attribute: attributeService,
       channel: channelService,
       pageType: pageTypeService,
       productType: new ProductTypeService(repositories.productType, attributeService),
