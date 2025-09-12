@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationStorage } from "./yaml-manager";
+import yaml from "yaml";
 
 class MemoryStorage implements ConfigurationStorage {
   saved?: any;
@@ -62,5 +63,31 @@ describe("ConfigurationService – attributes introspection", () => {
     expect(cfg.attributes?.length).toBe(1);
     expect(cfg.attributes?.[0]).toMatchObject({ name: "COD < 15 Years", inputType: "BOOLEAN", type: "PRODUCT_TYPE" });
   });
-});
 
+  it("orders attributes before productTypes in YAML output", async () => {
+    const raw = {
+      shop: {},
+      channels: [],
+      productTypes: { edges: [ { node: { id: "pt1", name: "Type", isShippingRequired: true, productAttributes: [], assignedVariantAttributes: [] } } ] },
+      pageTypes: { edges: [] },
+      categories: { edges: [] },
+      warehouses: { edges: [] },
+      shippingZones: { edges: [] },
+      taxClasses: { edges: [] },
+      collections: { edges: [] },
+      menus: { edges: [] },
+      pages: { edges: [] },
+      products: { edges: [] },
+      attributes: { edges: [ { node: { id: "a1", name: "External ID", slug: "external-id", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: { edges: [] } } } ] },
+    } as unknown as RawSaleorConfig;
+
+    const svc = makeService(raw);
+    const cfg = await svc.retrieveWithoutSaving();
+    const yml = yaml.stringify(cfg);
+    const idxAttr = yml.indexOf("attributes:");
+    const idxPT = yml.indexOf("productTypes:");
+    expect(idxAttr).toBeGreaterThanOrEqual(0);
+    expect(idxPT).toBeGreaterThanOrEqual(0);
+    expect(idxAttr).toBeLessThan(idxPT);
+  });
+});

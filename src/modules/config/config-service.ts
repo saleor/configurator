@@ -58,6 +58,8 @@ export class ConfigurationService {
           config.attributes = unassigned;
         }
       }
+      // Ensure attributes appear first in YAML ordering
+      this.reorderConfigKeys(config as SaleorConfig);
     } catch {
       // best-effort advisory
     }
@@ -74,7 +76,37 @@ export class ConfigurationService {
         config.attributes = unassigned;
       }
     }
+    this.reorderConfigKeys(config as SaleorConfig);
     return config;
+  }
+
+  /**
+   * Mutates config to order keys: attributes first, then core sections.
+   */
+  private reorderConfigKeys(config: SaleorConfig): void {
+    const ordered: Partial<SaleorConfig> = {};
+    const push = (k: keyof SaleorConfig) => {
+      if (config[k] !== undefined) (ordered as Record<string, unknown>)[k] = config[k];
+    };
+    // Desired order (attributes at the top)
+    push("attributes");
+    push("shop");
+    push("channels");
+    push("warehouses");
+    push("shippingZones");
+    push("taxClasses");
+    push("productTypes");
+    push("pageTypes");
+    push("modelTypes");
+    push("categories");
+    push("collections");
+    push("products");
+    push("models");
+    push("menus");
+
+    // Clear and assign back in order
+    for (const key of Object.keys(config)) delete (config as Record<string, unknown>)[key];
+    Object.assign(config, ordered);
   }
 
   private mapChannels(rawChannels: RawSaleorConfig["channels"]): SaleorConfig["channels"] {
@@ -218,12 +250,11 @@ export class ConfigurationService {
     }
     if (productAttrNames.size === 0) return;
     const mappedNames = new Set<string>();
+    const getAttrName = (a: AttributeInput): string | undefined =>
+      "name" in a ? a.name : "attribute" in a ? a.attribute : undefined;
     const addNameFromAttributeInput = (a: AttributeInput) => {
-      if (typeof (a as any).name === "string") {
-        mappedNames.add((a as any).name as string);
-      } else if (typeof (a as any).attribute === "string") {
-        mappedNames.add((a as any).attribute as string);
-      }
+      const n = getAttrName(a);
+      if (n) mappedNames.add(n);
     };
     for (const pt of mappedProductTypes) {
       for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
@@ -232,7 +263,7 @@ export class ConfigurationService {
     const missing = Array.from(productAttrNames).filter((n) => !mappedNames.has(n));
     if (missing.length > 0) {
       logger.warn(
-        `Some product attributes exist but are not assigned to any product type and will be omitted from config: ${missing.join(", ")}`
+        `Found ${missing.length} product attributes not assigned to any product type. They will be included under top-level 'attributes' (not assigned): ${missing.join(", ")}`
       );
     }
   }
@@ -244,9 +275,11 @@ export class ConfigurationService {
 
     // Build set of names already mapped via productTypes
     const mapped = new Set<string>();
+    const getAttrName = (a: AttributeInput): string | undefined =>
+      "name" in a ? a.name : "attribute" in a ? a.attribute : undefined;
     const addNameFromAttributeInput = (a: AttributeInput) => {
-      if (typeof (a as any).name === "string") mapped.add((a as any).name as string);
-      else if (typeof (a as any).attribute === "string") mapped.add((a as any).attribute as string);
+      const n = getAttrName(a);
+      if (n) mapped.add(n);
     };
     for (const pt of mappedProductTypes) {
       for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
@@ -276,10 +309,10 @@ export class ConfigurationService {
           name: node.name,
           inputType: "REFERENCE",
           type: "PRODUCT_TYPE",
-          entityType: (node.entityType as any) || "PRODUCT",
+          entityType: (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
         } as FullAttribute;
       }
-      return { name: node.name, inputType: inputType as any, type: "PRODUCT_TYPE" } as FullAttribute;
+      return { name: node.name, inputType, type: "PRODUCT_TYPE" } as FullAttribute;
     };
 
     return unassigned.map(toFullAttribute);

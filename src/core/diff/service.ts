@@ -19,6 +19,8 @@ import {
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
+import yaml from "yaml";
+import { cliConsole } from "../../cli/console";
 import { AttributesComparator } from "./comparators";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
@@ -257,7 +259,6 @@ export class DiffService {
           formattedOutput = JSON.stringify(summary, null, 2);
           break;
         case "yaml": {
-          const yaml = require("yaml");
           formattedOutput = yaml.stringify(summary);
           break;
         }
@@ -268,7 +269,6 @@ export class DiffService {
       }
 
       if (!quiet && formattedOutput) {
-        const { cliConsole } = await import("../../cli/console");
         cliConsole.info(formattedOutput);
       }
 

@@ -24,6 +24,7 @@ import {
 } from "../core/errors/configuration-errors";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
+import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -302,9 +303,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       // Try to load the configuration to validate it
       const cfg = await configurator.services.configStorage.load();
       // Preflight: block deploy on duplicate identifiers with a clear message
-      const { validateNoDuplicateIdentifiers } = await import(
-        "../core/validation/preflight"
-      );
       validateNoDuplicateIdentifiers(cfg, args.config);
     } catch (error) {
       if (error instanceof ConfigurationValidationError) {

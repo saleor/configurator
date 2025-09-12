@@ -2,6 +2,7 @@ import { logger } from "../../lib/logger";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
 import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
 import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
@@ -107,8 +108,8 @@ export const productTypesStage: DeploymentStage = {
 export const attributesStage: DeploymentStage = {
   name: "Managing unassigned attributes",
   async execute(context) {
-    const config = await context.configurator.services.configStorage.load();
-    const attributes = (config as any).attributes as FullAttribute[] | undefined;
+    const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
+    const attributes = config.attributes;
     if (!attributes || attributes.length === 0) return;
 
     const service = context.configurator.services.attribute;
@@ -122,7 +123,7 @@ export const attributesStage: DeploymentStage = {
           await service.updateAttribute(attr, existing[0]);
           return { name: attr.name, success: true } as const;
         }
-        await service.bootstrapAttributes({ attributeInputs: [attr] as any });
+        await service.bootstrapAttributes({ attributeInputs: [attr] });
         return { name: attr.name, success: true } as const;
       })
     );
@@ -136,8 +137,7 @@ export const attributesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    const cfg = (context.summary as any).config as any;
-    return !cfg?.attributes || cfg.attributes.length === 0;
+    return context.summary.results.every((r) => r.entityType !== "Attributes");
   },
 };
 
