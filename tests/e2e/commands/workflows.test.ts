@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from "vitest";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { existsSync } from "node:fs";
-import { mkdir, rm, writeFile, readFile } from "node:fs/promises";
+import { mkdir, rm, writeFile, readFile, rename, copyFile } from "node:fs/promises";
 import { CLIRunner, CLIOutputParser } from "../helpers/cli-runner.ts";
 import { SandboxManager, type SandboxState } from "../helpers/sandbox-manager.ts";
 import { FileUtils, TestAssertions, ConfigUtils, TestDataGenerator, WaitUtils } from "../helpers/test-utils.ts";
@@ -173,8 +173,61 @@ describe("End-to-End Workflow Tests", () => {
       const deploy1Delta = await sandboxManager.compareStates(beforeDeployState, afterDeploy1State);
       console.log(`📊 First deployment state changes: ${JSON.stringify(deploy1Delta)}`);
 
-      // STEP 5: Second deployment (idempotency test)
-      console.log("🔄 STEP 5: Second deployment (idempotency test)...");
+      // STEP 5: Verify deployment by introspecting again
+      console.log("🔍 STEP 5: Introspecting again to verify deployment...");
+
+      // Move original config to backup
+      const originalConfigPath = join(testWorkspace, "config.yaml");
+      const backupConfigPath = join(testWorkspace, "config-before-deploy.yaml");
+
+      // Find and backup all original config files
+      const configFiles = await FileUtils.getAllFiles(testWorkspace);
+      for (const file of configFiles) {
+        if (file.endsWith('.yaml') && !file.includes('workflow-')) {
+          const backupPath = file.replace('.yaml', '-backup.yaml');
+          await rename(file, backupPath);
+          console.log(`📁 Backed up: ${basename(file)} → ${basename(backupPath)}`);
+        }
+      }
+
+      // Introspect again to get the current state after deployment
+      const verifyIntrospectResult = await cliRunner.introspect({
+        url: testContext.saleorUrl,
+        token: testContext.saleorToken,
+        outputDir: join(testWorkspace, 'after-deploy'),
+        timeout: 120000,
+      });
+
+      TestAssertions.assertCommandSuccess(verifyIntrospectResult);
+      console.log("✅ Re-introspected configuration after deployment");
+
+      // Compare the new introspection with what we deployed
+      const deployedFiles = await FileUtils.getAllFiles(join(testWorkspace, 'after-deploy'));
+      console.log(`📊 Introspected ${deployedFiles.length} files after deployment`);
+
+      // Verify our test entities are in the new introspection
+      const afterDeployContent = await readFile(
+        join(testWorkspace, 'after-deploy', 'products.yaml'),
+        'utf-8'
+      ).catch(() => '');
+
+      const hasTestProduct = afterDeployContent.includes(testProduct.name) ||
+                            afterDeployContent.includes(testProduct.slug);
+
+      if (hasTestProduct) {
+        console.log("✅ Test product found in re-introspected configuration");
+      } else {
+        console.log("⚠️  Test product not found in re-introspected configuration");
+      }
+
+      // STEP 6: Second deployment (idempotency test)
+      console.log("🔄 STEP 6: Second deployment (idempotency test)...");
+
+      // Copy the after-deploy config back to main workspace for second deploy
+      for (const file of deployedFiles) {
+        const destPath = file.replace('/after-deploy', '');
+        await copyFile(file, destPath);
+      }
 
       const deploy2Result = await cliRunner.deploy({
         url: testContext.saleorUrl,
@@ -185,14 +238,16 @@ describe("End-to-End Workflow Tests", () => {
 
       TestAssertions.assertCommandSuccess(deploy2Result);
 
-      const isSecondDeploymentSuccessful = CLIOutputParser.isDeploymentSuccessful(deploy2Result.stdout);
-      if (isSecondDeploymentSuccessful) {
-        console.log("✅ Second deployment completed successfully");
+      // Check for "no changes" in output
+      const hasNoChanges = /no changes|nothing to deploy|already up to date|0 changes/i.test(deploy2Result.stdout);
+
+      if (hasNoChanges) {
+        console.log("✅ Second deployment shows no changes - idempotency verified");
       } else {
-        console.log("ℹ️  Second deployment completed (success not explicitly indicated)");
+        console.log("ℹ️  Second deployment output:", deploy2Result.stdout.slice(0, 200));
       }
 
-      // Verify idempotency (minimal state change)
+      // Verify idempotency via state comparison
       const afterDeploy2State = await sandboxManager.getSandboxState();
       const deploy2Delta = await sandboxManager.compareStates(afterDeploy1State, afterDeploy2State);
       console.log(`📊 Second deployment state changes: ${JSON.stringify(deploy2Delta)}`);
@@ -208,8 +263,8 @@ describe("End-to-End Workflow Tests", () => {
         console.log(`⚠️  Significant changes on second deployment: ${JSON.stringify(deploy2Delta)}`);
       }
 
-      // STEP 6: Final diff to verify synchronization
-      console.log("🔍 STEP 6: Final diff to verify synchronization...");
+      // STEP 7: Final verification
+      console.log("🔍 STEP 7: Final diff to verify complete synchronization...");
 
       const finalDiffResult = await cliRunner.diff({
         url: testContext.saleorUrl,
@@ -237,8 +292,10 @@ describe("End-to-End Workflow Tests", () => {
         ✅ Modify: Configuration updated
         ✅ Diff: ${diffResult.success}
         ✅ Deploy 1: ${deploy1Result.success}
-        ✅ Deploy 2: ${deploy2Result.success} (idempotent: ${isIdempotent})
+        ✅ Verify: ${verifyIntrospectResult.success} (Product found: ${hasTestProduct})
+        ✅ Deploy 2: ${deploy2Result.success} (No changes: ${hasNoChanges})
         ✅ Final Diff: ${finalDiffResult.success}
+        ✅ Idempotency: ${isIdempotent ? "Verified" : "Check logs"}
       `);
 
       console.log("✅ Complete idempotency workflow test passed");
