@@ -1,0 +1,47 @@
+# Test Products Configuration
+products:
+  - name: "E2E Test Product Alpha"
+    slug: "e2e-test-product-alpha"
+    description: "Alpha test product for end-to-end testing scenarios"
+    productType: "default-product-type"
+    category: "electronics"
+    isPublished: true
+    visibleInListings: true
+    availableForPurchase: true
+    weight: 1.5
+    trackInventory: true
+    metadata:
+      testSuite: "e2e"
+      testType: "product"
+      created: "2025-01-15"
+
+  - name: "E2E Test Product Beta"
+    slug: "e2e-test-product-beta"
+    description: "Beta test product for comprehensive testing"
+    productType: "default-product-type"
+    category: "clothing"
+    isPublished: true
+    visibleInListings: true
+    availableForPurchase: true
+    weight: 0.8
+    trackInventory: false
+    metadata:
+      testSuite: "e2e"
+      testType: "product"
+      created: "2025-01-15"
+
+  - name: "E2E Test Product Gamma"
+    slug: "e2e-test-product-gamma"
+    description: "Gamma test product for edge case testing"
+    productType: "default-product-type"
+    category: "accessories"
+    isPublished: false
+    visibleInListings: false
+    availableForPurchase: false
+    weight: 0.1
+    trackInventory: true
+    metadata:
+      testSuite: "e2e"
+      testType: "product"
+      created: "2025-01-15"
+      special: "edge-case"

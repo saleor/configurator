@@ -1,0 +1,243 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vitest.e2e.config.ts'
+      - '.github/workflows/e2e-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/e2e/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'vitest.e2e.config.ts'
+      - '.github/workflows/e2e-tests.yml'
+  workflow_dispatch:
+    inputs:
+      test_environment:
+        description: 'Test environment to use'
+        required: false
+        default: 'sandbox_a'
+        type: choice
+        options:
+          - sandbox_a
+          - sandbox_b
+      test_pattern:
+        description: 'Test pattern to run (optional)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
+
+jobs:
+  e2e-tests:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - name: 'Introspect Command'
+            pattern: 'tests/e2e/commands/introspect.test.ts'
+            timeout: 20
+          - name: 'Diff Command'
+            pattern: 'tests/e2e/commands/diff.test.ts'
+            timeout: 20
+          - name: 'Deploy Command'
+            pattern: 'tests/e2e/commands/deploy.test.ts'
+            timeout: 25
+          - name: 'Workflow Tests'
+            pattern: 'tests/e2e/commands/workflows.test.ts'
+            timeout: 30
+          - name: 'Error Scenarios'
+            pattern: 'tests/e2e/commands/error-scenarios.test.ts'
+            timeout: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm build
+
+      - name: Setup test environment
+        run: |
+          echo "E2E_ENVIRONMENT=${{ github.event.inputs.test_environment || 'sandbox_a' }}" >> $GITHUB_ENV
+          echo "E2E_SALEOR_URL=${{ secrets.E2E_SALEOR_URL }}" >> $GITHUB_ENV
+          echo "E2E_SALEOR_TOKEN=${{ secrets.E2E_SALEOR_TOKEN }}" >> $GITHUB_ENV
+          echo "E2E_CLEANUP=true" >> $GITHUB_ENV
+          echo "E2E_RETAIN_ON_FAILURE=true" >> $GITHUB_ENV
+          echo "CI=true" >> $GITHUB_ENV
+
+      - name: Verify test environment
+        run: |
+          if [ -z "$E2E_SALEOR_URL" ] || [ -z "$E2E_SALEOR_TOKEN" ]; then
+            echo "❌ Missing required environment variables for E2E tests"
+            echo "Please set E2E_SALEOR_URL and E2E_SALEOR_TOKEN secrets"
+            exit 1
+          fi
+          echo "✅ Test environment verified"
+          echo "🌐 Testing against: $E2E_SALEOR_URL"
+
+      - name: Run E2E tests - ${{ matrix.test-suite.name }}
+        timeout-minutes: ${{ matrix.test-suite.timeout }}
+        run: |
+          TEST_PATTERN="${{ github.event.inputs.test_pattern || matrix.test-suite.pattern }}"
+          echo "🧪 Running E2E tests: ${{ matrix.test-suite.name }}"
+          echo "📁 Test pattern: $TEST_PATTERN"
+
+          pnpm test:e2e:ci --run "$TEST_PATTERN" --reporter=verbose
+        env:
+          # Ensure test isolation
+          TEST_SUITE_ID: ${{ strategy.job-index }}
+          TEST_RUN_ID: ${{ github.run_id }}-${{ strategy.job-index }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-${{ strategy.job-index }}
+          path: |
+            tests/e2e/**/*.log
+            tests/e2e/**/*.json
+          retention-days: 7
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-logs-failure-${{ strategy.job-index }}
+          path: |
+            tests/e2e/**/*.log
+            ~/.npm/_logs/
+          retention-days: 14
+
+  e2e-summary:
+    name: E2E Test Summary
+    runs-on: ubuntu-latest
+    needs: e2e-tests
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "🔍 Checking E2E test results..."
+
+          # Check if any jobs failed
+          if [[ "${{ needs.e2e-tests.result }}" == "failure" ]]; then
+            echo "❌ Some E2E tests failed"
+            exit 1
+          elif [[ "${{ needs.e2e-tests.result }}" == "success" ]]; then
+            echo "✅ All E2E tests passed"
+          else
+            echo "⚠️ E2E tests completed with status: ${{ needs.e2e-tests.result }}"
+          fi
+
+      - name: Post summary comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testResult = '${{ needs.e2e-tests.result }}';
+            const emoji = testResult === 'success' ? '✅' : '❌';
+            const status = testResult === 'success' ? 'passed' : 'failed';
+
+            const body = `## ${emoji} E2E Test Results
+
+            **Status:** ${status}
+            **Environment:** ${{ github.event.inputs.test_environment || 'sandbox_a' }}
+            **Run ID:** ${{ github.run_id }}
+
+            ${testResult === 'success'
+              ? '🎉 All end-to-end tests passed successfully!'
+              : '⚠️ Some end-to-end tests failed. Please check the logs for details.'
+            }
+
+            ### Test Suites Executed:
+            - Introspect Command Tests
+            - Diff Command Tests
+            - Deploy Command Tests
+            - Workflow Integration Tests
+            - Error Scenario Tests
+
+            For detailed logs, check the workflow run: [View Details](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for exposed secrets
+        run: |
+          echo "🔒 Checking for exposed secrets in E2E tests..."
+
+          # Check for hardcoded tokens or URLs
+          if grep -r "F0NRNjskPnhBo27Vy9i6SJtFJeNNCU" tests/e2e/ --exclude-dir=node_modules || \
+             grep -r "sandbox.*\.saleor\.cloud" tests/e2e/ --exclude-dir=node_modules --exclude="*.md" --exclude="environments.ts"; then
+            echo "❌ Found potential hardcoded secrets in E2E tests"
+            echo "Please use environment variables for sensitive data"
+            exit 1
+          fi
+
+          echo "✅ No exposed secrets found"
+
+      - name: Validate test isolation
+        run: |
+          echo "🔍 Validating test isolation..."
+
+          # Check that tests use unique identifiers
+          if ! grep -r "Date\.now()" tests/e2e/commands/ || ! grep -r "Math\.random()" tests/e2e/commands/; then
+            echo "⚠️ Tests should use unique identifiers to avoid conflicts"
+          fi
+
+          echo "✅ Test isolation validation completed"

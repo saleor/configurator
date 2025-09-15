@@ -1,0 +1,58 @@
+# Test Categories Configuration
+categories:
+  - name: "E2E Electronics"
+    slug: "e2e-electronics"
+    description: "Electronics category for E2E testing"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "root"
+
+  - name: "E2E Clothing"
+    slug: "e2e-clothing"
+    description: "Clothing category for E2E testing"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "root"
+
+  - name: "E2E Accessories"
+    slug: "e2e-accessories"
+    description: "Accessories category for E2E testing"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "root"
+
+  - name: "E2E Mobile Phones"
+    slug: "e2e-mobile-phones"
+    description: "Mobile phones subcategory"
+    parent: "e2e-electronics"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "sub"
+
+  - name: "E2E Laptops"
+    slug: "e2e-laptops"
+    description: "Laptops subcategory"
+    parent: "e2e-electronics"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "sub"
+
+  - name: "E2E T-Shirts"
+    slug: "e2e-t-shirts"
+    description: "T-shirts subcategory"
+    parent: "e2e-clothing"
+    isPublished: true
+    metadata:
+      testSuite: "e2e"
+      testType: "category"
+      level: "sub"

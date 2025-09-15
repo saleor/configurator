@@ -1,0 +1,62 @@
+# Basic Saleor Configuration for E2E Testing
+apiVersion: v1
+kind: Configuration
+metadata:
+  name: e2e-test-config
+  description: Basic configuration for E2E testing
+  version: "1.0.0"
+
+spec:
+  # Test products configuration
+  products:
+    - name: "Test Product 1"
+      slug: "test-product-1"
+      description: "First test product for E2E testing"
+      productType: "default-product-type"
+      category: "test-category-1"
+      weight: 1.0
+      isPublished: true
+      metadata:
+        test: true
+
+    - name: "Test Product 2"
+      slug: "test-product-2"
+      description: "Second test product for E2E testing"
+      productType: "default-product-type"
+      category: "test-category-2"
+      weight: 2.0
+      isPublished: true
+      metadata:
+        test: true
+
+  # Test categories configuration
+  categories:
+    - name: "Test Category 1"
+      slug: "test-category-1"
+      description: "First test category"
+      metadata:
+        test: true
+
+    - name: "Test Category 2"
+      slug: "test-category-2"
+      description: "Second test category"
+      parent: "test-category-1"
+      metadata:
+        test: true
+
+  # Test attributes configuration
+  attributes:
+    - name: "Test Color"
+      slug: "test-color"
+      type: "dropdown"
+      valueRequired: false
+      isVariantOnly: false
+      choices:
+        - name: "Red"
+          slug: "red"
+        - name: "Blue"
+          slug: "blue"
+        - name: "Green"
+          slug: "green"
+      metadata:
+        test: true
