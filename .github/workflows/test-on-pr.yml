@@ -4,14 +4,22 @@ on:
   pull_request:
     branches:
       - main # or the branch you want to target
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
 
 jobs:
   test:
+    if: github.event.action != 'labeled' || github.event.label.name == 'skip changeset'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
