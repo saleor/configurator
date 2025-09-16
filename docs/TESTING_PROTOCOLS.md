@@ -26,6 +26,28 @@ Comprehensive testing procedures, validation workflows, and quality gates for th
 
 ## End-to-End CLI Testing Protocol
 
+### Automated Sandbox Regression Suite (2025 refresh)
+
+Run the production-like happy path directly from Vitest using the Saleor sandbox credentials that are distributed to the team. The suite lives in `tests/e2e/cli-introspect-deploy.e2e.test.ts` and exercises: `introspect → diff → deploy → re-introspect → deploy baseline`. It also keeps the remote sandbox clean by restoring the original configuration at the end.
+
+```
+# Required variables (store them as GitHub Action secrets for CI)
+export CONFIGURATOR_E2E_SALEOR_TOKEN="<sandbox-token>"  # falls back to SALEOR_E2E_TOKEN or SALEOR_TOKEN if set
+
+# Optional overrides
+export CONFIGURATOR_E2E_SALEOR_URL="https://sandbox-a.staging.saleor.cloud/graphql/"  # falls back to SALEOR_E2E_URL or SALEOR_URL
+export CONFIGURATOR_E2E_TIMEOUT=480000   # ms per command
+export CONFIGURATOR_AUTO_CONFIRM=true     # auto-accept prompts during automation when needed
+
+# Run locally
+pnpm test:e2e
+
+# Run in CI (same command is wired into .github/workflows/test-on-pr.yml)
+pnpm test:e2e:ci
+```
+
+Under the hood we spawn the CLI with `execa@9` so we hit the same `pnpm dev` entry point that developers use. The runner disables ANSI colour, enforces a 20MB buffer cap, and executes tests sequentially to avoid race conditions against the shared sandbox. Command output is stripped from ANSI codes before assertions to make snapshots reliable.
+
 ### Mandatory Pre-Push Testing
 
 ⚠️ **CRITICAL**: This protocol is MANDATORY before pushing any core changes:

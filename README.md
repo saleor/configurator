@@ -367,6 +367,11 @@ pnpm test --watch
 
 # Run specific test file
 pnpm test src/modules/product/product-service.test.ts
+
+# Run the sandbox end-to-end regression suite (requires Saleor sandbox token)
+# The script also honours SALEOR_E2E_TOKEN / SALEOR_TOKEN and SALEOR_E2E_URL / SALEOR_URL
+# Set CONFIGURATOR_AUTO_CONFIRM=true if you want to auto-accept interactive confirmations
+CONFIGURATOR_E2E_SALEOR_TOKEN=your-token pnpm test:e2e
 ```
 
 ### Versioning
