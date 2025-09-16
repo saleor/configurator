@@ -1,5 +1,77 @@
 # saleor-configurator
 
+## 0.14.0
+
+### Minor Changes
+
+- 72e807c: **Complete Product Management Support**
+
+  Added full product management capabilities to the Saleor Configurator. You can now manage your entire product catalog through YAML configuration with complete round-trip integrity.
+
+  **Key Features:**
+
+  - Product lifecycle management with variants through YAML configuration
+  - Multi-channel pricing and availability configuration for product variants
+  - Support for all attribute types (plain text, dropdown, reference) with validation
+  - SKU-based idempotency for reliable product variant updates
+  - Detailed diff detection showing exact changes to be applied
+  - Slug-based product identification for consistent cross-environment behavior
+
+  **Workflow Integration:**
+
+  - `introspect`: Download complete product catalog to YAML files
+  - `diff`: Preview exact product changes before deployment
+  - `push`: Deploy configurations with automatic create/update detection
+
+  **Example Configuration:**
+
+  ```yaml
+  products:
+    - name: "The Clean Coder"
+      slug: "clean-coder"
+      productType: "Book"
+      category: "programming"
+      variants:
+        - name: "Hardcover"
+          sku: "CLEAN-CODER-HC"
+          price: 39.99
+        - name: "Paperback"
+          sku: "CLEAN-CODER-PB"
+          price: 29.99
+      channelListings:
+        - channel: "default"
+          isPublished: true
+          availableForPurchase: "2024-01-01"
+  ```
+
+  This completes the "commerce as code" workflow for product management alongside existing support for channels, categories, and product types.
+
+- d1ec7fd: This release focuses on stability, clarity and scale across the whole flow (introspect → diff → deploy). It removes “nothing changed” updates, prevents product‑creation errors, makes previews more useful, and handles large catalogs reliably.
+
+  ## New
+
+  - Safer product creation: the configurator now ensures required attribute values exist before creating products. This prevents occasional product‑creation failures when many products use the same new value.
+  - Richer create previews: product Creates now show product type, category, key attributes, and per‑variant channel prices.
+
+  ## Improved
+
+  - Cleaner diffs: product descriptions are compared by visible text only, so diffs show meaningful content changes rather than raw JSON noise.
+  - Duplicate protection: if duplicate slugs/names are detected, deploy/diff is blocked with a clear, styled message and guidance on what to fix.
+
+  ## Fixed
+
+  - Phantom updates removed: channel publish dates are normalized so format‑only differences no longer show as updates.
+  - Repeated “Create” suggestions eliminated: remote introspection now retrieves all products, not just the first page.
+
+  ## Performance & Scale
+
+  - Large catalogs deploy more predictably with fewer redundant lookups and complete remote introspection.
+
+  ## Notes
+
+  - No breaking changes.
+  - If deploy is blocked by duplicates, make the slugs/names unique in config.yml and rerun.
+
 ## 0.13.0
 
 ### Minor Changes
