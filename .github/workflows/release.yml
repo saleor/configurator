@@ -36,6 +36,13 @@ jobs:
       - name: Run tests
         run: pnpm run test:ci
 
+      - name: Run CLI end-to-end tests
+        if: ${{ secrets.CONFIGURATOR_E2E_SALEOR_TOKEN != '' }}
+        env:
+          CONFIGURATOR_E2E_SALEOR_TOKEN: ${{ secrets.CONFIGURATOR_E2E_SALEOR_TOKEN }}
+          CONFIGURATOR_E2E_SALEOR_URL: ${{ secrets.CONFIGURATOR_E2E_SALEOR_URL || 'https://sandbox-a.staging.saleor.cloud/graphql/' }}
+        run: pnpm test:e2e:ci
+
       - name: Run linting
         run: pnpm run lint
 
