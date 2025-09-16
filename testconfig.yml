@@ -1,0 +1,3101 @@
+shop:
+  defaultMailSenderName: ""
+  defaultMailSenderAddress: null
+  displayGrossPrices: true
+  enableAccountConfirmationByEmail: true
+  limitQuantityPerCheckout: 50
+  trackInventoryByDefault: true
+  reserveStockDurationAnonymousUser: null
+  reserveStockDurationAuthenticatedUser: null
+  defaultDigitalMaxDownloads: null
+  defaultDigitalUrlValidDays: null
+  defaultWeightUnit: KG
+  allowLoginWithoutConfirmation: false
+channels:
+  - name: act50 Product Portfolio
+    currencyCode: USD
+    defaultCountry: US
+    slug: act-product-portfolio-channel
+    isActive: false
+    settings:
+      useLegacyErrorFlow: true
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: CHARGE
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 0
+      deleteExpiredOrdersAfter: 120
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: false
+  - name: Test Euro Channel
+    currencyCode: EUR
+    defaultCountry: DE
+    slug: test-euro-channel
+    isActive: false
+    settings:
+      useLegacyErrorFlow: true
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 0
+      deleteExpiredOrdersAfter: 5
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: true
+      includeDraftOrderInVoucherUsage: false
+productTypes:
+  - name: Carbon Offsets
+    isShippingRequired: false
+    productAttributes: []
+    variantAttributes: []
+  - name: Environmental Attribute Certificates (EACs)
+    isShippingRequired: false
+    productAttributes:
+      - name: External ID
+        inputType: PLAIN_TEXT
+      - name: Country of Production
+        inputType: DROPDOWN
+        values:
+          - name: American Samoa
+          - name: Argentina
+          - name: Australia
+          - name: Austria
+          - name: Bangladesh
+          - name: Belgium
+          - name: Bonaire, Sint Eustatius and Saba
+          - name: Brazil
+          - name: British Indian Ocean Territory
+          - name: Bulgaria
+      - name: Region of Production
+        inputType: DROPDOWN
+        values:
+          - name: Europe
+          - name: North America
+          - name: South America
+          - name: APAC
+          - name: Africa
+      - name: Technology
+        inputType: MULTISELECT
+        values:
+          - name: Renewable
+          - name: Wind
+          - name: Hydro
+          - name: Solar
+      - name: Price Type
+        inputType: DROPDOWN
+        values:
+          - name: bid
+          - name: ask
+          - name: high
+          - name: low
+          - name: mid
+    variantAttributes: []
+pageTypes:
+  - name: Default Type
+    slug: default-type
+    attributes: []
+categories:
+  - name: REC
+    slug: rec
+  - name: GOO
+    slug: goo
+  - name: I-REC
+    slug: i-rec
+  - name: REGO
+    slug: rego
+  - name: TIGR
+    slug: tigr
+  - name: NZEC
+    slug: nzec
+  - name: NFC
+    slug: nfc
+warehouses:
+  - name: Test Warehouse1
+    slug: test-warehouse1
+    isPrivate: false
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: abcd
+      city: SANTORINI
+      postalCode: "84700"
+      country: GR
+    shippingZones: []
+  - name: GreenProject act50 Warehouse
+    slug: greenproject-act50-warehouse
+    isPrivate: false
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: 437 Madison Ave
+      streetAddress2: "#17A"
+      city: NEW YORK CITY
+      postalCode: "10022"
+      country: US
+      countryArea: NY
+      companyName: Green Project Technologies
+    shippingZones: []
+  - name: Default Warehouse
+    slug: default-warehouse
+    isPrivate: true
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: 437 Madison Avenue
+      streetAddress2: FL 17A
+      city: NEW YORK
+      postalCode: "10022"
+      country: US
+      countryArea: NY
+      companyName: Green Project Technologies, Inc
+      phone: "+18888288923"
+    shippingZones:
+      - Default
+shippingZones:
+  - name: Default
+    default: false
+    countries:
+      - AD
+      - AE
+      - AF
+      - AG
+      - AI
+      - AL
+      - AM
+      - AO
+      - AQ
+      - AR
+      - AS
+      - AT
+      - AU
+      - AW
+      - AX
+      - AZ
+      - BA
+      - BB
+      - BD
+      - BE
+      - BF
+      - BG
+      - BH
+      - BI
+      - BJ
+      - BL
+      - BM
+      - BN
+      - BO
+      - BQ
+      - BR
+      - BS
+      - BT
+      - BV
+      - BW
+      - BY
+      - BZ
+      - CA
+      - CC
+      - CD
+      - CF
+      - CG
+      - CH
+      - CI
+      - CK
+      - CL
+      - CM
+      - CN
+      - CO
+      - CR
+      - CU
+      - CV
+      - CW
+      - CX
+      - CY
+      - CZ
+      - DE
+      - DJ
+      - DK
+      - DM
+      - DO
+      - DZ
+      - EC
+      - EE
+      - EG
+      - EH
+      - ER
+      - ES
+      - ET
+      - FI
+      - FJ
+      - FK
+      - FM
+      - FO
+      - FR
+      - GA
+      - GB
+      - GD
+      - GE
+      - GF
+      - GG
+      - GH
+      - GI
+      - GL
+      - GM
+      - GN
+      - GP
+      - GQ
+      - GR
+      - GS
+      - GT
+      - GU
+      - GW
+      - GY
+      - HK
+      - HM
+      - HN
+      - HR
+      - HT
+      - HU
+      - ID
+      - IE
+      - IL
+      - IM
+      - IN
+      - IO
+      - IQ
+      - IR
+      - IS
+      - IT
+      - JE
+      - JM
+      - JO
+      - JP
+      - KE
+      - KG
+      - KH
+      - KI
+      - KM
+      - KN
+      - KP
+      - KR
+      - KW
+      - KY
+      - KZ
+      - LA
+      - LB
+      - LC
+      - LI
+      - LK
+      - LR
+      - LS
+      - LT
+      - LU
+      - LV
+      - LY
+      - MA
+      - MC
+      - MD
+      - ME
+      - MF
+      - MG
+      - MH
+      - MK
+      - ML
+      - MM
+      - MN
+      - MO
+      - MP
+      - MQ
+      - MR
+      - MS
+      - MT
+      - MU
+      - MV
+      - MW
+      - MX
+      - MY
+      - MZ
+      - NA
+      - NC
+      - NE
+      - NF
+      - NG
+      - NI
+      - NL
+      - NP
+      - NR
+      - NU
+      - NZ
+      - OM
+      - PA
+      - PE
+      - PF
+      - PG
+      - PH
+      - PK
+      - PL
+      - PM
+      - PN
+      - PR
+      - PS
+      - PT
+      - PW
+      - PY
+      - QA
+      - RE
+      - RO
+      - RS
+      - RU
+      - RW
+      - SA
+      - SB
+      - SC
+      - SD
+      - SE
+      - SG
+      - SH
+      - SI
+      - SJ
+      - SK
+      - SL
+      - SM
+      - SN
+      - SO
+      - SR
+      - SS
+      - ST
+      - SV
+      - SX
+      - SY
+      - SZ
+      - TC
+      - TD
+      - TF
+      - TG
+      - TH
+      - TJ
+      - TK
+      - TL
+      - TM
+      - TN
+      - TO
+      - TR
+      - TT
+      - TV
+      - TW
+      - TZ
+      - UA
+      - UG
+      - UM
+      - US
+      - UY
+      - UZ
+      - VA
+      - VC
+      - VE
+      - VG
+      - VI
+      - VN
+      - VU
+      - WF
+      - WS
+      - YE
+      - YT
+      - ZA
+      - ZM
+      - ZW
+    warehouses:
+      - default-warehouse
+    channels:
+      - act-product-portfolio-channel
+      - test-euro-channel
+    shippingMethods:
+      - name: Default
+        type: PRICE
+        minimumOrderWeight:
+          unit: KG
+          value: 0
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 5
+            currency: USD
+taxClasses: []
+collections: []
+menus:
+  - name: navbar
+    slug: navbar
+    items: []
+  - name: footer
+    slug: footer
+    items: []
+models: []
+modelTypes:
+  - name: Default Type
+    attributes: []
+products:
+  - name: GOO Wind 2025 Netherlands
+    slug: goo-wind-2025-netherlands
+    description: '{"time": 1753167628204, "blocks": [{"id": "CzqFTVi8vD", "data": {"text": "GOO Wind 2025 Netherlands&nbsp;"}, "type": "paragraph"}], "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d512618facb768f9cba1
+      Country of Production: Netherlands
+      Region of Production: Europe
+      Technology: Wind
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6NDE=
+        sku: UHJvZHVjdFZhcmlhbnQ6NDE=
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1.69
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-07-22T07:00:27.964208+00:00
+        visibleInListings: true
+  - name: I-REC Wind 2025 Viet Nam
+    slug: national-green-e-any-2025
+    description: '{"time": 1757571609595, "blocks": [{"id": "BRHgSun3Mm", "data": {"text": "I-REC Wind 2025 Viet Nam"}, "type": "paragraph"}], "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rec
+    attributes:
+      External ID: 67a362d7211c24715c5fbb2b
+      Country of Production: Vietnam
+      Technology: Wind
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6NDU=
+        sku: UHJvZHVjdFZhcmlhbnQ6NDU=
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 0.5
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-07-22T07:10:42.417751+00:00
+        visibleInListings: true
+  - name: National Green-e Any 2025
+    slug: us-and-canada-2025-goo
+    description: '{"time": 1757571564873, "blocks": [{"id": "h0uIogi1Z-", "data": {"text": "National Green-e Any 2025"}, "type": "paragraph"}], "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 67a4e37f7c3befca8b6a8e3e
+      Technology: Renewable
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6Mzkz
+        sku: UHJvZHVjdFZhcmlhbnQ6Mzkz
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 2
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-08-21T09:45:26.477582+00:00
+        visibleInListings: true
+  - name: US Wind V23
+    slug: us-wind-v23
+    description: '{"time": 1755769741070, "blocks": [{"id": "nTcFoseD_K", "data": {"text": "US Wind V23"}, "type": "paragraph"}], "version": "2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rec
+    attributes:
+      External ID: 6696cdbf4bc45058c2081f5c
+      Country of Production: United States
+      Technology: Hydro
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6Mzk0
+        sku: UHJvZHVjdFZhcmlhbnQ6Mzk0
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1.5
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-08-21T09:49:02.618265+00:00
+        visibleInListings: true
+  - name: Vietnam I-REC 2024
+    slug: vietnam-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"xfvr11eoi","data":{"text":"Vietnam I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e553d22e13983e09fe35
+      Country of Production: Vietnam
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6500
+        sku: UHJvZHVjdFZhcmlhbnQ6500
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: US/Canada REC 2024
+    slug: us-canada-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"iyqihm6rg","data":{"text":"US/Canada REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rec
+    attributes:
+      External ID: 669a58906a3fe91afa4fae50
+      Country of Production: United States
+      Region of Production: North America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6502
+        sku: UHJvZHVjdFZhcmlhbnQ6502
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: UK REGO 2025
+    slug: uk-rego-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"y1xo1vjd4","data":{"text":"UK REGO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: rego
+    attributes:
+      External ID: 66c844edf154a906443f9d14
+      Country of Production: United Kingdom
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6505
+        sku: UHJvZHVjdFZhcmlhbnQ6505
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: United Arab Emirates I-REC 2024
+    slug: united-arab-emirates-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"9injhouzv","data":{"text":"United Arab Emirates I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e552d22e13983e09fe30
+      Country of Production: United Arab Emirates
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6506
+        sku: UHJvZHVjdFZhcmlhbnQ6506
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: United Arab Emirates I-REC 2025
+    slug: united-arab-emirates-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"bm7up5kpc","data":{"text":"United Arab Emirates I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a80a4f94ff0786a3a2
+      Country of Production: United Arab Emirates
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6507
+        sku: UHJvZHVjdFZhcmlhbnQ6507
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Uganda I-REC 2024
+    slug: uganda-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"1f2tomirn","data":{"text":"Uganda I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e552d22e13983e09fe2f
+      Country of Production: Uganda
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6508
+        sku: UHJvZHVjdFZhcmlhbnQ6508
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Uganda I-REC 2025
+    slug: uganda-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"ys4cebhee","data":{"text":"Uganda I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c81aa30a4f94ff0786a3d7
+      Country of Production: Uganda
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6509
+        sku: UHJvZHVjdFZhcmlhbnQ6509
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Turkey I-REC 2024
+    slug: turkey-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"qc620osoy","data":{"text":"Turkey I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e551d22e13983e09fe2b
+      Country of Production: Turkey
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6510
+        sku: UHJvZHVjdFZhcmlhbnQ6510
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Turkey I-REC 2025
+    slug: turkey-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"5ilb65vrx","data":{"text":"Turkey I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d7211c24715c5fbb29
+      Country of Production: Turkey
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6511
+        sku: UHJvZHVjdFZhcmlhbnQ6511
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Thailand I-REC 2024
+    slug: thailand-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"ydo2m7asl","data":{"text":"Thailand I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e550d22e13983e09fe27
+      Country of Production: Thailand
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6512
+        sku: UHJvZHVjdFZhcmlhbnQ6512
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Thailand I-REC 2025
+    slug: thailand-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"b98f1li6g","data":{"text":"Thailand I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d6211c24715c5fbb27
+      Country of Production: Thailand
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6513
+        sku: UHJvZHVjdFZhcmlhbnQ6513
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Taiwan EAC 2024
+    slug: taiwan-eac-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"7pbm322m7","data":{"text":"Taiwan EAC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: tigr
+    attributes:
+      External ID: 6773e550d22e13983e09fe24
+      Country of Production: Taiwan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6514
+        sku: UHJvZHVjdFZhcmlhbnQ6514
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Switzerland GOO 2025
+    slug: switzerland-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"4eyz2geii","data":{"text":"Switzerland GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 670e21e7bf3b9efc19ca0d41
+      Country of Production: Switzerland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6515
+        sku: UHJvZHVjdFZhcmlhbnQ6515
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Sweden GOO 2025
+    slug: sweden-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"m41qqwzzj","data":{"text":"Sweden GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64d358e4d91149c2b06c996d
+      Country of Production: Sweden
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6516
+        sku: UHJvZHVjdFZhcmlhbnQ6516
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Suriname I-REC 2024
+    slug: suriname-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"zvbgurxyk","data":{"text":"Suriname I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e550d22e13983e09fe23
+      Country of Production: Suriname
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6517
+        sku: UHJvZHVjdFZhcmlhbnQ6517
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Suriname I-REC 2025
+    slug: suriname-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"67vxx8qcj","data":{"text":"Suriname I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a40a4f94ff0786a391
+      Country of Production: Suriname
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6518
+        sku: UHJvZHVjdFZhcmlhbnQ6518
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Sri Lanka I-REC 2024
+    slug: sri-lanka-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"8k83j0x14","data":{"text":"Sri Lanka I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54fd22e13983e09fe20
+      Country of Production: Sri Lanka
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6519
+        sku: UHJvZHVjdFZhcmlhbnQ6519
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Sri Lanka I-REC 2025
+    slug: sri-lanka-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"6ybj4k34p","data":{"text":"Sri Lanka I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199d0a4f94ff0786a32a
+      Country of Production: Sri Lanka
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6520
+        sku: UHJvZHVjdFZhcmlhbnQ6520
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Spain GOO 2025
+    slug: spain-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"tmqend4n0","data":{"text":"Spain GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d513618facb768f9cbb0
+      Country of Production: Spain
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6521
+        sku: UHJvZHVjdFZhcmlhbnQ6521
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: South Africa I-REC 2024
+    slug: south-africa-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"uvmcj50wa","data":{"text":"South Africa I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54fd22e13983e09fe1f
+      Country of Production: South Africa
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6522
+        sku: UHJvZHVjdFZhcmlhbnQ6522
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: South Africa I-REC 2025
+    slug: south-africa-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"j4dlqe3ny","data":{"text":"South Africa I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a70a4f94ff0786a39f
+      Country of Production: South Africa
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6523
+        sku: UHJvZHVjdFZhcmlhbnQ6523
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Slovenia GOO 2025
+    slug: slovenia-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"i3xc402af","data":{"text":"Slovenia GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d513618facb768f9cbad
+      Country of Production: Slovenia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6524
+        sku: UHJvZHVjdFZhcmlhbnQ6524
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Slovakia GOO 2025
+    slug: slovakia-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"rrzya11dw","data":{"text":"Slovakia GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 65420e3f3d14fc851d1a9eb2
+      Country of Production: Slovakia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6525
+        sku: UHJvZHVjdFZhcmlhbnQ6525
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Singapore I-REC 2024
+    slug: singapore-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"uqagtkl65","data":{"text":"Singapore I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54ed22e13983e09fe1c
+      Country of Production: Singapore
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6526
+        sku: UHJvZHVjdFZhcmlhbnQ6526
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Singapore I-REC 2025
+    slug: singapore-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"c45el8wg7","data":{"text":"Singapore I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199e0a4f94ff0786a32c
+      Country of Production: Singapore
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6527
+        sku: UHJvZHVjdFZhcmlhbnQ6527
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Serbie GOO 2025
+    slug: serbie-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"9rrcc1lri","data":{"text":"Serbie GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 6502f8c291f01d1657a06344
+      Country of Production: Serbia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6528
+        sku: UHJvZHVjdFZhcmlhbnQ6528
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Saudi Arabia I-REC 2024
+    slug: saudi-arabia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"qd13yfvj1","data":{"text":"Saudi Arabia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54ed22e13983e09fe1b
+      Country of Production: Saudi Arabia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6529
+        sku: UHJvZHVjdFZhcmlhbnQ6529
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Saudi Arabia I-REC 2025
+    slug: saudi-arabia-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"a6g9sndzj","data":{"text":"Saudi Arabia I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a70a4f94ff0786a39d
+      Country of Production: Saudi Arabia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6530
+        sku: UHJvZHVjdFZhcmlhbnQ6530
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Portugal GOO 2025
+    slug: portugal-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"coge596rs","data":{"text":"Portugal GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d513618facb768f9cbaa
+      Country of Production: Portugal
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6531
+        sku: UHJvZHVjdFZhcmlhbnQ6531
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Poland GOO 2024
+    slug: poland-goo-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"s7q7hmdbb","data":{"text":"Poland GOO 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d5d4618facb768f9d1d7
+      Country of Production: Poland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6532
+        sku: UHJvZHVjdFZhcmlhbnQ6532
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Poland GOO 2025
+    slug: poland-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"va31af7hr","data":{"text":"Poland GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d5d6618facb768f9d1e6
+      Country of Production: Poland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6533
+        sku: UHJvZHVjdFZhcmlhbnQ6533
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Peru I-REC 2024
+    slug: peru-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"r8lt5bgqr","data":{"text":"Peru I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54dd22e13983e09fe17
+      Country of Production: Peru
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6534
+        sku: UHJvZHVjdFZhcmlhbnQ6534
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Peru I-REC 2025
+    slug: peru-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"zqu9sdpzb","data":{"text":"Peru I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199d0a4f94ff0786a32b
+      Country of Production: Peru
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6535
+        sku: UHJvZHVjdFZhcmlhbnQ6535
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Panama I-REC 2024
+    slug: panama-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"m6usu4cvs","data":{"text":"Panama I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54cd22e13983e09fe14
+      Country of Production: Panama
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6536
+        sku: UHJvZHVjdFZhcmlhbnQ6536
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Panama I-REC 2025
+    slug: panama-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"sdo7qo6c9","data":{"text":"Panama I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199c0a4f94ff0786a325
+      Country of Production: Panama
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6537
+        sku: UHJvZHVjdFZhcmlhbnQ6537
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Pakistan I-REC 2024
+    slug: pakistan-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"7tponzper","data":{"text":"Pakistan I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54cd22e13983e09fe12
+      Country of Production: Pakistan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6538
+        sku: UHJvZHVjdFZhcmlhbnQ6538
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Pakistan I-REC 2025
+    slug: pakistan-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"5pajnexo6","data":{"text":"Pakistan I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d6211c24715c5fbb25
+      Country of Production: Pakistan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6539
+        sku: UHJvZHVjdFZhcmlhbnQ6539
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Oman I-REC 2024
+    slug: oman-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"p8671a2k3","data":{"text":"Oman I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54bd22e13983e09fe10
+      Country of Production: Oman
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6540
+        sku: UHJvZHVjdFZhcmlhbnQ6540
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Oman I-REC 2025
+    slug: oman-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"b39ldvxvp","data":{"text":"Oman I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199c0a4f94ff0786a326
+      Country of Production: Oman
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6541
+        sku: UHJvZHVjdFZhcmlhbnQ6541
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Norway GOO 2025
+    slug: norway-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"wmf5pdvii","data":{"text":"Norway GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d513618facb768f9cba7
+      Country of Production: Norway
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6542
+        sku: UHJvZHVjdFZhcmlhbnQ6542
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: New Zealand EAC 2025
+    slug: new-zealand-eac-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"kgctzwcsx","data":{"text":"New Zealand EAC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: nzec
+    attributes:
+      External ID: 67dd7692d65b10fff8eec770
+      Country of Production: New Zealand
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6543
+        sku: UHJvZHVjdFZhcmlhbnQ6543
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Morocco I-REC 2024
+    slug: morocco-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"cba15wrw6","data":{"text":"Morocco I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54bd22e13983e09fe0e
+      Country of Production: Morocco
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6545
+        sku: UHJvZHVjdFZhcmlhbnQ6545
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Morocco I-REC 2025
+    slug: morocco-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"d2udlicw8","data":{"text":"Morocco I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199d0a4f94ff0786a328
+      Country of Production: Morocco
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6546
+        sku: UHJvZHVjdFZhcmlhbnQ6546
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Mexico I-REC 2025
+    slug: mexico-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"gs9t6i1u2","data":{"text":"Mexico I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d5211c24715c5fbb23
+      Country of Production: Mexico
+      Region of Production: North America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6547
+        sku: UHJvZHVjdFZhcmlhbnQ6547
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Mauritius I-REC 2025
+    slug: mauritius-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"le2gyxqgf","data":{"text":"Mauritius I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199d0a4f94ff0786a327
+      Country of Production: Mauritius
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6548
+        sku: UHJvZHVjdFZhcmlhbnQ6548
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Mauritania I-REC 2024
+    slug: mauritania-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"cxdk71cf2","data":{"text":"Mauritania I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54bd22e13983e09fe0d
+      Country of Production: Mauritania
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6549
+        sku: UHJvZHVjdFZhcmlhbnQ6549
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Mauritania I-REC 2025
+    slug: mauritania-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"l8q3vxiod","data":{"text":"Mauritania I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67f546e68c6cd761efa56d68
+      Country of Production: Mauritania
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6550
+        sku: UHJvZHVjdFZhcmlhbnQ6550
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Malaysia I-REC 2024
+    slug: malaysia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"9dgol9z17","data":{"text":"Malaysia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54ad22e13983e09fe0b
+      Country of Production: Malaysia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6551
+        sku: UHJvZHVjdFZhcmlhbnQ6551
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Malaysia I-REC 2025
+    slug: malaysia-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"9qc77oeic","data":{"text":"Malaysia I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d5211c24715c5fbb20
+      Country of Production: Malaysia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6552
+        sku: UHJvZHVjdFZhcmlhbnQ6552
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Luxembourg GOO 2025
+    slug: luxembourg-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"s35yll1k2","data":{"text":"Luxembourg GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d512618facb768f9cb9e
+      Country of Production: Luxembourg
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6553
+        sku: UHJvZHVjdFZhcmlhbnQ6553
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Lithuania GOO 2025
+    slug: lithuania-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"sag7r92ux","data":{"text":"Lithuania GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64d358e3d91149c2b06c9960
+      Country of Production: Lithuania
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6554
+        sku: UHJvZHVjdFZhcmlhbnQ6554
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Latvia GOO 2025
+    slug: latvia-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"fqayuy3d1","data":{"text":"Latvia GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64d3868ed91149c2b06cd0c5
+      Country of Production: Latvia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6555
+        sku: UHJvZHVjdFZhcmlhbnQ6555
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Kenya I-REC 2024
+    slug: kenya-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"e7gf5vc1u","data":{"text":"Kenya I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e54ad22e13983e09fe08
+      Country of Production: Kenya
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6556
+        sku: UHJvZHVjdFZhcmlhbnQ6556
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Kenya I-REC 2025
+    slug: kenya-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"3qbykipfl","data":{"text":"Kenya I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a50a4f94ff0786a395
+      Country of Production: Kenya
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6557
+        sku: UHJvZHVjdFZhcmlhbnQ6557
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Kazakhstan I-REC 2024
+    slug: kazakhstan-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"q6osic078","data":{"text":"Kazakhstan I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e549d22e13983e09fe06
+      Country of Production: Kazakhstan
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6558
+        sku: UHJvZHVjdFZhcmlhbnQ6558
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Kazakhstan I-REC 2025
+    slug: kazakhstan-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"ccz0meq24","data":{"text":"Kazakhstan I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a40a4f94ff0786a394
+      Country of Production: Kazakhstan
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6559
+        sku: UHJvZHVjdFZhcmlhbnQ6559
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Jordan I-REC 2024
+    slug: jordan-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"3noq30sbo","data":{"text":"Jordan I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e549d22e13983e09fe05
+      Country of Production: Jordan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6560
+        sku: UHJvZHVjdFZhcmlhbnQ6560
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Jordan I-REC 2025
+    slug: jordan-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"zgrfm9aa5","data":{"text":"Jordan I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a50a4f94ff0786a398
+      Country of Production: Jordan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6561
+        sku: UHJvZHVjdFZhcmlhbnQ6561
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Japan NFC 2024
+    slug: japan-nfc-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"xzzwkj90a","data":{"text":"Japan NFC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: nfc
+    attributes:
+      External ID: 678915f894f3544f5e3e1fde
+      Country of Production: Japan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6562
+        sku: UHJvZHVjdFZhcmlhbnQ6562
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Japan NFC 2025
+    slug: japan-nfc-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"7x7gqjxi4","data":{"text":"Japan NFC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: nfc
+    attributes:
+      External ID: 67a362d5211c24715c5fbb1f
+      Country of Production: Japan
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6563
+        sku: UHJvZHVjdFZhcmlhbnQ6563
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Italy GOO 2025
+    slug: italy-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"dlh3aacfh","data":{"text":"Italy GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d512618facb768f9cb9b
+      Country of Production: Italy
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6564
+        sku: UHJvZHVjdFZhcmlhbnQ6564
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Israel I-REC 2024
+    slug: israel-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"0bt8lzlsn","data":{"text":"Israel I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e548d22e13983e09fe03
+      Country of Production: Israel
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6565
+        sku: UHJvZHVjdFZhcmlhbnQ6565
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Israel I-REC 2025
+    slug: israel-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"j0fz1t7ze","data":{"text":"Israel I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199b0a4f94ff0786a322
+      Country of Production: Israel
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6566
+        sku: UHJvZHVjdFZhcmlhbnQ6566
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Ireland GOO 2025
+    slug: ireland-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"fqq66mqg8","data":{"text":"Ireland GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 650084142574db12705efb1a
+      Country of Production: Ireland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6567
+        sku: UHJvZHVjdFZhcmlhbnQ6567
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Indonesia I-REC 2024
+    slug: indonesia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"fumblzfm9","data":{"text":"Indonesia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e548d22e13983e09fe01
+      Country of Production: Indonesia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6568
+        sku: UHJvZHVjdFZhcmlhbnQ6568
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Indonesia I-REC 2025
+    slug: indonesia-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"h7v95oqtj","data":{"text":"Indonesia I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d4211c24715c5fbb1d
+      Country of Production: Indonesia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6569
+        sku: UHJvZHVjdFZhcmlhbnQ6569
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: India I-REC 2024
+    slug: india-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"4vu2965sb","data":{"text":"India I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e548d22e13983e09fdff
+      Country of Production: India
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6570
+        sku: UHJvZHVjdFZhcmlhbnQ6570
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: India I-REC 2025
+    slug: india-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"onlj0qrgs","data":{"text":"India I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d4211c24715c5fbb1b
+      Country of Production: India
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6571
+        sku: UHJvZHVjdFZhcmlhbnQ6571
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Iceland GOO 2025
+    slug: iceland-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"nazx0no1a","data":{"text":"Iceland GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d506618facb768f9cb14
+      Country of Production: Iceland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6572
+        sku: UHJvZHVjdFZhcmlhbnQ6572
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Hungary GOO 2025
+    slug: hungary-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"k4fqmv2y9","data":{"text":"Hungary GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d511618facb768f9cb98
+      Country of Production: Hungary
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6573
+        sku: UHJvZHVjdFZhcmlhbnQ6573
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Honduras I-REC 2024
+    slug: honduras-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"4wkzx8imh","data":{"text":"Honduras I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e547d22e13983e09fdfb
+      Country of Production: Honduras
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6574
+        sku: UHJvZHVjdFZhcmlhbnQ6574
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Honduras I-REC 2025
+    slug: honduras-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"fjqzydsc4","data":{"text":"Honduras I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199a0a4f94ff0786a320
+      Country of Production: Honduras
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6575
+        sku: UHJvZHVjdFZhcmlhbnQ6575
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Guatemala I-REC 2025
+    slug: guatemala-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"3wd0u7svj","data":{"text":"Guatemala I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67f502a3d90f159df762aa36
+      Country of Production: Guatemala
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6576
+        sku: UHJvZHVjdFZhcmlhbnQ6576
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Greece GOO 2025
+    slug: greece-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"nhn125f7b","data":{"text":"Greece GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d5e9618facb768f9d231
+      Country of Production: Greece
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6577
+        sku: UHJvZHVjdFZhcmlhbnQ6577
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Germany GOO 2025
+    slug: germany-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"dr1zeq866","data":{"text":"Germany GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d511618facb768f9cb95
+      Country of Production: Germany
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6578
+        sku: UHJvZHVjdFZhcmlhbnQ6578
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: France GOO 2025
+    slug: france-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"msy7hgo7a","data":{"text":"France GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d511618facb768f9cb92
+      Country of Production: France
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6579
+        sku: UHJvZHVjdFZhcmlhbnQ6579
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Finland GOO 2025
+    slug: finland-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"zfd8a8y5f","data":{"text":"Finland GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d511618facb768f9cb8f
+      Country of Production: Finland
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6580
+        sku: UHJvZHVjdFZhcmlhbnQ6580
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Estonia GOO 2025
+    slug: estonia-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"vztvt3iq0","data":{"text":"Estonia GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d510618facb768f9cb89
+      Country of Production: Estonia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6581
+        sku: UHJvZHVjdFZhcmlhbnQ6581
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: El Salvador I-REC 2024
+    slug: el-salvador-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"fxznasky6","data":{"text":"El Salvador I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e546d22e13983e09fdf8
+      Country of Production: El Salvador
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6582
+        sku: UHJvZHVjdFZhcmlhbnQ6582
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: El Salvador I-REC 2025
+    slug: el-salvador-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"6jb73w7sk","data":{"text":"El Salvador I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a60a4f94ff0786a399
+      Country of Production: El Salvador
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6583
+        sku: UHJvZHVjdFZhcmlhbnQ6583
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Egypt I-REC 2024
+    slug: egypt-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"87teolfiw","data":{"text":"Egypt I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e546d22e13983e09fdf6
+      Country of Production: Egypt
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6584
+        sku: UHJvZHVjdFZhcmlhbnQ6584
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Egypt I-REC 2025
+    slug: egypt-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"zsiln7j93","data":{"text":"Egypt I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d3211c24715c5fbb18
+      Country of Production: Egypt
+      Region of Production: Africa
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6585
+        sku: UHJvZHVjdFZhcmlhbnQ6585
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Dominican Republic I-REC 2024
+    slug: dominican-republic-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"t2hghgdb2","data":{"text":"Dominican Republic I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e545d22e13983e09fdf3
+      Country of Production: Dominican Republic
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6586
+        sku: UHJvZHVjdFZhcmlhbnQ6586
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Dominican Republic I-REC 2025
+    slug: dominican-republic-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"w01cxjeo1","data":{"text":"Dominican Republic I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c8199d0a4f94ff0786a329
+      Country of Production: Dominican Republic
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6587
+        sku: UHJvZHVjdFZhcmlhbnQ6587
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Denmark GOO 2025
+    slug: denmark-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"7hh1ikek1","data":{"text":"Denmark GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d510618facb768f9cb83
+      Country of Production: Denmark
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6588
+        sku: UHJvZHVjdFZhcmlhbnQ6588
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Czech Republic GOO 2025
+    slug: czech-republic-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"nv8ta58ex","data":{"text":"Czech Republic GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d50f618facb768f9cb80
+      Country of Production: Czech Republic
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6589
+        sku: UHJvZHVjdFZhcmlhbnQ6589
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Cyprus GOO 2025
+    slug: cyprus-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"k8jq5k3xl","data":{"text":"Cyprus GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 651ab417079545616e11c2bf
+      Country of Production: Cyprus
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6590
+        sku: UHJvZHVjdFZhcmlhbnQ6590
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Croatia GOO 2025
+    slug: croatia-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"is5wp2baf","data":{"text":"Croatia GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d50f618facb768f9cb7d
+      Country of Production: Croatia
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6591
+        sku: UHJvZHVjdFZhcmlhbnQ6591
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Costa Rica I-REC 2024
+    slug: costa-rica-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"m15bhft1l","data":{"text":"Costa Rica I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e545d22e13983e09fdf1
+      Country of Production: Costa Rica
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6592
+        sku: UHJvZHVjdFZhcmlhbnQ6592
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Costa Rica I-REC 2025
+    slug: costa-rica-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"m9mk2dp8n","data":{"text":"Costa Rica I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819920a4f94ff0786a2ba
+      Country of Production: Costa Rica
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6593
+        sku: UHJvZHVjdFZhcmlhbnQ6593
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Colombia I-REC 2024
+    slug: colombia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"dqrow8wwf","data":{"text":"Colombia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e544d22e13983e09fdf0
+      Country of Production: Colombia
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6594
+        sku: UHJvZHVjdFZhcmlhbnQ6594
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Colombia I-REC 2025
+    slug: colombia-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"xnbdfej29","data":{"text":"Colombia I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67f502a0d90f159df762aa34
+      Country of Production: Colombia
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6595
+        sku: UHJvZHVjdFZhcmlhbnQ6595
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: China I-REC 2024
+    slug: china-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"nti19ir6b","data":{"text":"China I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e544d22e13983e09fdee
+      Country of Production: China
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6596
+        sku: UHJvZHVjdFZhcmlhbnQ6596
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Chile I-REC 2024
+    slug: chile-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"ijx6vi1fz","data":{"text":"Chile I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e52fd22e13983e09fd92
+      Country of Production: Chile
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6597
+        sku: UHJvZHVjdFZhcmlhbnQ6597
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Chile I-REC 2025
+    slug: chile-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"5f6f3uro5","data":{"text":"Chile I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a40a4f94ff0786a393
+      Country of Production: Chile
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6598
+        sku: UHJvZHVjdFZhcmlhbnQ6598
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Cambodia I-REC 2024
+    slug: cambodia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"ao73ktht9","data":{"text":"Cambodia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e52ed22e13983e09fd8f
+      Country of Production: Cambodia
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6599
+        sku: UHJvZHVjdFZhcmlhbnQ6599
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Cambodia I-REC 2025
+    slug: cambodia-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"5dade60rv","data":{"text":"Cambodia I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a40a4f94ff0786a392
+      Country of Production: Cambodia
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6600
+        sku: UHJvZHVjdFZhcmlhbnQ6600
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Burkina Faso I-REC 2024
+    slug: burkina-faso-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"37utuhe4j","data":{"text":"Burkina Faso I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e52ed22e13983e09fd8e
+      Country of Production: Burkina Faso
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6601
+        sku: UHJvZHVjdFZhcmlhbnQ6601
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Burkina Faso I-REC 2025
+    slug: burkina-faso-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"sf4eitoqf","data":{"text":"Burkina Faso I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819a50a4f94ff0786a396
+      Country of Production: Burkina Faso
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6602
+        sku: UHJvZHVjdFZhcmlhbnQ6602
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Bulgaria GOO 2024
+    slug: bulgaria-goo-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"w72mak5w7","data":{"text":"Bulgaria GOO 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d5ef618facb768f9d279
+      Country of Production: Bulgaria
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6603
+        sku: UHJvZHVjdFZhcmlhbnQ6603
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Bulgaria GOO 2025
+    slug: bulgaria-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"32ejmkhbe","data":{"text":"Bulgaria GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d5f0618facb768f9d285
+      Country of Production: Bulgaria
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6604
+        sku: UHJvZHVjdFZhcmlhbnQ6604
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Brazil I-REC 2024
+    slug: brazil-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"o4sjer5jc","data":{"text":"Brazil I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e52dd22e13983e09fd8c
+      Country of Production: Brazil
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6605
+        sku: UHJvZHVjdFZhcmlhbnQ6605
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Brazil I-REC 2025
+    slug: brazil-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"gyp919e91","data":{"text":"Brazil I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d2211c24715c5fbb14
+      Country of Production: Brazil
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6606
+        sku: UHJvZHVjdFZhcmlhbnQ6606
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Belgium GOO 2025
+    slug: belgium-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"lz7ueogkr","data":{"text":"Belgium GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d50f618facb768f9cb77
+      Country of Production: Belgium
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6607
+        sku: UHJvZHVjdFZhcmlhbnQ6607
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Bangladesh I-REC 2024
+    slug: bangladesh-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"vqy7abgew","data":{"text":"Bangladesh I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e2c5d22e13983e09fd77
+      Country of Production: Bangladesh
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6608
+        sku: UHJvZHVjdFZhcmlhbnQ6608
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Bangladesh I-REC 2025
+    slug: bangladesh-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"xnmue8esh","data":{"text":"Bangladesh I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67a362d2211c24715c5fbb13
+      Country of Production: Bangladesh
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6609
+        sku: UHJvZHVjdFZhcmlhbnQ6609
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Austria GOO 2025
+    slug: austria-goo-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"n1qwef6av","data":{"text":"Austria GOO 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d50e618facb768f9cb74
+      Country of Production: Austria
+      Region of Production: Europe
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6610
+        sku: UHJvZHVjdFZhcmlhbnQ6610
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Australia LGC 2024
+    slug: australia-lgc-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"lfgrftjca","data":{"text":"Australia LGC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6486de987d6bed45348b44fc
+      Country of Production: Australia
+      Region of Production: APAC
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6611
+        sku: UHJvZHVjdFZhcmlhbnQ6611
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Argentina I-REC 2024
+    slug: argentina-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"b13a4qif3","data":{"text":"Argentina I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e2c4d22e13983e09fd74
+      Country of Production: Argentina
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6612
+        sku: UHJvZHVjdFZhcmlhbnQ6612
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Argentina I-REC 2025
+    slug: argentina-i-rec-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"tl6befb56","data":{"text":"Argentina I-REC 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 67c819920a4f94ff0786a2b9
+      Country of Production: Argentina
+      Region of Production: South America
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6613
+        sku: UHJvZHVjdFZhcmlhbnQ6613
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: GOO AIB 2025
+    slug: goo-aib-2025
+    description: '{"time":1757642273540,"blocks":[{"id":"nt9mxmn9o","data":{"text":"GOO AIB 2025"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 64b7d50e618facb768f9cb71
+      Country of Production: AIB
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6614
+        sku: UHJvZHVjdFZhcmlhbnQ6614
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: GOO AIB 2024
+    slug: goo-aib-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"cpc94t1ch","data":{"text":"GOO AIB 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: goo
+    attributes:
+      External ID: 66585a45d92246a3d9b64042
+      Country of Production: AIB
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6615
+        sku: UHJvZHVjdFZhcmlhbnQ6615
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true
+  - name: Zambia I-REC 2024
+    slug: zambia-i-rec-2024
+    description: '{"time":1757642273540,"blocks":[{"id":"k2rgkx6cm","data":{"text":"Zambia I-REC 2024"},"type":"paragraph"}],"version":"2.30.7"}'
+    productType: Environmental Attribute Certificates (EACs)
+    category: i-rec
+    attributes:
+      External ID: 6773e553d22e13983e09fe36
+      Country of Production: Zambia
+      Technology: Renewable
+      Price Type: ask
+    variants:
+      - name: UHJvZHVjdFZhcmlhbnQ6616
+        sku: UHJvZHVjdFZhcmlhbnQ6616
+        attributes: {}
+        channelListings:
+          - channel: act-product-portfolio-channel
+            price: 1
+    channelListings:
+      - channel: act-product-portfolio-channel
+        isPublished: true
+        publishedAt: 2025-09-12T01:57:53.540Z
+        visibleInListings: true

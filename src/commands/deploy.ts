@@ -10,7 +10,11 @@ import {
   getAllStages,
 } from "../core/deployment";
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
+import { analyzeDeploymentCleanup } from "../core/deployment/cleanup-advisor";
 import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
+import { EXIT_CODES } from "../core/deployment/errors";
+import { printDuplicateIssues } from "../cli/reporters/duplicates";
+import type { DuplicateIssue } from "../core/validation/preflight";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
@@ -20,6 +24,7 @@ import {
 } from "../core/errors/configuration-errors";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
+import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -54,8 +59,29 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     // Handle ConfigurationValidationError specially for backwards compatibility
     if (error instanceof ConfigurationValidationError) {
-      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
+      // Parse duplicates from validationErrors if present
+      const dupes: DuplicateIssue[] = [];
+      const duplicateRegex = /Duplicate\s+(.+?)\s+'(.+?)'\s+found\s+(\d+)\s+times/i;
+      for (const v of error.validationErrors) {
+        const m = v.message.match(duplicateRegex);
+        if (m) {
+          dupes.push({
+            section: v.path as unknown as DuplicateIssue["section"],
+            label: m[1],
+            identifier: m[2],
+            count: Number(m[3]) || 2,
+          });
+        }
+      }
 
+      if (dupes.length > 0) {
+        printDuplicateIssues(dupes, this.console, args.config);
+        this.console.cancelled("\nDeployment blocked until duplicates are resolved.");
+        process.exit(EXIT_CODES.VALIDATION);
+      }
+
+      // Fallback generic validation formatting
+      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
       const deploymentError = new ValidationDeploymentError(
         "Configuration validation failed",
         validationErrors,
@@ -65,7 +91,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         },
         error
       );
-
       this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
       process.exit(deploymentError.getExitCode());
     }
@@ -219,6 +244,21 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     this.console.text("");
 
+    // Post-deploy cleanup suggestions (analysis-only service -> console)
+    try {
+      const cfg = await context.configurator.services.configStorage.load();
+      const suggestions = analyzeDeploymentCleanup(cfg, summary);
+      if (suggestions.length > 0) {
+        this.console.warn("🔎 Post-deploy cleanup suggestions:");
+        for (const s of suggestions) {
+          this.console.warn(`  • ${s.message}`);
+        }
+        this.console.text("");
+      }
+    } catch {
+      // Best-effort: ignore if config load fails after deploy
+    }
+
     // Check if there are items that should have been deleted
     const pendingDeletes = summary.results.filter((r) => r.operation === "DELETE");
     if (pendingDeletes.length > 0) {
@@ -255,13 +295,20 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
+
   private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
     const configurator = createConfigurator(args);
 
     try {
       // Try to load the configuration to validate it
-      await configurator.services.configStorage.load();
+      const cfg = await configurator.services.configStorage.load();
+      // Preflight: block deploy on duplicate identifiers with a clear message
+      validateNoDuplicateIdentifiers(cfg, args.config);
     } catch (error) {
+      if (error instanceof ConfigurationValidationError) {
+        // Preserve configuration validation errors (e.g., duplicate identifiers)
+        throw error;
+      }
       // Re-throw with proper error type
       if (error instanceof Error) {
         throw new ConfigurationLoadError(`Failed to load local configuration: ${error.message}`);

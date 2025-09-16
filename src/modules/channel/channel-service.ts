@@ -6,6 +6,8 @@ import { ChannelCreationError, ChannelError, ChannelUpdateError } from "./errors
 import type { ChannelOperations } from "./repository";
 
 export class ChannelService {
+  private channelIdCache: Map<string, string> = new Map();
+
   constructor(private repository: ChannelOperations) {}
 
   private async getExistingChannel(slug: string) {
@@ -28,6 +30,8 @@ export class ChannelService {
           logger.debug("Channel not found", { slug });
         }
 
+        // cache
+        if (existingChannel?.id) this.channelIdCache.set(slug, existingChannel.id);
         return existingChannel;
       },
       ChannelError
@@ -50,13 +54,15 @@ export class ChannelService {
           slug: input.slug,
           currencyCode: input.currencyCode,
           defaultCountry: input.defaultCountry,
-          isActive: false,
+          isActive: input.isActive ?? false,
         });
         logger.debug("Successfully created channel", {
           id: channel.id,
           name: input.name,
           slug: input.slug,
         });
+        // cache
+        if (channel?.id) this.channelIdCache.set(input.slug, channel.id);
         return channel;
       },
       ChannelCreationError
@@ -101,6 +107,7 @@ export class ChannelService {
         const updateInput = object.filterUndefinedValues({
           name: input.name,
           slug: input.slug,
+          isActive: input.isActive,
           defaultCountry: input.defaultCountry,
           orderSettings:
             Object.keys(settings).length > 0
@@ -149,6 +156,7 @@ export class ChannelService {
           name: input.name,
           slug: input.slug,
         });
+        if (updatedChannel?.id) this.channelIdCache.set(input.slug, updatedChannel.id);
         return updatedChannel;
       },
       ChannelUpdateError
@@ -183,5 +191,13 @@ export class ChannelService {
       count: results.successes.length,
     });
     return results.successes.map((s) => s.result);
+  }
+
+  async getChannelIdBySlugCached(slug: string): Promise<string | null> {
+    const cached = this.channelIdCache.get(slug);
+    if (cached) return cached;
+    const ch = await this.getExistingChannel(slug);
+    if (ch?.id) this.channelIdCache.set(slug, ch.id);
+    return ch?.id ?? null;
   }
 }

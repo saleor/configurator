@@ -19,6 +19,9 @@ import {
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
+import yaml from "yaml";
+import { cliConsole } from "../../cli/console";
+import { AttributesComparator } from "./comparators";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,
@@ -146,7 +149,7 @@ export class DiffService {
     try {
       // Load configurations concurrently for better performance
       const [localConfig, remoteConfig] = await Promise.all([
-        this.loadLocalConfiguration(),
+        this.loadLocalConfigurationTolerant(),
         this.loadRemoteConfiguration(),
       ]);
 
@@ -202,6 +205,22 @@ export class DiffService {
   }
 
   /**
+   * Loads local configuration in a tolerant mode for introspect flows.
+   * If validation fails, treat local config as empty to allow seamless overwrite.
+   */
+  private async loadLocalConfigurationTolerant(): Promise<SaleorConfig> {
+    try {
+      const config = await this.services.configStorage.load();
+      return config || {};
+    } catch (error) {
+      logger.warn("Local configuration invalid; proceeding as empty for introspect", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return {} as SaleorConfig;
+    }
+  }
+
+  /**
    * Performs diff for introspect with formatting and output handling
    * @param options - Options for diff formatting and filtering
    * @returns Promise resolving to diff result with formatted output
@@ -240,7 +259,6 @@ export class DiffService {
           formattedOutput = JSON.stringify(summary, null, 2);
           break;
         case "yaml": {
-          const yaml = require("yaml");
           formattedOutput = yaml.stringify(summary);
           break;
         }
@@ -251,7 +269,6 @@ export class DiffService {
       }
 
       if (!quiet && formattedOutput) {
-        const { cliConsole } = await import("../../cli/console");
         cliConsole.info(formattedOutput);
       }
 
@@ -279,6 +296,7 @@ export class DiffService {
     return new Map([
       ["shop", new ShopComparator() as EntityComparator],
       ["channels", new ChannelComparator() as EntityComparator],
+      ["attributes", new AttributesComparator() as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator
@@ -356,6 +374,7 @@ export class DiffService {
     // Entity array comparisons
     const entityTypes = [
       "channels",
+      "attributes",
       "productTypes",
       "pageTypes",
       "modelTypes",
@@ -413,6 +432,7 @@ export class DiffService {
     // Entity array comparisons
     const entityTypeMappings: Record<string, ConfigurationSection> = {
       channels: "channels",
+      attributes: "attributes",
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       modelTypes: "modelTypes",

@@ -206,8 +206,9 @@ const getAttributeByNameQuery = graphql(`
         node {
           id
           name
+          entityType
           inputType
-          choices {
+          choices(first: 100) {
             edges {
               node {
                 id
@@ -286,15 +287,11 @@ const updateProductVariantMutation = graphql(`
 
 const getChannelBySlugQuery = graphql(`
   query GetChannelBySlug($slug: String!) {
-    channels(first: 100) {
-      edges {
-        node {
-          id
-          name
-          slug
-          currencyCode
-        }
-      }
+    channels {
+      id
+      name
+      slug
+      currencyCode
     }
   }
 `);
@@ -337,7 +334,7 @@ const productChannelListingUpdateMutation = graphql(`
 const productVariantChannelListingUpdateMutation = graphql(`
   mutation ProductVariantChannelListingUpdate($id: ID!, $input: [ProductVariantChannelListingAddInput!]!) {
     productVariantChannelListingUpdate(id: $id, input: $input) {
-      productVariant {
+      variant {
         id
         name
         sku
@@ -382,7 +379,7 @@ export type ProductVariantWithChannelListings = NonNullable<
     ResultOf<
       typeof productVariantChannelListingUpdateMutation
     >["productVariantChannelListingUpdate"]
-  >["productVariant"]
+  >["variant"]
 >;
 
 export type ProductChannelListingUpdateInput = VariablesOf<
@@ -411,7 +408,9 @@ export interface ProductOperations {
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
-  getCategoryBySlug(slug: string): Promise<{ id: string; name: string; slug: string } | null>;
+  getCategoryBySlug(
+    slug: string
+  ): Promise<{ id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
   getChannelBySlug(slug: string): Promise<Channel | null>;
@@ -641,7 +640,9 @@ export class ProductRepository implements ProductOperations {
 
   async getCategoryBySlug(
     slug: string
-  ): Promise<{ id: string; name: string; slug: string } | null> {
+  ): Promise<
+    { id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null
+  > {
     logger.debug("Looking up category by slug", { slug });
 
     const result = await this.client.query(getCategoryBySlugQuery, { slug });
@@ -682,38 +683,47 @@ export class ProductRepository implements ProductOperations {
   ): Promise<{ id: string; name: string } | null> {
     const path = slugParts.join("/");
 
-    // First, try to find the final category slug directly
+    // Find the final category
     const finalCategorySlug = slugParts[slugParts.length - 1];
-    const categoryBySlug = await this.getCategoryBySlug(finalCategorySlug);
+    let current = await this.getCategoryBySlug(finalCategorySlug);
 
-    if (!categoryBySlug) {
-      logger.warn("Category not found by final slug", {
-        path,
-        finalSlug: finalCategorySlug,
-      });
+    if (!current) {
+      logger.warn("Category not found by final slug", { path, finalSlug: finalCategorySlug });
       return null;
     }
 
-    // For now, return the found category
-    // TODO: Add full hierarchy verification by checking parent chain
-    logger.debug("Found category by final slug", {
-      path,
-      foundCategory: {
-        id: categoryBySlug.id,
-        name: categoryBySlug.name,
-        slug: categoryBySlug.slug,
-      },
-    });
+    // Verify the parent chain matches the provided path (from child up to root)
+    for (let i = slugParts.length - 2; i >= 0; i--) {
+      const expectedParentSlug = slugParts[i];
+      // Fetch the parent one level up if needed
+      const parentSlug = (current?.parent?.slug as string | undefined) || undefined;
+      if (!parentSlug) {
+        logger.warn("Category hierarchy mismatch: missing parent", {
+          path,
+          at: current.slug,
+          expectedParentSlug,
+        });
+        return null;
+      }
+      if (parentSlug !== expectedParentSlug) {
+        logger.warn("Category hierarchy mismatch", {
+          path,
+          at: current.slug,
+          expectedParentSlug,
+          actualParentSlug: parentSlug,
+        });
+        return null;
+      }
 
-    if (slugParts.length > 1) {
-      logger.info("Hierarchical path resolution simplified", {
-        path,
-        resolvedSlug: finalCategorySlug,
-        note: "Full hierarchy verification will be added in future enhancement",
-      });
+      // Move up one level for the next comparison (if we need to verify more)
+      current = await this.getCategoryBySlug(parentSlug);
+      if (!current) {
+        logger.warn("Failed to fetch parent during hierarchy verification", { parentSlug });
+        return null;
+      }
     }
 
-    return categoryBySlug;
+    return await this.getCategoryBySlug(finalCategorySlug);
   }
 
   async getAttributeByName(name: string): Promise<Attribute | null> {
@@ -742,26 +752,17 @@ export class ProductRepository implements ProductOperations {
 
     const result = await this.client.query(getChannelBySlugQuery, { slug });
 
-    // Find exact match among search results
-    // Use any to bypass gql.tada typing issues with channels.edges
-    // biome-ignore lint/suspicious/noExplicitAny: GraphQL typing workaround
-    const channels = result.data?.channels as any;
-    // biome-ignore lint/suspicious/noExplicitAny: GraphQL typing workaround
-    const exactMatch = channels?.edges?.find((edge: any) => edge.node?.slug === slug);
-
-    const channel = exactMatch?.node;
+    // channels is an array in this schema; find exact slug match
+    const channels = result.data?.channels as Channel[] | undefined;
+    const channel = channels?.find((c) => c?.slug === slug) || null;
 
     if (channel) {
-      logger.debug("Found channel", {
-        id: channel.id,
-        slug: channel.slug,
-        name: channel.name,
-      });
+      logger.debug("Found channel", { id: channel.id, slug: channel.slug, name: channel.name });
     } else {
       logger.debug("No channel found with slug", { slug });
     }
 
-    return channel || null;
+    return channel;
   }
 
   async updateProductChannelListings(
@@ -816,7 +817,7 @@ export class ProductRepository implements ProductOperations {
       throw result.error;
     }
 
-    if (!result.data?.productVariantChannelListingUpdate?.productVariant) {
+    if (!result.data?.productVariantChannelListingUpdate?.variant) {
       const businessErrors = result.data?.productVariantChannelListingUpdate?.errors;
       if (businessErrors && Array.isArray(businessErrors) && businessErrors.length > 0) {
         const errorMessage = businessErrors.map((e) => e.message).join(", ");
@@ -826,7 +827,7 @@ export class ProductRepository implements ProductOperations {
       return null;
     }
 
-    const variant = result.data.productVariantChannelListingUpdate.productVariant as ProductVariant;
+    const variant = result.data.productVariantChannelListingUpdate.variant as ProductVariant;
 
     logger.debug("Product variant channel listings updated", {
       variantId: variant.id,

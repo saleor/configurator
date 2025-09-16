@@ -1,6 +1,10 @@
 import { logger } from "../../lib/logger";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
+import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
+import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
+import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 
 export const validationStage: DeploymentStage = {
   name: "Validating configuration",
@@ -100,6 +104,42 @@ export const productTypesStage: DeploymentStage = {
   },
 };
 
+export const attributesStage: DeploymentStage = {
+  name: "Managing attributes",
+  async execute(context) {
+    const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
+    const attributes = config.attributes;
+    if (!attributes || attributes.length === 0) return;
+
+    const service = context.configurator.services.attribute;
+    const results = await Promise.allSettled(
+      attributes.map(async (attr) => {
+        const existing = await service.repo.getAttributesByNames({
+          names: [attr.name],
+          type: attr.type,
+        });
+        if (existing && existing.length > 0) {
+          await service.updateAttribute(attr, existing[0]);
+          return { name: attr.name, success: true } as const;
+        }
+        await service.bootstrapAttributes({ attributeInputs: [attr] });
+        return { name: attr.name, success: true } as const;
+      })
+    );
+
+    const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+    if (failures.length > 0) {
+      throw new StageAggregateError(
+        "Managing unassigned attributes",
+        failures.map((f) => ({ entity: "attribute", error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)) }))
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Attributes");
+  },
+};
+
 export const channelsStage: DeploymentStage = {
   name: "Managing channels",
   async execute(context) {
@@ -111,6 +151,26 @@ export const channelsStage: DeploymentStage = {
       }
 
       await context.configurator.services.channel.bootstrapChannels(config.channels);
+
+      // Sync per-channel tax configuration if provided in config
+      for (const ch of config.channels) {
+        const channel = ch as ChannelInput;
+        const taxCfg: TaxConfigurationInput | undefined =
+          ("taxConfiguration" in (channel as ChannelUpdateInput) &&
+            (channel as ChannelUpdateInput).taxConfiguration) ||
+          undefined;
+        if (!taxCfg) continue;
+
+        const existing = await context.configurator.services.channel.getChannelBySlug(
+          ch.slug
+        );
+        if (!existing?.id) continue;
+
+        await context.configurator.services.tax.updateChannelTaxConfiguration(
+          existing.id,
+          taxCfg
+        );
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage channels: ${error instanceof Error ? error.message : String(error)}`
@@ -396,6 +456,91 @@ export const shippingZonesStage: DeploymentStage = {
   },
 };
 
+export const attributeChoicesPreflightStage: DeploymentStage = {
+  name: "Preparing attribute choices",
+  async execute(context) {
+    try {
+      const config = await context.configurator.services.configStorage.load();
+      if (!config.products || config.products.length === 0) return;
+
+      const productChanges = context.summary.results.filter((r) => r.entityType === "Products");
+      if (productChanges.length === 0) return;
+
+      const changedSlugs = new Set(productChanges.map((r) => r.entityName));
+      const productsToProcess = config.products.filter((p) => changedSlugs.has(p.slug));
+      if (productsToProcess.length === 0) return;
+
+      // Collect attribute values per attribute name
+      const valuesByAttr = new Map<string, Set<string>>();
+      for (const p of productsToProcess) {
+        const attrs = p.attributes || {};
+        for (const [name, raw] of Object.entries(attrs)) {
+          const set = valuesByAttr.get(name) || new Set<string>();
+          if (Array.isArray(raw)) raw.forEach((v) => set.add(String(v).trim()));
+          else if (raw !== undefined && raw !== null) set.add(String(raw).trim());
+          valuesByAttr.set(name, set);
+        }
+      }
+      if (valuesByAttr.size === 0) return;
+
+      const names = Array.from(valuesByAttr.keys());
+      const existing = await context.configurator.services.attribute.repo.getAttributesByNames({
+        names,
+        type: "PRODUCT_TYPE",
+      });
+      if (!existing || existing.length === 0) return;
+
+      // For each attribute, add missing choices if any
+      const choiceInputTypes = new Set(["DROPDOWN", "MULTISELECT", "SWATCH"]);
+      for (const attr of existing as AttributeMeta[]) {
+        // Only process attributes that support predefined choices
+        if (!choiceInputTypes.has(String(attr.inputType))) continue;
+
+        const desired = valuesByAttr.get(attr.name || "");
+        if (!desired || desired.size === 0) continue;
+
+        const existingChoices = new Set(
+          (attr.choices?.edges || []).map((e) => String(e?.node?.name ?? "").toLowerCase())
+        );
+        const missing = Array.from(desired).filter(
+          (v) => !existingChoices.has(v.toLowerCase())
+        );
+        if (missing.length > 0) {
+          const input: AttributeUpdateInput = {
+            name: attr.name,
+            addValues: missing.map((m) => ({
+              name: m,
+              externalReference: `attr:${attr.id}:${m.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+            })),
+          };
+          await context.configurator.services.attribute.repo.updateAttribute(attr.id, input);
+        }
+      }
+
+      // Re-fetch updated attribute metadata for cache priming
+      const refreshed = await context.configurator.services.attribute.repo.getAttributesByNames({
+        names,
+        type: "PRODUCT_TYPE",
+      });
+      if (refreshed && refreshed.length > 0) {
+        context.configurator.services.product.primeAttributeCache(
+          refreshed as unknown as ProductAttributeMeta[]
+        );
+      }
+      logger.debug("Attribute choices preflight completed", {
+        attributes: refreshed?.length ?? existing.length,
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to prepare attribute choices: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Products");
+  },
+};
+
 export const productsStage: DeploymentStage = {
   name: "Managing products",
   async execute(context) {
@@ -450,6 +595,7 @@ export function getAllStages(): DeploymentStage[] {
     validationStage,
     shopSettingsStage,
     taxClassesStage, // Deploy tax classes early as they can be referenced by other entities
+    attributesStage,
     productTypesStage,
     channelsStage,
     pageTypesStage,
@@ -460,6 +606,7 @@ export function getAllStages(): DeploymentStage[] {
     modelsStage, // Deploy models after model types
     warehousesStage,
     shippingZonesStage,
+    attributeChoicesPreflightStage,
     productsStage,
   ];
 }

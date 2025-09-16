@@ -6,6 +6,9 @@ import { createConfigurator } from "../core/configurator";
 import type { DiffSummary } from "../core/diff";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
+import { printDuplicateIssues } from "../cli/reporters/duplicates";
+import { scanForDuplicateIdentifiers } from "../core/validation/preflight";
+import { EXIT_CODES } from "../core/deployment/errors";
 
 export const diffCommandSchema = baseCommandArgsSchema;
 
@@ -36,6 +39,20 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
     const configurator = createConfigurator(args);
 
     this.console.muted("⏳ Preparing a diff between the configuration and the Saleor instance...");
+
+    // Preflight: surface duplicate identifiers with friendly output and block diff
+    try {
+      const cfg = await configurator.services.configStorage.load();
+      const dupes = scanForDuplicateIdentifiers(cfg);
+      if (dupes.length > 0) {
+        printDuplicateIssues(dupes, this.console, args.config);
+        this.console.cancelled("\nDiff is blocked until duplicates are resolved.");
+        process.exit(EXIT_CODES.VALIDATION);
+      }
+    } catch (e) {
+      // If config can't be loaded, allow normal error path to handle
+      logger.warn("Preflight duplicate scan failed", { error: e });
+    }
 
     const { summary, output } = await configurator.diff();
 

@@ -3,6 +3,7 @@ import {
   attributeInputSchema,
   referencedAttributeSchema,
   simpleAttributeSchema,
+  fullAttributeSchema,
 } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
@@ -593,7 +594,7 @@ const productChannelListingSchema = z.object({
 
 const productVariantChannelListingSchema = z.object({
   channel: z.string().describe("Channel slug reference (e.g., 'default-channel')"),
-  price: z.number().describe("Price in the channel's currency"),
+  price: z.number().optional().describe("Price in the channel's currency"),
   costPrice: z
     .number()
     .optional()
@@ -922,6 +923,12 @@ export const configSchema = z
       .optional()
       .describe(
         "Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs"
+      ),
+    attributes: z
+      .array(fullAttributeSchema)
+      .optional()
+      .describe(
+        "Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment"
       ),
   })
   .describe(

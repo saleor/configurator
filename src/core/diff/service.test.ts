@@ -805,14 +805,17 @@ describe("DiffService", () => {
       expect(summary.deletes).toBe(3);
     });
 
-    it("should handle error scenarios", async () => {
+    it("should not fail if local config cannot be loaded (tolerant)", async () => {
       // Arrange: Config loading throws error
       mockServices.configStorage.load = vi
         .fn()
         .mockRejectedValue(new Error("Config file not found"));
 
-      // Act & Assert
-      await expect(diffService.compareForIntrospect()).rejects.toThrow(ConfigurationLoadError);
+      // Act
+      const summary = await diffService.compareForIntrospect();
+
+      // Assert: treated as empty local, so summary is valid
+      expect(summary.totalChanges).toBeTypeOf("number");
     });
   });
 });
