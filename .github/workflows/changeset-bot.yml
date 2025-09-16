@@ -31,3 +31,35 @@ jobs:
             echo "There is no changeset file in your pull request."
             exit 1
           fi
+
+  skip_changeset_validation:
+    name: Validate skip changeset usage
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'skip changeset') }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure no release-impacting files changed
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_REF" --depth=1
+
+          changed_files=$(git diff --name-only FETCH_HEAD)
+          printf '%s\n' "Files changed in PR:" "$changed_files"
+
+          if [ -z "$changed_files" ]; then
+            echo "No file changes detected."
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/|dist/|bin/|schema\.json$|SCHEMA\.md$|package\.json$|pnpm-lock\.yaml$)'; then
+            echo "The 'skip changeset' label can only be used when the PR does not modify release-impacting files."
+            exit 1
+          fi
+
+          echo "Skip changeset validation passed."
