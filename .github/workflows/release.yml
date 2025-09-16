@@ -34,6 +34,20 @@ jobs:
           cache: "pnpm"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Configure npm authentication
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
+          npm config set //registry.npmjs.org/:always-auth true
+          npm config set @saleor:registry https://registry.npmjs.org/
+
+      - name: Verify npm authentication
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm whoami
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
