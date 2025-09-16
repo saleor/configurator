@@ -57,9 +57,22 @@ jobs:
             exit 0
           fi
 
-          if printf '%s\n' "$changed_files" | grep -Eq '^(src/|dist/|bin/|schema\.json$|SCHEMA\.md$|package\.json$|pnpm-lock\.yaml$)'; then
-            echo "The 'skip changeset' label can only be used when the PR does not modify release-impacting files."
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/|dist/|bin/|schema\.json$|SCHEMA\.md$)'; then
+            echo "The 'skip changeset' label cannot be used when application source or schema files change."
             exit 1
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^pnpm-lock\.yaml$'; then
+            echo "The 'skip changeset' label cannot be used when lockfiles change."
+            exit 1
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^package\.json$'; then
+            pkg_diff=$(git diff FETCH_HEAD -- package.json)
+            if printf '%s\n' "$pkg_diff" | grep -Eq '^[+-].*\"(version|dependencies|devDependencies|peerDependencies|optionalDependencies)\"'; then
+              echo "The 'skip changeset' label cannot be used when package.json version or dependencies change."
+              exit 1
+            fi
           fi
 
           echo "Skip changeset validation passed."
