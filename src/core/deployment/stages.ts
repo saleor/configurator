@@ -1,7 +1,6 @@
 import { logger } from "../../lib/logger";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
-import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
 import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
@@ -106,7 +105,7 @@ export const productTypesStage: DeploymentStage = {
 };
 
 export const attributesStage: DeploymentStage = {
-  name: "Managing unassigned attributes",
+  name: "Managing attributes",
   async execute(context) {
     const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
     const attributes = config.attributes;

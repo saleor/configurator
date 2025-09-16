@@ -323,6 +323,7 @@ const getConfigQuery = graphql(`
           inputType
           entityType
           choices(first: 100) {
+            pageInfo { endCursor hasNextPage }
             edges {
               node {
                 id
@@ -468,6 +469,12 @@ const getConfigQuery = graphql(`
 
 export type RawSaleorConfig = ResultOf<typeof getConfigQuery>;
 
+type RawAttributeConnection = NonNullable<RawSaleorConfig["attributes"]>;
+type RawAttributeEdge = NonNullable<RawAttributeConnection["edges"]>[number];
+type RawAttributeNode = NonNullable<RawAttributeEdge>["node"];
+type RawAttributeChoiceConnection = NonNullable<NonNullable<RawAttributeNode>["choices"]>;
+type RawAttributeChoiceEdge = NonNullable<RawAttributeChoiceConnection["edges"]>[number];
+
 export interface ConfigurationOperations {
   fetchConfig(): Promise<RawSaleorConfig>;
 }
@@ -488,12 +495,16 @@ export class ConfigurationRepository implements ConfigurationOperations {
 
     // Fetch all products with pagination to avoid first: N truncation
     try {
-      const allProductEdges = await this.fetchAllProducts();
+      const [allProductEdges, fullAttributes] = await Promise.all([
+        this.fetchAllProducts(),
+        this.fetchAllAttributes(),
+      ]);
       const data: RawSaleorConfig = {
         ...(result.data as RawSaleorConfig),
         products: {
           edges: allProductEdges,
         },
+        attributes: fullAttributes,
       } as RawSaleorConfig;
       return data;
     } catch (_e) {
@@ -581,5 +592,156 @@ export class ConfigurationRepository implements ConfigurationOperations {
     }
 
     return edges;
+  }
+
+  /**
+   * Fetch all attributes with complete choice lists (no 100-item cap)
+   */
+  private async fetchAllAttributes(): Promise<NonNullable<RawSaleorConfig["attributes"]>> {
+    const edges: RawAttributeEdge[] = [];
+    let after: string | null = null;
+
+    const attributesPageQuery = graphql(`
+      query GetAttributesPage($first: Int!, $after: String) {
+        attributes(first: $first, after: $after) {
+          pageInfo { endCursor hasNextPage }
+          edges {
+            node {
+              id
+              name
+              slug
+              type
+              inputType
+              entityType
+            }
+          }
+        }
+      }
+    `);
+
+    // Loop over attributes pages
+    for (;;) {
+      type AttributesPageResult = {
+        error?: CombinedError;
+        data?: {
+          attributes?: {
+            pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
+            edges?: RawAttributeEdge[] | null;
+          } | null;
+        };
+      };
+      const res: AttributesPageResult = await this.client.query(attributesPageQuery, {
+        first: 100,
+        after,
+      });
+      if (res.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch attributes page", res.error);
+      }
+      const page = res.data?.attributes;
+      const pageEdges = page?.edges ?? [];
+
+      for (const edge of pageEdges) {
+        if (!edge?.node?.id) {
+          edges.push(edge as RawAttributeEdge);
+          continue;
+        }
+        const { node } = edge;
+        const normalizedEdge = {
+          ...edge,
+          node: {
+            ...node,
+            choices: {
+              ...(node.choices ?? {}),
+              edges: [] as RawAttributeChoiceEdge[],
+            },
+          },
+        } as RawAttributeEdge;
+        edges.push(normalizedEdge);
+      }
+      if (!page?.pageInfo?.hasNextPage) break;
+      after = page.pageInfo?.endCursor ?? null;
+    }
+
+    // Hydrate choices per attribute with pagination
+    const attributeNodes = edges
+      .map((edge, index) => ({ edge, index }))
+      .filter((item): item is { edge: RawAttributeEdge; index: number } => !!item.edge)
+      .map((item) => ({
+        index: item.index,
+        node: item.edge?.node,
+      }))
+      .filter(
+        (item): item is { index: number; node: RawAttributeNode & { id: string } } =>
+          !!item.node?.id
+      );
+
+    await Promise.all(
+      attributeNodes.map(async ({ index, node }) => {
+        const choices = await this.fetchAllChoicesForAttribute(node.id);
+        const currentEdge = edges[index];
+        if (!currentEdge?.node) return;
+        const existingChoices = currentEdge.node.choices ?? ({} as RawAttributeChoiceConnection);
+        edges[index] = {
+          ...currentEdge,
+          node: {
+            ...currentEdge.node,
+            choices: {
+              ...existingChoices,
+              edges: choices,
+            },
+          },
+        } as RawAttributeEdge;
+      })
+    );
+
+    return { edges } as NonNullable<RawSaleorConfig["attributes"]>;
+  }
+
+  /**
+   * Fetch all choices for a given attribute id
+   */
+  private async fetchAllChoicesForAttribute(attributeId: string): Promise<RawAttributeChoiceEdge[]> {
+    const choices: RawAttributeChoiceEdge[] = [];
+    let after: string | null = null;
+
+    const choicesPageQuery = graphql(`
+      query GetAttributeChoices($id: ID!, $first: Int!, $after: String) {
+        attribute(id: $id) {
+          choices(first: $first, after: $after) {
+            pageInfo { endCursor hasNextPage }
+            edges { node { id name value } }
+          }
+        }
+      }
+    `);
+
+    for (;;) {
+      type ChoicesPageResult = {
+        error?: CombinedError;
+        data?: {
+          attribute?: {
+            choices?: {
+              pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
+              edges?: RawAttributeChoiceEdge[] | null;
+            } | null;
+          } | null;
+        };
+      };
+      const res: ChoicesPageResult = await this.client.query(choicesPageQuery, {
+        id: attributeId,
+        first: 100,
+        after,
+      });
+      if (res.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch attribute choices", res.error);
+      }
+      const page = res.data?.attribute?.choices;
+      const pageEdges = page?.edges ?? [];
+      choices.push(...pageEdges);
+      if (!page?.pageInfo?.hasNextPage) break;
+      after = page.pageInfo?.endCursor ?? null;
+    }
+
+    return choices;
   }
 }

@@ -477,30 +477,6 @@ products:
         isPublished: true
         publishedAt: 2025-07-22T07:10:42.417751+00:00
         visibleInListings: true
-  - name: UK rego non-biomass compliance 2023
-    slug: uk-rego-non-biomass-compliance-2023
-    description: '{"time": 1755600771258, "blocks": [{"id": "EkaWiLmrXD", "data": {"text": "UK rego non-biomass compliance 2023"}, "type": "paragraph"}], "version": "2.30.7"}'
-    productType: Environmental Attribute Certificates (EACs)
-    category: i-rec
-    attributes:
-      External ID: 66c88266f154a906443fde63
-      Technology: Solar
-    variants:
-      - name: UHJvZHVjdFZhcmlhbnQ6Mzkw
-        sku: UHJvZHVjdFZhcmlhbnQ6Mzkw
-        attributes: {}
-        channelListings:
-          - channel: act-product-portfolio-channel
-            price: 0.81
-      - name: UHJvZHVjdFZhcmlhbnQ6Mzkw
-        sku: UHJvZHVjdFZhcmlhbnQ6Mzkw
-        attributes: {}
-        channelListings: []
-    channelListings:
-      - channel: act-product-portfolio-channel
-        isPublished: true
-        publishedAt: 2025-08-19T10:52:52.352700+00:00
-        visibleInListings: true
   - name: National Green-e Any 2025
     slug: us-and-canada-2025-goo
     description: '{"time": 1757571564873, "blocks": [{"id": "h0uIogi1Z-", "data": {"text": "National Green-e Any 2025"}, "type": "paragraph"}], "version": "2.30.7"}'

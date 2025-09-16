@@ -53,18 +53,44 @@ export class AttributesComparator extends BaseEntityComparator<
         changes.push(this.createFieldChange("entityType", r, l));
       }
     }
-    // values for choice-based types
+    // values for choice-based types (granular add/remove, grouped by formatter)
     const isChoice = (t: string) => ["DROPDOWN", "MULTISELECT", "SWATCH"].includes(t);
+    const extractValues = (attribute: AttributeEntity): string[] => {
+      if ("values" in attribute && Array.isArray(attribute.values)) {
+        return attribute.values.map((value) => value.name);
+      }
+      return [];
+    };
     if (isChoice(local.inputType) || isChoice(remote.inputType)) {
-      const lv = "values" in local && Array.isArray((local as unknown as { values?: { name: string }[] }).values)
-        ? ((local as unknown as { values?: { name: string }[] }).values ?? []).map((v) => v.name)
-        : [];
-      const rv = "values" in remote && Array.isArray((remote as unknown as { values?: { name: string }[] }).values)
-        ? ((remote as unknown as { values?: { name: string }[] }).values ?? []).map((v) => v.name)
-        : [];
-      const toKeyed = (arr: string[]) => [...arr].sort().join(",");
-      if (toKeyed(lv) !== toKeyed(rv)) {
-        changes.push(this.createFieldChange("values", rv, lv));
+      const lvs = extractValues(local);
+      const rvs = extractValues(remote);
+      const lSet = new Set(lvs);
+      const rSet = new Set(rvs);
+      // additions
+      for (const name of lSet) {
+        if (!rSet.has(name)) {
+          changes.push(
+            this.createFieldChange(
+              `attributes.${local.name}.values`,
+              null,
+              name,
+              `Attribute "${local.name}" value "${name}" added`
+            )
+          );
+        }
+      }
+      // removals
+      for (const name of rSet) {
+        if (!lSet.has(name)) {
+          changes.push(
+            this.createFieldChange(
+              `attributes.${local.name}.values`,
+              name,
+              null,
+              `Attribute "${local.name}" value "${name}" removed`
+            )
+          );
+        }
       }
     }
     return changes;

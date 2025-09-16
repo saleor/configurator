@@ -249,7 +249,7 @@ describe("Deployment Stages", () => {
       expect(stages[0].name).toBe("Validating configuration");
       expect(stages[1].name).toBe("Updating shop settings");
       expect(stages[2].name).toBe("Managing tax classes");
-      expect(stages[3].name).toBe("Managing unassigned attributes");
+      expect(stages[3].name).toBe("Managing attributes");
       expect(stages[4].name).toBe("Managing product types");
       expect(stages[5].name).toBe("Managing channels");
       expect(stages[6].name).toBe("Managing page types");

@@ -17,16 +17,39 @@ export abstract class BaseDiffFormatter {
 
     for (const result of results) {
       const entityType = result.entityType;
-      if (!grouped.has(entityType)) {
-        grouped.set(entityType, []);
+      let bucket = grouped.get(entityType);
+      if (!bucket) {
+        bucket = [];
+        grouped.set(entityType, bucket);
       }
-      grouped.get(entityType)?.push(result);
+      bucket.push(result);
     }
 
-    // Convert to readonly map
-    return new Map(
-      Array.from(grouped.entries()).map(([key, value]) => [key, Object.freeze(value)])
-    );
+    // Stable preferred order for rendering
+    const order: readonly EntityType[] = [
+      "Channels",
+      "Attributes",
+      "Product Types",
+      "Page Types",
+      "Models",
+      "Categories",
+      "Products",
+      "Collections",
+      "Menus",
+      "Warehouses",
+      "Shipping Zones",
+      "TaxClasses",
+      "Shop Settings",
+    ];
+
+    const entries = Array.from(grouped.entries());
+    entries.sort((a, b) => {
+      const ia = order.indexOf(a[0]);
+      const ib = order.indexOf(b[0]);
+      return (ia === -1 ? Number.MAX_SAFE_INTEGER : ia) - (ib === -1 ? Number.MAX_SAFE_INTEGER : ib);
+    });
+
+    return new Map(entries.map(([k, v]) => [k, Object.freeze(v)]));
   }
 
   /**

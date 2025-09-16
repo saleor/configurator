@@ -270,7 +270,7 @@ describe("ConfigurationService", () => {
       ).toHaveLength(1);
     });
 
-    it("should handle different attribute input types", () => {
+    it("should handle different attribute input types", async () => {
       const rawConfig: RawSaleorConfig = {
         shop: mockRawShopData,
         channels: [],
@@ -282,34 +282,10 @@ describe("ConfigurationService", () => {
                 name: "Test Type",
                 isShippingRequired: false,
                 productAttributes: [
-                  {
-                    id: "attr-1",
-                    name: "Color",
-                    type: "PRODUCT_TYPE",
-                    inputType: "DROPDOWN",
-                    choices: {
-                      edges: [{ node: { name: "Red" } }],
-                    },
-                  },
-                  {
-                    id: "attr-2",
-                    name: "Size",
-                    type: "PRODUCT_TYPE",
-                    inputType: "PLAIN_TEXT",
-                    choices: null,
-                  },
+                  { id: "attr-1", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", choices: { edges: [] } },
+                  { id: "attr-2", name: "Size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", choices: null },
                 ],
-                assignedVariantAttributes: [
-                  {
-                    attribute: {
-                      id: "attr-3",
-                      name: "Size",
-                      type: "PRODUCT_TYPE",
-                      inputType: "PLAIN_TEXT",
-                      choices: null,
-                    },
-                  },
-                ],
+                assignedVariantAttributes: [],
               },
             },
           ],
@@ -322,17 +298,28 @@ describe("ConfigurationService", () => {
         collections: { edges: [] },
         pages: { edges: [] },
         menus: { edges: [] },
+        attributes: {
+          edges: [
+            { node: { id: "attr-1", name: "Color", slug: "color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { id: "c1", name: "Red", value: "red" } }] } } },
+            { node: { id: "attr-2", name: "Size", slug: "size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: null } },
+          ],
+        },
       };
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
-      const result = service.mapConfig(rawConfig);
-      const attributes = result.productTypes?.[0]?.productAttributes;
-      console.log(result.productTypes?.[0]);
-
-      expect(attributes).toBeDefined();
-      expect(attributes).toHaveLength(2);
-      expect(attributes?.[0]).toHaveProperty("values");
-      expect(attributes?.[1]).not.toHaveProperty("values");
+      const result = await service.retrieveWithoutSaving();
+      // All attribute definitions should live under top-level attributes
+      expect(result.attributes).toBeDefined();
+      expect(result.attributes).toHaveLength(2);
+      // First is dropdown with values
+      expect(result.attributes?.[0]).toHaveProperty("values");
+      // Second is plain text without values
+      expect(result.attributes?.[1]).not.toHaveProperty("values");
+      // Product type attributes should become references
+      const ptAttrs = result.productTypes?.[0]?.productAttributes as unknown[];
+      expect(ptAttrs).toBeDefined();
+      expect(ptAttrs?.length).toBe(2);
+      expect(ptAttrs?.every((a) => typeof (a as any).attribute === "string")).toBe(true);
     });
   });
 

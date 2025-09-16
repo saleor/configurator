@@ -1,5 +1,4 @@
-import type { SimpleAttribute } from "../../../modules/config/schema/attribute.schema";
-import { schemaHelpers } from "../../../modules/config/schema/helpers.schema";
+import type { AttributeInput } from "../../../modules/config/schema/attribute.schema";
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator } from "./base-comparator";
@@ -8,11 +7,6 @@ import { BaseEntityComparator } from "./base-comparator";
  * Product type entity type for type safety
  */
 type ProductTypeEntity = NonNullable<SaleorConfig["productTypes"]>[number];
-
-/**
- * Product type attribute structure
- */
-type ProductTypeAttribute = SimpleAttribute;
 
 /**
  * Comparator for product type entities
@@ -130,17 +124,11 @@ export class ProductTypeComparator extends BaseEntityComparator<
    * Safely extracts attributes from a product type entity
    */
   private getAttributes(productType: ProductTypeEntity): {
-    productAttributes: readonly ProductTypeAttribute[];
-    variantAttributes: readonly ProductTypeAttribute[];
+    productAttributes: readonly AttributeInput[];
+    variantAttributes: readonly AttributeInput[];
   } {
-    // Type assertion is safe here since we're accessing a known property
-    const productAttributes = (productType.productAttributes ?? []).filter(
-      (attr) => !("attribute" in attr)
-    ) as SimpleAttribute[];
-    const variantAttributes = (productType.variantAttributes ?? []).filter(
-      (attr) => !("attribute" in attr)
-    ) as SimpleAttribute[];
-
+    const productAttributes = (productType.productAttributes ?? []) as readonly AttributeInput[];
+    const variantAttributes = (productType.variantAttributes ?? []) as readonly AttributeInput[];
     return { productAttributes, variantAttributes };
   }
 
@@ -148,126 +136,39 @@ export class ProductTypeComparator extends BaseEntityComparator<
    * Compares product type attributes between local and remote
    */
   private compareAttributes(
-    local: readonly ProductTypeAttribute[],
-    remote: readonly ProductTypeAttribute[],
+    local: readonly AttributeInput[],
+    remote: readonly AttributeInput[],
     isCreating: boolean = false
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
-    const localAttrMap = new Map(local.map((attr) => [attr.name, attr]));
-    const remoteAttrMap = new Map(remote.map((attr) => [attr.name, attr]));
+    const getName = (a: AttributeInput): string => ("attribute" in a ? a.attribute : a.name);
+    const lNames = new Set(local.map(getName));
+    const rNames = new Set(remote.map(getName));
 
-    // Find added attributes
-    for (const localAttr of local) {
-      if (!remoteAttrMap.has(localAttr.name)) {
-        // Use different description based on whether we're creating or updating
+    for (const name of lNames) {
+      if (!rNames.has(name)) {
         const description = isCreating
-          ? `Attribute "${localAttr.name}" will be created`
-          : `Attribute "${localAttr.name}" added`;
-
-        changes.push(this.createFieldChange("attributes", null, localAttr.name, description));
+          ? `Attribute "${name}" will be created`
+          : `Attribute "${name}" added`;
+        changes.push(this.createFieldChange("attributes", null, name, description));
       }
     }
 
-    // Find removed attributes
-    for (const remoteAttr of remote) {
-      if (!localAttrMap.has(remoteAttr.name)) {
+    for (const name of rNames) {
+      if (!lNames.has(name)) {
         changes.push(
-          this.createFieldChange(
-            "attributes",
-            remoteAttr.name,
-            null,
-            `Attribute "${remoteAttr.name}" removed`
-          )
+          this.createFieldChange("attributes", name, null, `Attribute "${name}" removed`)
         );
       }
     }
 
-    // Find modified attributes (same name but different properties)
-    for (const localAttr of local) {
-      const remoteAttr = remoteAttrMap.get(localAttr.name);
-      if (remoteAttr) {
-        changes.push(...this.compareAttributeDetails(localAttr, remoteAttr));
-      }
-    }
-
+    // No detailed comparison of inputType/values at assignment level
     return changes;
   }
 
   /**
    * Compares detailed properties of matching attributes
    */
-  private compareAttributeDetails(
-    local: ProductTypeAttribute,
-    remote: ProductTypeAttribute
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-
-    // Compare input type
-    if (local.inputType !== remote.inputType) {
-      changes.push(
-        this.createFieldChange(
-          `attributes.${local.name}.inputType`,
-          remote.inputType,
-          local.inputType,
-          `Attribute "${local.name}" input type changed from "${remote.inputType}" to "${local.inputType}"`
-        )
-      );
-    }
-
-    // Compare attribute values if they exist
-    if (
-      schemaHelpers.isMultipleValuesAttribute(local) &&
-      schemaHelpers.isMultipleValuesAttribute(remote)
-    ) {
-      changes.push(...this.compareAttributeValues(local, remote));
-    }
-
-    return changes;
-  }
-
-  /**
-   * Compares attribute values for dropdown/multi-select attributes
-   */
-  private compareAttributeValues(
-    local: ProductTypeAttribute,
-    remote: ProductTypeAttribute
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-    const localValues = schemaHelpers.isMultipleValuesAttribute(local) ? local.values : [];
-    const remoteValues = schemaHelpers.isMultipleValuesAttribute(remote) ? remote.values : [];
-
-    const localValueNames = new Set(localValues.map((v) => v.name));
-    const remoteValueNames = new Set(remoteValues.map((v) => v.name));
-
-    // Find added values
-    for (const localValue of localValues) {
-      if (!remoteValueNames.has(localValue.name)) {
-        changes.push(
-          this.createFieldChange(
-            `attributes.${local.name}.values`,
-            null,
-            localValue.name,
-            `Attribute "${local.name}" value "${localValue.name}" added`
-          )
-        );
-      }
-    }
-
-    // Find removed values
-    for (const remoteValue of remoteValues) {
-      if (!localValueNames.has(remoteValue.name)) {
-        changes.push(
-          this.createFieldChange(
-            `attributes.${local.name}.values`,
-            remoteValue.name,
-            null,
-            `Attribute "${local.name}" value "${remoteValue.name}" removed`
-          )
-        );
-      }
-    }
-
-    return changes;
-  }
+  // Remove detailed attribute comparison at product type level
 }

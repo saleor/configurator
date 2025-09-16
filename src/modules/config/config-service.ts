@@ -1,7 +1,6 @@
 import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
 import { object } from "../../lib/utils/object";
-import { logger } from "../../lib/logger";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
@@ -48,17 +47,10 @@ export class ConfigurationService {
   async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
-    // Warn about attributes that exist but aren't assigned to any product type
+    // Include all attributes in top-level config and convert assignments to references
     try {
-      if (config.productTypes) this.warnAboutUnassignedAttributes(rawConfig, config.productTypes);
-      // Include unassigned attributes in config
-      if (config.productTypes) {
-        const unassigned = this.mapUnassignedAttributes(rawConfig, config.productTypes);
-        if (unassigned.length > 0) {
-          config.attributes = unassigned;
-        }
-      }
-      // Ensure attributes appear first in YAML ordering
+      config.attributes = this.mapAllAttributes(rawConfig);
+      // Ensure attributes appear before productTypes in YAML ordering
       this.reorderConfigKeys(config as SaleorConfig);
     } catch {
       // best-effort advisory
@@ -70,12 +62,7 @@ export class ConfigurationService {
   async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
-    if (config.productTypes) {
-      const unassigned = this.mapUnassignedAttributes(rawConfig, config.productTypes);
-      if (unassigned.length > 0) {
-        config.attributes = unassigned;
-      }
-    }
+    config.attributes = this.mapAllAttributes(rawConfig);
     this.reorderConfigKeys(config as SaleorConfig);
     return config;
   }
@@ -235,87 +222,46 @@ export class ConfigurationService {
     );
   }
 
-  private warnAboutUnassignedAttributes(
-    raw: RawSaleorConfig,
-    mappedProductTypes: ProductTypeInput[]
-  ): void {
-    type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
-    const rawEdges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
-    if (!rawEdges || rawEdges.length === 0) return;
-    const productAttrNames = new Set<string>();
-    for (const edge of rawEdges) {
-      if (edge?.node?.type === "PRODUCT_TYPE" && edge.node.name) {
-        productAttrNames.add(edge.node.name);
-      }
-    }
-    if (productAttrNames.size === 0) return;
-    const mappedNames = new Set<string>();
-    const getAttrName = (a: AttributeInput): string | undefined =>
-      "name" in a ? a.name : "attribute" in a ? a.attribute : undefined;
-    const addNameFromAttributeInput = (a: AttributeInput) => {
-      const n = getAttrName(a);
-      if (n) mappedNames.add(n);
-    };
-    for (const pt of mappedProductTypes) {
-      for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
-      for (const a of pt.variantAttributes ?? []) addNameFromAttributeInput(a);
-    }
-    const missing = Array.from(productAttrNames).filter((n) => !mappedNames.has(n));
-    if (missing.length > 0) {
-      logger.warn(
-        `Found ${missing.length} product attributes not assigned to any product type. They will be included under top-level 'attributes' (not assigned): ${missing.join(", ")}`
-      );
-    }
-  }
-
-  private mapUnassignedAttributes(raw: RawSaleorConfig, mappedProductTypes: ProductTypeInput[]) {
+  private mapAllAttributes(raw: RawSaleorConfig): FullAttribute[] {
     type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
     const edges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
-    if (edges.length === 0) return [] as FullAttribute[];
-
-    // Build set of names already mapped via productTypes
-    const mapped = new Set<string>();
-    const getAttrName = (a: AttributeInput): string | undefined =>
-      "name" in a ? a.name : "attribute" in a ? a.attribute : undefined;
-    const addNameFromAttributeInput = (a: AttributeInput) => {
-      const n = getAttrName(a);
-      if (n) mapped.add(n);
-    };
-    for (const pt of mappedProductTypes) {
-      for (const a of pt.productAttributes ?? []) addNameFromAttributeInput(a);
-      for (const a of pt.variantAttributes ?? []) addNameFromAttributeInput(a);
-    }
-
-    const unassigned = edges
-      .filter((e) => e?.node?.type === "PRODUCT_TYPE" && e.node?.name && !mapped.has(e.node.name))
-      .map((e) => e!.node!);
+    if (!edges || edges.length === 0) return [];
 
     const toFullAttribute = (node: {
-      name: string;
-      inputType: string;
+      name?: string | null;
+      type?: string | null;
+      inputType?: string | null;
       entityType?: string | null;
-      choices?: { edges?: Array<{ node: { name?: string | null } | null } | null> } | null;
-    }): FullAttribute => {
+      choices?: { edges?: Array<{ node?: { name?: string | null } | null } | null> } | null;
+    }): FullAttribute | null => {
+      if (!node?.name || !node?.inputType) return null;
       const inputType = node.inputType as FullAttribute["inputType"];
+      const type = (node.type as FullAttribute["type"]) || "PRODUCT_TYPE";
       if (inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH") {
         const values = (node.choices?.edges || [])
-          .map((edge) => edge?.node?.name)
+          .map((e) => e?.node?.name)
           .filter((n): n is string => !!n)
           .map((name) => ({ name }));
-        return { name: node.name, inputType, type: "PRODUCT_TYPE", values } as FullAttribute;
+        return { name: node.name, inputType, type, values } as FullAttribute;
       }
       if (inputType === "REFERENCE") {
         return {
           name: node.name,
           inputType: "REFERENCE",
-          type: "PRODUCT_TYPE",
+          type,
           entityType: (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
         } as FullAttribute;
       }
-      return { name: node.name, inputType, type: "PRODUCT_TYPE" } as FullAttribute;
+      return { name: node.name, inputType, type } as FullAttribute;
     };
 
-    return unassigned.map(toFullAttribute);
+    const all = edges
+      .map((e) => e?.node)
+      .filter((n): n is NonNullable<AttributeEdge["node"]> => !!n)
+      .map(toFullAttribute)
+      .filter((a): a is FullAttribute => !!a);
+
+    return all;
   }
 
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
@@ -592,54 +538,24 @@ export class ConfigurationService {
       });
     });
 
-    // Identify shared attributes (used in multiple locations)
-    const sharedAttributes = new Set<string>();
-    for (const [attrName, usage] of attributeUsage) {
-      if (usage.locations.length > 1) {
-        sharedAttributes.add(attrName);
-      }
-    }
-
-    // Convert shared attributes to references, keep unique attributes as full definitions
+    // Convert all attribute definitions in product/page types to references
     return {
       ...config,
       productTypes: productTypesWithFullAttrs?.map((productType) => ({
         ...productType,
         isShippingRequired: productType.isShippingRequired ?? false,
-        productAttributes: this.convertToReferences(
-          productType.productAttributes || [],
-          sharedAttributes
-        ),
-        variantAttributes: this.convertToReferences(
-          productType.variantAttributes || [],
-          sharedAttributes
-        ),
+        productAttributes: this.convertAllToReferences(productType.productAttributes || []),
+        variantAttributes: this.convertAllToReferences(productType.variantAttributes || []),
       })),
       pageTypes: pageTypesWithFullAttrs?.map((pageType) => ({
         ...pageType,
-        attributes: this.convertToReferences(pageType.attributes || [], sharedAttributes),
+        attributes: this.convertAllToReferences(pageType.attributes || []),
       })),
     };
   }
 
-  /**
-   * Converts shared attributes to reference syntax while keeping unique attributes as full definitions
-   */
-  private convertToReferences(
-    attributes: FullAttribute[],
-    sharedAttributes: Set<string>
-  ): AttributeInput[] {
-    return attributes.map((attr) => {
-      if (sharedAttributes.has(attr.name)) {
-        // Convert to reference syntax
-        return { attribute: attr.name };
-      }
-      // Keep as full definition for unique attributes, but remove the 'type' field
-      // since AttributeInput expects SimpleAttribute not FullAttribute
-      // biome-ignore lint/correctness/noUnusedVariables: We're intentionally extracting 'type' to exclude it from the result
-      const { type, ...simpleAttribute } = attr;
-      return simpleAttribute;
-    });
+  private convertAllToReferences(attributes: FullAttribute[]): AttributeInput[] {
+    return attributes.map((attr) => ({ attribute: attr.name }));
   }
 
   mapConfig(rawConfig: RawSaleorConfig, selectiveOptions?: ParsedSelectiveOptions): SaleorConfig {

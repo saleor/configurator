@@ -296,6 +296,7 @@ export class DiffService {
     return new Map([
       ["shop", new ShopComparator() as EntityComparator],
       ["channels", new ChannelComparator() as EntityComparator],
+      ["attributes", new AttributesComparator() as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator
@@ -307,7 +308,6 @@ export class DiffService {
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       ["taxClasses", new TaxClassComparator() as EntityComparator],
-      ["attributes", new AttributesComparator() as EntityComparator],
     ]);
   }
 
@@ -374,6 +374,7 @@ export class DiffService {
     // Entity array comparisons
     const entityTypes = [
       "channels",
+      "attributes",
       "productTypes",
       "pageTypes",
       "modelTypes",
@@ -431,6 +432,7 @@ export class DiffService {
     // Entity array comparisons
     const entityTypeMappings: Record<string, ConfigurationSection> = {
       channels: "channels",
+      attributes: "attributes",
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       modelTypes: "modelTypes",

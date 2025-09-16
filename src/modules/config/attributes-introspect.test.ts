@@ -17,12 +17,12 @@ function makeService(raw: RawSaleorConfig) {
 }
 
 describe("ConfigurationService – attributes introspection", () => {
-  it("includes all choices when attribute has >10 values (uses 100 page size)", async () => {
+  it("includes all choices for attributes when >10 values exist", async () => {
     const values = Array.from({ length: 12 }, (_, i) => ({ node: { name: `v${i+1}` } }));
     const raw = {
       shop: {},
       channels: [],
-      productTypes: { edges: [ { node: { id: "pt1", name: "Type", isShippingRequired: true, productAttributes: [ { id: "a1", name: "Countries", type: "PRODUCT_TYPE", inputType: "DROPDOWN", choices: { edges: values } } ], assignedVariantAttributes: [] } } ] },
+      productTypes: { edges: [] },
       pageTypes: { edges: [] },
       categories: { edges: [] },
       warehouses: { edges: [] },
@@ -32,16 +32,16 @@ describe("ConfigurationService – attributes introspection", () => {
       menus: { edges: [] },
       pages: { edges: [] },
       products: { edges: [] },
-      attributes: { edges: [] },
+      attributes: { edges: [ { node: { id: "a1", name: "Countries", slug: "countries", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: values } } } ] },
     } as unknown as RawSaleorConfig;
 
     const svc = makeService(raw);
     const cfg = await svc.retrieveWithoutSaving();
-    const attrs = cfg.productTypes?.[0]?.productAttributes as any[];
+    const attrs = cfg.attributes as any[];
     expect(attrs[0].values.length).toBe(12);
   });
 
-  it("maps unassigned PRODUCT_TYPE attributes into top-level config.attributes", async () => {
+  it("maps PRODUCT_TYPE attributes into top-level config.attributes", async () => {
     const raw = {
       shop: {},
       channels: [],
