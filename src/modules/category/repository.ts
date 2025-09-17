@@ -45,6 +45,25 @@ const getCategoryByNameQuery = graphql(`
   }
 `);
 
+const getCategoryBySlugQuery = graphql(`
+  query GetCategoryBySlug($slug: String!) {
+    categories(filter: { slugs: [$slug] }, first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          level
+          parent {
+            id
+            slug
+          }
+        }
+      }
+    }
+  }
+`);
+
 const getAllCategoriesQuery = graphql(`
   query GetAllCategories {
     categories(first: 100) {
@@ -71,6 +90,7 @@ export type Category = NonNullable<
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
+  getCategoryBySlug(slug: string): Promise<Category | null | undefined>;
   getAllCategories(): Promise<Category[]>;
 }
 
@@ -88,14 +108,24 @@ export class CategoryRepository implements CategoryOperations {
       parent: parentId,
     });
 
-    if (!result.data?.categoryCreate?.category) {
+    const mutationResult = result.data?.categoryCreate;
+    const dataErrors = mutationResult?.errors ?? [];
+
+    if (dataErrors.length > 0) {
+      throw GraphQLError.fromDataErrors(
+        `Failed to create category ${input.name}`,
+        dataErrors
+      );
+    }
+
+    if (!mutationResult?.category) {
       throw GraphQLError.fromGraphQLErrors(
         result.error?.graphQLErrors ?? [],
         `Failed to create category ${input.name}`
       );
     }
 
-    const createdCategory = result.data.categoryCreate.category;
+    const createdCategory = mutationResult.category;
 
     logger.info("Category created", {
       category: createdCategory,
@@ -111,6 +141,16 @@ export class CategoryRepository implements CategoryOperations {
 
     // Find exact match among search results to prevent duplicate creation
     const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
+
+    return exactMatch?.node;
+  }
+
+  async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
+    const result = await this.client.query(getCategoryBySlugQuery, {
+      slug,
+    });
+
+    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.slug === slug);
 
     return exactMatch?.node;
   }

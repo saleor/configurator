@@ -579,6 +579,42 @@ describe("ShopConfigurationSchema", () => {
       expect(result.success).toBe(false);
     });
 
+    it("should reject products with invalid external media URLs", () => {
+      const invalidConfig = {
+        ...validShopConfig,
+        products: [
+          {
+            name: "Poster",
+            slug: "poster",
+            productType: "Poster",
+            category: "posters",
+            media: [
+              {
+                externalUrl: "not-a-url",
+              },
+            ],
+            variants: [
+              {
+                name: "Default",
+                sku: "POSTER-001",
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = configSchema.safeParse(invalidConfig);
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.path).toEqual([
+        "products",
+        0,
+        "media",
+        0,
+        "externalUrl",
+      ]);
+    });
+
     it("should accept configuration with unknown fields (Zod v4 behavior)", () => {
       // Arrange
       const configWithUnknownField = {
@@ -778,6 +814,39 @@ describe("ShopConfigurationSchema", () => {
       const result = configSchema.safeParse(configWithProductTypes);
 
       // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it("should accept products with external media URLs", () => {
+      const configWithProductMedia = {
+        ...validShopConfig,
+        productTypes: [{ name: "Poster" }],
+        categories: [{ name: "Posters", slug: "posters" }],
+        products: [
+          {
+            name: "Limited Poster",
+            slug: "limited-poster",
+            productType: "Poster",
+            category: "posters",
+            description: "Signed art print",
+            media: [
+              {
+                externalUrl: "https://cdn.example.com/assets/poster.jpg",
+                alt: "Poster hero shot",
+              },
+            ],
+            variants: [
+              {
+                name: "Default",
+                sku: "POSTER-001",
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = configSchema.safeParse(configWithProductMedia);
+
       expect(result.success).toBe(true);
     });
 

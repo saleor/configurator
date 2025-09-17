@@ -1,11 +1,24 @@
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
-import type { ProductInput, ProductVariantInput } from "../config/schema/schema";
+import type {
+  ProductInput,
+  ProductMediaInput,
+  ProductVariantInput,
+} from "../config/schema/schema";
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
-import type { Product, ProductCreateInput, ProductOperations, ProductUpdateInput, ProductVariant, Attribute } from "./repository";
+import type {
+  Product,
+  ProductCreateInput,
+  ProductMedia,
+  ProductMediaCreateInput,
+  ProductOperations,
+  ProductUpdateInput,
+  ProductVariant,
+  Attribute,
+} from "./repository";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;
@@ -201,6 +214,95 @@ export class ProductService {
     // AttributeResolver returns a union payload matching GraphQL AttributeValueInput shape
     // Cast to our local AttributeValueInput type used in ModelService for consistency
     return (await this.attributeResolver.resolveAttributes(attributes)) as unknown as AttributeValueInput[];
+  }
+
+  private normalizeExternalMediaUrl(url: string): string {
+    return url.trim();
+  }
+
+  private async syncProductMedia(
+    product: Product,
+    mediaInputs: ProductMediaInput[] = []
+  ): Promise<void> {
+    if (!mediaInputs.length) {
+      return;
+    }
+
+    const desiredMedia = mediaInputs.filter((media) => typeof media.externalUrl === "string");
+
+    const productReference =
+      typeof (product as Product & { slug?: string }).slug === "string"
+        ? (product as Product & { slug?: string }).slug ?? product.id
+        : product.id;
+
+    const existingMedia = await ServiceErrorWrapper.wrapServiceCall(
+      "fetch product media",
+      "product media",
+      productReference,
+      async () => this.repository.listProductMedia(product.id),
+      ProductError
+    );
+
+    const mediaByUrl = new Map<string, ProductMedia>();
+    for (const media of existingMedia) {
+      if (!media?.url) {
+        continue;
+      }
+      mediaByUrl.set(this.normalizeExternalMediaUrl(media.url), media);
+    }
+
+    const processedUrls = new Set<string>();
+
+    for (const mediaInput of desiredMedia) {
+      const normalizedUrl = this.normalizeExternalMediaUrl(mediaInput.externalUrl);
+
+      if (processedUrls.has(normalizedUrl)) {
+        continue;
+      }
+      processedUrls.add(normalizedUrl);
+
+      const existing = mediaByUrl.get(normalizedUrl);
+
+      if (existing) {
+        if (typeof mediaInput.alt === "string" && mediaInput.alt !== existing.alt) {
+          const updatedMedia = await ServiceErrorWrapper.wrapServiceCall(
+            "update product media alt text",
+            "product media",
+            existing.id,
+            async () =>
+              this.repository.updateProductMedia(existing.id, {
+                alt: mediaInput.alt,
+              }),
+            ProductError
+          );
+
+          mediaByUrl.set(normalizedUrl, updatedMedia);
+        }
+
+        continue;
+      }
+
+      const createMediaInput = {
+        product: product.id,
+        mediaUrl: normalizedUrl,
+      } as ProductMediaCreateInput;
+
+      if (typeof mediaInput.alt === "string") {
+        createMediaInput.alt = mediaInput.alt;
+      }
+
+      const createdMedia = await ServiceErrorWrapper.wrapServiceCall(
+        "create product media",
+        "product media",
+        normalizedUrl,
+        async () => this.repository.createProductMedia(createMediaInput),
+        ProductError
+      );
+
+      if (createdMedia?.url) {
+        mediaByUrl.set(this.normalizeExternalMediaUrl(createdMedia.url), createdMedia);
+      }
+    }
   }
 
   private async upsertProduct(productInput: ProductInput): Promise<Product> {
@@ -465,10 +567,15 @@ export class ProductService {
       // 1. Create or get product
       let product = await this.upsertProduct(productInput);
 
-      // 2. Create variants
+      // 2. Sync product media (external URLs)
+      if (productInput.media !== undefined) {
+        await this.syncProductMedia(product, productInput.media);
+      }
+
+      // 3. Create variants
       const variants = await this.createProductVariants(product, productInput.variants);
 
-      // 3. Update product channel listings (optional, graceful degradation)
+      // 4. Update product channel listings (optional, graceful degradation)
       if (productInput.channelListings && productInput.channelListings.length > 0) {
         try {
           const channelListingInput = await this.resolveChannelListings(
@@ -500,7 +607,7 @@ export class ProductService {
         }
       }
 
-      // 4. Update variant channel listings (optional, graceful degradation)
+      // 5. Update variant channel listings (optional, graceful degradation)
       const updatedVariants = [...variants];
       for (let i = 0; i < productInput.variants.length; i++) {
         const variantInput = productInput.variants[i];

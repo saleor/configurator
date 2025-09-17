@@ -27,19 +27,31 @@ export class CategoryService {
       "category",
       slug,
       async () => {
+        const category = await this.repository.getCategoryBySlug(slug);
+        if (category) {
+          return category;
+        }
+
         const categories = await this.repository.getAllCategories();
-        return categories.find((category) => category.slug === slug) || null;
+        return categories.find((c) => c.slug === slug) || null;
       },
       CategoryError
     );
   }
 
-  private async getExistingCategory(name: string) {
+  private async getExistingCategory(categoryInput: CategoryInput) {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch category",
       "category",
-      name,
-      () => this.repository.getCategoryByName(name),
+      categoryInput.slug,
+      async () => {
+        const existingBySlug = await this.repository.getCategoryBySlug(categoryInput.slug);
+        if (existingBySlug) {
+          return existingBySlug;
+        }
+
+        return this.repository.getCategoryByName(categoryInput.name);
+      },
       CategoryError
     );
   }
@@ -108,7 +120,7 @@ export class CategoryService {
     parentId?: string
   ): Promise<Category> {
     try {
-      const existingCategory = await this.getExistingCategory(categoryInput.name);
+      const existingCategory = await this.getExistingCategory(categoryInput);
 
       if (existingCategory) {
         return existingCategory;

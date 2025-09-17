@@ -7,6 +7,7 @@ import type { CategoryOperations } from "./repository";
 const mockRepository: CategoryOperations = {
   createCategory: vi.fn(),
   getCategoryByName: vi.fn(),
+  getCategoryBySlug: vi.fn(),
   getAllCategories: vi.fn(),
 };
 
@@ -21,9 +22,11 @@ describe("CategoryService - Nested Categories", () => {
     // Mock category creation to return different categories
     const mockCreateCategory = mockRepository.createCategory as ReturnType<typeof vi.fn>;
     const mockGetCategoryByName = mockRepository.getCategoryByName as ReturnType<typeof vi.fn>;
+    const mockGetCategoryBySlug = mockRepository.getCategoryBySlug as ReturnType<typeof vi.fn>;
 
     // Return null for all getCategoryByName calls (categories don't exist)
     mockGetCategoryByName.mockResolvedValue(null);
+    mockGetCategoryBySlug.mockResolvedValue(null);
 
     // Mock creation responses
     const rootCategory = { id: "root-id", name: "Electronics", slug: "electronics" };
@@ -113,8 +116,10 @@ describe("CategoryService - Nested Categories", () => {
   it("should handle multiple root categories with subcategories", async () => {
     const mockCreateCategory = mockRepository.createCategory as ReturnType<typeof vi.fn>;
     const mockGetCategoryByName = mockRepository.getCategoryByName as ReturnType<typeof vi.fn>;
+    const mockGetCategoryBySlug = mockRepository.getCategoryBySlug as ReturnType<typeof vi.fn>;
 
     mockGetCategoryByName.mockResolvedValue(null);
+    mockGetCategoryBySlug.mockResolvedValue(null);
 
     // Mock creation responses for multiple trees
     mockCreateCategory

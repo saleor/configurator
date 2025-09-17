@@ -19,6 +19,10 @@ const mockRepository: ProductOperations = {
   getChannelBySlug: vi.fn(),
   updateProductChannelListings: vi.fn(),
   updateProductVariantChannelListings: vi.fn(),
+  listProductMedia: vi.fn(),
+  createProductMedia: vi.fn(),
+  updateProductMedia: vi.fn(),
+  deleteProductMedia: vi.fn(),
 };
 
 describe("ProductService Integration", () => {
@@ -27,6 +31,20 @@ describe("ProductService Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ProductService(mockRepository);
+    vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]);
+    vi.mocked(mockRepository.createProductMedia).mockResolvedValue({
+      id: "media-1",
+      url: "https://cdn.example.com/default.jpg",
+      alt: "Default",
+      type: "IMAGE",
+    } as any);
+    vi.mocked(mockRepository.updateProductMedia).mockImplementation(async (id, input) => ({
+      id,
+      url: "https://cdn.example.com/default.jpg",
+      alt: input.alt ?? "",
+      type: "IMAGE",
+    } as any));
+    vi.mocked(mockRepository.deleteProductMedia).mockResolvedValue();
   });
 
   describe("bootstrapProduct with channel listings", () => {
@@ -168,6 +186,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
         channelListings: [],
+        media: [],
       };
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
 
@@ -278,6 +297,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
         channelListings: [],
+        media: [],
       };
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
 
@@ -382,6 +402,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-1", name: "Generic" },
         category: { id: "cat-1", name: "Electronics" },
         channelListings: [],
+        media: [],
       };
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
 
@@ -425,6 +446,80 @@ describe("ProductService Integration", () => {
       });
     });
 
+    it("should delete stale media entries during bootstrap", async () => {
+      const productWithMedia: ProductInput = {
+        name: "Poster",
+        slug: "poster",
+        productType: "Poster",
+        category: "posters",
+        media: [
+          {
+            externalUrl: "https://cdn.example.com/poster-new.jpg",
+            alt: "New",
+          },
+        ],
+        variants: [
+          {
+            name: "Default",
+            sku: "POSTER-001",
+          },
+        ],
+      };
+
+      const existingProduct = {
+        id: "prod-poster",
+        name: "Poster",
+        slug: "poster",
+        productType: { id: "pt-poster", name: "Poster" },
+        category: { id: "cat-poster", name: "Posters" },
+        channelListings: [],
+      };
+
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({ id: "pt-poster", name: "Poster" });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({ id: "cat-poster", name: "Posters" });
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
+        id: "var-poster",
+        name: "Default",
+        sku: "POSTER-001",
+        channelListings: [],
+      } as any);
+      vi.mocked(mockRepository.listProductMedia)
+        .mockResolvedValueOnce([
+          {
+            id: "media-legacy",
+            url: "https://cdn.example.com/legacy.jpg",
+            alt: "Legacy",
+            type: "IMAGE",
+          } as any,
+        ])
+        .mockResolvedValue([
+          {
+            id: "media-legacy",
+            url: "https://cdn.example.com/legacy.jpg",
+            alt: "Legacy",
+            type: "IMAGE",
+          } as any,
+          {
+            id: "media-new",
+            url: "https://cdn.example.com/poster-new.jpg",
+            alt: "New",
+            type: "IMAGE",
+          } as any,
+        ]);
+
+      await service.bootstrapProduct(productWithMedia);
+
+      expect(mockRepository.createProductMedia).toHaveBeenCalledWith({
+        product: "prod-poster",
+        mediaUrl: "https://cdn.example.com/poster-new.jpg",
+        alt: "New",
+      });
+      expect(mockRepository.deleteProductMedia).not.toHaveBeenCalled();
+    });
+
     it("should handle reference attributes", async () => {
       const productWithReference: ProductInput = {
         name: "Accessory Product",
@@ -458,7 +553,8 @@ describe("ProductService Integration", () => {
             category: { id: "cat-x", name: "Main", slug: "main-category" },
             defaultVariant: { id: "variant-1" },
             variants: [{ id: "variant-1", sku: "MAIN-001", name: "Main Variant" }],
-          });
+            media: [],
+          } as any);
         return Promise.resolve(null);
       });
 
@@ -487,6 +583,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-1", name: "Accessory" },
         category: { id: "cat-1", name: "Accessories" },
         channelListings: [],
+        media: [],
       };
       vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
 
@@ -617,6 +714,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-book", name: "Book" },
         category: { id: "cat-programming", name: "Programming" },
         channelListings: [],
+        media: [],
       };
       vi.mocked(mockRepository.createProduct).mockResolvedValue(createdProduct);
 
@@ -721,6 +819,7 @@ describe("ProductService Integration", () => {
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
         channelListings: [],
+        media: [],
       };
 
       const updateInput: ProductInput = {

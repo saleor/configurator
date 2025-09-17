@@ -2,6 +2,22 @@ import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
 
+function slugify(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  return trimmed
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+}
+
 const createProductMutation = graphql(`
   mutation CreateProduct($input: ProductCreateInput!) {
     productCreate(input: $input) {
@@ -26,6 +42,12 @@ const createProductMutation = graphql(`
           }
           isPublished
           visibleInListings
+        }
+        media {
+          id
+          alt
+          type
+          url
         }
       }
       errors {
@@ -62,6 +84,12 @@ const updateProductMutation = graphql(`
           }
           isPublished
           visibleInListings
+        }
+        media {
+          id
+          alt
+          type
+          url
         }
       }
       errors {
@@ -118,6 +146,7 @@ const getProductByNameQuery = graphql(`
         node {
           id
           name
+          slug
           productType {
             id
             name
@@ -125,6 +154,12 @@ const getProductByNameQuery = graphql(`
           category {
             id
             name
+          }
+          media {
+            id
+            alt
+            type
+            url
           }
         }
       }
@@ -147,6 +182,12 @@ const getProductBySlugQuery = graphql(`
             id
             name
           }
+          media {
+            id
+            alt
+            type
+            url
+          }
         }
       }
     }
@@ -156,6 +197,19 @@ const getProductBySlugQuery = graphql(`
 const getProductTypeByNameQuery = graphql(`
   query GetProductTypeByName($name: String!) {
     productTypes(filter: { search: $name }, first: 100) {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+`);
+
+const getProductTypeBySlugQuery = graphql(`
+  query GetProductTypeBySlug($slug: String!) {
+    productTypes(filter: { slugs: [$slug] }, first: 100) {
       edges {
         node {
           id
@@ -194,6 +248,68 @@ const getCategoryBySlugQuery = graphql(`
             slug
           }
         }
+      }
+    }
+  }
+`);
+
+const getProductMediaQuery = graphql(`
+  query GetProductMedia($id: ID!) {
+    product(id: $id) {
+      id
+      media {
+        id
+        alt
+        type
+        url
+      }
+    }
+  }
+`);
+
+const createProductMediaMutation = graphql(`
+  mutation CreateProductMedia($input: ProductMediaCreateInput!) {
+    productMediaCreate(input: $input) {
+      media {
+        id
+        alt
+        type
+        url
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+const updateProductMediaMutation = graphql(`
+  mutation UpdateProductMedia($id: ID!, $input: ProductMediaUpdateInput!) {
+    productMediaUpdate(id: $id, input: $input) {
+      media {
+        id
+        alt
+        type
+        url
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
+const deleteProductMediaMutation = graphql(`
+  mutation DeleteProductMedia($id: ID!) {
+    productMediaDelete(id: $id) {
+      media {
+        id
+      }
+      errors {
+        field
+        message
       }
     }
   }
@@ -374,6 +490,24 @@ export type ProductVariant = NonNullable<
   >["productVariant"]
 >;
 
+export type ProductMedia = NonNullable<
+  NonNullable<
+    ResultOf<typeof createProductMediaMutation>["productMediaCreate"]
+  >["media"]
+>;
+
+export type ProductMediaCreateInput = VariablesOf<
+  typeof createProductMediaMutation
+>["input"];
+
+export type ProductMediaUpdateInput = VariablesOf<
+  typeof updateProductMediaMutation
+>["input"];
+
+export type ProductMediaDeleteInput = VariablesOf<
+  typeof deleteProductMediaMutation
+>["id"];
+
 export type ProductVariantWithChannelListings = NonNullable<
   NonNullable<
     ResultOf<
@@ -422,6 +556,10 @@ export interface ProductOperations {
     id: string,
     input: ProductVariantChannelListingAddInput[]
   ): Promise<ProductVariantWithChannelListings | null>;
+  listProductMedia(productId: string): Promise<ProductMedia[]>;
+  createProductMedia(input: ProductMediaCreateInput): Promise<ProductMedia>;
+  updateProductMedia(id: string, input: ProductMediaUpdateInput): Promise<ProductMedia>;
+  deleteProductMedia(id: string): Promise<void>;
 }
 
 export type Attribute = NonNullable<
@@ -623,10 +761,30 @@ export class ProductRepository implements ProductOperations {
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
     const result = await this.client.query(getProductTypeByNameQuery, { name });
 
-    // Find exact match among search results to prevent duplicate creation
-    const exactMatch = result.data?.productTypes?.edges?.find((edge) => edge.node?.name === name);
+    const edges = result.data?.productTypes?.edges ?? [];
+    // Prefer exact name match to avoid duplicates
+    const exactMatch = edges.find((edge) => edge.node?.name === name);
+    if (exactMatch?.node) {
+      return exactMatch.node;
+    }
 
-    return exactMatch?.node || null;
+    const normalizedName = name.trim().toLowerCase();
+    const caseInsensitiveMatch = edges.find(
+      (edge) => edge.node?.name?.trim().toLowerCase() === normalizedName
+    );
+    if (caseInsensitiveMatch?.node) {
+      return caseInsensitiveMatch.node;
+    }
+
+    const slug = slugify(name);
+    if (!slug) {
+      return null;
+    }
+
+    const slugResult = await this.client.query(getProductTypeBySlugQuery, { slug });
+    const slugMatch = slugResult.data?.productTypes?.edges?.find((edge) => edge.node)?.node;
+
+    return slugMatch ?? null;
   }
 
   async getCategoryByName(name: string): Promise<{ id: string; name: string } | null> {
@@ -835,5 +993,112 @@ export class ProductRepository implements ProductOperations {
     });
 
     return variant;
+  }
+
+  async listProductMedia(productId: string): Promise<ProductMedia[]> {
+    logger.debug("Fetching product media", { productId });
+
+    const result = await this.client.query(getProductMediaQuery, { id: productId });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const mediaNodes = result.data?.product?.media ?? [];
+    const media = mediaNodes.filter((item): item is ProductMedia => Boolean(item));
+
+    logger.debug("Fetched product media", {
+      productId,
+      mediaCount: media.length,
+    });
+
+    return media;
+  }
+
+  async createProductMedia(input: ProductMediaCreateInput): Promise<ProductMedia> {
+    logger.debug("Creating product media", {
+      productId: input.product,
+      mediaUrl: input.mediaUrl,
+    });
+
+    const result = await this.client.mutation(createProductMediaMutation, {
+      input,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const payload = result.data?.productMediaCreate;
+    const businessErrors = payload?.errors;
+
+    if (businessErrors && businessErrors.length > 0) {
+      const errorMessage = businessErrors.map((e) => e.message).join(", ");
+      throw new Error(`Failed to create product media: ${errorMessage}`);
+    }
+
+    if (!payload?.media) {
+      throw new Error("Failed to create product media: Unknown error");
+    }
+
+    logger.debug("Created product media", {
+      mediaId: payload.media.id,
+      productId: input.product,
+    });
+
+    return payload.media as ProductMedia;
+  }
+
+  async updateProductMedia(id: string, input: ProductMediaUpdateInput): Promise<ProductMedia> {
+    logger.debug("Updating product media", { mediaId: id, input });
+
+    const result = await this.client.mutation(updateProductMediaMutation, {
+      id,
+      input,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const payload = result.data?.productMediaUpdate;
+    const businessErrors = payload?.errors;
+
+    if (businessErrors && businessErrors.length > 0) {
+      const errorMessage = businessErrors.map((e) => e.message).join(", ");
+      throw new Error(`Failed to update product media: ${errorMessage}`);
+    }
+
+    if (!payload?.media) {
+      throw new Error("Failed to update product media: Unknown error");
+    }
+
+    logger.debug("Updated product media", {
+      mediaId: payload.media.id,
+    });
+
+    return payload.media as ProductMedia;
+  }
+
+  async deleteProductMedia(id: string): Promise<void> {
+    logger.debug("Deleting product media", { mediaId: id });
+
+    const result = await this.client.mutation(deleteProductMediaMutation, {
+      id,
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const payload = result.data?.productMediaDelete;
+    const businessErrors = payload?.errors;
+
+    if (businessErrors && businessErrors.length > 0) {
+      const errorMessage = businessErrors.map((e) => e.message).join(", ");
+      throw new Error(`Failed to delete product media: ${errorMessage}`);
+    }
+
+    logger.debug("Deleted product media", { mediaId: id });
   }
 }

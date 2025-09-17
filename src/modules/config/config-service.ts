@@ -15,6 +15,7 @@ import type {
   ModelInput,
   ModelTypeInput,
   ProductInput,
+  ProductMediaInput,
   ProductTypeInput,
   SaleorConfig,
   ShippingZoneInput,
@@ -752,93 +753,119 @@ export class ConfigurationService {
     type ProductEdge = NonNullable<RawSaleorConfig["products"]>["edges"][number];
     return edges.map((edge: ProductEdge) => {
       const node = edge.node;
-      return ({
-      name: node.name,
-      slug: node.slug,
-      description: node.description || undefined,
-      productType: node.productType.name,
-      category: node.category?.slug || "",
-      taxClass: node.taxClass?.name || undefined,
-      attributes: this.mapProductAttributes(node.attributes || []),
-      variants: node.variants?.map((variant: {
-        name?: string | null;
-        sku?: string | null;
-        id?: string | null;
-        weight?: { value?: number | null } | null;
-        attributes?: readonly unknown[];
-        channelListings?: Array<{
-          channel: { slug: string };
-          price?: { amount?: number | null } | null;
-          costPrice?: { amount?: number | null } | null;
-        }> | null;
-      }) => ({
-        name: variant.name || node.name,
-        // Ensure SKU is always a string for schema validity during round-trips
-        // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
-        sku: (variant.sku ?? variant.id ?? ""),
-        weight: variant.weight?.value || undefined,
-        attributes: this.mapProductAttributes(variant.attributes || []),
-        channelListings:
-          variant.channelListings
-            ?.map((listing: {
+      const product: ProductInput = {
+        name: node.name,
+        slug: node.slug,
+        description: node.description || undefined,
+        productType: node.productType.name,
+        category: node.category?.slug || "",
+        taxClass: node.taxClass?.name || undefined,
+        attributes: this.mapProductAttributes(node.attributes || []),
+        variants:
+          node.variants?.map((variant: {
+            name?: string | null;
+            sku?: string | null;
+            id?: string | null;
+            weight?: { value?: number | null } | null;
+            attributes?: readonly unknown[];
+            channelListings?: Array<{
               channel: { slug: string };
               price?: { amount?: number | null } | null;
               costPrice?: { amount?: number | null } | null;
-            }) => ({
-              channel: listing.channel.slug,
-              price: listing.price ? Number(listing.price.amount) : undefined,
-              costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
-            }))
-            // Keep only listings with a defined numeric price to satisfy schema
-            .filter((l: { price?: number }) => typeof l.price === "number") || [],
-      })) || [],
-      channelListings: node.channelListings?.map((listing: {
-        channel: { slug: string };
-        isPublished: boolean;
-        publishedAt?: string | null;
-        visibleInListings: boolean;
-      }) => ({
-        channel: listing.channel.slug,
-        isPublished: listing.isPublished,
-        publishedAt: listing.publishedAt || undefined,
-        visibleInListings: listing.visibleInListings,
-      })) || [],
-    });
+            }> | null;
+          }) => ({
+            name: variant.name || node.name,
+            // Ensure SKU is always a string for schema validity during round-trips
+            // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
+            sku: variant.sku ?? variant.id ?? "",
+            weight: variant.weight?.value || undefined,
+            attributes: this.mapProductAttributes(variant.attributes || []),
+            channelListings:
+              variant.channelListings
+                ?.map((listing: {
+                  channel: { slug: string };
+                  price?: { amount?: number | null } | null;
+                  costPrice?: { amount?: number | null } | null;
+                }) => ({
+                  channel: listing.channel.slug,
+                  price: listing.price ? Number(listing.price.amount) : undefined,
+                  costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
+                }))
+                // Keep only listings with a defined numeric price to satisfy schema
+                .filter((l: { price?: number }) => typeof l.price === "number") || [],
+          })) || [],
+        channelListings:
+          node.channelListings?.map((listing: {
+            channel: { slug: string };
+            isPublished: boolean;
+            publishedAt?: string | null;
+            visibleInListings: boolean;
+          }) => ({
+            channel: listing.channel.slug,
+            isPublished: listing.isPublished,
+            publishedAt: listing.publishedAt || undefined,
+            visibleInListings: listing.visibleInListings,
+          })) || [],
+      };
+
+      const media = this.mapProductMedia(node.media || []);
+      if (media.length > 0) {
+        product.media = media;
+      }
+
+      return product;
     });
   }
 
-  private mapProductAttributes(attributes: readonly unknown[]): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    
+  private mapProductMedia(media: Array<{ url?: string | null; alt?: string | null }> = []): ProductMediaInput[] {
+    return media
+      .map((item) => {
+        const externalUrl = item.url?.trim();
+        if (!externalUrl) return null;
+        const alt = item.alt?.trim();
+        const mediaInput: ProductMediaInput = {
+          externalUrl,
+        };
+        if (alt) {
+          mediaInput.alt = alt;
+        }
+        return mediaInput;
+      })
+      .filter((value): value is ProductMediaInput => value !== null);
+  }
+
+  private mapProductAttributes(
+    attributes: readonly unknown[]
+  ): Record<string, string | string[]> {
+    const result: Record<string, string | string[]> = {};
+
     for (const attr of attributes) {
       const typedAttr = attr as {
         attribute: { name: string; inputType: string };
-        values?: Array<{ name?: string; value?: string }>;
+        values?: Array<{ name?: string | null; value?: string | null }>;
       };
       const attributeName = typedAttr.attribute.name;
-      
-      // Handle different attribute input types
-      if (typedAttr.attribute.inputType === "DROPDOWN" || 
-          typedAttr.attribute.inputType === "MULTISELECT" || 
-          typedAttr.attribute.inputType === "SWATCH") {
-        // For choice-based attributes, use the choice names
-        const values = typedAttr.values?.map((v) => v.name).filter(Boolean) || [];
-        if (values.length === 1) {
-          result[attributeName] = values[0];
-        } else if (values.length > 1) {
-          result[attributeName] = values;
-        }
-      } else {
-        // For plain text and other basic attributes, use the raw value
-        const values = typedAttr.values?.map((v) => v.value || v.name).filter(Boolean) || [];
-        if (values.length === 1) {
-          result[attributeName] = values[0];
-        } else if (values.length > 1) {
-          result[attributeName] = values;
-        }
+
+      if (!attributeName) {
+        continue;
+      }
+
+      const rawValues = (typedAttr.values ?? [])
+        .map((value) => {
+          const selectedValue = this.isMultipleChoiceAttribute(typedAttr.attribute.inputType)
+            ? value.name
+            : value.value ?? value.name;
+          return selectedValue?.trim();
+        })
+        .filter((value): value is string => Boolean(value));
+
+      if (rawValues.length === 1) {
+        result[attributeName] = rawValues[0];
+      } else if (rawValues.length > 1) {
+        result[attributeName] = rawValues;
       }
     }
-    
+
     return result;
   }
 }

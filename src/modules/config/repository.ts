@@ -461,6 +461,12 @@ const getConfigQuery = graphql(`
             publishedAt
             visibleInListings
           }
+          media {
+            id
+            alt
+            type
+            url
+          }
         }
       }
     }
@@ -548,24 +554,30 @@ export class ConfigurationRepository implements ConfigurationOperations {
                   attribute { id name slug inputType }
                   values { id name slug value }
                 }
-                channelListings {
-                  id
-                  channel { id slug }
-                  price { amount currency }
-                  costPrice { amount currency }
-                }
-              }
               channelListings {
                 id
                 channel { id slug }
-                isPublished
-                publishedAt
-                visibleInListings
+                price { amount currency }
+                costPrice { amount currency }
               }
+            }
+            channelListings {
+              id
+              channel { id slug }
+              isPublished
+              publishedAt
+              visibleInListings
+            }
+            media {
+              id
+              alt
+              type
+              url
             }
           }
         }
       }
+    }
     `);
 
     // Loop

@@ -18,6 +18,10 @@ const mockRepository: ProductOperations = {
   getChannelBySlug: vi.fn(),
   updateProductChannelListings: vi.fn(),
   updateProductVariantChannelListings: vi.fn(),
+  listProductMedia: vi.fn(),
+  createProductMedia: vi.fn(),
+  updateProductMedia: vi.fn(),
+  deleteProductMedia: vi.fn(),
 };
 
 describe("AttributeResolver", () => {
@@ -224,9 +228,11 @@ describe("AttributeResolver", () => {
       vi.mocked(mockRepository.getProductByName).mockResolvedValue({
         id: "prod-123",
         name: "Related Book",
+        slug: "related-book",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
-      });
+        media: [],
+      } as any);
 
       const attributes = {
         "related-product": "Related Book",
@@ -299,9 +305,11 @@ describe("AttributeResolver", () => {
       vi.mocked(mockRepository.getProductByName).mockResolvedValue({
         id: "prod-series",
         name: "Book Series",
+        slug: "book-series",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
-      });
+        media: [],
+      } as any);
 
       const attributes = {
         author: "Jane Smith",

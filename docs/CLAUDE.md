@@ -28,7 +28,7 @@ This documentation follows a **hub-and-spoke model** for optimal information ret
 - **[CODE_QUALITY.md](CODE_QUALITY.md)** - TypeScript best practices, clean code, functional programming, and Zod patterns
 - **[DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md)** - Development procedures, branching, and code review processes
 - **[TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md)** - End-to-end testing procedures and validation workflows
-- **[MCP_INTEGRATION.md](MCP_INTEGRATION.md)** - Serena and Context7 MCP tool usage patterns
+- **[AGENTS.md](../AGENTS.md)** - Contributor workflow primer and quick navigation tips for agents
 
 ### 🏗️ Architecture & Design
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Service patterns, design decisions, and system architecture  
@@ -105,11 +105,11 @@ pnpm dev diff [credentials]          # 8. Should show no changes
 - Always validate unique identifiers within entity collections
 - Follow dependency order for deployments
 
-### 4. MCP Tool Usage
-- **Prefer Serena** for semantic code analysis over bash tools
-- Use symbolic tools (`find_symbol`, `get_symbols_overview`) instead of reading entire files
-- **Use Context7** for up-to-date library documentation
-- Batch multiple operations when possible for performance
+### 4. Tooling & Exploration
+- Prefer repository-aware commands (`rg`, `pnpm test --watch`, TypeScript references) for fast navigation instead of grepping entire files blindly
+- Use symbol-aware IDE features (TypeScript language server, outline view) before opening large files
+- Keep local notes in `docs/` when discovering new prompts, schemas, or troubleshooting recipes so other agents inherit the knowledge
+- Treat automation scripts in `scripts/` and fixtures in `src/test-helpers` as first stops before rolling custom tooling
 
 ### 5. Testing Requirements
 - Comprehensive test coverage for all service operations
@@ -138,7 +138,7 @@ pnpm dev diff [credentials]          # 8. Should show no changes
 ### For Implementation Examples
 
 **Complex Scenarios**: See [EXAMPLES.md](EXAMPLES.md) for case studies and patterns
-**MCP Integration**: See [MCP_INTEGRATION.md](MCP_INTEGRATION.md) for Serena and Context7 usage
+**Agent Playbook**: See [../AGENTS.md](../AGENTS.md) for the quick-reference guide on project structure, tooling, and collaboration
 **Tool Integration**: See specialized files for domain-specific implementation details
 
 ## Technology Stack

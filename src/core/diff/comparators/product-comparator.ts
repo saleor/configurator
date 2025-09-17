@@ -262,7 +262,47 @@ export class ProductComparator extends BaseEntityComparator<
       }
     }
 
+    const localMedia = this.normalizeMediaArray(local.media);
+    const remoteMedia = this.normalizeMediaArray(remote.media);
+
+    if (!this.equalsMedia(localMedia, remoteMedia)) {
+      changes.push(
+        this.createFieldChange(
+          "media",
+          remoteMedia,
+          localMedia,
+          "Product media entries changed"
+        )
+      );
+    }
+
     return changes;
+  }
+
+  private normalizeMediaArray(
+    media: ProductEntity["media"] | undefined
+  ): ReadonlyArray<{ externalUrl: string; alt?: string }> {
+    if (!media) return [];
+    return media
+      .map((item) => ({
+        externalUrl: item.externalUrl.trim(),
+        alt: item.alt?.trim() || undefined,
+      }))
+      .sort((a, b) => a.externalUrl.localeCompare(b.externalUrl));
+  }
+
+  private equalsMedia(
+    local: ReadonlyArray<{ externalUrl: string; alt?: string }>,
+    remote: ReadonlyArray<{ externalUrl: string; alt?: string }>
+  ): boolean {
+    if (local.length !== remote.length) return false;
+    for (let i = 0; i < local.length; i++) {
+      const l = local[i];
+      const r = remote[i];
+      if (l.externalUrl !== r.externalUrl) return false;
+      if ((l.alt || "") !== (r.alt || "")) return false;
+    }
+    return true;
   }
 
   /**

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { SaleorConfig } from "./schema/schema";
+import type { ProductInput, SaleorConfig } from "./schema/schema";
 
 const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultMailSenderName: "Test Store",
@@ -110,6 +110,52 @@ describe("ConfigurationService", () => {
       const service = new ConfigurationService(repository, storage);
 
       await expect(service.retrieve()).rejects.toThrow("Save failed");
+    });
+  });
+
+  describe("mapProducts", () => {
+    it("should map product media into external URL entries", () => {
+      const service = new ConfigurationService(
+        { fetchConfig: vi.fn() } as unknown as ConfigurationOperations,
+        createMockStorage()
+      );
+
+      const edges = [
+        {
+          node: {
+            id: "prod-1",
+            name: "Poster",
+            slug: "poster",
+            description: null,
+            productType: { id: "pt-1", name: "Posters" },
+            category: { id: "cat-1", name: "Posters", slug: "posters" },
+            taxClass: null,
+            attributes: [],
+            variants: [],
+            channelListings: [],
+            media: [
+              {
+                url: " https://cdn.example.com/poster.jpg ",
+                alt: " Hero Poster ",
+              },
+              {
+                url: null,
+                alt: "No url",
+              },
+            ],
+          },
+        },
+      ] as unknown as NonNullable<RawSaleorConfig["products"]>["edges"];
+
+      const products = (service as any).mapProducts(edges) as ProductInput[];
+
+      expect(products).toHaveLength(1);
+      expect(products[0].media).toEqual([
+        {
+          externalUrl: "https://cdn.example.com/poster.jpg",
+          alt: "Hero Poster",
+        },
+      ]);
     });
   });
 

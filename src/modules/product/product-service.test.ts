@@ -19,6 +19,10 @@ const mockRepository: ProductOperations = {
   getChannelBySlug: vi.fn(),
   updateProductChannelListings: vi.fn(),
   updateProductVariantChannelListings: vi.fn(),
+  listProductMedia: vi.fn(),
+  createProductMedia: vi.fn(),
+  updateProductMedia: vi.fn(),
+  deleteProductMedia: vi.fn(),
 };
 
 describe("ProductService", () => {
@@ -27,6 +31,20 @@ describe("ProductService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ProductService(mockRepository);
+    vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]);
+    vi.mocked(mockRepository.createProductMedia).mockResolvedValue({
+      id: "media-1",
+      url: "https://cdn.example.com/default.jpg",
+      alt: "Default",
+      type: "IMAGE",
+    } as any);
+    vi.mocked(mockRepository.updateProductMedia).mockImplementation(async (id, input) => ({
+      id,
+      url: "https://cdn.example.com/default.jpg",
+      alt: input.alt ?? "",
+      type: "IMAGE",
+    } as any));
+    vi.mocked(mockRepository.deleteProductMedia).mockResolvedValue();
   });
 
   describe("resolveProductTypeReference", () => {
@@ -225,6 +243,7 @@ describe("ProductService", () => {
       slug: "test-product",
       productType: { id: "pt-1", name: "Book" },
       category: { id: "cat-1", name: "Fiction" },
+      media: [],
     };
 
     it("should create new variants when SKUs don't exist", async () => {
@@ -391,6 +410,7 @@ describe("ProductService", () => {
         category: { id: "cat-1", name: "Fiction", slug: "fiction" },
         defaultVariant: { id: "variant-1" },
         variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
+        media: [],
       };
 
       vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct);
@@ -458,8 +478,10 @@ describe("ProductService", () => {
       const mockProduct = {
         id: "prod-1",
         name: "Test Book",
+        slug: "test-book",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
+        media: [],
       };
 
       const mockVariant = {
@@ -506,6 +528,7 @@ describe("ProductService", () => {
         category: { id: "cat-1", name: "Fiction", slug: "fiction" },
         defaultVariant: { id: "variant-1" },
         variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
+        media: [],
       };
 
       // Set up all required mocks
@@ -541,6 +564,141 @@ describe("ProductService", () => {
         attributes: [],
       });
       expect(result.product).toEqual(existingProduct);
+    });
+
+    it("should create external product media when provided", async () => {
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+
+      const mockProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+        media: [],
+      };
+
+      const mockVariant = {
+        id: "var-1",
+        name: "Hardcover",
+        sku: "BOOK-001-HC",
+        channelListings: [],
+      };
+
+      vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant as any);
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValueOnce([]);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          {
+            externalUrl: "https://cdn.example.com/promo.jpg",
+            alt: "Promo shot",
+          },
+        ],
+      });
+
+      expect(mockRepository.listProductMedia).toHaveBeenCalledWith("prod-1");
+      expect(mockRepository.createProductMedia).toHaveBeenCalledWith({
+        product: "prod-1",
+        mediaUrl: "https://cdn.example.com/promo.jpg",
+        alt: "Promo shot",
+      });
+    });
+
+    it("should update alt text when product media already exists", async () => {
+      const existingProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+      };
+
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValueOnce([
+        {
+          id: "media-1",
+          url: "https://cdn.example.com/promo.jpg",
+          alt: "Old alt",
+          type: "IMAGE",
+        } as any,
+      ]);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          {
+            externalUrl: "https://cdn.example.com/promo.jpg",
+            alt: "New alt",
+          },
+        ],
+      });
+
+      expect(mockRepository.createProductMedia).not.toHaveBeenCalled();
+      expect(mockRepository.updateProductMedia).toHaveBeenCalledWith("media-1", {
+        alt: "New alt",
+      });
+    });
+
+    it("should not create duplicate media entries for repeated URLs", async () => {
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+
+      const mockProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+        media: [],
+      };
+
+      vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct as any);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
+        id: "variant-1",
+        name: "Hardcover",
+        sku: "BOOK-001-HC",
+        channelListings: [],
+      } as any);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          { externalUrl: "https://cdn.example.com/promo.jpg" },
+          { externalUrl: "https://cdn.example.com/promo.jpg", alt: "Duplicate alt" },
+        ],
+      });
+
+      expect(mockRepository.createProductMedia).toHaveBeenCalledTimes(1);
     });
 
     it("should throw error when product type doesn't exist", async () => {
@@ -599,8 +757,10 @@ describe("ProductService", () => {
       vi.mocked(mockRepository.createProduct).mockResolvedValue({
         id: "prod-1",
         name: "Book 1",
+        slug: "book-1",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
+        media: [],
       });
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
         id: "var-1",
