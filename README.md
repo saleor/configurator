@@ -24,45 +24,53 @@ npm install -g @saleor/configurator
 saleor-configurator start
 ```
 
-**Quickstart:**
+**Quickstart (TypeScript DSL):**
 
 1. Create an app token with all permissions in your Saleor dashboard.
-
-> [!TIP]
-> Use the `start` command to explore features interactively and see what's possible.
-
-2. Introspect your current configuration from your remote Saleor instance:
+2. Scaffold a typed configuration workspace:
 
 ```bash
-pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator init --ts --dir config
 ```
 
-3. Modify the configuration to define your commerce setup. You can configure:
+> [!TIP]
+> Prefer TypeScript configs for rich validation, IDE support, and reuse. YAML is still available for legacy projects.
+
+3. Introspect your current configuration into TypeScript (split into domain modules by default):
+
+```bash
+pnpm dlx @saleor/configurator introspect --url https://your-store.saleor.cloud/graphql/ --token your-app-token --config config/stack.ts
+```
+
+4. Edit `config/stack.ts` and the generated modules under `config/sections/` using loops, conditionals, and shared helpers. You can configure:
    - **Store settings** (shop configuration, channels, tax classes)
    - **Product catalog** (product types, categories, collections, products)
-   - **Fulfillment** (warehouses, shipping zones and methods)
+   - **Fulfillment** (warehouses, shipping zones, methods)
    - **Content management** (page types, models, menus)
 
 > [!NOTE]
 > **Key Resources for Configuration:**
 >
-> 🔧 **[example.yml](example.yml)** - Comprehensive working example with all entity types
+> 🔧 **[docs/typescript-quickstart.md](docs/typescript-quickstart.md)** - Opinionated TS workflow with examples
+>
+> 🔧 **[example.yml](example.yml)** - Comprehensive YAML example (legacy)
 >
 > 📖 **[SCHEMA.md](SCHEMA.md)** - Complete field documentation and validation rules
 >
 > 💡 **Best Practices:**
-> - Start with introspection to understand your current setup
-> - Make incremental changes and test with `diff` before deploying
+> - Start with `introspect --layout sections` to understand your current setup
+> - Make incremental changes and validate with `build`/`preview` before deploying
 > - Configuration is treated as source of truth - undefined entities will be removed
 > - Always backup your data before major changes
 
-4. Preview changes before applying:
+5. Preview changes before applying:
 
 ```bash
-pnpm dlx @saleor/configurator diff --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator preview --config config/stack.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+pnpm dlx @saleor/configurator build --config config/stack.ts --pretty
 ```
 
-5. Deploy your configuration:
+6. Deploy your configuration:
 
 ```bash
 pnpm dlx @saleor/configurator deploy --url https://your-store.saleor.cloud/graphql/ --token your-app-token
@@ -105,7 +113,8 @@ pnpm dlx @saleor/configurator deploy --help
 
 - `--url` (required): Saleor instance URL
 - `--token` (required): Saleor API token
-- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--config` (optional): Configuration file path (default: `config.ts`)
+- `--layout` (optional): Output layout (`sections` by default)
 - `--ci` (optional): CI mode - skip all confirmations for automated environments
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
@@ -129,9 +138,53 @@ pnpm dlx @saleor/configurator diff --help
 
 - `--url` (required): Saleor instance URL
 - `--token` (required): Saleor API token
-- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--config` (optional): Configuration file path (default: `config.ts`)
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
+
+### `preview`
+
+Runs a diff with TypeScript-first messaging. Use it during development or CI to validate what `deploy` would change.
+
+```bash
+pnpm dlx @saleor/configurator preview --config config/stack.ts --url https://your-store.saleor.cloud/graphql/ --token your-app-token
+```
+
+### `build`
+
+Compiles a TypeScript configuration program into validated JSON. Supports optional output files and watch mode for rapid feedback.
+
+```bash
+# Print JSON to stdout
+pnpm dlx @saleor/configurator build --config config/stack.ts --pretty
+
+# Write to disk and watch for changes
+pnpm dlx @saleor/configurator build --config config/stack.ts --out dist/config.json --watch
+```
+
+**Arguments:**
+
+- `--config` (optional): Configuration file path (default: `config.ts`)
+- `--out` (optional): Path to write JSON output
+- `--pretty` (optional): Pretty-print JSON
+- `--watch` (optional): Rebuild when files change
+- `--quiet` (optional): Suppress stdout output
+
+### `convert`
+
+Converts an existing YAML configuration into the TypeScript DSL. Use `--layout sections` to split output into domain modules.
+
+```bash
+pnpm dlx @saleor/configurator convert --from config.yml --to config/stack.ts --layout sections
+```
+
+### `init`
+
+Bootstraps a TypeScript configuration workspace with sensible defaults, reusable helpers, and a smoke-test.
+
+```bash
+pnpm dlx @saleor/configurator init --dir config --layout sections
+```
 
 ### `introspect`
 
@@ -152,7 +205,7 @@ pnpm dlx @saleor/configurator introspect --help
 
 - `--url` (required): Saleor instance URL
 - `--token` (required): Saleor API token
-- `--config` (optional): Configuration file path (default: `config.yml`)
+- `--config` (optional): Configuration file path (default: `config.ts`)
 - `--quiet` (optional): Suppress output
 - `--help`: Show command help with examples
 

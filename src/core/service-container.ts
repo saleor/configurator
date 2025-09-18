@@ -10,7 +10,8 @@ import { CollectionService } from "../modules/collection/collection-service";
 import { CollectionRepository } from "../modules/collection/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import { createConfigurationManager } from "../modules/config/configuration-manager";
+import type { ConfigurationStorage } from "../modules/config/yaml-manager";
 import { MenuService } from "../modules/menu/menu-service";
 import { MenuRepository } from "../modules/menu/repository";
 import { ModelService } from "../modules/model/model-service";
@@ -38,7 +39,7 @@ export interface ServiceContainer {
   readonly productType: ProductTypeService;
   readonly shop: ShopService;
   readonly configuration: ConfigurationService;
-  readonly configStorage: YamlConfigurationManager;
+  readonly configStorage: ConfigurationStorage;
   readonly category: CategoryService;
   readonly product: ProductService;
   readonly warehouse: WarehouseService;
@@ -73,7 +74,7 @@ export class ServiceComposer {
 
     logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
-    const configStorage = new YamlConfigurationManager(configPath);
+    const configStorage = createConfigurationManager(configPath);
     const configurationService = new ConfigurationService(
       repositories.configuration,
       configStorage

@@ -95,6 +95,20 @@
           }
         }
       }
+    },
+    {
+      "includes": ["config/**/*.ts", "src/dsl/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useConst": "error",
+            "useTemplate": "error"
+          },
+          "suspicious": {
+            "noExplicitAny": "error"
+          }
+        }
+      }
     }
   ]
 }

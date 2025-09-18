@@ -1,6 +1,9 @@
 .env
 node_modules
 config.yml
+.configurator/
+config/sections/
+config.ts
 .biome
 deployment-report-*.json
 /CLAUDE.md

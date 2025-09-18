@@ -1,24 +1,48 @@
 import { readFileSync, unlinkSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
 import * as yaml from "yaml";
 import { ConfigurationService } from "../modules/config/config-service";
 import type { RawSaleorConfig } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
-import { type IntrospectCommandArgs, introspectCommandSchema } from "./introspect";
+import { createConfigurator } from "../core/configurator";
+import { fileExists } from "../lib/utils/file";
+import {
+  IntrospectCommandHandler,
+  type IntrospectCommandArgs,
+  introspectCommandSchema,
+} from "./introspect";
 
 // Mock modules
-vi.mock("../cli/console", () => ({
-  cliConsole: {
-    header: vi.fn(),
-    info: vi.fn(),
-    success: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    processing: vi.fn(),
-    important: vi.fn((text: string) => text),
-    setOptions: vi.fn(),
-  },
-}));
+vi.mock("../cli/console", async () => {
+  const actual = await vi.importActual<typeof import("../cli/console")>("../cli/console");
+  return {
+    ...actual,
+    cliConsole: {
+      header: vi.fn(),
+      info: vi.fn(),
+      success: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      status: vi.fn(),
+      text: vi.fn(),
+      muted: vi.fn(),
+      cancelled: vi.fn(),
+      important: vi.fn((text: string) => text),
+      setOptions: vi.fn(),
+      subtitle: vi.fn(),
+      separator: vi.fn(),
+      path: vi.fn((value: string) => value),
+      code: vi.fn((value: string) => value),
+      progress: {
+        start: vi.fn(),
+        succeed: vi.fn(),
+        fail: vi.fn(),
+        info: vi.fn(),
+      },
+    },
+  };
+});
 
 vi.mock("../core/configurator", () => ({
   createConfigurator: vi.fn(),
@@ -48,6 +72,7 @@ describe("introspect command", () => {
       verbose: false,
       format: "table",
       ci: false,
+      layout: "sections",
     };
 
     it("should validate valid arguments", () => {
@@ -81,6 +106,7 @@ describe("introspect command", () => {
         expect(result.data.verbose).toBe(false);
         expect(result.data.format).toBe("table");
         expect(result.data.ci).toBe(false);
+        expect(result.data.layout).toBe("sections");
       }
     });
 
@@ -163,6 +189,39 @@ describe("introspect command", () => {
         expect(result.data.quiet).toBe(true);
         expect(result.data.ci).toBe(true);
       }
+    });
+  });
+
+  describe("TypeScript configuration path enforcement", () => {
+    it("uses a .ts file when no extension or a non-TS extension is provided", async () => {
+      const handler = new IntrospectCommandHandler();
+      const introspectMock = vi.fn().mockResolvedValue(undefined);
+      (createConfigurator as unknown as Mock).mockReturnValue({
+        introspect: introspectMock,
+      });
+      (fileExists as unknown as Mock).mockReturnValue(false);
+
+      const args: IntrospectCommandArgs = {
+        config: "test-config.yml",
+        url: "https://test.saleor.cloud/graphql/",
+        token: "test-token",
+        quiet: false,
+        dryRun: false,
+        include: undefined,
+        exclude: undefined,
+        backup: true,
+        verbose: false,
+        format: "table",
+        ci: false,
+        layout: "single",
+      };
+
+      await handler.execute(args);
+
+      expect(createConfigurator).toHaveBeenCalledWith(
+        expect.objectContaining({ config: "test-config.ts" })
+      );
+      expect(introspectMock).toHaveBeenCalled();
     });
   });
 

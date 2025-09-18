@@ -4,6 +4,14 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "main": "dist/main.js",
+  "exports": {
+    ".": {
+      "import": "./dist/main.js"
+    },
+    "./dsl": {
+      "import": "./dist/dsl/index.js"
+    }
+  },
   "bin": {
     "@saleor/configurator": "./bin/cli.mjs",
     "configurator": "./bin/cli.mjs"
@@ -33,10 +41,11 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims",
-    "prepublishOnly": "pnpm build",
+    "build": "tsup src/cli/main.ts src/dsl/index.ts --format esm --target node20 --clean --shims",
+    "prepublishOnly": "pnpm generate-dsl-types && pnpm build",
     "generate-json-schema": "tsx scripts/generate-json-schema.ts",
     "generate-schema-docs": "tsx scripts/generate-schema-docs.ts",
+    "generate-dsl-types": "tsx scripts/generate-dsl-types.ts",
     "prepare": "husky",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
@@ -78,6 +87,8 @@
     "chalk": "^5.4.1",
     "commander": "^14.0.0",
     "dotenv": "^16.4.5",
+    "chokidar": "^3.6.0",
+    "esbuild": "^0.24.0",
     "gql.tada": "^1.8.5",
     "ora": "^8.2.0",
     "tiny-invariant": "^1.3.3",

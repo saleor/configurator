@@ -8,6 +8,11 @@
     "allowJs": true,
 
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@saleor/configurator/dsl": ["./src/dsl/index.ts"],
+      "@saleor/configurator/dsl/types": ["./src/dsl/types.ts"]
+    },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
@@ -26,5 +31,15 @@
         "tadaOutputLocation": "./src/lib/graphql/graphql-env.d.ts"
       }
     ]
-  }
+  },
+  "exclude": [
+    "config",
+    "sections",
+    "dist",
+    "node_modules"
+  ],
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts"
+  ]
 }

@@ -3,10 +3,15 @@ import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
 import { confirmAction, promptForMissingArgs, selectOption } from "../cli/command";
 import { cliConsole } from "../cli/console";
-import { DEFAULT_CONFIG_PATH } from "../modules/config/yaml-manager";
+import { ensureTsConfigPath } from "../modules/config/utils";
+
+const DEFAULT_STACK_PATH = "config/stack.ts";
 
 export const startCommandSchema = z.object({
-  config: z.string().default(DEFAULT_CONFIG_PATH).describe("Configuration file path"),
+  config: z
+    .string()
+    .default(DEFAULT_STACK_PATH)
+    .describe("Configuration file path (TypeScript by default)"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
 
@@ -26,7 +31,7 @@ const RETURNING_USER_CHOICES = [
   {
     name: "🚀 Apply your local changes to your store (`deploy`)",
     value: "deploy",
-    description: "Push your config.yml changes to your live store",
+    description: "Push your TypeScript configuration changes to your live store",
   },
 ];
 
@@ -43,9 +48,24 @@ function showWelcomeMessage(): void {
   cliConsole.info("👉 Apply the same settings across multiple environments");
   cliConsole.info("👉 Track changes to your store setup over time");
   cliConsole.info("👉 Collaborate on store configuration with your team\n");
+
+  cliConsole.subtitle("💡 Recommended workflow");
+  cliConsole.info(
+    `   • Scaffold a TypeScript workspace with ${cliConsole.code("configurator init --ts")}`
+  );
+  cliConsole.info(
+    `   • Introspect into ${cliConsole.code("config/stack.ts")} using ${cliConsole.code(
+      "configurator introspect --layout sections"
+    )}`
+  );
+  cliConsole.info(
+    `   • Validate with ${cliConsole.code("configurator build --watch")} and ${cliConsole.code(
+      "configurator preview"
+    )}\n`
+  );
 }
 
-function isFirstTimeUser(configPath: string = DEFAULT_CONFIG_PATH): boolean {
+function isFirstTimeUser(configPath: string = DEFAULT_STACK_PATH): boolean {
   return !existsSync(configPath);
 }
 
@@ -54,9 +74,12 @@ async function runFirstTimeSetup(configPath: string): Promise<void> {
 
   cliConsole.subtitle("🎯 Let's get you started!\n");
   cliConsole.info(
-    "Since you don't have an existing configuration, we'll download your store's current one."
+    "Since you don't have an existing configuration, we'll scaffold one and download your store's current state."
   );
-  cliConsole.info(`configuration to create a local ${cliConsole.path(configPath)} file.\n`);
+  cliConsole.info(
+    `Run ${cliConsole.code("configurator init --ts")} any time to re-generate helpers, then` +
+      ` connect to your Saleor instance to populate ${cliConsole.path(configPath)}.\n`
+  );
 
   const shouldContinue = await confirmAction(
     "Ready to connect to your Saleor store and download your configuration?",
@@ -88,6 +111,7 @@ async function runReturningUserSetup(configPath: string): Promise<void> {
 
 async function executeCommand(commandName: string, configPath: string): Promise<void> {
   const isFirstTime = isFirstTimeUser(configPath);
+  const tsConfigPath = ensureTsConfigPath(configPath);
 
   // Import the commands dynamically to avoid circular dependencies
   const { commands } = await import("./index");
@@ -104,7 +128,7 @@ async function executeCommand(commandName: string, configPath: string): Promise<
 
     // For commands that need URL and token, prompt for them interactively
     if (["introspect", "diff", "deploy"].includes(commandName)) {
-      const interactiveArgs = await promptForMissingArgs({ config: configPath });
+      const interactiveArgs = await promptForMissingArgs({ config: tsConfigPath });
 
       // Parse with the command name and interactive arguments
       await program.parseAsync(
@@ -115,14 +139,14 @@ async function executeCommand(commandName: string, configPath: string): Promise<
           "--token",
           interactiveArgs.token,
           "--config",
-          configPath,
+          tsConfigPath,
         ],
         { from: "user" }
       );
 
       // Add post-success messaging for first-time introspect from start command
       if (commandName === "introspect" && isFirstTime) {
-        await showPostIntrospectGuidance(configPath);
+        await showPostIntrospectGuidance(tsConfigPath);
       }
     } else {
       // Parse with the command name to simulate running it directly
@@ -149,15 +173,22 @@ async function showPostIntrospectGuidance(configPath: string): Promise<void> {
     `   • Use ${cliConsole.code("configurator diff")} to preview what would change first\n`
   );
 
+  cliConsole.subtitle("🧪 Validate locally:");
+  cliConsole.info(`   • ${cliConsole.code("configurator build --watch")} for instant feedback`);
+  cliConsole.info(`   • ${cliConsole.code("configurator preview")} to mirror deploy diffs\n`);
+
   cliConsole.subtitle("🔧 Other useful commands:");
   cliConsole.info(
     `   • ${cliConsole.code("configurator introspect")} - Download fresh config from your store`
+  );
+  cliConsole.info(
+    `   • ${cliConsole.code("configurator convert")} - Turn existing YAML into TypeScript`
   );
   cliConsole.info(`   • ${cliConsole.code("configurator --help")} - See all available options\n`);
 
   cliConsole.subtitle("📖 Learn more:");
   cliConsole.info(
-    "   • Read the full documentation: https://github.com/saleor/configurator/blob/main/README.md\n"
+    "   • Read the TypeScript quickstart: docs/typescript-quickstart.md\n"
   );
 
   cliConsole.muted(

@@ -10,6 +10,7 @@ import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
 import yaml from "yaml";
+import { ensureTsConfigPath } from "../modules/config/utils";
 
 // CLI Command result types
 export const commandResultSchema = z.discriminatedUnion("type", [
@@ -103,6 +104,10 @@ export const introspectCommandSchema = baseCommandArgsSchema.extend({
     .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
   verbose: z.boolean().default(false).describe("Show detailed changes for all items"),
+  layout: z
+    .enum(["single", "sections"])
+    .default("sections")
+    .describe("Layout for generated TypeScript configuration"),
 });
 
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
@@ -124,9 +129,17 @@ export class IntrospectCommandHandler
     this.console.setOptions({ quiet: isQuiet });
   }
 
-  async execute(args: IntrospectCommandArgs): Promise<CommandResult> {
+  async execute(rawArgs: IntrospectCommandArgs): Promise<CommandResult> {
+    const normalizedArgs = {
+      ...rawArgs,
+      config: ensureTsConfigPath(rawArgs.config),
+    } as IntrospectCommandArgs;
     const startTime = Date.now();
-    const isQuiet = args.quiet || args.ci;
+    const isQuiet = normalizedArgs.quiet || normalizedArgs.ci;
+
+    const previousLayout = process.env.SALEOR_CONFIGURATOR_TS_LAYOUT;
+    process.env.SALEOR_CONFIGURATOR_TS_LAYOUT =
+      normalizedArgs.layout === "sections" ? "sections" : "single";
 
     try {
       // Initialize
@@ -134,20 +147,20 @@ export class IntrospectCommandHandler
       this.console.header(INTROSPECT_MESSAGES.HEADER);
 
       // Display configuration info
-      this.displayConfigurationInfo(args, isQuiet);
+      this.displayConfigurationInfo(normalizedArgs, isQuiet);
 
       // Check if config file exists
-      const configExists = fileExists(args.config);
+      const configExists = fileExists(normalizedArgs.config);
 
       if (!configExists) {
         // Handle case where no config exists - just create it without diff analysis
-        return await this.handleNoExistingConfig(args, startTime);
+        return await this.handleNoExistingConfig(normalizedArgs, startTime);
       }
 
       // Create context for existing config flow
-      const configurator = createConfigurator(args);
+      const configurator = createConfigurator(normalizedArgs);
       const context: IntrospectContext = {
-        args,
+        args: normalizedArgs,
         isQuiet,
         configurator,
         startTime,
@@ -171,6 +184,8 @@ export class IntrospectCommandHandler
       return CommandResult.success();
     } catch (error) {
       return this.handleError(error);
+    } finally {
+      process.env.SALEOR_CONFIGURATOR_TS_LAYOUT = previousLayout;
     }
   }
 
@@ -179,6 +194,8 @@ export class IntrospectCommandHandler
     startTime: number
   ): Promise<CommandResult> {
     // Create configurator
+    const previousLayout = process.env.SALEOR_CONFIGURATOR_TS_LAYOUT;
+    process.env.SALEOR_CONFIGURATOR_TS_LAYOUT = args.layout === "sections" ? "sections" : "single";
     const configurator = createConfigurator(args);
 
     try {
@@ -199,6 +216,8 @@ export class IntrospectCommandHandler
       return CommandResult.success();
     } catch (error) {
       return this.handleError(error);
+    } finally {
+      process.env.SALEOR_CONFIGURATOR_TS_LAYOUT = previousLayout;
     }
   }
 
