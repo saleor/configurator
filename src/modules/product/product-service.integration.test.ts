@@ -23,6 +23,7 @@ const mockRepository: ProductOperations = {
   createProductMedia: vi.fn(),
   updateProductMedia: vi.fn(),
   deleteProductMedia: vi.fn(),
+  replaceAllProductMedia: vi.fn(),
 };
 
 describe("ProductService Integration", () => {
@@ -38,13 +39,17 @@ describe("ProductService Integration", () => {
       alt: "Default",
       type: "IMAGE",
     } as any);
-    vi.mocked(mockRepository.updateProductMedia).mockImplementation(async (id, input) => ({
-      id,
-      url: "https://cdn.example.com/default.jpg",
-      alt: input.alt ?? "",
-      type: "IMAGE",
-    } as any));
+    vi.mocked(mockRepository.updateProductMedia).mockImplementation(
+      async (id, input) =>
+        ({
+          id,
+          url: "https://cdn.example.com/default.jpg",
+          alt: input.alt ?? "",
+          type: "IMAGE",
+        }) as any
+    );
     vi.mocked(mockRepository.deleteProductMedia).mockResolvedValue();
+    vi.mocked(mockRepository.replaceAllProductMedia).mockResolvedValue([]);
   });
 
   describe("bootstrapProduct with channel listings", () => {
@@ -427,11 +432,15 @@ describe("ProductService Integration", () => {
       expect(firstCallArg.productType).toBe("pt-1");
       expect(firstCallArg.category).toBe("cat-1");
       const attrs = firstCallArg.attributes as any[];
-      expect(attrs).toEqual(expect.arrayContaining([{ id: "attr-color", dropdown: { id: "red-id" } }]));
+      expect(attrs).toEqual(
+        expect.arrayContaining([{ id: "attr-color", dropdown: { id: "red-id" } }])
+      );
       const sizeAttr = attrs.find((a) => a.id === "attr-size");
       expect(sizeAttr).toBeDefined();
       if (sizeAttr.multiselect) {
-        expect(sizeAttr.multiselect).toEqual(expect.arrayContaining([{ id: "small-id" }, { id: "medium-id" }]));
+        expect(sizeAttr.multiselect).toEqual(
+          expect.arrayContaining([{ id: "small-id" }, { id: "medium-id" }])
+        );
       } else {
         expect(sizeAttr.dropdown).toEqual({ id: "small-id" });
       }
@@ -476,8 +485,14 @@ describe("ProductService Integration", () => {
       };
 
       vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct as any);
-      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({ id: "pt-poster", name: "Poster" });
-      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({ id: "cat-poster", name: "Posters" });
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-poster",
+        name: "Poster",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-poster",
+        name: "Posters",
+      });
       vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct as any);
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
@@ -512,12 +527,13 @@ describe("ProductService Integration", () => {
 
       await service.bootstrapProduct(productWithMedia);
 
-      expect(mockRepository.createProductMedia).toHaveBeenCalledWith({
-        product: "prod-poster",
-        mediaUrl: "https://cdn.example.com/poster-new.jpg",
-        alt: "New",
-      });
-      expect(mockRepository.deleteProductMedia).not.toHaveBeenCalled();
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-poster", [
+        {
+          product: "prod-poster",
+          mediaUrl: "https://cdn.example.com/poster-new.jpg",
+          alt: "New",
+        },
+      ]);
     });
 
     it("should handle reference attributes", async () => {
