@@ -124,8 +124,8 @@ describe("CategoryService - Nested Categories", () => {
     // Mock creation responses for multiple trees
     mockCreateCategory
       .mockResolvedValueOnce({ id: "electronics-id", name: "Electronics", slug: "electronics" })
-      .mockResolvedValueOnce({ id: "clothing-id", name: "Clothing", slug: "clothing" })
       .mockResolvedValueOnce({ id: "phones-id", name: "Phones", slug: "phones" })
+      .mockResolvedValueOnce({ id: "clothing-id", name: "Clothing", slug: "clothing" })
       .mockResolvedValueOnce({ id: "shirts-id", name: "Shirts", slug: "shirts" });
 
     const categories: CategoryInput[] = [
@@ -157,7 +157,8 @@ describe("CategoryService - Nested Categories", () => {
     expect(mockCreateCategory).toHaveBeenCalledTimes(4);
 
     // Two root categories
-    expect(mockCreateCategory).toHaveBeenCalledWith(
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      1,
       {
         name: "Electronics",
         slug: "electronics",
@@ -165,7 +166,8 @@ describe("CategoryService - Nested Categories", () => {
       undefined
     );
 
-    expect(mockCreateCategory).toHaveBeenCalledWith(
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      3,
       {
         name: "Clothing",
         slug: "clothing",
@@ -174,7 +176,8 @@ describe("CategoryService - Nested Categories", () => {
     );
 
     // Two subcategories with correct parents
-    expect(mockCreateCategory).toHaveBeenCalledWith(
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      2,
       {
         name: "Phones",
         slug: "phones",
@@ -182,7 +185,8 @@ describe("CategoryService - Nested Categories", () => {
       "electronics-id"
     );
 
-    expect(mockCreateCategory).toHaveBeenCalledWith(
+    expect(mockCreateCategory).toHaveBeenNthCalledWith(
+      4,
       {
         name: "Shirts",
         slug: "shirts",
