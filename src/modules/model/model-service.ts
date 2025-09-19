@@ -5,8 +5,8 @@ import { object } from "../../lib/utils/object";
 import type { AttributeService } from "../attribute/attribute-service";
 import type { PageTypeService } from "../page-type/page-type-service";
 import { ModelOperationError, ModelTypeError, ModelValidationError } from "./errors";
-import type { ModelOperations, Page, PageCreateInput, PageInput } from "./repository";
 import { ModelAttributeResolver } from "./model-attribute-resolver";
+import type { ModelOperations, Page, PageCreateInput, PageInput } from "./repository";
 
 export interface ModelInputConfig {
   title: string;

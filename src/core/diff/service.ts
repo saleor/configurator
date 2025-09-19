@@ -1,9 +1,12 @@
+import yaml from "yaml";
+import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
 import {
+  AttributesComparator,
   CategoryComparator,
   ChannelComparator,
   CollectionComparator,
@@ -19,9 +22,6 @@ import {
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
-import yaml from "yaml";
-import { cliConsole } from "../../cli/console";
-import { AttributesComparator } from "./comparators";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,
@@ -49,7 +49,7 @@ export interface DiffServiceConfig {
  */
 const DEFAULT_CONFIG: Required<DiffServiceConfig> = {
   enableDebugLogging: false,
-  remoteTimeoutMs: 30000,
+  remoteTimeoutMs: 120000, // Increased to 2 minutes to handle sequential API calls with delays
   maxConcurrentComparisons: 5,
 };
 

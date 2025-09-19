@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { DeploymentContext } from "./types";
 import { attributeChoicesPreflightStage } from "./stages";
+import type { DeploymentContext } from "./types";
 
 describe("attributeChoicesPreflightStage", () => {
   const makeContext = (withProductChange = true): DeploymentContext => {
@@ -18,22 +18,20 @@ describe("attributeChoicesPreflightStage", () => {
     } as any;
 
     const attributeRepo = {
-      getAttributesByNames: vi
-        .fn()
-        .mockResolvedValue([
-          {
-            id: "attr1",
-            name: "Country of Production",
-            inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "France" } }] },
-          },
-          {
-            id: "attr2",
-            name: "Technology",
-            inputType: "MULTISELECT",
-            choices: { edges: [] },
-          },
-        ]),
+      getAttributesByNames: vi.fn().mockResolvedValue([
+        {
+          id: "attr1",
+          name: "Country of Production",
+          inputType: "DROPDOWN",
+          choices: { edges: [{ node: { name: "France" } }] },
+        },
+        {
+          id: "attr2",
+          name: "Technology",
+          inputType: "MULTISELECT",
+          choices: { edges: [] },
+        },
+      ]),
       updateAttribute: vi.fn().mockResolvedValue(undefined),
     };
 
@@ -44,12 +42,25 @@ describe("attributeChoicesPreflightStage", () => {
     } as any;
 
     const summary = withProductChange
-      ? { totalChanges: 1, creates: 1, updates: 0, deletes: 0, results: [{ entityType: "Products", entityName: "p", operation: "CREATE" }] }
+      ? {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [{ entityType: "Products", entityName: "p", operation: "CREATE" }],
+        }
       : { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] };
 
     return {
       configurator: { services } as any,
-      args: { url: "", token: "", config: "config.yml", quiet: true, ci: true, verbose: false } as any,
+      args: {
+        url: "",
+        token: "",
+        config: "config.yml",
+        quiet: true,
+        ci: true,
+        verbose: false,
+      } as any,
       summary: summary as any,
       startTime: new Date(),
     };
@@ -70,4 +81,3 @@ describe("attributeChoicesPreflightStage", () => {
     expect(ctx.configurator.services.product.primeAttributeCache).toHaveBeenCalled();
   });
 });
-

@@ -207,7 +207,7 @@ describe("ProductComparator", () => {
           ...sampleProduct,
           // JSON with the same text
           description:
-            '{"time":123,"blocks":[{"id":"b1","type":"paragraph","data":{"text":"Hello <b>world</b>!"}}]}' ,
+            '{"time":123,"blocks":[{"id":"b1","type":"paragraph","data":{"text":"Hello <b>world</b>!"}}]}',
         },
       ];
       const local = [

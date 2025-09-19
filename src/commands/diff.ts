@@ -2,13 +2,13 @@ import type { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema } from "../cli/command";
 import { Console } from "../cli/console";
+import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
+import { EXIT_CODES } from "../core/deployment/errors";
 import type { DiffSummary } from "../core/diff";
+import { scanForDuplicateIdentifiers } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
-import { printDuplicateIssues } from "../cli/reporters/duplicates";
-import { scanForDuplicateIdentifiers } from "../core/validation/preflight";
-import { EXIT_CODES } from "../core/deployment/errors";
 
 export const diffCommandSchema = baseCommandArgsSchema;
 

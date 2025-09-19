@@ -77,25 +77,62 @@ export async function wrapBatch<T, R>(
   items: T[],
   operation: string,
   getIdentifier: (item: T) => string,
-  processFn: (item: T) => Promise<R>
+  processFn: (item: T) => Promise<R>,
+  options?: {
+    sequential?: boolean;
+    delayMs?: number;
+  }
 ): Promise<{
   successes: Array<{ item: T; result: R }>;
   failures: Array<{ item: T; error: Error }>;
 }> {
-  const results = await Promise.allSettled(
-    items.map(async (item) => {
-      try {
-        const result = await processFn(item);
-        return { item, success: true as const, result };
-      } catch (error) {
-        return {
-          item,
-          success: false as const,
-          error: error instanceof Error ? error : new Error(String(error)),
-        };
+  const { sequential = false, delayMs = 0 } = options || {};
+
+  let results: PromiseSettledResult<
+    { item: T; success: true; result: R } | { item: T; success: false; error: Error }
+  >[];
+
+  if (sequential) {
+    // Process items sequentially with optional delay
+    results = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (i > 0 && delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-    })
-  );
+      const result = await Promise.allSettled([
+        (async () => {
+          try {
+            const result = await processFn(item);
+            return { item, success: true as const, result };
+          } catch (error) {
+            return {
+              item,
+              success: false as const,
+              error: error instanceof Error ? error : new Error(String(error)),
+            };
+          }
+        })(),
+      ]);
+      results.push(result[0]);
+    }
+  } else {
+    // Process items concurrently (original behavior)
+    results = await Promise.allSettled(
+      items.map(async (item) => {
+        try {
+          const result = await processFn(item);
+          return { item, success: true as const, result };
+        } catch (error) {
+          return {
+            item,
+            success: false as const,
+            error: error instanceof Error ? error : new Error(String(error)),
+          };
+        }
+      })
+    );
+  }
 
   const successes: Array<{ item: T; result: R }> = [];
   const failures: Array<{ item: T; error: Error }> = [];

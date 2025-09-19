@@ -96,7 +96,9 @@ export class ProductComparator extends BaseEntityComparator<
         if (json && Array.isArray(json.blocks)) {
           type EditorJsBlock = { data?: { text?: string } } | null | undefined;
           const parts = json.blocks
-            .map((b: EditorJsBlock) => (b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""))
+            .map((b: EditorJsBlock) =>
+              b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""
+            )
             .filter((t: string) => t.length > 0);
           const joined = parts.join(" ");
           return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
@@ -112,7 +114,12 @@ export class ProductComparator extends BaseEntityComparator<
     const remoteDesc = extractText(remote.description);
     if (localDesc !== remoteDesc) {
       changes.push(
-        this.createFieldChange("description", remoteDesc ?? "", localDesc ?? "", "Description text changed")
+        this.createFieldChange(
+          "description",
+          remoteDesc ?? "",
+          localDesc ?? "",
+          "Description text changed"
+        )
       );
     }
 
@@ -267,12 +274,7 @@ export class ProductComparator extends BaseEntityComparator<
 
     if (!this.equalsMedia(localMedia, remoteMedia)) {
       changes.push(
-        this.createFieldChange(
-          "media",
-          remoteMedia,
-          localMedia,
-          "Product media entries changed"
-        )
+        this.createFieldChange("media", remoteMedia, localMedia, "Product media entries changed")
       );
     }
 
@@ -348,9 +350,7 @@ export class ProductComparator extends BaseEntityComparator<
     const toMap = (
       arr: NonNullable<ProductVariantInput["channelListings"]>
     ): Map<string, Record<string, unknown>> =>
-      new Map(
-        arr.map((l) => [l.channel, this.normalizeVariantChannelListing(l)] as const)
-      );
+      new Map(arr.map((l) => [l.channel, this.normalizeVariantChannelListing(l)] as const));
 
     const lMap = toMap(localVCL);
     const rMap = toMap(remoteVCL);

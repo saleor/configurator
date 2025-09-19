@@ -33,4 +33,3 @@ describe("ModelAttributeResolver", () => {
     expect(result).toContainEqual({ id: "attr-date", date: "2025-01-01" } as any);
   });
 });
-

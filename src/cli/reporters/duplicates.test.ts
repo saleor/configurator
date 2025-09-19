@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { printDuplicateIssues } from "./duplicates";
 import type { DuplicateIssue } from "../../core/validation/preflight";
 import { Console } from "../console";
+import { printDuplicateIssues } from "./duplicates";
 
 describe("printDuplicateIssues", () => {
   it("prints a friendly summary with fix hints", () => {

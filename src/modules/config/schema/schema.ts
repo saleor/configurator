@@ -1,9 +1,9 @@
 import { z } from "zod";
 import {
   attributeInputSchema,
+  fullAttributeSchema,
   referencedAttributeSchema,
   simpleAttributeSchema,
-  fullAttributeSchema,
 } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation

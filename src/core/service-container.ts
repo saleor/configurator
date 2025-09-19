@@ -88,7 +88,7 @@ export class ServiceComposer {
       },
       // Use ChannelService cache-aware resolver
       getChannelIdBySlug: async (slug: string) => {
-        return (await channelService.getChannelIdBySlugCached(slug));
+        return await channelService.getChannelIdBySlugCached(slug);
       },
     });
     const pageTypeService = new PageTypeService(repositories.pageType, attributeService);
@@ -113,17 +113,9 @@ export class ServiceComposer {
       tax: new TaxService({
         repository: repositories.tax,
       }),
-      collection: new CollectionService(
-        repositories.collection,
-        productService,
-        channelService
-      ),
+      collection: new CollectionService(repositories.collection, productService, channelService),
       menu: new MenuService(repositories.menu),
-      model: new ModelService(
-        repositories.model,
-        pageTypeService,
-        attributeService
-      ),
+      model: new ModelService(repositories.model, pageTypeService, attributeService),
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container

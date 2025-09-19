@@ -22,6 +22,7 @@ const mockRepository: ProductOperations = {
   createProductMedia: vi.fn(),
   updateProductMedia: vi.fn(),
   deleteProductMedia: vi.fn(),
+  replaceAllProductMedia: vi.fn(),
 };
 
 describe("AttributeResolver", () => {

@@ -1,5 +1,5 @@
-import { EntityValidationError } from "../errors";
 import { logger } from "../../../lib/logger";
+import { EntityValidationError } from "../errors";
 import type { DiffChange, DiffResult, EntityType } from "../types";
 
 /**

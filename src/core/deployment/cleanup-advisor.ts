@@ -1,5 +1,5 @@
-import type { DiffSummary } from "../diff";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
+import type { DiffSummary } from "../diff";
 
 export interface CleanupSuggestion {
   type: "duplicate-variant-sku" | "default-channel-delete";
@@ -35,7 +35,8 @@ export function analyzeDeploymentCleanup(
 
   // 2) default-channel delete noise (system channel)
   const defaultChannelDelete = summary.results.some(
-    (r) => r.entityType === "Channels" && r.operation === "DELETE" && r.entityName === "default-channel"
+    (r) =>
+      r.entityType === "Channels" && r.operation === "DELETE" && r.entityName === "default-channel"
   );
   if (defaultChannelDelete) {
     suggestions.push({

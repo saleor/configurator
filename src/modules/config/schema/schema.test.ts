@@ -606,13 +606,7 @@ describe("ShopConfigurationSchema", () => {
       const result = configSchema.safeParse(invalidConfig);
 
       expect(result.success).toBe(false);
-      expect(result.error?.issues[0]?.path).toEqual([
-        "products",
-        0,
-        "media",
-        0,
-        "externalUrl",
-      ]);
+      expect(result.error?.issues[0]?.path).toEqual(["products", 0, "media", 0, "externalUrl"]);
     });
 
     it("should accept configuration with unknown fields (Zod v4 behavior)", () => {

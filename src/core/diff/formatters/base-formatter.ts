@@ -46,7 +46,9 @@ export abstract class BaseDiffFormatter {
     entries.sort((a, b) => {
       const ia = order.indexOf(a[0]);
       const ib = order.indexOf(b[0]);
-      return (ia === -1 ? Number.MAX_SAFE_INTEGER : ia) - (ib === -1 ? Number.MAX_SAFE_INTEGER : ib);
+      return (
+        (ia === -1 ? Number.MAX_SAFE_INTEGER : ia) - (ib === -1 ? Number.MAX_SAFE_INTEGER : ib)
+      );
     });
 
     return new Map(entries.map(([k, v]) => [k, Object.freeze(v)]));

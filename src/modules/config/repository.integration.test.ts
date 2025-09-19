@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { Client } from "@urql/core";
+import { describe, expect, it } from "vitest";
 import { ConfigurationRepository, type RawSaleorConfig } from "./repository";
 
 function makeClient(
@@ -33,7 +33,20 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
           pages: { edges: [] },
           products: {
             edges: [
-              { node: { id: "p1", name: "P1", slug: "p1", description: null, productType: { id: "t", name: "T" }, category: { id: "c", name: "C", slug: "c" }, taxClass: null, attributes: [], variants: [], channelListings: [] } },
+              {
+                node: {
+                  id: "p1",
+                  name: "P1",
+                  slug: "p1",
+                  description: null,
+                  productType: { id: "t", name: "T" },
+                  category: { id: "c", name: "C", slug: "c" },
+                  taxClass: null,
+                  attributes: [],
+                  variants: [],
+                  channelListings: [],
+                },
+              },
             ],
           },
         };
@@ -45,7 +58,20 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
             products: {
               pageInfo: { endCursor: "CURSOR_1", hasNextPage: true },
               edges: [
-                { node: { id: "p2", name: "P2", slug: "p2", description: null, productType: { id: "t", name: "T" }, category: { id: "c", name: "C", slug: "c" }, taxClass: null, attributes: [], variants: [], channelListings: [] } },
+                {
+                  node: {
+                    id: "p2",
+                    name: "P2",
+                    slug: "p2",
+                    description: null,
+                    productType: { id: "t", name: "T" },
+                    category: { id: "c", name: "C", slug: "c" },
+                    taxClass: null,
+                    attributes: [],
+                    variants: [],
+                    channelListings: [],
+                  },
+                },
               ],
             },
           };
@@ -54,7 +80,20 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
           products: {
             pageInfo: { endCursor: null, hasNextPage: false },
             edges: [
-              { node: { id: "p3", name: "P3", slug: "p3", description: null, productType: { id: "t", name: "T" }, category: { id: "c", name: "C", slug: "c" }, taxClass: null, attributes: [], variants: [], channelListings: [] } },
+              {
+                node: {
+                  id: "p3",
+                  name: "P3",
+                  slug: "p3",
+                  description: null,
+                  productType: { id: "t", name: "T" },
+                  category: { id: "c", name: "C", slug: "c" },
+                  taxClass: null,
+                  attributes: [],
+                  variants: [],
+                  channelListings: [],
+                },
+              },
             ],
           },
         };
@@ -75,8 +114,12 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
   });
 
   it("merges attributes and paginated choices (>100) into the result", async () => {
-    const values100 = Array.from({ length: 100 }, (_, i) => ({ node: { id: `id${i+1}`, name: `v${i+1}`, value: `v${i+1}` } }));
-    const values20 = Array.from({ length: 20 }, (_, i) => ({ node: { id: `id${101+i}`, name: `v${101+i}`, value: `v${101+i}` } }));
+    const values100 = Array.from({ length: 100 }, (_, i) => ({
+      node: { id: `id${i + 1}`, name: `v${i + 1}`, value: `v${i + 1}` },
+    }));
+    const values20 = Array.from({ length: 20 }, (_, i) => ({
+      node: { id: `id${101 + i}`, name: `v${101 + i}`, value: `v${101 + i}` },
+    }));
 
     const client = makeClient((_query, variables) => {
       // Initial GetConfig
@@ -103,7 +146,18 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
           return {
             attributes: {
               pageInfo: { endCursor: "ATTR_CURSOR_1", hasNextPage: true },
-              edges: [ { node: { id: "attr1", name: "Countries", slug: "countries", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null } } ],
+              edges: [
+                {
+                  node: {
+                    id: "attr1",
+                    name: "Countries",
+                    slug: "countries",
+                    type: "PRODUCT_TYPE",
+                    inputType: "DROPDOWN",
+                    entityType: null,
+                  },
+                },
+              ],
             },
           };
         }
@@ -118,10 +172,21 @@ describe("ConfigurationRepository – fetchConfig pagination (client stub)", () 
       if (variables && Object.hasOwn(variables, "id")) {
         // First page of 100
         if (!variables.after) {
-          return { attribute: { choices: { pageInfo: { endCursor: "CHOICES_100", hasNextPage: true }, edges: values100 } } };
+          return {
+            attribute: {
+              choices: {
+                pageInfo: { endCursor: "CHOICES_100", hasNextPage: true },
+                edges: values100,
+              },
+            },
+          };
         }
         // Second page of 20
-        return { attribute: { choices: { pageInfo: { endCursor: null, hasNextPage: false }, edges: values20 } } };
+        return {
+          attribute: {
+            choices: { pageInfo: { endCursor: null, hasNextPage: false }, edges: values20 },
+          },
+        };
       }
       return {};
     });

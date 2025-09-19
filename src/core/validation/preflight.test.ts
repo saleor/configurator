@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { scanForDuplicateIdentifiers, validateNoDuplicateIdentifiers } from "./preflight";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
+import { scanForDuplicateIdentifiers, validateNoDuplicateIdentifiers } from "./preflight";
 
 describe("Duplicate preflight validation", () => {
   it("scans and returns duplicate issues", () => {
@@ -43,4 +43,3 @@ describe("Duplicate preflight validation", () => {
     );
   });
 });
-
