@@ -1,105 +1,69 @@
+import { describe, expect, it } from "vitest";
 import type { Client } from "@urql/core";
-import { describe, expect, it, vi } from "vitest";
 import { ConfigurationRepository } from "./repository";
 
 describe("ConfigurationRepository", () => {
-  describe("fetchConfig", () => {
-    it("should query categories with level and parent fields for hierarchy support", async () => {
-      // Create a mock client that captures the query
-      const mockQuery = vi.fn().mockResolvedValue({
-        data: {
-          shop: { name: "Test Shop" },
-          channels: [],
-          productTypes: { edges: [] },
-          pageTypes: { edges: [] },
-          categories: {
-            edges: [
-              {
-                node: {
-                  id: "1",
-                  name: "Parent",
-                  slug: "parent",
-                  level: 0,
-                  parent: null,
-                },
-              },
-              {
-                node: {
-                  id: "2",
-                  name: "Child",
-                  slug: "child",
-                  level: 1,
-                  parent: { id: "1", slug: "parent" },
-                },
-              },
-            ],
-          },
-          shippingZones: { edges: [] },
-          warehouses: { edges: [] },
-        },
-      });
+  it("should keep product channel listings outside variant scope in pagination query", async () => {
+    const capturedDocuments: any[] = [];
 
-      const mockClient = {
-        query: mockQuery,
-        mutation: vi.fn(),
-      } as unknown as Client;
-
-      const repository = new ConfigurationRepository(mockClient);
-      const result = await repository.fetchConfig();
-
-      // Verify the query was called
-      expect(mockQuery).toHaveBeenCalled();
-
-      // Get the query that was sent
-      const queryCall = mockQuery.mock.calls[0];
-      expect(queryCall).toBeDefined();
-
-      // The query is passed as the first argument
-      // For gql.tada queries, we need to check the definitions
-      // In a real test environment with proper GraphQL setup, we'd parse this
-      // For now, we'll just verify the mock was called and returned the right structure
-
-      // Verify the result structure
-      expect(result.categories).toBeDefined();
-      expect(result.categories?.edges).toHaveLength(2);
-      expect(result.categories?.edges[0].node.level).toBe(0);
-      expect(result.categories?.edges[1].node.level).toBe(1);
-      expect(result.categories?.edges[1].node.parent?.slug).toBe("parent");
-    });
-
-    it("should handle categories without parent correctly", async () => {
-      const mockClient = {
-        query: vi.fn().mockResolvedValue({
+    const mockClient: Client = {
+      query: async (document) => {
+        capturedDocuments.push(document as DocumentNode);
+        return {
           data: {
-            shop: null,
-            channels: [],
-            productTypes: { edges: [] },
-            pageTypes: { edges: [] },
-            categories: {
-              edges: [
-                {
-                  node: {
-                    id: "1",
-                    name: "Root Category",
-                    slug: "root",
-                    level: 0,
-                    parent: null,
-                  },
-                },
-              ],
+            products: {
+              pageInfo: {
+                endCursor: null,
+                hasNextPage: false,
+              },
+              edges: [],
             },
-            shippingZones: { edges: [] },
-            warehouses: { edges: [] },
           },
-        }),
-        mutation: vi.fn(),
-      } as unknown as Client;
+        } as any;
+      },
+      mutation: async () => {
+        throw new Error("Not implemented");
+      },
+      subscribe: () => {
+        throw new Error("Not implemented");
+      },
+    } as unknown as Client;
 
-      const repository = new ConfigurationRepository(mockClient);
-      const result = await repository.fetchConfig();
+    const repository = new ConfigurationRepository(mockClient);
 
-      expect(result.categories?.edges[0].node.parent).toBeNull();
-      expect(result.categories?.edges[0].node.level).toBe(0);
-    });
+    await (repository as any).fetchAllProducts();
+    expect(capturedDocuments).toHaveLength(1);
+    const queryDocument = capturedDocuments[0];
+
+    const operation = queryDocument.definitions[0];
+    if (operation.kind !== "OperationDefinition" || !operation.selectionSet) {
+      throw new Error("Expected operation definition");
+    }
+
+    const productsField = operation.selectionSet.selections.find(
+      (selection: any) => selection.kind === "Field" && selection.name.value === "products"
+    );
+    expect(productsField).toBeDefined();
+
+    const edgesField = productsField?.selectionSet?.selections.find(
+      (selection: any) => selection.kind === "Field" && selection.name.value === "edges"
+    );
+    expect(edgesField).toBeDefined();
+
+    const edgeSelections = edgesField?.selectionSet?.selections ?? [];
+    expect(edgeSelections).toHaveLength(1);
+    expect(edgeSelections[0].kind).toBe("Field");
+    expect(edgeSelections[0].name.value).toBe("node");
+
+    const nodeSelections = edgeSelections[0].selectionSet?.selections ?? [];
+    const variantField = nodeSelections.find(
+      (selection: any) => selection.kind === "Field" && selection.name.value === "variants"
+    );
+    expect(variantField).toBeDefined();
+
+    const productLevelChannelListings = nodeSelections.find(
+      (selection: any) => selection.kind === "Field" && selection.name.value === "channelListings"
+    );
+    expect(productLevelChannelListings).toBeDefined();
   });
 });

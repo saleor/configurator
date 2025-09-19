@@ -1,10 +1,17 @@
 import { logger } from "../../lib/logger";
+import type {
+  Attribute as AttributeMeta,
+  AttributeUpdateInput,
+} from "../../modules/attribute/repository";
+import type {
+  ChannelInput,
+  ChannelUpdateInput,
+  SaleorConfig,
+  TaxConfigurationInput,
+} from "../../modules/config/schema/schema";
+import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
-import type { SaleorConfig } from "../../modules/config/schema/schema";
-import type { ChannelInput, ChannelUpdateInput, TaxConfigurationInput } from "../../modules/config/schema/schema";
-import type { Attribute as AttributeMeta, AttributeUpdateInput } from "../../modules/attribute/repository";
-import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 
 export const validationStage: DeploymentStage = {
   name: "Validating configuration",
@@ -131,7 +138,10 @@ export const attributesStage: DeploymentStage = {
     if (failures.length > 0) {
       throw new StageAggregateError(
         "Managing unassigned attributes",
-        failures.map((f) => ({ entity: "attribute", error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)) }))
+        failures.map((f) => ({
+          entity: "attribute",
+          error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
+        }))
       );
     }
   },
@@ -161,15 +171,10 @@ export const channelsStage: DeploymentStage = {
           undefined;
         if (!taxCfg) continue;
 
-        const existing = await context.configurator.services.channel.getChannelBySlug(
-          ch.slug
-        );
+        const existing = await context.configurator.services.channel.getChannelBySlug(ch.slug);
         if (!existing?.id) continue;
 
-        await context.configurator.services.tax.updateChannelTaxConfiguration(
-          existing.id,
-          taxCfg
-        );
+        await context.configurator.services.tax.updateChannelTaxConfiguration(existing.id, taxCfg);
       }
     } catch (error) {
       throw new Error(
@@ -502,9 +507,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         const existingChoices = new Set(
           (attr.choices?.edges || []).map((e) => String(e?.node?.name ?? "").toLowerCase())
         );
-        const missing = Array.from(desired).filter(
-          (v) => !existingChoices.has(v.toLowerCase())
-        );
+        const missing = Array.from(desired).filter((v) => !existingChoices.has(v.toLowerCase()));
         if (missing.length > 0) {
           const input: AttributeUpdateInput = {
             name: attr.name,

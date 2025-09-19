@@ -1,16 +1,16 @@
 import type {
-  SaleorConfig,
-  ChannelInput,
-  WarehouseInput,
-  ShippingZoneInput,
-  ProductTypeInput,
-  PageTypeInput,
   CategoryInput,
-  ProductInput,
+  ChannelInput,
   CollectionInput,
   MenuInput,
   ModelInput,
+  PageTypeInput,
+  ProductInput,
+  ProductTypeInput,
+  SaleorConfig,
+  ShippingZoneInput,
   TaxClassInput,
+  WarehouseInput,
 } from "../../modules/config/schema/schema";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
@@ -63,12 +63,7 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   };
 
   checkDuplicates<ChannelInput>("channels", config.channels, (c) => c.slug, "channel slug");
-  checkDuplicates<WarehouseInput>(
-    "warehouses",
-    config.warehouses,
-    (w) => w.slug,
-    "warehouse slug"
-  );
+  checkDuplicates<WarehouseInput>("warehouses", config.warehouses, (w) => w.slug, "warehouse slug");
   checkDuplicates<ShippingZoneInput>(
     "shippingZones",
     config.shippingZones,

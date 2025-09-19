@@ -9,7 +9,9 @@ import type { AttributeOperations } from "../attribute/repository";
 export class ModelAttributeResolver {
   constructor(private readonly attributeRepo: AttributeOperations) {}
 
-  async resolveAttributes(attributes: Record<string, unknown> = {}): Promise<AttributeValueInput[]> {
+  async resolveAttributes(
+    attributes: Record<string, unknown> = {}
+  ): Promise<AttributeValueInput[]> {
     const names = Object.keys(attributes);
     if (names.length === 0) return [];
 
@@ -36,12 +38,15 @@ export class ModelAttributeResolver {
       id: string;
       inputType?: string | null;
       // choices: { edges?: { node: { name?: string | null; id?: string | null } }[] } | null;
-      choices?: { edges?: Array<{ node: { id?: string | null; name?: string | null } | null } | null> } | null;
+      choices?: {
+        edges?: Array<{ node: { id?: string | null; name?: string | null } | null } | null>;
+      } | null;
     },
     raw: unknown
   ): AttributeValueInput | null {
     const inputType = (attribute.inputType || "").toUpperCase();
-    const ensureArray = (v: unknown) => (Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]);
+    const ensureArray = (v: unknown) =>
+      Array.isArray(v) ? v : v === undefined || v === null ? [] : [v];
 
     if (inputType === "PLAIN_TEXT") {
       const vals = ensureArray(raw).map((x) => String(x));
@@ -57,9 +62,12 @@ export class ModelAttributeResolver {
     if (inputType === "BOOLEAN") {
       const vals = ensureArray(raw).map((x) => String(x).toLowerCase());
       const token = vals[0] ?? "";
-      const truthy = ["true", "1", "yes", "y"]; const falsy = ["false", "0", "no", "n"];
+      const truthy = ["true", "1", "yes", "y"];
+      const falsy = ["false", "0", "no", "n"];
       let b: boolean | undefined;
-      if (truthy.includes(token)) b = true; else if (falsy.includes(token)) b = false; else b = token.length > 0;
+      if (truthy.includes(token)) b = true;
+      else if (falsy.includes(token)) b = false;
+      else b = token.length > 0;
       return { id: attribute.id, boolean: b } as AttributeValueInput;
     }
 
@@ -78,7 +86,11 @@ export class ModelAttributeResolver {
       let json = vals[0] ?? "";
       const t = json.trim();
       if (!(t.startsWith("{") && t.endsWith("}"))) {
-        json = JSON.stringify({ time: Date.now(), blocks: [{ id: `attr-${Date.now()}`, data: { text: json }, type: "paragraph" }], version: "2.24.3" });
+        json = JSON.stringify({
+          time: Date.now(),
+          blocks: [{ id: `attr-${Date.now()}`, data: { text: json }, type: "paragraph" }],
+          version: "2.24.3",
+        });
       }
       return { id: attribute.id, richText: json } as AttributeValueInput;
     }

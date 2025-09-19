@@ -207,7 +207,7 @@ describe("ProductComparator", () => {
           ...sampleProduct,
           // JSON with the same text
           description:
-            '{"time":123,"blocks":[{"id":"b1","type":"paragraph","data":{"text":"Hello <b>world</b>!"}}]}' ,
+            '{"time":123,"blocks":[{"id":"b1","type":"paragraph","data":{"text":"Hello <b>world</b>!"}}]}',
         },
       ];
       const local = [
@@ -222,6 +222,45 @@ describe("ProductComparator", () => {
 
       // Assert
       expect(results).toHaveLength(0);
+    });
+
+    it("should detect product media differences", () => {
+      const remote = [
+        {
+          ...sampleProduct,
+          media: [
+            {
+              externalUrl: "https://cdn.example.com/product.jpg",
+              alt: "Hero",
+            },
+          ],
+        },
+      ];
+      const local = [
+        {
+          ...sampleProduct,
+          media: [
+            {
+              externalUrl: "https://cdn.example.com/product.jpg",
+              alt: "Updated alt",
+            },
+            {
+              externalUrl: "https://cdn.example.com/detail.jpg",
+            },
+          ],
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].operation).toBe("UPDATE");
+      const mediaChange = results[0].changes?.find((change) => change.field === "media");
+      expect(mediaChange).toBeDefined();
+      expect(mediaChange?.desiredValue).toEqual([
+        { externalUrl: "https://cdn.example.com/detail.jpg", alt: undefined },
+        { externalUrl: "https://cdn.example.com/product.jpg", alt: "Updated alt" },
+      ]);
     });
   });
 });

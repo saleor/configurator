@@ -1,6 +1,8 @@
-# MCP Tools Cheat Sheet
+# MCP Tools Cheat Sheet *(Temporarily Archived)*
 
-Quick reference for using Serena and Context7 MCP tools with Saleor Configurator.
+> **Note:** MCP integrations are currently paused. Keep this reference for historical context only and prefer the navigation workflow described in `../AGENTS.md` and `docs/CLAUDE.md`.
+
+Quick reference for using Serena and Context7 MCP tools with Saleor Configurator when the tooling resumes.
 
 ## Serena - Semantic Code Analysis
 

@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import type { Console } from "../console";
 import type { DuplicateIssue } from "../../core/validation/preflight";
+import type { Console } from "../console";
 
 function formatIssue(i: DuplicateIssue): string {
   const section = chalk.white(i.section);
@@ -28,9 +28,7 @@ export function printDuplicateIssues(
   const fixLines = [
     `${c.icon("fix")} ${chalk.white("Fix: Ensure each identifier is unique.")}`,
     `  ${chalk.white("- For products, the unique key is ")}${chalk.bold("slug")}`,
-    `  ${chalk.white("- For channels and categories, the unique key is ")}${chalk.bold(
-      "slug"
-    )}`,
+    `  ${chalk.white("- For channels and categories, the unique key is ")}${chalk.bold("slug")}`,
     `  ${chalk.white("- For types/zones, the unique key is ")}${chalk.bold("name")}`,
   ];
   c.text("");
@@ -44,4 +42,3 @@ export function printDuplicateIssues(
     );
   }
 }
-

@@ -45,6 +45,21 @@ const getCategoryByNameQuery = graphql(`
   }
 `);
 
+const getCategoryBySlugQuery = graphql(`
+  query GetCategoryBySlug($slug: String!) {
+    category(slug: $slug) {
+      id
+      name
+      slug
+      level
+      parent {
+        id
+        slug
+      }
+    }
+  }
+`);
+
 const getAllCategoriesQuery = graphql(`
   query GetAllCategories {
     categories(first: 100) {
@@ -71,6 +86,7 @@ export type Category = NonNullable<
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
+  getCategoryBySlug(slug: string): Promise<Category | null | undefined>;
   getAllCategories(): Promise<Category[]>;
 }
 
@@ -88,14 +104,35 @@ export class CategoryRepository implements CategoryOperations {
       parent: parentId,
     });
 
-    if (!result.data?.categoryCreate?.category) {
-      throw GraphQLError.fromGraphQLErrors(
-        result.error?.graphQLErrors ?? [],
-        `Failed to create category ${input.name}`
-      );
+    // Handle transport/GraphQL layer errors first (permission, auth, bad query)
+    if (result.error) {
+      // Check for rate limiting specifically
+      if (result.error.networkError && "status" in result.error.networkError) {
+        const status = (result.error.networkError as { status: number }).status;
+        if (status === 429) {
+          throw new Error(
+            `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+          );
+        }
+      }
+
+      throw GraphQLError.fromCombinedError(`Failed to create category ${input.name}`, result.error);
     }
 
-    const createdCategory = result.data.categoryCreate.category;
+    const mutationResult = result.data?.categoryCreate;
+    const dataErrors = mutationResult?.errors ?? [];
+
+    if (dataErrors.length > 0) {
+      throw GraphQLError.fromDataErrors(`Failed to create category ${input.name}`, dataErrors);
+    }
+
+    if (!mutationResult?.category) {
+      // No transport error and no data errors, yet no category returned
+      // Provide a clearer fallback message
+      throw new GraphQLError(`Failed to create category ${input.name}: empty response`);
+    }
+
+    const createdCategory = mutationResult.category;
 
     logger.info("Category created", {
       category: createdCategory,
@@ -112,7 +149,32 @@ export class CategoryRepository implements CategoryOperations {
     // Find exact match among search results to prevent duplicate creation
     const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
 
-    return exactMatch?.node;
+    if (exactMatch?.node) return exactMatch.node;
+
+    // Fallback: scan all categories if search fails (schema/version differences)
+    try {
+      const all = await this.getAllCategories();
+      return all.find((c) => c.name === name);
+    } catch {
+      return null;
+    }
+  }
+
+  async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
+    const result = await this.client.query(getCategoryBySlugQuery, {
+      slug,
+    });
+
+    const direct = result.data?.category ?? null;
+    if (direct) return direct;
+
+    // Fallback: scan all categories if direct lookup not supported on API
+    try {
+      const all = await this.getAllCategories();
+      return all.find((c) => c.slug === slug);
+    } catch {
+      return null;
+    }
   }
 
   async getAllCategories(): Promise<Category[]> {

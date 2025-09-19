@@ -27,19 +27,38 @@ export class CategoryService {
       "category",
       slug,
       async () => {
+        const category = await this.repository.getCategoryBySlug(slug);
+        if (category) {
+          return category;
+        }
+
         const categories = await this.repository.getAllCategories();
-        return categories.find((category) => category.slug === slug) || null;
+        return categories.find((c) => c.slug === slug) || null;
       },
       CategoryError
     );
   }
 
-  private async getExistingCategory(name: string) {
+  private async getExistingCategory(categoryInput: CategoryInput) {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch category",
       "category",
-      name,
-      () => this.repository.getCategoryByName(name),
+      categoryInput.slug,
+      async () => {
+        const existingBySlug = await this.repository.getCategoryBySlug(categoryInput.slug);
+        if (existingBySlug) return existingBySlug;
+
+        const byName = await this.repository.getCategoryByName(categoryInput.name);
+        if (byName) return byName;
+
+        // Final fallback: scan all categories (handles API differences)
+        const all = (await this.repository.getAllCategories()) ?? [];
+        return (
+          all.find((c) => c.slug === categoryInput.slug) ||
+          all.find((c) => c.name === categoryInput.name) ||
+          null
+        );
+      },
       CategoryError
     );
   }
@@ -83,7 +102,11 @@ export class CategoryService {
       categories,
       "Bootstrap categories",
       (cat) => cat.name,
-      (category) => this.bootstrapCategory(category)
+      (category) => this.bootstrapCategory(category),
+      {
+        sequential: true,
+        delayMs: 100, // Add 100ms delay between category operations to avoid rate limiting
+      }
     );
 
     if (results.failures.length > 0) {
@@ -108,7 +131,7 @@ export class CategoryService {
     parentId?: string
   ): Promise<Category> {
     try {
-      const existingCategory = await this.getExistingCategory(categoryInput.name);
+      const existingCategory = await this.getExistingCategory(categoryInput);
 
       if (existingCategory) {
         return existingCategory;
@@ -155,7 +178,11 @@ export class CategoryService {
             categoryInput.subcategories,
             "Bootstrap subcategories",
             (sub) => sub.name,
-            (subcategory) => this.bootstrapCategory(subcategory, category.id)
+            (subcategory) => this.bootstrapCategory(subcategory, category.id),
+            {
+              sequential: true,
+              delayMs: 100, // Add delay to avoid rate limiting
+            }
           );
 
           if (subcategoryResults.failures.length > 0) {

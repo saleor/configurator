@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ProductError } from "./errors";
 import { ProductService } from "./product-service";
 import { ProductRepository } from "./repository";
@@ -7,6 +7,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
   let mockClient: any;
   let repository: ProductRepository;
   let service: ProductService;
+  let getCategoryByPathSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     mockClient = {
@@ -16,6 +17,13 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
 
     repository = new ProductRepository(mockClient);
     service = new ProductService(repository);
+    getCategoryByPathSpy = vi
+      .spyOn(repository, "getCategoryByPath")
+      .mockResolvedValue({ id: "cat-1", name: "Fiction" });
+  });
+
+  afterEach(() => {
+    getCategoryByPathSpy.mockRestore();
   });
 
   describe("Repository Error Handling (Raw Errors)", () => {
@@ -85,7 +93,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
             data: {
-              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
+              category: { id: "cat-1", name: "Fiction", slug: "fiction", parent: null },
             },
             error: null,
           });
@@ -155,12 +163,14 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [] } }, // No category found
+            data: { category: null }, // No category found
             error: null,
           });
         }
         return Promise.resolve({ data: {}, error: null });
       });
+
+      getCategoryByPathSpy.mockResolvedValue(null);
 
       const productInput = {
         name: "Test Book",
@@ -188,9 +198,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: {
-              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
-            },
+            data: { category: { id: "cat-1", name: "Fiction", slug: "fiction", parent: null } },
             error: null,
           });
         }
@@ -236,9 +244,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: {
-              categories: { edges: [{ node: { id: "cat-1", name: "Fiction", slug: "fiction" } }] },
-            },
+            data: { category: { id: "cat-1", name: "Fiction", slug: "fiction", parent: null } },
             error: null,
           });
         }
@@ -362,12 +368,14 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [] } },
+            data: { category: null },
             error: null,
           });
         }
         return Promise.resolve({ data: {}, error: null });
       });
+
+      getCategoryByPathSpy.mockResolvedValue(null);
 
       const productInput = {
         name: "Test Book",
@@ -396,12 +404,14 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
         }
         if (queryName === "GetCategoryBySlug") {
           return Promise.resolve({
-            data: { categories: { edges: [] } },
+            data: { category: null },
             error: null,
           });
         }
         return Promise.resolve({ data: {}, error: null });
       });
+
+      getCategoryByPathSpy.mockResolvedValue(null);
 
       const productInput = {
         name: "Test Book",

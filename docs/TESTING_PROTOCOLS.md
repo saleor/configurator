@@ -122,6 +122,18 @@ pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
 time pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
 ```
 
+## GraphQL Contract Safeguards
+
+### Schema Evolution Checklist
+- Run `pnpm fetch-schema` and review the resulting `schema.json` diff whenever remote capabilities change (e.g., external media URL support) before adjusting code.
+- Update generated JSON schema and markdown docs via `pnpm generate-json-schema` and `pnpm generate-schema-docs` so configuration validators stay current.
+- Refresh fixtures under `src/lib/graphql/__mocks__` and integration mocks before executing the test suite.
+
+### Regression Testing Patterns
+- Add focused Vitest suites that assert new GraphQL fields are surfaced end-to-end (mock urql responses, verify CLI output).
+- Execute `pnpm dev diff` against the sandbox store after regeneration to confirm no unintended deletions.
+- Capture failing cases in `docs/TROUBLESHOOTING.md` when new schema fields require special handling so future contributors can bypass rediscovery.
+
 ## Unit Testing Protocols
 
 ### Test Structure and Organization

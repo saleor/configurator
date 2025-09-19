@@ -96,7 +96,9 @@ export class ProductComparator extends BaseEntityComparator<
         if (json && Array.isArray(json.blocks)) {
           type EditorJsBlock = { data?: { text?: string } } | null | undefined;
           const parts = json.blocks
-            .map((b: EditorJsBlock) => (b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""))
+            .map((b: EditorJsBlock) =>
+              b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""
+            )
             .filter((t: string) => t.length > 0);
           const joined = parts.join(" ");
           return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
@@ -112,7 +114,12 @@ export class ProductComparator extends BaseEntityComparator<
     const remoteDesc = extractText(remote.description);
     if (localDesc !== remoteDesc) {
       changes.push(
-        this.createFieldChange("description", remoteDesc ?? "", localDesc ?? "", "Description text changed")
+        this.createFieldChange(
+          "description",
+          remoteDesc ?? "",
+          localDesc ?? "",
+          "Description text changed"
+        )
       );
     }
 
@@ -262,7 +269,42 @@ export class ProductComparator extends BaseEntityComparator<
       }
     }
 
+    const localMedia = this.normalizeMediaArray(local.media);
+    const remoteMedia = this.normalizeMediaArray(remote.media);
+
+    if (!this.equalsMedia(localMedia, remoteMedia)) {
+      changes.push(
+        this.createFieldChange("media", remoteMedia, localMedia, "Product media entries changed")
+      );
+    }
+
     return changes;
+  }
+
+  private normalizeMediaArray(
+    media: ProductEntity["media"] | undefined
+  ): ReadonlyArray<{ externalUrl: string; alt?: string }> {
+    if (!media) return [];
+    return media
+      .map((item) => ({
+        externalUrl: item.externalUrl.trim(),
+        alt: item.alt?.trim() || undefined,
+      }))
+      .sort((a, b) => a.externalUrl.localeCompare(b.externalUrl));
+  }
+
+  private equalsMedia(
+    local: ReadonlyArray<{ externalUrl: string; alt?: string }>,
+    remote: ReadonlyArray<{ externalUrl: string; alt?: string }>
+  ): boolean {
+    if (local.length !== remote.length) return false;
+    for (let i = 0; i < local.length; i++) {
+      const l = local[i];
+      const r = remote[i];
+      if (l.externalUrl !== r.externalUrl) return false;
+      if ((l.alt || "") !== (r.alt || "")) return false;
+    }
+    return true;
   }
 
   /**
@@ -308,9 +350,7 @@ export class ProductComparator extends BaseEntityComparator<
     const toMap = (
       arr: NonNullable<ProductVariantInput["channelListings"]>
     ): Map<string, Record<string, unknown>> =>
-      new Map(
-        arr.map((l) => [l.channel, this.normalizeVariantChannelListing(l)] as const)
-      );
+      new Map(arr.map((l) => [l.channel, this.normalizeVariantChannelListing(l)] as const));
 
     const lMap = toMap(localVCL);
     const rMap = toMap(remoteVCL);

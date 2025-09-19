@@ -915,5 +915,5 @@ export class CategoryTestBuilder {
 - [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Development processes using these patterns
 - [TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md) - Testing strategies for this architecture
 - [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Deployment pipeline implementation details
-- [MCP_INTEGRATION.md](MCP_INTEGRATION.md) - MCP tool integration with this architecture
+- [../AGENTS.md](../AGENTS.md) - Agent-oriented contributor guidance for navigating the layered architecture
 - [CLAUDE.md](CLAUDE.md) - Main navigation hub

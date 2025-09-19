@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import { ConfigurationService } from "./config-service";
-import type { ConfigurationStorage } from "./yaml-manager";
 import yaml from "yaml";
+import { ConfigurationService } from "./config-service";
+import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
+import type { ConfigurationStorage } from "./yaml-manager";
 
 class MemoryStorage implements ConfigurationStorage {
   saved?: any;
-  async save(config: any): Promise<void> { this.saved = config; }
-  async load(): Promise<any> { return this.saved; }
+  async save(config: any): Promise<void> {
+    this.saved = config;
+  }
+  async load(): Promise<any> {
+    return this.saved;
+  }
 }
 
 function makeService(raw: RawSaleorConfig) {
@@ -18,7 +22,7 @@ function makeService(raw: RawSaleorConfig) {
 
 describe("ConfigurationService – attributes introspection", () => {
   it("includes all choices for attributes when >10 values exist", async () => {
-    const values = Array.from({ length: 12 }, (_, i) => ({ node: { name: `v${i+1}` } }));
+    const values = Array.from({ length: 12 }, (_, i) => ({ node: { name: `v${i + 1}` } }));
     const raw = {
       shop: {},
       channels: [],
@@ -32,7 +36,21 @@ describe("ConfigurationService – attributes introspection", () => {
       menus: { edges: [] },
       pages: { edges: [] },
       products: { edges: [] },
-      attributes: { edges: [ { node: { id: "a1", name: "Countries", slug: "countries", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: values } } } ] },
+      attributes: {
+        edges: [
+          {
+            node: {
+              id: "a1",
+              name: "Countries",
+              slug: "countries",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: { edges: values },
+            },
+          },
+        ],
+      },
     } as unknown as RawSaleorConfig;
 
     const svc = makeService(raw);
@@ -55,20 +73,50 @@ describe("ConfigurationService – attributes introspection", () => {
       menus: { edges: [] },
       pages: { edges: [] },
       products: { edges: [] },
-      attributes: { edges: [ { node: { id: "a1", name: "COD < 15 Years", slug: "cod-less-15-years", type: "PRODUCT_TYPE", inputType: "BOOLEAN", entityType: null, choices: { edges: [] } } } ] },
+      attributes: {
+        edges: [
+          {
+            node: {
+              id: "a1",
+              name: "COD < 15 Years",
+              slug: "cod-less-15-years",
+              type: "PRODUCT_TYPE",
+              inputType: "BOOLEAN",
+              entityType: null,
+              choices: { edges: [] },
+            },
+          },
+        ],
+      },
     } as unknown as RawSaleorConfig;
 
     const svc = makeService(raw);
     const cfg = await svc.retrieveWithoutSaving();
     expect(cfg.attributes?.length).toBe(1);
-    expect(cfg.attributes?.[0]).toMatchObject({ name: "COD < 15 Years", inputType: "BOOLEAN", type: "PRODUCT_TYPE" });
+    expect(cfg.attributes?.[0]).toMatchObject({
+      name: "COD < 15 Years",
+      inputType: "BOOLEAN",
+      type: "PRODUCT_TYPE",
+    });
   });
 
   it("orders attributes before productTypes in YAML output", async () => {
     const raw = {
       shop: {},
       channels: [],
-      productTypes: { edges: [ { node: { id: "pt1", name: "Type", isShippingRequired: true, productAttributes: [], assignedVariantAttributes: [] } } ] },
+      productTypes: {
+        edges: [
+          {
+            node: {
+              id: "pt1",
+              name: "Type",
+              isShippingRequired: true,
+              productAttributes: [],
+              assignedVariantAttributes: [],
+            },
+          },
+        ],
+      },
       pageTypes: { edges: [] },
       categories: { edges: [] },
       warehouses: { edges: [] },
@@ -78,7 +126,21 @@ describe("ConfigurationService – attributes introspection", () => {
       menus: { edges: [] },
       pages: { edges: [] },
       products: { edges: [] },
-      attributes: { edges: [ { node: { id: "a1", name: "External ID", slug: "external-id", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: { edges: [] } } } ] },
+      attributes: {
+        edges: [
+          {
+            node: {
+              id: "a1",
+              name: "External ID",
+              slug: "external-id",
+              type: "PRODUCT_TYPE",
+              inputType: "PLAIN_TEXT",
+              entityType: null,
+              choices: { edges: [] },
+            },
+          },
+        ],
+      },
     } as unknown as RawSaleorConfig;
 
     const svc = makeService(raw);

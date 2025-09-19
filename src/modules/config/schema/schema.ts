@@ -1,9 +1,9 @@
 import { z } from "zod";
 import {
   attributeInputSchema,
+  fullAttributeSchema,
   referencedAttributeSchema,
   simpleAttributeSchema,
-  fullAttributeSchema,
 } from "./attribute.schema";
 
 // ProductType Update Schema - full state representation
@@ -619,6 +619,15 @@ const productVariantSchema = z.object({
     .describe("Channel-specific pricing for this variant"),
 });
 
+const productMediaSchema = z.object({
+  externalUrl: z
+    .string()
+    .url()
+    .describe("Public URL to an externally hosted product media asset (image or video)")
+    .transform((value) => value.trim()),
+  alt: z.string().optional().describe("Accessible alternative text for the media"),
+});
+
 const productSchema = z.object({
   name: z.string().describe("Product name as displayed to customers"),
   slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
@@ -637,6 +646,12 @@ const productSchema = z.object({
     .array(productChannelListingSchema)
     .optional()
     .describe("Channel-specific settings like pricing and availability"),
+  media: z
+    .array(productMediaSchema)
+    .optional()
+    .describe(
+      "External media assets associated with the product. Provide an externalUrl for images or videos hosted outside of Saleor"
+    ),
   variants: z
     .array(productVariantSchema)
     .describe("Product variants with different SKUs, attributes, or pricing"),
@@ -938,3 +953,4 @@ export const configSchema = z
 export type SaleorConfig = z.infer<typeof configSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type ProductVariantInput = z.infer<typeof productVariantSchema>;
+export type ProductMediaInput = z.infer<typeof productMediaSchema>;

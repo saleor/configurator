@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductInput } from "../config/schema/schema";
 import { ProductService } from "./product-service";
 import type { ProductOperations } from "./repository";
+import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
 const mockRepository: ProductOperations = {
   createProduct: vi.fn(),
@@ -19,6 +20,11 @@ const mockRepository: ProductOperations = {
   getChannelBySlug: vi.fn(),
   updateProductChannelListings: vi.fn(),
   updateProductVariantChannelListings: vi.fn(),
+  listProductMedia: vi.fn(),
+  createProductMedia: vi.fn(),
+  updateProductMedia: vi.fn(),
+  deleteProductMedia: vi.fn(),
+  replaceAllProductMedia: vi.fn(),
 };
 
 describe("ProductService", () => {
@@ -27,6 +33,23 @@ describe("ProductService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ProductService(mockRepository);
+    vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]);
+    vi.mocked(mockRepository.createProductMedia).mockResolvedValue({
+      id: "media-1",
+      url: "https://cdn.example.com/default.jpg",
+      alt: "Default",
+      type: "IMAGE",
+    } as any);
+    vi.mocked(mockRepository.updateProductMedia).mockImplementation(
+      async (id, input) =>
+        ({
+          id,
+          url: "https://cdn.example.com/default.jpg",
+          alt: input.alt ?? "",
+          type: "IMAGE",
+        }) as any
+    );
+    vi.mocked(mockRepository.deleteProductMedia).mockResolvedValue();
   });
 
   describe("resolveProductTypeReference", () => {
@@ -225,6 +248,7 @@ describe("ProductService", () => {
       slug: "test-product",
       productType: { id: "pt-1", name: "Book" },
       category: { id: "cat-1", name: "Fiction" },
+      media: [],
     };
 
     it("should create new variants when SKUs don't exist", async () => {
@@ -391,11 +415,18 @@ describe("ProductService", () => {
         category: { id: "cat-1", name: "Fiction", slug: "fiction" },
         defaultVariant: { id: "variant-1" },
         variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
+        media: [],
       };
 
       vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct);
-      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({ id: "pt-1", name: "Book" });
-      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({ id: "cat-1", name: "Fiction" });
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
 
       // First call (with description) fails, second (without) succeeds
       vi.mocked(mockRepository.updateProduct)
@@ -458,8 +489,10 @@ describe("ProductService", () => {
       const mockProduct = {
         id: "prod-1",
         name: "Test Book",
+        slug: "test-book",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
+        media: [],
       };
 
       const mockVariant = {
@@ -506,6 +539,7 @@ describe("ProductService", () => {
         category: { id: "cat-1", name: "Fiction", slug: "fiction" },
         defaultVariant: { id: "variant-1" },
         variants: [{ id: "variant-1", sku: "BOOK-001", name: "Test Book Variant" }],
+        media: [],
       };
 
       // Set up all required mocks
@@ -541,6 +575,151 @@ describe("ProductService", () => {
         attributes: [],
       });
       expect(result.product).toEqual(existingProduct);
+    });
+
+    it("should create external product media when provided", async () => {
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+
+      const mockProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+        media: [],
+      };
+
+      const mockVariant = {
+        id: "var-1",
+        name: "Hardcover",
+        sku: "BOOK-001-HC",
+        channelListings: [],
+      };
+
+      vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue(mockVariant as any);
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValueOnce([]);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          {
+            externalUrl: "https://cdn.example.com/promo.jpg",
+            alt: "Promo shot",
+          },
+        ],
+      });
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://cdn.example.com/promo.jpg",
+          alt: "Promo shot",
+        },
+      ]);
+    });
+
+    it("should update alt text when product media already exists", async () => {
+      const existingProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+      };
+
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct as any);
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValueOnce([
+        {
+          id: "media-1",
+          url: "https://cdn.example.com/promo.jpg",
+          alt: "Old alt",
+          type: "IMAGE",
+        } as any,
+      ]);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          {
+            externalUrl: "https://cdn.example.com/promo.jpg",
+            alt: "New alt",
+          },
+        ],
+      });
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://cdn.example.com/promo.jpg",
+          alt: "New alt",
+        },
+      ]);
+    });
+
+    it("should not create duplicate media entries for repeated URLs", async () => {
+      vi.mocked(mockRepository.getProductBySlug).mockResolvedValue(null);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
+
+      const mockProduct = {
+        id: "prod-1",
+        name: "Test Book",
+        slug: "test-book",
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+        media: [],
+      };
+
+      vi.mocked(mockRepository.createProduct).mockResolvedValue(mockProduct as any);
+      vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
+        id: "variant-1",
+        name: "Hardcover",
+        sku: "BOOK-001-HC",
+        channelListings: [],
+      } as any);
+
+      await service.bootstrapProduct({
+        ...mockProductInput,
+        media: [
+          { externalUrl: "https://cdn.example.com/promo.jpg" },
+          { externalUrl: "https://cdn.example.com/promo.jpg", alt: "Duplicate alt" },
+        ],
+      });
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://cdn.example.com/promo.jpg",
+          // Only first occurrence should be kept, no alt text
+        },
+      ]);
     });
 
     it("should throw error when product type doesn't exist", async () => {
@@ -599,8 +778,10 @@ describe("ProductService", () => {
       vi.mocked(mockRepository.createProduct).mockResolvedValue({
         id: "prod-1",
         name: "Book 1",
+        slug: "book-1",
         productType: { id: "pt-1", name: "Book" },
         category: { id: "cat-1", name: "Fiction" },
+        media: [],
       });
       vi.mocked(mockRepository.createProductVariant).mockResolvedValue({
         id: "var-1",
@@ -614,6 +795,404 @@ describe("ProductService", () => {
 
       expect(mockRepository.createProduct).toHaveBeenCalledTimes(2);
       expect(mockRepository.createProductVariant).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("syncProductMedia - Media Replacement", () => {
+    const mockProduct = {
+      id: "prod-1",
+      name: "Test Product",
+      slug: "test-product",
+      productType: { id: "pt-1", name: "Book" },
+      category: { id: "cat-1", name: "Fiction" },
+      media: [],
+    };
+
+    beforeEach(() => {
+      vi.mocked(mockRepository.replaceAllProductMedia).mockResolvedValue([
+        {
+          id: "media-1",
+          url: "https://example.com/image1.jpg",
+          alt: "Image 1",
+          type: "IMAGE",
+        },
+        {
+          id: "media-2",
+          url: "https://example.com/image2.jpg",
+          alt: "Image 2",
+          type: "IMAGE",
+        },
+      ] as any);
+    });
+
+    it("should replace all media when provided with new media URLs", async () => {
+      const mediaInputs = [
+        { externalUrl: "https://example.com/image1.jpg", alt: "Image 1" },
+        { externalUrl: "https://example.com/image2.jpg", alt: "Image 2" },
+      ];
+
+      await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledTimes(1);
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image1.jpg",
+          alt: "Image 1",
+        },
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image2.jpg",
+          alt: "Image 2",
+        },
+      ]);
+    });
+
+    it("should handle empty media array by skipping when no changes needed", async () => {
+      // Mock existing empty media (equivalent to desired empty array)
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]);
+
+      await (service as any).syncProductMedia(mockProduct, []);
+
+      expect(mockRepository.listProductMedia).toHaveBeenCalledWith("prod-1");
+      // Should skip replacement since both arrays are empty (equivalent)
+      expect(mockRepository.replaceAllProductMedia).not.toHaveBeenCalled();
+    });
+
+    it("should filter out invalid media URLs and normalize valid ones", async () => {
+      const mediaInputs = [
+        { externalUrl: "  https://example.com/image1.jpg  ", alt: "Image 1" },
+        { externalUrl: "", alt: "Empty URL" }, // Should be filtered out
+        { externalUrl: "https://example.com/image2.jpg", alt: "Image 2" },
+        { externalUrl: null as any, alt: "Null URL" }, // Should be filtered out
+      ];
+
+      await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledTimes(1);
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image1.jpg", // Normalized (trimmed)
+          alt: "Image 1",
+        },
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image2.jpg",
+          alt: "Image 2",
+        },
+      ]);
+    });
+
+    it("should deduplicate media URLs keeping first occurrence", async () => {
+      const mediaInputs = [
+        { externalUrl: "https://example.com/image1.jpg", alt: "Image 1 First" },
+        { externalUrl: "https://example.com/image2.jpg", alt: "Image 2" },
+        { externalUrl: "https://example.com/image1.jpg", alt: "Image 1 Duplicate" }, // Should be filtered out
+      ];
+
+      await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledTimes(1);
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image1.jpg",
+          alt: "Image 1 First", // First occurrence kept
+        },
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image2.jpg",
+          alt: "Image 2",
+        },
+      ]);
+    });
+
+    it("should handle media without alt text", async () => {
+      const mediaInputs = [
+        { externalUrl: "https://example.com/image1.jpg" }, // No alt
+        { externalUrl: "https://example.com/image2.jpg", alt: "Image 2" },
+      ];
+
+      await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image1.jpg",
+          // alt should not be included if not provided
+        },
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image2.jpg",
+          alt: "Image 2",
+        },
+      ]);
+    });
+
+    it("should use product slug as reference in debug logs when available", async () => {
+      const productWithSlug = { ...mockProduct, slug: "test-product-slug" } as any;
+      const mediaInputs = [{ externalUrl: "https://example.com/image1.jpg" }];
+
+      await (service as any).syncProductMedia(productWithSlug, mediaInputs);
+
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledTimes(1);
+      // The method should still use the product ID for the actual API call
+      expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+        {
+          product: "prod-1",
+          mediaUrl: "https://example.com/image1.jpg",
+        },
+      ]);
+    });
+
+    it("should propagate errors from replaceAllProductMedia", async () => {
+      const error = new Error("Failed to replace media");
+      vi.mocked(mockRepository.replaceAllProductMedia).mockRejectedValue(error);
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]); // No existing media
+
+      const mediaInputs = [{ externalUrl: "https://example.com/image1.jpg" }];
+
+      await expect((service as any).syncProductMedia(mockProduct, mediaInputs)).rejects.toThrow(
+        "Failed to replace media"
+      );
+    });
+  });
+
+  describe("Intelligent Media Comparison - URL Transformation Handling", () => {
+    const mockProduct = {
+      id: "prod-1",
+      name: "Test Product",
+      slug: "test-product",
+      productType: { id: "pt-1", name: "Book" },
+      category: { id: "cat-1", name: "Fiction" },
+      media: [],
+    };
+
+    beforeEach(() => {
+      vi.mocked(mockRepository.listProductMedia).mockResolvedValue([]);
+    });
+
+    describe("extractMediaFingerprint", () => {
+      it("should extract media ID from Saleor thumbnail URLs", () => {
+        const service = new ProductService(mockRepository);
+        const saleorUrl =
+          "https://store-rzalldyg.saleor.cloud/thumbnail/UHJvZHVjdE1lZGlhOjg5/4096/";
+
+        const fingerprint = (service as any).extractMediaFingerprint(saleorUrl);
+
+        expect(fingerprint).toBe("saleor:UHJvZHVjdE1lZGlhOjg5");
+      });
+
+      it("should create domain+filename fingerprint for external URLs", () => {
+        const service = new ProductService(mockRepository);
+        const externalUrl = "https://upload.wikimedia.org/commons/9/94/Ashmolean.jpg";
+
+        const fingerprint = (service as any).extractMediaFingerprint(externalUrl);
+
+        expect(fingerprint).toBe("external:upload.wikimedia.org:Ashmolean.jpg");
+      });
+
+      it("should handle URLs without filenames", () => {
+        const service = new ProductService(mockRepository);
+        const urlWithoutFilename = "https://example.com/path/";
+
+        const fingerprint = (service as any).extractMediaFingerprint(urlWithoutFilename);
+
+        expect(fingerprint).toBe("external:example.com:");
+      });
+
+      it("should fallback to normalized URL for invalid URLs", () => {
+        const service = new ProductService(mockRepository);
+        const invalidUrl = "not-a-valid-url";
+
+        const fingerprint = (service as any).extractMediaFingerprint(invalidUrl);
+
+        expect(fingerprint).toBe("url:not-a-valid-url");
+      });
+    });
+
+    describe("areMediaArraysEquivalent", () => {
+      it("should consider arrays equivalent when counts differ", () => {
+        const service = new ProductService(mockRepository);
+        const desired = [{ externalUrl: "https://example.com/image1.jpg" }];
+        const existing = [
+          { url: "https://example.com/image1.jpg", alt: undefined },
+          { url: "https://example.com/image2.jpg", alt: undefined },
+        ];
+
+        const result = (service as any).areMediaArraysEquivalent(desired, existing);
+
+        expect(result).toBe(false);
+      });
+
+      it("should consider empty arrays equivalent", () => {
+        const service = new ProductService(mockRepository);
+        const desired: any[] = [];
+        const existing: any[] = [];
+
+        const result = (service as any).areMediaArraysEquivalent(desired, existing);
+
+        expect(result).toBe(true);
+      });
+
+      it("should recognize same content when metadata stores the source URL", () => {
+        const service = new ProductService(mockRepository);
+        const desired = [
+          {
+            externalUrl: "https://upload.wikimedia.org/commons/9/94/Ashmolean.jpg",
+            alt: "Museum photo",
+          },
+        ];
+        const existing = [
+          {
+            url: "https://store-rzalldyg.saleor.cloud/thumbnail/UHJvZHVjdE1lZGlhOjg5/4096/",
+            alt: "Museum photo",
+            metadata: [
+              {
+                key: PRODUCT_MEDIA_SOURCE_METADATA_KEY,
+                value: "https://upload.wikimedia.org/commons/9/94/Ashmolean.jpg",
+              },
+            ],
+          },
+        ];
+
+        const result = (service as any).areMediaArraysEquivalent(desired, existing);
+
+        expect(result).toBe(true);
+      });
+
+      it("should detect alt text differences", () => {
+        const service = new ProductService(mockRepository);
+        const desired = [
+          {
+            externalUrl: "https://example.com/image.jpg",
+            alt: "New alt text",
+          },
+        ];
+        const existing = [
+          {
+            url: "https://example.com/image.jpg",
+            alt: "Old alt text",
+          },
+        ];
+
+        const result = (service as any).areMediaArraysEquivalent(desired, existing);
+
+        expect(result).toBe(false);
+      });
+
+      it("should handle missing alt text correctly", () => {
+        const service = new ProductService(mockRepository);
+        const desired = [{ externalUrl: "https://example.com/image.jpg" }]; // No alt
+        const existing = [{ url: "https://example.com/image.jpg", alt: undefined }];
+
+        const result = (service as any).areMediaArraysEquivalent(desired, existing);
+
+        expect(result).toBe(true);
+      });
+    });
+
+    describe("syncProductMedia with intelligent comparison", () => {
+      it("should skip update when media is functionally equivalent", async () => {
+        const service = new ProductService(mockRepository);
+
+        // Mock existing media that's equivalent to what we want to set
+        vi.mocked(mockRepository.listProductMedia).mockResolvedValue([
+          {
+            id: "media-1",
+            url: "https://store-rzalldyg.saleor.cloud/thumbnail/UHJvZHVjdE1lZGlhOjg5/4096/",
+            alt: "Test image",
+            type: "IMAGE",
+            metadata: [
+              {
+                key: PRODUCT_MEDIA_SOURCE_METADATA_KEY,
+                value: "https://upload.wikimedia.org/commons/9/94/Ashmolean.jpg",
+              },
+            ],
+          },
+        ]);
+
+        const mediaInputs = [
+          {
+            externalUrl: "https://upload.wikimedia.org/commons/9/94/Ashmolean.jpg",
+            alt: "Test image",
+          },
+        ];
+
+        await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+        // Should fetch existing media for comparison
+        expect(mockRepository.listProductMedia).toHaveBeenCalledWith("prod-1");
+
+        // Should NOT call replaceAllProductMedia since media is equivalent
+        expect(mockRepository.replaceAllProductMedia).not.toHaveBeenCalled();
+      });
+
+      it("should perform update when media differs", async () => {
+        const service = new ProductService(mockRepository);
+
+        // Mock existing media that's different from what we want
+        vi.mocked(mockRepository.listProductMedia).mockResolvedValue([
+          {
+            id: "media-1",
+            url: "https://example.com/old-image.jpg",
+            alt: "Old image",
+            type: "IMAGE",
+            metadata: [
+              {
+                key: PRODUCT_MEDIA_SOURCE_METADATA_KEY,
+                value: "https://example.com/old-image.jpg",
+              },
+            ],
+          } as any,
+        ]);
+
+        // Mock successful replacement
+        vi.mocked(mockRepository.replaceAllProductMedia).mockResolvedValue([
+          {
+            id: "media-2",
+            url: "https://example.com/new-image.jpg",
+            alt: "New image",
+            type: "IMAGE",
+          } as any,
+        ]);
+
+        const mediaInputs = [
+          {
+            externalUrl: "https://example.com/new-image.jpg",
+            alt: "New image",
+          },
+        ];
+
+        await (service as any).syncProductMedia(mockProduct, mediaInputs);
+
+        // Should fetch existing media for comparison
+        expect(mockRepository.listProductMedia).toHaveBeenCalledWith("prod-1");
+
+        // Should call replaceAllProductMedia since media differs
+        expect(mockRepository.replaceAllProductMedia).toHaveBeenCalledWith("prod-1", [
+          {
+            product: "prod-1",
+            mediaUrl: "https://example.com/new-image.jpg",
+            alt: "New image",
+          },
+        ]);
+      });
+
+      it("should handle errors during media comparison gracefully", async () => {
+        const service = new ProductService(mockRepository);
+
+        // Mock listProductMedia to throw an error
+        const error = new Error("Failed to fetch existing media");
+        vi.mocked(mockRepository.listProductMedia).mockRejectedValue(error);
+
+        const mediaInputs = [{ externalUrl: "https://example.com/image.jpg" }];
+
+        await expect((service as any).syncProductMedia(mockProduct, mediaInputs)).rejects.toThrow(
+          "Failed to fetch existing media"
+        );
+      });
     });
   });
 });

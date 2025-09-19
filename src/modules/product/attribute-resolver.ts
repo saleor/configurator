@@ -201,9 +201,9 @@ class DropdownAttributeHandler extends AttributeHandler {
       };
     }
 
-      if (context.attribute.inputType === ATTRIBUTE_INPUT_TYPES.SWATCH) {
-        return { id: context.attribute.id, swatch: resolved[0] };
-      }
+    if (context.attribute.inputType === ATTRIBUTE_INPUT_TYPES.SWATCH) {
+      return { id: context.attribute.id, swatch: resolved[0] };
+    }
 
     // Default DROPDOWN (single value)
     return { id: context.attribute.id, dropdown: resolved[0] };
@@ -296,7 +296,10 @@ export class AttributeResolver {
     new DropdownAttributeHandler(),
   ];
 
-  constructor(private repository: ProductOperations, private refs?: ReferenceResolvers) {}
+  constructor(
+    private repository: ProductOperations,
+    private refs?: ReferenceResolvers
+  ) {}
 
   setRefs(refs?: ReferenceResolvers) {
     this.refs = refs;

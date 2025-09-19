@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console } from "../cli/console";
+import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
 import {
@@ -9,12 +10,13 @@ import {
   DeploymentSummaryReport,
   getAllStages,
 } from "../core/deployment";
-import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
 import { analyzeDeploymentCleanup } from "../core/deployment/cleanup-advisor";
-import { toDeploymentError, ValidationDeploymentError } from "../core/deployment/errors";
-import { EXIT_CODES } from "../core/deployment/errors";
-import { printDuplicateIssues } from "../cli/reporters/duplicates";
-import type { DuplicateIssue } from "../core/validation/preflight";
+import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
+import {
+  EXIT_CODES,
+  toDeploymentError,
+  ValidationDeploymentError,
+} from "../core/deployment/errors";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
@@ -22,9 +24,10 @@ import {
   ConfigurationLoadError,
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
+import type { DuplicateIssue } from "../core/validation/preflight";
+import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
-import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -294,7 +297,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       hasPartialSuccess: result.overallStatus === "partial",
     };
   }
-
 
   private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
     const configurator = createConfigurator(args);

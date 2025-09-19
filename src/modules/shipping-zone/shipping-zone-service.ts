@@ -270,7 +270,12 @@ export class ShippingZoneService {
 
     try {
       // Ensure warehouses are assigned to the zone's channels before creating the zone
-      if (input.warehouses && input.warehouses.length > 0 && input.channels && input.channels.length > 0) {
+      if (
+        input.warehouses &&
+        input.warehouses.length > 0 &&
+        input.channels &&
+        input.channels.length > 0
+      ) {
         const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
         const channelIds = await this.resolveChannelSlugsToIds(input.channels);
 
@@ -329,17 +334,25 @@ export class ShippingZoneService {
 
     try {
       // Ensure warehouses are assigned to the zone's channels before updating the zone
-      if (input.warehouses && input.warehouses.length > 0 && input.channels && input.channels.length > 0) {
+      if (
+        input.warehouses &&
+        input.warehouses.length > 0 &&
+        input.channels &&
+        input.channels.length > 0
+      ) {
         const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
         const channelIds = await this.resolveChannelSlugsToIds(input.channels);
 
         for (const chId of channelIds) {
           try {
             await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
-            logger.debug("Assigned warehouses to channel for shipping zone preconditions (update)", {
-              channelId: chId,
-              warehouseCount: warehouseIds.length,
-            });
+            logger.debug(
+              "Assigned warehouses to channel for shipping zone preconditions (update)",
+              {
+                channelId: chId,
+                warehouseCount: warehouseIds.length,
+              }
+            );
           } catch (e) {
             logger.warn("Failed to pre-assign warehouses to channel (update)", {
               channelId: chId,

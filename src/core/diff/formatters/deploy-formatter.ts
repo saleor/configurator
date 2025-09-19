@@ -215,7 +215,12 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     } & Record<string, unknown>;
 
     const e = entity as ProductPreview;
-    const importantFields = ["currencyCode", "defaultCountry", "slug", "isShippingRequired"] as const;
+    const importantFields = [
+      "currencyCode",
+      "defaultCountry",
+      "slug",
+      "isShippingRequired",
+    ] as const;
 
     for (const field of importantFields) {
       if (e[field] !== undefined) {
@@ -231,10 +236,14 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
 
     // Product-specific: productType, category
     if (e?.productType) {
-      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} productType: ${chalk.cyan(String(e.productType))}`);
+      lines.push(
+        `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} productType: ${chalk.cyan(String(e.productType))}`
+      );
     }
     if (e?.category) {
-      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} category: ${chalk.cyan(String(e.category))}`);
+      lines.push(
+        `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} category: ${chalk.cyan(String(e.category))}`
+      );
     }
 
     // Attributes
@@ -258,11 +267,14 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
       for (const v of e.variants) {
         const sku = v?.sku ?? v?.name ?? "variant";
-        lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
+        lines.push(
+          `      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`
+        );
         if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
           const list = v.channelListings.map((cl) => {
             const ch = cl?.channel ?? "channel";
-            const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
+            const price =
+              cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
             return `${chalk.white(ch)}=${price}`;
           });
           lines.push(`        ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} prices: ${list.join(", ")}`);

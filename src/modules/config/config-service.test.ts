@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { SaleorConfig } from "./schema/schema";
+import type { ProductInput, SaleorConfig } from "./schema/schema";
 
 const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultMailSenderName: "Test Store",
@@ -110,6 +110,78 @@ describe("ConfigurationService", () => {
       const service = new ConfigurationService(repository, storage);
 
       await expect(service.retrieve()).rejects.toThrow("Save failed");
+    });
+  });
+
+  describe("mapProducts", () => {
+    it("should map product media into external URL entries", () => {
+      const service = new ConfigurationService(
+        { fetchConfig: vi.fn() } as unknown as ConfigurationOperations,
+        createMockStorage()
+      );
+
+      const edges = [
+        {
+          node: {
+            id: "prod-1",
+            name: "Poster",
+            slug: "poster",
+            description: null,
+            productType: { id: "pt-1", name: "Posters" },
+            category: { id: "cat-1", name: "Posters", slug: "posters" },
+            taxClass: null,
+            attributes: [],
+            variants: [],
+            channelListings: [],
+            media: [
+              {
+                url: " https://store.saleor/thumbnail/XYZ/4096/ ",
+                alt: " Hero Poster ",
+                metadata: [
+                  { key: "configurator.externalUrl", value: " https://cdn.example.com/poster.jpg " },
+                  { key: "ignored", value: "value" },
+                ],
+              },
+              {
+                url: "  ",
+                alt: "Whitespace URL",
+              },
+            ],
+          },
+        },
+      ] as unknown as NonNullable<RawSaleorConfig["products"]>["edges"];
+
+      const products = (service as any).mapProducts(edges) as ProductInput[];
+
+      expect(products).toHaveLength(1);
+      expect(products[0].media).toEqual([
+        {
+          externalUrl: "https://cdn.example.com/poster.jpg",
+          alt: "Hero Poster",
+        },
+      ]);
+    });
+
+    it("should fallback to Saleor media URL when metadata is absent", () => {
+      const service = new ConfigurationService(
+        { fetchConfig: vi.fn() } as unknown as ConfigurationOperations,
+        createMockStorage()
+      );
+
+      const media = (service as any).mapProductMedia([
+        {
+          url: " https://cdn.example.com/poster.jpg ",
+          alt: " Poster alt ",
+          metadata: null,
+        },
+      ]);
+
+      expect(media).toEqual([
+        {
+          externalUrl: "https://cdn.example.com/poster.jpg",
+          alt: "Poster alt",
+        },
+      ]);
     });
   });
 
@@ -282,8 +354,20 @@ describe("ConfigurationService", () => {
                 name: "Test Type",
                 isShippingRequired: false,
                 productAttributes: [
-                  { id: "attr-1", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", choices: { edges: [] } },
-                  { id: "attr-2", name: "Size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", choices: null },
+                  {
+                    id: "attr-1",
+                    name: "Color",
+                    type: "PRODUCT_TYPE",
+                    inputType: "DROPDOWN",
+                    choices: { edges: [] },
+                  },
+                  {
+                    id: "attr-2",
+                    name: "Size",
+                    type: "PRODUCT_TYPE",
+                    inputType: "PLAIN_TEXT",
+                    choices: null,
+                  },
                 ],
                 assignedVariantAttributes: [],
               },
@@ -300,8 +384,28 @@ describe("ConfigurationService", () => {
         menus: { edges: [] },
         attributes: {
           edges: [
-            { node: { id: "attr-1", name: "Color", slug: "color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { id: "c1", name: "Red", value: "red" } }] } } },
-            { node: { id: "attr-2", name: "Size", slug: "size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: null } },
+            {
+              node: {
+                id: "attr-1",
+                name: "Color",
+                slug: "color",
+                type: "PRODUCT_TYPE",
+                inputType: "DROPDOWN",
+                entityType: null,
+                choices: { edges: [{ node: { id: "c1", name: "Red", value: "red" } }] },
+              },
+            },
+            {
+              node: {
+                id: "attr-2",
+                name: "Size",
+                slug: "size",
+                type: "PRODUCT_TYPE",
+                inputType: "PLAIN_TEXT",
+                entityType: null,
+                choices: null,
+              },
+            },
           ],
         },
       };

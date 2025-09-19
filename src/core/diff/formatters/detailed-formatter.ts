@@ -213,14 +213,19 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
         lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} variants:`);
         for (const v of typedEntity.variants) {
           const sku = v?.sku ?? v?.name ?? "variant";
-          lines.push(`      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`);
+          lines.push(
+            `      ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.white("SKU:")} ${chalk.cyan(String(sku))}`
+          );
           if (Array.isArray(v?.channelListings) && v.channelListings.length > 0) {
             const parts = v.channelListings.map((cl) => {
               const ch = cl?.channel ?? "channel";
-              const price = cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
+              const price =
+                cl?.price !== undefined ? chalk.cyan(String(cl.price)) : chalk.gray("n/a");
               return `${chalk.white(ch)}=${price}`;
             });
-            lines.push(`        ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} prices: ${parts.join(", ")}`);
+            lines.push(
+              `        ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} prices: ${parts.join(", ")}`
+            );
           }
         }
       }

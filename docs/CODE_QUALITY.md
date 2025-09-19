@@ -694,6 +694,18 @@ const result = entities.reduce((acc, entity) => {
 }, new Map());
 ```
 
+## GraphQL & External Integrations
+
+### Operation Authoring Standards
+- Use `gql.tada` tagged templates for every query/mutation so TypeScript infers the response shape. Store operations in `src/lib/graphql/operations` and keep fragments close to their domain modules.
+- Regenerate `schema.json` with `pnpm fetch-schema` whenever Saleor introduces new capabilities (for example, external product media URLs) and commit the schema update alongside implementation changes.
+- Introduce typed mappers that convert GraphQL responses into domain models instead of threading optional chaining throughout business logic.
+
+### Validation & Error Handling
+- Wrap remote failures with `GraphQLError.fromCombinedError()` and include operation names/variables in logger metadata for actionable diagnostics.
+- Extend relevant Zod schemas as new GraphQL fields unlock so validation stays aligned with the backend contract.
+- Mirror new fields in mocks under `src/lib/graphql/__mocks__` to keep unit and integration tests catching schema drift early.
+
 ## Continuous Improvement
 
 ### Code Metrics Tracking
@@ -729,3 +741,4 @@ Monitor these quality metrics:
 - [TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md) - Comprehensive testing strategies
 - [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Development process integration
 - [CLAUDE.md](CLAUDE.md) - Main navigation hub
+- [../AGENTS.md](../AGENTS.md) - Quick reference guide for incoming agents

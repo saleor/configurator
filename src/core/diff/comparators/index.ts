@@ -1,3 +1,4 @@
+export { AttributesComparator } from "./attributes-comparator";
 export type { EntityComparator } from "./base-comparator";
 export { BaseEntityComparator } from "./base-comparator";
 export { CategoryComparator } from "./category-comparator";
@@ -12,4 +13,3 @@ export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { ShopComparator } from "./shop-comparator";
 export { TaxClassComparator } from "./tax-class-comparator";
 export { WarehouseComparator } from "./warehouse-comparator";
-export { AttributesComparator } from "./attributes-comparator";

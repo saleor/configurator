@@ -96,6 +96,17 @@ export class GraphQLError extends BaseError {
     logger.error("GraphQL error", { error });
     const errorMessage = error.message;
 
+    // Check for rate limiting (429)
+    if (error.response && hasStatus(error.response) && error.response.status === 429) {
+      return new GraphQLError(
+        `${message}: Rate Limited (429)\n\n` +
+          `The API is rate limiting your requests. This usually means:\n` +
+          `  • Too many requests sent in a short time period\n` +
+          `  • You need to add delays between API calls\n\n` +
+          `💡 Wait a few moments and try again, or reduce the number of concurrent operations`
+      );
+    }
+
     // Check for specific network error types
     if (GraphQLError.isForbiddenError(error)) {
       // Extract required permissions from GraphQL errors for better messaging

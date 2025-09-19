@@ -1,3 +1,4 @@
+import yaml from "yaml";
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
@@ -9,7 +10,6 @@ import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
-import yaml from "yaml";
 
 // CLI Command result types
 export const commandResultSchema = z.discriminatedUnion("type", [
