@@ -1,15 +1,12 @@
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
-import type {
-  ProductInput,
-  ProductMediaInput,
-  ProductVariantInput,
-} from "../config/schema/schema";
-import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
+import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
 import type {
+  Attribute,
   Product,
   ProductCreateInput,
   ProductMedia,
@@ -17,8 +14,11 @@ import type {
   ProductOperations,
   ProductUpdateInput,
   ProductVariant,
-  Attribute,
 } from "./repository";
+import {
+  PRODUCT_MEDIA_SOURCE_METADATA_KEY,
+  extractSourceUrlFromMetadata,
+} from "./media-metadata";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;
@@ -60,7 +60,9 @@ export class ProductService {
       const key = (attr.name || "").toLowerCase();
       if (key) this.attributeCache.set(key, attr);
     }
-    this.setAttributeCacheAccessor((name: string) => this.attributeCache.get(name.toLowerCase()) || null);
+    this.setAttributeCacheAccessor(
+      (name: string) => this.attributeCache.get(name.toLowerCase()) || null
+    );
   }
 
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
@@ -213,96 +215,195 @@ export class ProductService {
   ): Promise<AttributeValueInput[]> {
     // AttributeResolver returns a union payload matching GraphQL AttributeValueInput shape
     // Cast to our local AttributeValueInput type used in ModelService for consistency
-    return (await this.attributeResolver.resolveAttributes(attributes)) as unknown as AttributeValueInput[];
+    return (await this.attributeResolver.resolveAttributes(
+      attributes
+    )) as unknown as AttributeValueInput[];
   }
 
   private normalizeExternalMediaUrl(url: string): string {
     return url.trim();
   }
 
+  /**
+   * Extracts a content fingerprint from a media URL for intelligent comparison.
+   * This allows us to identify the same media even when Saleor transforms the URL.
+   */
+  private extractMediaFingerprint(url: string): string {
+    const normalizedUrl = url.trim();
+
+    // Handle Saleor thumbnail URLs: extract the media ID (case-insensitive match)
+    const saleorThumbnailMatch = normalizedUrl.match(/\/thumbnail\/([^/]+)\//i);
+    if (saleorThumbnailMatch) {
+      return `saleor:${saleorThumbnailMatch[1]}`;
+    }
+
+    // For external URLs, extract filename and domain for content-based comparison
+    try {
+      const urlObj = new URL(normalizedUrl);
+      const pathname = urlObj.pathname;
+      const filename = pathname.split("/").pop() || "";
+      const domain = urlObj.hostname.toLowerCase(); // Normalize domain to lowercase
+
+      // Create a content fingerprint from domain + filename (preserve filename case)
+      return `external:${domain}:${filename}`;
+    } catch {
+      // Fallback to normalized URL if parsing fails
+      return `url:${normalizedUrl.toLowerCase()}`;
+    }
+  }
+
+  /**
+   * Checks if two media arrays are functionally equivalent, accounting for
+   * Saleor's URL transformations and focusing on actual content differences.
+   */
+  private resolveExistingMediaSourceUrl(media: ProductMedia): string {
+    const metadataSource = extractSourceUrlFromMetadata(media.metadata);
+    if (metadataSource) {
+      const normalized = this.normalizeExternalMediaUrl(metadataSource);
+      if (normalized.length > 0) {
+        return normalized;
+      }
+    }
+
+    return media.url.trim();
+  }
+
+  private areMediaArraysEquivalent(
+    desired: Array<{ externalUrl: string; alt?: string }>,
+    existing: ProductMedia[]
+  ): boolean {
+    // Quick count check
+    if (desired.length !== existing.length) {
+      return false;
+    }
+
+    // If both are empty, they're equivalent
+    if (desired.length === 0) {
+      return true;
+    }
+
+    // Create fingerprint maps for comparison
+    const desiredFingerprints = new Map<string, { alt?: string }>();
+    for (const media of desired) {
+      const fingerprint = this.extractMediaFingerprint(media.externalUrl);
+      desiredFingerprints.set(fingerprint, { alt: media.alt?.trim() || undefined });
+    }
+
+    const existingFingerprints = new Map<string, { alt?: string }>();
+    for (const media of existing) {
+      const sourceUrl = this.resolveExistingMediaSourceUrl(media);
+      const fingerprint = this.extractMediaFingerprint(sourceUrl);
+      existingFingerprints.set(fingerprint, { alt: media.alt?.trim() || undefined });
+    }
+
+    // Compare fingerprints and alt text
+    if (desiredFingerprints.size !== existingFingerprints.size) {
+      return false;
+    }
+
+    for (const [fingerprint, desiredMeta] of desiredFingerprints) {
+      const existingMeta = existingFingerprints.get(fingerprint);
+      if (!existingMeta) {
+        return false; // Missing media
+      }
+
+      // Compare alt text
+      if (desiredMeta.alt !== existingMeta.alt) {
+        return false; // Alt text differs
+      }
+    }
+
+    return true;
+  }
+
   private async syncProductMedia(
     product: Product,
     mediaInputs: ProductMediaInput[] = []
   ): Promise<void> {
-    if (!mediaInputs.length) {
-      return;
-    }
-
-    const desiredMedia = mediaInputs.filter((media) => typeof media.externalUrl === "string");
-
     const productReference =
       typeof (product as Product & { slug?: string }).slug === "string"
-        ? (product as Product & { slug?: string }).slug ?? product.id
+        ? ((product as Product & { slug?: string }).slug ?? product.id)
         : product.id;
 
+    logger.debug("Syncing product media", {
+      productReference,
+      mediaInputCount: mediaInputs.length,
+    });
+
+    // Filter valid media inputs and normalize URLs
+    const desiredMedia = mediaInputs
+      .filter(
+        (media) => typeof media.externalUrl === "string" && media.externalUrl.trim().length > 0
+      )
+      .map((media) => ({
+        ...media,
+        externalUrl: this.normalizeExternalMediaUrl(media.externalUrl),
+      }));
+
+    // Deduplicate by URL (keep first occurrence)
+    const processedUrls = new Set<string>();
+    const uniqueMedia = desiredMedia.filter((media) => {
+      if (processedUrls.has(media.externalUrl)) {
+        return false;
+      }
+      processedUrls.add(media.externalUrl);
+      return true;
+    });
+
+    // Fetch existing media to compare intelligently
     const existingMedia = await ServiceErrorWrapper.wrapServiceCall(
-      "fetch product media",
+      "fetch existing product media for comparison",
       "product media",
       productReference,
       async () => this.repository.listProductMedia(product.id),
       ProductError
     );
 
-    const mediaByUrl = new Map<string, ProductMedia>();
-    for (const media of existingMedia) {
-      if (!media?.url) {
-        continue;
-      }
-      mediaByUrl.set(this.normalizeExternalMediaUrl(media.url), media);
+    // Check if media is functionally equivalent (accounts for Saleor URL transformations)
+    const isEquivalent = this.areMediaArraysEquivalent(uniqueMedia, existingMedia);
+
+    if (isEquivalent) {
+      logger.debug("Product media is functionally equivalent, skipping update", {
+        productReference,
+        desiredCount: uniqueMedia.length,
+        existingCount: existingMedia.length,
+      });
+      return; // No changes needed
     }
 
-    const processedUrls = new Set<string>();
+    logger.debug("Product media differs, performing replacement", {
+      productReference,
+      desiredCount: uniqueMedia.length,
+      existingCount: existingMedia.length,
+    });
 
-    for (const mediaInput of desiredMedia) {
-      const normalizedUrl = this.normalizeExternalMediaUrl(mediaInput.externalUrl);
-
-      if (processedUrls.has(normalizedUrl)) {
-        continue;
-      }
-      processedUrls.add(normalizedUrl);
-
-      const existing = mediaByUrl.get(normalizedUrl);
-
-      if (existing) {
-        if (typeof mediaInput.alt === "string" && mediaInput.alt !== existing.alt) {
-          const updatedMedia = await ServiceErrorWrapper.wrapServiceCall(
-            "update product media alt text",
-            "product media",
-            existing.id,
-            async () =>
-              this.repository.updateProductMedia(existing.id, {
-                alt: mediaInput.alt,
-              }),
-            ProductError
-          );
-
-          mediaByUrl.set(normalizedUrl, updatedMedia);
-        }
-
-        continue;
-      }
-
-      const createMediaInput = {
+    // Convert to ProductMediaCreateInput format
+    const createMediaInputs: ProductMediaCreateInput[] = uniqueMedia.map((media) => {
+      const input: ProductMediaCreateInput = {
         product: product.id,
-        mediaUrl: normalizedUrl,
-      } as ProductMediaCreateInput;
+        mediaUrl: media.externalUrl,
+      };
 
-      if (typeof mediaInput.alt === "string") {
-        createMediaInput.alt = mediaInput.alt;
+      if (typeof media.alt === "string") {
+        input.alt = media.alt;
       }
 
-      const createdMedia = await ServiceErrorWrapper.wrapServiceCall(
-        "create product media",
-        "product media",
-        normalizedUrl,
-        async () => this.repository.createProductMedia(createMediaInput),
-        ProductError
-      );
+      return input;
+    });
 
-      if (createdMedia?.url) {
-        mediaByUrl.set(this.normalizeExternalMediaUrl(createdMedia.url), createdMedia);
-      }
-    }
+    // Use the new replaceAllProductMedia method to ensure complete replacement
+    await ServiceErrorWrapper.wrapServiceCall(
+      "replace all product media",
+      "product media",
+      productReference,
+      async () => this.repository.replaceAllProductMedia(product.id, createMediaInputs),
+      ProductError
+    );
+
+    logger.debug("Product media sync completed", {
+      productReference,
+      replacedMediaCount: createMediaInputs.length,
+    });
   }
 
   private async upsertProduct(productInput: ProductInput): Promise<Product> {
@@ -333,7 +434,7 @@ export class ProductService {
       });
 
       // Update existing product (note: productType cannot be changed after creation)
-      // Build minimal input - only include fields that are not empty to avoid GraphQL errors  
+      // Build minimal input - only include fields that are not empty to avoid GraphQL errors
       const updateProductInput: ProductUpdateInput = {
         name: productInput.name,
         slug: slug,
@@ -376,10 +477,7 @@ export class ProductService {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         // Fallback: retry without description if server rejects description JSON
-        if (
-          updateProductInput.description &&
-          /description|json|string/i.test(msg)
-        ) {
+        if (updateProductInput.description && /description|json|string/i.test(msg)) {
           logger.warn("Retrying product update without description due to error", { msg });
           const retryInput: ProductUpdateInput = { ...updateProductInput, description: undefined };
           product = await ServiceErrorWrapper.wrapServiceCall(
@@ -437,7 +535,6 @@ export class ProductService {
             version: "2.24.3",
           });
     }
-
 
     const product = await ServiceErrorWrapper.wrapServiceCall(
       "create product",

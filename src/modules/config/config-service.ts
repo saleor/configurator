@@ -22,6 +22,7 @@ import type {
   TaxClassInput,
   WarehouseInput,
 } from "./schema/schema";
+import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 
 interface TaxClassType {
   node: {
@@ -169,13 +170,16 @@ export class ConfigurationService {
         name: attribute.name,
         inputType: attribute.inputType,
         type: attributeType,
-        values: ((attribute.choices.edges as Array<{ node: { name: string | null | undefined } }>)
-          .filter((edge: { node: { name: string | null | undefined } }): edge is { node: { name: string } } =>
-            edge.node.name !== null && edge.node.name !== undefined
+        values: (attribute.choices.edges as Array<{ node: { name: string | null | undefined } }>)
+          .filter(
+            (edge: {
+              node: { name: string | null | undefined };
+            }): edge is { node: { name: string } } =>
+              edge.node.name !== null && edge.node.name !== undefined
           )
           .map((edge: { node: { name: string } }) => ({
             name: edge.node.name,
-          }))),
+          })),
       };
     }
 
@@ -204,7 +208,9 @@ export class ConfigurationService {
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
   ): FullAttribute[] {
     return (
-      rawAttributes?.map((attribute: RawAttribute) => this.mapAttribute(attribute, attributeType)) ?? []
+      rawAttributes?.map((attribute: RawAttribute) =>
+        this.mapAttribute(attribute, attributeType)
+      ) ?? []
     );
   }
 
@@ -216,7 +222,11 @@ export class ConfigurationService {
         isShippingRequired: edge.node.isShippingRequired,
         productAttributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
         variantAttributes: this.mapAttributes(
-          edge.node.assignedVariantAttributes?.map((attribute: NonNullable<ProductTypeEdge>["node"]["assignedVariantAttributes"][number]) => attribute.attribute) ?? [],
+          edge.node.assignedVariantAttributes?.map(
+            (
+              attribute: NonNullable<ProductTypeEdge>["node"]["assignedVariantAttributes"][number]
+            ) => attribute.attribute
+          ) ?? [],
           "PRODUCT_TYPE"
         ),
       })) ?? []
@@ -250,7 +260,8 @@ export class ConfigurationService {
           name: node.name,
           inputType: "REFERENCE",
           type,
-          entityType: (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
+          entityType:
+            (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
         } as FullAttribute;
       }
       return { name: node.name, inputType, type } as FullAttribute;
@@ -425,64 +436,70 @@ export class ConfigurationService {
         default: zone.default,
         countries: zone.countries.map((country: { code: string }) => country.code as CountryCode),
         warehouses:
-          zone.warehouses.map((warehouse: { slug: string | null | undefined }) => warehouse.slug).filter(Boolean) ||
-          undefined,
+          zone.warehouses
+            .map((warehouse: { slug: string | null | undefined }) => warehouse.slug)
+            .filter(Boolean) || undefined,
         channels:
-          zone.channels.map((channel: { slug: string | null | undefined }) => channel.slug).filter(Boolean) ||
-          undefined,
+          zone.channels
+            .map((channel: { slug: string | null | undefined }) => channel.slug)
+            .filter(Boolean) || undefined,
         shippingMethods:
           zone.shippingMethods && zone.shippingMethods.length > 0
-            ? zone.shippingMethods.map((method: {
-                name: string;
-                description?: string | null;
-                type: string;
-                minimumDeliveryDays?: number | null;
-                maximumDeliveryDays?: number | null;
-                minimumOrderWeight?: { unit: string; value: number } | null;
-                maximumOrderWeight?: { unit: string; value: number } | null;
-                channelListings?: Array<{
-                  channel: { slug: string };
-                  price?: { amount: number; currency: string } | null;
-                  minimumOrderPrice?: { amount: number } | null;
-                  maximumOrderPrice?: { amount: number } | null;
-                }>;
-              }) => ({
-                name: method.name,
-                description:
-                  typeof method.description === "string"
-                    ? method.description || undefined
+            ? zone.shippingMethods.map(
+                (method: {
+                  name: string;
+                  description?: string | null;
+                  type: string;
+                  minimumDeliveryDays?: number | null;
+                  maximumDeliveryDays?: number | null;
+                  minimumOrderWeight?: { unit: string; value: number } | null;
+                  maximumOrderWeight?: { unit: string; value: number } | null;
+                  channelListings?: Array<{
+                    channel: { slug: string };
+                    price?: { amount: number; currency: string } | null;
+                    minimumOrderPrice?: { amount: number } | null;
+                    maximumOrderPrice?: { amount: number } | null;
+                  }>;
+                }) => ({
+                  name: method.name,
+                  description:
+                    typeof method.description === "string"
+                      ? method.description || undefined
+                      : undefined,
+                  type: method.type as "PRICE" | "WEIGHT",
+                  minimumDeliveryDays: method.minimumDeliveryDays || undefined,
+                  maximumDeliveryDays: method.maximumDeliveryDays || undefined,
+                  minimumOrderWeight: method.minimumOrderWeight
+                    ? {
+                        unit: method.minimumOrderWeight.unit,
+                        value: method.minimumOrderWeight.value,
+                      }
                     : undefined,
-                type: method.type as "PRICE" | "WEIGHT",
-                minimumDeliveryDays: method.minimumDeliveryDays || undefined,
-                maximumDeliveryDays: method.maximumDeliveryDays || undefined,
-                minimumOrderWeight: method.minimumOrderWeight
-                  ? {
-                      unit: method.minimumOrderWeight.unit,
-                      value: method.minimumOrderWeight.value,
-                    }
-                  : undefined,
-                maximumOrderWeight: method.maximumOrderWeight
-                  ? {
-                      unit: method.maximumOrderWeight.unit,
-                      value: method.maximumOrderWeight.value,
-                    }
-                  : undefined,
-                channelListings:
-                  method.channelListings && method.channelListings.length > 0
-                    ? method.channelListings.map((listing: {
-                        channel: { slug: string };
-                        price?: { amount: number; currency: string } | null;
-                        minimumOrderPrice?: { amount: number } | null;
-                        maximumOrderPrice?: { amount: number } | null;
-                      }) => ({
-                        channel: listing.channel.slug,
-                        price: listing.price?.amount || 0,
-                        currency: (listing.price?.currency || "USD") as CurrencyCode,
-                        minimumOrderPrice: listing.minimumOrderPrice?.amount || undefined,
-                        maximumOrderPrice: listing.maximumOrderPrice?.amount || undefined,
-                      }))
+                  maximumOrderWeight: method.maximumOrderWeight
+                    ? {
+                        unit: method.maximumOrderWeight.unit,
+                        value: method.maximumOrderWeight.value,
+                      }
                     : undefined,
-              }))
+                  channelListings:
+                    method.channelListings && method.channelListings.length > 0
+                      ? method.channelListings.map(
+                          (listing: {
+                            channel: { slug: string };
+                            price?: { amount: number; currency: string } | null;
+                            minimumOrderPrice?: { amount: number } | null;
+                            maximumOrderPrice?: { amount: number } | null;
+                          }) => ({
+                            channel: listing.channel.slug,
+                            price: listing.price?.amount || 0,
+                            currency: (listing.price?.currency || "USD") as CurrencyCode,
+                            minimumOrderPrice: listing.minimumOrderPrice?.amount || undefined,
+                            maximumOrderPrice: listing.maximumOrderPrice?.amount || undefined,
+                          })
+                        )
+                      : undefined,
+                })
+              )
             : undefined,
       }));
   }
@@ -633,17 +650,23 @@ export class ConfigurationService {
         name: node.name,
         slug: node.slug,
         description: typeof node.description === "string" ? node.description : undefined,
-        products: node.products?.edges?.map((e: { node: { slug: string } }) => e.node.slug).filter(Boolean) || [],
+        products:
+          node.products?.edges
+            ?.map((e: { node: { slug: string } }) => e.node.slug)
+            .filter(Boolean) || [],
         channelListings:
-          node.channelListings?.map((listing: {
-            channel: { slug: string };
-            isPublished: boolean;
-            publishedAt?: string | null;
-          }) => ({
-            channelSlug: listing.channel.slug,
-            isPublished: listing.isPublished,
-            publishedAt: typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
-          })) || [],
+          node.channelListings?.map(
+            (listing: {
+              channel: { slug: string };
+              isPublished: boolean;
+              publishedAt?: string | null;
+            }) => ({
+              channelSlug: listing.channel.slug,
+              isPublished: listing.isPublished,
+              publishedAt:
+                typeof listing.publishedAt === "string" ? listing.publishedAt : undefined,
+            })
+          ) || [],
       };
     });
   }
@@ -725,10 +748,14 @@ export class ConfigurationService {
         if (attr.values && attr.values.length > 0) {
           // Multi-value attribute
           result[slug] = attr.values
-            .map((v: { name?: string | null; slug?: string | null; value?: string | null }) =>
-              v.name || v.slug || v.value
+            .map(
+              (v: { name?: string | null; slug?: string | null; value?: string | null }) =>
+                v.name || v.slug || v.value
             )
-            .filter((value: string | null | undefined): value is string => value !== null && value !== undefined);
+            .filter(
+              (value: string | null | undefined): value is string =>
+                value !== null && value !== undefined
+            );
         }
       }
     }
@@ -762,50 +789,56 @@ export class ConfigurationService {
         taxClass: node.taxClass?.name || undefined,
         attributes: this.mapProductAttributes(node.attributes || []),
         variants:
-          node.variants?.map((variant: {
-            name?: string | null;
-            sku?: string | null;
-            id?: string | null;
-            weight?: { value?: number | null } | null;
-            attributes?: readonly unknown[];
-            channelListings?: Array<{
-              channel: { slug: string };
-              price?: { amount?: number | null } | null;
-              costPrice?: { amount?: number | null } | null;
-            }> | null;
-          }) => ({
-            name: variant.name || node.name,
-            // Ensure SKU is always a string for schema validity during round-trips
-            // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
-            sku: variant.sku ?? variant.id ?? "",
-            weight: variant.weight?.value || undefined,
-            attributes: this.mapProductAttributes(variant.attributes || []),
-            channelListings:
-              variant.channelListings
-                ?.map((listing: {
-                  channel: { slug: string };
-                  price?: { amount?: number | null } | null;
-                  costPrice?: { amount?: number | null } | null;
-                }) => ({
-                  channel: listing.channel.slug,
-                  price: listing.price ? Number(listing.price.amount) : undefined,
-                  costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
-                }))
-                // Keep only listings with a defined numeric price to satisfy schema
-                .filter((l: { price?: number }) => typeof l.price === "number") || [],
-          })) || [],
+          node.variants?.map(
+            (variant: {
+              name?: string | null;
+              sku?: string | null;
+              id?: string | null;
+              weight?: { value?: number | null } | null;
+              attributes?: readonly unknown[];
+              channelListings?: Array<{
+                channel: { slug: string };
+                price?: { amount?: number | null } | null;
+                costPrice?: { amount?: number | null } | null;
+              }> | null;
+            }) => ({
+              name: variant.name || node.name,
+              // Ensure SKU is always a string for schema validity during round-trips
+              // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
+              sku: variant.sku ?? variant.id ?? "",
+              weight: variant.weight?.value || undefined,
+              attributes: this.mapProductAttributes(variant.attributes || []),
+              channelListings:
+                variant.channelListings
+                  ?.map(
+                    (listing: {
+                      channel: { slug: string };
+                      price?: { amount?: number | null } | null;
+                      costPrice?: { amount?: number | null } | null;
+                    }) => ({
+                      channel: listing.channel.slug,
+                      price: listing.price ? Number(listing.price.amount) : undefined,
+                      costPrice: listing.costPrice ? Number(listing.costPrice.amount) : undefined,
+                    })
+                  )
+                  // Keep only listings with a defined numeric price to satisfy schema
+                  .filter((l: { price?: number }) => typeof l.price === "number") || [],
+            })
+          ) || [],
         channelListings:
-          node.channelListings?.map((listing: {
-            channel: { slug: string };
-            isPublished: boolean;
-            publishedAt?: string | null;
-            visibleInListings: boolean;
-          }) => ({
-            channel: listing.channel.slug,
-            isPublished: listing.isPublished,
-            publishedAt: listing.publishedAt || undefined,
-            visibleInListings: listing.visibleInListings,
-          })) || [],
+          node.channelListings?.map(
+            (listing: {
+              channel: { slug: string };
+              isPublished: boolean;
+              publishedAt?: string | null;
+              visibleInListings: boolean;
+            }) => ({
+              channel: listing.channel.slug,
+              isPublished: listing.isPublished,
+              publishedAt: listing.publishedAt || undefined,
+              visibleInListings: listing.visibleInListings,
+            })
+          ) || [],
       };
 
       const media = this.mapProductMedia(node.media || []);
@@ -817,14 +850,21 @@ export class ConfigurationService {
     });
   }
 
-  private mapProductMedia(media: Array<{ url?: string | null; alt?: string | null }> = []): ProductMediaInput[] {
+  private mapProductMedia(
+    media: Array<{
+      url?: string | null;
+      alt?: string | null;
+      metadata?: Array<{ key?: string | null; value?: string | null }> | null;
+    }> = []
+  ): ProductMediaInput[] {
     return media
       .map((item) => {
-        const externalUrl = item.url?.trim();
-        if (!externalUrl) return null;
+        const metadataUrl = extractSourceUrlFromMetadata(item.metadata ?? undefined);
+        const resolvedUrl = metadataUrl ?? item.url?.trim();
+        if (!resolvedUrl) return null;
         const alt = item.alt?.trim();
         const mediaInput: ProductMediaInput = {
-          externalUrl,
+          externalUrl: resolvedUrl,
         };
         if (alt) {
           mediaInput.alt = alt;
@@ -834,9 +874,7 @@ export class ConfigurationService {
       .filter((value): value is ProductMediaInput => value !== null);
   }
 
-  private mapProductAttributes(
-    attributes: readonly unknown[]
-  ): Record<string, string | string[]> {
+  private mapProductAttributes(attributes: readonly unknown[]): Record<string, string | string[]> {
     const result: Record<string, string | string[]> = {};
 
     for (const attr of attributes) {
@@ -854,7 +892,7 @@ export class ConfigurationService {
         .map((value) => {
           const selectedValue = this.isMultipleChoiceAttribute(typedAttr.attribute.inputType)
             ? value.name
-            : value.value ?? value.name;
+            : (value.value ?? value.name);
           return selectedValue?.trim();
         })
         .filter((value): value is string => Boolean(value));

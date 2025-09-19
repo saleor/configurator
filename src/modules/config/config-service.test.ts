@@ -135,12 +135,16 @@ describe("ConfigurationService", () => {
             channelListings: [],
             media: [
               {
-                url: " https://cdn.example.com/poster.jpg ",
+                url: " https://store.saleor/thumbnail/XYZ/4096/ ",
                 alt: " Hero Poster ",
+                metadata: [
+                  { key: "configurator.externalUrl", value: " https://cdn.example.com/poster.jpg " },
+                  { key: "ignored", value: "value" },
+                ],
               },
               {
-                url: null,
-                alt: "No url",
+                url: "  ",
+                alt: "Whitespace URL",
               },
             ],
           },
@@ -154,6 +158,28 @@ describe("ConfigurationService", () => {
         {
           externalUrl: "https://cdn.example.com/poster.jpg",
           alt: "Hero Poster",
+        },
+      ]);
+    });
+
+    it("should fallback to Saleor media URL when metadata is absent", () => {
+      const service = new ConfigurationService(
+        { fetchConfig: vi.fn() } as unknown as ConfigurationOperations,
+        createMockStorage()
+      );
+
+      const media = (service as any).mapProductMedia([
+        {
+          url: " https://cdn.example.com/poster.jpg ",
+          alt: " Poster alt ",
+          metadata: null,
+        },
+      ]);
+
+      expect(media).toEqual([
+        {
+          externalUrl: "https://cdn.example.com/poster.jpg",
+          alt: "Poster alt",
         },
       ]);
     });
@@ -328,8 +354,20 @@ describe("ConfigurationService", () => {
                 name: "Test Type",
                 isShippingRequired: false,
                 productAttributes: [
-                  { id: "attr-1", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", choices: { edges: [] } },
-                  { id: "attr-2", name: "Size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", choices: null },
+                  {
+                    id: "attr-1",
+                    name: "Color",
+                    type: "PRODUCT_TYPE",
+                    inputType: "DROPDOWN",
+                    choices: { edges: [] },
+                  },
+                  {
+                    id: "attr-2",
+                    name: "Size",
+                    type: "PRODUCT_TYPE",
+                    inputType: "PLAIN_TEXT",
+                    choices: null,
+                  },
                 ],
                 assignedVariantAttributes: [],
               },
@@ -346,8 +384,28 @@ describe("ConfigurationService", () => {
         menus: { edges: [] },
         attributes: {
           edges: [
-            { node: { id: "attr-1", name: "Color", slug: "color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { id: "c1", name: "Red", value: "red" } }] } } },
-            { node: { id: "attr-2", name: "Size", slug: "size", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: null } },
+            {
+              node: {
+                id: "attr-1",
+                name: "Color",
+                slug: "color",
+                type: "PRODUCT_TYPE",
+                inputType: "DROPDOWN",
+                entityType: null,
+                choices: { edges: [{ node: { id: "c1", name: "Red", value: "red" } }] },
+              },
+            },
+            {
+              node: {
+                id: "attr-2",
+                name: "Size",
+                slug: "size",
+                type: "PRODUCT_TYPE",
+                inputType: "PLAIN_TEXT",
+                entityType: null,
+                choices: null,
+              },
+            },
           ],
         },
       };

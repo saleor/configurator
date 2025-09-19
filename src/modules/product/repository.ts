@@ -1,6 +1,7 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
+import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
 function slugify(value: string): string {
   const trimmed = value.trim();
@@ -48,6 +49,10 @@ const createProductMutation = graphql(`
           alt
           type
           url
+          metadata {
+            key
+            value
+          }
         }
       }
       errors {
@@ -90,6 +95,10 @@ const updateProductMutation = graphql(`
           alt
           type
           url
+          metadata {
+            key
+            value
+          }
         }
       }
       errors {
@@ -236,18 +245,14 @@ const getCategoryByNameQuery = graphql(`
 
 const getCategoryBySlugQuery = graphql(`
   query GetCategoryBySlug($slug: String!) {
-    categories(filter: { slugs: [$slug] }, first: 100) {
-      edges {
-        node {
-          id
-          name
-          slug
-          parent {
-            id
-            name
-            slug
-          }
-        }
+    category(slug: $slug) {
+      id
+      name
+      slug
+      parent {
+        id
+        name
+        slug
       }
     }
   }
@@ -262,6 +267,10 @@ const getProductMediaQuery = graphql(`
         alt
         type
         url
+        metadata {
+          key
+          value
+        }
       }
     }
   }
@@ -275,6 +284,10 @@ const createProductMediaMutation = graphql(`
         alt
         type
         url
+        metadata {
+          key
+          value
+        }
       }
       errors {
         field
@@ -292,6 +305,10 @@ const updateProductMediaMutation = graphql(`
         alt
         type
         url
+        metadata {
+          key
+          value
+        }
       }
       errors {
         field
@@ -310,6 +327,28 @@ const deleteProductMediaMutation = graphql(`
       errors {
         field
         message
+      }
+    }
+  }
+`);
+
+const updateProductMediaMetadataMutation = graphql(`
+  mutation UpdateProductMediaMetadata($id: ID!, $input: [MetadataInput!]!) {
+    updateMetadata(id: $id, input: $input) {
+      item {
+        __typename
+        ... on ProductMedia {
+          id
+          metadata {
+            key
+            value
+          }
+        }
+      }
+      errors {
+        field
+        message
+        code
       }
     }
   }
@@ -491,22 +530,15 @@ export type ProductVariant = NonNullable<
 >;
 
 export type ProductMedia = NonNullable<
-  NonNullable<
-    ResultOf<typeof createProductMediaMutation>["productMediaCreate"]
-  >["media"]
+  NonNullable<ResultOf<typeof createProductMediaMutation>["productMediaCreate"]>["media"]
 >;
 
-export type ProductMediaCreateInput = VariablesOf<
-  typeof createProductMediaMutation
->["input"];
+export type ProductMediaCreateInput = VariablesOf<typeof createProductMediaMutation>["input"];
 
-export type ProductMediaUpdateInput = VariablesOf<
-  typeof updateProductMediaMutation
->["input"];
+export type ProductMediaUpdateInput = VariablesOf<typeof updateProductMediaMutation>["input"];
 
-export type ProductMediaDeleteInput = VariablesOf<
-  typeof deleteProductMediaMutation
->["id"];
+export type ProductMediaDeleteInput = VariablesOf<typeof deleteProductMediaMutation>["id"];
+
 
 export type ProductVariantWithChannelListings = NonNullable<
   NonNullable<
@@ -542,9 +574,12 @@ export interface ProductOperations {
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
-  getCategoryBySlug(
-    slug: string
-  ): Promise<{ id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null>;
+  getCategoryBySlug(slug: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    parent?: { slug?: string | null } | null;
+  } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
   getAttributeByName(name: string): Promise<Attribute | null>;
   getChannelBySlug(slug: string): Promise<Channel | null>;
@@ -560,6 +595,10 @@ export interface ProductOperations {
   createProductMedia(input: ProductMediaCreateInput): Promise<ProductMedia>;
   updateProductMedia(id: string, input: ProductMediaUpdateInput): Promise<ProductMedia>;
   deleteProductMedia(id: string): Promise<void>;
+  replaceAllProductMedia(
+    productId: string,
+    mediaInputs: ProductMediaCreateInput[]
+  ): Promise<ProductMedia[]>;
 }
 
 export type Attribute = NonNullable<
@@ -796,18 +835,17 @@ export class ProductRepository implements ProductOperations {
     return exactMatch?.node || null;
   }
 
-  async getCategoryBySlug(
-    slug: string
-  ): Promise<
-    { id: string; name: string; slug: string; parent?: { slug?: string | null } | null } | null
-  > {
+  async getCategoryBySlug(slug: string): Promise<{
+    id: string;
+    name: string;
+    slug: string;
+    parent?: { slug?: string | null } | null;
+  } | null> {
     logger.debug("Looking up category by slug", { slug });
 
     const result = await this.client.query(getCategoryBySlugQuery, { slug });
 
-    // Find exact match among all categories by slug
-    const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.slug === slug);
-    const category = exactMatch?.node;
+    let category = result.data?.category;
 
     if (category) {
       logger.debug("Found category by slug", {
@@ -816,7 +854,18 @@ export class ProductRepository implements ProductOperations {
         slug: category.slug,
       });
     } else {
-      logger.debug("No category found with slug", { slug });
+      logger.debug("No category found with slug via direct lookup, falling back to list", { slug });
+      try {
+        const all = await this.client.query(getCategoryByNameQuery, { name: slug });
+        // If API doesn't support direct slug filter, search edges for exact slug
+        const edges = all.data?.categories?.edges ?? [];
+        category = edges.find((e) => e.node?.slug === slug)?.node as typeof category;
+        if (!category) {
+          // Final fallback: query all categories-like via product repository not available; rely on category service elsewhere
+        }
+      } catch {
+        // ignore
+      }
     }
 
     return category || null;
@@ -1049,6 +1098,50 @@ export class ProductRepository implements ProductOperations {
     return payload.media as ProductMedia;
   }
 
+  private async setProductMediaSourceUrlMetadata(
+    mediaId: string,
+    mediaUrl: string | null | undefined
+  ): Promise<void> {
+    const trimmedUrl = mediaUrl?.trim();
+    if (!trimmedUrl) {
+      return;
+    }
+
+    logger.debug("Persisting product media source URL metadata", {
+      mediaId,
+    });
+
+    const result = await this.client.mutation(updateProductMediaMetadataMutation, {
+      id: mediaId,
+      input: [
+        {
+          key: PRODUCT_MEDIA_SOURCE_METADATA_KEY,
+          value: trimmedUrl,
+        },
+      ],
+    });
+
+    if (result.error) {
+      throw result.error;
+    }
+
+    const payload = result.data?.updateMetadata;
+    const errors = payload?.errors ?? [];
+
+    if (errors.length > 0) {
+      const errorMessage = errors
+        .map((error) => error.message)
+        .filter((message): message is string => Boolean(message && message.trim()))
+        .join(", ");
+
+      throw new Error(
+        `Failed to persist product media metadata for ${mediaId}: ${
+          errorMessage || "Unknown error"
+        }`
+      );
+    }
+  }
+
   async updateProductMedia(id: string, input: ProductMediaUpdateInput): Promise<ProductMedia> {
     logger.debug("Updating product media", { mediaId: id, input });
 
@@ -1100,5 +1193,92 @@ export class ProductRepository implements ProductOperations {
     }
 
     logger.debug("Deleted product media", { mediaId: id });
+  }
+
+  async replaceAllProductMedia(
+    productId: string,
+    mediaInputs: ProductMediaCreateInput[]
+  ): Promise<ProductMedia[]> {
+    logger.debug("Replacing all product media", {
+      productId,
+      newMediaCount: mediaInputs.length,
+    });
+
+    try {
+      // Step 1: Fetch existing media
+      const existingMedia = await this.listProductMedia(productId);
+      logger.debug("Found existing media", {
+        productId,
+        existingMediaCount: existingMedia.length,
+      });
+
+      // Step 2: Delete all existing media
+      if (existingMedia.length > 0) {
+        logger.debug("Deleting existing media", {
+          productId,
+          mediaIds: existingMedia.map((m) => m.id),
+        });
+
+        // Delete media sequentially to avoid rate limiting issues
+        for (const media of existingMedia) {
+          try {
+            await this.deleteProductMedia(media.id);
+          } catch (error) {
+            logger.warn("Failed to delete existing media, continuing", {
+              mediaId: media.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            // Continue with other deletions even if one fails
+          }
+        }
+      }
+
+      // Step 3: Create new media entries
+      const createdMedia: ProductMedia[] = [];
+      if (mediaInputs.length > 0) {
+        logger.debug("Creating new media entries", {
+          productId,
+          mediaInputs: mediaInputs.map((m) => m.mediaUrl),
+        });
+
+        // Create media sequentially to maintain order and avoid rate limiting
+        for (const mediaInput of mediaInputs) {
+          try {
+            const createdMediaItem = await this.createProductMedia(mediaInput);
+            await this.setProductMediaSourceUrlMetadata(
+              createdMediaItem.id,
+              mediaInput.mediaUrl
+            );
+            createdMedia.push(createdMediaItem);
+          } catch (error) {
+            logger.error("Failed to create new media", {
+              productId,
+              mediaUrl: mediaInput.mediaUrl,
+              error: error instanceof Error ? error.message : String(error),
+            });
+            // If creation fails, we should still continue with remaining media
+            // The partial success is better than complete failure
+          }
+        }
+      }
+
+      logger.debug("Product media replacement completed", {
+        productId,
+        deletedCount: existingMedia.length,
+        createdCount: createdMedia.length,
+      });
+
+      return createdMedia;
+    } catch (error) {
+      logger.error("Failed to replace product media", {
+        productId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw new Error(
+        `Failed to replace product media for product ${productId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
   }
 }

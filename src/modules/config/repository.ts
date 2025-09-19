@@ -1,6 +1,5 @@
-import type { Client } from "@urql/core";
+import type { Client, CombinedError } from "@urql/core";
 import { graphql, type ResultOf } from "gql.tada";
-import type { CombinedError } from "@urql/core";
 import { GraphQLError } from "../../lib/errors/graphql";
 
 // @ts-ignore - Large query type can exceed TS instantiation limits; runtime types remain intact
@@ -466,6 +465,10 @@ const getConfigQuery = graphql(`
             alt
             type
             url
+            metadata {
+              key
+              value
+            }
           }
         }
       }
@@ -500,11 +503,18 @@ export class ConfigurationRepository implements ConfigurationOperations {
     }
 
     // Fetch all products with pagination to avoid first: N truncation
+    // Fetch sequentially with delays to avoid rate limiting
     try {
-      const [allProductEdges, fullAttributes] = await Promise.all([
-        this.fetchAllProducts(),
-        this.fetchAllAttributes(),
-      ]);
+      // Add a small delay between major queries to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const allProductEdges = await this.fetchAllProducts();
+
+      // Another small delay before fetching attributes
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const fullAttributes = await this.fetchAllAttributes();
+
       const data: RawSaleorConfig = {
         ...(result.data as RawSaleorConfig),
         products: {
@@ -538,46 +548,95 @@ export class ConfigurationRepository implements ConfigurationOperations {
               name
               slug
               description
-              productType { id name }
-              category { id name slug }
-              taxClass { id name }
+              productType {
+                id
+                name
+              }
+              category {
+                id
+                name
+                slug
+              }
+              taxClass {
+                id
+                name
+              }
               attributes {
-                attribute { id name slug inputType }
-                values { id name slug value }
+                attribute {
+                  id
+                  name
+                  slug
+                  inputType
+                }
+                values {
+                  id
+                  name
+                  slug
+                  value
+                }
               }
               variants {
                 id
                 name
                 sku
-                weight { unit value }
-                attributes {
-                  attribute { id name slug inputType }
-                  values { id name slug value }
+                weight {
+                  unit
+                  value
                 }
+                attributes {
+                  attribute {
+                    id
+                    name
+                    slug
+                    inputType
+                  }
+                  values {
+                    id
+                    name
+                    slug
+                    value
+                  }
+                }
+                channelListings {
+                  id
+                  channel {
+                    id
+                    slug
+                  }
+                  price {
+                    amount
+                    currency
+                  }
+                  costPrice {
+                    amount
+                    currency
+                  }
+                }
+              }
               channelListings {
                 id
-                channel { id slug }
-                price { amount currency }
-                costPrice { amount currency }
+                channel {
+                  id
+                  slug
+                }
+                isPublished
+                publishedAt
+                visibleInListings
               }
-            }
-            channelListings {
-              id
-              channel { id slug }
-              isPublished
-              publishedAt
-              visibleInListings
-            }
-            media {
-              id
-              alt
-              type
-              url
+              media {
+                id
+                alt
+                type
+                url
+                metadata {
+                  key
+                  value
+                }
+              }
             }
           }
         }
       }
-    }
     `);
 
     // Loop
@@ -601,6 +660,9 @@ export class ConfigurationRepository implements ConfigurationOperations {
       edges.push(...(pageEdges || []));
       if (!page.pageInfo?.hasNextPage) break;
       after = page.pageInfo.endCursor || null;
+
+      // Add a delay between pagination requests to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     return edges;
@@ -672,6 +734,9 @@ export class ConfigurationRepository implements ConfigurationOperations {
       }
       if (!page?.pageInfo?.hasNextPage) break;
       after = page.pageInfo?.endCursor ?? null;
+
+      // Add a delay between attribute pagination requests to avoid rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
     // Hydrate choices per attribute with pagination
@@ -687,24 +752,29 @@ export class ConfigurationRepository implements ConfigurationOperations {
           !!item.node?.id
       );
 
-    await Promise.all(
-      attributeNodes.map(async ({ index, node }) => {
-        const choices = await this.fetchAllChoicesForAttribute(node.id);
-        const currentEdge = edges[index];
-        if (!currentEdge?.node) return;
-        const existingChoices = currentEdge.node.choices ?? ({} as RawAttributeChoiceConnection);
-        edges[index] = {
-          ...currentEdge,
-          node: {
-            ...currentEdge.node,
-            choices: {
-              ...existingChoices,
-              edges: choices,
-            },
+    // Process attributes sequentially with delays to avoid rate limiting
+    for (let i = 0; i < attributeNodes.length; i++) {
+      const { index, node } = attributeNodes[i];
+      const choices = await this.fetchAllChoicesForAttribute(node.id);
+      const currentEdge = edges[index];
+      if (!currentEdge?.node) continue;
+      const existingChoices = currentEdge.node.choices ?? ({} as RawAttributeChoiceConnection);
+      edges[index] = {
+        ...currentEdge,
+        node: {
+          ...currentEdge.node,
+          choices: {
+            ...existingChoices,
+            edges: choices,
           },
-        } as RawAttributeEdge;
-      })
-    );
+        },
+      } as RawAttributeEdge;
+
+      // Add delay between attribute choice fetches to avoid rate limiting
+      if (i < attributeNodes.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    }
 
     return { edges } as NonNullable<RawSaleorConfig["attributes"]>;
   }
@@ -712,7 +782,9 @@ export class ConfigurationRepository implements ConfigurationOperations {
   /**
    * Fetch all choices for a given attribute id
    */
-  private async fetchAllChoicesForAttribute(attributeId: string): Promise<RawAttributeChoiceEdge[]> {
+  private async fetchAllChoicesForAttribute(
+    attributeId: string
+  ): Promise<RawAttributeChoiceEdge[]> {
     const choices: RawAttributeChoiceEdge[] = [];
     let after: string | null = null;
 
