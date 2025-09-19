@@ -4,7 +4,7 @@ import { ConfigurationRepository } from "./repository";
 
 describe("ConfigurationRepository", () => {
   it("should keep product channel listings outside variant scope in pagination query", async () => {
-    const capturedDocuments: Array<any> = [];
+    const capturedDocuments: any[] = [];
 
     const mockClient: Client = {
       query: async (document) => {

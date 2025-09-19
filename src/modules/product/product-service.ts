@@ -15,10 +15,7 @@ import type {
   ProductUpdateInput,
   ProductVariant,
 } from "./repository";
-import {
-  PRODUCT_MEDIA_SOURCE_METADATA_KEY,
-  extractSourceUrlFromMetadata,
-} from "./media-metadata";
+import { extractSourceUrlFromMetadata } from "./media-metadata";
 
 export class ProductService {
   private attributeResolver: AttributeResolver;

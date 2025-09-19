@@ -1131,7 +1131,7 @@ export class ProductRepository implements ProductOperations {
     if (errors.length > 0) {
       const errorMessage = errors
         .map((error) => error.message)
-        .filter((message): message is string => Boolean(message && message.trim()))
+        .filter((message): message is string => Boolean(message?.trim()))
         .join(", ");
 
       throw new Error(
