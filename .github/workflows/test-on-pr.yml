@@ -9,28 +9,14 @@ on:
       - reopened
       - synchronize
       - labeled
-  workflow_run:
-    workflows:
-      - Changesets
-    types:
-      - completed
 
 jobs:
   test:
-    if: >-
-      ${{ github.event_name == 'pull_request' ||
-          (github.event_name == 'workflow_run' &&
-           github.event.workflow_run.conclusion == 'success' &&
-           github.event.workflow_run.event == 'pull_request' &&
-           github.event.workflow_run.pull_requests[0].head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.event.workflow_run.head_repository.full_name }}
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event.workflow_run.head_sha }}
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4

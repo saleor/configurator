@@ -45,7 +45,7 @@ pnpm test:e2e
 # Run in CI (same command is wired into .github/workflows/test-on-pr.yml)
 pnpm test:e2e:ci
 
-# Only the CI command is executed by GitHub Actions, so make sure it passes locally before pushing.
+Make sure this CI command succeeds locally before pushing to avoid waiting for the pipeline.
 ```
 
 Under the hood we spawn the CLI with `execa@9` so we hit the same `pnpm dev` entry point that developers use. The runner disables ANSI colour, enforces a 20MB buffer cap, and executes tests sequentially to avoid race conditions against the shared sandbox. Command output is stripped from ANSI codes before assertions to make snapshots reliable.
