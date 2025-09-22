@@ -1,0 +1,224 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'docs/**'
+      - 'refactor/**'
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Stage 1: Fast checks
+  lint-and-typecheck:
+    name: Lint and Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linting
+        run: pnpm lint
+
+      - name: Run type check
+        run: pnpm check:ci
+
+  # Stage 2: Unit tests
+  unit-tests:
+    name: Unit Tests
+    needs: lint-and-typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        env:
+          APP_TOKEN: test-token
+          SALEOR_API_URL: http://test.example.com
+          LOG_LEVEL: error
+        run: pnpm test:ci
+
+  # Stage 3: E2E tests (only if previous stages pass and secrets exist)
+  e2e-tests:
+    name: E2E Tests
+    needs: [lint-and-typecheck, unit-tests]
+    runs-on: ubuntu-latest
+    # Only run if secrets exist and not a fork
+    if: |
+      github.event.repository.fork == false &&
+      secrets.SALEOR_TOKEN != '' &&
+      secrets.SALEOR_URL != ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run E2E tests
+        env:
+          SALEOR_TOKEN: ${{ secrets.SALEOR_TOKEN }}
+          SALEOR_URL: ${{ secrets.SALEOR_URL }}
+        run: pnpm test:e2e:ci
+
+  # Changeset validation (PR only)
+  changeset:
+    name: Validate Changesets
+    if: |
+      github.event_name == 'pull_request' &&
+      !startsWith(github.head_ref, 'changeset-release/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate skip changeset usage
+        if: ${{ contains(github.event.pull_request.labels.*.name, 'skip changeset') }}
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_REF" --depth=1
+
+          changed_files=$(git diff --name-only FETCH_HEAD)
+          printf '%s\n' "Files changed in PR:" "$changed_files"
+
+          if [ -z "$changed_files" ]; then
+            echo "No file changes detected."
+            exit 0
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^(src/|dist/|bin/|schema\.json$|SCHEMA\.md$)'; then
+            echo "The 'skip changeset' label cannot be used when application source or schema files change."
+            exit 1
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^pnpm-lock\.yaml$'; then
+            echo "The 'skip changeset' label cannot be used when lockfiles change."
+            exit 1
+          fi
+
+          if printf '%s\n' "$changed_files" | grep -Eq '^package\.json$'; then
+            pkg_diff=$(git diff FETCH_HEAD -- package.json)
+            if printf '%s\n' "$pkg_diff" | grep -Eq '^[+-].*\"(version|dependencies|devDependencies|peerDependencies|optionalDependencies)\"'; then
+              echo "The 'skip changeset' label cannot be used when package.json version or dependencies change."
+              exit 1
+            fi
+          fi
+
+          echo "Skip changeset validation passed."
+
+      - name: Note chore exemption
+        if: ${{ startsWith(github.event.pull_request.title, 'chore:') }}
+        run: echo "Skipping changeset requirement for chore PR title."
+
+      - name: Changeset file lookup
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'skip changeset') && !startsWith(github.event.pull_request.title, 'chore:') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_ID: ${{ github.event.number }}
+        run: |
+          files=$(gh pr diff "$PR_ID" --name-only)
+          if [[ $files =~ \.changeset\/.*.md ]]; then
+            echo "Changesets found!"
+          else
+            echo "There is no changeset file in your pull request."
+            exit 1
+          fi
+
+  # Release job (main branch only, after all tests pass)
+  release:
+    name: Release
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    needs: [lint-and-typecheck, unit-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version
+          publish: pnpm run publish:ci-prod
+          title: "chore: release package"
+          commit: "chore: release package"
+          createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
