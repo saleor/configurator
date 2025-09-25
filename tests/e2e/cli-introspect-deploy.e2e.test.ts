@@ -61,7 +61,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     "--url",
     saleorUrl,
     "--token",
-    saleorToken!,
+    saleorToken || "",
     "--config",
     configPath,
     ...extra,
@@ -292,7 +292,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
     const invalidConfig = yaml.parse(await readFile(configPath, "utf-8")) as Record<string, any>;
     if (Array.isArray(invalidConfig.channels) && invalidConfig.channels[0]) {
-      delete invalidConfig.channels[0].slug;
+      invalidConfig.channels[0].slug = undefined;
     }
     await writeFile(configPath, yaml.stringify(invalidConfig), "utf-8");
 
