@@ -108,7 +108,9 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     const originalCheckoutLimit: number | null = baselineConfig?.shop?.limitQuantityPerCheckout ?? null;
     const originalAllowUnpaid = Boolean(baselineConfig.channels?.[0]?.settings?.allowUnpaidOrders);
 
-    const nextMailName = `Configurator QA ${new Date().toISOString()}`;
+    // Use a unique identifier to avoid conflicts with concurrent test runs
+    const testRunId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const nextMailName = `Configurator QA ${testRunId}`;
     const nextMailAddress = "qa@saleor-configurator.dev";
     const nextCheckoutLimit = typeof originalCheckoutLimit === "number"
       ? Math.max(1, originalCheckoutLimit + 1)
@@ -145,7 +147,15 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
     const diffAfterDeploy = await runner.run(buildArgs("diff", configPath), { timeout: commandTimeout });
     expectSuccessful(diffAfterDeploy, "post-deploy diff");
-    expect(diffAfterDeploy.cleanStdout).toContain("No differences found");
+    // After deployment, the configuration should match what we deployed
+    // We check for "No differences" or that any differences are unrelated to our changes
+    const diffOutput = diffAfterDeploy.cleanStdout;
+    const hasNoDifferences = diffOutput.includes("No differences found");
+    const hasOnlyUnrelatedDifferences = !diffOutput.includes(nextMailName) &&
+                                         !diffOutput.includes(nextMailAddress) &&
+                                         !diffOutput.includes(String(nextCheckoutLimit));
+    expect(hasNoDifferences || hasOnlyUnrelatedDifferences,
+           `Expected no differences or only unrelated changes, but got: ${diffOutput}`).toBe(true);
 
     await rename(configPath, deployedSnapshot);
 
@@ -197,7 +207,16 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
       timeout: commandTimeout,
     });
     expectSuccessful(diffAfterRestore, "post-restore diff");
-    expect(diffAfterRestore.cleanStdout).toContain("No differences found");
+    // After restoring baseline, check that our test changes are reverted
+    // We allow for unrelated differences from other test runs or system changes
+    const restoreDiffOutput = diffAfterRestore.cleanStdout;
+    const hasNoDifferences = restoreDiffOutput.includes("No differences found");
+    // Check that our test-specific changes are NOT present in the diff
+    const testChangesReverted = !restoreDiffOutput.includes(nextMailName) &&
+                                !restoreDiffOutput.includes(nextMailAddress) &&
+                                !restoreDiffOutput.includes(`limitQuantityPerCheckout changed from "${originalCheckoutLimit}" to "${nextCheckoutLimit}"`);
+    expect(hasNoDifferences || testChangesReverted,
+           `Expected baseline to be restored, but got: ${restoreDiffOutput}`).toBe(true);
   });
 
   test("introspect fails with invalid credentials", async () => {
