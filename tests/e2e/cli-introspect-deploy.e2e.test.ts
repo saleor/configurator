@@ -12,7 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import yaml from "yaml";
 
-import { createCliRunner, type CliResult } from "../../src/test-helpers/cli-runner";
+import { createCliTestRunner, type CliTestResult as CliResult } from "./helpers/cli-test-runner";
+import { CliAssertions } from "./helpers/assertions";
 
 const saleorUrl =
   process.env.CONFIGURATOR_E2E_SALEOR_URL ??
@@ -28,8 +29,7 @@ const saleorToken =
 const runE2ETests = saleorToken ? describe.sequential : describe.skip;
 
 function expectSuccessful(result: CliResult, step: string) {
-  expect(result.timedOut).toBe(false);
-  expect(result.exitCode, `CLI exited with ${result.exitCode} during ${step}: ${result.cleanStderr}`).toBe(0);
+  CliAssertions.expectSuccess(result, step);
 }
 
 function resolveTimeout(): number | undefined {
@@ -39,7 +39,7 @@ function resolveTimeout(): number | undefined {
 }
 
 runE2ETests("Saleor Configurator CLI end-to-end", () => {
-  const runner = createCliRunner({ timeout: 420_000 });
+  const runner = createCliTestRunner({ timeout: 420_000 });
   let workspaceRoot: string;
 
   const createScenario = async (label: string) => {
@@ -72,6 +72,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
   });
 
   afterAll(async () => {
+    await runner.cleanup();
     await rm(workspaceRoot, { recursive: true, force: true });
   });
 
@@ -89,7 +90,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     const deployedSnapshot = join(base, "config.deployed.yml");
     const restoredSnapshot = join(base, "config.restored.yml");
 
-    const initialIntrospect = await runner.run(
+    const initialIntrospect = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       { timeout: commandTimeout }
     );
@@ -135,17 +136,17 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     await writeFile(configPath, mutatedYaml, "utf-8");
     await writeFile(mutatedCopy, mutatedYaml, "utf-8");
 
-    const diffResult = await runner.run(buildArgs("diff", configPath), { timeout: commandTimeout });
+    const diffResult = await runner.runSafe(buildArgs("diff", configPath), { timeout: commandTimeout });
     expectSuccessful(diffResult, "diff before deploy");
     expect(diffResult.cleanStdout).toMatch(/Found \d+ differences?/);
 
-    const deployResult = await runner.run(
+    const deployResult = await runner.runSafe(
       buildArgs("deploy", configPath, "--ci", "--quiet", "--reportPath", mutatedReportPath),
       { timeout: commandTimeout }
     );
     expectSuccessful(deployResult, "deployment");
 
-    const diffAfterDeploy = await runner.run(buildArgs("diff", configPath), { timeout: commandTimeout });
+    const diffAfterDeploy = await runner.runSafe(buildArgs("diff", configPath), { timeout: commandTimeout });
     expectSuccessful(diffAfterDeploy, "post-deploy diff");
     // After deployment, the configuration should match what we deployed
     // We check for "No differences" or that any differences are unrelated to our changes
@@ -159,7 +160,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
     await rename(configPath, deployedSnapshot);
 
-    const verifyIntrospect = await runner.run(
+    const verifyIntrospect = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       { timeout: commandTimeout }
     );
@@ -175,7 +176,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     await rename(configPath, join(base, "config.remote-after-change.yml"));
     await writeFile(configPath, baselineContent, "utf-8");
 
-    const redeployResult = await runner.run(
+    const redeployResult = await runner.runSafe(
       buildArgs(
         "deploy",
         configPath,
@@ -190,7 +191,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
     await rename(configPath, restoredSnapshot);
 
-    const finalIntrospect = await runner.run(
+    const finalIntrospect = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       { timeout: commandTimeout }
     );
@@ -203,25 +204,25 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(restoredConfig.shop.limitQuantityPerCheckout ?? null).toBe(originalCheckoutLimit);
     expect(restoredConfig.channels?.[0]?.settings?.allowUnpaidOrders).toBe(originalAllowUnpaid);
 
-    const diffAfterRestore = await runner.run(buildArgs("diff", configPath), {
+    const diffAfterRestore = await runner.runSafe(buildArgs("diff", configPath), {
       timeout: commandTimeout,
     });
     expectSuccessful(diffAfterRestore, "post-restore diff");
     // After restoring baseline, check that our test changes are reverted
     // We allow for unrelated differences from other test runs or system changes
     const restoreDiffOutput = diffAfterRestore.cleanStdout;
-    const hasNoDifferences = restoreDiffOutput.includes("No differences found");
+    const hasNoDifferencesAfterRestore = restoreDiffOutput.includes("No differences found");
     // Check that our test-specific changes are NOT present in the diff
     const testChangesReverted = !restoreDiffOutput.includes(nextMailName) &&
                                 !restoreDiffOutput.includes(nextMailAddress) &&
                                 !restoreDiffOutput.includes(`limitQuantityPerCheckout changed from "${originalCheckoutLimit}" to "${nextCheckoutLimit}"`);
-    expect(hasNoDifferences || testChangesReverted,
+    expect(hasNoDifferencesAfterRestore || testChangesReverted,
            `Expected baseline to be restored, but got: ${restoreDiffOutput}`).toBe(true);
   });
 
   test("introspect fails with invalid credentials", async () => {
     const { configPath } = await createScenario("invalid-token");
-    const result = await runner.run(
+    const result = await runner.runSafe(
       [
         "introspect",
         "--url",
@@ -242,7 +243,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
   test("introspect supports selective include and exclude flows", async () => {
     const { base, configPath } = await createScenario("selective-introspect");
-    const includeResult = await runner.run(
+    const includeResult = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet", "--include", "shop,channels"),
       { timeout: resolveTimeout() }
     );
@@ -255,7 +256,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(includeConfig.products).toBeUndefined();
 
     const excludePath = join(base, "config.exclude.yml");
-    const excludeResult = await runner.run(
+    const excludeResult = await runner.runSafe(
       buildArgs("introspect", excludePath, "--quiet", "--exclude", "shop,channels"),
       { timeout: resolveTimeout() }
     );
@@ -270,7 +271,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
   test("introspect creates backups when overwriting existing config", async () => {
     const { base, configPath } = await createScenario("backups");
 
-    const firstRun = await runner.run(
+    const firstRun = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       { timeout: resolveTimeout() }
     );
@@ -282,7 +283,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     }
     await writeFile(configPath, yaml.stringify(mutatedConfig), "utf-8");
 
-    const overwriteResult = await runner.run(
+    const overwriteResult = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       {
         timeout: resolveTimeout(),
@@ -303,7 +304,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
   test("deploy surfaces validation errors for malformed configuration", async () => {
     const { configPath } = await createScenario("deploy-validation");
 
-    const initial = await runner.run(
+    const initial = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet"),
       { timeout: resolveTimeout() }
     );
@@ -315,7 +316,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     }
     await writeFile(configPath, yaml.stringify(invalidConfig), "utf-8");
 
-    const deployResult = await runner.run(
+    const deployResult = await runner.runSafe(
       buildArgs("deploy", configPath, "--ci", "--quiet"),
       { timeout: resolveTimeout() }
     );
