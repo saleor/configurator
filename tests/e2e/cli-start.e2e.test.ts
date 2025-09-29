@@ -5,9 +5,13 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
 import { fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
-// Skip interactive start command tests in CI - these test interactive prompts
+// Skip interactive start command tests - these test interactive prompts
 // Interactive mode testing is complex and not critical for validating core CLI commands
-const runE2ETests = describe.skip;
+// To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
+const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+
+console.log(`[E2E] Start command tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
 runE2ETests("CLI Start Command (Interactive Mode)", () => {
   let runner: CliTestRunner;

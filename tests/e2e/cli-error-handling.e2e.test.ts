@@ -8,6 +8,8 @@ import { fileHelpers, fixtures, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
+console.log(`[E2E] Error Handling tests: ${testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
+
 runE2ETests("CLI Error Handling", () => {
   let runner: CliTestRunner;
   let workspaceRoot: string;

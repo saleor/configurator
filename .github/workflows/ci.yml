@@ -121,6 +121,7 @@ jobs:
         env:
           SALEOR_TOKEN: ${{ secrets.SALEOR_TOKEN }}
           SALEOR_URL: ${{ secrets.SALEOR_URL }}
+          SKIP_HEAVY_TESTS: 'true'
         run: pnpm test:e2e:ci
 
   # Changeset validation (PR only)

@@ -5,9 +5,13 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest"
 import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
 import { ConfigBuilder, fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
-// Skip streaming/real-time output tests in CI - these test advanced UI features
+// Skip streaming/real-time output tests - these test advanced UI features
 // These tests focus on progress indicators and output buffering, not core functionality
-const runE2ETests = describe.skip;
+// To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
+const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+
+console.log(`[E2E] Streaming tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
 runE2ETests("CLI Streaming and Real-time Output", () => {
   let runner: CliTestRunner;

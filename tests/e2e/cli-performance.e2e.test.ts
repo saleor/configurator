@@ -11,9 +11,13 @@ import {
 import { fileHelpers, fixtures, generators, testEnv, scenarios } from "./helpers/fixtures";
 import type { TestConfig } from "./helpers/types";
 
-// Skip performance benchmarks in CI - these are for local development only
+// Skip performance benchmarks - these are for local development only
 // Performance tests take 5+ minutes and are not critical for validating core functionality
-const runE2ETests = describe.skip;
+// To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
+const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+
+console.log(`[E2E] Performance tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
 interface PerformanceMetrics {
   command: string;

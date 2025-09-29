@@ -19,6 +19,9 @@ const saleorToken =
 
 const runE2ETests = saleorToken ? describe.sequential : describe.skip;
 
+console.log(`[E2E] Introspect/Deploy tests: ${saleorToken ? "RUNNING" : "SKIPPED (no SALEOR_TOKEN)"}`);
+console.log(`[E2E] Using Saleor URL: ${saleorUrl}`);
+
 function expectSuccessful(result: CliResult, step: string) {
   CliAssertions.expectSuccess(result, step);
 }

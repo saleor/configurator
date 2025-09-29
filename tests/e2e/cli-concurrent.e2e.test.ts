@@ -6,9 +6,13 @@ import { CliAssertions } from "./helpers/assertions";
 import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
 import { fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
-// Skip concurrent execution tests in CI - these test edge cases with parallel commands
+// Skip concurrent execution tests - these test edge cases with parallel commands
 // These tests are complex and not critical for validating core CLI functionality
-const runE2ETests = describe.skip;
+// To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
+const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+
+console.log(`[E2E] Concurrent tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
 runE2ETests("CLI Concurrent Execution", () => {
   let runner: CliTestRunner;
