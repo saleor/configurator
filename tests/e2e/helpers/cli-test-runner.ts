@@ -107,6 +107,10 @@ export class CliTestRunner extends EventEmitter {
     const startTime = performance.now();
     const reject = options.reject ?? false;
 
+    // Log the command being executed
+    const cmdString = `${this.executable} ${commandArgs.join(' ')}`;
+    console.log(`  $ ${cmdString.substring(0, 120)}${cmdString.length > 120 ? '...' : ''}`);
+
     const execaOptions: ExecaOptions = {
       timeout: options.timeout ?? this.defaultTimeout,
       env: {

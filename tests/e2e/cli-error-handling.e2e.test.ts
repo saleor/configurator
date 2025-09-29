@@ -21,8 +21,9 @@ runE2ETests("CLI Error Handling", () => {
     workspaceRoot = await mkdtemp(join(tmpdir(), "configurator-errors-e2e-"));
   });
 
-  beforeEach(async () => {
+  beforeEach(async (context) => {
     testDir = await mkdtemp(join(workspaceRoot, "test-"));
+    console.log(`\n▶ Running: ${context.task.name}`);
   });
 
   afterAll(async () => {

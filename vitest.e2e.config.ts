@@ -12,6 +12,7 @@ export default defineConfig({
     minWorkers: 1,
     maxWorkers: 1,
     retry: isCI ? 1 : 0,
+    silent: false, // Allow console.log statements to show
     poolOptions: {
       threads: {
         singleThread: true,

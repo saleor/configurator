@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import yaml from "yaml";
 import { CliAssertions } from "./helpers/assertions";
 import { type CliTestResult as CliResult, createCliTestRunner } from "./helpers/cli-test-runner";
@@ -63,6 +63,10 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
 
   beforeAll(async () => {
     workspaceRoot = await mkdtemp(join(tmpdir(), "saleor-configurator-e2e-"));
+  });
+
+  beforeEach(async (context) => {
+    console.log(`\n▶ Running: ${context.task.name}`);
   });
 
   afterAll(async () => {
