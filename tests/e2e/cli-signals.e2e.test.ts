@@ -1,11 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { mkdtemp, rm, readFile, readdir } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import yaml from "yaml";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers } from "./helpers/fixtures";
-import { CliAssertions, testHelpers } from "./helpers/assertions";
-import yaml from "yaml";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
+import { fileHelpers, fixtures, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -81,15 +80,16 @@ runE2ETests("CLI Signal Handling", () => {
       expect(result.isTerminated || result.isCanceled).toBe(true);
 
       // Should show graceful shutdown message
-      const outputHasShutdown = result.cleanStderr.toLowerCase().includes("interrupt") ||
-                               result.cleanStderr.toLowerCase().includes("cancel") ||
-                               result.cleanStderr.toLowerCase().includes("stopping");
+      const _outputHasShutdown =
+        result.cleanStderr.toLowerCase().includes("interrupt") ||
+        result.cleanStderr.toLowerCase().includes("cancel") ||
+        result.cleanStderr.toLowerCase().includes("stopping");
       // May or may not show message depending on timing
     });
 
     test("cleans up resources on SIGINT", async () => {
       const configPath = join(testDir, "config.yml");
-      const tempFiles: string[] = [];
+      const _tempFiles: string[] = [];
 
       // Track created files
       const originalFiles = await readdir(testDir);
@@ -112,9 +112,8 @@ runE2ETests("CLI Signal Handling", () => {
 
       // Check for any leftover temp files
       const afterFiles = await readdir(testDir);
-      const orphanedFiles = afterFiles.filter(f =>
-        !originalFiles.includes(f) &&
-        (f.includes(".tmp") || f.includes(".partial"))
+      const orphanedFiles = afterFiles.filter(
+        (f) => !originalFiles.includes(f) && (f.includes(".tmp") || f.includes(".partial"))
       );
 
       // Should not leave orphaned temp files
@@ -126,18 +125,21 @@ runE2ETests("CLI Signal Handling", () => {
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
       // Start a long-running operation
-      const subprocess = runner.run([
-        "deploy",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--ci",
-      ], {
-        reject: false,
-      });
+      const subprocess = runner.run(
+        [
+          "deploy",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--ci",
+        ],
+        {
+          reject: false,
+        }
+      );
 
       // Send multiple SIGINTs
       setTimeout(() => {
@@ -220,7 +222,7 @@ runE2ETests("CLI Signal Handling", () => {
   });
 
   describe("SIGHUP Handling", () => {
-    test("handles SIGHUP appropriately", async function() {
+    test("handles SIGHUP appropriately", async function () {
       // Skip on Windows where SIGHUP doesn't exist
       if (process.platform === "win32") {
         this.skip();
@@ -275,7 +277,7 @@ runE2ETests("CLI Signal Handling", () => {
           configPath,
         ]);
 
-        for await (const { type, line } of streamIterator) {
+        for await (const { line } of streamIterator) {
           if (line.includes("Fetching") || line.includes("Processing")) {
             operationStarted = true;
           }
@@ -287,13 +289,10 @@ runE2ETests("CLI Signal Handling", () => {
       })();
 
       // Wait a bit then try to interrupt
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // If operation is fast enough, it might complete
-      await Promise.race([
-        streamPromise,
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
+      await Promise.race([streamPromise, new Promise((resolve) => setTimeout(resolve, 5000))]);
 
       // Operation should have started
       expect(operationStarted || operationCompleted).toBe(true);
@@ -301,7 +300,7 @@ runE2ETests("CLI Signal Handling", () => {
 
     test("prevents data corruption on interrupt", async () => {
       const configPath = join(testDir, "config.yml");
-      const backupPath = join(testDir, "config.backup.yml");
+      const _backupPath = join(testDir, "config.backup.yml");
 
       // Create initial config
       const initialConfig = fixtures.validConfig;
@@ -333,7 +332,7 @@ runE2ETests("CLI Signal Handling", () => {
           const parsed = yaml.parse(configContent);
           expect(parsed).toBeDefined();
         }
-      } catch (error) {
+      } catch (_error) {
         // File might not exist if interrupted early, which is fine
       }
     });
@@ -396,7 +395,7 @@ runE2ETests("CLI Signal Handling", () => {
       });
 
       // Start writing large config and interrupt
-      const writePromise = fileHelpers.createTempConfig(testDir, largeConfig);
+      const _writePromise = fileHelpers.createTempConfig(testDir, largeConfig);
 
       const result = await runner.runWithSignal(
         [
@@ -418,70 +417,89 @@ runE2ETests("CLI Signal Handling", () => {
 
   describe("Child Process Management", () => {
     test("terminates child processes on signal", async () => {
-      const configPath = join(testDir, "config.yml");
+      const _configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
       // Track active processes before
-      const initialProcessCount = runner["activeProcesses"].size;
+      const initialProcessCount = (runner as any).activeProcesses.size;
 
       // Start multiple operations
       const promises = [
         runner.runWithSignal(
-          ["introspect", "--url", saleorConfig.url, "--token", saleorConfig.token!, "--config", join(testDir, "config1.yml")],
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            join(testDir, "config1.yml"),
+          ],
           "SIGTERM",
           2000
         ),
         runner.runWithSignal(
-          ["introspect", "--url", saleorConfig.url, "--token", saleorConfig.token!, "--config", join(testDir, "config2.yml")],
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            join(testDir, "config2.yml"),
+          ],
           "SIGTERM",
           2000
         ),
       ];
 
       // Wait a bit for processes to start
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Should have active processes
-      expect(runner["activeProcesses"].size).toBeGreaterThan(initialProcessCount);
+      expect((runner as any).activeProcesses.size).toBeGreaterThan(initialProcessCount);
 
       // Wait for all to complete
-      await Promise.all(promises.map(p => p.catch(() => {})));
+      await Promise.all(promises.map((p) => p.catch(() => {})));
 
       // All processes should be cleaned up
-      expect(runner["activeProcesses"].size).toBe(initialProcessCount);
+      expect((runner as any).activeProcesses.size).toBe(initialProcessCount);
     });
 
     test("cleanup() terminates all active processes", async () => {
       const configs = Array.from({ length: 3 }, (_, i) => join(testDir, `config${i}.yml`));
 
       // Start multiple long-running operations
-      const promises = configs.map(config =>
-        runner.run([
-          "introspect",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          config,
-        ], {
-          reject: false,
-        })
+      const promises = configs.map((config) =>
+        runner.run(
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            config,
+          ],
+          {
+            reject: false,
+          }
+        )
       );
 
       // Give them time to start
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Clean up all processes
       await runner.cleanup();
 
       // All processes should terminate
       const results = await Promise.all(promises);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.exitCode).toBeDefined();
       });
 
-      expect(runner["activeProcesses"].size).toBe(0);
+      expect((runner as any).activeProcesses.size).toBe(0);
     });
   });
 

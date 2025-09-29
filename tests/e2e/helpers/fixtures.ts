@@ -1,6 +1,14 @@
-import yaml from "yaml";
-import { writeFile, mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import yaml from "yaml";
+import type {
+  ChannelConfig,
+  ConfigSizeParams,
+  ConfigUpdater,
+  ShopConfig,
+  TaxClassConfig,
+  TestConfig,
+} from "./types";
 
 /**
  * Test fixture data for e2e tests
@@ -121,13 +129,8 @@ export const fixtures = {
    * Large configuration for performance testing
    */
   largeConfig: {
-    generateLarge: (size: {
-      channels?: number;
-      products?: number;
-      warehouses?: number;
-      categories?: number;
-    }) => {
-      const config: any = {
+    generateLarge: (size: ConfigSizeParams): TestConfig => {
+      const config: TestConfig = {
         shop: fixtures.validConfig.shop,
         channels: [],
         products: [],
@@ -188,30 +191,30 @@ export const fixtures = {
    * Configuration mutations for testing updates
    */
   mutations: {
-    updateShopEmail: (config: any, email: string) => ({
+    updateShopEmail: (config: TestConfig, email: string): TestConfig => ({
       ...config,
       shop: {
         ...config.shop,
         defaultMailSenderAddress: email,
       },
     }),
-    addChannel: (config: any, channel: any) => ({
+    addChannel: (config: TestConfig, channel: ChannelConfig): TestConfig => ({
       ...config,
       channels: [...(config.channels || []), channel],
     }),
-    removeChannel: (config: any, slug: string) => ({
+    removeChannel: (config: TestConfig, slug: string): TestConfig => ({
       ...config,
-      channels: config.channels?.filter((c: any) => c.slug !== slug) || [],
+      channels: config.channels?.filter((c) => c.slug !== slug) || [],
     }),
-    updateTaxRate: (config: any, className: string, rate: number) => ({
+    updateTaxRate: (config: TestConfig, className: string, rate: number): TestConfig => ({
       ...config,
       taxes: {
         ...config.taxes,
-        taxClasses: config.taxes?.taxClasses?.map((tc: any) =>
+        taxClasses: config.taxes?.taxClasses?.map((tc) =>
           tc.name === className
             ? {
                 ...tc,
-                rates: tc.rates.map((r: any) => ({ ...r, rate })),
+                rates: tc.rates.map((r) => ({ ...r, rate })),
               }
             : tc
         ),
@@ -259,7 +262,7 @@ export const scenarios = {
   /**
    * Create test-specific mutations
    */
-  withTestId: (config: any, testId: string) => ({
+  withTestId: (config: TestConfig, testId: string): TestConfig => ({
     ...config,
     shop: {
       ...config.shop,
@@ -272,39 +275,39 @@ export const scenarios = {
  * Helper to create test configuration files
  */
 export class ConfigBuilder {
-  private config: any = {};
+  private config: TestConfig = {};
 
-  static from(base: any): ConfigBuilder {
+  static from(base: TestConfig): ConfigBuilder {
     const builder = new ConfigBuilder();
     builder.config = structuredClone(base);
     return builder;
   }
 
-  withShop(shop: any): this {
+  withShop(shop: Partial<ShopConfig>): this {
     this.config.shop = { ...this.config.shop, ...shop };
     return this;
   }
 
-  withChannel(channel: any): this {
+  withChannel(channel: ChannelConfig): this {
     this.config.channels = this.config.channels || [];
     this.config.channels.push(channel);
     return this;
   }
 
-  withWarehouse(warehouse: any): this {
+  withWarehouse(warehouse: Partial<TestConfig["warehouses"]>[0]): this {
     this.config.warehouses = this.config.warehouses || [];
     this.config.warehouses.push(warehouse);
     return this;
   }
 
-  withTaxClass(taxClass: any): this {
+  withTaxClass(taxClass: TaxClassConfig): this {
     this.config.taxes = this.config.taxes || {};
     this.config.taxes.taxClasses = this.config.taxes.taxClasses || [];
     this.config.taxes.taxClasses.push(taxClass);
     return this;
   }
 
-  build(): any {
+  build(): TestConfig {
     return structuredClone(this.config);
   }
 
@@ -328,13 +331,15 @@ export const testEnv = {
    * Get Saleor connection details
    */
   getSaleorConfig: () => ({
-    url: process.env.CONFIGURATOR_E2E_SALEOR_URL ||
-         process.env.SALEOR_E2E_URL ||
-         process.env.SALEOR_URL ||
-         "https://sandbox-a.staging.saleor.cloud/graphql/",
-    token: process.env.CONFIGURATOR_E2E_SALEOR_TOKEN ||
-           process.env.SALEOR_E2E_TOKEN ||
-           process.env.SALEOR_TOKEN,
+    url:
+      process.env.CONFIGURATOR_E2E_SALEOR_URL ||
+      process.env.SALEOR_E2E_URL ||
+      process.env.SALEOR_URL ||
+      "https://sandbox-a.staging.saleor.cloud/graphql/",
+    token:
+      process.env.CONFIGURATOR_E2E_SALEOR_TOKEN ||
+      process.env.SALEOR_E2E_TOKEN ||
+      process.env.SALEOR_TOKEN,
   }),
 
   /**
@@ -401,7 +406,7 @@ export const fileHelpers = {
   /**
    * Create temporary config file
    */
-  createTempConfig: async (dir: string, config: any, name = "config.yml") => {
+  createTempConfig: async (dir: string, config: TestConfig, name = "config.yml") => {
     const path = join(dir, name);
     await mkdir(dir, { recursive: true });
     await writeFile(path, yaml.stringify(config), "utf-8");
@@ -419,7 +424,7 @@ export const fileHelpers = {
   /**
    * Update config file
    */
-  updateConfig: async (path: string, updater: (config: any) => any) => {
+  updateConfig: async (path: string, updater: ConfigUpdater) => {
     const config = await fileHelpers.readConfig(path);
     const updated = updater(config);
     await writeFile(path, yaml.stringify(updated), "utf-8");

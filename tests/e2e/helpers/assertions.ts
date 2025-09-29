@@ -181,7 +181,7 @@ export const cliMatchers = {
  * Extend Vitest's expect with custom matchers
  */
 declare module "vitest" {
-  interface Assertion<T = any> {
+  interface Assertion {
     toSucceed(): void;
     toFail(): void;
     toFailWithCode(code: number): void;
@@ -215,100 +215,115 @@ expect.extend(cliMatchers);
 /**
  * Common test assertions
  */
-export class CliAssertions {
+export const CliAssertions = {
   /**
    * Assert successful command execution
    */
-  static expectSuccess(result: CliTestResult, context?: string) {
+  expectSuccess(result: CliTestResult, context?: string) {
     expect(result.timedOut).toBe(false);
-    expect(result.exitCode, context ? `${context}: ${result.cleanStderr}` : result.cleanStderr).toBe(0);
+    expect(
+      result.exitCode,
+      context ? `${context}: ${result.cleanStderr}` : result.cleanStderr
+    ).toBe(0);
     expect(result.success).toBe(true);
-  }
+  },
 
   /**
    * Assert command failure
    */
-  static expectFailure(result: CliTestResult, expectedCode?: number) {
+  expectFailure(result: CliTestResult, expectedCode?: number) {
     expect(result.success).toBe(false);
     if (expectedCode !== undefined) {
       expect(result.exitCode).toBe(expectedCode);
     } else {
       expect(result.exitCode).not.toBe(0);
     }
-  }
+  },
 
   /**
    * Assert command output contains text
    */
-  static expectOutput(result: CliTestResult, expected: string | RegExp, stream: "stdout" | "stderr" = "stdout") {
+  expectOutput(
+    result: CliTestResult,
+    expected: string | RegExp,
+    stream: "stdout" | "stderr" = "stdout"
+  ) {
     const output = stream === "stdout" ? result.cleanStdout : result.cleanStderr;
     if (typeof expected === "string") {
       expect(output).toContain(expected);
     } else {
       expect(output).toMatch(expected);
     }
-  }
+  },
 
   /**
    * Assert command output does not contain text
    */
-  static expectNoOutput(result: CliTestResult, unexpected: string | RegExp, stream: "stdout" | "stderr" = "stdout") {
+  expectNoOutput(
+    result: CliTestResult,
+    unexpected: string | RegExp,
+    stream: "stdout" | "stderr" = "stdout"
+  ) {
     const output = stream === "stdout" ? result.cleanStdout : result.cleanStderr;
     if (typeof unexpected === "string") {
       expect(output).not.toContain(unexpected);
     } else {
       expect(output).not.toMatch(unexpected);
     }
-  }
+  },
 
   /**
    * Assert command completed quickly
    */
-  static expectFastCompletion(result: CliTestResult, maxMs: number = 5000) {
+  expectFastCompletion(result: CliTestResult, maxMs: number = 5000) {
     expect(result.duration).toBeLessThan(maxMs);
-  }
+  },
 
   /**
    * Assert validation error
    */
-  static expectValidationError(result: CliTestResult) {
+  expectValidationError(result: CliTestResult) {
     expect(result.success).toBe(false);
     expect(result.exitCode).toBe(4); // Validation error code
     expect(result.cleanStderr.toLowerCase()).toMatch(/validation/i);
-  }
+  },
 
   /**
    * Assert permission error
    */
-  static expectPermissionError(result: CliTestResult) {
+  expectPermissionError(result: CliTestResult) {
     expect(result.success).toBe(false);
     expect(result.cleanStderr.toLowerCase()).toMatch(/(permission|unauthorized|forbidden|token)/i);
-  }
+  },
 
   /**
    * Assert network error
    */
-  static expectNetworkError(result: CliTestResult) {
+  expectNetworkError(result: CliTestResult) {
     expect(result.success).toBe(false);
-    expect(result.cleanStderr.toLowerCase()).toMatch(/(network|connection|timeout|enotfound|econnrefused)/i);
-  }
+    expect(result.cleanStderr.toLowerCase()).toMatch(
+      /(network|connection|timeout|enotfound|econnrefused)/i
+    );
+  },
 
   /**
    * Assert file system error
    */
-  static expectFileSystemError(result: CliTestResult) {
+  expectFileSystemError(result: CliTestResult) {
     expect(result.success).toBe(false);
-    expect(result.cleanStderr.toLowerCase()).toMatch(/(enoent|eacces|eisdir|enotdir|file|directory)/i);
-  }
+    expect(result.cleanStderr.toLowerCase()).toMatch(
+      /(enoent|eacces|eisdir|enotdir|file|directory)/i
+    );
+  },
 
   /**
    * Assert configuration error
    */
-  static expectConfigError(result: CliTestResult) {
+  expectConfigError(result: CliTestResult) {
     expect(result.success).toBe(false);
     expect(result.cleanStderr.toLowerCase()).toMatch(/(config|configuration|yaml|invalid)/i);
-  }
-}
+  },
+};
 
 /**
  * Test helpers for common patterns
@@ -362,12 +377,12 @@ export const testHelpers = {
       } catch (error) {
         lastError = error as Error;
         if (i < retries) {
-          await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(backoff, i)));
+          await new Promise((resolve) => setTimeout(resolve, delay * backoff ** i));
         }
       }
     }
 
-    throw lastError!;
+    throw lastError;
   },
 
   /**

@@ -1,10 +1,15 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner, type CommandMetrics } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers, ConfigBuilder } from "./helpers/fixtures";
-import { CliAssertions, testHelpers } from "./helpers/assertions";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { testHelpers } from "./helpers/assertions";
+import {
+  type CliTestRunner,
+  type CommandMetrics,
+  createCliTestRunner,
+} from "./helpers/cli-test-runner";
+import { fileHelpers, fixtures, generators, testEnv, scenarios } from "./helpers/fixtures";
+import type { TestConfig } from "./helpers/types";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -29,12 +34,15 @@ runE2ETests("CLI Performance Benchmarks", () => {
     workspaceRoot = await mkdtemp(join(tmpdir(), "configurator-performance-e2e-"));
 
     // Collect metrics
-    runner.on("metrics", (metrics: CommandMetrics) => {
+    runner.on("metrics", (metrics: CommandMetrics & { command?: string }) => {
       const key = metrics.command || "unknown";
       if (!performanceResults.has(key)) {
         performanceResults.set(key, []);
       }
-      performanceResults.get(key)!.push(metrics as PerformanceMetrics);
+      performanceResults.get(key)?.push({
+        ...metrics,
+        command: key,
+      } as PerformanceMetrics);
     });
   });
 
@@ -59,18 +67,21 @@ runE2ETests("CLI Performance Benchmarks", () => {
       const configPath = join(testDir, "config.yml");
 
       const { result, duration } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "introspect",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-          "--include",
-          "shop,channels",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+            "--include",
+            "shop,channels",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       expect(result).toSucceed();
@@ -86,16 +97,19 @@ runE2ETests("CLI Performance Benchmarks", () => {
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
       const { result, duration } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "diff",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "diff",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       expect(result).toSucceed();
@@ -106,24 +120,24 @@ runE2ETests("CLI Performance Benchmarks", () => {
       const configPath = join(testDir, "config.yml");
 
       // Small change
-      const config = fixtures.mutations.updateShopEmail(
-        fixtures.validConfig,
-        generators.email()
-      );
+      const config = fixtures.mutations.updateShopEmail(fixtures.validConfig, generators.email());
       await fileHelpers.createTempConfig(testDir, config);
 
       const { result, duration } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "deploy",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--ci",
-          "--quiet",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "deploy",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--ci",
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       if (!result.cleanStdout.includes("No differences found")) {
@@ -146,18 +160,21 @@ runE2ETests("CLI Performance Benchmarks", () => {
         const configPath = join(testDir, `config-${testCase.modules.length}.yml`);
 
         const { result, duration } = await testHelpers.measureTime(async () =>
-          runner.run([
-            "introspect",
-            "--url",
-            saleorConfig.url,
-            "--token",
-            saleorConfig.token || "test-token",
-            "--config",
-            configPath,
-            "--quiet",
-            "--include",
-            testCase.modules.join(","),
-          ], { collectMetrics: true })
+          runner.run(
+            [
+              "introspect",
+              "--url",
+              saleorConfig.url,
+              "--token",
+              saleorConfig.token || "test-token",
+              "--config",
+              configPath,
+              "--quiet",
+              "--include",
+              testCase.modules.join(","),
+            ],
+            { collectMetrics: true }
+          )
         );
 
         expect(result).toSucceed();
@@ -194,17 +211,20 @@ runE2ETests("CLI Performance Benchmarks", () => {
           `config-${size.channels}-${size.products}.yml`
         );
 
-        const { result, duration } = await testHelpers.measureTime(async () =>
-          runner.run([
-            "diff",
-            "--url",
-            saleorConfig.url,
-            "--token",
-            saleorConfig.token || "test-token",
-            "--config",
-            configPath,
-            "--quiet",
-          ], { collectMetrics: true })
+        const { duration } = await testHelpers.measureTime(async () =>
+          runner.run(
+            [
+              "diff",
+              "--url",
+              saleorConfig.url,
+              "--token",
+              saleorConfig.token || "test-token",
+              "--config",
+              configPath,
+              "--quiet",
+            ],
+            { collectMetrics: true }
+          )
         );
 
         timings[`${size.channels}-${size.products}`] = duration;
@@ -230,16 +250,19 @@ runE2ETests("CLI Performance Benchmarks", () => {
 
       const initialMemory = process.memoryUsage();
 
-      const result = await runner.run([
-        "diff",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--quiet",
-      ], { collectMetrics: true });
+      const result = await runner.run(
+        [
+          "diff",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--quiet",
+        ],
+        { collectMetrics: true }
+      );
 
       const finalMemory = process.memoryUsage();
 
@@ -266,7 +289,7 @@ runE2ETests("CLI Performance Benchmarks", () => {
 
       // Create configs
       await Promise.all(
-        configs.map(({ path, config }, i) =>
+        configs.map(({ config }, i) =>
           fileHelpers.createTempConfig(testDir, config, `mem-test-${i}.yml`)
         )
       );
@@ -304,10 +327,7 @@ runE2ETests("CLI Performance Benchmarks", () => {
       const configPath = join(testDir, "config.yml");
 
       // Multiple network operations
-      const operations = [
-        "introspect",
-        "diff",
-      ];
+      const operations = ["introspect", "diff"];
 
       const networkTimings: Record<string, number> = {};
 
@@ -317,17 +337,20 @@ runE2ETests("CLI Performance Benchmarks", () => {
         }
 
         const { result, duration } = await testHelpers.measureTime(async () =>
-          runner.run([
-            op,
-            "--url",
-            saleorConfig.url,
-            "--token",
-            saleorConfig.token || "test-token",
-            "--config",
-            configPath,
-            "--quiet",
-            ...(op === "introspect" ? ["--include", "shop"] : []),
-          ], { collectMetrics: true })
+          runner.run(
+            [
+              op,
+              "--url",
+              saleorConfig.url,
+              "--token",
+              saleorConfig.token || "test-token",
+              "--config",
+              configPath,
+              "--quiet",
+              ...(op === "introspect" ? ["--include", "shop"] : []),
+            ],
+            { collectMetrics: true }
+          )
         );
 
         expect(result).toSucceed();
@@ -335,7 +358,7 @@ runE2ETests("CLI Performance Benchmarks", () => {
       }
 
       // Network operations should complete in reasonable time
-      Object.entries(networkTimings).forEach(([op, time]) => {
+      Object.entries(networkTimings).forEach(([_op, time]) => {
         expect(time).toBeLessThan(30_000); // 30 seconds max
       });
     });
@@ -345,18 +368,21 @@ runE2ETests("CLI Performance Benchmarks", () => {
 
       // Introspect multiple modules (should batch efficiently)
       const { result, duration } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "introspect",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-          "--include",
-          "shop,channels,warehouses,shippingZones",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+            "--include",
+            "shop,channels,warehouses,shippingZones",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       expect(result).toSucceed();
@@ -378,7 +404,7 @@ runE2ETests("CLI Performance Benchmarks", () => {
         categories: 100,
       });
 
-      const { result: writeResult, duration: writeDuration } = await testHelpers.measureTime(
+      const { duration: writeDuration } = await testHelpers.measureTime(
         async () => fileHelpers.createTempConfig(testDir, largeConfig, "large-output.yml")
       );
 
@@ -387,16 +413,19 @@ runE2ETests("CLI Performance Benchmarks", () => {
 
       // Introspect to large file
       const { result, duration } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "introspect",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       expect(result).toSucceed();
@@ -410,12 +439,8 @@ runE2ETests("CLI Performance Benchmarks", () => {
       const startTime = performance.now();
 
       for (let i = 0; i < iterations; i++) {
-        const configPath = join(testDir, `small-${i}.yml`);
-        await fileHelpers.createTempConfig(
-          testDir,
-          fixtures.scenarios.minimal(),
-          `small-${i}.yml`
-        );
+        const _configPath = join(testDir, `small-${i}.yml`);
+        await fileHelpers.createTempConfig(testDir, scenarios.minimal(), `small-${i}.yml`);
       }
 
       const totalTime = performance.now() - startTime;
@@ -433,30 +458,36 @@ runE2ETests("CLI Performance Benchmarks", () => {
 
       // First run (cold cache)
       const { duration: firstRun } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "diff",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "diff",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       // Second run (potentially warm cache)
       const { duration: secondRun } = await testHelpers.measureTime(async () =>
-        runner.run([
-          "diff",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-        ], { collectMetrics: true })
+        runner.run(
+          [
+            "diff",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        )
       );
 
       // Second run might be faster due to caching
@@ -493,22 +524,28 @@ runE2ETests("CLI Performance Benchmarks", () => {
         const iterationStart = performance.now();
         const configPath = join(testDir, `stress-${Date.now()}.yml`);
 
-        await fileHelpers.createTempConfig(
-          testDir,
-          fixtures.scenarios.minimal(),
-          `stress-${Date.now()}.yml`
-        );
+        const minimalConfig: TestConfig = {
+          shop: {
+            defaultMailSenderName: "Minimal Shop",
+            defaultMailSenderAddress: "minimal@test.com",
+          },
+          channels: [{ slug: "default", name: "Default", currencyCode: "USD" }],
+        };
+        await fileHelpers.createTempConfig(testDir, minimalConfig, `stress-${Date.now()}.yml`);
 
-        const result = await runner.runSafe([
-          "diff",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          configPath,
-          "--quiet",
-        ], { collectMetrics: true });
+        const _result = await runner.runSafe(
+          [
+            "diff",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            configPath,
+            "--quiet",
+          ],
+          { collectMetrics: true }
+        );
 
         results.push({
           command: "diff",
@@ -516,7 +553,7 @@ runE2ETests("CLI Performance Benchmarks", () => {
         });
 
         // Small delay between iterations
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
 
       // Performance should remain stable
@@ -538,22 +575,25 @@ runE2ETests("CLI Performance Benchmarks", () => {
       const configPath = join(testDir, "metrics.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig, "metrics.yml");
 
-      await runner.run([
-        "diff",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--quiet",
-      ], { collectMetrics: true });
+      await runner.run(
+        [
+          "diff",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--quiet",
+        ],
+        { collectMetrics: true }
+      );
 
       const metrics = runner.getMetrics();
       expect(metrics.size).toBeGreaterThan(0);
 
       // Check metric structure
-      for (const [key, metric] of metrics.entries()) {
+      for (const [_key, metric] of metrics.entries()) {
         expect(metric).toHaveProperty("duration");
         expect(metric).toHaveProperty("exitCode");
         expect(metric.duration).toBeGreaterThan(0);

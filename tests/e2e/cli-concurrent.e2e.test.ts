@@ -1,11 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers, ConfigBuilder } from "./helpers/fixtures";
-import { CliAssertions, testHelpers } from "./helpers/assertions";
-import yaml from "yaml";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { CliAssertions } from "./helpers/assertions";
+import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
+import { fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -38,7 +37,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
       const startTime = performance.now();
       const results = await runner.runConcurrent(
-        configs.map(config => ({
+        configs.map((config) => ({
           args: [
             "introspect",
             "--url",
@@ -57,7 +56,7 @@ runE2ETests("CLI Concurrent Execution", () => {
       const totalTime = performance.now() - startTime;
 
       // All should succeed
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result).toSucceed();
       });
 
@@ -75,7 +74,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
     test("runs different commands concurrently", async () => {
       // Create initial configs for diff/deploy
-      const deployConfig = join(testDir, "deploy-config.yml");
+      const _deployConfig = join(testDir, "deploy-config.yml");
       const diffConfig = join(testDir, "diff-config.yml");
       const introspectConfig = join(testDir, "introspect-config.yml");
 
@@ -85,11 +84,7 @@ runE2ETests("CLI Concurrent Execution", () => {
         "deploy-config.yml"
       );
 
-      await fileHelpers.createTempConfig(
-        testDir,
-        fixtures.validConfig,
-        "diff-config.yml"
-      );
+      await fileHelpers.createTempConfig(testDir, fixtures.validConfig, "diff-config.yml");
 
       const results = await runner.runConcurrent([
         {
@@ -122,7 +117,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
       // Check results
       expect(results).toHaveLength(2);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.exitCode).toBeDefined();
       });
     });
@@ -135,7 +130,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
       // Run with controlled concurrency
       const results = await runner.runConcurrent(
-        configs.map(path => ({
+        configs.map((path) => ({
           args: [
             "introspect",
             "--url",
@@ -153,14 +148,14 @@ runE2ETests("CLI Concurrent Execution", () => {
       );
 
       // Most should succeed, some might hit rate limits
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
       expect(successCount).toBeGreaterThan(0);
 
       // If any failed due to rate limiting, they should have appropriate errors
-      const rateLimitedResults = results.filter(r =>
-        !r.success && r.cleanStderr.toLowerCase().includes("rate")
+      const rateLimitedResults = results.filter(
+        (r) => !r.success && r.cleanStderr.toLowerCase().includes("rate")
       );
-      rateLimitedResults.forEach(result => {
+      rateLimitedResults.forEach((result) => {
         expect(result.cleanStderr.toLowerCase()).toMatch(/(rate|limit|throttle)/i);
       });
     });
@@ -188,7 +183,7 @@ runE2ETests("CLI Concurrent Execution", () => {
       );
 
       // All should complete (reads are safe)
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.exitCode).toBeDefined();
       });
     });
@@ -213,7 +208,7 @@ runE2ETests("CLI Concurrent Execution", () => {
       );
 
       // At least one should succeed
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
       expect(successCount).toBeGreaterThanOrEqual(1);
 
       // Check final config is valid
@@ -234,7 +229,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
         const startTime = performance.now();
         await runner.runConcurrent(
-          configs.map(path => ({
+          configs.map((path) => ({
             args: [
               "introspect",
               "--url",
@@ -297,7 +292,7 @@ runE2ETests("CLI Concurrent Execution", () => {
 
       // Both should complete
       expect(results).toHaveLength(2);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.exitCode).toBeDefined();
       });
     });
@@ -365,7 +360,7 @@ runE2ETests("CLI Concurrent Execution", () => {
       }));
 
       const results = await runner.runConcurrent(
-        configs.map(config => ({
+        configs.map((config) => ({
           args: [
             "introspect",
             "--url",
@@ -385,14 +380,14 @@ runE2ETests("CLI Concurrent Execution", () => {
       expect(results).toHaveLength(5);
 
       // Some should succeed, some should fail
-      const successes = results.filter(r => r.success);
-      const failures = results.filter(r => !r.success);
+      const successes = results.filter((r) => r.success);
+      const failures = results.filter((r) => !r.success);
 
       expect(successes.length).toBeGreaterThan(0);
       expect(failures.length).toBeGreaterThan(0);
 
       // Check failure reasons
-      failures.forEach(result => {
+      failures.forEach((result) => {
         CliAssertions.expectNetworkError(result);
       });
     });
@@ -400,8 +395,9 @@ runE2ETests("CLI Concurrent Execution", () => {
 
   describe("Scenario Building", () => {
     test("builds complex scenarios with fluent API", async () => {
-      const scenario = runner.scenario()
-        .step("initial-introspect", async (ctx) => {
+      const scenario = runner
+        .scenario()
+        .step("initial-introspect", async (_ctx) => {
           const result = await runner.run([
             "introspect",
             "--url",
@@ -420,13 +416,13 @@ runE2ETests("CLI Concurrent Execution", () => {
         .step("modify-config", async (ctx) => {
           const introspectResult = ctx.get("initial-introspect");
           if (introspectResult?.success) {
-            await fileHelpers.updateConfig(join(testDir, "scenario.yml"), config =>
+            await fileHelpers.updateConfig(join(testDir, "scenario.yml"), (config) =>
               fixtures.mutations.updateShopEmail(config, generators.email())
             );
           }
           return true;
         })
-        .step("diff-changes", async (ctx) => {
+        .step("diff-changes", async (_ctx) => {
           const result = await runner.run([
             "diff",
             "--url",
@@ -452,39 +448,38 @@ runE2ETests("CLI Concurrent Execution", () => {
     });
 
     test("runs parallel steps in scenarios", async () => {
-      const scenario = runner.scenario()
-        .parallel(
-          async (ctx) => {
-            return await runner.run([
-              "introspect",
-              "--url",
-              saleorConfig.url,
-              "--token",
-              saleorConfig.token || "test-token",
-              "--config",
-              join(testDir, "parallel1.yml"),
-              "--quiet",
-              "--include",
-              "shop",
-            ]);
-          },
-          async (ctx) => {
-            return await runner.run([
-              "introspect",
-              "--url",
-              saleorConfig.url,
-              "--token",
-              saleorConfig.token || "test-token",
-              "--config",
-              join(testDir, "parallel2.yml"),
-              "--quiet",
-              "--include",
-              "channels",
-            ]);
-          }
-        );
+      const scenario = runner.scenario().parallel(
+        async (_ctx) => {
+          return await runner.run([
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            join(testDir, "parallel1.yml"),
+            "--quiet",
+            "--include",
+            "shop",
+          ]);
+        },
+        async (_ctx) => {
+          return await runner.run([
+            "introspect",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            join(testDir, "parallel2.yml"),
+            "--quiet",
+            "--include",
+            "channels",
+          ]);
+        }
+      );
 
-      const context = await scenario.execute();
+      const _context = await scenario.execute();
 
       // Both configs should be created
       const config1 = await fileHelpers.readConfig(join(testDir, "parallel1.yml"));
@@ -503,18 +498,21 @@ runE2ETests("CLI Concurrent Execution", () => {
       const startTime = performance.now();
 
       const runOperation = async (index: number) => {
-        const result = await runner.run([
-          "diff",
-          "--url",
-          saleorConfig.url,
-          "--token",
-          saleorConfig.token || "test-token",
-          "--config",
-          join(testDir, `load-${index}.yml`),
-          "--quiet",
-        ], {
-          reject: false,
-        });
+        const result = await runner.run(
+          [
+            "diff",
+            "--url",
+            saleorConfig.url,
+            "--token",
+            saleorConfig.token || "test-token",
+            "--config",
+            join(testDir, `load-${index}.yml`),
+            "--quiet",
+          ],
+          {
+            reject: false,
+          }
+        );
         results.push(result);
       };
 
@@ -536,14 +534,14 @@ runE2ETests("CLI Concurrent Execution", () => {
       }, 1000 / operationsPerSecond);
 
       // Wait for duration
-      await new Promise(resolve => setTimeout(resolve, duration + 1000));
+      await new Promise((resolve) => setTimeout(resolve, duration + 1000));
       clearInterval(interval);
 
       // Wait for all to complete
       await Promise.all(promises);
 
       // Most should succeed under load
-      const successRate = results.filter(r => r.success).length / results.length;
+      const successRate = results.filter((r) => r.success).length / results.length;
       expect(successRate).toBeGreaterThan(0.8); // 80% success rate
     });
 
@@ -555,14 +553,14 @@ runE2ETests("CLI Concurrent Execution", () => {
 
       // Create simple configs for diff
       await Promise.all(
-        configs.map((path, i) =>
+        configs.map((_path, i) =>
           fileHelpers.createTempConfig(testDir, fixtures.validConfig, `extreme-${i}.yml`)
         )
       );
 
       const startTime = performance.now();
       const results = await runner.runConcurrent(
-        configs.map(path => ({
+        configs.map((path) => ({
           args: [
             "diff",
             "--url",
@@ -586,12 +584,12 @@ runE2ETests("CLI Concurrent Execution", () => {
       expect(totalTime).toBeLessThan(60_000);
 
       // Some should succeed even under extreme load
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
       expect(successCount).toBeGreaterThan(0);
 
       // Check for various failure modes
-      const failures = results.filter(r => !r.success);
-      failures.forEach(result => {
+      const failures = results.filter((r) => !r.success);
+      failures.forEach((result) => {
         // Should fail gracefully with clear errors
         expect(result.cleanStderr || result.cleanStdout).toBeTruthy();
       });

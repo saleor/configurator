@@ -1,10 +1,9 @@
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers } from "./helpers/fixtures";
-import { CliAssertions } from "./helpers/assertions";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
+import { fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -46,15 +45,17 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
 
   test("start command guides through initial setup", async () => {
     const configPath = join(workspaceRoot, "initial-setup", "config.yml");
-    const testId = generators.testId();
 
     const result = await runner.runInteractive(
       ["start", "--config", configPath],
       [
         { waitFor: "Welcome", respond: "\r" }, // Continue
         { waitFor: "What would you like to do?", respond: "\r" }, // Select first option (Introspect)
-        { waitFor: "Enter your Saleor GraphQL URL", respond: saleorConfig.url + "\r" },
-        { waitFor: "Enter your Saleor API token", respond: saleorConfig.token + "\r" },
+        { waitFor: "Enter your Saleor GraphQL URL", respond: `${saleorConfig.url}\r` },
+        {
+          waitFor: "Enter your Saleor API token",
+          respond: `${saleorConfig.token || "test-token"}\r`,
+        },
         { waitFor: /confirm|continue/i, respond: "y\r" },
       ],
       {
@@ -76,10 +77,7 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
   test("start command for returning users shows different options", async () => {
     // First create a config file
     const configPath = join(workspaceRoot, "returning-user", "config.yml");
-    await fileHelpers.createTempConfig(
-      join(workspaceRoot, "returning-user"),
-      fixtures.validConfig
-    );
+    await fileHelpers.createTempConfig(join(workspaceRoot, "returning-user"), fixtures.validConfig);
 
     const result = await runner.runInteractive(
       ["start", "--config", configPath],
@@ -109,8 +107,8 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
       [
         { waitFor: "Welcome", respond: "\r" },
         { waitFor: "What would you like to do?", respond: "\r" }, // Select "Introspect"
-        { waitFor: "Saleor GraphQL URL", respond: saleorConfig.url + "\r" },
-        { waitFor: "API token", respond: saleorConfig.token + "\r" },
+        { waitFor: "Saleor GraphQL URL", respond: `${saleorConfig.url}\r` },
+        { waitFor: "API token", respond: `${saleorConfig.token || "test-token"}\r` },
         { waitFor: /confirm|continue/i, respond: "y\r" },
       ],
       {
@@ -130,23 +128,19 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
   test("start command handles deploy flow", async () => {
     // Create initial config
     const configPath = join(workspaceRoot, "start-deploy", "config.yml");
-    const testId = generators.testId();
     const modifiedConfig = fixtures.mutations.updateShopEmail(
       fixtures.validConfig,
       generators.email()
     );
-    await fileHelpers.createTempConfig(
-      join(workspaceRoot, "start-deploy"),
-      modifiedConfig
-    );
+    await fileHelpers.createTempConfig(join(workspaceRoot, "start-deploy"), modifiedConfig);
 
     const result = await runner.runInteractive(
       ["start", "--config", configPath],
       [
         { waitFor: "Welcome back", respond: "\r" },
         { waitFor: "What would you like to do?", respond: "\x1B[B\r" }, // Select "Deploy"
-        { waitFor: "Saleor GraphQL URL", respond: saleorConfig.url + "\r" },
-        { waitFor: "API token", respond: saleorConfig.token + "\r" },
+        { waitFor: "Saleor GraphQL URL", respond: `${saleorConfig.url}\r` },
+        { waitFor: "API token", respond: `${saleorConfig.token || "test-token"}\r` },
         { waitFor: /confirm|continue|proceed/i, respond: "y\r" },
       ],
       {
@@ -167,18 +161,15 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
       fixtures.validConfig,
       generators.email()
     );
-    await fileHelpers.createTempConfig(
-      join(workspaceRoot, "start-diff"),
-      modifiedConfig
-    );
+    await fileHelpers.createTempConfig(join(workspaceRoot, "start-diff"), modifiedConfig);
 
     const result = await runner.runInteractive(
       ["start", "--config", configPath],
       [
         { waitFor: "Welcome back", respond: "\r" },
         { waitFor: "What would you like to do?", respond: "\x1B[B\x1B[B\r" }, // Select "Diff"
-        { waitFor: "Saleor GraphQL URL", respond: saleorConfig.url + "\r" },
-        { waitFor: "API token", respond: saleorConfig.token + "\r" },
+        { waitFor: "Saleor GraphQL URL", respond: `${saleorConfig.url}\r` },
+        { waitFor: "API token", respond: `${saleorConfig.token || "test-token"}\r` },
       ],
       {
         timeout: 120_000,
@@ -266,11 +257,7 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
     await fileHelpers.createTempConfig(baseDir, fixtures.validConfig);
 
     // Create backup file
-    await fileHelpers.createTempConfig(
-      baseDir,
-      fixtures.validConfig,
-      "config.backup.001.yml"
-    );
+    await fileHelpers.createTempConfig(baseDir, fixtures.validConfig, "config.backup.001.yml");
 
     const result = await runner.runInteractive(
       ["start", "--config", configPath],
@@ -298,8 +285,8 @@ runE2ETests("CLI Start Command (Interactive Mode)", () => {
       [
         { waitFor: "Welcome back", respond: "\r" },
         { waitFor: "What would you like to do?", respond: "\x1B[B\r" }, // Try deploy
-        { waitFor: "Saleor GraphQL URL", respond: saleorConfig.url + "\r" },
-        { waitFor: "API token", respond: saleorConfig.token + "\r" },
+        { waitFor: "Saleor GraphQL URL", respond: `${saleorConfig.url}\r` },
+        { waitFor: "API token", respond: `${saleorConfig.token || "test-token"}\r` },
       ],
       {
         timeout: 60_000,

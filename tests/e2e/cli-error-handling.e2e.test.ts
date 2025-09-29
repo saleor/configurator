@@ -1,11 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { mkdtemp, rm, writeFile, mkdir, chmod } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers, ConfigBuilder } from "./helpers/fixtures";
-import { CliAssertions, testHelpers } from "./helpers/assertions";
-import yaml from "yaml";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { CliAssertions } from "./helpers/assertions";
+import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
+import { fileHelpers, fixtures, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -53,19 +52,15 @@ runE2ETests("CLI Error Handling", () => {
     test("handles missing token", async () => {
       const configPath = join(testDir, "config.yml");
 
-      const result = await runner.runSafe([
-        "introspect",
-        "--url",
-        saleorConfig.url,
-        "--config",
-        configPath,
-        "--quiet",
-      ], {
-        env: {
-          SALEOR_TOKEN: "",
-          CONFIGURATOR_AUTO_CONFIRM: "true",
-        },
-      });
+      const result = await runner.runSafe(
+        ["introspect", "--url", saleorConfig.url, "--config", configPath, "--quiet"],
+        {
+          env: {
+            SALEOR_TOKEN: "",
+            CONFIGURATOR_AUTO_CONFIRM: "true",
+          },
+        }
+      );
 
       expect(result).toFail();
       expect(result).toHaveStderr(/token|required|missing/i);
@@ -96,18 +91,21 @@ runE2ETests("CLI Error Handling", () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
-      const result = await runner.runSafe([
-        "introspect",
-        "--url",
-        "https://192.0.2.1/graphql/", // Non-routable IP for timeout
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--quiet",
-      ], {
-        timeout: 10_000, // Short timeout to trigger error
-      });
+      const result = await runner.runSafe(
+        [
+          "introspect",
+          "--url",
+          "https://192.0.2.1/graphql/", // Non-routable IP for timeout
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--quiet",
+        ],
+        {
+          timeout: 10_000, // Short timeout to trigger error
+        }
+      );
 
       expect(result).toFail();
       if (!result.timedOut) {
@@ -299,7 +297,7 @@ runE2ETests("CLI Error Handling", () => {
       expect(result.cleanStderr.toLowerCase()).toMatch(/(enoent|not found|does not exist)/i);
     });
 
-    test("handles permission denied for config file", async function() {
+    test("handles permission denied for config file", async function () {
       // Skip on Windows where chmod doesn't work as expected
       if (process.platform === "win32") {
         this.skip();
@@ -348,7 +346,7 @@ runE2ETests("CLI Error Handling", () => {
       expect(result.cleanStderr.toLowerCase()).toMatch(/(eisdir|directory|not a file)/i);
     });
 
-    test("handles read-only directory for output", async function() {
+    test("handles read-only directory for output", async function () {
       // Skip on Windows where chmod doesn't work as expected
       if (process.platform === "win32") {
         this.skip();
@@ -486,19 +484,22 @@ runE2ETests("CLI Error Handling", () => {
       });
       await fileHelpers.createTempConfig(testDir, largeConfig);
 
-      const result = await runner.runSafe([
-        "deploy",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--ci",
-        "--quiet",
-      ], {
-        timeout: 300_000,
-      });
+      const result = await runner.runSafe(
+        [
+          "deploy",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--ci",
+          "--quiet",
+        ],
+        {
+          timeout: 300_000,
+        }
+      );
 
       // If rate limited, should handle gracefully
       if (result.failed && result.cleanStderr.toLowerCase().includes("rate")) {
@@ -583,7 +584,11 @@ runE2ETests("CLI Error Handling", () => {
 
       for (const testCase of testCases) {
         const configPath = join(testDir, `config-${testCase.name}.yml`);
-        await fileHelpers.createTempConfig(testDir, fixtures.validConfig, `config-${testCase.name}.yml`);
+        await fileHelpers.createTempConfig(
+          testDir,
+          fixtures.validConfig,
+          `config-${testCase.name}.yml`
+        );
 
         const result = await runner.runSafe([
           "introspect",
@@ -606,12 +611,7 @@ runE2ETests("CLI Error Handling", () => {
     test("provides actionable error messages", async () => {
       const configPath = join(testDir, "config.yml");
 
-      const result = await runner.runSafe([
-        "deploy",
-        "--config",
-        configPath,
-        "--ci",
-      ], {
+      const result = await runner.runSafe(["deploy", "--config", configPath, "--ci"], {
         env: {
           SALEOR_URL: "",
           SALEOR_TOKEN: "",
@@ -620,7 +620,9 @@ runE2ETests("CLI Error Handling", () => {
 
       expect(result).toFail();
       // Should suggest how to provide missing values
-      expect(result.cleanStderr.toLowerCase()).toMatch(/(provide|set|export|--url|--token|environment)/i);
+      expect(result.cleanStderr.toLowerCase()).toMatch(
+        /(provide|set|export|--url|--token|environment)/i
+      );
     });
   });
 });

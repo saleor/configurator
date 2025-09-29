@@ -1,8 +1,7 @@
-import { execa, type ExecaError, type Options as ExecaOptions, type Result } from "execa";
-import stripAnsi from "strip-ansi";
-import { performance } from "node:perf_hooks";
 import { EventEmitter } from "node:events";
-import type { Readable } from "node:stream";
+import { performance } from "node:perf_hooks";
+import { type ExecaError, type Options as ExecaOptions, execa } from "execa";
+import stripAnsi from "strip-ansi";
 
 export interface CliTestResult {
   exitCode: number;
@@ -79,7 +78,7 @@ export class CliTestRunner extends EventEmitter {
   constructor(config: CliTestRunnerConfig = {}) {
     super();
     this.executable = config.executable ?? "pnpm";
-    this.script = this.executable === "pnpm" ? config.script ?? "dev" : config.script;
+    this.script = this.executable === "pnpm" ? (config.script ?? "dev") : config.script;
     this.defaultEnv = {
       NODE_ENV: "test",
       LOG_LEVEL: "error",
@@ -165,7 +164,7 @@ export class CliTestRunner extends EventEmitter {
       const duration = endTime - startTime;
       const execaError = error as ExecaError;
 
-      this.activeProcesses.delete(execaError.subprocess as any);
+      this.activeProcesses.delete(execaError.subprocess as ReturnType<typeof execa>);
 
       if (options.collectMetrics) {
         this.collectMetrics(args.join(" "), {
@@ -190,7 +189,7 @@ export class CliTestRunner extends EventEmitter {
         timedOut: execaError.timedOut ?? false,
         isCanceled: execaError.isCanceled ?? false,
         isTerminated: execaError.isTerminated ?? false,
-        isMaxBuffer: (execaError as any).isMaxBuffer ?? false,
+        isMaxBuffer: (execaError as ExecaError & { isMaxBuffer?: boolean }).isMaxBuffer ?? false,
         duration,
         signal: execaError.signal,
         error: execaError,
@@ -208,7 +207,10 @@ export class CliTestRunner extends EventEmitter {
   /**
    * Stream command output in real-time
    */
-  async *stream(args: string[], options: CliTestRunnerOptions = {}): AsyncIterableIterator<{
+  async *stream(
+    args: string[],
+    options: CliTestRunnerOptions = {}
+  ): AsyncIterableIterator<{
     type: "stdout" | "stderr";
     line: string;
   }> {
@@ -300,7 +302,7 @@ export class CliTestRunner extends EventEmitter {
     this.activeProcesses.add(subprocess);
 
     let stdout = "";
-    let stderr = "";
+    let _stderr = "";
     let interactionIndex = 0;
 
     // Handle stdout for interactions
@@ -310,19 +312,18 @@ export class CliTestRunner extends EventEmitter {
       if (interactionIndex < interactions.length) {
         const interaction = interactions[interactionIndex];
         const matcher = interaction.waitFor;
-        const matches = typeof matcher === "string"
-          ? stdout.includes(matcher)
-          : matcher.test(stdout);
+        const matches =
+          typeof matcher === "string" ? stdout.includes(matcher) : matcher.test(stdout);
 
         if (matches && subprocess.stdin) {
-          subprocess.stdin.write(interaction.respond + "\n");
+          subprocess.stdin.write(`${interaction.respond}\n`);
           interactionIndex++;
         }
       }
     });
 
     subprocess.stderr?.on("data", (chunk) => {
-      stderr += chunk.toString();
+      _stderr += chunk.toString();
     });
 
     const result = await subprocess;
@@ -362,7 +363,8 @@ export class CliTestRunner extends EventEmitter {
 
     while (queue.length > 0 || running.length > 0) {
       while (running.length < maxConcurrency && queue.length > 0) {
-        const command = queue.shift()!;
+        const command = queue.shift();
+        if (!command) break;
         const promise = this.run(command.args, command.options).then((result) => {
           results.push(result);
         });
@@ -481,12 +483,12 @@ export class CliTestRunner extends EventEmitter {
  * Fluent builder for complex test scenarios
  */
 export class CliTestScenarioBuilder {
-  private steps: Array<() => Promise<any>> = [];
-  private context: Map<string, any> = new Map();
+  private steps: Array<() => Promise<unknown>> = [];
+  private context: Map<string, unknown> = new Map();
 
   constructor(private runner: CliTestRunner) {}
 
-  step(name: string, action: (ctx: Map<string, any>) => Promise<any>): this {
+  step(name: string, action: (ctx: Map<string, unknown>) => Promise<unknown>): this {
     this.steps.push(async () => {
       const result = await action(this.context);
       this.context.set(name, result);
@@ -495,9 +497,7 @@ export class CliTestScenarioBuilder {
     return this;
   }
 
-  parallel(
-    ...actions: Array<(ctx: Map<string, any>) => Promise<any>>
-  ): this {
+  parallel(...actions: Array<(ctx: Map<string, unknown>) => Promise<unknown>>): this {
     this.steps.push(async () => {
       const results = await Promise.all(actions.map((action) => action(this.context)));
       return results;
@@ -510,7 +510,7 @@ export class CliTestScenarioBuilder {
     return this;
   }
 
-  async execute(): Promise<Map<string, any>> {
+  async execute(): Promise<Map<string, unknown>> {
     for (const step of this.steps) {
       await step();
     }

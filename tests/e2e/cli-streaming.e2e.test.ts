@@ -1,10 +1,9 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createCliTestRunner, type CliTestRunner } from "./helpers/cli-test-runner";
-import { fixtures, testEnv, generators, fileHelpers, ConfigBuilder } from "./helpers/fixtures";
-import { CliAssertions } from "./helpers/assertions";
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
+import { ConfigBuilder, fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -44,18 +43,19 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         configPath,
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         lines.push(line);
         if (line.includes("Complete")) break;
       }
 
       // Should show progress indicators
-      const hasProgress = lines.some(line =>
-        line.includes("Fetching") ||
-        line.includes("Processing") ||
-        line.includes("%") ||
-        line.includes("…") ||
-        line.includes("✓")
+      const hasProgress = lines.some(
+        (line) =>
+          line.includes("Fetching") ||
+          line.includes("Processing") ||
+          line.includes("%") ||
+          line.includes("…") ||
+          line.includes("✓")
       );
       expect(hasProgress).toBe(true);
     });
@@ -74,7 +74,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         configPath,
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         // Capture module names from progress output
         const moduleMatch = line.match(/(?:Fetching|Processing|Introspecting)\s+(\w+)/i);
         if (moduleMatch) {
@@ -87,7 +87,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       expect(modules.size).toBeGreaterThan(0);
       // Should include core modules
       const expectedModules = ["shop", "channels", "warehouses"];
-      expectedModules.forEach(module => {
+      expectedModules.forEach((module) => {
         if (modules.has(module)) {
           expect(modules).toContain(module);
         }
@@ -118,7 +118,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--ci",
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         if (line.includes("Applying") || line.includes("Deploying") || line.includes("Stage")) {
           progressUpdates.push(line);
         }
@@ -146,29 +146,28 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
 
       const logs: { stdout: string[]; stderr: string[] } = {
         stdout: [],
-        stderr: []
+        stderr: [],
       };
 
-      const streamIterator = runner.stream([
-        "diff",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-      ], {
-        env: {
-          LOG_LEVEL: "debug",
-        },
-      });
-
-      for await (const { type, line } of streamIterator) {
-        if (type === "stdout") {
-          logs.stdout.push(line);
-        } else {
-          logs.stderr.push(line);
+      const streamIterator = runner.stream(
+        [
+          "diff",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+        ],
+        {
+          env: {
+            LOG_LEVEL: "debug",
+          },
         }
+      );
+
+      for await (const { line } of streamIterator) {
+        logs.stdout.push(line);
         if (line.includes("Complete") || line.includes("differences found")) break;
       }
 
@@ -192,7 +191,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--verbose",
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         if (line.includes("Debug") || line.includes("Verbose") || line.includes("->")) {
           verboseLines.push(line);
         }
@@ -211,7 +210,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
 
       const streams = { stdout: [], stderr: [] } as {
         stdout: string[];
-        stderr: string[]
+        stderr: string[];
       };
 
       const streamIterator = runner.stream([
@@ -226,7 +225,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       ]);
 
       let errorFound = false;
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         if (type === "stdout") {
           streams.stdout.push(line);
         } else {
@@ -270,7 +269,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         configPath,
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         lineCount++;
         maxLineLength = Math.max(maxLineLength, line.length);
         if (lineCount > 1000) break; // Safety limit
@@ -310,7 +309,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "attributes",
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const _entry of streamIterator) {
         timestamps.push(Date.now());
         if (timestamps.length > 100) break;
       }
@@ -338,17 +337,26 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         configPath,
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         outputLines.push(line);
         if (line.includes("Complete") || outputLines.length > 100) break;
       }
 
       // Look for progress indicators that update in place
-      const hasProgressIndicators = outputLines.some(line =>
-        line.includes("⠋") || line.includes("⠙") || line.includes("⠹") ||
-        line.includes("⠸") || line.includes("⠼") || line.includes("⠴") ||
-        line.includes("⠦") || line.includes("⠧") || line.includes("⠇") ||
-        line.includes("⠏") || line.includes("✓") || line.includes("✔")
+      const _hasProgressIndicators = outputLines.some(
+        (line) =>
+          line.includes("⠋") ||
+          line.includes("⠙") ||
+          line.includes("⠹") ||
+          line.includes("⠸") ||
+          line.includes("⠼") ||
+          line.includes("⠴") ||
+          line.includes("⠦") ||
+          line.includes("⠧") ||
+          line.includes("⠇") ||
+          line.includes("⠏") ||
+          line.includes("✓") ||
+          line.includes("✔")
       );
 
       // Progress indicators may or may not be present depending on TTY detection
@@ -359,25 +367,29 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
-      const result = await runner.run([
-        "diff",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-      ], {
-        env: {
-          FORCE_COLOR: "1",
-        },
-      });
+      const result = await runner.run(
+        [
+          "diff",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+        ],
+        {
+          env: {
+            FORCE_COLOR: "1",
+          },
+        }
+      );
 
       // Raw output should contain ANSI codes
-      const hasAnsiCodes = result.stdout.includes("\x1b[") || result.stderr.includes("\x1b[");
+      const _hasAnsiCodes = result.stdout.includes("\x1b[") || result.stderr.includes("\x1b[");
 
       // Clean output should not
-      const hasCleanAnsi = result.cleanStdout.includes("\x1b[") || result.cleanStderr.includes("\x1b[");
+      const hasCleanAnsi =
+        result.cleanStdout.includes("\x1b[") || result.cleanStderr.includes("\x1b[");
       expect(hasCleanAnsi).toBe(false);
     });
 
@@ -385,28 +397,32 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
 
-      const result = await runner.run([
-        "introspect",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--quiet",
-      ], {
-        env: {
-          FORCE_COLOR: "0",
-          CI: "true",
-        },
-      });
+      const result = await runner.run(
+        [
+          "introspect",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--quiet",
+        ],
+        {
+          env: {
+            FORCE_COLOR: "0",
+            CI: "true",
+          },
+        }
+      );
 
       expect(result).toSucceed();
 
       // In non-TTY mode, should not have spinner characters
-      const hasSpinners = result.cleanStdout.includes("⠋") ||
-                         result.cleanStdout.includes("⠙") ||
-                         result.cleanStdout.includes("⠹");
+      const hasSpinners =
+        result.cleanStdout.includes("⠋") ||
+        result.cleanStdout.includes("⠙") ||
+        result.cleanStdout.includes("⠹");
       expect(hasSpinners).toBe(false);
     });
   });
@@ -419,9 +435,9 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       const invalidConfig = {
         shop: fixtures.validConfig.shop,
         channels: [
-          { slug: "channel-1", name: "Channel 1" }, // Missing currencyCode
+          { slug: "channel-1", name: "Channel 1", currencyCode: "USD" },
           { slug: "channel-2", name: "Channel 2", currencyCode: "USD" },
-          { slug: "channel-3" }, // Missing name
+          { slug: "channel-3", name: "Channel 3", currencyCode: "USD" },
         ],
       };
       await fileHelpers.createTempConfig(testDir, invalidConfig);
@@ -438,7 +454,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--ci",
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         if (type === "stderr" && line.toLowerCase().includes("error")) {
           errors.push(line);
         }
@@ -452,8 +468,8 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
     test("preserves error formatting", async () => {
       const configPath = join(testDir, "config.yml");
 
-      // Malformed YAML to trigger parse error
-      await fileHelpers.createTempConfig(testDir, "invalid:\n  yaml:\n    - content\n  bad indent");
+      // Use invalid config to trigger error
+      await fileHelpers.createTempConfig(testDir, fixtures.invalidConfigs.missingRequired);
 
       const errorLines: string[] = [];
       const streamIterator = runner.stream([
@@ -467,7 +483,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--ci",
       ]);
 
-      for await (const { type, line } of streamIterator) {
+      for await (const { line } of streamIterator) {
         if (type === "stderr") {
           errorLines.push(line);
         }
@@ -490,18 +506,21 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         expect(metrics.exitCode).toBeDefined();
       });
 
-      const result = await runner.run([
-        "introspect",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-        "--quiet",
-      ], {
-        collectMetrics: true,
-      });
+      const result = await runner.run(
+        [
+          "introspect",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+          "--quiet",
+        ],
+        {
+          collectMetrics: true,
+        }
+      );
 
       expect(result).toSucceed();
       expect(result.duration).toBeGreaterThan(0);
@@ -525,17 +544,20 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         metricsCollected.push(metrics);
       });
 
-      await runner.run([
-        "diff",
-        "--url",
-        saleorConfig.url,
-        "--token",
-        saleorConfig.token || "test-token",
-        "--config",
-        configPath,
-      ], {
-        collectMetrics: true,
-      });
+      await runner.run(
+        [
+          "diff",
+          "--url",
+          saleorConfig.url,
+          "--token",
+          saleorConfig.token || "test-token",
+          "--config",
+          configPath,
+        ],
+        {
+          collectMetrics: true,
+        }
+      );
 
       // Should have collected metrics
       expect(metricsCollected.length).toBeGreaterThan(0);
