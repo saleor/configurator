@@ -9,7 +9,7 @@ import { ConfigBuilder, fileHelpers, fixtures, generators, testEnv } from "./hel
 // These tests focus on progress indicators and output buffering, not core functionality
 // To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
 const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
-const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : describe.skip;
 
 console.log(`[E2E] Streaming tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
@@ -231,7 +231,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
       ]);
 
       let errorFound = false;
-      for await (const { line } of streamIterator) {
+      for await (const { type, line } of streamIterator) {
         if (type === "stdout") {
           streams.stdout.push(line);
         } else {
@@ -460,7 +460,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--ci",
       ]);
 
-      for await (const { line } of streamIterator) {
+      for await (const { type, line } of streamIterator) {
         if (type === "stderr" && line.toLowerCase().includes("error")) {
           errors.push(line);
         }
@@ -489,7 +489,7 @@ runE2ETests("CLI Streaming and Real-time Output", () => {
         "--ci",
       ]);
 
-      for await (const { line } of streamIterator) {
+      for await (const { type, line } of streamIterator) {
         if (type === "stderr") {
           errorLines.push(line);
         }

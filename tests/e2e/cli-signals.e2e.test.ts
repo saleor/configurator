@@ -10,7 +10,7 @@ import { fileHelpers, fixtures, testEnv } from "./helpers/fixtures";
 // These tests verify SIGINT/SIGTERM handling, not critical for basic CLI validation
 // To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
 const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
-const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : describe.skip;
 
 console.log(`[E2E] Signal tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 

@@ -6,8 +6,8 @@ export default defineConfig({
   test: {
     setupFiles: ["./src/lib/test-setup.ts"],
     include: ["tests/e2e/**/*.test.ts"],
-    testTimeout: 600_000,
-    hookTimeout: 300_000,
+    testTimeout: 120_000, // 2 minutes - reduced from 10 minutes
+    hookTimeout: 60_000, // 1 minute - reduced from 5 minutes
     maxConcurrency: 1,
     minWorkers: 1,
     maxWorkers: 1,

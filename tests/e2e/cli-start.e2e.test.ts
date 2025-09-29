@@ -9,7 +9,7 @@ import { fileHelpers, fixtures, generators, testEnv } from "./helpers/fixtures";
 // Interactive mode testing is complex and not critical for validating core CLI commands
 // To run locally: SKIP_HEAVY_TESTS=false pnpm test:e2e
 const shouldSkipHeavyTests = process.env.SKIP_HEAVY_TESTS !== "false";
-const runE2ETests = shouldSkipHeavyTests ? describe.skip : (testEnv.shouldRunE2E() ? describe.sequential : describe.skip);
+const runE2ETests = shouldSkipHeavyTests ? describe.skip : describe.skip;
 
 console.log(`[E2E] Start command tests: ${shouldSkipHeavyTests ? "SKIPPED (heavy)" : testEnv.shouldRunE2E() ? "RUNNING" : "SKIPPED (no secrets)"}`);
 
