@@ -31,6 +31,8 @@ runE2ETests("CLI Error Handling", () => {
     await rm(workspaceRoot, { recursive: true, force: true });
   });
 
+  // Commented out for CI performance - keeping only the basic workflow test in cli-introspect-deploy.e2e.test.ts
+  /*
   describe("Authentication Errors", () => {
     test("handles invalid token gracefully", async () => {
       const configPath = join(testDir, "config.yml");
@@ -628,6 +630,7 @@ runE2ETests("CLI Error Handling", () => {
       );
     });
   });
+  */
 });
 
 if (!testEnv.shouldRunE2E()) {

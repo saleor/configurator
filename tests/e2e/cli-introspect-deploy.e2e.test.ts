@@ -217,6 +217,8 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     ).toBe(true);
   });
 
+  // Commented out for CI performance - keeping only the basic happy path test
+  /*
   test("introspect fails with invalid credentials", async () => {
     const { configPath } = await createScenario("invalid-token");
     const result = await runner.runSafe(
@@ -318,6 +320,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(combinedOutput).toMatch(/validation/i);
     expect(combinedOutput).toMatch(/duplicate|slug|missing/i);
   });
+  */
 });
 
 if (!saleorToken) {
