@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
@@ -217,9 +217,8 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     ).toBe(true);
   });
 
-  // Commented out for CI performance - keeping only the basic happy path test
-  /*
-  test("introspect fails with invalid credentials", async () => {
+  // Skipped for CI performance - keeping only the basic happy path test
+  test.skip("introspect fails with invalid credentials", async () => {
     const { configPath } = await createScenario("invalid-token");
     const result = await runner.runSafe(
       [
@@ -240,7 +239,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(result.cleanStderr).toMatch(/(Permission|token|Unauthorized)/i);
   });
 
-  test("introspect supports selective include and exclude flows", async () => {
+  test.skip("introspect supports selective include and exclude flows", async () => {
     const { base, configPath } = await createScenario("selective-introspect");
     const includeResult = await runner.runSafe(
       buildArgs("introspect", configPath, "--quiet", "--include", "shop,channels"),
@@ -267,7 +266,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(Object.keys(excludeConfig).length).toBeGreaterThan(0);
   });
 
-  test("introspect creates backups when overwriting existing config", async () => {
+  test.skip("introspect creates backups when overwriting existing config", async () => {
     const { base, configPath } = await createScenario("backups");
 
     const firstRun = await runner.runSafe(buildArgs("introspect", configPath, "--quiet"), {
@@ -296,7 +295,7 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(backupFiles.length).toBeGreaterThanOrEqual(1);
   });
 
-  test("deploy surfaces validation errors for malformed configuration", async () => {
+  test.skip("deploy surfaces validation errors for malformed configuration", async () => {
     const { configPath } = await createScenario("deploy-validation");
 
     const initial = await runner.runSafe(buildArgs("introspect", configPath, "--quiet"), {
@@ -320,7 +319,6 @@ runE2ETests("Saleor Configurator CLI end-to-end", () => {
     expect(combinedOutput).toMatch(/validation/i);
     expect(combinedOutput).toMatch(/duplicate|slug|missing/i);
   });
-  */
 });
 
 if (!saleorToken) {

@@ -1,10 +1,9 @@
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { CliAssertions } from "./helpers/assertions";
+import { afterAll, beforeAll, beforeEach, describe } from "vitest";
 import { type CliTestRunner, createCliTestRunner } from "./helpers/cli-test-runner";
-import { fileHelpers, fixtures, testEnv } from "./helpers/fixtures";
+import { testEnv } from "./helpers/fixtures";
 
 const runE2ETests = testEnv.shouldRunE2E() ? describe.sequential : describe.skip;
 
@@ -13,8 +12,8 @@ console.log(`[E2E] Error Handling tests: ${testEnv.shouldRunE2E() ? "RUNNING" : 
 runE2ETests("CLI Error Handling", () => {
   let runner: CliTestRunner;
   let workspaceRoot: string;
-  let testDir: string;
-  const saleorConfig = testEnv.getSaleorConfig();
+  let _testDir: string;
+  const _saleorConfig = testEnv.getSaleorConfig();
 
   beforeAll(async () => {
     runner = createCliTestRunner({ timeout: 60_000 });
@@ -22,7 +21,7 @@ runE2ETests("CLI Error Handling", () => {
   });
 
   beforeEach(async (context) => {
-    testDir = await mkdtemp(join(workspaceRoot, "test-"));
+    _testDir = await mkdtemp(join(workspaceRoot, "test-"));
     console.log(`\n▶ Running: ${context.task.name}`);
   });
 
@@ -31,9 +30,8 @@ runE2ETests("CLI Error Handling", () => {
     await rm(workspaceRoot, { recursive: true, force: true });
   });
 
-  // Commented out for CI performance - keeping only the basic workflow test in cli-introspect-deploy.e2e.test.ts
-  /*
-  describe("Authentication Errors", () => {
+  // Skipped for CI performance - keeping only the basic workflow test in cli-introspect-deploy.e2e.test.ts
+  describe.skip("Authentication Errors", () => {
     test("handles invalid token gracefully", async () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
@@ -91,7 +89,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Network Errors", () => {
+  describe.skip("Network Errors", () => {
     test("handles connection timeout", async () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.validConfig);
@@ -175,7 +173,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Configuration Errors", () => {
+  describe.skip("Configuration Errors", () => {
     test("handles malformed YAML", async () => {
       const configPath = join(testDir, "config.yml");
       await writeFile(configPath, "invalid:\n  - yaml\n    - content\n  bad indentation", "utf-8");
@@ -281,7 +279,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("File System Errors", () => {
+  describe.skip("File System Errors", () => {
     test("handles non-existent config file", async () => {
       const configPath = join(testDir, "nonexistent", "config.yml");
 
@@ -383,7 +381,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Command Errors", () => {
+  describe.skip("Command Errors", () => {
     test("handles unknown command", async () => {
       const result = await runner.runSafe(["unknown-command"]);
 
@@ -448,7 +446,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Partial Failure Handling", () => {
+  describe.skip("Partial Failure Handling", () => {
     test("handles partial deployment failure", async () => {
       const configPath = join(testDir, "config.yml");
 
@@ -513,7 +511,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Recovery and Retry", () => {
+  describe.skip("Recovery and Retry", () => {
     test("suggests recovery options on failure", async () => {
       const configPath = join(testDir, "config.yml");
       await fileHelpers.createTempConfig(testDir, fixtures.invalidConfigs.missingRequired);
@@ -567,7 +565,7 @@ runE2ETests("CLI Error Handling", () => {
     });
   });
 
-  describe("Error Message Quality", () => {
+  describe.skip("Error Message Quality", () => {
     test("provides clear error messages for common mistakes", async () => {
       const testCases = [
         {
@@ -630,7 +628,6 @@ runE2ETests("CLI Error Handling", () => {
       );
     });
   });
-  */
 });
 
 if (!testEnv.shouldRunE2E()) {
