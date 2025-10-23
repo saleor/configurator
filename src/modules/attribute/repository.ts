@@ -77,6 +77,10 @@ const getAttributesByNamesQuery = graphql(`
           inputType
           entityType
           choices(first: 100) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
             edges {
               node {
                 id
@@ -84,6 +88,27 @@ const getAttributesByNamesQuery = graphql(`
                 value
               }
             }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getAttributeChoicesQuery = graphql(`
+  query GetAttributeChoices($id: ID!, $after: String) {
+    attribute(id: $id) {
+      id
+      choices(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        edges {
+          node {
+            id
+            name
+            value
           }
         }
       }
@@ -125,7 +150,6 @@ export class AttributeRepository implements AttributeOperations {
 
       // Handle business logic errors
       const businessErrors = result.data?.attributeCreate?.errors ?? [];
-
       throw GraphQLError.fromDataErrors(
         `Failed to create attribute ${attributeInput.name}`,
         businessErrors
@@ -142,9 +166,26 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     if (!result.data?.attributeUpdate?.attribute) {
-      throw GraphQLError.fromGraphQLErrors(
-        result.error?.graphQLErrors ?? [],
-        `Failed to update attribute ${attributeInput.name}`
+      // Handle GraphQL errors with automatic formatting
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          `Failed to update attribute ${attributeInput.name}`
+        );
+      }
+
+      // Handle network errors (only if no graphQL errors)
+      if (result.error && !result.error.graphQLErrors) {
+        throw new GraphQLError(
+          `Network error: ${result.error.message} while updating attribute ${attributeInput.name}`
+        );
+      }
+
+      // Handle business logic errors
+      const businessErrors = result.data?.attributeUpdate?.errors ?? [];
+      throw GraphQLError.fromDataErrors(
+        `Failed to update attribute ${attributeInput.name}`,
+        businessErrors
       );
     }
 
@@ -162,6 +203,50 @@ export class AttributeRepository implements AttributeOperations {
       type: input.type,
     });
 
-    return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
+    const attributes = result.data?.attributes?.edges?.map((edge) => edge.node) ?? [];
+
+    // Fetch remaining choices for attributes that have more than 100 (in parallel)
+    const paginationPromises = attributes
+      .filter((attr) => attr?.choices?.pageInfo?.hasNextPage && attr.id)
+      .map((attr) => this.fetchAllAttributeChoices(attr));
+
+    // Wait for all pagination requests to complete
+    await Promise.all(paginationPromises);
+
+    return attributes as Attribute[];
+  }
+
+  private async fetchAllAttributeChoices(attr: NonNullable<ResultOf<typeof getAttributesByNamesQuery>["attributes"]>["edges"][number]["node"]): Promise<void> {
+    if (!attr?.choices?.pageInfo || !attr.id) return;
+
+    const allChoices = [...(attr.choices.edges ?? [])];
+    let cursor = attr.choices.pageInfo.endCursor;
+
+    try {
+      while (cursor) {
+        const choicesResult = await this.client.query(getAttributeChoicesQuery, {
+          id: attr.id,
+          after: cursor,
+        });
+
+        const moreChoices = choicesResult.data?.attribute?.choices?.edges ?? [];
+        allChoices.push(...moreChoices);
+
+        const pageInfo = choicesResult.data?.attribute?.choices?.pageInfo;
+        cursor = pageInfo?.hasNextPage ? (pageInfo.endCursor ?? null) : null;
+      }
+
+      // Update the attribute's choices with all fetched choices
+      if (attr.choices) {
+        attr.choices.edges = allChoices;
+      }
+    } catch (error) {
+      logger.warn(`Failed to fetch additional choices for attribute ${attr.name} (${attr.id})`, {
+        error: error instanceof Error ? error.message : String(error),
+        attributeId: attr.id,
+        attributeName: attr.name,
+      });
+      // Continue with partial data - the attribute still has its first 100 choices
+    }
   }
 }

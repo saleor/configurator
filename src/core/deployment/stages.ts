@@ -581,7 +581,11 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.product.bootstrapProducts(productsToProcess);
+      await context.configurator.services.product.bootstrapProducts(
+        productsToProcess,
+        context.args.concurrency,
+        context.args.delay
+      );
     } catch (error) {
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`

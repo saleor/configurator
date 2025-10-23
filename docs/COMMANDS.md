@@ -132,6 +132,21 @@ pnpm dev deploy --url=$URL --token=$TOKEN --backup
 pnpm dev deploy --url=$URL --token=$TOKEN --verbose
 ```
 
+**Performance Tuning:**
+```bash
+# Control concurrency for batch operations (default: 5)
+pnpm dev deploy --url=$URL --token=$TOKEN --concurrency 10
+
+# Process items one at a time (useful for debugging)
+pnpm dev deploy --url=$URL --token=$TOKEN --concurrency 1
+
+# Add delay between batches (in milliseconds)
+pnpm dev deploy --url=$URL --token=$TOKEN --concurrency 5 --delay 1000
+
+# Combine for rate-limited APIs
+pnpm dev deploy --url=$URL --token=$TOKEN --concurrency 1 --delay 500
+```
+
 ## Quality Assurance Commands
 
 ### MANDATORY PRE-PUSH CHECKLIST

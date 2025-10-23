@@ -81,16 +81,30 @@ export async function wrapBatch<T, R>(
   options?: {
     sequential?: boolean;
     delayMs?: number;
+    concurrency?: number;
   }
 ): Promise<{
   successes: Array<{ item: T; result: R }>;
   failures: Array<{ item: T; error: Error }>;
 }> {
-  const { sequential = false, delayMs = 0 } = options || {};
+  const { sequential = false, delayMs = 0, concurrency } = options || {};
 
   let results: PromiseSettledResult<
     { item: T; success: true; result: R } | { item: T; success: false; error: Error }
   >[];
+
+  const processItem = async (item: T) => {
+    try {
+      const result = await processFn(item);
+      return { item, success: true as const, result };
+    } catch (error) {
+      return {
+        item,
+        success: false as const,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  };
 
   if (sequential) {
     // Process items sequentially with optional delay
@@ -100,38 +114,25 @@ export async function wrapBatch<T, R>(
       if (i > 0 && delayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-      const result = await Promise.allSettled([
-        (async () => {
-          try {
-            const result = await processFn(item);
-            return { item, success: true as const, result };
-          } catch (error) {
-            return {
-              item,
-              success: false as const,
-              error: error instanceof Error ? error : new Error(String(error)),
-            };
-          }
-        })(),
-      ]);
+      const result = await Promise.allSettled([processItem(item)]);
       results.push(result[0]);
+    }
+  } else if (concurrency && concurrency > 0) {
+    // Process items with concurrency limit
+    results = [];
+    for (let i = 0; i < items.length; i += concurrency) {
+      const batch = items.slice(i, i + concurrency);
+      const batchResults = await Promise.allSettled(batch.map(processItem));
+      results.push(...batchResults);
+
+      // Add delay between batches if specified (except after last batch)
+      if (delayMs > 0 && i + concurrency < items.length) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
     }
   } else {
     // Process items concurrently (original behavior)
-    results = await Promise.allSettled(
-      items.map(async (item) => {
-        try {
-          const result = await processFn(item);
-          return { item, success: true as const, result };
-        } catch (error) {
-          return {
-            item,
-            success: false as const,
-            error: error instanceof Error ? error : new Error(String(error)),
-          };
-        }
-      })
-    );
+    results = await Promise.allSettled(items.map(processItem));
   }
 
   const successes: Array<{ item: T; result: R }> = [];

@@ -21,7 +21,7 @@ const createAttributeInput = (input: FullAttribute): AttributeCreateInput => {
     inputType: input.inputType,
   };
 
-  if (input.inputType === "REFERENCE") {
+  if (input.inputType === "REFERENCE" || input.inputType === "SINGLE_REFERENCE") {
     if (!input.entityType) {
       throw new AttributeValidationError(
         `Entity type is required for reference attribute ${input.name}`
@@ -59,8 +59,15 @@ const createAttributeUpdateInput = (
     const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
     const newValues = input.values.map((v) => v.name);
 
-    // Find values to add
-    const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
+    // Create a set of normalized existing values for case-insensitive and trimmed comparison
+    const normalizedExistingValues = new Set(
+      existingValues.map((v) => (v ?? "").trim().toLowerCase())
+    );
+
+    // Find values to add (only if they don't exist with different whitespace/casing)
+    const valuesToAdd = newValues.filter(
+      (value) => !normalizedExistingValues.has(value.trim().toLowerCase())
+    );
 
     if (valuesToAdd.length > 0) {
       return {

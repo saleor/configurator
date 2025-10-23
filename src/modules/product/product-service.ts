@@ -758,14 +758,18 @@ export class ProductService {
     }
   }
 
-  async bootstrapProducts(products: ProductInput[]): Promise<void> {
-    logger.debug("Bootstrapping products", { count: products.length });
+  async bootstrapProducts(products: ProductInput[], concurrency?: number, delayMs?: number): Promise<void> {
+    logger.debug("Bootstrapping products", { count: products.length, concurrency, delayMs });
 
     const results = await ServiceErrorWrapper.wrapBatch(
       products,
       "Bootstrap products",
       (product) => product.name,
-      (productInput) => this.bootstrapProduct(productInput)
+      (productInput) => this.bootstrapProduct(productInput),
+      {
+        concurrency: concurrency ?? 5, // Limit concurrent operations to avoid connection pool exhaustion (default: 5)
+        delayMs: delayMs ?? 0 // Optional delay between batches (in milliseconds)
+      }
     );
 
     if (results.failures.length > 0) {
