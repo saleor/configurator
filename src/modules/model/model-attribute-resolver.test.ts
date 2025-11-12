@@ -6,6 +6,8 @@ const mockAttributeRepo: AttributeOperations = {
   createAttribute: vi.fn(),
   updateAttribute: vi.fn(),
   getAttributesByNames: vi.fn(),
+  bulkCreateAttributes: vi.fn(),
+  bulkUpdateAttributes: vi.fn(),
 };
 
 describe("ModelAttributeResolver", () => {

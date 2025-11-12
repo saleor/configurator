@@ -879,8 +879,8 @@ export class ProductService {
       }
 
       // Extract channels from product listings
-      if (product.channels) {
-        product.channels.forEach((ch) => uniqueChannels.add(ch.channel));
+      if (product.channelListings) {
+        product.channelListings.forEach((ch) => uniqueChannels.add(ch.channel));
       }
 
       // Extract channels from variant listings
@@ -954,12 +954,6 @@ export class ProductService {
               productType: productTypeId,
               category: categoryId,
               attributes,
-              seo: productInput.seo
-                ? {
-                    title: productInput.seo.title,
-                    description: productInput.seo.description,
-                  }
-                : undefined,
             };
 
             return input;
@@ -1022,12 +1016,6 @@ export class ProductService {
           description: input.description,
           category: categoryId,
           attributes,
-          seo: input.seo
-            ? {
-                title: input.seo.title,
-                description: input.seo.description,
-              }
-            : undefined,
         };
 
         const updated = await this.repository.updateProduct(existing.id, updateInput);
@@ -1169,13 +1157,15 @@ export class ProductService {
               productInput.channelListings.map(async (listing) => ({
                 channelId: await this.resolveChannelReference(listing.channel),
                 isPublished: listing.isPublished ?? false,
-                publicationDate: listing.publicationDate,
+                publishedAt: listing.publishedAt,
                 visibleInListings: listing.visibleInListings ?? false,
-                availableForPurchaseAt: listing.availableForPurchaseAt,
+                availableForPurchaseAt: listing.availableForPurchase,
               }))
             );
 
-            await this.repository.updateProductChannelListings(product.id, channelInputs);
+            await this.repository.updateProductChannelListings(product.id, {
+              updateChannels: channelInputs,
+            });
           } catch (error) {
             logger.warn(`Failed to update channel listings for product ${productInput.name}`, {
               error,
@@ -1189,11 +1179,7 @@ export class ProductService {
     if (allFailures.length > 0) {
       const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products`;
       logger.error(errorMessage, { failures: allFailures });
-      throw new ProductError(
-        errorMessage,
-        allFailures.map((f) => f.entity),
-        allFailures.map((f) => f.error)
-      );
+      throw new ProductError(errorMessage);
     }
 
     logger.info("Successfully bootstrapped all products via bulk operations", {

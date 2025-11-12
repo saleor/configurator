@@ -1023,7 +1023,7 @@ export class ProductRepository implements ProductOperations {
 
     return result.data.products.edges
       .map((edge) => edge.node)
-      .filter((node): node is Product => node !== null);
+      .filter((node) => node !== null) as Product[];
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {

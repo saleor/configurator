@@ -242,12 +242,12 @@ export class AttributeService {
     // Convert all attributes to update input format
     const updateInputs = updates.map(({ input, existing }) => ({
       id: existing.id,
-      input: createAttributeUpdateInput(input, existing),
+      fields: createAttributeUpdateInput(input, existing),
     }));
 
     // Filter out updates where there are no actual changes
     const actualUpdates = updateInputs.filter(
-      (update) => Object.keys(update.input).length > 1 // More than just the name
+      (update) => Object.keys(update.fields).length > 1 // More than just the name
     );
 
     if (actualUpdates.length === 0) {

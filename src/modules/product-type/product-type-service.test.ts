@@ -287,6 +287,8 @@ describe("ProductTypeService", () => {
         getAttributesByNames: vi
           .fn()
           .mockResolvedValue([existingGenreAttribute, existingAuthorAttribute]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);

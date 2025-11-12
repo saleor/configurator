@@ -386,6 +386,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -397,6 +398,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -408,6 +410,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "3",
               name: "Material",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "PLAIN_TEXT",
               entityType: null,
@@ -455,6 +458,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -464,7 +468,7 @@ describe("AttributeService", () => {
           },
           {
             attribute: null,
-            errors: [{ field: "name", message: "Attribute already exists", code: "DUPLICATE" }],
+            errors: [{ path: "name", message: "Attribute already exists", code: "ALREADY_EXISTS" }],
           },
         ],
         errors: [],
@@ -538,6 +542,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -549,6 +554,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -666,6 +672,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
+              slug: null,
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -675,7 +682,7 @@ describe("AttributeService", () => {
           },
           {
             attribute: null,
-            errors: [{ field: "values", message: "Invalid value", code: "INVALID" }],
+            errors: [{ path: "values", message: "Invalid value", code: "INVALID" }],
           },
         ],
         errors: [],

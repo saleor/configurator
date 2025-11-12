@@ -233,7 +233,7 @@ export class CollectionService {
     logger.debug("Successfully bootstrapped all collections", {
       count: results.successes.length,
     });
-    return results.successes.map((s) => s.result);
+    return results.successes.flatMap((s) => s.result);
   }
 
   async syncCollectionProducts(
