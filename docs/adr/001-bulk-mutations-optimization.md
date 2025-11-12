@@ -231,71 +231,25 @@ await repository.bulkCreateProducts(products);
 
 ## Results
 
-### Performance Metrics
-
 **Test Configuration**: 30 products, 20 product types, 50 attributes, 60 variants
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
-| **API Calls** | 170+ | 18 | **-89%** |
-| **Deployment Time** | 5.7 min | 18 sec | **-95%** |
-| **Rate Limit Errors** | 50+ | 0 | **-100%** |
-| **Success Rate** | 60% | 100% | **+67%** |
-
-### Detailed Breakdown
-
-| Stage | Items | API Calls (Old → New) | Time (Old → New) |
-|-------|-------|----------------------|------------------|
-| Products | 30 | 30 → 3 | 60s → 3s |
-| Product Types | 20 | 20 → 2 | 40s → 1s |
-| Attributes | 50+ | 50+ → 5 | 100s → 5s |
-| Variants | 60+ | 60+ → 6 | 120s → 6s |
-| Collections | 2 | 2 → 1 | 4s → 2s |
-| Warehouses | 8 | 8 → 1 | 16s → 1s |
-| **TOTAL** | **170+** | **170+ → 18** | **340s → 18s** |
+| API Calls | 170+ | 18 | -89% |
+| Deployment Time | 5.7 min | 18 sec | -95% |
+| Rate Limit Errors | 50+ | 0 | -100% |
 
 ## Tradeoffs
 
-### Accepted Tradeoffs
-
-1. **Chunk Delay Overhead**
-   - **Cost**: 500ms per chunk adds latency
-   - **Benefit**: Prevents rate limiting
-   - **Net Impact**: +2-3 seconds vs. saving 320+ seconds (95% net gain)
-
-2. **All-or-Nothing Chunk Failures**
-   - **Cost**: If chunk fails, all 10 items in chunk fail
-   - **Benefit**: Better than cascade failures, clear error boundaries
-   - **Mitigation**: Chunk size of 10 limits blast radius
-
-3. **Increased Code Complexity**
-   - **Cost**: 199 lines of chunking utility + error handling
-   - **Benefit**: Reusable, well-tested (22/22 tests), clear abstractions
-   - **Mitigation**: SOLID principles, comprehensive documentation
-
-4. **Memory Overhead**
-   - **Cost**: Loading 10 items per chunk in memory
-   - **Benefit**: Negligible on modern systems
-   - **Impact**: <1MB for typical entity data
-
-### Rejected Concerns
-
-- **"Harder to debug"**: Bulk operations provide better error context per item
-- **"Delays slow things down"**: Overall deployment is 95% faster despite delays
-- **"Too complex"**: 199 lines of reusable utility vs. 100+ lines of sequential code
+1. **Chunk Delay Overhead**: +500ms per chunk, negligible vs. 95% time reduction
+2. **All-or-Nothing Chunk Failures**: 10-item blast radius acceptable vs. cascade failures
+3. **Code Complexity**: 199 lines of reusable utility, well-tested (22/22 tests)
 
 ## Future Work
 
-### Short Term
-- Apply chunked processing to Categories (17 warnings remain)
-- Optimize Products stage further (14 warnings remain)
-
-### Medium Term
+- Apply chunked processing to Categories and Products stages
 - Adaptive chunk sizing based on API response times
-- Configuration overrides for chunk size and delays per entity
-
-### Long Term
-- Full migration to bulk operations for all entities
+- Configuration overrides for chunk size and delays
 - Parallel chunk processing with semaphore control
 
 ## References
@@ -306,7 +260,5 @@ await repository.bulkCreateProducts(products);
 
 ---
 
-**Impact**: 95% faster deployments, 90% fewer API calls, 100% success rate
-**Code**: 199 lines of reusable utility + service integration
-**Tests**: 22/22 passing with comprehensive coverage
-**Adoption**: Products, Attributes, Variants, Product Types, Collections, Warehouses
+**Impact**: 95% faster deployments, 89% fewer API calls, zero rate limiting
+**Implementation**: 199-line reusable utility, 22 tests, 6 entity types optimized
