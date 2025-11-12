@@ -488,8 +488,8 @@ describe("ChunkedProcessor", () => {
         await promise;
 
         // Should only log waiting for chunks 1->2, not after chunk 2
-        const waitingCalls = mockedLogger.debug.mock.calls.filter((call) =>
-          typeof call[0] === "string" && call[0].includes("Waiting")
+        const waitingCalls = mockedLogger.debug.mock.calls.filter(
+          (call) => typeof call[0] === "string" && call[0].includes("Waiting")
         );
         expect(waitingCalls).toHaveLength(1);
       });

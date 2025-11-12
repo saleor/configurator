@@ -23,6 +23,8 @@ describe("AttributeService", () => {
             ...existingAttribute,
           },
         ]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -51,6 +53,8 @@ describe("AttributeService", () => {
             inputType: "PLAIN_TEXT",
           },
         ]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -84,6 +88,8 @@ describe("AttributeService", () => {
             inputType: "DATE",
           },
         ]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -108,7 +114,9 @@ describe("AttributeService", () => {
       const mockOperations = {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not be called
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(), // Should not be called
       };
 
       const service = new AttributeService(mockOperations);
@@ -140,7 +148,9 @@ describe("AttributeService", () => {
       const mockOperations = {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn(), // Should not be called
+        getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(), // Should not be called
       };
 
       const service = new AttributeService(mockOperations);
@@ -162,7 +172,9 @@ describe("AttributeService", () => {
       const mockOperations = {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]), // No attributes found
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(), // No attributes found
       };
 
       const service = new AttributeService(mockOperations);
@@ -221,6 +233,8 @@ describe("AttributeService", () => {
           },
         }),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -260,6 +274,8 @@ describe("AttributeService", () => {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -293,6 +309,8 @@ describe("AttributeService", () => {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -327,6 +345,8 @@ describe("AttributeService", () => {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -344,19 +364,59 @@ describe("AttributeService", () => {
     it("should successfully create multiple attributes in bulk", async () => {
       // Given
       const attributes: FullAttribute[] = [
-        { name: "Size", inputType: "DROPDOWN", values: [{ name: "S" }, { name: "M" }, { name: "L" }], type: "PRODUCT_TYPE" },
-        { name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }, { name: "Blue" }], type: "PRODUCT_TYPE" },
-        { name: "Material", inputType: "PLAIN_TEXT", type: "PRODUCT_TYPE" }
+        {
+          name: "Size",
+          inputType: "DROPDOWN",
+          values: [{ name: "S" }, { name: "M" }, { name: "L" }],
+          type: "PRODUCT_TYPE",
+        },
+        {
+          name: "Color",
+          inputType: "DROPDOWN",
+          values: [{ name: "Red" }, { name: "Blue" }],
+          type: "PRODUCT_TYPE",
+        },
+        { name: "Material", inputType: "PLAIN_TEXT", type: "PRODUCT_TYPE" },
       ];
 
       const mockBulkResult: AttributeBulkCreateResult = {
         count: 3,
         results: [
-          { attribute: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
-          { attribute: { id: "2", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
-          { attribute: { id: "3", name: "Material", type: "PRODUCT_TYPE", inputType: "PLAIN_TEXT", entityType: null, choices: null }, errors: [] },
+          {
+            attribute: {
+              id: "1",
+              name: "Size",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
+          {
+            attribute: {
+              id: "2",
+              name: "Color",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
+          {
+            attribute: {
+              id: "3",
+              name: "Material",
+              type: "PRODUCT_TYPE",
+              inputType: "PLAIN_TEXT",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
         ],
-        errors: []
+        errors: [],
       };
 
       const mockOperations = {
@@ -364,7 +424,7 @@ describe("AttributeService", () => {
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn().mockResolvedValue(mockBulkResult),
-        bulkUpdateAttributes: vi.fn()
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -377,7 +437,7 @@ describe("AttributeService", () => {
       expect(result.failed).toHaveLength(0);
       expect(mockOperations.bulkCreateAttributes).toHaveBeenCalledWith({
         attributes: expect.any(Array),
-        errorPolicy: "IGNORE_FAILED"
+        errorPolicy: "IGNORE_FAILED",
       });
     });
 
@@ -391,10 +451,23 @@ describe("AttributeService", () => {
       const mockBulkResult: AttributeBulkCreateResult = {
         count: 1,
         results: [
-          { attribute: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
-          { attribute: null, errors: [{ field: "name", message: "Attribute already exists", code: "DUPLICATE" }] },
+          {
+            attribute: {
+              id: "1",
+              name: "Size",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
+          {
+            attribute: null,
+            errors: [{ field: "name", message: "Attribute already exists", code: "DUPLICATE" }],
+          },
         ],
-        errors: []
+        errors: [],
       };
 
       const mockOperations = {
@@ -402,7 +475,7 @@ describe("AttributeService", () => {
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn().mockResolvedValue(mockBulkResult),
-        bulkUpdateAttributes: vi.fn()
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -415,7 +488,7 @@ describe("AttributeService", () => {
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0]).toEqual({
         input: attributes[1],
-        errors: ["name: Attribute already exists"]
+        errors: ["name: Attribute already exists"],
       });
     });
   });
@@ -425,22 +498,66 @@ describe("AttributeService", () => {
       // Given
       const updates = [
         {
-          input: { name: "Size", inputType: "DROPDOWN" as const, values: [{ name: "S" }, { name: "M" }, { name: "L" }], type: "PRODUCT_TYPE" as const },
-          existing: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { name: "S" } }, { node: { name: "M" } }] } } as Attribute
+          input: {
+            name: "Size",
+            inputType: "DROPDOWN" as const,
+            values: [{ name: "S" }, { name: "M" }, { name: "L" }],
+            type: "PRODUCT_TYPE" as const,
+          },
+          existing: {
+            id: "1",
+            name: "Size",
+            type: "PRODUCT_TYPE",
+            inputType: "DROPDOWN",
+            entityType: null,
+            choices: { edges: [{ node: { name: "S" } }, { node: { name: "M" } }] },
+          } as Attribute,
         },
         {
-          input: { name: "Color", inputType: "DROPDOWN" as const, values: [{ name: "Red" }, { name: "Blue" }], type: "PRODUCT_TYPE" as const },
-          existing: { id: "2", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { name: "Red" } }] } } as Attribute
-        }
+          input: {
+            name: "Color",
+            inputType: "DROPDOWN" as const,
+            values: [{ name: "Red" }, { name: "Blue" }],
+            type: "PRODUCT_TYPE" as const,
+          },
+          existing: {
+            id: "2",
+            name: "Color",
+            type: "PRODUCT_TYPE",
+            inputType: "DROPDOWN",
+            entityType: null,
+            choices: { edges: [{ node: { name: "Red" } }] },
+          } as Attribute,
+        },
       ];
 
       const mockBulkResult: AttributeBulkUpdateResult = {
         count: 2,
         results: [
-          { attribute: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
-          { attribute: { id: "2", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
+          {
+            attribute: {
+              id: "1",
+              name: "Size",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
+          {
+            attribute: {
+              id: "2",
+              name: "Color",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
         ],
-        errors: []
+        errors: [],
       };
 
       const mockOperations = {
@@ -448,7 +565,7 @@ describe("AttributeService", () => {
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn().mockResolvedValue(mockBulkResult)
+        bulkUpdateAttributes: vi.fn().mockResolvedValue(mockBulkResult),
       };
 
       const service = new AttributeService(mockOperations);
@@ -461,7 +578,7 @@ describe("AttributeService", () => {
       expect(result.failed).toHaveLength(0);
       expect(mockOperations.bulkUpdateAttributes).toHaveBeenCalledWith({
         attributes: expect.any(Array),
-        errorPolicy: "IGNORE_FAILED"
+        errorPolicy: "IGNORE_FAILED",
       });
     });
 
@@ -469,9 +586,21 @@ describe("AttributeService", () => {
       // Given
       const updates = [
         {
-          input: { name: "Size", inputType: "DROPDOWN" as const, values: [{ name: "S" }], type: "PRODUCT_TYPE" as const },
-          existing: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { name: "S" } }] } } as Attribute
-        }
+          input: {
+            name: "Size",
+            inputType: "DROPDOWN" as const,
+            values: [{ name: "S" }],
+            type: "PRODUCT_TYPE" as const,
+          },
+          existing: {
+            id: "1",
+            name: "Size",
+            type: "PRODUCT_TYPE",
+            inputType: "DROPDOWN",
+            entityType: null,
+            choices: { edges: [{ node: { name: "S" } }] },
+          } as Attribute,
+        },
       ];
 
       const mockOperations = {
@@ -479,7 +608,7 @@ describe("AttributeService", () => {
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn()
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);
@@ -497,22 +626,59 @@ describe("AttributeService", () => {
       // Given
       const updates = [
         {
-          input: { name: "Size", inputType: "DROPDOWN" as const, values: [{ name: "S" }, { name: "M" }, { name: "L" }], type: "PRODUCT_TYPE" as const },
-          existing: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { name: "S" } }] } } as Attribute
+          input: {
+            name: "Size",
+            inputType: "DROPDOWN" as const,
+            values: [{ name: "S" }, { name: "M" }, { name: "L" }],
+            type: "PRODUCT_TYPE" as const,
+          },
+          existing: {
+            id: "1",
+            name: "Size",
+            type: "PRODUCT_TYPE",
+            inputType: "DROPDOWN",
+            entityType: null,
+            choices: { edges: [{ node: { name: "S" } }] },
+          } as Attribute,
         },
         {
-          input: { name: "Color", inputType: "DROPDOWN" as const, values: [{ name: "Red" }, { name: "Blue" }], type: "PRODUCT_TYPE" as const },
-          existing: { id: "2", name: "Color", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: { edges: [{ node: { name: "Red" } }] } } as Attribute
-        }
+          input: {
+            name: "Color",
+            inputType: "DROPDOWN" as const,
+            values: [{ name: "Red" }, { name: "Blue" }],
+            type: "PRODUCT_TYPE" as const,
+          },
+          existing: {
+            id: "2",
+            name: "Color",
+            type: "PRODUCT_TYPE",
+            inputType: "DROPDOWN",
+            entityType: null,
+            choices: { edges: [{ node: { name: "Red" } }] },
+          } as Attribute,
+        },
       ];
 
       const mockBulkResult: AttributeBulkUpdateResult = {
         count: 1,
         results: [
-          { attribute: { id: "1", name: "Size", type: "PRODUCT_TYPE", inputType: "DROPDOWN", entityType: null, choices: null }, errors: [] },
-          { attribute: null, errors: [{ field: "values", message: "Invalid value", code: "INVALID" }] },
+          {
+            attribute: {
+              id: "1",
+              name: "Size",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+            errors: [],
+          },
+          {
+            attribute: null,
+            errors: [{ field: "values", message: "Invalid value", code: "INVALID" }],
+          },
         ],
-        errors: []
+        errors: [],
       };
 
       const mockOperations = {
@@ -520,7 +686,7 @@ describe("AttributeService", () => {
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn().mockResolvedValue(mockBulkResult)
+        bulkUpdateAttributes: vi.fn().mockResolvedValue(mockBulkResult),
       };
 
       const service = new AttributeService(mockOperations);
@@ -533,7 +699,7 @@ describe("AttributeService", () => {
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0]).toEqual({
         input: updates[1].input,
-        errors: ["values: Invalid value"]
+        errors: ["values: Invalid value"],
       });
     });
   });

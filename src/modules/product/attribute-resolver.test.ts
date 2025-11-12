@@ -9,6 +9,7 @@ const mockRepository: ProductOperations = {
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
   getProductBySlug: vi.fn(),
+  getProductsBySlugs: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
@@ -23,6 +24,9 @@ const mockRepository: ProductOperations = {
   updateProductMedia: vi.fn(),
   deleteProductMedia: vi.fn(),
   replaceAllProductMedia: vi.fn(),
+  bulkCreateProducts: vi.fn(),
+  bulkCreateVariants: vi.fn(),
+  bulkUpdateVariants: vi.fn(),
 };
 
 describe("AttributeResolver", () => {

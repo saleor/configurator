@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
 import type { Client } from "@urql/core";
+import { describe, expect, it } from "vitest";
 import { ConfigurationRepository } from "./repository";
 
 describe("ConfigurationRepository", () => {

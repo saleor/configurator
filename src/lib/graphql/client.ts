@@ -42,10 +42,13 @@ export const createClient = (token: string, url: string) => {
           }
 
           // Check for specific GraphQL errors that indicate rate limiting
-          if (error?.graphQLErrors?.some((e) =>
-            e.message?.toLowerCase().includes("too many requests") ||
-            e.extensions?.code === "TOO_MANY_REQUESTS"
-          )) {
+          if (
+            error?.graphQLErrors?.some(
+              (e) =>
+                e.message?.toLowerCase().includes("too many requests") ||
+                e.extensions?.code === "TOO_MANY_REQUESTS"
+            )
+          ) {
             logger.warn(`GraphQL rate limit error on operation ${operation.kind}, retrying...`);
             return true;
           }

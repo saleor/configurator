@@ -6,8 +6,6 @@ import type {
   AttributeCreateInput,
   AttributeOperations,
   AttributeUpdateInput,
-  AttributeBulkCreateResult,
-  AttributeBulkUpdateResult,
 } from "./repository";
 
 // Type guard to check if an attribute input is a reference
@@ -209,7 +207,7 @@ export class AttributeService {
         if (errors && errors.length > 0) {
           failed.push({
             input: attributes[index],
-            errors: errors.map(e => `${e.path || ""}: ${e.message}`),
+            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
           });
           logger.warn(`Failed to create attribute: ${attributes[index].name}`, { errors });
         } else if (attribute) {
@@ -223,9 +221,7 @@ export class AttributeService {
       logger.warn("Global errors during bulk attribute creation", { errors: result.errors });
     }
 
-    logger.info(
-      `Bulk create complete: ${successful.length} successful, ${failed.length} failed`
-    );
+    logger.info(`Bulk create complete: ${successful.length} successful, ${failed.length} failed`);
 
     return { successful, failed };
   }
@@ -235,7 +231,9 @@ export class AttributeService {
    * @param updates - Array of objects containing the input and existing attribute to update
    * @returns Object containing successful and failed updates
    */
-  async updateAttributesBulk(updates: Array<{ input: FullAttribute; existing: Attribute }>): Promise<{
+  async updateAttributesBulk(
+    updates: Array<{ input: FullAttribute; existing: Attribute }>
+  ): Promise<{
     successful: Attribute[];
     failed: Array<{ input: FullAttribute; errors: string[] }>;
   }> {
@@ -249,12 +247,12 @@ export class AttributeService {
 
     // Filter out updates where there are no actual changes
     const actualUpdates = updateInputs.filter(
-      update => Object.keys(update.input).length > 1  // More than just the name
+      (update) => Object.keys(update.input).length > 1 // More than just the name
     );
 
     if (actualUpdates.length === 0) {
       logger.info("No attributes require updates");
-      return { successful: updates.map(u => u.existing), failed: [] };
+      return { successful: updates.map((u) => u.existing), failed: [] };
     }
 
     // Call bulk update with IGNORE_FAILED policy
@@ -269,13 +267,15 @@ export class AttributeService {
     // Process results
     if (result.results) {
       result.results.forEach(({ attribute, errors }, index) => {
-        const originalIndex = updateInputs.findIndex(u => u.id === actualUpdates[index].id);
+        const originalIndex = updateInputs.findIndex((u) => u.id === actualUpdates[index].id);
         if (errors && errors.length > 0) {
           failed.push({
             input: updates[originalIndex].input,
-            errors: errors.map(e => `${e.path || ""}: ${e.message}`),
+            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
           });
-          logger.warn(`Failed to update attribute: ${updates[originalIndex].input.name}`, { errors });
+          logger.warn(`Failed to update attribute: ${updates[originalIndex].input.name}`, {
+            errors,
+          });
         } else if (attribute) {
           successful.push(attribute);
         }
@@ -287,9 +287,7 @@ export class AttributeService {
       logger.warn("Global errors during bulk attribute update", { errors: result.errors });
     }
 
-    logger.info(
-      `Bulk update complete: ${successful.length} successful, ${failed.length} failed`
-    );
+    logger.info(`Bulk update complete: ${successful.length} successful, ${failed.length} failed`);
 
     return { successful, failed };
   }

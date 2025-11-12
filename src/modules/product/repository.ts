@@ -740,7 +740,6 @@ export type ProductMediaUpdateInput = VariablesOf<typeof updateProductMediaMutat
 
 export type ProductMediaDeleteInput = VariablesOf<typeof deleteProductMediaMutation>["id"];
 
-
 export type ProductVariantWithChannelListings = NonNullable<
   NonNullable<
     ResultOf<
@@ -1023,7 +1022,7 @@ export class ProductRepository implements ProductOperations {
     }
 
     return result.data.products.edges
-      .map(edge => edge.node)
+      .map((edge) => edge.node)
       .filter((node): node is Product => node !== null);
   }
 
@@ -1475,10 +1474,7 @@ export class ProductRepository implements ProductOperations {
         for (const mediaInput of mediaInputs) {
           try {
             const createdMediaItem = await this.createProductMedia(mediaInput);
-            await this.setProductMediaSourceUrlMetadata(
-              createdMediaItem.id,
-              mediaInput.mediaUrl
-            );
+            await this.setProductMediaSourceUrlMetadata(createdMediaItem.id, mediaInput.mediaUrl);
             createdMedia.push(createdMediaItem);
           } catch (error) {
             logger.error("Failed to create new media", {
@@ -1528,9 +1524,7 @@ export class ProductRepository implements ProductOperations {
 
       // Handle network errors
       if (result.error) {
-        throw new Error(
-          `Network error during bulk product creation: ${result.error.message}`
-        );
+        throw new Error(`Network error during bulk product creation: ${result.error.message}`);
       }
 
       throw new Error("Failed to bulk create products");
@@ -1541,7 +1535,9 @@ export class ProductRepository implements ProductOperations {
     return result.data.productBulkCreate as ProductBulkCreateResult;
   }
 
-  async bulkCreateVariants(input: ProductVariantBulkCreateInput): Promise<ProductVariantBulkCreateResult> {
+  async bulkCreateVariants(
+    input: ProductVariantBulkCreateInput
+  ): Promise<ProductVariantBulkCreateResult> {
     const result = await this.client.mutation(productVariantBulkCreateMutation, input);
 
     if (!result.data?.productVariantBulkCreate) {
@@ -1556,9 +1552,7 @@ export class ProductRepository implements ProductOperations {
 
       // Handle network errors
       if (result.error) {
-        throw new Error(
-          `Network error during bulk variant creation: ${result.error.message}`
-        );
+        throw new Error(`Network error during bulk variant creation: ${result.error.message}`);
       }
 
       throw new Error("Failed to bulk create product variants");
@@ -1569,7 +1563,9 @@ export class ProductRepository implements ProductOperations {
     return result.data.productVariantBulkCreate as ProductVariantBulkCreateResult;
   }
 
-  async bulkUpdateVariants(input: ProductVariantBulkUpdateInput): Promise<ProductVariantBulkUpdateResult> {
+  async bulkUpdateVariants(
+    input: ProductVariantBulkUpdateInput
+  ): Promise<ProductVariantBulkUpdateResult> {
     const result = await this.client.mutation(productVariantBulkUpdateMutation, input);
 
     if (!result.data?.productVariantBulkUpdate) {
@@ -1584,9 +1580,7 @@ export class ProductRepository implements ProductOperations {
 
       // Handle network errors
       if (result.error) {
-        throw new Error(
-          `Network error during bulk variant update: ${result.error.message}`
-        );
+        throw new Error(`Network error during bulk variant update: ${result.error.message}`);
       }
 
       throw new Error("Failed to bulk update product variants");

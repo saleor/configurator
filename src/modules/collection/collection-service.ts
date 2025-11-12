@@ -4,7 +4,6 @@ import type {
 } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { processInChunks } from "../../lib/utils/chunked-processor";
-import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
 import type { ProductService } from "../product/product-service";

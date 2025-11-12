@@ -151,7 +151,6 @@ export const attributesStage: DeploymentStage = {
       logger.info(`Processing ${attributes.length} attributes via bulk operations`);
 
       // Step 1: Fetch all existing attributes to determine which need creating vs updating
-      const allAttributeNames = attributes.map(attr => attr.name);
       const existingAttributesMap = new Map<string, AttributeMeta>();
 
       // Query existing attributes by type groups to be more efficient
@@ -161,14 +160,14 @@ export const attributesStage: DeploymentStage = {
         if (!typeGroups.has(type)) {
           typeGroups.set(type, []);
         }
-        typeGroups.get(type)!.push(attr);
+        typeGroups.get(type)?.push(attr);
       }
 
       for (const [type, attrs] of typeGroups) {
-        const names = attrs.map(a => a.name);
+        const names = attrs.map((a) => a.name);
         const existing = await service.repo.getAttributesByNames({
           names,
-          type: type as any,
+          type: type as "PRODUCT_TYPE" | "PAGE_TYPE",
         });
         if (existing) {
           for (const attr of existing) {
@@ -179,14 +178,15 @@ export const attributesStage: DeploymentStage = {
 
       // Step 2: Separate attributes into create and update buckets
       const toCreate = attributes.filter(
-        attr => !existingAttributesMap.has(`${attr.type}:${attr.name}`)
+        (attr) => !existingAttributesMap.has(`${attr.type}:${attr.name}`)
       );
       const toUpdate = attributes
-        .filter(attr => existingAttributesMap.has(`${attr.type}:${attr.name}`))
-        .map(attr => ({
-          input: attr,
-          existing: existingAttributesMap.get(`${attr.type}:${attr.name}`)!
-        }));
+        .filter((attr) => existingAttributesMap.has(`${attr.type}:${attr.name}`))
+        .map((attr) => {
+          const existing = existingAttributesMap.get(`${attr.type}:${attr.name}`);
+          if (!existing) throw new Error(`Missing attribute: ${attr.name}`);
+          return { input: attr, existing };
+        });
 
       const allFailures: Array<{ entity: string; error: Error }> = [];
 
@@ -200,7 +200,7 @@ export const attributesStage: DeploymentStage = {
           createResult.failed.forEach(({ input, errors }) => {
             allFailures.push({
               entity: input.name,
-              error: new Error(errors.join(", "))
+              error: new Error(errors.join(", ")),
             });
           });
         }
@@ -216,7 +216,7 @@ export const attributesStage: DeploymentStage = {
           updateResult.failed.forEach(({ input, errors }) => {
             allFailures.push({
               entity: input.name,
-              error: new Error(errors.join(", "))
+              error: new Error(errors.join(", ")),
             });
           });
         }
@@ -227,9 +227,9 @@ export const attributesStage: DeploymentStage = {
         throw new StageAggregateError(
           "Managing attributes via bulk operations",
           allFailures,
-          attributes.filter(
-            attr => !allFailures.some(f => f.entity === attr.name)
-          ).map(a => a.name)
+          attributes
+            .filter((attr) => !allFailures.some((f) => f.entity === attr.name))
+            .map((a) => a.name)
         );
       }
     }
@@ -454,8 +454,13 @@ export const modelsStage: DeploymentStage = {
         await context.configurator.services.model.bootstrapModels(config.models);
       } else {
         // Larger config: use sequential processing with delays to avoid rate limiting
-        logger.info(`Processing ${config.models.length} models sequentially with ${DELAY_MS}ms delay to avoid rate limiting`);
-        await context.configurator.services.model.bootstrapModelsSequentially(config.models, DELAY_MS);
+        logger.info(
+          `Processing ${config.models.length} models sequentially with ${DELAY_MS}ms delay to avoid rate limiting`
+        );
+        await context.configurator.services.model.bootstrapModelsSequentially(
+          config.models,
+          DELAY_MS
+        );
       }
     } catch (error) {
       throw new Error(

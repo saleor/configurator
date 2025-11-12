@@ -29,6 +29,8 @@ describe("PageTypeService", () => {
         createAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]),
         updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -73,6 +75,8 @@ describe("PageTypeService", () => {
           },
         ]),
         updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -126,6 +130,8 @@ describe("PageTypeService", () => {
         createAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not be called for already assigned
         updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);

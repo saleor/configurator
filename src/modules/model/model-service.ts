@@ -256,12 +256,12 @@ export class ModelService {
 
         // Add delay between operations to avoid rate limiting (except for the last one)
         if (i < inputs.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       } catch (error) {
         failures.push({
           model: input.slug,
-          error: error instanceof Error ? error : new Error(String(error))
+          error: error instanceof Error ? error : new Error(String(error)),
         });
         logger.warn(`Failed to process model: ${input.slug}`, { error });
       }
