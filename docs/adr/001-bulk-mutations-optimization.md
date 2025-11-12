@@ -239,6 +239,18 @@ await repository.bulkCreateProducts(products);
 | Deployment Time | 5.7 min | 18 sec | -95% |
 | Rate Limit Errors | 50+ | 0 | -100% |
 
+## Coverage
+
+**Using Native Bulk Mutations** (5 operations):
+- Products: `productBulkCreate`
+- Product Variants: `productVariantBulkCreate`, `productVariantBulkUpdate`
+- Attributes: `attributeBulkCreate`, `attributeBulkUpdate` (adaptive: bulk if >10)
+
+**Using Chunked Processing** (3 entities - no bulk API available):
+- Product Types: individual operations, chunked (10/batch, 500ms delay)
+- Collections: individual operations, chunked
+- Warehouses: individual operations, chunked
+
 ## Tradeoffs
 
 1. **Chunk Delay Overhead**: +500ms per chunk, negligible vs. 95% time reduction
