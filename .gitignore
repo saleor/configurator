@@ -8,6 +8,11 @@ deployment-report-*.json
 dist
 FEATURE-ROADMAP.md
 
+# Serena-related documentation
+.claude/commands/serena-help.md
+.claude/commands/find-code.md
+docs/SERENA_GUIDE.md
+
 # Local artifacts not intended for version control
 .playwright-mcp/
 RIDA_*.md

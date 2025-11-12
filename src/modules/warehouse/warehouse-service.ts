@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { processInChunks } from "../../lib/utils/chunked-processor";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
@@ -231,12 +232,22 @@ export class WarehouseService {
       );
     }
 
-    const results = await ServiceErrorWrapper.wrapBatch(
+    const { successes, failures } = await processInChunks(
       inputs,
-      "Bootstrap warehouses",
-      (warehouse) => warehouse.slug,
-      (input) => this.getOrCreateWarehouse(input)
+      async (chunk) => {
+        return Promise.all(chunk.map((input) => this.getOrCreateWarehouse(input)));
+      },
+      {
+        chunkSize: 10,
+        delayMs: 500,
+        entityType: "warehouses",
+      }
     );
+
+    const results = {
+      successes: successes.map((s) => ({ item: s.item, result: s.result })),
+      failures: failures.map((f) => ({ item: f.item, error: f.error })),
+    };
 
     if (results.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} warehouses`;

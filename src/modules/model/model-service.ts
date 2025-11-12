@@ -215,6 +215,74 @@ export class ModelService {
     return results.successes.map((s) => s.result);
   }
 
+  /**
+   * Bootstrap models sequentially with delays to avoid rate limiting
+   * Used for larger deployments where parallel processing causes 429 errors
+   */
+  async bootstrapModelsSequentially(
+    inputs: ModelInputConfig[],
+    delayMs: number = 100
+  ): Promise<Page[]> {
+    logger.info(`Bootstrapping ${inputs.length} models/pages sequentially with ${delayMs}ms delay`);
+
+    // Validate unique slugs
+    const slugs = new Set<string>();
+    const duplicateSlugs = new Set<string>();
+
+    for (const input of inputs) {
+      if (slugs.has(input.slug)) {
+        duplicateSlugs.add(input.slug);
+      }
+      slugs.add(input.slug);
+    }
+
+    if (duplicateSlugs.size > 0) {
+      throw new ModelValidationError(
+        `Duplicate model slugs found: ${Array.from(duplicateSlugs).join(", ")}`
+      );
+    }
+
+    const results: Page[] = [];
+    const failures: Array<{ model: string; error: Error }> = [];
+
+    // Process models sequentially with delay
+    for (let i = 0; i < inputs.length; i++) {
+      const input = inputs[i];
+
+      try {
+        logger.debug(`Processing model ${i + 1}/${inputs.length}: ${input.slug}`);
+        const page = await this.getOrCreateModel(input);
+        results.push(page);
+
+        // Add delay between operations to avoid rate limiting (except for the last one)
+        if (i < inputs.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      } catch (error) {
+        failures.push({
+          model: input.slug,
+          error: error instanceof Error ? error : new Error(String(error))
+        });
+        logger.warn(`Failed to process model: ${input.slug}`, { error });
+      }
+    }
+
+    if (failures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${failures.length} of ${inputs.length} models`;
+      logger.error(errorMessage, { failures });
+      throw new ModelOperationError(
+        "bootstrap",
+        "models",
+        failures.map((f) => `${f.model}: ${f.error.message}`).join("; ")
+      );
+    }
+
+    logger.info("Successfully bootstrapped all models sequentially", {
+      count: results.length,
+    });
+    return results;
+  }
+
   private async updateModelAttributes(
     pageId: string,
     attributes: Record<string, string | number | boolean | string[]>,

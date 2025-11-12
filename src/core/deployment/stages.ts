@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { processInChunks } from "../../lib/utils/chunked-processor";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
@@ -59,32 +60,28 @@ export const productTypesStage: DeploymentStage = {
         return;
       }
 
-      const results = await Promise.allSettled(
-        config.productTypes.map((productType) =>
-          context.configurator.services.productType
-            .bootstrapProductType(productType)
-            .then(() => ({ name: productType.name, success: true }))
-            .catch((error) => ({
-              name: productType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
-        )
+      const { successes: processedSuccesses, failures: processedFailures } = await processInChunks(
+        config.productTypes,
+        async (chunk) => {
+          // Process each product type in the chunk
+          return Promise.all(
+            chunk.map((productType) =>
+              context.configurator.services.productType.bootstrapProductType(productType)
+            )
+          );
+        },
+        {
+          chunkSize: 10,
+          delayMs: 500,
+          entityType: "product types",
+        }
       );
 
-      const successes = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
-            r.status === "fulfilled" && r.value.success === true
-        )
-        .map((r) => r.value.name);
-
-      const failures = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
-            r.status === "fulfilled" && r.value.success === false
-        )
-        .map((r) => ({ entity: r.value.name, error: r.value.error }));
+      const successes = processedSuccesses.map((s) => s.item.name);
+      const failures = processedFailures.map((f) => ({
+        entity: f.item.name,
+        error: f.error,
+      }));
 
       if (failures.length > 0) {
         throw new StageAggregateError("Managing product types", failures, successes);
@@ -119,30 +116,122 @@ export const attributesStage: DeploymentStage = {
     if (!attributes || attributes.length === 0) return;
 
     const service = context.configurator.services.attribute;
-    const results = await Promise.allSettled(
-      attributes.map(async (attr) => {
-        const existing = await service.repo.getAttributesByNames({
-          names: [attr.name],
-          type: attr.type,
-        });
-        if (existing && existing.length > 0) {
-          await service.updateAttribute(attr, existing[0]);
-          return { name: attr.name, success: true } as const;
-        }
-        await service.bootstrapAttributes({ attributeInputs: [attr] });
-        return { name: attr.name, success: true } as const;
-      })
-    );
 
-    const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-    if (failures.length > 0) {
-      throw new StageAggregateError(
-        "Managing unassigned attributes",
-        failures.map((f) => ({
-          entity: "attribute",
-          error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
-        }))
+    // Size-adaptive strategy: use bulk operations for >10 attributes
+    if (attributes.length <= 10) {
+      // Small config: use existing sequential approach for better error handling
+      logger.debug(`Processing ${attributes.length} attributes sequentially (small config)`);
+      const results = await Promise.allSettled(
+        attributes.map(async (attr) => {
+          const existing = await service.repo.getAttributesByNames({
+            names: [attr.name],
+            type: attr.type,
+          });
+          if (existing && existing.length > 0) {
+            await service.updateAttribute(attr, existing[0]);
+            return { name: attr.name, success: true } as const;
+          }
+          await service.bootstrapAttributes({ attributeInputs: [attr] });
+          return { name: attr.name, success: true } as const;
+        })
       );
+
+      const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+      if (failures.length > 0) {
+        throw new StageAggregateError(
+          "Managing unassigned attributes",
+          failures.map((f) => ({
+            entity: "attribute",
+            error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
+          }))
+        );
+      }
+    } else {
+      // Large config: use bulk mutations for efficiency
+      logger.info(`Processing ${attributes.length} attributes via bulk operations`);
+
+      // Step 1: Fetch all existing attributes to determine which need creating vs updating
+      const allAttributeNames = attributes.map(attr => attr.name);
+      const existingAttributesMap = new Map<string, AttributeMeta>();
+
+      // Query existing attributes by type groups to be more efficient
+      const typeGroups = new Map<string, typeof attributes>();
+      for (const attr of attributes) {
+        const type = attr.type;
+        if (!typeGroups.has(type)) {
+          typeGroups.set(type, []);
+        }
+        typeGroups.get(type)!.push(attr);
+      }
+
+      for (const [type, attrs] of typeGroups) {
+        const names = attrs.map(a => a.name);
+        const existing = await service.repo.getAttributesByNames({
+          names,
+          type: type as any,
+        });
+        if (existing) {
+          for (const attr of existing) {
+            existingAttributesMap.set(`${attr.type}:${attr.name}`, attr);
+          }
+        }
+      }
+
+      // Step 2: Separate attributes into create and update buckets
+      const toCreate = attributes.filter(
+        attr => !existingAttributesMap.has(`${attr.type}:${attr.name}`)
+      );
+      const toUpdate = attributes
+        .filter(attr => existingAttributesMap.has(`${attr.type}:${attr.name}`))
+        .map(attr => ({
+          input: attr,
+          existing: existingAttributesMap.get(`${attr.type}:${attr.name}`)!
+        }));
+
+      const allFailures: Array<{ entity: string; error: Error }> = [];
+
+      // Step 3: Bulk create new attributes
+      if (toCreate.length > 0) {
+        logger.info(`Creating ${toCreate.length} new attributes via bulk mutation`);
+        const createResult = await service.bootstrapAttributesBulk(toCreate);
+
+        if (createResult.failed.length > 0) {
+          logger.warn(`Failed to create ${createResult.failed.length} attributes`);
+          createResult.failed.forEach(({ input, errors }) => {
+            allFailures.push({
+              entity: input.name,
+              error: new Error(errors.join(", "))
+            });
+          });
+        }
+      }
+
+      // Step 4: Bulk update existing attributes
+      if (toUpdate.length > 0) {
+        logger.info(`Updating ${toUpdate.length} existing attributes via bulk mutation`);
+        const updateResult = await service.updateAttributesBulk(toUpdate);
+
+        if (updateResult.failed.length > 0) {
+          logger.warn(`Failed to update ${updateResult.failed.length} attributes`);
+          updateResult.failed.forEach(({ input, errors }) => {
+            allFailures.push({
+              entity: input.name,
+              error: new Error(errors.join(", "))
+            });
+          });
+        }
+      }
+
+      // Step 5: Report any failures
+      if (allFailures.length > 0) {
+        throw new StageAggregateError(
+          "Managing attributes via bulk operations",
+          allFailures,
+          attributes.filter(
+            attr => !allFailures.some(f => f.entity === attr.name)
+          ).map(a => a.name)
+        );
+      }
     }
   },
   skip(context) {
@@ -355,7 +444,19 @@ export const modelsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.model.bootstrapModels(config.models);
+      // Size-adaptive strategy to avoid rate limiting
+      const SEQUENTIAL_THRESHOLD = 5; // Lower threshold for models as they're more prone to rate limiting
+      const DELAY_MS = 100; // Delay between operations in milliseconds
+
+      if (config.models.length <= SEQUENTIAL_THRESHOLD) {
+        // Small config: use parallel processing (existing behavior)
+        logger.debug(`Processing ${config.models.length} models in parallel (small config)`);
+        await context.configurator.services.model.bootstrapModels(config.models);
+      } else {
+        // Larger config: use sequential processing with delays to avoid rate limiting
+        logger.info(`Processing ${config.models.length} models sequentially with ${DELAY_MS}ms delay to avoid rate limiting`);
+        await context.configurator.services.model.bootstrapModelsSequentially(config.models, DELAY_MS);
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage models: ${error instanceof Error ? error.message : String(error)}`
@@ -581,7 +682,18 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.product.bootstrapProducts(productsToProcess);
+      // Size-adaptive strategy: use bulk operations for larger deployments
+      const BULK_THRESHOLD = 10;
+
+      if (productsToProcess.length <= BULK_THRESHOLD) {
+        // Small config: use existing sequential approach for better error granularity
+        logger.debug(`Processing ${productsToProcess.length} products sequentially (small config)`);
+        await context.configurator.services.product.bootstrapProducts(productsToProcess);
+      } else {
+        // Large config: use bulk mutations for efficiency and to avoid rate limiting
+        logger.info(`Processing ${productsToProcess.length} products via bulk operations`);
+        await context.configurator.services.product.bootstrapProductsBulk(productsToProcess);
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`
