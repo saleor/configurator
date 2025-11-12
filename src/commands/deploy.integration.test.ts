@@ -297,9 +297,13 @@ describe("Deploy Command - Integration Tests", () => {
       );
     });
 
-    it("should fail gracefully with network errors", async () => {
-      // Arrange: Mock network error
-      fetchSpy?.mockRejectedValueOnce(new Error("Network connection failed"));
+    it("should retry on network errors before failing", { timeout: 10000 }, async () => {
+      // Arrange: Mock network error that persists through retries
+      let callCount = 0;
+      fetchSpy?.mockImplementation(() => {
+        callCount++;
+        return Promise.reject(new Error("Network connection failed"));
+      });
 
       const configPath = createConfigFile()
         .withShop({ defaultMailSenderName: "Test Shop" })
@@ -327,16 +331,16 @@ describe("Deploy Command - Integration Tests", () => {
       // Verify exit was called with network error code
       expect(mockExit).toHaveBeenCalledWith(3);
 
-      // Should have attempted the request
-      expect(fetchSpy).toHaveBeenCalledWith(
-        TEST_URL,
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            authorization: `Bearer ${TEST_TOKEN}`,
-          }),
-        })
-      );
+      // Should have attempted multiple retries (initial + 3 retries = 4 total)
+      expect(callCount).toBeGreaterThanOrEqual(3);
+
+      // Verify all calls had proper authentication headers
+      const allCalls = fetchSpy?.mock.calls as FetchMockCall[];
+      for (const call of allCalls) {
+        expect(call[1]?.headers).toMatchObject({
+          authorization: `Bearer ${TEST_TOKEN}`,
+        });
+      }
     });
 
     it("should fail when configuration file is missing", async () => {

@@ -831,6 +831,142 @@ export class ProductService {
   }
 
   /**
+   * Extracts unique references from product inputs
+   * Follows Single Responsibility Principle - only handles extraction logic
+   *
+   * @param products - Array of product inputs
+   * @returns Object containing unique product types, categories, and channels
+   */
+  private extractUniqueReferences(products: ProductInput[]): {
+    productTypes: Set<string>;
+    categories: Set<string>;
+    channels: Set<string>;
+  } {
+    const productTypes = new Set<string>();
+    const categories = new Set<string>();
+    const channels = new Set<string>();
+
+    for (const product of products) {
+      productTypes.add(product.productType);
+
+      if (product.category) {
+        categories.add(product.category);
+      }
+
+      // Extract channels from product listings
+      if (product.channelListings) {
+        for (const listing of product.channelListings) {
+          channels.add(listing.channel);
+        }
+      }
+
+      // Extract channels from variant listings
+      if (product.variants) {
+        for (const variant of product.variants) {
+          if (variant.channelListings) {
+            for (const listing of variant.channelListings) {
+              channels.add(listing.channel);
+            }
+          }
+        }
+      }
+    }
+
+    return { productTypes, categories, channels };
+  }
+
+  /**
+   * Pre-resolves a set of product type references to warm the cache
+   * Follows Single Responsibility Principle - only handles product type pre-caching
+   *
+   * @param productTypes - Set of product type names to resolve
+   */
+  private async preCacheProductTypes(productTypes: Set<string>): Promise<void> {
+    if (productTypes.size === 0) return;
+
+    logger.debug(`Pre-resolving ${productTypes.size} product types`);
+
+    for (const productType of productTypes) {
+      try {
+        await this.resolveProductTypeReference(productType);
+      } catch (error) {
+        logger.warn(`Failed to pre-cache product type: ${productType}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  /**
+   * Pre-resolves a set of category references to warm the cache
+   * Follows Single Responsibility Principle - only handles category pre-caching
+   *
+   * @param categories - Set of category slugs to resolve
+   */
+  private async preCacheCategories(categories: Set<string>): Promise<void> {
+    if (categories.size === 0) return;
+
+    logger.debug(`Pre-resolving ${categories.size} categories`);
+
+    for (const category of categories) {
+      try {
+        await this.resolveCategoryReference(category);
+      } catch (error) {
+        logger.warn(`Failed to pre-cache category: ${category}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  /**
+   * Pre-resolves a set of channel references to warm the cache
+   * Follows Single Responsibility Principle - only handles channel pre-caching
+   *
+   * @param channels - Set of channel slugs to resolve
+   */
+  private async preCacheChannels(channels: Set<string>): Promise<void> {
+    if (channels.size === 0) return;
+
+    logger.debug(`Pre-resolving ${channels.size} channels`);
+
+    for (const channel of channels) {
+      try {
+        await this.resolveChannelReference(channel);
+      } catch (error) {
+        logger.warn(`Failed to pre-cache channel: ${channel}`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  /**
+   * Pre-caches all references used by products to avoid rate limiting
+   * Coordinates the pre-caching of product types, categories, and channels
+   *
+   * @param products - Array of product inputs to extract references from
+   */
+  private async preCacheProductReferences(products: ProductInput[]): Promise<void> {
+    logger.debug("Pre-caching references to avoid rate limiting");
+
+    const { productTypes, categories, channels } = this.extractUniqueReferences(products);
+
+    // Pre-resolve all references in parallel for better performance
+    await Promise.all([
+      this.preCacheProductTypes(productTypes),
+      this.preCacheCategories(categories),
+      this.preCacheChannels(channels),
+    ]);
+
+    logger.debug("Reference pre-caching completed", {
+      productTypesCount: productTypes.size,
+      categoriesCount: categories.size,
+      channelsCount: channels.size,
+    });
+  }
+
+  /**
    * Bootstrap multiple products using bulk mutations for improved performance
    * Uses bulk operations to reduce API calls and avoid rate limiting
    */
@@ -865,65 +1001,7 @@ export class ProductService {
     }
 
     // Step 2.5: Pre-cache all references to avoid rate limiting during loops
-    logger.debug("Pre-caching references to avoid rate limiting");
-
-    // Extract unique product types and categories
-    const uniqueProductTypes = new Set<string>();
-    const uniqueCategories = new Set<string>();
-    const uniqueChannels = new Set<string>();
-
-    for (const product of products) {
-      uniqueProductTypes.add(product.productType);
-      if (product.category) {
-        uniqueCategories.add(product.category);
-      }
-
-      // Extract channels from product listings
-      if (product.channelListings) {
-        product.channelListings.forEach((ch) => uniqueChannels.add(ch.channel));
-      }
-
-      // Extract channels from variant listings
-      if (product.variants) {
-        product.variants.forEach((variant) => {
-          if (variant.channelListings) {
-            variant.channelListings.forEach((listing) => uniqueChannels.add(listing.channel));
-          }
-        });
-      }
-    }
-
-    // Pre-resolve all product types
-    logger.debug(`Pre-resolving ${uniqueProductTypes.size} product types`);
-    for (const productType of uniqueProductTypes) {
-      try {
-        await this.resolveProductTypeReference(productType);
-      } catch (error) {
-        logger.warn(`Failed to pre-cache product type: ${productType}`, { error });
-      }
-    }
-
-    // Pre-resolve all categories
-    logger.debug(`Pre-resolving ${uniqueCategories.size} categories`);
-    for (const category of uniqueCategories) {
-      try {
-        await this.resolveCategoryReference(category);
-      } catch (error) {
-        logger.warn(`Failed to pre-cache category: ${category}`, { error });
-      }
-    }
-
-    // Pre-resolve all channels
-    logger.debug(`Pre-resolving ${uniqueChannels.size} channels`);
-    for (const channel of uniqueChannels) {
-      try {
-        await this.resolveChannelReference(channel);
-      } catch (error) {
-        logger.warn(`Failed to pre-cache channel: ${channel}`, { error });
-      }
-    }
-
-    logger.debug("Reference pre-caching completed");
+    await this.preCacheProductReferences(products);
 
     logger.info(`Products to create: ${toCreate.length}, to update: ${toUpdate.length}`);
 
@@ -1002,7 +1080,6 @@ export class ProductService {
     // Note: productBulkUpdate doesn't exist in Saleor, so we update sequentially
     for (const { existing, input } of toUpdate) {
       try {
-        const _productTypeId = await this.resolveProductTypeReference(input.productType);
         const categoryId = input.category
           ? await this.resolveCategoryReference(input.category)
           : undefined;

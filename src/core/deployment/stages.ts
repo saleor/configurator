@@ -1,9 +1,17 @@
 import { logger } from "../../lib/logger";
+import {
+  BulkOperationMessages,
+  BulkOperationThresholds,
+  ChunkSizeConfig,
+  DelayConfig,
+  StageNames,
+} from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
 } from "../../modules/attribute/repository";
+import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
 import type {
   ChannelInput,
   ChannelUpdateInput,
@@ -15,7 +23,7 @@ import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
-  name: "Validating configuration",
+  name: StageNames.VALIDATION,
   async execute(context) {
     try {
       // Load the configuration to validate it
@@ -29,7 +37,7 @@ export const validationStage: DeploymentStage = {
 };
 
 export const shopSettingsStage: DeploymentStage = {
-  name: "Updating shop settings",
+  name: StageNames.SHOP_SETTINGS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -51,7 +59,7 @@ export const shopSettingsStage: DeploymentStage = {
 };
 
 export const productTypesStage: DeploymentStage = {
-  name: "Managing product types",
+  name: StageNames.PRODUCT_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -71,8 +79,8 @@ export const productTypesStage: DeploymentStage = {
           );
         },
         {
-          chunkSize: 10,
-          delayMs: 500,
+          chunkSize: ChunkSizeConfig.PRODUCT_TYPES_CHUNK_SIZE,
+          delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
           entityType: "product types",
         }
       );
@@ -109,7 +117,7 @@ export const productTypesStage: DeploymentStage = {
 };
 
 export const attributesStage: DeploymentStage = {
-  name: "Managing attributes",
+  name: StageNames.ATTRIBUTES,
   async execute(context) {
     const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
     const attributes = config.attributes;
@@ -117,10 +125,12 @@ export const attributesStage: DeploymentStage = {
 
     const service = context.configurator.services.attribute;
 
-    // Size-adaptive strategy: use bulk operations for >10 attributes
-    if (attributes.length <= 10) {
+    // Size-adaptive strategy: use bulk operations for larger configs
+    if (attributes.length <= BulkOperationThresholds.ATTRIBUTES) {
       // Small config: use existing sequential approach for better error handling
-      logger.debug(`Processing ${attributes.length} attributes sequentially (small config)`);
+      logger.debug(
+        BulkOperationMessages.SEQUENTIAL_PROCESSING(attributes.length, "attributes")
+      );
       const results = await Promise.allSettled(
         attributes.map(async (attr) => {
           const existing = await service.repo.getAttributesByNames({
@@ -148,13 +158,13 @@ export const attributesStage: DeploymentStage = {
       }
     } else {
       // Large config: use bulk mutations for efficiency
-      logger.info(`Processing ${attributes.length} attributes via bulk operations`);
+      logger.info(BulkOperationMessages.BULK_PROCESSING(attributes.length, "attributes"));
 
       // Step 1: Fetch all existing attributes to determine which need creating vs updating
       const existingAttributesMap = new Map<string, AttributeMeta>();
 
       // Query existing attributes by type groups to be more efficient
-      const typeGroups = new Map<string, typeof attributes>();
+      const typeGroups = new Map<string, FullAttribute[]>();
       for (const attr of attributes) {
         const type = attr.type;
         if (!typeGroups.has(type)) {
@@ -240,7 +250,7 @@ export const attributesStage: DeploymentStage = {
 };
 
 export const channelsStage: DeploymentStage = {
-  name: "Managing channels",
+  name: StageNames.CHANNELS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -283,7 +293,7 @@ export const channelsStage: DeploymentStage = {
 };
 
 export const pageTypesStage: DeploymentStage = {
-  name: "Managing page types",
+  name: StageNames.PAGE_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -337,7 +347,7 @@ export const pageTypesStage: DeploymentStage = {
 };
 
 export const modelTypesStage: DeploymentStage = {
-  name: "Managing model types",
+  name: StageNames.MODEL_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -391,7 +401,7 @@ export const modelTypesStage: DeploymentStage = {
 };
 
 export const collectionsStage: DeploymentStage = {
-  name: "Managing collections",
+  name: StageNames.COLLECTIONS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -413,7 +423,7 @@ export const collectionsStage: DeploymentStage = {
 };
 
 export const menusStage: DeploymentStage = {
-  name: "Managing menus",
+  name: StageNames.MENUS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -435,7 +445,7 @@ export const menusStage: DeploymentStage = {
 };
 
 export const modelsStage: DeploymentStage = {
-  name: "Managing models",
+  name: StageNames.MODELS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -445,21 +455,24 @@ export const modelsStage: DeploymentStage = {
       }
 
       // Size-adaptive strategy to avoid rate limiting
-      const SEQUENTIAL_THRESHOLD = 5; // Lower threshold for models as they're more prone to rate limiting
-      const DELAY_MS = 100; // Delay between operations in milliseconds
-
-      if (config.models.length <= SEQUENTIAL_THRESHOLD) {
+      if (config.models.length <= BulkOperationThresholds.MODELS) {
         // Small config: use parallel processing (existing behavior)
-        logger.debug(`Processing ${config.models.length} models in parallel (small config)`);
+        logger.debug(
+          BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models")
+        );
         await context.configurator.services.model.bootstrapModels(config.models);
       } else {
         // Larger config: use sequential processing with delays to avoid rate limiting
         logger.info(
-          `Processing ${config.models.length} models sequentially with ${DELAY_MS}ms delay to avoid rate limiting`
+          BulkOperationMessages.SEQUENTIAL_WITH_DELAY(
+            config.models.length,
+            "models",
+            DelayConfig.MODEL_PROCESSING_DELAY_MS
+          )
         );
         await context.configurator.services.model.bootstrapModelsSequentially(
           config.models,
-          DELAY_MS
+          DelayConfig.MODEL_PROCESSING_DELAY_MS
         );
       }
     } catch (error) {
@@ -474,7 +487,7 @@ export const modelsStage: DeploymentStage = {
 };
 
 export const categoriesStage: DeploymentStage = {
-  name: "Managing categories",
+  name: StageNames.CATEGORIES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -502,7 +515,7 @@ export const categoriesStage: DeploymentStage = {
 };
 
 export const warehousesStage: DeploymentStage = {
-  name: "Managing warehouses",
+  name: StageNames.WAREHOUSES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -524,7 +537,7 @@ export const warehousesStage: DeploymentStage = {
 };
 
 export const taxClassesStage: DeploymentStage = {
-  name: "Managing tax classes",
+  name: StageNames.TAX_CLASSES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -546,7 +559,7 @@ export const taxClassesStage: DeploymentStage = {
 };
 
 export const shippingZonesStage: DeploymentStage = {
-  name: "Managing shipping zones",
+  name: StageNames.SHIPPING_ZONES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -568,7 +581,7 @@ export const shippingZonesStage: DeploymentStage = {
 };
 
 export const attributeChoicesPreflightStage: DeploymentStage = {
-  name: "Preparing attribute choices",
+  name: StageNames.ATTRIBUTE_CHOICES_PREFLIGHT,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -651,7 +664,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
 };
 
 export const productsStage: DeploymentStage = {
-  name: "Managing products",
+  name: StageNames.PRODUCTS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -688,15 +701,17 @@ export const productsStage: DeploymentStage = {
       }
 
       // Size-adaptive strategy: use bulk operations for larger deployments
-      const BULK_THRESHOLD = 10;
-
-      if (productsToProcess.length <= BULK_THRESHOLD) {
+      if (productsToProcess.length <= BulkOperationThresholds.PRODUCTS) {
         // Small config: use existing sequential approach for better error granularity
-        logger.debug(`Processing ${productsToProcess.length} products sequentially (small config)`);
+        logger.debug(
+          BulkOperationMessages.SEQUENTIAL_PROCESSING(productsToProcess.length, "products")
+        );
         await context.configurator.services.product.bootstrapProducts(productsToProcess);
       } else {
         // Large config: use bulk mutations for efficiency and to avoid rate limiting
-        logger.info(`Processing ${productsToProcess.length} products via bulk operations`);
+        logger.info(
+          BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products")
+        );
         await context.configurator.services.product.bootstrapProductsBulk(productsToProcess);
       }
     } catch (error) {
