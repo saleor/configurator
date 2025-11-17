@@ -22,7 +22,13 @@
         "defaultWeightUnit": {
           "description": "Default unit for product weights",
           "type": "string",
-          "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+          "enum": [
+            "KG",
+            "LB",
+            "OZ",
+            "G",
+            "TONNE"
+          ]
         },
         "automaticFulfillmentDigitalProducts": {
           "description": "Automatically fulfill digital products upon payment",
@@ -178,7 +184,10 @@
                   "ARS",
                   "CLP",
                   "COP",
-                  "PEN"
+                  "PEN",
+                  "BAM",
+                  "HRK",
+                  "RSD"
                 ]
               },
               "defaultCountry": {
@@ -452,7 +461,10 @@
                   "allocationStrategy": {
                     "description": "Strategy for allocating stock when multiple locations have inventory",
                     "type": "string",
-                    "enum": ["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"]
+                    "enum": [
+                      "PRIORITIZE_SORTING_ORDER",
+                      "PRIORITIZE_HIGH_STOCK"
+                    ]
                   },
                   "automaticallyConfirmAllNewOrders": {
                     "description": "Automatically confirm all new orders without manual review",
@@ -473,7 +485,10 @@
                   "markAsPaidStrategy": {
                     "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow",
                     "type": "string",
-                    "enum": ["TRANSACTION_FLOW", "PAYMENT_FLOW"]
+                    "enum": [
+                      "TRANSACTION_FLOW",
+                      "PAYMENT_FLOW"
+                    ]
                   },
                   "allowUnpaidOrders": {
                     "description": "Allow creation of orders without immediate payment",
@@ -494,13 +509,53 @@
                   "defaultTransactionFlowStrategy": {
                     "description": "Default payment flow - authorize first then capture, or charge immediately",
                     "type": "string",
-                    "enum": ["AUTHORIZATION", "CHARGE"]
+                    "enum": [
+                      "AUTHORIZATION",
+                      "CHARGE"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "taxConfiguration": {
+                "description": "Tax settings specific to this channel",
+                "type": "object",
+                "properties": {
+                  "taxCalculationStrategy": {
+                    "description": "Method for calculating taxes - flat rates or external tax app",
+                    "type": "string",
+                    "enum": [
+                      "FLAT_RATES",
+                      "TAX_APP"
+                    ]
+                  },
+                  "chargeTaxes": {
+                    "description": "Whether to charge taxes in this channel",
+                    "type": "boolean"
+                  },
+                  "displayGrossPrices": {
+                    "description": "Whether to display prices including taxes",
+                    "type": "boolean"
+                  },
+                  "pricesEnteredWithTax": {
+                    "description": "Whether prices are entered including taxes",
+                    "type": "boolean"
+                  },
+                  "taxAppId": {
+                    "description": "ID of the external tax application when using TAX_APP strategy",
+                    "type": "string"
                   }
                 },
                 "additionalProperties": false
               }
             },
-            "required": ["name", "currencyCode", "defaultCountry", "slug", "isActive"],
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
             "additionalProperties": false
           },
           {
@@ -551,7 +606,10 @@
                   "ARS",
                   "CLP",
                   "COP",
-                  "PEN"
+                  "PEN",
+                  "BAM",
+                  "HRK",
+                  "RSD"
                 ]
               },
               "defaultCountry": {
@@ -819,7 +877,13 @@
                 "type": "boolean"
               }
             },
-            "required": ["name", "currencyCode", "defaultCountry", "slug", "isActive"],
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
             "additionalProperties": false
           }
         ]
@@ -841,9 +905,17 @@
           },
           "email": {
             "description": "Warehouse.email",
-            "type": "string",
-            "format": "email",
-            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email",
+                "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+              },
+              {
+                "type": "string",
+                "const": ""
+              }
+            ]
           },
           "isPrivate": {
             "description": "Warehouse.isPrivate",
@@ -1142,14 +1214,22 @@
                 "type": "string"
               }
             },
-            "required": ["streetAddress1", "city", "country"],
+            "required": [
+              "streetAddress1",
+              "city",
+              "country"
+            ],
             "additionalProperties": false
           },
           "clickAndCollectOption": {
             "description": "Warehouse.clickAndCollectOption",
             "default": "DISABLED",
             "type": "string",
-            "enum": ["DISABLED", "LOCAL", "ALL"]
+            "enum": [
+              "DISABLED",
+              "LOCAL",
+              "ALL"
+            ]
           },
           "shippingZones": {
             "description": "Warehouse.shippingZones",
@@ -1159,7 +1239,13 @@
             }
           }
         },
-        "required": ["name", "slug", "email", "isPrivate", "address", "clickAndCollectOption"],
+        "required": [
+          "name",
+          "slug",
+          "isPrivate",
+          "address",
+          "clickAndCollectOption"
+        ],
         "additionalProperties": false
       }
     },
@@ -1471,7 +1557,10 @@
                 "type": {
                   "description": "ShippingMethod.type",
                   "type": "string",
-                  "enum": ["PRICE", "WEIGHT"]
+                  "enum": [
+                    "PRICE",
+                    "WEIGHT"
+                  ]
                 },
                 "minimumDeliveryDays": {
                   "description": "ShippingMethod.minimumDeliveryDays",
@@ -1491,14 +1580,23 @@
                   "properties": {
                     "unit": {
                       "type": "string",
-                      "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
                     },
                     "value": {
                       "type": "number",
                       "minimum": 0
                     }
                   },
-                  "required": ["unit", "value"],
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
                   "additionalProperties": false
                 },
                 "maximumOrderWeight": {
@@ -1507,14 +1605,23 @@
                   "properties": {
                     "unit": {
                       "type": "string",
-                      "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
                     },
                     "value": {
                       "type": "number",
                       "minimum": 0
                     }
                   },
-                  "required": ["unit", "value"],
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
                   "additionalProperties": false
                 },
                 "taxClass": {
@@ -1577,7 +1684,10 @@
                           "ARS",
                           "CLP",
                           "COP",
-                          "PEN"
+                          "PEN",
+                          "BAM",
+                          "HRK",
+                          "RSD"
                         ]
                       },
                       "minimumOrderPrice": {
@@ -1591,17 +1701,320 @@
                         "minimum": 0
                       }
                     },
-                    "required": ["channel", "price"],
+                    "required": [
+                      "channel",
+                      "price"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["name", "type"],
+              "required": [
+                "name",
+                "type"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name", "default", "countries"],
+        "required": [
+          "name",
+          "default",
+          "countries"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "taxClasses": {
+      "description": "Tax class definitions that specify tax rates per country. Tax classes can be assigned to products, product types, and shipping methods to control tax calculation",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "TaxClass.name - Unique identifier for the tax class",
+            "type": "string",
+            "minLength": 1
+          },
+          "countryRates": {
+            "description": "TaxClass.countries - Tax rates per country for this tax class",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "countryCode": {
+                  "description": "ISO 3166-1 alpha-2 country code",
+                  "type": "string",
+                  "enum": [
+                    "AD",
+                    "AE",
+                    "AF",
+                    "AG",
+                    "AI",
+                    "AL",
+                    "AM",
+                    "AO",
+                    "AQ",
+                    "AR",
+                    "AS",
+                    "AT",
+                    "AU",
+                    "AW",
+                    "AX",
+                    "AZ",
+                    "BA",
+                    "BB",
+                    "BD",
+                    "BE",
+                    "BF",
+                    "BG",
+                    "BH",
+                    "BI",
+                    "BJ",
+                    "BL",
+                    "BM",
+                    "BN",
+                    "BO",
+                    "BQ",
+                    "BR",
+                    "BS",
+                    "BT",
+                    "BV",
+                    "BW",
+                    "BY",
+                    "BZ",
+                    "CA",
+                    "CC",
+                    "CD",
+                    "CF",
+                    "CG",
+                    "CH",
+                    "CI",
+                    "CK",
+                    "CL",
+                    "CM",
+                    "CN",
+                    "CO",
+                    "CR",
+                    "CU",
+                    "CV",
+                    "CW",
+                    "CX",
+                    "CY",
+                    "CZ",
+                    "DE",
+                    "DJ",
+                    "DK",
+                    "DM",
+                    "DO",
+                    "DZ",
+                    "EC",
+                    "EE",
+                    "EG",
+                    "EH",
+                    "ER",
+                    "ES",
+                    "ET",
+                    "FI",
+                    "FJ",
+                    "FK",
+                    "FM",
+                    "FO",
+                    "FR",
+                    "GA",
+                    "GB",
+                    "GD",
+                    "GE",
+                    "GF",
+                    "GG",
+                    "GH",
+                    "GI",
+                    "GL",
+                    "GM",
+                    "GN",
+                    "GP",
+                    "GQ",
+                    "GR",
+                    "GS",
+                    "GT",
+                    "GU",
+                    "GW",
+                    "GY",
+                    "HK",
+                    "HM",
+                    "HN",
+                    "HR",
+                    "HT",
+                    "HU",
+                    "ID",
+                    "IE",
+                    "IL",
+                    "IM",
+                    "IN",
+                    "IO",
+                    "IQ",
+                    "IR",
+                    "IS",
+                    "IT",
+                    "JE",
+                    "JM",
+                    "JO",
+                    "JP",
+                    "KE",
+                    "KG",
+                    "KH",
+                    "KI",
+                    "KM",
+                    "KN",
+                    "KP",
+                    "KR",
+                    "KW",
+                    "KY",
+                    "KZ",
+                    "LA",
+                    "LB",
+                    "LC",
+                    "LI",
+                    "LK",
+                    "LR",
+                    "LS",
+                    "LT",
+                    "LU",
+                    "LV",
+                    "LY",
+                    "MA",
+                    "MC",
+                    "MD",
+                    "ME",
+                    "MF",
+                    "MG",
+                    "MH",
+                    "MK",
+                    "ML",
+                    "MM",
+                    "MN",
+                    "MO",
+                    "MP",
+                    "MQ",
+                    "MR",
+                    "MS",
+                    "MT",
+                    "MU",
+                    "MV",
+                    "MW",
+                    "MX",
+                    "MY",
+                    "MZ",
+                    "NA",
+                    "NC",
+                    "NE",
+                    "NF",
+                    "NG",
+                    "NI",
+                    "NL",
+                    "NO",
+                    "NP",
+                    "NR",
+                    "NU",
+                    "NZ",
+                    "OM",
+                    "PA",
+                    "PE",
+                    "PF",
+                    "PG",
+                    "PH",
+                    "PK",
+                    "PL",
+                    "PM",
+                    "PN",
+                    "PR",
+                    "PS",
+                    "PT",
+                    "PW",
+                    "PY",
+                    "QA",
+                    "RE",
+                    "RO",
+                    "RS",
+                    "RU",
+                    "RW",
+                    "SA",
+                    "SB",
+                    "SC",
+                    "SD",
+                    "SE",
+                    "SG",
+                    "SH",
+                    "SI",
+                    "SJ",
+                    "SK",
+                    "SL",
+                    "SM",
+                    "SN",
+                    "SO",
+                    "SR",
+                    "SS",
+                    "ST",
+                    "SV",
+                    "SX",
+                    "SY",
+                    "SZ",
+                    "TC",
+                    "TD",
+                    "TF",
+                    "TG",
+                    "TH",
+                    "TJ",
+                    "TK",
+                    "TL",
+                    "TM",
+                    "TN",
+                    "TO",
+                    "TR",
+                    "TT",
+                    "TV",
+                    "TW",
+                    "TZ",
+                    "UA",
+                    "UG",
+                    "UM",
+                    "US",
+                    "UY",
+                    "UZ",
+                    "VA",
+                    "VC",
+                    "VE",
+                    "VG",
+                    "VI",
+                    "VN",
+                    "VU",
+                    "WF",
+                    "WS",
+                    "YE",
+                    "YT",
+                    "ZA",
+                    "ZM",
+                    "ZW"
+                  ]
+                },
+                "rate": {
+                  "description": "Tax rate as a percentage (0-100)",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 100
+                }
+              },
+              "required": [
+                "countryCode",
+                "rate"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
         "additionalProperties": false
       }
     },
@@ -1620,6 +2033,10 @@
             "default": false,
             "type": "boolean"
           },
+          "taxClass": {
+            "description": "Reference to a tax class name for default tax calculation on products of this type",
+            "type": "string"
+          },
           "productAttributes": {
             "description": "Attributes that apply to the entire product (e.g., Brand, Material)",
             "type": "array",
@@ -1635,7 +2052,11 @@
                         },
                         "inputType": {
                           "type": "string",
-                          "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
                         },
                         "values": {
                           "type": "array",
@@ -1646,12 +2067,18 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["name"],
+                            "required": [
+                              "name"
+                            ],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": ["name", "inputType", "values"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -1666,10 +2093,18 @@
                         },
                         "entityType": {
                           "type": "string",
-                          "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -1691,7 +2126,10 @@
                           ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -1704,7 +2142,9 @@
                       "type": "string"
                     }
                   },
-                  "required": ["attribute"],
+                  "required": [
+                    "attribute"
+                  ],
                   "additionalProperties": false
                 }
               ]
@@ -1725,7 +2165,11 @@
                         },
                         "inputType": {
                           "type": "string",
-                          "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
                         },
                         "values": {
                           "type": "array",
@@ -1736,12 +2180,18 @@
                                 "type": "string"
                               }
                             },
-                            "required": ["name"],
+                            "required": [
+                              "name"
+                            ],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": ["name", "inputType", "values"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -1756,10 +2206,18 @@
                         },
                         "entityType": {
                           "type": "string",
-                          "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -1781,7 +2239,10 @@
                           ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -1794,14 +2255,19 @@
                       "type": "string"
                     }
                   },
-                  "required": ["attribute"],
+                  "required": [
+                    "attribute"
+                  ],
                   "additionalProperties": false
                 }
               ]
             }
           }
         },
-        "required": ["name", "isShippingRequired"],
+        "required": [
+          "name",
+          "isShippingRequired"
+        ],
         "additionalProperties": false
       }
     },
@@ -1832,7 +2298,11 @@
                             },
                             "inputType": {
                               "type": "string",
-                              "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                              "enum": [
+                                "DROPDOWN",
+                                "MULTISELECT",
+                                "SWATCH"
+                              ]
                             },
                             "values": {
                               "type": "array",
@@ -1843,12 +2313,18 @@
                                     "type": "string"
                                   }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                  "name"
+                                ],
                                 "additionalProperties": false
                               }
                             }
                           },
-                          "required": ["name", "inputType", "values"],
+                          "required": [
+                            "name",
+                            "inputType",
+                            "values"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -1863,10 +2339,18 @@
                             },
                             "entityType": {
                               "type": "string",
-                              "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                              "enum": [
+                                "PAGE",
+                                "PRODUCT",
+                                "PRODUCT_VARIANT"
+                              ]
                             }
                           },
-                          "required": ["name", "inputType"],
+                          "required": [
+                            "name",
+                            "inputType",
+                            "entityType"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -1888,7 +2372,10 @@
                               ]
                             }
                           },
-                          "required": ["name", "inputType"],
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
                           "additionalProperties": false
                         }
                       ]
@@ -1901,14 +2388,19 @@
                           "type": "string"
                         }
                       },
-                      "required": ["attribute"],
+                      "required": [
+                        "attribute"
+                      ],
                       "additionalProperties": false
                     }
                   ]
                 }
               }
             },
-            "required": ["name", "attributes"],
+            "required": [
+              "name",
+              "attributes"
+            ],
             "additionalProperties": false
           },
           {
@@ -1919,10 +2411,146 @@
                 "type": "string"
               }
             },
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "additionalProperties": false
           }
         ]
+      }
+    },
+    "modelTypes": {
+      "description": "Model type templates that define the structure and attributes for content models (renamed from page types). Useful for creating structured content with custom fields",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "ModelType.name",
+            "type": "string"
+          },
+          "slug": {
+            "description": "ModelType.slug",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "ModelType.attributes",
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "description": "Reference to an existing attribute by slug",
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
       }
     },
     "categories": {
@@ -1945,10 +2573,75 @@
                 "type": "string"
               }
             },
-            "required": ["name", "slug"],
+            "required": [
+              "name",
+              "slug"
+            ],
             "additionalProperties": false
           }
         ]
+      }
+    },
+    "collections": {
+      "description": "Product collections for grouping and merchandising products. Collections can be published to specific channels and contain curated product lists",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Collection.name",
+            "type": "string"
+          },
+          "slug": {
+            "description": "Collection.slug",
+            "type": "string"
+          },
+          "description": {
+            "description": "Collection.description",
+            "type": "string"
+          },
+          "isPublished": {
+            "description": "Collection.isPublished",
+            "type": "boolean"
+          },
+          "products": {
+            "description": "Collection.products - References to product slugs",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "channelListings": {
+            "description": "Collection.channelListings - Channel-specific visibility settings",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "channelSlug": {
+                  "description": "CollectionChannelListing.channelSlug",
+                  "type": "string"
+                },
+                "isPublished": {
+                  "description": "CollectionChannelListing.isPublished",
+                  "type": "boolean"
+                },
+                "publishedAt": {
+                  "description": "CollectionChannelListing.publishedAt",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "channelSlug"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ],
+        "additionalProperties": false
       }
     },
     "products": {
@@ -1965,12 +2658,20 @@
             "description": "URL-friendly identifier (used in URLs and API calls)",
             "type": "string"
           },
+          "description": {
+            "description": "Product description",
+            "type": "string"
+          },
           "productType": {
             "description": "Reference to the product type (must match a productType name)",
             "type": "string"
           },
           "category": {
             "description": "Reference to the product category (must match a category slug)",
+            "type": "string"
+          },
+          "taxClass": {
+            "description": "Reference to a tax class name - overrides the product type's default tax class",
             "type": "string"
           },
           "attributes": {
@@ -2022,7 +2723,33 @@
                   "type": "string"
                 }
               },
-              "required": ["channel", "isPublished", "visibleInListings"],
+              "required": [
+                "channel",
+                "isPublished",
+                "visibleInListings"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "media": {
+            "description": "External media assets associated with the product. Provide an externalUrl for images or videos hosted outside of Saleor",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "externalUrl": {
+                  "description": "Public URL to an externally hosted product media asset (image or video)",
+                  "type": "string",
+                  "format": "uri"
+                },
+                "alt": {
+                  "description": "Accessible alternative text for the media",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "externalUrl"
+              ],
               "additionalProperties": false
             }
           },
@@ -2087,18 +2814,239 @@
                         "type": "number"
                       }
                     },
-                    "required": ["channel", "price"],
+                    "required": [
+                      "channel"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["name", "sku"],
+              "required": [
+                "name",
+                "sku"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name", "slug", "productType", "category", "variants"],
+        "required": [
+          "name",
+          "slug",
+          "productType",
+          "category",
+          "variants"
+        ],
         "additionalProperties": false
+      }
+    },
+    "models": {
+      "description": "Content models/pages with structured data based on model types. Models can have custom attributes and content for flexible CMS functionality",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "description": "Model.title",
+            "type": "string"
+          },
+          "slug": {
+            "description": "Model.slug",
+            "type": "string"
+          },
+          "modelType": {
+            "description": "Model.modelType - Reference to model type name",
+            "type": "string"
+          },
+          "content": {
+            "description": "Model.content - Page content",
+            "type": "string"
+          },
+          "isPublished": {
+            "description": "Model.isPublished",
+            "type": "boolean"
+          },
+          "publishedAt": {
+            "description": "Model.publishedAt",
+            "type": "string"
+          },
+          "attributes": {
+            "description": "Model.attributes - Attribute values keyed by attribute slug",
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "title",
+          "slug",
+          "modelType"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "menus": {
+      "description": "Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Menu.name",
+            "type": "string"
+          },
+          "slug": {
+            "description": "Menu.slug",
+            "type": "string"
+          },
+          "items": {
+            "description": "Menu.items - Top-level menu items",
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema1"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "slug"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "attributes": {
+      "description": "Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment",
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "inputType": {
+                    "type": "string",
+                    "enum": [
+                      "DROPDOWN",
+                      "MULTISELECT",
+                      "SWATCH"
+                    ]
+                  },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "inputType",
+                  "values"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "inputType": {
+                    "type": "string",
+                    "const": "REFERENCE"
+                  },
+                  "entityType": {
+                    "type": "string",
+                    "enum": [
+                      "PAGE",
+                      "PRODUCT",
+                      "PRODUCT_VARIANT"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "inputType",
+                  "entityType"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "inputType": {
+                    "type": "string",
+                    "enum": [
+                      "PLAIN_TEXT",
+                      "NUMERIC",
+                      "DATE",
+                      "BOOLEAN",
+                      "RICH_TEXT",
+                      "DATE_TIME",
+                      "FILE"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "inputType"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "PRODUCT_TYPE",
+                  "PAGE_TYPE"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     }
   },
@@ -2123,7 +3071,46 @@
           }
         }
       },
-      "required": ["name", "slug"],
+      "required": [
+        "name",
+        "slug"
+      ],
+      "additionalProperties": false
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "MenuItem.name",
+          "type": "string"
+        },
+        "url": {
+          "description": "MenuItem.url - External URL",
+          "type": "string"
+        },
+        "category": {
+          "description": "MenuItem.category - Reference to category slug",
+          "type": "string"
+        },
+        "collection": {
+          "description": "MenuItem.collection - Reference to collection slug",
+          "type": "string"
+        },
+        "page": {
+          "description": "MenuItem.page - Reference to page/model slug",
+          "type": "string"
+        },
+        "children": {
+          "description": "MenuItem.children - Nested menu items",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
       "additionalProperties": false
     }
   },

@@ -133,6 +133,9 @@ products:
     attributes:
       Author: "Jane Doe"
       Genre: "Fiction"
+    media:
+      - externalUrl: "https://cdn.example.com/products/sample-fiction-book.jpg"
+        alt: "Cover of Sample Fiction Book"
     variants:
       - name: "Hardcover"
         sku: "BOOK-001-HC"
