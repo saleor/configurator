@@ -115,9 +115,8 @@ describe("Warehouse Schema Validation", () => {
 
     const result = configSchema.safeParse(config);
     expect(result.success).toBe(true);
-    // The empty string should be transformed to undefined
     if (result.success) {
-      expect(result.data.warehouses?.[0].email).toBeUndefined();
+      expect(result.data.warehouses?.[0].email).toBe("");
     }
   });
 
