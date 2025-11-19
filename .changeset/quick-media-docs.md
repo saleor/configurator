@@ -2,4 +2,4 @@
 "@saleor/configurator": patch
 ---
 
-Ensure product media support is reflected in the published schema/docs by removing JSON-schema-breaking transforms from the config schema and regenerating `schema.json`/`SCHEMA.md`.
+Fixed the bug when product media properties didn't surface in the schema & were ignored while parsing the config.
