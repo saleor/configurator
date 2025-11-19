@@ -1,5 +1,46 @@
 # saleor-configurator
 
+## 0.15.0
+
+### Minor Changes
+
+- 0d2e02d: ### Product media idempotency
+
+  - Persist the original `externalUrl` in Saleor metadata during deploys so repeated runs stop diffing on Saleor-generated thumbnails.
+  - Rehydrate that metadata when diffing and bootstrapping, letting the CLI compare against the real source URL.
+  - Add `config.yml` support for media arrays round-tripped from Saleor.
+
+  ### Resilience and pagination
+
+  - Harden the product pagination query to mirror the main config selection and validated its shape with a unit test to prevent future regressions.
+  - Slow down pagination/choice fetches to avoid Saleor rate limiting.
+
+  ### Using external media
+
+  Add `media` entries under a product to declare external assets:
+
+  ```yaml
+  products:
+    - name: "New York City Museum"
+      slug: "new-york-city-museum"
+      # … other fields …
+      media:
+        - externalUrl: "https://upload.wikimedia.org/wikipedia/commons/9/94/Ashmolean.jpg"
+          alt: "Museum exterior"
+  ```
+
+  The configurator now keeps this URL consistent across deploys even when Saleor transforms it into a thumbnail.
+
+### Patch Changes
+
+- a35aae8: Fix menu items not linking to categories when created via configurator.
+
+  Menu items specified with category slugs (e.g., `category: "photobooks"`) now properly resolve to category IDs and link correctly in Saleor. Previously, the MenuService was missing required dependencies (CategoryService, CollectionService, ModelService), causing category resolution to be skipped and resulting in `category: null` in the API response.
+
+  This fix ensures menu structures work correctly in storefronts by injecting the necessary services during MenuService initialization.
+
+- ede44b6: Fixed the bug when product media properties didn't surface in the schema & were ignored while parsing the config.
+
 ## 0.14.0
 
 ### Minor Changes
