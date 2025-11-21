@@ -41,22 +41,6 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
       "Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
     ),
   verbose: z.boolean().optional().default(false).describe("Show detailed error information"),
-  concurrency: z
-    .string()
-    .or(z.number())
-    .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val))
-    .pipe(z.number().int().positive())
-    .optional()
-    .default(5)
-    .describe("Number of concurrent operations for batch processing (default: 5)"),
-  delay: z
-    .string()
-    .or(z.number())
-    .transform((val) => (typeof val === "string" ? parseInt(val, 10) : val))
-    .pipe(z.number().int().nonnegative())
-    .optional()
-    .default(0)
-    .describe("Delay in milliseconds between batches to avoid overwhelming Saleor (default: 0)"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -431,8 +415,6 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
     `${COMMAND_NAME} deploy --url https://my-shop.saleor.cloud/graphql/ --token token123`,
     `${COMMAND_NAME} deploy --config custom-config.yml --ci`,
     `${COMMAND_NAME} deploy --report-path custom-report.json`,
-    `${COMMAND_NAME} deploy --concurrency 10 # Process 10 items concurrently`,
-    `${COMMAND_NAME} deploy --concurrency 1 --delay 1000 # Process 1 item at a time with 1s delay between batches`,
     `${COMMAND_NAME} deploy --quiet`,
     `${COMMAND_NAME} deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json`,
   ],

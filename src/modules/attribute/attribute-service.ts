@@ -59,15 +59,8 @@ const createAttributeUpdateInput = (
     const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
     const newValues = input.values.map((v) => v.name);
 
-    // Create a set of normalized existing values for case-insensitive and trimmed comparison
-    const normalizedExistingValues = new Set(
-      existingValues.map((v) => (v ?? "").trim().toLowerCase())
-    );
-
-    // Find values to add (only if they don't exist with different whitespace/casing)
-    const valuesToAdd = newValues.filter(
-      (value) => !normalizedExistingValues.has(value.trim().toLowerCase())
-    );
+    // Find values to add
+    const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
 
     if (valuesToAdd.length > 0) {
       return {
