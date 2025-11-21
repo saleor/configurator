@@ -467,6 +467,92 @@ describe("MenuService", () => {
       expect(result).toBeDefined();
       expect(mockOperations.createMenu).toHaveBeenCalled();
     });
+
+    it("should resolve category slugs to IDs when creating menu items", async () => {
+      const mockOperations = createMockOperations();
+      mockOperations.createMenu.mockResolvedValue(mockMenu);
+      mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
+
+      const mockCategoryService = {
+        getCategoryBySlug: vi.fn().mockResolvedValue({
+          id: "Q2F0ZWdvcnk6MQ==",
+          slug: "photobooks",
+          name: "Photobooks",
+        }),
+      } as unknown as CategoryService;
+
+      const mockCollectionService = {
+        getCollectionBySlug: vi.fn().mockResolvedValue({ id: "col1", slug: "featured-products" }),
+      } as unknown as CollectionService;
+
+      const mockModelService = {
+        getModelBySlug: vi.fn().mockResolvedValue({ id: "p1", slug: "about" }),
+      } as unknown as ModelService;
+
+      const service = new MenuService(
+        mockOperations,
+        mockCategoryService,
+        mockCollectionService,
+        mockModelService
+      );
+
+      const menuInput = {
+        name: "navbar",
+        slug: "navbar",
+        items: [
+          {
+            name: "Photobook",
+            category: "photobooks",
+            children: [
+              {
+                name: "Premium",
+                category: "premium",
+              },
+            ],
+          },
+        ],
+      };
+
+      await service.createMenu(menuInput);
+
+      // Verify category service was called with the slug
+      expect(mockCategoryService.getCategoryBySlug).toHaveBeenCalledWith("photobooks");
+      expect(mockCategoryService.getCategoryBySlug).toHaveBeenCalledWith("premium");
+
+      // Verify createMenuItem was called with the resolved category ID
+      expect(mockOperations.createMenuItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: "Q2F0ZWdvcnk6MQ==", // The resolved ID, not the slug
+        })
+      );
+    });
+
+    it("should handle missing category services gracefully", async () => {
+      const mockOperations = createMockOperations();
+      mockOperations.createMenu.mockResolvedValue(mockMenu);
+      mockOperations.createMenuItem.mockResolvedValue({ id: "item-1", name: "Test Item" });
+
+      // Create service WITHOUT category/collection/model services (simulating old behavior)
+      const service = new MenuService(mockOperations);
+
+      const menuInput = {
+        name: "navbar",
+        slug: "navbar",
+        items: [
+          {
+            name: "Photobook",
+            category: "photobooks",
+          },
+        ],
+      };
+
+      await service.createMenu(menuInput);
+
+      // Verify createMenuItem was called without the category field
+      const call = mockOperations.createMenuItem.mock.calls[0][0];
+      expect(call).toBeDefined();
+      expect(call).not.toHaveProperty("category"); // No category service = no category field
+    });
   });
 
   describe("error handling", () => {

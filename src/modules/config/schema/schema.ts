@@ -623,8 +623,7 @@ const productMediaSchema = z.object({
   externalUrl: z
     .string()
     .url()
-    .describe("Public URL to an externally hosted product media asset (image or video)")
-    .transform((value) => value.trim()),
+    .describe("Public URL to an externally hosted product media asset (image or video)"),
   alt: z.string().optional().describe("Accessible alternative text for the media"),
 });
 
@@ -676,9 +675,8 @@ const warehouseSchema = z.object({
   name: z.string().describe("Warehouse.name"),
   slug: z.string().describe("Warehouse.slug"),
   email: z
-    .union([z.string().email(), z.literal(""), z.undefined()])
+    .union([z.string().email(), z.literal("")])
     .optional()
-    .transform((val) => (val === "" ? undefined : val))
     .describe("Warehouse.email"),
   isPrivate: z.boolean().optional().default(false).describe("Warehouse.isPrivate"),
   address: warehouseAddressSchema.describe("Warehouse.address"),

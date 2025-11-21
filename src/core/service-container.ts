@@ -93,6 +93,15 @@ export class ServiceComposer {
     });
     const pageTypeService = new PageTypeService(repositories.pageType, attributeService);
 
+    // Create services that MenuService depends on
+    const categoryService = new CategoryService(repositories.category);
+    const modelService = new ModelService(repositories.model, pageTypeService, attributeService);
+    const collectionService = new CollectionService(
+      repositories.collection,
+      productService,
+      channelService
+    );
+
     // Create service container first (without diffService to avoid circular dependency)
     const services = {
       attribute: attributeService,
@@ -102,7 +111,7 @@ export class ServiceComposer {
       shop: new ShopService(repositories.shop),
       configuration: configurationService,
       configStorage,
-      category: new CategoryService(repositories.category),
+      category: categoryService,
       product: productService,
       warehouse: new WarehouseService(repositories.warehouse),
       shippingZone: new ShippingZoneService(
@@ -113,9 +122,9 @@ export class ServiceComposer {
       tax: new TaxService({
         repository: repositories.tax,
       }),
-      collection: new CollectionService(repositories.collection, productService, channelService),
-      menu: new MenuService(repositories.menu),
-      model: new ModelService(repositories.model, pageTypeService, attributeService),
+      collection: collectionService,
+      menu: new MenuService(repositories.menu, categoryService, collectionService, modelService),
+      model: modelService,
     } as Omit<ServiceContainer, "diffService">;
 
     // Create diff service with the services container
