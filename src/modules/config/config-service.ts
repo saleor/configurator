@@ -803,9 +803,8 @@ export class ConfigurationService {
               }> | null;
             }) => ({
               name: variant.name || node.name,
-              // Ensure SKU is always a string for schema validity during round-trips
-              // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
-              sku: variant.sku ?? variant.id ?? "",
+              // Preserve empty SKU as empty string (don't default to variant ID)
+              sku: variant.sku ?? "",
               weight: variant.weight?.value || undefined,
               attributes: this.mapProductAttributes(variant.attributes || []),
               channelListings:
