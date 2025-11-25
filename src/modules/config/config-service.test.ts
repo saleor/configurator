@@ -755,4 +755,407 @@ describe("ConfigurationService", () => {
       expect(result.categories).toEqual([]);
     });
   });
+
+  describe("CXE-1197: SKU mapping preserves empty values", () => {
+    it("should preserve empty SKU instead of defaulting to variant ID", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
+        products: {
+          edges: [
+            {
+              node: {
+                id: "prod-123",
+                name: "Test Product",
+                slug: "test-product",
+                description: null,
+                productType: { id: "pt-1", name: "Book" },
+                category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+                taxClass: null,
+                attributes: [],
+                variants: [
+                  {
+                    id: "variant-456",
+                    name: "Test Variant",
+                    sku: null, // Empty SKU
+                    weight: null,
+                    attributes: [],
+                    channelListings: [],
+                  },
+                ],
+                channelListings: [],
+                media: [],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      // SKU should be empty string, NOT the variant ID
+      expect(result.products?.[0]?.variants?.[0]?.sku).toBe("");
+      expect(result.products?.[0]?.variants?.[0]?.sku).not.toBe("variant-456");
+    });
+
+    it("should preserve actual SKU values when present", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
+        products: {
+          edges: [
+            {
+              node: {
+                id: "prod-123",
+                name: "Test Product",
+                slug: "test-product",
+                description: null,
+                productType: { id: "pt-1", name: "Book" },
+                category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+                taxClass: null,
+                attributes: [],
+                variants: [
+                  {
+                    id: "variant-456",
+                    name: "Test Variant",
+                    sku: "ACTUAL-SKU-123",
+                    weight: null,
+                    attributes: [],
+                    channelListings: [],
+                  },
+                ],
+                channelListings: [],
+                media: [],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.products?.[0]?.variants?.[0]?.sku).toBe("ACTUAL-SKU-123");
+    });
+  });
+
+  describe("CXE-1195: Product channel listing includes availability fields", () => {
+    it("should map isAvailableForPurchase from raw config", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
+        products: {
+          edges: [
+            {
+              node: {
+                id: "prod-123",
+                name: "Test Product",
+                slug: "test-product",
+                description: null,
+                productType: { id: "pt-1", name: "Book" },
+                category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+                taxClass: null,
+                attributes: [],
+                variants: [],
+                channelListings: [
+                  {
+                    id: "listing-1",
+                    channel: { id: "ch-1", slug: "default-channel" },
+                    isPublished: true,
+                    publishedAt: "2024-01-01T00:00:00Z",
+                    visibleInListings: true,
+                    isAvailableForPurchase: true,
+                    availableForPurchaseAt: "2024-01-15T00:00:00Z",
+                  },
+                ],
+                media: [],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      const channelListing = result.products?.[0]?.channelListings?.[0];
+      expect(channelListing).toEqual(
+        expect.objectContaining({
+          isAvailableForPurchase: true,
+          availableForPurchaseAt: "2024-01-15T00:00:00Z",
+        })
+      );
+    });
+
+    it("should handle missing availability fields gracefully", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: { edges: [] },
+        products: {
+          edges: [
+            {
+              node: {
+                id: "prod-123",
+                name: "Test Product",
+                slug: "test-product",
+                description: null,
+                productType: { id: "pt-1", name: "Book" },
+                category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+                taxClass: null,
+                attributes: [],
+                variants: [],
+                channelListings: [
+                  {
+                    id: "listing-1",
+                    channel: { id: "ch-1", slug: "default-channel" },
+                    isPublished: true,
+                    publishedAt: null,
+                    visibleInListings: true,
+                    // No isAvailableForPurchase or availableForPurchaseAt
+                  },
+                ],
+                media: [],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      const channelListing = result.products?.[0]?.channelListings?.[0];
+      // Should not throw, fields should be undefined
+      expect(channelListing?.isAvailableForPurchase).toBeUndefined();
+      expect(channelListing?.availableForPurchaseAt).toBeUndefined();
+    });
+  });
+
+  describe("CXE-1196: Menu URL type coercion", () => {
+    it("should coerce valid URL strings and trim whitespace", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: {
+          edges: [
+            {
+              node: {
+                id: "menu-1",
+                name: "Main Menu",
+                slug: "main-menu",
+                items: [
+                  {
+                    id: "item-1",
+                    name: "External Link",
+                    menu: { id: "menu-1" },
+                    parent: null,
+                    category: null,
+                    collection: null,
+                    page: null,
+                    level: 0,
+                    children: [],
+                    url: "  https://example.com  ", // With whitespace
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.menus?.[0]?.items?.[0]?.url).toBe("https://example.com");
+    });
+
+    it("should set URL to undefined when not a string", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: {
+          edges: [
+            {
+              node: {
+                id: "menu-1",
+                name: "Main Menu",
+                slug: "main-menu",
+                items: [
+                  {
+                    id: "item-1",
+                    name: "Category Link",
+                    menu: { id: "menu-1" },
+                    parent: null,
+                    category: { id: "cat-1", slug: "category", name: "Category" },
+                    collection: null,
+                    page: null,
+                    level: 0,
+                    children: [],
+                    url: null, // null value
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.menus?.[0]?.items?.[0]?.url).toBeUndefined();
+    });
+
+    it("should set URL to undefined when string is only whitespace", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: {
+          edges: [
+            {
+              node: {
+                id: "menu-1",
+                name: "Main Menu",
+                slug: "main-menu",
+                items: [
+                  {
+                    id: "item-1",
+                    name: "Empty URL",
+                    menu: { id: "menu-1" },
+                    parent: null,
+                    category: null,
+                    collection: null,
+                    page: null,
+                    level: 0,
+                    children: [],
+                    url: "   ", // Only whitespace
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.menus?.[0]?.items?.[0]?.url).toBeUndefined();
+    });
+
+    it("should apply same coercion to child menu items", () => {
+      const rawConfig: RawSaleorConfig = {
+        shop: mockRawShopData,
+        channels: [],
+        productTypes: { edges: [] },
+        pageTypes: { edges: [] },
+        categories: { edges: [] },
+        warehouses: { edges: [] },
+        shippingZones: { edges: [] },
+        taxClasses: { edges: [] },
+        collections: { edges: [] },
+        pages: { edges: [] },
+        menus: {
+          edges: [
+            {
+              node: {
+                id: "menu-1",
+                name: "Main Menu",
+                slug: "main-menu",
+                items: [
+                  {
+                    id: "item-1",
+                    name: "Parent",
+                    menu: { id: "menu-1" },
+                    parent: null,
+                    category: null,
+                    collection: null,
+                    page: null,
+                    level: 0,
+                    children: [
+                      {
+                        id: "child-1",
+                        name: "Child Link",
+                        url: "  https://child.example.com  ",
+                        category: null,
+                        collection: null,
+                        page: null,
+                      },
+                    ],
+                    url: null,
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      };
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.menus?.[0]?.items?.[0]?.children?.[0]?.url).toBe("https://child.example.com");
+    });
+  });
 });
