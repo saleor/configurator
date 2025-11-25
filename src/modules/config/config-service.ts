@@ -831,11 +831,15 @@ export class ConfigurationService {
               isPublished: boolean;
               publishedAt?: string | null;
               visibleInListings: boolean;
+              isAvailableForPurchase?: boolean;
+              availableForPurchaseAt?: string | null;
             }) => ({
               channel: listing.channel.slug,
               isPublished: listing.isPublished,
               publishedAt: listing.publishedAt || undefined,
               visibleInListings: listing.visibleInListings,
+              isAvailableForPurchase: listing.isAvailableForPurchase,
+              availableForPurchaseAt: listing.availableForPurchaseAt || undefined,
             })
           ) || [],
       };

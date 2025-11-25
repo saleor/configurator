@@ -200,7 +200,8 @@ export class ProductService {
       channel: string;
       isPublished?: boolean;
       visibleInListings?: boolean;
-      availableForPurchase?: string;
+      isAvailableForPurchase?: boolean;
+      availableForPurchaseAt?: string;
       publishedAt?: string;
     }> = []
   ): Promise<{
@@ -1251,7 +1252,8 @@ export class ProductService {
                 isPublished: listing.isPublished ?? false,
                 publishedAt: listing.publishedAt,
                 visibleInListings: listing.visibleInListings ?? false,
-                availableForPurchaseAt: listing.availableForPurchase,
+                isAvailableForPurchase: listing.isAvailableForPurchase,
+                availableForPurchaseAt: listing.availableForPurchaseAt,
               }))
             );
 

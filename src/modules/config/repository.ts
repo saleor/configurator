@@ -459,6 +459,8 @@ const getConfigQuery = graphql(`
             isPublished
             publishedAt
             visibleInListings
+            isAvailableForPurchase
+            availableForPurchaseAt
           }
           media {
             id
@@ -622,6 +624,8 @@ export class ConfigurationRepository implements ConfigurationOperations {
                 isPublished
                 publishedAt
                 visibleInListings
+                isAvailableForPurchase
+                availableForPurchaseAt
               }
               media {
                 id
