@@ -691,7 +691,7 @@ export class ConfigurationService {
 
     return items.map((item: MenuItemNode) => ({
       name: item.name,
-      url: item.url ?? undefined,
+      url: typeof item.url === "string" && item.url.trim() ? item.url.trim() : undefined,
       category: item.category?.slug ?? undefined,
       collection: item.collection?.slug ?? undefined,
       page: item.page?.slug ?? undefined,
@@ -712,7 +712,7 @@ export class ConfigurationService {
 
     return children.map((child: MenuItemNode) => ({
       name: child.name,
-      url: child.url ?? undefined,
+      url: typeof child.url === "string" && child.url.trim() ? child.url.trim() : undefined,
       category: child.category?.slug ?? undefined,
       collection: child.collection?.slug ?? undefined,
       page: child.page?.slug ?? undefined,
