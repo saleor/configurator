@@ -53,15 +53,112 @@ const updateAttributeMutation = graphql(`
   }
 `);
 
+const attributeBulkCreateMutation = graphql(`
+  mutation AttributeBulkCreate(
+    $attributes: [AttributeCreateInput!]!
+    $errorPolicy: ErrorPolicyEnum
+  ) {
+    attributeBulkCreate(
+      attributes: $attributes
+      errorPolicy: $errorPolicy
+    ) {
+      count
+      results {
+        attribute {
+          id
+          name
+          slug
+          type
+          inputType
+          entityType
+          choices(first: 100) {
+            edges {
+              node {
+                id
+                name
+                value
+              }
+            }
+          }
+        }
+        errors {
+          path
+          message
+          code
+        }
+      }
+      errors {
+        path
+        message
+        code
+      }
+    }
+  }
+`);
+
+const attributeBulkUpdateMutation = graphql(`
+  mutation AttributeBulkUpdate(
+    $attributes: [AttributeBulkUpdateInput!]!
+    $errorPolicy: ErrorPolicyEnum
+  ) {
+    attributeBulkUpdate(
+      attributes: $attributes
+      errorPolicy: $errorPolicy
+    ) {
+      count
+      results {
+        attribute {
+          id
+          name
+          slug
+          type
+          inputType
+          entityType
+          choices(first: 100) {
+            edges {
+              node {
+                id
+                name
+                value
+              }
+            }
+          }
+        }
+        errors {
+          path
+          message
+          code
+        }
+      }
+      errors {
+        path
+        message
+        code
+      }
+    }
+  }
+`);
+
 export type AttributeCreateInput = VariablesOf<typeof createAttributeMutation>["input"];
 
 export type AttributeUpdateInput = VariablesOf<typeof updateAttributeMutation>["input"];
+
+export type AttributeBulkCreateInput = VariablesOf<typeof attributeBulkCreateMutation>;
+export type AttributeBulkUpdateInput = VariablesOf<typeof attributeBulkUpdateMutation>;
 
 type AttributeFragment = NonNullable<
   NonNullable<NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]>["attribute"]
 >;
 
 export type Attribute = AttributeFragment;
+
+export type AttributeBulkCreateResult = NonNullable<
+  NonNullable<ResultOf<typeof attributeBulkCreateMutation>>["attributeBulkCreate"]
+>;
+
+export type AttributeBulkUpdateResult = NonNullable<
+  NonNullable<ResultOf<typeof attributeBulkUpdateMutation>>["attributeBulkUpdate"]
+>;
 
 const getAttributesByNamesQuery = graphql(`
   query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum) {
@@ -97,6 +194,8 @@ export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
   updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
   getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[] | null | undefined>;
+  bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult>;
+  bulkUpdateAttributes(input: AttributeBulkUpdateInput): Promise<AttributeBulkUpdateResult>;
 }
 
 export class AttributeRepository implements AttributeOperations {
@@ -163,5 +262,59 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
+  }
+
+  async bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult> {
+    const result = await this.client.mutation(attributeBulkCreateMutation, input);
+
+    if (!result.data?.attributeBulkCreate) {
+      // Handle GraphQL errors
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          "Failed to bulk create attributes"
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new GraphQLError(
+          `Network error: ${result.error.message} while bulk creating attributes`
+        );
+      }
+
+      throw new GraphQLError("Failed to bulk create attributes");
+    }
+
+    logger.info(`Bulk created ${result.data.attributeBulkCreate.count} attributes`);
+
+    return result.data.attributeBulkCreate as AttributeBulkCreateResult;
+  }
+
+  async bulkUpdateAttributes(input: AttributeBulkUpdateInput): Promise<AttributeBulkUpdateResult> {
+    const result = await this.client.mutation(attributeBulkUpdateMutation, input);
+
+    if (!result.data?.attributeBulkUpdate) {
+      // Handle GraphQL errors
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          "Failed to bulk update attributes"
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new GraphQLError(
+          `Network error: ${result.error.message} while bulk updating attributes`
+        );
+      }
+
+      throw new GraphQLError("Failed to bulk update attributes");
+    }
+
+    logger.info(`Bulk updated ${result.data.attributeBulkUpdate.count} attributes`);
+
+    return result.data.attributeBulkUpdate as AttributeBulkUpdateResult;
   }
 }

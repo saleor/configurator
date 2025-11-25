@@ -2,6 +2,7 @@ import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
@@ -22,7 +23,6 @@ import type {
   TaxClassInput,
   WarehouseInput,
 } from "./schema/schema";
-import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 
 interface TaxClassType {
   node: {

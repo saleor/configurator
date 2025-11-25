@@ -1,8 +1,17 @@
 import { logger } from "../../lib/logger";
+import {
+  BulkOperationMessages,
+  BulkOperationThresholds,
+  ChunkSizeConfig,
+  DelayConfig,
+  StageNames,
+} from "../../lib/utils/bulk-operation-constants";
+import { processInChunks } from "../../lib/utils/chunked-processor";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
 } from "../../modules/attribute/repository";
+import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
 import type {
   ChannelInput,
   ChannelUpdateInput,
@@ -14,7 +23,7 @@ import { StageAggregateError } from "./errors";
 import type { DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
-  name: "Validating configuration",
+  name: StageNames.VALIDATION,
   async execute(context) {
     try {
       // Load the configuration to validate it
@@ -28,7 +37,7 @@ export const validationStage: DeploymentStage = {
 };
 
 export const shopSettingsStage: DeploymentStage = {
-  name: "Updating shop settings",
+  name: StageNames.SHOP_SETTINGS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -50,7 +59,7 @@ export const shopSettingsStage: DeploymentStage = {
 };
 
 export const productTypesStage: DeploymentStage = {
-  name: "Managing product types",
+  name: StageNames.PRODUCT_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -59,32 +68,28 @@ export const productTypesStage: DeploymentStage = {
         return;
       }
 
-      const results = await Promise.allSettled(
-        config.productTypes.map((productType) =>
-          context.configurator.services.productType
-            .bootstrapProductType(productType)
-            .then(() => ({ name: productType.name, success: true }))
-            .catch((error) => ({
-              name: productType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
-        )
+      const { successes: processedSuccesses, failures: processedFailures } = await processInChunks(
+        config.productTypes,
+        async (chunk) => {
+          // Process each product type in the chunk
+          return Promise.all(
+            chunk.map((productType) =>
+              context.configurator.services.productType.bootstrapProductType(productType)
+            )
+          );
+        },
+        {
+          chunkSize: ChunkSizeConfig.PRODUCT_TYPES_CHUNK_SIZE,
+          delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
+          entityType: "product types",
+        }
       );
 
-      const successes = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
-            r.status === "fulfilled" && r.value.success === true
-        )
-        .map((r) => r.value.name);
-
-      const failures = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
-            r.status === "fulfilled" && r.value.success === false
-        )
-        .map((r) => ({ entity: r.value.name, error: r.value.error }));
+      const successes = processedSuccesses.map((s) => s.item.name);
+      const failures = processedFailures.map((f) => ({
+        entity: f.item.name,
+        error: f.error,
+      }));
 
       if (failures.length > 0) {
         throw new StageAggregateError("Managing product types", failures, successes);
@@ -112,37 +117,131 @@ export const productTypesStage: DeploymentStage = {
 };
 
 export const attributesStage: DeploymentStage = {
-  name: "Managing attributes",
+  name: StageNames.ATTRIBUTES,
   async execute(context) {
     const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
     const attributes = config.attributes;
     if (!attributes || attributes.length === 0) return;
 
     const service = context.configurator.services.attribute;
-    const results = await Promise.allSettled(
-      attributes.map(async (attr) => {
-        const existing = await service.repo.getAttributesByNames({
-          names: [attr.name],
-          type: attr.type,
-        });
-        if (existing && existing.length > 0) {
-          await service.updateAttribute(attr, existing[0]);
-          return { name: attr.name, success: true } as const;
-        }
-        await service.bootstrapAttributes({ attributeInputs: [attr] });
-        return { name: attr.name, success: true } as const;
-      })
-    );
 
-    const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-    if (failures.length > 0) {
-      throw new StageAggregateError(
-        "Managing unassigned attributes",
-        failures.map((f) => ({
-          entity: "attribute",
-          error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
-        }))
+    // Size-adaptive strategy: use bulk operations for larger configs
+    if (attributes.length <= BulkOperationThresholds.ATTRIBUTES) {
+      // Small config: use existing sequential approach for better error handling
+      logger.debug(
+        BulkOperationMessages.SEQUENTIAL_PROCESSING(attributes.length, "attributes")
       );
+      const results = await Promise.allSettled(
+        attributes.map(async (attr) => {
+          const existing = await service.repo.getAttributesByNames({
+            names: [attr.name],
+            type: attr.type,
+          });
+          if (existing && existing.length > 0) {
+            await service.updateAttribute(attr, existing[0]);
+            return { name: attr.name, success: true } as const;
+          }
+          await service.bootstrapAttributes({ attributeInputs: [attr] });
+          return { name: attr.name, success: true } as const;
+        })
+      );
+
+      const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
+      if (failures.length > 0) {
+        throw new StageAggregateError(
+          "Managing unassigned attributes",
+          failures.map((f) => ({
+            entity: "attribute",
+            error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
+          }))
+        );
+      }
+    } else {
+      // Large config: use bulk mutations for efficiency
+      logger.info(BulkOperationMessages.BULK_PROCESSING(attributes.length, "attributes"));
+
+      // Step 1: Fetch all existing attributes to determine which need creating vs updating
+      const existingAttributesMap = new Map<string, AttributeMeta>();
+
+      // Query existing attributes by type groups to be more efficient
+      const typeGroups = new Map<string, FullAttribute[]>();
+      for (const attr of attributes) {
+        const type = attr.type;
+        if (!typeGroups.has(type)) {
+          typeGroups.set(type, []);
+        }
+        typeGroups.get(type)?.push(attr);
+      }
+
+      for (const [type, attrs] of typeGroups) {
+        const names = attrs.map((a) => a.name);
+        const existing = await service.repo.getAttributesByNames({
+          names,
+          type: type as "PRODUCT_TYPE" | "PAGE_TYPE",
+        });
+        if (existing) {
+          for (const attr of existing) {
+            existingAttributesMap.set(`${attr.type}:${attr.name}`, attr);
+          }
+        }
+      }
+
+      // Step 2: Separate attributes into create and update buckets
+      const toCreate = attributes.filter(
+        (attr) => !existingAttributesMap.has(`${attr.type}:${attr.name}`)
+      );
+      const toUpdate = attributes
+        .filter((attr) => existingAttributesMap.has(`${attr.type}:${attr.name}`))
+        .map((attr) => {
+          const existing = existingAttributesMap.get(`${attr.type}:${attr.name}`);
+          if (!existing) throw new Error(`Missing attribute: ${attr.name}`);
+          return { input: attr, existing };
+        });
+
+      const allFailures: Array<{ entity: string; error: Error }> = [];
+
+      // Step 3: Bulk create new attributes
+      if (toCreate.length > 0) {
+        logger.info(`Creating ${toCreate.length} new attributes via bulk mutation`);
+        const createResult = await service.bootstrapAttributesBulk(toCreate);
+
+        if (createResult.failed.length > 0) {
+          logger.warn(`Failed to create ${createResult.failed.length} attributes`);
+          createResult.failed.forEach(({ input, errors }) => {
+            allFailures.push({
+              entity: input.name,
+              error: new Error(errors.join(", ")),
+            });
+          });
+        }
+      }
+
+      // Step 4: Bulk update existing attributes
+      if (toUpdate.length > 0) {
+        logger.info(`Updating ${toUpdate.length} existing attributes via bulk mutation`);
+        const updateResult = await service.updateAttributesBulk(toUpdate);
+
+        if (updateResult.failed.length > 0) {
+          logger.warn(`Failed to update ${updateResult.failed.length} attributes`);
+          updateResult.failed.forEach(({ input, errors }) => {
+            allFailures.push({
+              entity: input.name,
+              error: new Error(errors.join(", ")),
+            });
+          });
+        }
+      }
+
+      // Step 5: Report any failures
+      if (allFailures.length > 0) {
+        throw new StageAggregateError(
+          "Managing attributes via bulk operations",
+          allFailures,
+          attributes
+            .filter((attr) => !allFailures.some((f) => f.entity === attr.name))
+            .map((a) => a.name)
+        );
+      }
     }
   },
   skip(context) {
@@ -151,7 +250,7 @@ export const attributesStage: DeploymentStage = {
 };
 
 export const channelsStage: DeploymentStage = {
-  name: "Managing channels",
+  name: StageNames.CHANNELS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -194,7 +293,7 @@ export const channelsStage: DeploymentStage = {
 };
 
 export const pageTypesStage: DeploymentStage = {
-  name: "Managing page types",
+  name: StageNames.PAGE_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -248,7 +347,7 @@ export const pageTypesStage: DeploymentStage = {
 };
 
 export const modelTypesStage: DeploymentStage = {
-  name: "Managing model types",
+  name: StageNames.MODEL_TYPES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -302,7 +401,7 @@ export const modelTypesStage: DeploymentStage = {
 };
 
 export const collectionsStage: DeploymentStage = {
-  name: "Managing collections",
+  name: StageNames.COLLECTIONS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -324,7 +423,7 @@ export const collectionsStage: DeploymentStage = {
 };
 
 export const menusStage: DeploymentStage = {
-  name: "Managing menus",
+  name: StageNames.MENUS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -346,7 +445,7 @@ export const menusStage: DeploymentStage = {
 };
 
 export const modelsStage: DeploymentStage = {
-  name: "Managing models",
+  name: StageNames.MODELS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -355,7 +454,27 @@ export const modelsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.model.bootstrapModels(config.models);
+      // Size-adaptive strategy to avoid rate limiting
+      if (config.models.length <= BulkOperationThresholds.MODELS) {
+        // Small config: use parallel processing (existing behavior)
+        logger.debug(
+          BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models")
+        );
+        await context.configurator.services.model.bootstrapModels(config.models);
+      } else {
+        // Larger config: use sequential processing with delays to avoid rate limiting
+        logger.info(
+          BulkOperationMessages.SEQUENTIAL_WITH_DELAY(
+            config.models.length,
+            "models",
+            DelayConfig.MODEL_PROCESSING_DELAY_MS
+          )
+        );
+        await context.configurator.services.model.bootstrapModelsSequentially(
+          config.models,
+          DelayConfig.MODEL_PROCESSING_DELAY_MS
+        );
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage models: ${error instanceof Error ? error.message : String(error)}`
@@ -368,7 +487,7 @@ export const modelsStage: DeploymentStage = {
 };
 
 export const categoriesStage: DeploymentStage = {
-  name: "Managing categories",
+  name: StageNames.CATEGORIES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -396,7 +515,7 @@ export const categoriesStage: DeploymentStage = {
 };
 
 export const warehousesStage: DeploymentStage = {
-  name: "Managing warehouses",
+  name: StageNames.WAREHOUSES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -418,7 +537,7 @@ export const warehousesStage: DeploymentStage = {
 };
 
 export const taxClassesStage: DeploymentStage = {
-  name: "Managing tax classes",
+  name: StageNames.TAX_CLASSES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -440,7 +559,7 @@ export const taxClassesStage: DeploymentStage = {
 };
 
 export const shippingZonesStage: DeploymentStage = {
-  name: "Managing shipping zones",
+  name: StageNames.SHIPPING_ZONES,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -462,7 +581,7 @@ export const shippingZonesStage: DeploymentStage = {
 };
 
 export const attributeChoicesPreflightStage: DeploymentStage = {
-  name: "Preparing attribute choices",
+  name: StageNames.ATTRIBUTE_CHOICES_PREFLIGHT,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -545,7 +664,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
 };
 
 export const productsStage: DeploymentStage = {
-  name: "Managing products",
+  name: StageNames.PRODUCTS,
   async execute(context) {
     try {
       const config = await context.configurator.services.configStorage.load();
@@ -581,7 +700,20 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.product.bootstrapProducts(productsToProcess);
+      // Size-adaptive strategy: use bulk operations for larger deployments
+      if (productsToProcess.length <= BulkOperationThresholds.PRODUCTS) {
+        // Small config: use existing sequential approach for better error granularity
+        logger.debug(
+          BulkOperationMessages.SEQUENTIAL_PROCESSING(productsToProcess.length, "products")
+        );
+        await context.configurator.services.product.bootstrapProducts(productsToProcess);
+      } else {
+        // Large config: use bulk mutations for efficiency and to avoid rate limiting
+        logger.info(
+          BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products")
+        );
+        await context.configurator.services.product.bootstrapProductsBulk(productsToProcess);
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`

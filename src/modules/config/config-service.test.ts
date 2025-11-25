@@ -138,7 +138,10 @@ describe("ConfigurationService", () => {
                 url: " https://store.saleor/thumbnail/XYZ/4096/ ",
                 alt: " Hero Poster ",
                 metadata: [
-                  { key: "configurator.externalUrl", value: " https://cdn.example.com/poster.jpg " },
+                  {
+                    key: "configurator.externalUrl",
+                    value: " https://cdn.example.com/poster.jpg ",
+                  },
                   { key: "ignored", value: "value" },
                 ],
               },

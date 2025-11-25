@@ -28,6 +28,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not matter, but return empty
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -79,6 +81,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]), // Color doesn't exist globally
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -151,6 +155,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn().mockResolvedValue(existingAttribute),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([existingAttribute]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -200,6 +206,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn().mockResolvedValue(newAttribute),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn().mockResolvedValue([]), // Color doesn't exist globally
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -279,6 +287,8 @@ describe("ProductTypeService", () => {
         getAttributesByNames: vi
           .fn()
           .mockResolvedValue([existingGenreAttribute, existingAuthorAttribute]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -364,6 +374,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn().mockResolvedValue(newAuthorAttribute),
         updateAttribute: vi.fn().mockResolvedValue(existingGenreAttribute),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -431,6 +443,8 @@ describe("ProductTypeService", () => {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
         getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -483,6 +497,8 @@ describe("ProductTypeService", () => {
           // Return empty array for other attributes
           return [];
         }),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);
@@ -554,6 +570,8 @@ describe("ProductTypeService", () => {
           }
           return [];
         }),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
       };
 
       const attributeService = new AttributeService(mockAttributeOperations);

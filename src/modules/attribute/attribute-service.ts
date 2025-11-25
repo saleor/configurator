@@ -13,7 +13,7 @@ export function isReferencedAttribute(input: AttributeInput): input is { attribu
   return "attribute" in input && !("name" in input);
 }
 
-const createAttributeInput = (input: FullAttribute): AttributeCreateInput => {
+export const createAttributeInput = (input: FullAttribute): AttributeCreateInput => {
   const base = {
     name: input.name,
     type: input.type,
@@ -176,5 +176,119 @@ export class AttributeService {
       name: attributeInput.name,
     });
     return existingAttribute;
+  }
+
+  /**
+   * Create multiple attributes in bulk using Saleor's bulk mutation
+   * @param attributes - Array of attributes to create
+   * @returns Object containing successful and failed attributes
+   */
+  async bootstrapAttributesBulk(attributes: FullAttribute[]): Promise<{
+    successful: Attribute[];
+    failed: Array<{ input: FullAttribute; errors: string[] }>;
+  }> {
+    logger.info(`Creating ${attributes.length} attributes via bulk mutation`);
+
+    // Convert all attributes to create input format
+    const inputs = attributes.map(createAttributeInput);
+
+    // Call bulk create with IGNORE_FAILED policy to allow partial success
+    const result = await this.repository.bulkCreateAttributes({
+      attributes: inputs,
+      errorPolicy: "IGNORE_FAILED",
+    });
+
+    const successful: Attribute[] = [];
+    const failed: Array<{ input: FullAttribute; errors: string[] }> = [];
+
+    // Process results
+    if (result.results) {
+      result.results.forEach(({ attribute, errors }, index) => {
+        if (errors && errors.length > 0) {
+          failed.push({
+            input: attributes[index],
+            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
+          });
+          logger.warn(`Failed to create attribute: ${attributes[index].name}`, { errors });
+        } else if (attribute) {
+          successful.push(attribute);
+        }
+      });
+    }
+
+    // Log global errors if any
+    if (result.errors && result.errors.length > 0) {
+      logger.warn("Global errors during bulk attribute creation", { errors: result.errors });
+    }
+
+    logger.info(`Bulk create complete: ${successful.length} successful, ${failed.length} failed`);
+
+    return { successful, failed };
+  }
+
+  /**
+   * Update multiple attributes in bulk using Saleor's bulk mutation
+   * @param updates - Array of objects containing the input and existing attribute to update
+   * @returns Object containing successful and failed updates
+   */
+  async updateAttributesBulk(
+    updates: Array<{ input: FullAttribute; existing: Attribute }>
+  ): Promise<{
+    successful: Attribute[];
+    failed: Array<{ input: FullAttribute; errors: string[] }>;
+  }> {
+    logger.info(`Updating ${updates.length} attributes via bulk mutation`);
+
+    // Convert all attributes to update input format
+    const updateInputs = updates.map(({ input, existing }) => ({
+      id: existing.id,
+      fields: createAttributeUpdateInput(input, existing),
+    }));
+
+    // Filter out updates where there are no actual changes
+    const actualUpdates = updateInputs.filter(
+      (update) => Object.keys(update.fields).length > 1 // More than just the name
+    );
+
+    if (actualUpdates.length === 0) {
+      logger.info("No attributes require updates");
+      return { successful: updates.map((u) => u.existing), failed: [] };
+    }
+
+    // Call bulk update with IGNORE_FAILED policy
+    const result = await this.repository.bulkUpdateAttributes({
+      attributes: actualUpdates,
+      errorPolicy: "IGNORE_FAILED",
+    });
+
+    const successful: Attribute[] = [];
+    const failed: Array<{ input: FullAttribute; errors: string[] }> = [];
+
+    // Process results
+    if (result.results) {
+      result.results.forEach(({ attribute, errors }, index) => {
+        const originalIndex = updateInputs.findIndex((u) => u.id === actualUpdates[index].id);
+        if (errors && errors.length > 0) {
+          failed.push({
+            input: updates[originalIndex].input,
+            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
+          });
+          logger.warn(`Failed to update attribute: ${updates[originalIndex].input.name}`, {
+            errors,
+          });
+        } else if (attribute) {
+          successful.push(attribute);
+        }
+      });
+    }
+
+    // Log global errors if any
+    if (result.errors && result.errors.length > 0) {
+      logger.warn("Global errors during bulk attribute update", { errors: result.errors });
+    }
+
+    logger.info(`Bulk update complete: ${successful.length} successful, ${failed.length} failed`);
+
+    return { successful, failed };
   }
 }
