@@ -1,133 +1,122 @@
 # ADR 001: Bulk Mutations Optimization
 
+## TL;DR
+
+Replaced individual GraphQL mutations with Saleor's native bulk operations and chunked processing to solve rate limiting and slow deployments. **Result**: 95% faster deployments (5.7min → 18s), 89% fewer API calls, zero rate limit errors.
+
 ## Status
 
-**Accepted** - Implemented 2025-11-12
+**Accepted** - 2025-11-12
 
-## Problem Statement
+## Glossary
 
-Saleor Configurator deployments were failing due to excessive API calls causing rate limiting (HTTP 429) and unacceptable deployment times. The root cause was an N+1 mutation pattern where each entity required an individual GraphQL mutation.
+| Term | Definition |
+|------|------------|
+| **N+1 Problem** | When processing N entities requires N separate API calls, causing linear scaling issues |
+| **Bulk Mutation** | Single GraphQL mutation that creates/updates multiple entities at once (e.g., `productBulkCreate`) |
+| **Chunked Processing** | Breaking large batches into smaller chunks (default: 10 items) with delays between them |
+| **Rate Limiting** | Server rejecting requests (HTTP 429) when call volume exceeds allowed threshold |
+| **O(n) → O(1)** | Reducing API calls from linear (proportional to entity count) to constant (fixed regardless of count) |
 
-### Symptoms
+## Context
 
-- **Rate Limiting**: 50+ HTTP 429 errors per deployment
-- **Slow Deployments**: 5.7 minutes for 30 products
-- **Low Reliability**: ~60% deployment success rate
-- **Poor Scalability**: Larger configurations completely failed
+### Problem
 
-### Root Cause
+Saleor Configurator deployments were failing due to an N+1 mutation pattern where each entity required an individual GraphQL mutation:
 
-Sequential individual mutations created O(n) API calls per entity type:
 - 30 products = 30 `productCreate` mutations
 - 50 attributes = 50 `attributeCreate` mutations
 - 60 variants = 60 `productVariantCreate` mutations
 - **Total**: 170+ API calls for a modest configuration
 
-## Technical Problems
+### Symptoms
 
-1. **N+1 Mutation Pattern**: Each entity required a separate GraphQL mutation
-2. **Rate Limit Exhaustion**: Sequential calls overwhelmed API rate limiter
-3. **Network Overhead**: Each mutation incurred full request/response cycle
-4. **Linear Time Complexity**: O(n) performance scaled poorly
-5. **Cascade Failures**: Single entity failure could break entire deployment
-
-## Options Considered
-
-### Option 1: Increase Rate Limits
-
-**Approach**: Request higher API rate limits from Saleor Cloud
-
-**Pros**: No code changes required
-
-**Cons**:
-- Doesn't reduce API calls
-- Not available on shared infrastructure
-- Doesn't solve network overhead
-- Poor scalability
-
-**Verdict**: ❌ Rejected - Treats symptom, not root cause
-
-### Option 2: Queue-Based Processing
-
-**Approach**: Implement job queue (Bull/BullMQ) with worker processes
-
-**Pros**: Distributed processing, built-in retry logic
-
-**Cons**:
-- Requires Redis infrastructure
-- Significant complexity overhead
-- Still makes N API calls
-- Doesn't address rate limiting
-
-**Verdict**: ❌ Rejected - Overengineered, doesn't solve N+1 problem
-
-### Option 3: Parallel Processing with Concurrency Limits
-
-**Approach**: Process mutations in parallel with semaphore control
-
-**Pros**: Faster than sequential, configurable concurrency
-
-**Cons**:
-- Still N API calls total
-- Complex rate limit tuning
-- Race condition risks
-- Doesn't eliminate 429 errors
-
-**Verdict**: ❌ Rejected - Reduces time but not API calls
-
-### Option 4: GraphQL Query Batching
-
-**Approach**: Batch multiple mutations into single HTTP request
-
-**Pros**: Reduced HTTP overhead
-
-**Cons**:
-- Server still executes N mutations
-- Doesn't leverage bulk operations
-- Complex implementation
-- Minimal benefit
-
-**Verdict**: ❌ Rejected - Bulk operations are superior
-
-### Option 5: Bulk Mutations + Chunked Processing ✅
-
-**Approach**: Use Saleor's native bulk operations with intelligent chunking
-
-**Pros**:
-- Reduces API calls from O(n) to O(1) per chunk
-- Leverages built-in Saleor features
-- Minimal code complexity (199 lines)
-- Proven pattern for bulk operations
-- Immediate 95% performance gain
-
-**Cons**:
-- Requires bulk operation availability
-- All-or-nothing within chunks
-- Slight delay overhead (500ms per chunk)
-
-**Verdict**: ✅ **Selected** - Addresses root cause, massive impact, low complexity
+| Issue | Impact |
+|-------|--------|
+| Rate Limiting | 50+ HTTP 429 errors per deployment |
+| Slow Deployments | 5.7 minutes for 30 products |
+| Low Reliability | ~60% deployment success rate |
+| Poor Scalability | Larger configurations failed completely |
 
 ## Decision
 
-**We chose bulk mutations with chunked processing as a two-layer optimization:**
+We chose a **two-layer optimization** using bulk mutations with chunked processing.
 
-### Layer 1: Bulk Mutations (Primary)
+### Layer 1: Bulk Mutations
 
-Replace sequential individual mutations with Saleor's bulk GraphQL operations:
-- `productBulkCreate` instead of N × `productCreate`
-- `attributeBulkCreate` instead of N × `attributeCreate`
-- `productVariantBulkCreate` instead of N × `productVariantCreate`
+Replace individual mutations with Saleor's native bulk GraphQL operations:
+
+| Instead of | Use |
+|------------|-----|
+| N × `productCreate` | `productBulkCreate` |
+| N × `attributeCreate` | `attributeBulkCreate` |
+| N × `productVariantCreate` | `productVariantBulkCreate` |
 
 **Impact**: Reduces O(n) → O(1) API calls per entity type
 
-### Layer 2: Chunked Processing (Secondary)
+### Layer 2: Chunked Processing
 
-Process large batches in configurable chunks with delays:
-- Default chunk size: 10 items
-- Default delay: 500ms between chunks
-- Prevents overwhelming API with massive single requests
+For entities without bulk APIs, process in configurable chunks with delays:
 
-**Impact**: Eliminates remaining rate limiting, enables partial success handling
+- **Chunk size**: 10 items (default)
+- **Delay**: 500ms between chunks
+- **Utility**: `processInChunks()` in `src/lib/utils/chunked-processor.ts`
+
+**Impact**: Eliminates rate limiting, enables partial success handling
+
+## Options Considered
+
+| Option | API Calls | Complexity | Verdict |
+|--------|-----------|------------|---------|
+| Increase Rate Limits | N | Low | Rejected - treats symptom, not root cause |
+| Queue-Based (Redis) | N | High | Rejected - overengineered, still N calls |
+| Parallel + Semaphore | N | Medium | Rejected - reduces time, not calls |
+| GraphQL Batching | N | Medium | Rejected - server still executes N mutations |
+| **Bulk + Chunking** | **N/10** | **Low** | **Selected** - addresses root cause |
+
+## Processing Strategies
+
+### Strategy A: Bulk Mutations
+
+Used when Saleor provides native bulk APIs.
+
+```typescript
+// Single API call for all products
+await repository.bulkCreateProducts({
+  products: allProducts
+});
+```
+
+### Strategy B: Chunked Individual
+
+Used when no bulk API exists. Processes items in chunks with delays.
+
+```typescript
+const { successes, failures } = await processInChunks(
+  items,
+  async (chunk) => Promise.all(chunk.map(item => createEntity(item))),
+  { chunkSize: 10, delayMs: 500 }
+);
+```
+
+## Entity Coverage
+
+| Entity | Strategy | GraphQL Operation |
+|--------|----------|-------------------|
+| Products | Bulk Mutation | `productBulkCreate` |
+| Product Variants | Bulk Mutation | `productVariantBulkCreate`, `productVariantBulkUpdate` |
+| Attributes | Bulk Mutation | `attributeBulkCreate`, `attributeBulkUpdate` |
+| Product Types | Chunked Individual | `productTypeCreate` |
+| Collections | Chunked Individual | `collectionCreate` |
+| Warehouses | Chunked Individual | `createWarehouse` |
+| Shipping Zones | Batched Individual | `createShippingZone` |
+| Channels | Batched Individual | `createChannel` |
+| Categories | Batched Individual | `createCategory` |
+| Menus | Batched Individual | `createMenu` |
+| Models (Pages) | Batched Individual | `createPage` |
+| Tax Classes | Batched Individual | `taxClassCreate` |
+| Page Types | Individual | `pageTypeCreate` |
+| Shop | Direct Update | Shop mutations |
 
 ## Architecture
 
@@ -138,95 +127,29 @@ sequenceDiagram
     participant App as Configurator
     participant API as Saleor API
 
-    Note over App,API: Creating 30 Products
-
-    loop For each product
-        App->>API: productCreate(product)
-        API-->>App: ✅ Created
-    end
-
-    Note over API: Rate limit exceeded
-    API-->>App: ❌ 429 Too Many Requests
+    App->>API: productCreate(1)
+    App->>API: productCreate(2)
+    App->>API: ...30 calls...
+    API-->>App: 429 Rate Limited
     Note over App: Deployment FAILS
 ```
-
-**Result**: 30 API calls, rate limited, 60+ seconds, FAILURE
 
 ### After: Bulk Mutations with Chunking
 
 ```mermaid
 sequenceDiagram
     participant App as Configurator
-    participant Processor as Chunked Processor
     participant API as Saleor API
 
-    Note over App,API: Creating 30 Products
-
-    App->>Processor: Process 30 products
-    Note over Processor: Split into 3 chunks of 10
-
-    Processor->>API: productBulkCreate([1-10])
-    API-->>Processor: ✅ 10 created
-
-    Note over Processor: Wait 500ms
-
-    Processor->>API: productBulkCreate([11-20])
-    API-->>Processor: ✅ 10 created
-
-    Note over Processor: Wait 500ms
-
-    Processor->>API: productBulkCreate([21-30])
-    API-->>Processor: ✅ 10 created
-
-    Processor-->>App: ✅ All 30 created
-```
-
-**Result**: 3 API calls, no rate limiting, 3 seconds, SUCCESS
-
-## Implementation
-
-### Core Utility: Chunked Processor
-
-```typescript
-// Generic utility for bulk operations with chunking
-export async function processInChunks<T, R>(
-  items: T[],
-  processFn: (chunk: T[]) => Promise<R>,
-  options: ChunkedProcessorOptions = {}
-): Promise<ChunkedProcessorResult<T, R>> {
-  const { chunkSize = 10, delayMs = 500 } = options;
-
-  const chunks = splitIntoChunks(items, chunkSize);
-  const successes: Array<{ item: T; result: R }> = [];
-  const failures: Array<{ item: T; error: Error }> = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    try {
-      const result = await processFn(chunks[i]);
-      successes.push(...mapResults(chunks[i], result));
-    } catch (error) {
-      failures.push(...mapErrors(chunks[i], error));
-    }
-
-    if (i < chunks.length - 1) {
-      await sleep(delayMs);
-    }
-  }
-
-  return { successes, failures };
-}
-```
-
-### Applied to Products
-
-```typescript
-// Before: 30 API calls
-for (const product of products) {
-  await repository.createProduct(product);
-}
-
-// After: 1 API call (or 3 if chunked)
-await repository.bulkCreateProducts(products);
+    App->>API: productBulkCreate([1-10])
+    API-->>App: 10 created
+    Note over App: 500ms delay
+    App->>API: productBulkCreate([11-20])
+    API-->>App: 10 created
+    Note over App: 500ms delay
+    App->>API: productBulkCreate([21-30])
+    API-->>App: 10 created
+    Note over App: SUCCESS
 ```
 
 ## Results
@@ -239,38 +162,16 @@ await repository.bulkCreateProducts(products);
 | Deployment Time | 5.7 min | 18 sec | -95% |
 | Rate Limit Errors | 50+ | 0 | -100% |
 
-## Coverage
-
-**Using Native Bulk Mutations** (5 operations):
-- Products: `productBulkCreate`
-- Product Variants: `productVariantBulkCreate`, `productVariantBulkUpdate`
-- Attributes: `attributeBulkCreate`, `attributeBulkUpdate` (adaptive: bulk if >10)
-
-**Using Chunked Processing** (3 entities - no bulk API available):
-- Product Types: individual operations, chunked (10/batch, 500ms delay)
-- Collections: individual operations, chunked
-- Warehouses: individual operations, chunked
-
 ## Tradeoffs
 
-1. **Chunk Delay Overhead**: +500ms per chunk, negligible vs. 95% time reduction
-2. **All-or-Nothing Chunk Failures**: 10-item blast radius acceptable vs. cascade failures
-3. **Code Complexity**: 199 lines of reusable utility, well-tested (22/22 tests)
-
-## Future Work
-
-- Apply chunked processing to Categories and Products stages
-- Adaptive chunk sizing based on API response times
-- Configuration overrides for chunk size and delays
-- Parallel chunk processing with semaphore control
+| Tradeoff | Impact | Mitigation |
+|----------|--------|------------|
+| Chunk delay overhead | +500ms per chunk | Negligible vs 95% time reduction |
+| All-or-nothing chunk failures | 10-item blast radius | Acceptable vs cascade failures |
+| Code complexity | 199 lines of utility | Reusable, well-tested (22 tests) |
 
 ## References
 
 - [Saleor Bulk Operations API](https://docs.saleor.io/docs/3.x/api-reference/products/mutations/product-bulk-create)
 - [N+1 Query Problem](https://stackoverflow.com/questions/97197/what-is-the-n1-selects-problem)
 - [HTTP 429 Rate Limiting](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429)
-
----
-
-**Impact**: 95% faster deployments, 89% fewer API calls, zero rate limiting
-**Implementation**: 199-line reusable utility, 22 tests, 6 entity types optimized
