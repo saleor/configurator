@@ -200,7 +200,8 @@ export class ProductService {
       channel: string;
       isPublished?: boolean;
       visibleInListings?: boolean;
-      availableForPurchase?: string;
+      isAvailableForPurchase?: boolean;
+      availableForPurchaseAt?: string;
       publishedAt?: string;
     }> = []
   ): Promise<{
@@ -1123,96 +1124,121 @@ export class ProductService {
       }
     }
 
-    // Step 6: Bulk create all variants
+    // Step 5.5: Update product channel listings BEFORE creating variants
+    // Saleor requires the product to be assigned to a channel before variants can have listings in that channel
+    const allProductInputs = [...toCreate, ...toUpdate.map((u) => u.input)];
+    await Promise.all(
+      allProductInputs.map(async (productInput) => {
+        const product = allProducts.find((p) => p.slug === productInput.slug);
+        if (!product) return;
+
+        // Update channel listings for product (must happen before variant creation)
+        if (productInput.channelListings && productInput.channelListings.length > 0) {
+          try {
+            const channelInputs = await Promise.all(
+              productInput.channelListings.map(async (listing) => ({
+                channelId: await this.resolveChannelReference(listing.channel),
+                isPublished: listing.isPublished ?? false,
+                publishedAt: listing.publishedAt,
+                visibleInListings: listing.visibleInListings ?? false,
+                isAvailableForPurchase: listing.isAvailableForPurchase,
+                availableForPurchaseAt: listing.availableForPurchaseAt,
+              }))
+            );
+
+            await this.repository.updateProductChannelListings(product.id, {
+              updateChannels: channelInputs,
+            });
+          } catch (error) {
+            logger.warn(`Failed to update channel listings for product ${productInput.name}`, {
+              error,
+            });
+          }
+        }
+      })
+    );
+
+    // Step 6: Bulk create all variants (grouped by product - API requires one product per call)
     if (allVariants.length > 0) {
       logger.info(`Creating ${allVariants.length} variants via bulk mutation`);
 
-      try {
-        // Prepare bulk variant inputs
-        const variantInputs = await Promise.all(
-          allVariants.map(async ({ productId, variantInput }) => {
-            const attributes = variantInput.attributes
-              ? await this.resolveAttributeValues(variantInput.attributes)
-              : [];
-
-            return {
-              product: productId,
-              name: variantInput.name,
-              sku: variantInput.sku,
-              trackInventory: true,
-              weight: variantInput.weight,
-              attributes,
-            };
-          })
-        );
-
-        // Execute bulk variant create
-        const variantResult = await this.repository.bulkCreateVariants({
-          variants: variantInputs,
-          errorPolicy: "IGNORE_FAILED",
-        });
-
-        // Process variant results
-        if (variantResult.results) {
-          variantResult.results.forEach(({ errors }, index) => {
-            if (errors && errors.length > 0) {
-              const variant = allVariants[index];
-              logger.warn(
-                `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
-                { errors }
-              );
-            }
-          });
+      // Group variants by product ID (bulk create requires one product per call)
+      const variantsByProduct = new Map<
+        string,
+        Array<{ productInput: (typeof allVariants)[0]["productInput"]; variantInput: (typeof allVariants)[0]["variantInput"] }>
+      >();
+      for (const { productId, productInput, variantInput } of allVariants) {
+        if (!variantsByProduct.has(productId)) {
+          variantsByProduct.set(productId, []);
         }
+        variantsByProduct.get(productId)!.push({ productInput, variantInput });
+      }
 
-        // Update channel listings for variants (no bulk API available)
-        if (variantResult.results) {
-          await Promise.all(
-            variantResult.results.map(async ({ productVariant }, index) => {
-              if (!productVariant) return;
+      // Process each product's variants
+      for (const [productId, variants] of variantsByProduct) {
+        try {
+          // Prepare variant inputs (without product field - it goes at mutation level)
+          const variantInputs = await Promise.all(
+            variants.map(async ({ variantInput }) => {
+              const attributes = variantInput.attributes
+                ? await this.resolveAttributeValues(variantInput.attributes)
+                : [];
 
-              const variant = allVariants[index];
-              const channelListings = variant.variantInput.channelListings;
-
-              if (channelListings && channelListings.length > 0) {
-                try {
-                  const channelInputs = await Promise.all(
-                    channelListings.map(async (listing) => ({
+              // Resolve channel listings for bulk create
+              const channelListings = variantInput.channelListings
+                ? await Promise.all(
+                    variantInput.channelListings.map(async (listing) => ({
                       channelId: await this.resolveChannelReference(listing.channel),
                       price: listing.price,
                       costPrice: listing.costPrice,
                     }))
-                  );
+                  )
+                : undefined;
 
-                  await this.repository.updateProductVariantChannelListings(
-                    productVariant.id,
-                    channelInputs
-                  );
-                } catch (error) {
-                  logger.warn(
-                    `Failed to update channel listings for variant ${productVariant.sku}`,
-                    { error }
-                  );
-                }
-              }
+              return {
+                name: variantInput.name,
+                sku: variantInput.sku,
+                trackInventory: true,
+                weight: variantInput.weight,
+                attributes,
+                channelListings,
+              };
             })
           );
-        }
-      } catch (error) {
-        logger.error("Failed to bulk create variants", { error });
-        allVariants.forEach((v) => {
-          allFailures.push({
-            entity: `${v.productInput.name} - ${v.variantInput.sku}`,
-            error: error instanceof Error ? error : new Error(String(error)),
+
+          // Execute bulk variant create with product ID at top level
+          const variantResult = await this.repository.bulkCreateVariants({
+            product: productId,
+            variants: variantInputs,
+            errorPolicy: "IGNORE_FAILED",
           });
-        });
+
+          // Process variant results
+          if (variantResult.results) {
+            variantResult.results.forEach(({ errors }, index) => {
+              if (errors && errors.length > 0) {
+                const variant = variants[index];
+                logger.warn(
+                  `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+                  { errors }
+                );
+              }
+            });
+          }
+        } catch (error) {
+          logger.error(`Failed to bulk create variants for product ${productId}`, { error });
+          variants.forEach((v) => {
+            allFailures.push({
+              entity: `${v.productInput.name} - ${v.variantInput.sku}`,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          });
+        }
       }
     }
 
-    // Step 7: Handle media and channel listings for products (no bulk APIs)
-    // These operations must be done individually
-    const allProductInputs = [...toCreate, ...toUpdate.map((u) => u.input)];
-
+    // Step 7: Handle media for products (no bulk APIs)
+    // Note: Channel listings are already updated in Step 5.5 before variant creation
     await Promise.all(
       allProductInputs.map(async (productInput) => {
         const product = allProducts.find((p) => p.slug === productInput.slug);
@@ -1224,29 +1250,6 @@ export class ProductService {
             await this.syncProductMedia(product, productInput.media);
           } catch (error) {
             logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
-          }
-        }
-
-        // Update channel listings
-        if (productInput.channelListings && productInput.channelListings.length > 0) {
-          try {
-            const channelInputs = await Promise.all(
-              productInput.channelListings.map(async (listing) => ({
-                channelId: await this.resolveChannelReference(listing.channel),
-                isPublished: listing.isPublished ?? false,
-                publishedAt: listing.publishedAt,
-                visibleInListings: listing.visibleInListings ?? false,
-                availableForPurchaseAt: listing.availableForPurchase,
-              }))
-            );
-
-            await this.repository.updateProductChannelListings(product.id, {
-              updateChannels: channelInputs,
-            });
-          } catch (error) {
-            logger.warn(`Failed to update channel listings for product ${productInput.name}`, {
-              error,
-            });
           }
         }
       })

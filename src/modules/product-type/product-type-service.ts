@@ -4,7 +4,11 @@ import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { AttributeInput, SimpleAttribute } from "../config/schema/attribute.schema";
 import type { ProductTypeInput } from "../config/schema/schema";
-import { ProductTypeCreationError, ProductTypeUpdateError } from "./errors";
+import {
+  ProductTypeAttributeValidationError,
+  ProductTypeCreationError,
+  ProductTypeUpdateError,
+} from "./errors";
 import type { ProductType, ProductTypeOperations } from "./repository";
 
 export class ProductTypeService {
@@ -247,6 +251,21 @@ export class ProductTypeService {
       name: input.name,
       isShippingRequired: input.isShippingRequired,
     });
+
+    // Validate REFERENCE attributes have entityType
+    const allAttributes = [...(input.productAttributes || []), ...(input.variantAttributes || [])];
+    for (const attr of allAttributes) {
+      if (!isReferencedAttribute(attr) && "inputType" in attr && attr.inputType === "REFERENCE") {
+        if (!("entityType" in attr) || !attr.entityType) {
+          throw new ProductTypeAttributeValidationError(
+            `Attribute "${attr.name}" is a REFERENCE type but missing required 'entityType'. ` +
+              `Please specify entityType as "PAGE", "PRODUCT", or "PRODUCT_VARIANT" in your config.`,
+            input.name,
+            attr.name
+          );
+        }
+      }
+    }
 
     const productType = await this.upsert({
       name: input.name,

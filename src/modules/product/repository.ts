@@ -549,10 +549,12 @@ const productBulkCreateMutation = graphql(`
 
 const productVariantBulkCreateMutation = graphql(`
   mutation ProductVariantBulkCreate(
+    $product: ID!
     $variants: [ProductVariantBulkCreateInput!]!
     $errorPolicy: ErrorPolicyEnum
   ) {
     productVariantBulkCreate(
+      product: $product
       variants: $variants
       errorPolicy: $errorPolicy
     ) {
@@ -586,7 +588,6 @@ const productVariantBulkCreateMutation = graphql(`
         }
       }
       errors {
-        path
         message
         code
       }

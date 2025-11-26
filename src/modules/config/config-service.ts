@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
+import { logger } from "../../lib/logger";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
@@ -54,8 +55,12 @@ export class ConfigurationService {
       config.attributes = this.mapAllAttributes(rawConfig);
       // Ensure attributes appear before productTypes in YAML ordering
       this.reorderConfigKeys(config as SaleorConfig);
-    } catch {
-      // best-effort advisory
+    } catch (error) {
+      logger.warn(
+        "Failed to extract top-level attributes: %s",
+        error instanceof Error ? error.message : String(error)
+      );
+      // Continue without top-level attributes - they'll be inline in types
     }
     await this.storage.save(config);
     return config;
@@ -691,7 +696,7 @@ export class ConfigurationService {
 
     return items.map((item: MenuItemNode) => ({
       name: item.name,
-      url: item.url ?? undefined,
+      url: typeof item.url === "string" && item.url.trim() ? item.url.trim() : undefined,
       category: item.category?.slug ?? undefined,
       collection: item.collection?.slug ?? undefined,
       page: item.page?.slug ?? undefined,
@@ -712,7 +717,7 @@ export class ConfigurationService {
 
     return children.map((child: MenuItemNode) => ({
       name: child.name,
-      url: child.url ?? undefined,
+      url: typeof child.url === "string" && child.url.trim() ? child.url.trim() : undefined,
       category: child.category?.slug ?? undefined,
       collection: child.collection?.slug ?? undefined,
       page: child.page?.slug ?? undefined,
@@ -803,9 +808,8 @@ export class ConfigurationService {
               }> | null;
             }) => ({
               name: variant.name || node.name,
-              // Ensure SKU is always a string for schema validity during round-trips
-              // Prefer the actual SKU; if missing/null, fall back to the variant ID; finally use empty string
-              sku: variant.sku ?? variant.id ?? "",
+              // Preserve empty SKU as empty string (don't default to variant ID)
+              sku: variant.sku ?? "",
               weight: variant.weight?.value || undefined,
               attributes: this.mapProductAttributes(variant.attributes || []),
               channelListings:
@@ -832,11 +836,15 @@ export class ConfigurationService {
               isPublished: boolean;
               publishedAt?: string | null;
               visibleInListings: boolean;
+              isAvailableForPurchase?: boolean;
+              availableForPurchaseAt?: string | null;
             }) => ({
               channel: listing.channel.slug,
               isPublished: listing.isPublished,
               publishedAt: listing.publishedAt || undefined,
               visibleInListings: listing.visibleInListings,
+              isAvailableForPurchase: listing.isAvailableForPurchase,
+              availableForPurchaseAt: listing.availableForPurchaseAt || undefined,
             })
           ) || [],
       };

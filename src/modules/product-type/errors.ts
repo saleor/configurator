@@ -49,3 +49,16 @@ export class ProductTypeAttributeError extends ProductTypeError {
     super(message, "PRODUCT_TYPE_ATTRIBUTE_ERROR");
   }
 }
+
+/**
+ * Error thrown when product type attribute validation fails
+ */
+export class ProductTypeAttributeValidationError extends ProductTypeError {
+  constructor(
+    message: string,
+    public readonly productTypeName: string,
+    public readonly attributeName: string
+  ) {
+    super(message, "PRODUCT_TYPE_ATTRIBUTE_VALIDATION_ERROR");
+  }
+}
