@@ -1328,5 +1328,84 @@ describe("ProductService", () => {
       expect(productIds).toContain("product-A");
       expect(productIds).toContain("product-B");
     });
+
+    it("should include channelListings in bulk create input instead of updating separately", async () => {
+      // Setup: Mock channel resolution
+      vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue({
+        id: "channel-123",
+        name: "Default Channel",
+        slug: "default-channel",
+      });
+
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "product-123",
+              name: "Test Product",
+              slug: "test-product",
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        productVariants: [{ id: "variant-1", name: "Variant 1", sku: "SKU-1" }],
+        results: [{ productVariant: { id: "variant-1", sku: "SKU-1" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      // Execute: Bootstrap products with variants that have channel listings
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [
+            {
+              name: "Variant 1",
+              sku: "SKU-1",
+              channelListings: [
+                {
+                  channel: "default-channel",
+                  price: 19.99,
+                  costPrice: 10.0,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      // Assert: Verify channelListings are included in bulk create call
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledWith(
+        expect.objectContaining({
+          product: "product-123",
+          variants: expect.arrayContaining([
+            expect.objectContaining({
+              sku: "SKU-1",
+              channelListings: [
+                {
+                  channelId: "channel-123",
+                  price: 19.99,
+                  costPrice: 10.0,
+                },
+              ],
+            }),
+          ]),
+        })
+      );
+
+      // Assert: Verify updateProductVariantChannelListings is NOT called
+      // (channel listings should be set during bulk create, not separately)
+      expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
+    });
   });
 });

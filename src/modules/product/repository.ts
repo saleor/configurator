@@ -588,7 +588,6 @@ const productVariantBulkCreateMutation = graphql(`
         }
       }
       errors {
-        path
         message
         code
       }
