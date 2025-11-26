@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
+import { logger } from "../../lib/logger";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
@@ -54,8 +55,12 @@ export class ConfigurationService {
       config.attributes = this.mapAllAttributes(rawConfig);
       // Ensure attributes appear before productTypes in YAML ordering
       this.reorderConfigKeys(config as SaleorConfig);
-    } catch {
-      // best-effort advisory
+    } catch (error) {
+      logger.warn(
+        "Failed to extract top-level attributes: %s",
+        error instanceof Error ? error.message : String(error)
+      );
+      // Continue without top-level attributes - they'll be inline in types
     }
     await this.storage.save(config);
     return config;

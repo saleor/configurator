@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AttributeService } from "../attribute/attribute-service";
 import type { AttributeInput } from "../config/schema/attribute.schema";
+import { PageTypeAttributeValidationError } from "./errors";
 import { PageTypeService } from "./page-type-service";
 
 describe("PageTypeService", () => {
@@ -151,6 +152,104 @@ describe("PageTypeService", () => {
       // Then
       expect(mockAttributeOperations.getAttributesByNames).not.toHaveBeenCalled();
       expect(mockPageTypeOperations.assignAttributes).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("REFERENCE attribute validation", () => {
+    it("should throw validation error when REFERENCE attribute is missing entityType", async () => {
+      // Given
+      const existingPageType = {
+        id: "page-type-1",
+        name: "Property",
+        attributes: [],
+      };
+
+      const mockPageTypeOperations = {
+        getPageTypeByName: vi.fn().mockResolvedValue(existingPageType),
+        createPageType: vi.fn(),
+        getPageType: vi.fn().mockResolvedValue(existingPageType),
+        assignAttributes: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+        updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+
+      // Intentionally invalid input to test runtime validation
+      const inputAttributes = [
+        {
+          name: "Products Reference",
+          inputType: "REFERENCE",
+          // Missing entityType - should cause validation error
+        },
+      ] as AttributeInput[];
+
+      // When/Then
+      await expect(
+        service.bootstrapPageType({
+          name: "Property",
+          attributes: inputAttributes,
+        })
+      ).rejects.toThrow(PageTypeAttributeValidationError);
+
+      await expect(
+        service.bootstrapPageType({
+          name: "Property",
+          attributes: inputAttributes,
+        })
+      ).rejects.toThrow(
+        /Attribute "Products Reference" is a REFERENCE type but missing required 'entityType'/
+      );
+    });
+
+    it("should not throw validation error when REFERENCE attribute has entityType", async () => {
+      // Given
+      const existingPageType = {
+        id: "page-type-1",
+        name: "Property",
+        attributes: [],
+      };
+
+      const mockPageTypeOperations = {
+        getPageTypeByName: vi.fn().mockResolvedValue(existingPageType),
+        createPageType: vi.fn(),
+        getPageType: vi.fn().mockResolvedValue(existingPageType),
+        assignAttributes: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue({ id: "attr-1" }),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+
+      const inputAttributes: AttributeInput[] = [
+        {
+          name: "Products Reference",
+          inputType: "REFERENCE",
+          entityType: "PRODUCT", // Has entityType - should not throw
+        },
+      ];
+
+      // When/Then - should not throw
+      await expect(
+        service.bootstrapPageType({
+          name: "Property",
+          attributes: inputAttributes,
+        })
+      ).resolves.not.toThrow();
     });
   });
 });

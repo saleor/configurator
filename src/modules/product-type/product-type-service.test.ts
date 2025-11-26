@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AttributeService } from "../attribute/attribute-service";
+import type { AttributeInput } from "../config/schema/attribute.schema";
+import { ProductTypeAttributeValidationError } from "./errors";
 import { ProductTypeService } from "./product-type-service";
 import type { ProductType } from "./repository";
 
@@ -601,6 +603,161 @@ describe("ProductTypeService", () => {
         attributeIds: ["attr-1"],
         type: "PRODUCT",
       });
+    });
+  });
+
+  describe("REFERENCE attribute validation", () => {
+    it("should throw validation error when REFERENCE attribute is missing entityType", async () => {
+      // Given
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Walkly Product",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When/Then
+      // Intentionally invalid input to test runtime validation
+      const invalidProductAttributes = [
+        {
+          name: "Photographer reference product",
+          inputType: "REFERENCE",
+          // Missing entityType - should cause validation error
+        },
+      ] as AttributeInput[];
+
+      await expect(
+        service.bootstrapProductType({
+          name: "Walkly Product",
+          isShippingRequired: false,
+          productAttributes: invalidProductAttributes,
+          variantAttributes: [],
+        })
+      ).rejects.toThrow(ProductTypeAttributeValidationError);
+
+      await expect(
+        service.bootstrapProductType({
+          name: "Walkly Product",
+          isShippingRequired: false,
+          productAttributes: invalidProductAttributes,
+          variantAttributes: [],
+        })
+      ).rejects.toThrow(
+        /Attribute "Photographer reference product" is a REFERENCE type but missing required 'entityType'/
+      );
+    });
+
+    it("should throw validation error when variantAttribute REFERENCE is missing entityType", async () => {
+      // Given
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Walkly Product",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When/Then
+      // Intentionally invalid input to test runtime validation
+      const invalidVariantAttributes = [
+        {
+          name: "Property reference variant",
+          inputType: "REFERENCE",
+          // Missing entityType - should cause validation error
+        },
+      ] as AttributeInput[];
+
+      await expect(
+        service.bootstrapProductType({
+          name: "Walkly Product",
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: invalidVariantAttributes,
+        })
+      ).rejects.toThrow(ProductTypeAttributeValidationError);
+    });
+
+    it("should not throw validation error when REFERENCE attribute has entityType", async () => {
+      // Given
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Walkly Product",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(existingProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const newAttribute = {
+        id: "attr-1",
+        name: "Photographer reference product",
+        inputType: "REFERENCE",
+        entityType: "PAGE",
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(newAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When/Then - should not throw
+      await expect(
+        service.bootstrapProductType({
+          name: "Walkly Product",
+          isShippingRequired: false,
+          productAttributes: [
+            {
+              name: "Photographer reference product",
+              inputType: "REFERENCE",
+              entityType: "PAGE", // Has entityType - should not throw
+            },
+          ],
+          variantAttributes: [],
+        })
+      ).resolves.not.toThrow();
     });
   });
 });

@@ -59,6 +59,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            entityType
             choices(first: 100) {
               edges {
                 node {
@@ -73,6 +74,7 @@ const getConfigQuery = graphql(`
               name
               type
               inputType
+              entityType
               choices(first: 100) {
                 edges {
                   node {
@@ -95,6 +97,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            entityType
             choices(first: 100) {
               edges {
                 node {
