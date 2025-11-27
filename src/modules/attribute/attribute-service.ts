@@ -21,7 +21,7 @@ export const createAttributeInput = (input: FullAttribute): AttributeCreateInput
     inputType: input.inputType,
   };
 
-  if (input.inputType === "REFERENCE") {
+  if (input.inputType === "REFERENCE" || input.inputType === "SINGLE_REFERENCE") {
     if (!input.entityType) {
       throw new AttributeValidationError(
         `Entity type is required for reference attribute ${input.name}`
