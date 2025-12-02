@@ -4,11 +4,22 @@ import { ErrorRecoveryGuide } from "../../lib/errors/recovery-guide";
  * Exit codes for different error types
  */
 export const EXIT_CODES = {
+  /** Operation completed successfully */
+  SUCCESS: 0,
+  /** Unexpected/unknown error */
   UNEXPECTED: 1,
+  /** Authentication or permission error */
   AUTHENTICATION: 2,
+  /** Network connection error */
   NETWORK: 3,
+  /** Configuration validation error */
   VALIDATION: 4,
+  /** Some operations succeeded, others failed */
   PARTIAL_FAILURE: 5,
+  /** Blocked by --fail-on-delete flag (deletions detected) */
+  DELETION_BLOCKED: 6,
+  /** Blocked by --fail-on-breaking flag (breaking changes detected) */
+  BREAKING_BLOCKED: 7,
 } as const;
 
 /**

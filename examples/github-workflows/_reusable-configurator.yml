@@ -1,0 +1,123 @@
+# Saleor Configurator - Reusable Workflow
+#
+# This is a reusable workflow that can be called from other workflows
+# to standardize configurator operations across your organization.
+#
+# Usage in another workflow:
+#
+#   jobs:
+#     deploy:
+#       uses: your-org/your-repo/.github/workflows/_reusable-configurator.yml@main
+#       with:
+#         command: deploy
+#         environment: staging
+#       secrets: inherit
+
+name: Reusable Configurator Workflow
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: 'Command to run (diff, deploy, introspect)'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment (staging, production)'
+        required: true
+        type: string
+      config-path:
+        description: 'Path to configuration file'
+        required: false
+        type: string
+        default: 'config.yml'
+      fail-on-delete:
+        description: 'Fail if deletions detected'
+        required: false
+        type: boolean
+        default: false
+      fail-on-breaking:
+        description: 'Fail if breaking changes detected'
+        required: false
+        type: boolean
+        default: false
+      plan-only:
+        description: 'Preview without applying (deploy only)'
+        required: false
+        type: boolean
+        default: false
+      post-pr-comment:
+        description: 'Post diff as PR comment'
+        required: false
+        type: boolean
+        default: false
+
+    outputs:
+      exit-code:
+        description: 'Command exit code'
+        value: ${{ jobs.run-configurator.outputs.exit-code }}
+      has-changes:
+        description: 'Whether changes were detected'
+        value: ${{ jobs.run-configurator.outputs.has-changes }}
+      changes-count:
+        description: 'Total changes count'
+        value: ${{ jobs.run-configurator.outputs.changes-count }}
+      summary:
+        description: 'Operation summary'
+        value: ${{ jobs.run-configurator.outputs.summary }}
+
+    secrets:
+      SALEOR_URL:
+        description: 'Saleor GraphQL URL'
+        required: true
+      SALEOR_TOKEN:
+        description: 'Saleor API token'
+        required: true
+
+jobs:
+  run-configurator:
+    name: Run Configurator
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    outputs:
+      exit-code: ${{ steps.configurator.outputs.exit-code }}
+      has-changes: ${{ steps.configurator.outputs.has-changes }}
+      changes-count: ${{ steps.configurator.outputs.changes-count }}
+      summary: ${{ steps.configurator.outputs.summary }}
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Saleor Configurator
+        uses: saleor/configurator/action@v1
+        id: configurator
+        with:
+          command: ${{ inputs.command }}
+          saleor-url: ${{ secrets.SALEOR_URL }}
+          saleor-token: ${{ secrets.SALEOR_TOKEN }}
+          config-path: ${{ inputs.config-path }}
+          fail-on-delete: ${{ inputs.fail-on-delete }}
+          fail-on-breaking: ${{ inputs.fail-on-breaking }}
+          plan-only: ${{ inputs.plan-only }}
+          post-pr-comment: ${{ inputs.post-pr-comment }}
+
+      - name: Generate Summary
+        run: |
+          echo "## Configurator: ${{ inputs.command }} (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.configurator.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ steps.configurator.outputs.has-changes }}" == "true" ]]; then
+            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Changes | ${{ steps.configurator.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Creates | ${{ steps.configurator.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Updates | ${{ steps.configurator.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Deletes | ${{ steps.configurator.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          fi

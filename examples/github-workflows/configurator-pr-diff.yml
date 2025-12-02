@@ -1,0 +1,66 @@
+# Saleor Configurator - PR Diff Preview
+#
+# This workflow runs on pull requests that modify configuration files.
+# It posts a diff preview as a PR comment showing what changes would be applied.
+#
+# Setup:
+# 1. Add SALEOR_URL and SALEOR_TOKEN to repository secrets
+# 2. Copy this file to .github/workflows/configurator-pr-diff.yml
+# 3. Adjust paths: filter to match your config file locations
+
+name: Configuration Diff Preview
+
+on:
+  pull_request:
+    paths:
+      - 'config.yml'
+      - 'config/**'
+      - 'saleor-config.yml'
+      - 'saleor-config/**'
+
+# Prevent concurrent runs for the same PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diff:
+    name: Preview Configuration Changes
+    runs-on: ubuntu-latest
+
+    # Use the staging environment for preview diffs
+    # This allows you to have different secrets per environment
+    environment: staging
+
+    permissions:
+      contents: read
+      pull-requests: write  # Required for posting PR comments
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Configuration Diff
+        uses: saleor/configurator/action@v1
+        id: diff
+        with:
+          command: diff
+          saleor-url: ${{ secrets.SALEOR_URL }}
+          saleor-token: ${{ secrets.SALEOR_TOKEN }}
+          config-path: config.yml
+          post-pr-comment: true
+          fail-on-delete: true  # Fail if deletions are detected
+          # fail-on-breaking: true  # Uncomment to also fail on breaking changes
+
+      - name: Add Summary
+        run: |
+          echo "## Configuration Diff Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.diff.outputs.summary }}" >> $GITHUB_STEP_SUMMARY

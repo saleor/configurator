@@ -19,7 +19,7 @@ import {
 } from "../core/deployment/errors";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
-import { DeployDiffFormatter } from "../core/diff/formatters";
+import { createJsonFormatter, DeployDiffFormatter } from "../core/diff/formatters";
 import {
   ConfigurationLoadError,
   ConfigurationValidationError,
@@ -41,6 +41,12 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
       "Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
     ),
   verbose: z.boolean().optional().default(false).describe("Show detailed error information"),
+  /** Output deployment results in JSON format for CI/CD integration */
+  json: z.boolean().default(false).describe("Output deployment results in JSON format"),
+  /** Show deployment plan without executing (dry-run) */
+  plan: z.boolean().default(false).describe("Show deployment plan without executing"),
+  /** Exit with error code if any deletions detected */
+  failOnDelete: z.boolean().default(false).describe("Exit with error if deletions detected"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -335,6 +341,34 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
+  private formatJsonOutput(summary: DiffSummary, args: DeployCommandArgs): string {
+    const formatter = createJsonFormatter({
+      saleorUrl: args.url,
+      configFile: args.config,
+      prettyPrint: true,
+    });
+    return formatter.format(summary);
+  }
+
+  private checkDeletionPolicy(summary: DiffSummary, args: DeployCommandArgs): void {
+    if (args.failOnDelete && summary.deletes > 0) {
+      const message = `❌ Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
+      if (args.json) {
+        console.log(
+          JSON.stringify({
+            status: "blocked",
+            reason: "deletions_detected",
+            deletions: summary.deletes,
+            message,
+          })
+        );
+      } else {
+        this.console.error(message);
+      }
+      process.exit(EXIT_CODES.DELETION_BLOCKED);
+    }
+  }
+
   private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
     let diffAnalysis: Awaited<ReturnType<typeof this.analyzeDifferences>>;
 
@@ -342,20 +376,45 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       // Validate local configuration first before making any network requests
       await this.validateLocalConfiguration(args);
 
-      this.console.muted("⏳ Analyzing configuration differences...");
+      if (!args.json) {
+        this.console.muted("⏳ Analyzing configuration differences...");
+      }
       diffAnalysis = await this.analyzeDifferences(args);
 
       if (diffAnalysis.summary.totalChanges === 0) {
-        this.console.status("✅ No changes detected - configuration is already in sync");
-        return; // Exit gracefully without calling process.exit()
+        if (args.json) {
+          console.log(this.formatJsonOutput(diffAnalysis.summary, args));
+        } else {
+          this.console.status("✅ No changes detected - configuration is already in sync");
+        }
+        process.exit(EXIT_CODES.SUCCESS);
       }
 
-      this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
+      // Check deletion policy before proceeding
+      this.checkDeletionPolicy(diffAnalysis.summary, args);
 
-      // TEMPORARY FEATURE FLAG: Remove after A/B testing
-      // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
-      const deployFormatter = new DeployDiffFormatter();
-      this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
+      // Plan mode (dry-run): show what would happen and exit
+      if (args.plan) {
+        if (args.json) {
+          console.log(this.formatJsonOutput(diffAnalysis.summary, args));
+        } else {
+          this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
+          const deployFormatter = new DeployDiffFormatter();
+          this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
+          this.console.muted("\n📋 Plan mode: No changes will be applied");
+        }
+        // Exit with code 1 if changes detected (like diff), 0 if no changes
+        process.exit(diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS);
+      }
+
+      if (!args.json) {
+        this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
+
+        // TEMPORARY FEATURE FLAG: Remove after A/B testing
+        // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
+        const deployFormatter = new DeployDiffFormatter();
+        this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
+      }
 
       const shouldDeploy = await this.confirmDeployment(
         diffAnalysis.summary,
@@ -392,8 +451,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   async execute(args: DeployCommandArgs): Promise<void> {
-    this.console.setOptions({ quiet: args.quiet });
-    this.console.header("🚀 Saleor Configuration Deploy\n");
+    // Skip decorative output for JSON mode
+    this.console.setOptions({ quiet: args.quiet || args.json });
+
+    if (!args.json) {
+      this.console.header("🚀 Saleor Configuration Deploy\n");
+    }
 
     await this.performDeploymentFlow(args);
     // performDeploymentFlow handles all exit scenarios
@@ -417,5 +480,8 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
     `${COMMAND_NAME} deploy --report-path custom-report.json`,
     `${COMMAND_NAME} deploy --quiet`,
     `${COMMAND_NAME} deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json`,
+    `${COMMAND_NAME} deploy --plan # Dry-run: show what would be deployed`,
+    `${COMMAND_NAME} deploy --json # Output deployment results as JSON`,
+    `${COMMAND_NAME} deploy --fail-on-delete --ci # Block deployment if deletions detected`,
   ],
 };

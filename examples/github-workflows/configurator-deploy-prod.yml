@@ -1,0 +1,154 @@
+# Saleor Configurator - Deploy to Production
+#
+# This workflow deploys configuration to production with manual approval.
+# It can be triggered manually or as part of a deployment pipeline.
+#
+# Setup:
+# 1. Create a "production" environment in GitHub (Settings > Environments)
+# 2. Configure required reviewers for the production environment
+# 3. Add SALEOR_URL and SALEOR_TOKEN secrets to the production environment
+# 4. Copy this file to .github/workflows/configurator-deploy-prod.yml
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Preview changes without applying (dry-run)'
+        required: false
+        default: 'false'
+        type: boolean
+
+  # Also trigger after successful staging deployment
+  workflow_run:
+    workflows: ["Deploy to Staging"]
+    types:
+      - completed
+    branches:
+      - main
+
+# Prevent concurrent deployments
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  # Preview changes first
+  preview:
+    name: Preview Changes
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
+    outputs:
+      has-changes: ${{ steps.diff.outputs.has-changes }}
+      changes-count: ${{ steps.diff.outputs.changes-count }}
+      deletes-count: ${{ steps.diff.outputs.deletes-count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Preview Production Changes
+        uses: saleor/configurator/action@v1
+        id: diff
+        with:
+          command: diff
+          saleor-url: ${{ secrets.PROD_SALEOR_URL }}
+          saleor-token: ${{ secrets.PROD_SALEOR_TOKEN }}
+          config-path: config.yml
+          json-output: true
+
+      - name: Show Preview
+        run: |
+          echo "## Production Deployment Preview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+
+  # Deploy with manual approval
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: preview
+    if: |
+      needs.preview.outputs.has-changes == 'true' &&
+      (github.event.inputs.dry-run != 'true')
+
+    # Production environment requires manual approval
+    environment:
+      name: production
+      url: ${{ secrets.PROD_SALEOR_URL }}
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Deploy to Production
+        uses: saleor/configurator/action@v1
+        id: deploy
+        with:
+          command: deploy
+          saleor-url: ${{ secrets.PROD_SALEOR_URL }}
+          saleor-token: ${{ secrets.PROD_SALEOR_TOKEN }}
+          config-path: config.yml
+          fail-on-delete: true  # Extra safety for production
+          report-path: deployment-report-prod.json
+
+      - name: Upload Deployment Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-report-production
+          path: deployment-report-prod.json
+          retention-days: 90  # Keep production reports longer
+
+      - name: Add Summary
+        if: always()
+        run: |
+          echo "## Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.deploy.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Exit code: ${{ steps.deploy.outputs.exit-code }}" >> $GITHUB_STEP_SUMMARY
+
+  # Dry run job (when dry-run is enabled)
+  dry-run:
+    name: Dry Run Preview
+    runs-on: ubuntu-latest
+    needs: preview
+    if: github.event.inputs.dry-run == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Preview (Dry Run)
+        uses: saleor/configurator/action@v1
+        with:
+          command: deploy
+          saleor-url: ${{ secrets.PROD_SALEOR_URL }}
+          saleor-token: ${{ secrets.PROD_SALEOR_TOKEN }}
+          config-path: config.yml
+          plan-only: true  # Dry run - show plan without applying
+
+      - name: Summary
+        run: |
+          echo "## Dry Run Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This was a **dry run**. No changes were applied to production." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To apply these changes, run the workflow again without the dry-run option." >> $GITHUB_STEP_SUMMARY

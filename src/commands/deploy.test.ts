@@ -205,6 +205,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -235,6 +238,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(2)");
@@ -272,6 +278,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
@@ -305,6 +314,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -335,6 +347,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: true,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -353,6 +368,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(1)");
@@ -383,6 +401,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
@@ -425,14 +446,17 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
-      // Should not throw any error and should not call process.exit
-      await deployHandler(args);
+      // Now exits with EXIT_CODES.SUCCESS when no changes
+      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
       expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
       expect(mockDeploymentPipeline.execute).not.toHaveBeenCalled();
-      expect(mockExit).not.toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     it("should complete deployment successfully", async () => {
@@ -443,6 +467,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       // The deployment will succeed with exit code 0
@@ -463,6 +490,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
@@ -492,6 +522,9 @@ describe("Deploy Command", () => {
         ci: true,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
         reportPath: "custom-report.json",
       };
 
@@ -514,6 +547,9 @@ describe("Deploy Command", () => {
         ci: false,
         quiet: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");

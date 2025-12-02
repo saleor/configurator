@@ -61,6 +61,9 @@ describe("Deploy Command - Integration Tests", () => {
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -136,11 +139,14 @@ describe("Deploy Command - Integration Tests", () => {
           quiet: false,
           ci: true, // Use CI mode to avoid confirmation prompt
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow("process.exit(0)");
 
-      // Assert - Should NOT call process.exit when no changes
-      expect(mockExit).not.toHaveBeenCalled();
+      // Assert - Should call process.exit(0) when no changes
+      expect(mockExit).toHaveBeenCalledWith(0);
 
       // Should have called GraphQL to fetch current config for diff
       const configFetchCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
@@ -177,6 +183,9 @@ describe("Deploy Command - Integration Tests", () => {
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -229,6 +238,9 @@ describe("Deploy Command - Integration Tests", () => {
           ci: true,
           quiet: false,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -280,6 +292,9 @@ describe("Deploy Command - Integration Tests", () => {
           ci: true,
           quiet: false,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(2)");
 
@@ -325,6 +340,9 @@ describe("Deploy Command - Integration Tests", () => {
           ci: true,
           quiet: false,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(3)");
 
@@ -353,6 +371,9 @@ describe("Deploy Command - Integration Tests", () => {
           ci: true,
           quiet: false,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -384,6 +405,9 @@ invalid_yaml: [
           ci: true,
           quiet: false,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -407,6 +431,9 @@ invalid_yaml: [
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -544,6 +571,9 @@ invalid_yaml: [
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -630,6 +660,9 @@ invalid_yaml: [
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -723,6 +756,9 @@ invalid_yaml: [
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -752,6 +788,9 @@ invalid_yaml: [
           quiet: false,
           ci: true,
           verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
         })
       ).rejects.toThrow("process.exit(0)");
 

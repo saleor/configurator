@@ -69,6 +69,11 @@ describe("diff command", () => {
           token: "test-token",
           config: "config.yml",
           quiet: false,
+          json: false,
+          githubComment: false,
+          failOnDelete: false,
+          failOnBreaking: false,
+          summary: false,
         });
       }
     });
@@ -86,6 +91,11 @@ describe("diff command", () => {
           token: "test-token",
           config: "config.yml",
           quiet: false,
+          json: false,
+          githubComment: false,
+          failOnDelete: false,
+          failOnBreaking: false,
+          summary: false,
         });
       }
     });
@@ -95,6 +105,21 @@ describe("diff command", () => {
 
       expect(result.success).toBe(false);
     });
+
+    it("should accept CI/CD flags", () => {
+      const result = diffCommandSchema.safeParse({
+        url: "https://example.com/graphql/",
+        token: "test-token",
+        json: true,
+        failOnDelete: true,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.json).toBe(true);
+        expect(result.data.failOnDelete).toBe(true);
+      }
+    });
   });
 
   describe("handleDiff", () => {
@@ -103,6 +128,11 @@ describe("diff command", () => {
       token: "test-token",
       config: "config.yml",
       quiet: false,
+      json: false,
+      githubComment: false,
+      failOnDelete: false,
+      failOnBreaking: false,
+      summary: false,
     };
 
     it("should display header", async () => {
@@ -214,42 +244,47 @@ describe("diff command", () => {
       expect(diffCommandConfig.requiresInteractive).toBe(true);
     });
 
-    it("should have examples", () => {
-      expect(diffCommandConfig.examples).toEqual([
-        "pnpm dlx @saleor/configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123",
-        "pnpm dlx @saleor/configurator diff --config custom-config.yml",
-        "pnpm dlx @saleor/configurator diff --quiet",
-      ]);
+    it("should have examples including CI/CD flags", () => {
+      expect(diffCommandConfig.examples).toContain(
+        "pnpm dlx @saleor/configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123"
+      );
+      expect(diffCommandConfig.examples).toContain(
+        "pnpm dlx @saleor/configurator diff --json"
+      );
+      expect(diffCommandConfig.examples).toContain(
+        "pnpm dlx @saleor/configurator diff --github-comment"
+      );
+      expect(diffCommandConfig.examples).toContain(
+        "pnpm dlx @saleor/configurator diff --fail-on-delete"
+      );
     });
   });
 
   describe("error handling", () => {
+    const baseArgs: DiffCommandArgs = {
+      url: "https://example.com/graphql/",
+      token: "test-token",
+      config: "config.yml",
+      quiet: false,
+      json: false,
+      githubComment: false,
+      failOnDelete: false,
+      failOnBreaking: false,
+      summary: false,
+    };
+
     it("should handle configuration loading errors", async () => {
       const error = new Error("Configuration file not found");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(
-        handleDiff({
-          url: "https://example.com/graphql/",
-          token: "test-token",
-          config: "config.yml",
-          quiet: false,
-        })
-      ).rejects.toThrow("Configuration file not found");
+      await expect(handleDiff(baseArgs)).rejects.toThrow("Configuration file not found");
     });
 
     it("should handle network errors", async () => {
       const error = new Error("Network error");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(
-        handleDiff({
-          url: "https://example.com/graphql/",
-          token: "test-token",
-          config: "config.yml",
-          quiet: false,
-        })
-      ).rejects.toThrow("Network error");
+      await expect(handleDiff(baseArgs)).rejects.toThrow("Network error");
     });
 
     it("should handle authentication errors", async () => {
@@ -257,17 +292,24 @@ describe("diff command", () => {
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
       await expect(
-        handleDiff({
-          url: "https://example.com/graphql/",
-          token: "invalid-token",
-          config: "config.yml",
-          quiet: false,
-        })
+        handleDiff({ ...baseArgs, token: "invalid-token" })
       ).rejects.toThrow("Unauthorized");
     });
   });
 
   describe("integration scenarios", () => {
+    const baseArgs: DiffCommandArgs = {
+      url: "https://example.com/graphql/",
+      token: "test-token",
+      config: "config.yml",
+      quiet: false,
+      json: false,
+      githubComment: false,
+      failOnDelete: false,
+      failOnBreaking: false,
+      summary: false,
+    };
+
     it("should handle large diff results", async () => {
       const largeDiffSummary = {
         totalChanges: 100,
@@ -288,14 +330,7 @@ describe("diff command", () => {
         output: "Large diff output",
       });
 
-      await expect(
-        handleDiff({
-          url: "https://example.com/graphql/",
-          token: "test-token",
-          config: "config.yml",
-          quiet: false,
-        })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff(baseArgs)).rejects.toThrow("process.exit");
 
       expect(mockConsole.status).toHaveBeenCalledWith(
         "\n⚠️  Found 100 differences that would be applied by 'deploy'"
@@ -303,14 +338,9 @@ describe("diff command", () => {
     });
 
     it("should handle diff with custom config path", async () => {
-      const argsWithConfig = {
-        url: "https://example.com/graphql/",
-        token: "test-token",
-        config: "custom-config.yml",
-        quiet: false,
-      };
-
-      await expect(handleDiff(argsWithConfig)).rejects.toThrow("process.exit");
+      await expect(
+        handleDiff({ ...baseArgs, config: "custom-config.yml" })
+      ).rejects.toThrow("process.exit");
 
       expect(mockConfigurator.diff).toHaveBeenCalledOnce();
     });
