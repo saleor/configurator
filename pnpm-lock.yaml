@@ -20,6 +20,9 @@ importers:
       '@urql/exchange-auth':
         specifier: ^2.2.0
         version: 2.2.1(@urql/core@5.2.0(graphql@16.11.0))
+      '@urql/exchange-retry':
+        specifier: ^2.0.0
+        version: 2.0.0(@urql/core@5.2.0(graphql@16.11.0))
       chalk:
         specifier: ^5.4.1
         version: 5.4.1
@@ -719,6 +722,11 @@ packages:
     resolution: {integrity: sha512-n4xUxxjvY36GJh539sLaPFyvFzreADOv8EFQdTiXOCIRVoXXhWVVI7DjY/HNtLICfbg1+UlbvQ7sNkwaBouDHg==}
     peerDependencies:
       '@urql/core': ^5.0.0
+
+  '@urql/exchange-retry@2.0.0':
+    resolution: {integrity: sha512-VdSMCiOptd6Ah6g5Bo+MzrNMAGzgRMC775W86strLRQN7lvvNlhx1LwU0gzb2h/z0atcJFAmDJEbMyvupkT+7A==}
+    peerDependencies:
+      '@urql/core': ^6.0.0
 
   '@vitest/expect@3.2.4':
     resolution: {integrity: sha512-Io0yyORnB6sikFlt8QW5K7slY4OjqNX9jmJQ02QDda8lyM6B5oNgVWoSoKPac8/kgnCUzuHQKrSLtu/uOqqrig==}
@@ -2406,6 +2414,11 @@ snapshots:
       - graphql
 
   '@urql/exchange-auth@2.2.1(@urql/core@5.2.0(graphql@16.11.0))':
+    dependencies:
+      '@urql/core': 5.2.0(graphql@16.11.0)
+      wonka: 6.3.5
+
+  '@urql/exchange-retry@2.0.0(@urql/core@5.2.0(graphql@16.11.0))':
     dependencies:
       '@urql/core': 5.2.0(graphql@16.11.0)
       wonka: 6.3.5

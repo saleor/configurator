@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProductInput } from "../config/schema/schema";
+import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 import { ProductService } from "./product-service";
 import type { ProductOperations } from "./repository";
-import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
 const mockRepository: ProductOperations = {
   createProduct: vi.fn(),
@@ -11,6 +11,7 @@ const mockRepository: ProductOperations = {
   updateProductVariant: vi.fn(),
   getProductByName: vi.fn(),
   getProductBySlug: vi.fn(),
+  getProductsBySlugs: vi.fn(),
   getProductVariantBySku: vi.fn(),
   getProductTypeByName: vi.fn(),
   getCategoryByName: vi.fn(),
@@ -25,6 +26,9 @@ const mockRepository: ProductOperations = {
   updateProductMedia: vi.fn(),
   deleteProductMedia: vi.fn(),
   replaceAllProductMedia: vi.fn(),
+  bulkCreateProducts: vi.fn(),
+  bulkCreateVariants: vi.fn(),
+  bulkUpdateVariants: vi.fn(),
 };
 
 describe("ProductService", () => {
@@ -1193,6 +1197,222 @@ describe("ProductService", () => {
           "Failed to fetch existing media"
         );
       });
+    });
+  });
+
+  describe("CXE-1194: Bulk variant creation groups by product", () => {
+    beforeEach(() => {
+      // Setup common mocks for bulk operations
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+    });
+
+    it("should call bulkCreateVariants with product ID at top level", async () => {
+      // Setup: Mock successful product creation
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "product-123",
+              name: "Test Product",
+              slug: "test-product",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        productVariants: [{ id: "variant-1", name: "Variant 1", sku: "SKU-1" }],
+        results: [{ productVariant: { id: "variant-1", sku: "SKU-1" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      // Execute: Bootstrap products with variants
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [{ name: "Variant 1", sku: "SKU-1" }],
+        },
+      ]);
+
+      // Assert: Verify product ID is at top level, not in variant input
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledWith(
+        expect.objectContaining({
+          product: "product-123", // Product ID at top level
+        })
+      );
+
+      // Verify the variant inputs don't contain product field
+      const callArgs = vi.mocked(mockRepository.bulkCreateVariants).mock.calls[0][0];
+      expect(callArgs.variants).toBeDefined();
+      expect(callArgs.variants[0]).not.toHaveProperty("product");
+    });
+
+    it("should group variants by product when creating for multiple products", async () => {
+      // Setup: Two products created
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 2,
+        results: [
+          {
+            product: {
+              id: "product-A",
+              name: "Product A",
+              slug: "product-a",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+          {
+            product: {
+              id: "product-B",
+              name: "Product B",
+              slug: "product-b",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        productVariants: [],
+        results: [],
+        errors: [],
+      } as any);
+
+      // Execute
+      await service.bootstrapProductsBulk([
+        {
+          name: "Product A",
+          slug: "product-a",
+          productType: "Book",
+          category: "Fiction",
+          variants: [{ name: "V1", sku: "SKU-A1" }],
+        },
+        {
+          name: "Product B",
+          slug: "product-b",
+          productType: "Book",
+          category: "Fiction",
+          variants: [{ name: "V2", sku: "SKU-B1" }],
+        },
+      ]);
+
+      // Assert: Called once per product (not once for all variants)
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledTimes(2);
+
+      // Verify each call has the correct product ID
+      const calls = vi.mocked(mockRepository.bulkCreateVariants).mock.calls;
+      const productIds = calls.map((call) => call[0].product);
+      expect(productIds).toContain("product-A");
+      expect(productIds).toContain("product-B");
+    });
+
+    it("should include channelListings in bulk create input instead of updating separately", async () => {
+      // Setup: Mock channel resolution
+      vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue({
+        id: "channel-123",
+        name: "Default Channel",
+      } as any);
+
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "product-123",
+              name: "Test Product",
+              slug: "test-product",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        productVariants: [{ id: "variant-1", name: "Variant 1", sku: "SKU-1" }],
+        results: [{ productVariant: { id: "variant-1", sku: "SKU-1" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      // Execute: Bootstrap products with variants that have channel listings
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [
+            {
+              name: "Variant 1",
+              sku: "SKU-1",
+              channelListings: [
+                {
+                  channel: "default-channel",
+                  price: 19.99,
+                  costPrice: 10.0,
+                },
+              ],
+            },
+          ],
+        },
+      ]);
+
+      // Assert: Verify channelListings are included in bulk create call
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledWith(
+        expect.objectContaining({
+          product: "product-123",
+          variants: expect.arrayContaining([
+            expect.objectContaining({
+              sku: "SKU-1",
+              channelListings: [
+                {
+                  channelId: "channel-123",
+                  price: 19.99,
+                  costPrice: 10.0,
+                },
+              ],
+            }),
+          ]),
+        })
+      );
+
+      // Assert: Verify updateProductVariantChannelListings is NOT called
+      // (channel listings should be set during bulk create, not separately)
+      expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
     });
   });
 });

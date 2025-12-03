@@ -50,3 +50,16 @@ export class PageTypeAttributeError extends PageTypeError {
     super(message, "PAGE_TYPE_ATTRIBUTE_ERROR");
   }
 }
+
+/**
+ * Error thrown when page type attribute validation fails
+ */
+export class PageTypeAttributeValidationError extends PageTypeError {
+  constructor(
+    message: string,
+    public readonly pageTypeName: string,
+    public readonly attributeName: string
+  ) {
+    super(message, "PAGE_TYPE_ATTRIBUTE_VALIDATION_ERROR");
+  }
+}

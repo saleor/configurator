@@ -7,7 +7,7 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
   let mockClient: any;
   let repository: ProductRepository;
   let service: ProductService;
-  let getCategoryByPathSpy: ReturnType<typeof vi.spyOn>;
+  let getCategoryByPathSpy: any;
 
   beforeEach(() => {
     mockClient = {

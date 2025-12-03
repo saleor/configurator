@@ -585,7 +585,11 @@ const productChannelListingSchema = z.object({
     .optional()
     .default(true)
     .describe("Whether the product appears in category listings"),
-  availableForPurchase: z
+  isAvailableForPurchase: z
+    .boolean()
+    .optional()
+    .describe("Whether the product is available for purchase in this channel"),
+  availableForPurchaseAt: z
     .string()
     .optional()
     .describe("ISO date when the product becomes available for purchase"),

@@ -59,6 +59,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            entityType
             choices(first: 100) {
               edges {
                 node {
@@ -73,6 +74,7 @@ const getConfigQuery = graphql(`
               name
               type
               inputType
+              entityType
               choices(first: 100) {
                 edges {
                   node {
@@ -95,6 +97,7 @@ const getConfigQuery = graphql(`
             name
             type
             inputType
+            entityType
             choices(first: 100) {
               edges {
                 node {
@@ -459,6 +462,8 @@ const getConfigQuery = graphql(`
             isPublished
             publishedAt
             visibleInListings
+            isAvailableForPurchase
+            availableForPurchaseAt
           }
           media {
             id
@@ -622,6 +627,8 @@ export class ConfigurationRepository implements ConfigurationOperations {
                 isPublished
                 publishedAt
                 visibleInListings
+                isAvailableForPurchase
+                availableForPurchaseAt
               }
               media {
                 id

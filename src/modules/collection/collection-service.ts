@@ -3,7 +3,7 @@ import type {
   PublishableChannelListingInput,
 } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import { processInChunks } from "../../lib/utils/chunked-processor";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
 import type { ProductService } from "../product/product-service";
@@ -198,12 +198,22 @@ export class CollectionService {
       );
     }
 
-    const results = await ServiceErrorWrapper.wrapBatch(
+    const { successes, failures } = await processInChunks(
       inputs,
-      "Bootstrap collections",
-      (collection) => collection.slug,
-      (input) => this.getOrCreateCollection(input)
+      async (chunk) => {
+        return Promise.all(chunk.map((input) => this.getOrCreateCollection(input)));
+      },
+      {
+        chunkSize: 10,
+        delayMs: 500,
+        entityType: "collections",
+      }
     );
+
+    const results = {
+      successes: successes.map((s) => ({ item: s.item, result: s.result })),
+      failures: failures.map((f) => ({ item: f.item, error: f.error })),
+    };
 
     if (results.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} collections`;
@@ -223,7 +233,8 @@ export class CollectionService {
     logger.debug("Successfully bootstrapped all collections", {
       count: results.successes.length,
     });
-    return results.successes.map((s) => s.result);
+    // Flatten the results - each success contains a single Collection, not an array
+    return results.successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
   }
 
   async syncCollectionProducts(

@@ -3,7 +3,7 @@ import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
-import { PageTypeAttributeError } from "./errors";
+import { PageTypeAttributeError, PageTypeAttributeValidationError } from "./errors";
 import type { PageTypeOperations } from "./repository";
 
 export class PageTypeService {
@@ -66,6 +66,20 @@ export class PageTypeService {
       logger.debug("Processing page type attributes", {
         attributesCount: updateInput.attributes.length,
       });
+
+      // Validate REFERENCE attributes have entityType
+      for (const attr of updateInput.attributes) {
+        if (!isReferencedAttribute(attr) && "inputType" in attr && attr.inputType === "REFERENCE") {
+          if (!("entityType" in attr) || !attr.entityType) {
+            throw new PageTypeAttributeValidationError(
+              `Attribute "${attr.name}" is a REFERENCE type but missing required 'entityType'. ` +
+                `Please specify entityType as "PAGE", "PRODUCT", or "PRODUCT_VARIANT" in your config.`,
+              input.name,
+              attr.name
+            );
+          }
+        }
+      }
 
       // check if the page type has the attributes already
       const attributesToCreate = updateInput.attributes.filter((a) => {

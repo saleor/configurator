@@ -146,6 +146,21 @@ const createProductVariantMutation = graphql(`
 export type ProductVariantCreateInput = VariablesOf<typeof createProductVariantMutation>["input"];
 export type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantMutation>["input"];
 
+// Bulk operation types
+export type ProductBulkCreateInput = VariablesOf<typeof productBulkCreateMutation>;
+export type ProductVariantBulkCreateInput = VariablesOf<typeof productVariantBulkCreateMutation>;
+export type ProductVariantBulkUpdateInput = VariablesOf<typeof productVariantBulkUpdateMutation>;
+
+export type ProductBulkCreateResult = NonNullable<
+  NonNullable<ResultOf<typeof productBulkCreateMutation>>["productBulkCreate"]
+>;
+export type ProductVariantBulkCreateResult = NonNullable<
+  NonNullable<ResultOf<typeof productVariantBulkCreateMutation>>["productVariantBulkCreate"]
+>;
+export type ProductVariantBulkUpdateResult = NonNullable<
+  NonNullable<ResultOf<typeof productVariantBulkUpdateMutation>>["productVariantBulkUpdate"]
+>;
+
 // TODO: Add productChannelListingUpdate mutation in separate commit
 
 const getProductByNameQuery = graphql(`
@@ -196,6 +211,39 @@ const getProductBySlugQuery = graphql(`
             alt
             type
             url
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getProductsBySlugsBulkQuery = graphql(`
+  query GetProductsBySlugs($slugs: [String!]!) {
+    products(filter: { slugs: $slugs }, first: 100) {
+      edges {
+        node {
+          id
+          name
+          slug
+          productType {
+            id
+            name
+          }
+          category {
+            id
+            name
+            slug
+          }
+          media {
+            id
+            alt
+            type
+            url
+            metadata {
+              key
+              value
+            }
           }
         }
       }
@@ -440,6 +488,160 @@ const updateProductVariantMutation = graphql(`
   }
 `);
 
+const productBulkCreateMutation = graphql(`
+  mutation ProductBulkCreate(
+    $products: [ProductBulkCreateInput!]!
+    $errorPolicy: ErrorPolicyEnum
+  ) {
+    productBulkCreate(
+      products: $products
+      errorPolicy: $errorPolicy
+    ) {
+      count
+      results {
+        product {
+          id
+          name
+          slug
+          description
+          productType {
+            id
+            name
+          }
+          category {
+            id
+            name
+          }
+          channelListings {
+            id
+            channel {
+              id
+              name
+            }
+            isPublished
+            visibleInListings
+          }
+          media {
+            id
+            alt
+            type
+            url
+            metadata {
+              key
+              value
+            }
+          }
+        }
+        errors {
+          path
+          message
+          code
+        }
+      }
+      errors {
+        path
+        message
+        code
+      }
+    }
+  }
+`);
+
+const productVariantBulkCreateMutation = graphql(`
+  mutation ProductVariantBulkCreate(
+    $product: ID!
+    $variants: [ProductVariantBulkCreateInput!]!
+    $errorPolicy: ErrorPolicyEnum
+  ) {
+    productVariantBulkCreate(
+      product: $product
+      variants: $variants
+      errorPolicy: $errorPolicy
+    ) {
+      count
+      results {
+        productVariant {
+          id
+          name
+          sku
+          weight {
+            value
+          }
+          channelListings {
+            id
+            channel {
+              id
+              name
+            }
+            price {
+              amount
+            }
+            costPrice {
+              amount
+            }
+          }
+        }
+        errors {
+          path
+          message
+          code
+        }
+      }
+      errors {
+        message
+        code
+      }
+    }
+  }
+`);
+
+const productVariantBulkUpdateMutation = graphql(`
+  mutation ProductVariantBulkUpdate(
+    $variants: [ProductVariantBulkUpdateInput!]!
+    $errorPolicy: ErrorPolicyEnum
+  ) {
+    productVariantBulkUpdate(
+      variants: $variants
+      errorPolicy: $errorPolicy
+    ) {
+      count
+      results {
+        productVariant {
+          id
+          name
+          sku
+          weight {
+            value
+          }
+          channelListings {
+            id
+            channel {
+              id
+              name
+            }
+            price {
+              amount
+            }
+            costPrice {
+              amount
+            }
+          }
+        }
+        errors {
+          path
+          message
+          code
+        }
+      }
+      errors {
+        path
+        message
+        code
+      }
+    }
+  }
+`);
+
 const getChannelBySlugQuery = graphql(`
   query GetChannelBySlug($slug: String!) {
     channels {
@@ -539,7 +741,6 @@ export type ProductMediaUpdateInput = VariablesOf<typeof updateProductMediaMutat
 
 export type ProductMediaDeleteInput = VariablesOf<typeof deleteProductMediaMutation>["id"];
 
-
 export type ProductVariantWithChannelListings = NonNullable<
   NonNullable<
     ResultOf<
@@ -571,6 +772,8 @@ export interface ProductOperations {
   updateProductVariant(id: string, input: ProductVariantUpdateInput): Promise<ProductVariant>;
   getProductByName(name: string): Promise<Product | null | undefined>;
   getProductBySlug(slug: string): Promise<Product | null | undefined>;
+
+  getProductsBySlugs(slugs: string[]): Promise<Product[]>;
   getProductVariantBySku(sku: string): Promise<ProductVariant | null>;
   getProductTypeByName(name: string): Promise<{ id: string; name: string } | null>;
   getCategoryByName(name: string): Promise<{ id: string; name: string } | null>;
@@ -599,6 +802,11 @@ export interface ProductOperations {
     productId: string,
     mediaInputs: ProductMediaCreateInput[]
   ): Promise<ProductMedia[]>;
+
+  // Bulk operations
+  bulkCreateProducts(input: ProductBulkCreateInput): Promise<ProductBulkCreateResult>;
+  bulkCreateVariants(input: ProductVariantBulkCreateInput): Promise<ProductVariantBulkCreateResult>;
+  bulkUpdateVariants(input: ProductVariantBulkUpdateInput): Promise<ProductVariantBulkUpdateResult>;
 }
 
 export type Attribute = NonNullable<
@@ -795,6 +1003,28 @@ export class ProductRepository implements ProductOperations {
     }
 
     return product || null;
+  }
+
+  async getProductsBySlugs(slugs: string[]): Promise<Product[]> {
+    if (slugs.length === 0) {
+      return [];
+    }
+
+    const result = await this.client.query(getProductsBySlugsBulkQuery, {
+      slugs,
+    });
+
+    if (result.error) {
+      throw new Error(`Failed to fetch products by slugs: ${result.error.message}`);
+    }
+
+    if (!result.data?.products?.edges) {
+      return [];
+    }
+
+    return result.data.products.edges
+      .map((edge) => edge.node)
+      .filter((node) => node !== null) as Product[];
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
@@ -1245,10 +1475,7 @@ export class ProductRepository implements ProductOperations {
         for (const mediaInput of mediaInputs) {
           try {
             const createdMediaItem = await this.createProductMedia(mediaInput);
-            await this.setProductMediaSourceUrlMetadata(
-              createdMediaItem.id,
-              mediaInput.mediaUrl
-            );
+            await this.setProductMediaSourceUrlMetadata(createdMediaItem.id, mediaInput.mediaUrl);
             createdMedia.push(createdMediaItem);
           } catch (error) {
             logger.error("Failed to create new media", {
@@ -1280,5 +1507,88 @@ export class ProductRepository implements ProductOperations {
         }`
       );
     }
+  }
+
+  // Bulk operations
+  async bulkCreateProducts(input: ProductBulkCreateInput): Promise<ProductBulkCreateResult> {
+    const result = await this.client.mutation(productBulkCreateMutation, input);
+
+    if (!result.data?.productBulkCreate) {
+      // Handle GraphQL errors
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw new Error(
+          `GraphQL errors during bulk product creation: ${result.error.graphQLErrors
+            .map((e) => e.message)
+            .join(", ")}`
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new Error(`Network error during bulk product creation: ${result.error.message}`);
+      }
+
+      throw new Error("Failed to bulk create products");
+    }
+
+    logger.info(`Bulk created ${result.data.productBulkCreate.count} products`);
+
+    return result.data.productBulkCreate as ProductBulkCreateResult;
+  }
+
+  async bulkCreateVariants(
+    input: ProductVariantBulkCreateInput
+  ): Promise<ProductVariantBulkCreateResult> {
+    const result = await this.client.mutation(productVariantBulkCreateMutation, input);
+
+    if (!result.data?.productVariantBulkCreate) {
+      // Handle GraphQL errors
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw new Error(
+          `GraphQL errors during bulk variant creation: ${result.error.graphQLErrors
+            .map((e) => e.message)
+            .join(", ")}`
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new Error(`Network error during bulk variant creation: ${result.error.message}`);
+      }
+
+      throw new Error("Failed to bulk create product variants");
+    }
+
+    logger.info(`Bulk created ${result.data.productVariantBulkCreate.count} product variants`);
+
+    return result.data.productVariantBulkCreate as ProductVariantBulkCreateResult;
+  }
+
+  async bulkUpdateVariants(
+    input: ProductVariantBulkUpdateInput
+  ): Promise<ProductVariantBulkUpdateResult> {
+    const result = await this.client.mutation(productVariantBulkUpdateMutation, input);
+
+    if (!result.data?.productVariantBulkUpdate) {
+      // Handle GraphQL errors
+      if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw new Error(
+          `GraphQL errors during bulk variant update: ${result.error.graphQLErrors
+            .map((e) => e.message)
+            .join(", ")}`
+        );
+      }
+
+      // Handle network errors
+      if (result.error) {
+        throw new Error(`Network error during bulk variant update: ${result.error.message}`);
+      }
+
+      throw new Error("Failed to bulk update product variants");
+    }
+
+    logger.info(`Bulk updated ${result.data.productVariantBulkUpdate.count} product variants`);
+
+    return result.data.productVariantBulkUpdate as ProductVariantBulkUpdateResult;
   }
 }

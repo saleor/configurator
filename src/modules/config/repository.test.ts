@@ -1,14 +1,14 @@
+import type { Client, TypedDocumentNode } from "@urql/core";
 import { describe, expect, it } from "vitest";
-import type { Client } from "@urql/core";
 import { ConfigurationRepository } from "./repository";
 
 describe("ConfigurationRepository", () => {
   it("should keep product channel listings outside variant scope in pagination query", async () => {
-    const capturedDocuments: any[] = [];
+    const capturedDocuments: TypedDocumentNode[] = [];
 
     const mockClient: Client = {
-      query: async (document) => {
-        capturedDocuments.push(document as DocumentNode);
+      query: async (document: TypedDocumentNode) => {
+        capturedDocuments.push(document);
         return {
           data: {
             products: {
@@ -45,7 +45,7 @@ describe("ConfigurationRepository", () => {
     );
     expect(productsField).toBeDefined();
 
-    const edgesField = productsField?.selectionSet?.selections.find(
+    const edgesField = (productsField as any)?.selectionSet?.selections.find(
       (selection: any) => selection.kind === "Field" && selection.name.value === "edges"
     );
     expect(edgesField).toBeDefined();
