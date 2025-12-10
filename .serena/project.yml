@@ -1,0 +1,6 @@
+name: configurator
+languages:
+  - typescript
+encoding: utf-8
+read_only: false
+use_gitignore: true
