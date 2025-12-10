@@ -45,7 +45,21 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
   return error.code === "commander.help" || error.code === "commander.version";
 }
 
+/**
+ * Checks if CLI is running in CI output mode (JSON, GitHub comment, etc.)
+ * In these modes, we suppress the banner to ensure clean parseable output
+ */
+function isCiOutputMode(): boolean {
+  const ciFlags = ["--json", "--github-comment", "--githubComment"];
+  return process.argv.some((arg) => ciFlags.includes(arg));
+}
+
 function addConditionalHelpContent(program: Command): void {
+  // Skip banner in CI output mode for clean parseable output
+  if (isCiOutputMode()) {
+    return;
+  }
+
   // Add help content only to the main program, not subcommands
   program.addHelpText("before", cliConsole.important("✨ Saleor Configurator ✨\n"));
   program.addHelpText("after", buildHelpText());

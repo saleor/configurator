@@ -1,9 +1,20 @@
 import chalk from "chalk";
-import { OraProgressReporter, type ProgressReporter } from "./progress";
+import { OraProgressReporter, type ProgressReporter, SilentProgressReporter } from "./progress";
+
+/**
+ * Check if CLI is running in CI output mode (JSON, GitHub comment)
+ * In these modes, we suppress progress indicators for clean parseable output
+ */
+function isCiOutputMode(): boolean {
+  const ciFlags = ["--json", "--github-comment", "--githubComment"];
+  return process.argv.some((arg) => ciFlags.includes(arg));
+}
 
 export class Console {
   private options: { quiet: boolean } = { quiet: false };
-  progress: ProgressReporter = new OraProgressReporter();
+  progress: ProgressReporter = isCiOutputMode()
+    ? new SilentProgressReporter()
+    : new OraProgressReporter();
 
   setOptions(options: { quiet: boolean } = { quiet: false }) {
     this.options = options;

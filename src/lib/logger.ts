@@ -15,9 +15,20 @@ const logLevelMap = {
 
 type LogLevel = keyof typeof logLevelMap;
 
-const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
+/**
+ * Check if CLI is running in CI output mode (JSON, GitHub comment)
+ * In these modes, we suppress logs to ensure clean parseable output
+ */
+function isCiOutputMode(): boolean {
+  const ciFlags = ["--json", "--github-comment", "--githubComment"];
+  return process.argv.some((arg) => ciFlags.includes(arg));
+}
 
-if (!mappedLogLevel) {
+// In CI output mode, suppress all logs for clean output
+const effectiveLogLevel = isCiOutputMode() ? "fatal" : LOG_LEVEL;
+const mappedLogLevel = logLevelMap[effectiveLogLevel as LogLevel];
+
+if (mappedLogLevel === undefined) {
   throw new EnvironmentVariableError(
     `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(logLevelMap).join(", ")}`
   );
