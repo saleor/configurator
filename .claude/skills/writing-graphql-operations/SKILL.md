@@ -1,6 +1,6 @@
 ---
 name: writing-graphql-operations
-description: "Guides GraphQL query and mutation development with gql.tada and urql. Triggers on: GraphQL query, GraphQL mutation, gql.tada, urql client, Saleor API, fragments, repository pattern, schema update, fetch-schema, MSW mocks, GraphQL testing."
+description: "Creates GraphQL queries and mutations using gql.tada and urql. Implements repository pattern with type-safe operations and error handling. Triggers on: GraphQL query, GraphQL mutation, gql.tada, urql client, Saleor API, fragments, repository pattern, fetch-schema, MSW mocks."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
 ---
 
@@ -406,3 +406,9 @@ export const createClient = (url: string, token: string) => {
 - `{baseDir}/src/lib/graphql/client.ts` - Client configuration
 - `{baseDir}/src/lib/graphql/operations/` - Existing operations
 - `{baseDir}/docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards
+
+## Related Skills
+
+- **Complete entity workflow**: See `adding-entity-types` for full implementation including bulk mutations
+- **Bulk operations**: See `adding-entity-types/references/bulk-mutations.md` for chunking patterns
+- **Testing GraphQL**: See `analyzing-test-coverage` for MSW setup

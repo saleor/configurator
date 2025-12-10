@@ -1,14 +1,13 @@
-# Saleor Dashboard - Serena Workflow Tips
+# Saleor Configurator - Serena Workflow Tips
 
 ## Core Philosophy
 
 **NEVER read entire files unless absolutely necessary!**
 
-Serena's symbolic tools are designed for efficient, targeted code exploration. Use them to:
+Use Serena's symbolic tools for efficient, targeted code exploration:
 - Read only the code you need
 - Understand structure before diving into details
 - Find specific symbols quickly
-- Avoid token waste on irrelevant code
 
 ## Efficient Code Exploration
 
@@ -33,7 +32,7 @@ Get a high-level view of a file WITHOUT reading the entire content:
 
 ```
 mcp__serena__get_symbols_overview
-- relative_path: "src/products/views/ProductDetails.tsx"
+- relative_path: "src/modules/category/service.ts"
 ```
 
 **Returns:**
@@ -53,17 +52,17 @@ Locate exact symbols you need:
 
 ```
 mcp__serena__find_symbol
-- name_path: "ProductDetails"  # Component name
-- relative_path: "src/products/views"  # Restrict search
-- depth: 0  # Just the component
+- name_path: "CategoryService"  # Class name
+- relative_path: "src/modules/category"  # Restrict search
+- depth: 0  # Just the class
 - include_body: false  # Structure only
 ```
 
 **Name path patterns:**
-- `"ProductDetails"` - Find symbol with this name
-- `"ProductDetails/handleSubmit"` - Find method in component
-- `"/ProductDetails"` - Find top-level symbol only (absolute)
-- `"*/handleSubmit"` - Find handleSubmit in any parent
+- `"CategoryService"` - Find symbol with this name
+- `"CategoryService/sync"` - Find method in class
+- `"/CategoryService"` - Find top-level symbol only (absolute)
+- `"*/bulkCreate"` - Find bulkCreate in any parent
 
 **When to use:**
 - Know the symbol name
@@ -176,63 +175,63 @@ mcp__serena__find_referencing_symbols
 
 ## Common Workflows
 
-### Workflow: Implementing a New Feature
+### Workflow: Implementing a New Entity Type
 
-1. **Explore similar feature:**
+1. **Explore similar entity module:**
    ```
    mcp__serena__list_dir
-   - relative_path: "src/orders"  # Similar feature
+   - relative_path: "src/modules/category"  # Similar entity
    ```
 
 2. **Get structure overview:**
    ```
    mcp__serena__get_symbols_overview
-   - relative_path: "src/orders/views/OrderDetails.tsx"
+   - relative_path: "src/modules/category/service.ts"
    ```
 
 3. **Find key patterns:**
    ```
    mcp__serena__find_symbol
-   - name_path: "OrderDetails"
-   - relative_path: "src/orders/views/OrderDetails.tsx"
+   - name_path: "CategoryService"
+   - relative_path: "src/modules/category/service.ts"
    - depth: 1
    ```
 
 4. **Read specific implementations:**
    ```
    mcp__serena__find_symbol
-   - name_path: "OrderDetails/handleSubmit"
+   - name_path: "CategoryService/sync"
    - include_body: true
    ```
 
-5. **Create new feature following pattern**
+5. **Create new entity module following pattern**
 
 ### Workflow: Fixing a Bug
 
 1. **Locate the file:**
    ```
    mcp__serena__find_file
-   - file_mask: "ProductDetails.tsx"
-   - relative_path: "src"
+   - file_mask: "repository.ts"
+   - relative_path: "src/modules/category"
    ```
 
 2. **Get overview:**
    ```
    mcp__serena__get_symbols_overview
-   - relative_path: "src/products/views/ProductDetails.tsx"
+   - relative_path: "src/modules/category/repository.ts"
    ```
 
 3. **Find problematic function:**
    ```
    mcp__serena__find_symbol
-   - name_path: "calculatePrice"
+   - name_path: "CategoryRepository/bulkCreate"
    - include_body: true
    ```
 
 4. **Find references to understand usage:**
    ```
    mcp__serena__find_referencing_symbols
-   - name_path: "calculatePrice"
+   - name_path: "bulkCreate"
    ```
 
 5. **Fix and test**
@@ -242,28 +241,28 @@ mcp__serena__find_referencing_symbols
 1. **Start with overview:**
    ```
    mcp__serena__get_symbols_overview
-   - relative_path: "src/products/views/ProductList.tsx"
+   - relative_path: "src/modules/deployment/service.ts"
    ```
 
-2. **Identify key components:**
+2. **Identify key classes:**
    ```
    mcp__serena__find_symbol
-   - name_path: "ProductList"
+   - name_path: "DeploymentService"
    - depth: 1
    - include_body: false
    ```
 
-3. **Read specific parts:**
+3. **Read specific methods:**
    ```
    mcp__serena__find_symbol
-   - name_path: "ProductList/handleFilter"
+   - name_path: "DeploymentService/deploy"
    - include_body: true
    ```
 
 4. **Understand data flow:**
    ```
    mcp__serena__find_referencing_symbols
-   - name_path: "useProductListQuery"
+   - name_path: "CategoryRepository"
    ```
 
 ### Workflow: Refactoring
@@ -271,8 +270,8 @@ mcp__serena__find_referencing_symbols
 1. **Find all usages:**
    ```
    mcp__serena__find_referencing_symbols
-   - name_path: "oldFunction"
-   - relative_path: "src/utils/oldFunction.ts"
+   - name_path: "mapEdgesToItems"
+   - relative_path: "src/lib/utils.ts"
    ```
 
 2. **Understand each usage context:**
@@ -282,7 +281,7 @@ mcp__serena__find_referencing_symbols
 3. **Read full implementations if needed:**
    ```
    mcp__serena__find_symbol
-   - name_path: "ComponentUsingOldFunction"
+   - name_path: "CategoryRepository/findAll"
    - include_body: true
    ```
 
@@ -448,13 +447,14 @@ mcp__serena__search_for_pattern
 
 ## Symbol Name Paths in This Codebase
 
-Common patterns you'll encounter:
+Common patterns in the Configurator:
 
-- **Components**: `ProductList`, `ProductDetails`, `ProductForm`
-- **Hooks**: `useProductForm`, `useNavigator`, `useNotifier`
-- **Utilities**: `mapEdgesToItems`, `getById`, `formatDate`
-- **Methods in components**: `ProductDetails/handleSubmit`, `ProductForm/handleChange`
-- **Query/Mutation exports**: `productDetailsQuery`, `productUpdateMutation`
+- **Services**: `CategoryService`, `ProductTypeService`, `DeploymentService`
+- **Repositories**: `CategoryRepository`, `ChannelRepository`
+- **GraphQL Operations**: `GetCategoriesQuery`, `BulkCreateCategoriesMutation`
+- **Zod Schemas**: `CategorySchema`, `ProductTypeSchema`, `ConfigSchema`
+- **Methods**: `CategoryService/sync`, `CategoryRepository/bulkCreate`
+- **Test Builders**: `categoryBuilder`, `productTypeBuilder`
 
 ## Remember
 

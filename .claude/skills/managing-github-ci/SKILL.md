@@ -1,6 +1,6 @@
 ---
 name: managing-github-ci
-description: "Manages GitHub Actions workflows and CI/CD automation. Triggers on: GitHub Actions, CI pipeline, workflow, release automation, test-on-pr, changeset, Husky hooks, pre-push, npm publish, gh CLI, workflow failure, CI troubleshooting."
+description: "Configures GitHub Actions workflows and CI/CD pipelines. Manages automated releases via Changesets, PR validation, and Husky hooks. Troubleshoots CI failures. Triggers on: GitHub Actions, CI pipeline, workflow, release automation, Husky hooks, gh CLI, workflow failure."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(gh:*)"
 ---
 
@@ -394,3 +394,8 @@ jobs:
 - `{baseDir}/.changeset/` - Changeset configuration
 - GitHub Actions docs: https://docs.github.com/en/actions
 - Changesets docs: https://github.com/changesets/changesets
+
+## Related Skills
+
+- **Creating releases**: See `creating-changesets` for changeset creation
+- **Local validation**: See `validating-pre-commit` for reproducing CI checks locally

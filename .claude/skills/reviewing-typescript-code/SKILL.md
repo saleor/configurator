@@ -1,6 +1,6 @@
 ---
 name: reviewing-typescript-code
-description: "Reviews TypeScript code for type safety, clean code principles, and project standards. Triggers on: code review, PR review, check implementation, audit code, analyze quality, inspect types, validate patterns, review pull request, check code, lint issues, type errors."
+description: "Reviews TypeScript code for type safety, clean code principles, and project standards. Analyzes type errors, functional patterns, Zod usage, and error handling. Triggers on: code review, PR review, check implementation, audit code, analyze quality, inspect types, validate patterns."
 allowed-tools: "Read, Grep, Glob"
 ---
 
@@ -205,3 +205,9 @@ Well-implemented patterns worth highlighting.
 - See `{baseDir}/docs/CODE_QUALITY.md` for complete coding standards
 - See `{baseDir}/docs/ARCHITECTURE.md` for service patterns
 - See `{baseDir}/biome.json` for linting rules
+
+## Related Skills
+
+- **Complete entity workflow**: See `adding-entity-types` for architectural patterns
+- **Zod standards**: See `designing-zod-schemas` for schema review criteria
+- **Pre-commit checks**: See `validating-pre-commit` for quality gate commands

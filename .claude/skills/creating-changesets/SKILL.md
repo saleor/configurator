@@ -1,6 +1,6 @@
 ---
 name: creating-changesets
-description: "Creates and manages changesets for semantic versioning releases. Triggers on: add changeset, create changeset, version bump, prepare release, CHANGELOG, breaking change, patch release, minor release, major release, pnpm changeset, release notes."
+description: "Creates changesets for semantic versioning and automates release notes. Determines correct version bump type (patch/minor/major) and generates well-documented changelog entries. Triggers on: add changeset, create changeset, version bump, prepare release, CHANGELOG, breaking change, pnpm changeset."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(npx changeset:*)"
 ---
 
@@ -162,3 +162,8 @@ See **[Scenarios & Examples](references/scenarios.md)**
 - `{baseDir}/.changeset/config.json` - Changeset configuration
 - `{baseDir}/CHANGELOG.md` - Generated changelog
 - Changesets docs: https://github.com/changesets/changesets
+
+## Related Skills
+
+- **CI/CD automation**: See `managing-github-ci` for release workflow integration
+- **Pre-commit validation**: See `validating-pre-commit` for quality gates before committing

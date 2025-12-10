@@ -1,6 +1,6 @@
 ---
 name: analyzing-test-coverage
-description: "Guides test creation and coverage analysis using Vitest and MSW. Triggers on: write tests, test coverage, Vitest, MSW mock, vi.fn, vi.mock, unit test, integration test, test builder, mock setup, test failure, coverage report."
+description: "Creates and analyzes tests using Vitest and MSW patterns. Generates test builders, mocks repositories, and configures integration tests. Triggers on: write tests, test coverage, Vitest, MSW mock, vi.fn, vi.mock, unit test, integration test, test builder, mock setup, test failure."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(pnpm test:*)"
 ---
 
@@ -176,3 +176,9 @@ expect(result).toBe(expected);
 ### External Documentation
 - Vitest docs: https://vitest.dev
 - MSW docs: https://mswjs.io
+
+## Related Skills
+
+- **Complete entity workflow**: See `adding-entity-types` for E2E implementation including tests
+- **Zod test patterns**: See `designing-zod-schemas` for schema validation tests
+- **GraphQL mocking**: See `writing-graphql-operations` for MSW handlers

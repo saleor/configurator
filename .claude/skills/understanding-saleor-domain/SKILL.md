@@ -1,6 +1,6 @@
 ---
 name: understanding-saleor-domain
-description: "Provides domain knowledge about Saleor e-commerce platform and Configurator business rules. Triggers on: entity types, deployment pipeline, config schema, slug identification, name identification, categories, products, channels, warehouses, introspect, deploy, diff, YAML configuration."
+description: "Explains Saleor e-commerce domain and Configurator business rules. Covers entity identification (slug vs name), deployment pipeline stages, and configuration schema. Triggers on: entity types, deployment pipeline, config schema, slug identification, categories, products, channels, YAML configuration."
 allowed-tools: "Read, Grep, Glob, Bash(pnpm:*), Bash(git:*), Bash(ls:*)"
 ---
 
@@ -312,3 +312,9 @@ For detailed information, see:
 - `{baseDir}/docs/ENTITY_REFERENCE.md` - Full entity documentation
 - `{baseDir}/docs/ARCHITECTURE.md` - System architecture
 - `{baseDir}/src/modules/config/schema/schema.ts` - Zod schema definitions
+
+## Related Skills
+
+- **Implementing entities**: See `adding-entity-types` for complete implementation workflow
+- **Config schemas**: See `designing-zod-schemas` for schema patterns
+- **GraphQL operations**: See `writing-graphql-operations` for Saleor API integration

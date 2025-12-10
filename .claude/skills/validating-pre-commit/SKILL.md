@@ -1,6 +1,6 @@
 ---
 name: validating-pre-commit
-description: "Validates code quality before committing or pushing changes. Triggers on: pre-commit, pre-push, run tests, run build, quality check, CI check, lint check, type check, validate changes, check:fix, pnpm test, pnpm build."
+description: "Runs quality gate checks before commit or push. Executes lint fixes, TypeScript compilation, tests, and CI validation. Reproduces CI failures locally. Triggers on: pre-commit, pre-push, quality check, CI check, lint check, type check, validate changes, check:fix, pnpm test."
 allowed-tools: "Read, Bash(pnpm:*), Bash(npx:*), Bash(rm:*)"
 ---
 
@@ -240,3 +240,9 @@ These run automatically - no manual action needed.
 - `{baseDir}/docs/CLAUDE.md` - Full pre-push checklist
 - `{baseDir}/docs/TESTING_PROTOCOLS.md` - E2E testing details
 - `{baseDir}/biome.json` - Linting configuration
+
+## Related Skills
+
+- **Code standards**: See `reviewing-typescript-code` for quality criteria
+- **CI integration**: See `managing-github-ci` for workflow troubleshooting
+- **Test failures**: See `analyzing-test-coverage` for test debugging

@@ -1,6 +1,6 @@
 ---
 name: designing-zod-schemas
-description: "Designs and validates Zod schemas following Zod-first development patterns. Triggers on: Zod schema, z.object, z.infer, validation, branded types, discriminated union, safeParse, refinement, transform, type inference, schema design, test data builder."
+description: "Designs Zod schemas following Zod-first development. Creates validation schemas, branded types, discriminated unions, and transforms. Infers TypeScript types from schemas. Triggers on: Zod schema, z.object, z.infer, validation, branded types, discriminated union, safeParse, refinement."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
 ---
 
@@ -116,3 +116,9 @@ src/modules/config/schema/
 - `{baseDir}/src/modules/config/schema/schema.ts` - Main schema definitions
 - `{baseDir}/docs/CODE_QUALITY.md#zod-first-development` - Quality standards
 - Zod documentation: https://zod.dev
+
+## Related Skills
+
+- **Complete entity workflow**: See `adding-entity-types` for full schema-to-service implementation
+- **Testing schemas**: See `analyzing-test-coverage` for test data builders
+- **GraphQL type mapping**: See `writing-graphql-operations` for schema-to-GraphQL patterns

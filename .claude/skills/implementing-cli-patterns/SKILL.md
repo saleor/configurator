@@ -1,6 +1,6 @@
 ---
 name: implementing-cli-patterns
-description: "Designs CLI user experience patterns for output, progress, and prompts. Triggers on: CLI output, progress bar, spinner, ora, chalk, inquirer prompts, confirm prompt, select prompt, error formatting, exit codes, console messages, reporter patterns."
+description: "Implements CLI user experience with output formatting, progress indicators, and interactive prompts. Uses chalk, ora, and inquirer for consistent terminal interactions. Triggers on: CLI output, progress bar, spinner, ora, chalk, inquirer prompts, error formatting, exit codes, reporter."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
 ---
 
@@ -458,3 +458,8 @@ if (validationErrors.length > 0) {
 - chalk documentation: https://github.com/chalk/chalk
 - ora documentation: https://github.com/sindresorhus/ora
 - inquirer documentation: https://github.com/SBoudrias/Inquirer.js
+
+## Related Skills
+
+- **Complete entity workflow**: See `adding-entity-types` for CLI integration patterns
+- **Error handling**: See `reviewing-typescript-code` for error message standards
