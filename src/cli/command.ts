@@ -101,6 +101,17 @@ export async function confirmAction(
     cliConsole.warn(`\n⚠️  ${details}\n`);
   }
 
+  const autoConfirm = process.env.CONFIGURATOR_AUTO_CONFIRM?.trim().toLowerCase();
+  if (autoConfirm) {
+    if (["true", "1", "yes", "y"].includes(autoConfirm)) {
+      return true;
+    }
+
+    if (["false", "0", "no", "n"].includes(autoConfirm)) {
+      return false;
+    }
+  }
+
   return confirm({
     message,
     default: defaultValue,

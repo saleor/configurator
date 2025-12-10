@@ -1,13 +1,5 @@
-// Mock execa and strip-ansi for test purposes
-interface ExecaOptions {
-  timeout?: number;
-  env?: Record<string, string | undefined>;
-  cwd?: string;
-  input?: string;
-  reject?: boolean;
-}
-
-const stripAnsi = (str: string) => str;
+import { execa, type ExecaError } from "execa";
+import stripAnsi from "strip-ansi";
 
 export interface CliResult {
   exitCode: number;
@@ -26,36 +18,74 @@ export interface CliRunnerOptions {
   input?: string;
 }
 
-export class CliRunner {
-  private readonly defaultTimeout = 30000; // 30 seconds
-  private readonly cliPath: string;
+export interface CliRunnerConfig {
+  /**
+   * Executable used to start the CLI. Defaults to pnpm so we exercise the same entry point as developers.
+   */
+  executable?: string;
+  /**
+   * Script passed to the package manager when using pnpm. Defaults to the local dev entry point.
+   */
+  script?: string;
+  /**
+   * Default environment variables applied to every invocation.
+   */
+  env?: Record<string, string>;
+  /**
+   * Working directory from which commands are executed. Defaults to the current process cwd.
+   */
+  cwd?: string;
+  /**
+   * Default timeout in milliseconds for CLI invocations.
+   */
+  timeout?: number;
+}
 
-  constructor(cliPath = "src/cli/main.ts") {
-    this.cliPath = cliPath;
+export class CliRunner {
+  private readonly executable: string;
+  private readonly script?: string;
+  private readonly defaultEnv: Record<string, string>;
+  private readonly defaultCwd: string;
+  private readonly defaultTimeout: number;
+
+  constructor(config: CliRunnerConfig = {}) {
+    this.executable = config.executable ?? "pnpm";
+    this.script = this.executable === "pnpm" ? config.script ?? "dev" : config.script;
+    this.defaultEnv = {
+      NODE_ENV: "test",
+      LOG_LEVEL: "error",
+      FORCE_COLOR: "0",
+      ...config.env,
+    } satisfies Record<string, string>;
+    this.defaultCwd = config.cwd ?? process.cwd();
+    this.defaultTimeout = config.timeout ?? 300_000; // 5 minutes to accommodate network-heavy flows
   }
 
-  async run(_args: string[], options: CliRunnerOptions = {}): Promise<CliResult> {
-    const _execaOptions: ExecaOptions = {
-      timeout: options.timeout || this.defaultTimeout,
-      env: {
-        ...process.env,
-        NODE_ENV: "test",
-        LOG_LEVEL: "error",
-        ...options.env,
-      },
-      cwd: options.cwd || process.cwd(),
-      input: options.input,
-      reject: false, // Don't throw on non-zero exit codes
-    };
+  private buildArgs(args: string[]): string[] {
+    if (this.executable === "pnpm" && this.script) {
+      return [this.script, ...args];
+    }
+
+    return args;
+  }
+
+  async run(args: string[], options: CliRunnerOptions = {}): Promise<CliResult> {
+    const commandArgs = this.buildArgs(args);
+    const timeout = options.timeout ?? this.defaultTimeout;
 
     try {
-      // Mock result for tests
-      const result = {
-        exitCode: 0,
-        stdout: "",
-        stderr: "",
-        timedOut: false,
-      };
+      const result = await execa(this.executable, commandArgs, {
+        timeout,
+        env: {
+          ...this.defaultEnv,
+          ...options.env,
+        },
+        cwd: options.cwd ?? this.defaultCwd,
+        input: options.input,
+        reject: false,
+        stripFinalNewline: false,
+        maxBuffer: 1024 * 1024 * 20, // 20MB for verbose diff outputs
+      });
 
       return {
         exitCode: result.exitCode,
@@ -64,20 +94,21 @@ export class CliRunner {
         cleanStdout: stripAnsi(result.stdout),
         cleanStderr: stripAnsi(result.stderr),
         success: result.exitCode === 0,
-        timedOut: result.timedOut || false,
+        timedOut: result.timedOut ?? false,
       };
     } catch (error) {
-      // Handle timeout and other errors
-      const isTimeout = error instanceof Error && error.message.includes("timed out");
+      const execaError = error as ExecaError & { stdout?: string; stderr?: string };
+      const stdout = execaError.stdout ?? "";
+      const stderr = execaError.stderr ?? (execaError.shortMessage ?? execaError.message ?? "");
 
       return {
-        exitCode: 1,
-        stdout: "",
-        stderr: error instanceof Error ? error.message : "Unknown error",
-        cleanStdout: "",
-        cleanStderr: error instanceof Error ? stripAnsi(error.message) : "Unknown error",
+        exitCode: typeof execaError.exitCode === "number" ? execaError.exitCode : 1,
+        stdout,
+        stderr,
+        cleanStdout: stripAnsi(stdout),
+        cleanStderr: stripAnsi(stderr),
         success: false,
-        timedOut: isTimeout,
+        timedOut: Boolean(execaError.timedOut),
       };
     }
   }
@@ -91,21 +122,18 @@ export class CliRunner {
     timeout?: number;
     env?: Record<string, string>;
   }): Promise<CliResult> {
-    const args = ["deploy"];
-
-    args.push("--url", options.url);
-    args.push("--token", options.token);
+    const args = ["deploy", "--url", options.url, "--token", options.token];
 
     if (options.config) {
       args.push("--config", options.config);
     }
 
     if (options.ci) {
-      args.push("--ci", "true");
+      args.push("--ci");
     }
 
     if (options.skipDiff) {
-      args.push("--skip-diff", "true");
+      args.push("--skip-diff");
     }
 
     return this.run(args, {
@@ -115,7 +143,6 @@ export class CliRunner {
   }
 }
 
-// Convenience function for tests
-export function createCliRunner(): CliRunner {
-  return new CliRunner();
+export function createCliRunner(config?: CliRunnerConfig): CliRunner {
+  return new CliRunner(config);
 }
