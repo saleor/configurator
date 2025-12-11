@@ -63,25 +63,32 @@ function generateDefaultReportPath(): string {
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
+  /**
+   * Parses duplicate issues from validation error messages
+   */
+  private parseDuplicateIssues(error: ConfigurationValidationError): DuplicateIssue[] {
+    const duplicateRegex = /Duplicate\s+(.+?)\s+'(.+?)'\s+found\s+(\d+)\s+times/i;
+
+    return error.validationErrors
+      .map((v) => {
+        const match = v.message.match(duplicateRegex);
+        if (!match) return null;
+        return {
+          section: v.path as unknown as DuplicateIssue["section"],
+          label: match[1],
+          identifier: match[2],
+          count: Number(match[3]) || 2,
+        };
+      })
+      .filter((issue): issue is DuplicateIssue => issue !== null);
+  }
+
   private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
     logger.error("Deployment failed", { error });
 
     // Handle ConfigurationValidationError specially for backwards compatibility
     if (error instanceof ConfigurationValidationError) {
-      // Parse duplicates from validationErrors if present
-      const dupes: DuplicateIssue[] = [];
-      const duplicateRegex = /Duplicate\s+(.+?)\s+'(.+?)'\s+found\s+(\d+)\s+times/i;
-      for (const v of error.validationErrors) {
-        const m = v.message.match(duplicateRegex);
-        if (m) {
-          dupes.push({
-            section: v.path as unknown as DuplicateIssue["section"],
-            label: m[1],
-            identifier: m[2],
-            count: Number(m[3]) || 2,
-          });
-        }
-      }
+      const dupes = this.parseDuplicateIssues(error);
 
       if (dupes.length > 0) {
         printDuplicateIssues(dupes, this.console, args.config);
@@ -369,51 +376,82 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
   }
 
-  private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
-    let diffAnalysis: Awaited<ReturnType<typeof this.analyzeDifferences>>;
+  /**
+   * Handles the case when no changes are detected
+   */
+  private handleNoChanges(summary: DiffSummary, args: DeployCommandArgs): never {
+    if (args.json) {
+      console.log(this.formatJsonOutput(summary, args));
+    } else {
+      this.console.status("✅ No changes detected - configuration is already in sync");
+    }
+    process.exit(EXIT_CODES.SUCCESS);
+  }
 
+  /**
+   * Handles plan (dry-run) mode output
+   */
+  private handlePlanMode(
+    diffAnalysis: { summary: DiffSummary },
+    args: DeployCommandArgs
+  ): never {
+    if (args.json) {
+      console.log(this.formatJsonOutput(diffAnalysis.summary, args));
+    } else {
+      this.displayDeploymentPreview(diffAnalysis.summary);
+      this.console.muted("\n📋 Plan mode: No changes will be applied");
+    }
+    process.exit(diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS);
+  }
+
+  /**
+   * Displays the deployment preview with formatted diff
+   */
+  private displayDeploymentPreview(summary: DiffSummary): void {
+    this.console.status(`\n${this.formatDeploymentPreview(summary)}`);
+    const deployFormatter = new DeployDiffFormatter();
+    this.console.status(`\n${deployFormatter.format(summary)}`);
+  }
+
+  /**
+   * Logs deployment completion metrics
+   */
+  private logDeploymentCompletion(
+    summary: DiffSummary,
+    result: { exitCode: number; hasPartialSuccess: boolean }
+  ): void {
+    logger.info("Deployment completed", {
+      totalChanges: summary.totalChanges,
+      creates: summary.creates,
+      updates: summary.updates,
+      deletes: summary.deletes,
+      exitCode: result.exitCode,
+      hasPartialSuccess: result.hasPartialSuccess,
+    });
+  }
+
+  private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
     try {
-      // Validate local configuration first before making any network requests
       await this.validateLocalConfiguration(args);
 
       if (!args.json) {
         this.console.muted("⏳ Analyzing configuration differences...");
       }
-      diffAnalysis = await this.analyzeDifferences(args);
+
+      const diffAnalysis = await this.analyzeDifferences(args);
 
       if (diffAnalysis.summary.totalChanges === 0) {
-        if (args.json) {
-          console.log(this.formatJsonOutput(diffAnalysis.summary, args));
-        } else {
-          this.console.status("✅ No changes detected - configuration is already in sync");
-        }
-        process.exit(EXIT_CODES.SUCCESS);
+        this.handleNoChanges(diffAnalysis.summary, args);
       }
 
-      // Check deletion policy before proceeding
       this.checkDeletionPolicy(diffAnalysis.summary, args);
 
-      // Plan mode (dry-run): show what would happen and exit
       if (args.plan) {
-        if (args.json) {
-          console.log(this.formatJsonOutput(diffAnalysis.summary, args));
-        } else {
-          this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
-          const deployFormatter = new DeployDiffFormatter();
-          this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
-          this.console.muted("\n📋 Plan mode: No changes will be applied");
-        }
-        // Exit with code 1 if changes detected (like diff), 0 if no changes
-        process.exit(diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS);
+        this.handlePlanMode(diffAnalysis, args);
       }
 
       if (!args.json) {
-        this.console.status(`\n${this.formatDeploymentPreview(diffAnalysis.summary)}`);
-
-        // TEMPORARY FEATURE FLAG: Remove after A/B testing
-        // Use SALEOR_COMPACT_ARRAYS=false to show individual array changes
-        const deployFormatter = new DeployDiffFormatter();
-        this.console.status(`\n${deployFormatter.format(diffAnalysis.summary)}`);
+        this.displayDeploymentPreview(diffAnalysis.summary);
       }
 
       const shouldDeploy = await this.confirmDeployment(
@@ -428,22 +466,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       }
 
       const deploymentResult = await this.executeDeployment(args, diffAnalysis.summary);
-
-      logger.info("Deployment completed", {
-        totalChanges: diffAnalysis.summary.totalChanges,
-        creates: diffAnalysis.summary.creates,
-        updates: diffAnalysis.summary.updates,
-        deletes: diffAnalysis.summary.deletes,
-        exitCode: deploymentResult.exitCode,
-        hasPartialSuccess: deploymentResult.hasPartialSuccess,
-      });
-
-      // Exit with appropriate code based on deployment result
+      this.logDeploymentCompletion(diffAnalysis.summary, deploymentResult);
       process.exit(deploymentResult.exitCode);
     } catch (error) {
-      // Check if this is a process.exit() error from test mocking
       if (error instanceof Error && error.message.startsWith("process.exit(")) {
-        // Re-throw to let test framework handle it
         throw error;
       }
       this.handleDeploymentError(error, args);

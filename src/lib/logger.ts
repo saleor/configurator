@@ -1,4 +1,5 @@
 import { Logger } from "tslog";
+import { isCiOutputMode } from "./ci-mode";
 import { LOG_LEVEL } from "./env";
 import { EnvironmentVariableError } from "./errors/shared";
 
@@ -14,15 +15,6 @@ const logLevelMap = {
 } as const;
 
 type LogLevel = keyof typeof logLevelMap;
-
-/**
- * Check if CLI is running in CI output mode (JSON, GitHub comment)
- * In these modes, we suppress logs to ensure clean parseable output
- */
-function isCiOutputMode(): boolean {
-  const ciFlags = ["--json", "--github-comment", "--githubComment"];
-  return process.argv.some((arg) => ciFlags.includes(arg));
-}
 
 // In CI output mode, suppress all logs for clean output
 const effectiveLogLevel = isCiOutputMode() ? "fatal" : LOG_LEVEL;

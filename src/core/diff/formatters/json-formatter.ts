@@ -9,6 +9,7 @@ import {
   type JsonFormatOptions,
   toDiffEntityResult,
 } from "./ci-types";
+import { isBreakingField } from "./constants";
 
 /**
  * Formatter that outputs diff results as JSON for CI/CD integration
@@ -72,7 +73,7 @@ export class JsonDiffFormatter extends BaseDiffFormatter {
       hasBreakingChanges:
         summary.deletes > 0 ||
         summary.results.some(
-          (r) => r.operation === "UPDATE" && r.changes?.some((c) => this.isBreakingField(c.field))
+          (r) => r.operation === "UPDATE" && r.changes?.some((c) => isBreakingField(c.field))
         ),
       hasDeletions: summary.deletes > 0,
     };
@@ -104,13 +105,6 @@ export class JsonDiffFormatter extends BaseDiffFormatter {
     return result;
   }
 
-  /**
-   * Checks if a field change is considered breaking
-   */
-  private isBreakingField(field: string): boolean {
-    const breakingFields = ["slug", "productType", "inputType", "type"];
-    return breakingFields.includes(field);
-  }
 }
 
 /**

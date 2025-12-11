@@ -389,9 +389,16 @@ jobs:
 
 ## References
 
+### Skill Reference Files
+- **[Workflow Templates](references/workflow-templates.md)** - Reusable workflow patterns
+- **[Troubleshooting Guide](references/troubleshooting.md)** - Detailed debugging patterns
+
+### Project Resources
 - `{baseDir}/.github/workflows/` - Workflow files
 - `{baseDir}/.husky/` - Git hooks
 - `{baseDir}/.changeset/` - Changeset configuration
+
+### External Documentation
 - GitHub Actions docs: https://docs.github.com/en/actions
 - Changesets docs: https://github.com/changesets/changesets
 

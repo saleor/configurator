@@ -1,6 +1,7 @@
 import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 import { type ChangeSeverity, classifyChangeSeverity } from "./ci-types";
+import { FORMATTER_LIMITS } from "./constants";
 
 /**
  * Options for GitHub comment formatting
@@ -136,19 +137,39 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
       `> This deployment will delete ${summary.deletes} ${this.formatPlural(summary.deletes, "entity", "entities")}. Review carefully before merging.`,
     ];
 
-    // List the entities being deleted (up to 5)
-    const maxToShow = 5;
-    const toShow = deleteResults.slice(0, maxToShow);
+    // List the entities being deleted
+    const toShow = deleteResults.slice(0, FORMATTER_LIMITS.MAX_DELETIONS_TO_LIST);
+    lines.push(...toShow.map((result) => `> - ${result.entityType}: \`${result.entityName}\``));
 
-    for (const result of toShow) {
-      lines.push(`> - ${result.entityType}: \`${result.entityName}\``);
-    }
-
-    if (deleteResults.length > maxToShow) {
-      lines.push(`> - _...and ${deleteResults.length - maxToShow} more_`);
+    if (deleteResults.length > FORMATTER_LIMITS.MAX_DELETIONS_TO_LIST) {
+      lines.push(
+        `> - _...and ${deleteResults.length - FORMATTER_LIMITS.MAX_DELETIONS_TO_LIST} more_`
+      );
     }
 
     return lines.join("\n");
+  }
+
+  /**
+   * Formats a group of operations (creates, updates, or deletes) for display
+   */
+  private formatOperationGroup(
+    title: string,
+    results: readonly DiffResult[],
+    formatItem: (result: DiffResult) => string
+  ): string[] {
+    if (results.length === 0) return [];
+
+    const maxPerSection =
+      this.options.maxEntitiesPerSection ?? FORMATTER_LIMITS.MAX_ENTITIES_PER_SECTION;
+    const lines = [`#### ${title}`, ...results.slice(0, maxPerSection).map(formatItem)];
+
+    if (results.length > maxPerSection) {
+      lines.push(`- _...and ${results.length - maxPerSection} more ${title.toLowerCase()}_`);
+    }
+
+    lines.push("");
+    return lines;
   }
 
   /**
@@ -168,40 +189,16 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
       "",
     ];
 
-    const maxPerSection = this.options.maxEntitiesPerSection ?? 10;
-
-    if (creates.length > 0) {
-      lines.push("#### Creates");
-      for (const result of creates.slice(0, maxPerSection)) {
-        lines.push(`- :heavy_plus_sign: \`${result.entityName}\``);
-      }
-      if (creates.length > maxPerSection) {
-        lines.push(`- _...and ${creates.length - maxPerSection} more creates_`);
-      }
-      lines.push("");
-    }
-
-    if (updates.length > 0) {
-      lines.push("#### Updates");
-      for (const result of updates.slice(0, maxPerSection)) {
-        lines.push(this.formatUpdateResult(result));
-      }
-      if (updates.length > maxPerSection) {
-        lines.push(`- _...and ${updates.length - maxPerSection} more updates_`);
-      }
-      lines.push("");
-    }
-
-    if (deletes.length > 0) {
-      lines.push("#### Deletes");
-      for (const result of deletes.slice(0, maxPerSection)) {
-        lines.push(`- :heavy_minus_sign: \`${result.entityName}\``);
-      }
-      if (deletes.length > maxPerSection) {
-        lines.push(`- _...and ${deletes.length - maxPerSection} more deletes_`);
-      }
-      lines.push("");
-    }
+    // Add each operation group using the helper
+    lines.push(
+      ...this.formatOperationGroup("Creates", creates, (r) => `- :heavy_plus_sign: \`${r.entityName}\``)
+    );
+    lines.push(
+      ...this.formatOperationGroup("Updates", updates, (r) => this.formatUpdateResult(r))
+    );
+    lines.push(
+      ...this.formatOperationGroup("Deletes", deletes, (r) => `- :heavy_minus_sign: \`${r.entityName}\``)
+    );
 
     lines.push("</details>");
 
@@ -220,16 +217,14 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
 
     const lines = [`- :pencil2: \`${result.entityName}\``];
 
-    // Show up to 3 field changes inline
-    const maxFields = 3;
-    for (const change of changes.slice(0, maxFields)) {
+    for (const change of changes.slice(0, FORMATTER_LIMITS.MAX_FIELD_CHANGES)) {
       const oldVal = this.formatValue(change.currentValue);
       const newVal = this.formatValue(change.desiredValue);
       lines.push(`  - \`${change.field}\`: ${oldVal} -> ${newVal}`);
     }
 
-    if (changes.length > maxFields) {
-      lines.push(`  - _...and ${changes.length - maxFields} more changes_`);
+    if (changes.length > FORMATTER_LIMITS.MAX_FIELD_CHANGES) {
+      lines.push(`  - _...and ${changes.length - FORMATTER_LIMITS.MAX_FIELD_CHANGES} more changes_`);
     }
 
     return lines.join("\n");
@@ -244,8 +239,8 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
     }
 
     if (typeof value === "string") {
-      if (value.length > 30) {
-        return `\`${value.slice(0, 27)}...\``;
+      if (value.length > FORMATTER_LIMITS.MAX_VALUE_LENGTH) {
+        return `\`${value.slice(0, FORMATTER_LIMITS.MAX_VALUE_LENGTH - 3)}...\``;
       }
       return `\`${value}\``;
     }

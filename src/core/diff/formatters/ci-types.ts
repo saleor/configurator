@@ -1,4 +1,5 @@
 import type { DiffChange, DiffOperation, DiffResult, DiffSummary, EntityType } from "../types";
+import { isBreakingField } from "./constants";
 
 /**
  * Severity level for changes - used for CI decision making
@@ -136,8 +137,7 @@ export function classifyChangeSeverity(result: DiffResult): ChangeSeverity {
 
   // Updates may be breaking depending on the field
   if (result.operation === "UPDATE" && result.changes) {
-    const breakingFields = ["slug", "productType", "inputType", "type"];
-    const hasBreaking = result.changes.some((change) => breakingFields.includes(change.field));
+    const hasBreaking = result.changes.some((change) => isBreakingField(change.field));
     if (hasBreaking) {
       return "warning";
     }
@@ -151,12 +151,11 @@ export function classifyChangeSeverity(result: DiffResult): ChangeSeverity {
  * Converts a DiffChange to a FieldChange with breaking flag
  */
 export function toFieldChange(change: DiffChange): FieldChange {
-  const breakingFields = ["slug", "productType", "inputType", "type"];
   return {
     field: change.field,
     oldValue: change.currentValue,
     newValue: change.desiredValue,
-    isBreaking: breakingFields.includes(change.field),
+    isBreaking: isBreakingField(change.field),
   };
 }
 

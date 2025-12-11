@@ -3,6 +3,7 @@
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import packageJson from "../../package.json";
 import { commands } from "../commands/index.js";
+import { isCiOutputMode } from "../lib/ci-mode";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
@@ -43,15 +44,6 @@ function setupErrorHandling(program: Command): void {
 
 function isHelpOrVersionRequest(error: CommanderError): boolean {
   return error.code === "commander.help" || error.code === "commander.version";
-}
-
-/**
- * Checks if CLI is running in CI output mode (JSON, GitHub comment, etc.)
- * In these modes, we suppress the banner to ensure clean parseable output
- */
-function isCiOutputMode(): boolean {
-  const ciFlags = ["--json", "--github-comment", "--githubComment"];
-  return process.argv.some((arg) => ciFlags.includes(arg));
 }
 
 function addConditionalHelpContent(program: Command): void {

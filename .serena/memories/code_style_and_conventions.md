@@ -46,6 +46,213 @@ BaseError (abstract)
 - **Strategy Pattern**: Multiple comparators for diff operations
 - **Factory Pattern**: Service composition
 
+## Clean Code Refactoring Patterns
+
+### 1. Imperative to Functional Transformations
+
+**Replace `for` loops with `map`:**
+```typescript
+// ❌ Imperative
+const lines: string[] = [];
+for (const item of items) {
+  lines.push(formatItem(item));
+}
+
+// ✅ Functional
+const lines = items.map(formatItem);
+// or with spread for inserting into existing array:
+lines.push(...items.map(formatItem));
+```
+
+**Replace `forEach` with `map`:**
+```typescript
+// ❌ Imperative forEach
+const lines: string[] = [];
+items.forEach((item) => {
+  lines.push(`• ${item}`);
+});
+
+// ✅ Functional spread + map
+const lines = [...items.map((item) => `• ${item}`)];
+```
+
+**Use `flatMap` for nested transformations:**
+```typescript
+// ❌ Imperative with nested loops
+const lines: string[] = [];
+items.forEach((item) => {
+  lines.push(`Name: ${item.name}`);
+  item.details.forEach((detail) => {
+    lines.push(`  - ${detail}`);
+  });
+  lines.push("");
+});
+
+// ✅ Functional flatMap
+const lines = items.flatMap((item) => [
+  `Name: ${item.name}`,
+  ...item.details.map((detail) => `  - ${detail}`),
+  "",
+]);
+```
+
+**Use `map` + `filter` with type guards:**
+```typescript
+// ❌ Imperative accumulation
+const results: Result[] = [];
+for (const item of items) {
+  const match = item.value.match(regex);
+  if (match) {
+    results.push({ id: match[1], value: match[2] });
+  }
+}
+return results;
+
+// ✅ Functional with type guard
+return items
+  .map((item) => {
+    const match = item.value.match(regex);
+    if (!match) return null;
+    return { id: match[1], value: match[2] };
+  })
+  .filter((result): result is Result => result !== null);
+```
+
+### 2. TypeScript `satisfies` Operator
+
+Use `satisfies` to validate object shapes while preserving literal types:
+
+```typescript
+// ❌ Without satisfies - loses literal types
+interface Config {
+  readonly MAX_ITEMS: number;
+  readonly TIMEOUT: number;
+}
+const CONFIG: Config = { MAX_ITEMS: 10, TIMEOUT: 5000 };
+// CONFIG.MAX_ITEMS is typed as `number`, not `10`
+
+// ✅ With satisfies - preserves literal types AND validates shape
+interface Config {
+  readonly MAX_ITEMS: number;
+  readonly TIMEOUT: number;
+}
+const CONFIG = {
+  MAX_ITEMS: 10,
+  TIMEOUT: 5000,
+} as const satisfies Config;
+// CONFIG.MAX_ITEMS is typed as `10`, not `number`
+```
+
+**Template literal type validation:**
+```typescript
+type CiFlag = `--${string}`;
+const FLAGS = ["--json", "--verbose"] as const satisfies readonly CiFlag[];
+```
+
+### 3. Registry Pattern for Error Matching
+
+Replace long if-else chains with a registry:
+
+```typescript
+// ❌ Long if-else chain
+function toError(error: Error): AppError {
+  const msg = error.message.toLowerCase();
+  if (msg.includes("network")) return new NetworkError(msg);
+  if (msg.includes("auth")) return new AuthError(msg);
+  if (msg.includes("validation")) return new ValidationError(msg);
+  return new UnexpectedError(msg);
+}
+
+// ✅ Registry pattern
+interface ErrorMatcher {
+  matches: (msg: string) => boolean;
+  create: (error: Error) => AppError;
+}
+
+const ERROR_MATCHERS: ErrorMatcher[] = [
+  { matches: (msg) => msg.includes("network"), create: (e) => new NetworkError(e.message) },
+  { matches: (msg) => msg.includes("auth"), create: (e) => new AuthError(e.message) },
+  { matches: (msg) => msg.includes("validation"), create: (e) => new ValidationError(e.message) },
+];
+
+function toError(error: Error): AppError {
+  const msg = error.message.toLowerCase();
+  const matcher = ERROR_MATCHERS.find((m) => m.matches(msg));
+  return matcher?.create(error) ?? new UnexpectedError(error.message);
+}
+```
+
+### 4. Extract Shared Utilities (DRY)
+
+**Before:** Duplicated logic across files
+```typescript
+// file1.ts
+function isCiMode(): boolean {
+  return process.argv.some(arg => ["--json", "--github-comment"].includes(arg));
+}
+
+// file2.ts (same function duplicated)
+function isCiMode(): boolean {
+  return process.argv.some(arg => ["--json", "--github-comment"].includes(arg));
+}
+```
+
+**After:** Shared utility
+```typescript
+// src/lib/ci-mode.ts
+export const CI_OUTPUT_FLAGS = ["--json", "--github-comment"] as const;
+export function isCiOutputMode(): boolean {
+  return process.argv.some((arg) =>
+    CI_OUTPUT_FLAGS.includes(arg as typeof CI_OUTPUT_FLAGS[number])
+  );
+}
+```
+
+### 5. Extract Constants (No Magic Numbers)
+
+```typescript
+// ❌ Magic numbers scattered
+if (items.length > 10) { /* truncate */ }
+const truncated = value.slice(0, 30);
+
+// ✅ Named constants
+const LIMITS = {
+  MAX_ITEMS_PER_SECTION: 10,
+  MAX_VALUE_LENGTH: 30,
+} as const;
+
+if (items.length > LIMITS.MAX_ITEMS_PER_SECTION) { /* truncate */ }
+const truncated = value.slice(0, LIMITS.MAX_VALUE_LENGTH);
+```
+
+### 6. Single Responsibility - Extract Methods
+
+**Large method with multiple concerns:**
+```typescript
+// ❌ 80+ line method doing everything
+async performFlow(args: Args): Promise<void> {
+  // validation (10 lines)
+  // analysis (15 lines)
+  // no-changes handling (10 lines)
+  // plan mode handling (15 lines)
+  // preview display (10 lines)
+  // confirmation (10 lines)
+  // execution (10 lines)
+}
+
+// ✅ Focused methods
+async performFlow(args: Args): Promise<void> {
+  await this.validateConfiguration(args);
+  const analysis = await this.analyzeChanges(args);
+  if (analysis.isEmpty) return this.handleNoChanges(args);
+  if (args.plan) return this.handlePlanMode(analysis, args);
+  this.displayPreview(analysis);
+  if (await this.confirmExecution(args)) {
+    await this.executeChanges(analysis, args);
+  }
+}
+```
+
 ---
 
 ## Serena-Optimized Code Organization
