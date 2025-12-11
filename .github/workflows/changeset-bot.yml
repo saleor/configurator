@@ -17,15 +17,17 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
         with:
-          sparse-checkout: ./.changeset
+          fetch-depth: 0
 
       - name: Changeset file lookup
         env:
-          GH_TOKEN: ${{ github.token }}
-          PR_ID: ${{ github.event.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
-          files=$(gh pr diff "$PR_ID" --name-only)
-          if [[ $files =~ \.changeset\/.*.md ]]; then
+          set -euo pipefail
+          git fetch origin "$BASE_REF" --depth=1
+
+          files=$(git diff --name-only FETCH_HEAD)
+          if printf '%s\n' "$files" | grep -Eq '^\.changeset/.*\.md$'; then
             echo "Changesets found!"
           else
             echo "There is no changeset file in your pull request."
