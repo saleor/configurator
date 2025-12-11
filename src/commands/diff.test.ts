@@ -248,9 +248,7 @@ describe("diff command", () => {
       expect(diffCommandConfig.examples).toContain(
         "pnpm dlx @saleor/configurator diff --url https://my-shop.saleor.cloud/graphql/ --token token123"
       );
-      expect(diffCommandConfig.examples).toContain(
-        "pnpm dlx @saleor/configurator diff --json"
-      );
+      expect(diffCommandConfig.examples).toContain("pnpm dlx @saleor/configurator diff --json");
       expect(diffCommandConfig.examples).toContain(
         "pnpm dlx @saleor/configurator diff --github-comment"
       );
@@ -291,9 +289,9 @@ describe("diff command", () => {
       const error = new Error("Unauthorized");
       mockConfigurator.diff.mockRejectedValueOnce(error);
 
-      await expect(
-        handleDiff({ ...baseArgs, token: "invalid-token" })
-      ).rejects.toThrow("Unauthorized");
+      await expect(handleDiff({ ...baseArgs, token: "invalid-token" })).rejects.toThrow(
+        "Unauthorized"
+      );
     });
   });
 
@@ -338,9 +336,9 @@ describe("diff command", () => {
     });
 
     it("should handle diff with custom config path", async () => {
-      await expect(
-        handleDiff({ ...baseArgs, config: "custom-config.yml" })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, config: "custom-config.yml" })).rejects.toThrow(
+        "process.exit"
+      );
 
       expect(mockConfigurator.diff).toHaveBeenCalledOnce();
     });

@@ -128,9 +128,7 @@ export const attributesStage: DeploymentStage = {
     // Size-adaptive strategy: use bulk operations for larger configs
     if (attributes.length <= BulkOperationThresholds.ATTRIBUTES) {
       // Small config: use existing sequential approach for better error handling
-      logger.debug(
-        BulkOperationMessages.SEQUENTIAL_PROCESSING(attributes.length, "attributes")
-      );
+      logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(attributes.length, "attributes"));
       const results = await Promise.allSettled(
         attributes.map(async (attr) => {
           const existing = await service.repo.getAttributesByNames({
@@ -457,9 +455,7 @@ export const modelsStage: DeploymentStage = {
       // Size-adaptive strategy to avoid rate limiting
       if (config.models.length <= BulkOperationThresholds.MODELS) {
         // Small config: use parallel processing (existing behavior)
-        logger.debug(
-          BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models")
-        );
+        logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models"));
         await context.configurator.services.model.bootstrapModels(config.models);
       } else {
         // Larger config: use sequential processing with delays to avoid rate limiting
@@ -709,9 +705,7 @@ export const productsStage: DeploymentStage = {
         await context.configurator.services.product.bootstrapProducts(productsToProcess);
       } else {
         // Large config: use bulk mutations for efficiency and to avoid rate limiting
-        logger.info(
-          BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products")
-        );
+        logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
         await context.configurator.services.product.bootstrapProductsBulk(productsToProcess);
       }
     } catch (error) {

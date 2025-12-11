@@ -1,35 +1,31 @@
 export { BaseDiffFormatter } from "./base-formatter";
-export { DeployDiffFormatter } from "./deploy-formatter";
-export { DetailedDiffFormatter } from "./detailed-formatter";
-export { IntrospectDiffFormatter } from "./introspect-formatter";
-export { SummaryDiffFormatter } from "./summary-formatter";
-export { JsonDiffFormatter, createJsonFormatter } from "./json-formatter";
-export { GitHubCommentFormatter, createGitHubCommentFormatter } from "./github-comment-formatter";
-
 // Re-export CI types for consumers
 export type {
+  ChangeSeverity,
+  DiffEntityResult,
   DiffJsonOutput,
   DiffJsonSummary,
-  DiffEntityResult,
   EntityTypeChanges,
   FieldChange,
   GitHubActionsOutputs,
   JsonFormatOptions,
-  ChangeSeverity,
 } from "./ci-types";
 export {
   classifyChangeSeverity,
   createGitHubActionsOutputs,
   toDiffEntityResult,
 } from "./ci-types";
+export { DeployDiffFormatter } from "./deploy-formatter";
+export { DetailedDiffFormatter } from "./detailed-formatter";
+export { createGitHubCommentFormatter, GitHubCommentFormatter } from "./github-comment-formatter";
+export { IntrospectDiffFormatter } from "./introspect-formatter";
+export { createJsonFormatter, JsonDiffFormatter } from "./json-formatter";
+export { SummaryDiffFormatter } from "./summary-formatter";
 
 import { DeployDiffFormatter } from "./deploy-formatter";
 import { DetailedDiffFormatter } from "./detailed-formatter";
-import { GitHubCommentFormatter } from "./github-comment-formatter";
 import { IntrospectDiffFormatter } from "./introspect-formatter";
-import { JsonDiffFormatter } from "./json-formatter";
 import { SummaryDiffFormatter } from "./summary-formatter";
-import type { JsonFormatOptions } from "./ci-types";
 
 // Factory function for creating formatters
 export function createDetailedFormatter() {

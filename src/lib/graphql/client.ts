@@ -55,7 +55,10 @@ export const createClient = (token: string, url: string) => {
           if (error && "networkError" in error && error.networkError) {
             logger.warn(`Network error on operation ${operation.kind}, retrying...`, {
               operationName: operation.context.operationName || "unknown",
-              error: error.networkError instanceof Error ? error.networkError.message : String(error.networkError),
+              error:
+                error.networkError instanceof Error
+                  ? error.networkError.message
+                  : String(error.networkError),
             });
             return true;
           }

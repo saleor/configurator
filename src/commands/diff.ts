@@ -26,7 +26,10 @@ export const diffCommandSchema = baseCommandArgsSchema.extend({
   /** Exit with error code if any deletions detected */
   failOnDelete: z.boolean().default(false).describe("Exit with error if deletions detected"),
   /** Exit with error code if breaking changes detected */
-  failOnBreaking: z.boolean().default(false).describe("Exit with error if breaking changes detected"),
+  failOnBreaking: z
+    .boolean()
+    .default(false)
+    .describe("Exit with error if breaking changes detected"),
   /** Write output to file instead of stdout */
   outputFile: z.string().optional().describe("Write output to file"),
   /** Show only summary counts, no details */
@@ -127,7 +130,9 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
 
     // Skip header for JSON/GitHub output (machine-readable)
     if (!args.json && !args.githubComment) {
-      this.console.muted("⏳ Preparing a diff between the configuration and the Saleor instance...");
+      this.console.muted(
+        "⏳ Preparing a diff between the configuration and the Saleor instance..."
+      );
     }
 
     // Preflight: surface duplicate identifiers with friendly output and block diff

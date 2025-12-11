@@ -1,9 +1,5 @@
 import { logger } from "../logger";
-import {
-  BulkOperationMessages,
-  ChunkSizeConfig,
-  DelayConfig,
-} from "./bulk-operation-constants";
+import { BulkOperationMessages, ChunkSizeConfig, DelayConfig } from "./bulk-operation-constants";
 
 /**
  * Options for chunked processing
@@ -286,12 +282,9 @@ class ChunkedOperationProcessor<T, R> {
   }
 
   private logChunkSuccess(chunkNumber: number, totalChunks: number, successCount: number): void {
-    logger.debug(
-      BulkOperationMessages.CHUNK_COMPLETE(chunkNumber, totalChunks, successCount),
-      {
-        entityType: this.entityType,
-      }
-    );
+    logger.debug(BulkOperationMessages.CHUNK_COMPLETE(chunkNumber, totalChunks, successCount), {
+      entityType: this.entityType,
+    });
   }
 
   private logChunkFailure(

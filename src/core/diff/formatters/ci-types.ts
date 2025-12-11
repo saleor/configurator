@@ -193,8 +193,7 @@ export function createGitHubActionsOutputs(summary: DiffSummary): GitHubActionsO
     has_changes: summary.totalChanges > 0,
     has_deletions: summary.deletes > 0,
     has_breaking:
-      summary.deletes > 0 ||
-      summary.results.some((r) => classifyChangeSeverity(r) === "critical"),
+      summary.deletes > 0 || summary.results.some((r) => classifyChangeSeverity(r) === "critical"),
     change_count: summary.totalChanges,
     create_count: summary.creates,
     update_count: summary.updates,

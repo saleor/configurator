@@ -1,6 +1,6 @@
 import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
-import { classifyChangeSeverity, type ChangeSeverity } from "./ci-types";
+import { type ChangeSeverity, classifyChangeSeverity } from "./ci-types";
 
 /**
  * Options for GitHub comment formatting
@@ -168,41 +168,37 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
       "",
     ];
 
+    const maxPerSection = this.options.maxEntitiesPerSection ?? 10;
+
     if (creates.length > 0) {
       lines.push("#### Creates");
-      for (const result of creates.slice(0, this.options.maxEntitiesPerSection!)) {
+      for (const result of creates.slice(0, maxPerSection)) {
         lines.push(`- :heavy_plus_sign: \`${result.entityName}\``);
       }
-      if (creates.length > this.options.maxEntitiesPerSection!) {
-        lines.push(
-          `- _...and ${creates.length - this.options.maxEntitiesPerSection!} more creates_`
-        );
+      if (creates.length > maxPerSection) {
+        lines.push(`- _...and ${creates.length - maxPerSection} more creates_`);
       }
       lines.push("");
     }
 
     if (updates.length > 0) {
       lines.push("#### Updates");
-      for (const result of updates.slice(0, this.options.maxEntitiesPerSection!)) {
+      for (const result of updates.slice(0, maxPerSection)) {
         lines.push(this.formatUpdateResult(result));
       }
-      if (updates.length > this.options.maxEntitiesPerSection!) {
-        lines.push(
-          `- _...and ${updates.length - this.options.maxEntitiesPerSection!} more updates_`
-        );
+      if (updates.length > maxPerSection) {
+        lines.push(`- _...and ${updates.length - maxPerSection} more updates_`);
       }
       lines.push("");
     }
 
     if (deletes.length > 0) {
       lines.push("#### Deletes");
-      for (const result of deletes.slice(0, this.options.maxEntitiesPerSection!)) {
+      for (const result of deletes.slice(0, maxPerSection)) {
         lines.push(`- :heavy_minus_sign: \`${result.entityName}\``);
       }
-      if (deletes.length > this.options.maxEntitiesPerSection!) {
-        lines.push(
-          `- _...and ${deletes.length - this.options.maxEntitiesPerSection!} more deletes_`
-        );
+      if (deletes.length > maxPerSection) {
+        lines.push(`- _...and ${deletes.length - maxPerSection} more deletes_`);
       }
       lines.push("");
     }

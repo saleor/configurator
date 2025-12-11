@@ -1,13 +1,13 @@
-import type { DiffSummary, EntityType } from "../types";
+import type { DiffSummary } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 import {
   createGitHubActionsOutputs,
-  toDiffEntityResult,
   type DiffEntityResult,
   type DiffJsonOutput,
   type DiffJsonSummary,
   type EntityTypeChanges,
   type JsonFormatOptions,
+  toDiffEntityResult,
 } from "./ci-types";
 
 /**
