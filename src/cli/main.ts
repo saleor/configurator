@@ -3,6 +3,7 @@
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import packageJson from "../../package.json";
 import { commands } from "../commands/index.js";
+import { isCiOutputMode } from "../lib/ci-mode";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
@@ -46,6 +47,11 @@ function isHelpOrVersionRequest(error: CommanderError): boolean {
 }
 
 function addConditionalHelpContent(program: Command): void {
+  // Skip banner in CI output mode for clean parseable output
+  if (isCiOutputMode()) {
+    return;
+  }
+
   // Add help content only to the main program, not subcommands
   program.addHelpText("before", cliConsole.important("✨ Saleor Configurator ✨\n"));
   program.addHelpText("after", buildHelpText());

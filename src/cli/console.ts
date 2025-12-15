@@ -1,9 +1,12 @@
 import chalk from "chalk";
-import { OraProgressReporter, type ProgressReporter } from "./progress";
+import { isCiOutputMode } from "../lib/ci-mode";
+import { OraProgressReporter, type ProgressReporter, SilentProgressReporter } from "./progress";
 
 export class Console {
   private options: { quiet: boolean } = { quiet: false };
-  progress: ProgressReporter = new OraProgressReporter();
+  progress: ProgressReporter = isCiOutputMode()
+    ? new SilentProgressReporter()
+    : new OraProgressReporter();
 
   setOptions(options: { quiet: boolean } = { quiet: false }) {
     this.options = options;

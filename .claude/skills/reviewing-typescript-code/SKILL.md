@@ -1,26 +1,46 @@
 ---
 name: reviewing-typescript-code
-description: "Reviews TypeScript code for type safety, clean code principles, and project standards. Analyzes type errors, functional patterns, Zod usage, and error handling. Triggers on: code review, PR review, check implementation, audit code, analyze quality, inspect types, validate patterns."
+description: "TypeScript code quality patterns for writing and reviewing code. Covers type safety, clean code, functional patterns, Zod usage, and error handling. Triggers on: add entity, create service, add repository, create comparator, add formatter, deployment stage, GraphQL query, GraphQL mutation, bootstrap method, diff support, command handler, Zod schema, error class, implement feature, add function, refactor code, clean code, functional patterns, map filter reduce, satisfies operator, type guard, code review, PR review, check implementation, audit code, fix types."
 allowed-tools: "Read, Grep, Glob"
 ---
 
-# TypeScript Code Review
+# TypeScript Code Quality Patterns
 
 ## Purpose
 
-Perform thorough TypeScript code reviews across multiple dimensions: type safety, clean code principles, functional programming patterns, error handling, and project-specific conventions for the Saleor Configurator codebase.
+Guide for writing and reviewing TypeScript code with proper type safety, clean code principles, functional programming patterns, error handling, and project-specific conventions for the Saleor Configurator codebase.
 
 ## When to Use
 
+**Configurator-Specific Tasks (Primary Triggers):**
+- Adding new entity types (category, product, channel, tax, etc.)
+- Creating services (`*Service` classes)
+- Adding repository methods (`*Repository` classes)
+- Creating comparators for diff engine (`*Comparator` classes)
+- Adding formatters for output (`*Formatter` classes)
+- Implementing deployment stages
+- Writing GraphQL queries/mutations
+- Creating Zod schemas for validation
+- Adding error classes (`*Error` extends `BaseError`)
+- Implementing bootstrap methods (idempotent create/update)
+- Adding diff support for entities
+
+**General Writing Tasks:**
+- Implementing new features or services
+- Adding new functions or methods
+- Creating TypeScript classes or modules
+- Writing transformation logic
+- Refactoring existing code to clean patterns
+
+**Review Tasks:**
 - Reviewing code before committing
 - Analyzing pull request changes
 - Checking implementation quality
 - Auditing existing code for improvements
-- Validating adherence to project standards
 
 ## Table of Contents
 
-- [Review Checklist](#review-checklist)
+- [Quality Checklist](#quality-checklist)
   - [Type Safety Analysis](#1-type-safety-analysis)
   - [Clean Code Principles](#2-clean-code-principles)
   - [Functional Programming Patterns](#3-functional-programming-patterns)
@@ -31,7 +51,9 @@ Perform thorough TypeScript code reviews across multiple dimensions: type safety
 - [Project-Specific Conventions](#project-specific-conventions)
 - [References](#references)
 
-## Review Checklist
+## Quality Checklist
+
+Use this checklist when **writing new code** to ensure quality from the start, or when **reviewing existing code** to identify improvements.
 
 ### 1. Type Safety Analysis
 
@@ -47,6 +69,7 @@ Perform thorough TypeScript code reviews across multiple dimensions: type safety
 - [ ] Type inference leveraged where clear
 - [ ] Generic constraints properly applied
 - [ ] `readonly` used for immutable data
+- [ ] `satisfies` operator for type validation with literal preservation
 
 ```typescript
 // BAD - Avoid these patterns
@@ -58,6 +81,21 @@ const data = response as unknown as MyType;
 type EntitySlug = string & { readonly __brand: unique symbol };
 const isSlugBasedEntity = (entity: unknown): entity is { slug: string } => { ... };
 const ENTITY_TYPES = ['categories', 'products'] as const;
+
+// GOOD - satisfies for type validation while preserving literal types
+interface ConfigShape {
+  readonly MAX_ITEMS: number;
+  readonly TIMEOUT: number;
+}
+const CONFIG = {
+  MAX_ITEMS: 10,
+  TIMEOUT: 5000,
+} as const satisfies ConfigShape;
+// CONFIG.MAX_ITEMS is `10`, not just `number`
+
+// GOOD - Template literal type validation with satisfies
+type CliFlag = `--${string}`;
+const FLAGS = ["--json", "--verbose"] as const satisfies readonly CliFlag[];
 ```
 
 ### 2. Clean Code Principles
@@ -75,6 +113,17 @@ const ENTITY_TYPES = ['categories', 'products'] as const;
 - [ ] Boolean names start with `is`, `has`, `should`, `can`
 - [ ] Collections use plural names
 
+**DRY (Don't Repeat Yourself)**:
+- [ ] Shared utilities extracted to dedicated modules
+- [ ] Magic numbers replaced with named constants
+- [ ] Repeated logic extracted to helper functions
+- [ ] Constants grouped in config objects
+
+**Registry Pattern for Conditionals**:
+- [ ] Long if-else chains refactored to registry/strategy pattern
+- [ ] Error classification uses matcher registry
+- [ ] Type dispatch uses discriminated unions or maps
+
 ```typescript
 // BAD naming
 const data = process(items);
@@ -83,6 +132,37 @@ const flag = check(user);
 // GOOD naming
 const categoriesToProcess = await fetchPendingCategories();
 const isEntitySlugUnique = await validateSlugUniqueness(slug);
+
+// BAD - Magic numbers
+if (items.length > 10) { truncate(); }
+const preview = text.slice(0, 30);
+
+// GOOD - Named constants
+const LIMITS = { MAX_ITEMS: 10, MAX_PREVIEW: 30 } as const;
+if (items.length > LIMITS.MAX_ITEMS) { truncate(); }
+const preview = text.slice(0, LIMITS.MAX_PREVIEW);
+
+// BAD - Long if-else chain
+function classify(error: Error): AppError {
+  if (error.message.includes("network")) return new NetworkError();
+  if (error.message.includes("auth")) return new AuthError();
+  if (error.message.includes("validation")) return new ValidationError();
+  return new UnexpectedError();
+}
+
+// GOOD - Registry pattern
+interface ErrorMatcher {
+  matches: (msg: string) => boolean;
+  create: (error: Error) => AppError;
+}
+const ERROR_MATCHERS: ErrorMatcher[] = [
+  { matches: (m) => m.includes("network"), create: () => new NetworkError() },
+  { matches: (m) => m.includes("auth"), create: () => new AuthError() },
+];
+function classify(error: Error): AppError {
+  const matcher = ERROR_MATCHERS.find((m) => m.matches(error.message));
+  return matcher?.create(error) ?? new UnexpectedError();
+}
 ```
 
 ### 3. Functional Programming Patterns
@@ -97,6 +177,12 @@ const isEntitySlugUnique = await validateSlugUniqueness(slug);
 - [ ] Higher-order functions for reusable logic
 - [ ] Pipeline patterns where appropriate
 
+**Imperative to Functional Refactoring**:
+- [ ] `for` loops replaced with `map`/`filter`/`reduce`
+- [ ] `forEach` with push replaced with spread + `map`
+- [ ] Nested loops replaced with `flatMap`
+- [ ] Conditional accumulation uses `map` + `filter` with type guards
+
 ```typescript
 // BAD - Mutation
 items.push(newItem);
@@ -105,6 +191,44 @@ entity.status = 'active';
 // GOOD - Immutable
 const updatedItems = [...items, newItem];
 const updatedEntity = { ...entity, status: 'active' };
+
+// BAD - Imperative loop with push
+const lines: string[] = [];
+for (const item of items) {
+  lines.push(formatItem(item));
+}
+
+// GOOD - Functional map
+const lines = items.map(formatItem);
+
+// BAD - forEach with conditional push
+const results: Result[] = [];
+items.forEach((item) => {
+  const match = item.match(regex);
+  if (match) {
+    results.push({ id: match[1] });
+  }
+});
+
+// GOOD - map + filter with type guard
+const results = items
+  .map((item) => {
+    const match = item.match(regex);
+    return match ? { id: match[1] } : null;
+  })
+  .filter((r): r is Result => r !== null);
+
+// BAD - Nested forEach
+items.forEach((item) => {
+  lines.push(`Name: ${item.name}`);
+  item.details.forEach((d) => lines.push(`  - ${d}`));
+});
+
+// GOOD - flatMap for nested structures
+const lines = items.flatMap((item) => [
+  `Name: ${item.name}`,
+  ...item.details.map((d) => `  - ${d}`),
+]);
 ```
 
 ### 4. Zod Schema Usage
@@ -202,6 +326,11 @@ Well-implemented patterns worth highlighting.
 
 ## References
 
+### Skill Reference Files
+- **[Anti-Patterns](references/anti-patterns.md)** - Common anti-patterns with corrections
+- **[Type Safety Examples](references/type-safety-examples.md)** - Type guards, branded types, discriminated unions
+
+### Project Resources
 - See `{baseDir}/docs/CODE_QUALITY.md` for complete coding standards
 - See `{baseDir}/docs/ARCHITECTURE.md` for service patterns
 - See `{baseDir}/biome.json` for linting rules

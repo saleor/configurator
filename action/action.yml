@@ -1,0 +1,184 @@
+name: 'Saleor Configurator'
+description: 'Deploy, diff, and manage Saleor e-commerce configurations using GitOps workflows'
+author: 'Saleor Commerce'
+branding:
+  icon: 'settings'
+  color: 'green'
+
+inputs:
+  command:
+    description: 'Command to run: diff, deploy, or introspect'
+    required: true
+  saleor-url:
+    description: 'Saleor GraphQL endpoint URL'
+    required: true
+  saleor-token:
+    description: 'Saleor API token (use GitHub secrets)'
+    required: true
+  config-path:
+    description: 'Path to configuration file'
+    required: false
+    default: 'config.yml'
+  working-directory:
+    description: 'Working directory for the command'
+    required: false
+    default: '.'
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '20'
+  report-path:
+    description: 'Path to save deployment report (deploy command only)'
+    required: false
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+  post-pr-comment:
+    description: 'Post diff results as PR comment (diff command only)'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'GitHub token for posting PR comments'
+    required: false
+  fail-on-diff:
+    description: 'Exit with error if any changes detected (diff command)'
+    required: false
+    default: 'false'
+  fail-on-delete:
+    description: 'Exit with error if deletions detected'
+    required: false
+    default: 'false'
+  fail-on-breaking:
+    description: 'Exit with error if breaking changes detected (diff command)'
+    required: false
+    default: 'false'
+  ci-mode:
+    description: 'Enable CI mode to skip interactive prompts'
+    required: false
+    default: 'true'
+  json-output:
+    description: 'Output results in JSON format'
+    required: false
+    default: 'false'
+  plan-only:
+    description: 'Show deployment plan without executing (deploy command)'
+    required: false
+    default: 'false'
+
+outputs:
+  exit-code:
+    description: 'Exit code from the command'
+    value: ${{ steps.run-configurator.outputs.exit-code }}
+  has-changes:
+    description: 'Whether changes were detected'
+    value: ${{ steps.run-configurator.outputs.has-changes }}
+  changes-count:
+    description: 'Total number of changes'
+    value: ${{ steps.run-configurator.outputs.changes-count }}
+  creates-count:
+    description: 'Number of entities to create'
+    value: ${{ steps.run-configurator.outputs.creates-count }}
+  updates-count:
+    description: 'Number of entities to update'
+    value: ${{ steps.run-configurator.outputs.updates-count }}
+  deletes-count:
+    description: 'Number of entities to delete'
+    value: ${{ steps.run-configurator.outputs.deletes-count }}
+  report-path:
+    description: 'Path to the deployment report file'
+    value: ${{ steps.run-configurator.outputs.report-path }}
+  diff-output:
+    description: 'Diff output in markdown format'
+    value: ${{ steps.run-configurator.outputs.diff-output }}
+  summary:
+    description: 'Human-readable summary of the operation'
+    value: ${{ steps.run-configurator.outputs.summary }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ inputs.node-version }}-npm
+        restore-keys: |
+          ${{ runner.os }}-node-${{ inputs.node-version }}-
+
+    - name: Install Saleor Configurator
+      shell: bash
+      run: npm install -g @saleor/configurator@latest
+
+    - name: Run Configurator
+      id: run-configurator
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SALEOR_URL: ${{ inputs.saleor-url }}
+        SALEOR_TOKEN: ${{ inputs.saleor-token }}
+        CONFIG_PATH: ${{ inputs.config-path }}
+        COMMAND: ${{ inputs.command }}
+        REPORT_PATH: ${{ inputs.report-path }}
+        VERBOSE: ${{ inputs.verbose }}
+        FAIL_ON_DIFF: ${{ inputs.fail-on-diff }}
+        FAIL_ON_DELETE: ${{ inputs.fail-on-delete }}
+        FAIL_ON_BREAKING: ${{ inputs.fail-on-breaking }}
+        CI_MODE: ${{ inputs.ci-mode }}
+        JSON_OUTPUT: ${{ inputs.json-output }}
+        PLAN_ONLY: ${{ inputs.plan-only }}
+        POST_PR_COMMENT: ${{ inputs.post-pr-comment }}
+      run: ${{ github.action_path }}/scripts/run-configurator.sh
+
+    - name: Post PR Comment
+      if: inputs.post-pr-comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github-token || github.token }}
+        script: |
+          const fs = require('fs');
+          const diffOutput = '${{ steps.run-configurator.outputs.diff-output }}';
+
+          if (!diffOutput) {
+            console.log('No diff output to post');
+            return;
+          }
+
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const botComment = comments.find(comment =>
+            comment.user.type === 'Bot' &&
+            comment.body.includes('## Saleor Configuration Changes')
+          );
+
+          const body = diffOutput;
+
+          if (botComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: body
+            });
+            console.log('Updated existing PR comment');
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+            console.log('Created new PR comment');
+          }

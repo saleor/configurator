@@ -314,6 +314,26 @@ export const entityStage: DeploymentStage = {
 };
 ```
 
+## Validation Checkpoints
+
+| Phase | Validate | Command |
+|-------|----------|---------|
+| Schema | Types compile | `npx tsc --noEmit` |
+| GraphQL | Schema matches | `pnpm fetch-schema` |
+| Repository | Unit tests | `pnpm test src/modules/<entity>/repository.test.ts` |
+| Service | Integration | `pnpm test src/modules/<entity>/service.test.ts` |
+| Pipeline | E2E flow | See `validating-pre-commit` skill |
+
+## Common Mistakes
+
+| Mistake | Issue | Fix |
+|---------|-------|-----|
+| Not using branded types | Slug/Name confusion | Use `EntitySlug` or `EntityName` types |
+| Skipping bulk mutations | Poor performance | Use bulk for >1 item |
+| Missing error wrapping | Silent failures | Wrap with `GraphQLError.fromCombinedError()` |
+| Hardcoded pagination | Missing data | Use `first: 100` with pagination |
+| Not checking `errors` array | Silent mutation failures | Always check `result.data?.mutation?.errors` |
+
 ## Architecture Decision Summary
 
 | Decision | Choice | Rationale |

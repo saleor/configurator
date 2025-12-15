@@ -146,6 +146,16 @@ npx changeset status
 npx changeset version --dry-run
 ```
 
+## Common Mistakes
+
+| Mistake | Issue | Fix |
+|---------|-------|-----|
+| Wrong bump type | Unexpected version | Review decision guide above |
+| Vague description | Poor CHANGELOG | Be specific about changes |
+| Missing changeset | No release notes | Always add before PR |
+| Multiple changesets | Fragmented notes | Combine related changes |
+| Not including context | Hard to understand | Explain *why* not just *what* |
+
 ## Common Scenarios
 
 For detailed examples of common scenarios including:

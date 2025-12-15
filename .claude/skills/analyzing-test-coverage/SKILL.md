@@ -132,6 +132,15 @@ See `references/commands-reference.md` for advanced options and coverage configu
 - [ ] Uses schema-validated test data
 - [ ] Has integration tests for complex flows
 
+## Validation Checkpoints
+
+| Phase | Validate | Command |
+|-------|----------|---------|
+| Test written | File exists | Check `*.test.ts` created |
+| Tests pass | All green | `pnpm test <file>` |
+| Coverage adequate | Key paths covered | `pnpm test --coverage` |
+| Mocks typed | No `any` in mocks | `npx tsc --noEmit` |
+
 ## Common Pitfalls
 
 **Not Resetting Mocks**:

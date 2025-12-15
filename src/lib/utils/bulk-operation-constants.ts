@@ -121,13 +121,23 @@ export const BulkOperationMessages = {
     `Processing ${count} ${entityType} via bulk operations`,
   SEQUENTIAL_WITH_DELAY: (count: number, entityType: string, delayMs: number) =>
     `Processing ${count} ${entityType} sequentially with ${delayMs}ms delay to avoid rate limiting`,
-  CHUNK_PROCESSING_START: (itemCount: number, entityType: string, chunkCount: number, chunkSize: number, delayMs: number) =>
+  CHUNK_PROCESSING_START: (
+    itemCount: number,
+    entityType: string,
+    chunkCount: number,
+    chunkSize: number,
+    delayMs: number
+  ) =>
     `Processing ${itemCount} ${entityType} in ${chunkCount} chunks of ${chunkSize} with ${delayMs}ms delay`,
   CHUNK_COMPLETE: (chunkNumber: number, totalChunks: number, successCount: number) =>
     `Completed chunk ${chunkNumber}/${totalChunks} with ${successCount} successes`,
   PROCESSING_COMPLETE: (itemsProcessed: number, chunksProcessed: number) =>
     `Chunked processing completed successfully: ${itemsProcessed} items in ${chunksProcessed} chunks`,
-  PROCESSING_COMPLETE_WITH_FAILURES: (successCount: number, failureCount: number, chunksProcessed: number) =>
+  PROCESSING_COMPLETE_WITH_FAILURES: (
+    successCount: number,
+    failureCount: number,
+    chunksProcessed: number
+  ) =>
     `Chunked processing completed with ${failureCount} failures (${successCount} successes, ${chunksProcessed} chunks)`,
 } as const;
 

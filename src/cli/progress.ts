@@ -11,6 +11,19 @@ export interface ProgressReporter {
 }
 
 /**
+ * Silent progress reporter for CI output mode
+ * Does nothing - ensures clean parseable output
+ */
+export class SilentProgressReporter implements ProgressReporter {
+  start(_text: string): void {}
+  update(_text: string): void {}
+  succeed(_text?: string): void {}
+  fail(_text?: string): void {}
+  info(_text: string): void {}
+  warn(_text: string): void {}
+}
+
+/**
  * Progress reporter using ora spinner
  */
 export class OraProgressReporter implements ProgressReporter {

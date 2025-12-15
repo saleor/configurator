@@ -1,0 +1,69 @@
+# Saleor Configurator - Deploy to Staging
+#
+# This workflow automatically deploys configuration changes to staging
+# when changes are merged to the main branch.
+#
+# Setup:
+# 1. Create a "staging" environment in GitHub (Settings > Environments)
+# 2. Add SALEOR_URL and SALEOR_TOKEN secrets to the staging environment
+# 3. Copy this file to .github/workflows/configurator-deploy-staging.yml
+
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'config.yml'
+      - 'config/**'
+
+# Prevent concurrent deployments
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false  # Don't cancel in-progress deployments
+
+jobs:
+  deploy:
+    name: Deploy Configuration
+    runs-on: ubuntu-latest
+    environment: staging
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging
+        uses: saleor/configurator/action@v1
+        id: deploy
+        with:
+          command: deploy
+          saleor-url: ${{ secrets.SALEOR_URL }}
+          saleor-token: ${{ secrets.SALEOR_TOKEN }}
+          config-path: config.yml
+          report-path: deployment-report.json
+
+      - name: Upload Deployment Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deployment-report-staging
+          path: deployment-report.json
+          retention-days: 30
+
+      - name: Add Summary
+        if: always()
+        run: |
+          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.deploy.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total Changes | ${{ steps.deploy.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Creates | ${{ steps.deploy.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Updates | ${{ steps.deploy.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deletes | ${{ steps.deploy.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY

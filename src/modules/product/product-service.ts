@@ -1165,7 +1165,10 @@ export class ProductService {
       // Group variants by product ID (bulk create requires one product per call)
       const variantsByProduct = new Map<
         string,
-        Array<{ productInput: (typeof allVariants)[0]["productInput"]; variantInput: (typeof allVariants)[0]["variantInput"] }>
+        Array<{
+          productInput: (typeof allVariants)[0]["productInput"];
+          variantInput: (typeof allVariants)[0]["variantInput"];
+        }>
       >();
       for (const { productId, productInput, variantInput } of allVariants) {
         if (!variantsByProduct.has(productId)) {

@@ -42,6 +42,9 @@ describe("Deployment Stages", () => {
         quiet: false,
         ci: false,
         verbose: false,
+        json: false,
+        plan: false,
+        failOnDelete: false,
       },
       summary: {
         totalChanges: 1,

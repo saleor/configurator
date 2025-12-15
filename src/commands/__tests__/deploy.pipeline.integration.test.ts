@@ -23,6 +23,9 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       quiet: true,
       ci: true,
       verbose: false,
+      json: false,
+      plan: false,
+      failOnDelete: false,
     };
 
     // Mock console methods to capture output

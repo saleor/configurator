@@ -1,4 +1,5 @@
 import { Logger } from "tslog";
+import { isCiOutputMode } from "./ci-mode";
 import { LOG_LEVEL } from "./env";
 import { EnvironmentVariableError } from "./errors/shared";
 
@@ -15,9 +16,11 @@ const logLevelMap = {
 
 type LogLevel = keyof typeof logLevelMap;
 
-const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
+// In CI output mode, suppress all logs for clean output
+const effectiveLogLevel = isCiOutputMode() ? "fatal" : LOG_LEVEL;
+const mappedLogLevel = logLevelMap[effectiveLogLevel as LogLevel];
 
-if (!mappedLogLevel) {
+if (mappedLogLevel === undefined) {
   throw new EnvironmentVariableError(
     `Invalid LOG_LEVEL: "${LOG_LEVEL}". Must be one of: ${Object.keys(logLevelMap).join(", ")}`
   );

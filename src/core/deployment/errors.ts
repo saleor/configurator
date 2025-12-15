@@ -4,11 +4,22 @@ import { ErrorRecoveryGuide } from "../../lib/errors/recovery-guide";
  * Exit codes for different error types
  */
 export const EXIT_CODES = {
+  /** Operation completed successfully */
+  SUCCESS: 0,
+  /** Unexpected/unknown error */
   UNEXPECTED: 1,
+  /** Authentication or permission error */
   AUTHENTICATION: 2,
+  /** Network connection error */
   NETWORK: 3,
+  /** Configuration validation error */
   VALIDATION: 4,
+  /** Some operations succeeded, others failed */
   PARTIAL_FAILURE: 5,
+  /** Blocked by --fail-on-delete flag (deletions detected) */
+  DELETION_BLOCKED: 6,
+  /** Blocked by --fail-on-breaking flag (breaking changes detected) */
+  BREAKING_BLOCKED: 7,
 } as const;
 
 /**
@@ -43,17 +54,19 @@ export abstract class DeploymentError extends Error {
     const lines: string[] = [`❌ Deployment failed: ${this.getErrorType()}`, "", this.message];
 
     if (this.context && Object.keys(this.context).length > 0) {
-      lines.push("", "Details:");
-      for (const [key, value] of Object.entries(this.context)) {
-        lines.push(`  • ${key}: ${value}`);
-      }
+      lines.push(
+        "",
+        "Details:",
+        ...Object.entries(this.context).map(([key, value]) => `  • ${key}: ${value}`)
+      );
     }
 
     if (this.suggestions.length > 0) {
-      lines.push("", "Suggested actions:");
-      this.suggestions.forEach((suggestion, index) => {
-        lines.push(`  ${index + 1}. ${suggestion}`);
-      });
+      lines.push(
+        "",
+        "Suggested actions:",
+        ...this.suggestions.map((suggestion, index) => `  ${index + 1}. ${suggestion}`)
+      );
     }
 
     if (_verbose && this.originalError) {
@@ -201,40 +214,32 @@ export class StageAggregateError extends DeploymentError {
 
     // Show successes if any
     if (this.successes.length > 0) {
-      lines.push("✅ Successful:");
-      this.successes.forEach((entity) => {
-        lines.push(`  • ${entity}`);
-      });
-      lines.push("");
+      lines.push("✅ Successful:", ...this.successes.map((entity) => `  • ${entity}`), "");
     }
 
     // Show failures with recovery suggestions
     if (this.failures.length > 0) {
-      lines.push("❌ Failed:");
-      this.failures.forEach(({ entity, error }) => {
-        lines.push(`  • ${entity}`);
-        lines.push(`    Error: ${error.message}`);
-
-        // Get recovery suggestions for this specific error
-        const suggestions = ErrorRecoveryGuide.getSuggestions(error.message);
-        const formattedSuggestions = ErrorRecoveryGuide.formatSuggestions(suggestions);
-
-        if (formattedSuggestions.length > 0) {
-          formattedSuggestions.forEach((suggestion) => {
-            lines.push(`    ${suggestion}`);
-          });
-        }
-
-        lines.push("");
-      });
+      lines.push(
+        "❌ Failed:",
+        ...this.failures.flatMap(({ entity, error }) => {
+          const suggestions = ErrorRecoveryGuide.getSuggestions(error.message);
+          const formattedSuggestions = ErrorRecoveryGuide.formatSuggestions(suggestions);
+          return [
+            `  • ${entity}`,
+            `    Error: ${error.message}`,
+            ...formattedSuggestions.map((suggestion) => `    ${suggestion}`),
+            "",
+          ];
+        })
+      );
     }
 
     // Add general suggestions
     if (this.suggestions.length > 0) {
-      lines.push("General suggestions:");
-      this.suggestions.forEach((suggestion, index) => {
-        lines.push(`  ${index + 1}. ${suggestion}`);
-      });
+      lines.push(
+        "General suggestions:",
+        ...this.suggestions.map((suggestion, index) => `  ${index + 1}. ${suggestion}`)
+      );
     }
 
     lines.push("", "Run 'saleor-configurator deploy --verbose' for detailed error traces");
@@ -340,86 +345,91 @@ export class UnexpectedDeploymentError extends DeploymentError {
 }
 
 /**
+ * Error matcher interface for the registry pattern
+ */
+interface ErrorMatcher {
+  matches: (msg: string) => boolean;
+  create: (error: Error, operation: string) => DeploymentError;
+}
+
+/**
+ * Registry of error matchers for converting errors to DeploymentError
+ * Order matters - first match wins
+ */
+const ERROR_MATCHERS: ErrorMatcher[] = [
+  {
+    matches: (msg) => msg.includes("duplicate"),
+    create: (error, op) =>
+      new ValidationDeploymentError(
+        "Duplicate entity identifiers found",
+        [error.message],
+        { operation: op },
+        error
+      ),
+  },
+  {
+    matches: (msg) =>
+      msg.includes("configuration file not found") ||
+      msg.includes("failed to load") ||
+      (msg.includes("config") && msg.includes("not found")) ||
+      msg.includes("implicit keys") ||
+      msg.includes("yaml") ||
+      msg.includes("expected schema"),
+    create: (error, op) =>
+      new ValidationDeploymentError(
+        "Configuration file error",
+        [error.message],
+        { operation: op },
+        error
+      ),
+  },
+  {
+    matches: (msg) =>
+      msg.includes("fetch failed") ||
+      msg.includes("econnrefused") ||
+      msg.includes("etimedout") ||
+      msg.includes("network") ||
+      msg.includes("enotfound"),
+    create: (error, op) =>
+      new NetworkDeploymentError("Unable to connect to Saleor instance", { operation: op }, error),
+  },
+  {
+    matches: (msg) =>
+      msg.includes("unauthorized") ||
+      msg.includes("authentication") ||
+      msg.includes("permission") ||
+      msg.includes("forbidden") ||
+      msg.includes("invalid token"),
+    create: (error, op) =>
+      new AuthenticationDeploymentError("Authentication failed", { operation: op }, error),
+  },
+  {
+    matches: (msg) =>
+      msg.includes("validation") || msg.includes("invalid") || msg.includes("required"),
+    create: (error, op) =>
+      new ValidationDeploymentError(
+        "Configuration validation failed",
+        [error.message],
+        { operation: op },
+        error
+      ),
+  },
+];
+
+/**
  * Helper to convert various error types to DeploymentError
  */
 export function toDeploymentError(error: unknown, operation = "deployment"): DeploymentError {
-  // Already a DeploymentError
   if (error instanceof DeploymentError) {
     return error;
   }
 
-  // GraphQL errors with specific handling
-  if (error instanceof Error) {
-    const errorMessage = error.message.toLowerCase();
-
-    // Duplicate identifier errors
-    if (errorMessage.includes("duplicate")) {
-      return new ValidationDeploymentError(
-        "Duplicate entity identifiers found",
-        [error.message],
-        { operation },
-        error
-      );
-    }
-
-    // Configuration file errors
-    if (
-      errorMessage.includes("configuration file not found") ||
-      errorMessage.includes("failed to load") ||
-      (errorMessage.includes("config") && errorMessage.includes("not found")) ||
-      errorMessage.includes("implicit keys") ||
-      errorMessage.includes("yaml") ||
-      errorMessage.includes("expected schema")
-    ) {
-      return new ValidationDeploymentError(
-        "Configuration file error",
-        [error.message],
-        { operation },
-        error
-      );
-    }
-
-    // Network errors
-    if (
-      errorMessage.includes("fetch failed") ||
-      errorMessage.includes("econnrefused") ||
-      errorMessage.includes("etimedout") ||
-      errorMessage.includes("network") ||
-      errorMessage.includes("enotfound")
-    ) {
-      return new NetworkDeploymentError(
-        "Unable to connect to Saleor instance",
-        { operation },
-        error
-      );
-    }
-
-    // Authentication errors
-    if (
-      errorMessage.includes("unauthorized") ||
-      errorMessage.includes("authentication") ||
-      errorMessage.includes("permission") ||
-      errorMessage.includes("forbidden") ||
-      errorMessage.includes("invalid token")
-    ) {
-      return new AuthenticationDeploymentError("Authentication failed", { operation }, error);
-    }
-
-    // Validation errors
-    if (
-      errorMessage.includes("validation") ||
-      errorMessage.includes("invalid") ||
-      errorMessage.includes("required")
-    ) {
-      return new ValidationDeploymentError(
-        "Configuration validation failed",
-        [error.message],
-        { operation },
-        error
-      );
-    }
+  if (!(error instanceof Error)) {
+    return new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error);
   }
 
-  // Fallback to unexpected error
-  return new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error);
+  const msg = error.message.toLowerCase();
+  const matcher = ERROR_MATCHERS.find((m) => m.matches(msg));
+
+  return matcher?.create(error, operation) ?? new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error);
 }

@@ -111,6 +111,31 @@ src/modules/config/schema/
 └── index.ts            # Schema exports
 ```
 
+## Validation Checkpoints
+
+| Phase | Validate | Command |
+|-------|----------|---------|
+| Schema defined | No TS errors | `npx tsc --noEmit` |
+| Types inferred | `z.infer` works | Check type in IDE |
+| Validation works | `safeParse` tests | `pnpm test` |
+
+## Common Mistakes
+
+| Mistake | Issue | Fix |
+|---------|-------|-----|
+| Manual type definitions | Type drift | Use `z.infer<typeof Schema>` |
+| Using `.parse()` directly | Throws on invalid | Use `.safeParse()` for error handling |
+| Missing `.optional()` | Runtime errors | Mark optional fields explicitly |
+| Complex refinements | Hard to debug | Break into smaller schemas |
+| Not using branded types | Type confusion | Use `.brand()` or transform for domain safety |
+
+## External Documentation
+
+For up-to-date Zod patterns, use Context7 MCP:
+```
+mcp__context7__get-library-docs with context7CompatibleLibraryID: "/colinhacks/zod"
+```
+
 ## References
 
 - `{baseDir}/src/modules/config/schema/schema.ts` - Main schema definitions

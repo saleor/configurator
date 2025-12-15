@@ -401,8 +401,38 @@ export const createClient = (url: string, token: string) => {
 - Don't skip error handling for any operation
 - Don't hardcode pagination limits (use constants)
 
+## Validation Checkpoints
+
+| Phase | Validate | Command |
+|-------|----------|---------|
+| Schema fresh | No drift | `pnpm fetch-schema` |
+| Operations typed | gql.tada inference | Check IDE types |
+| Mocks match | MSW handlers | `pnpm test` |
+| Error handling | All paths covered | Code review |
+
+## Common Mistakes
+
+| Mistake | Issue | Fix |
+|---------|-------|-----|
+| Not checking `errors` array | Silent failures | Always check `result.data?.mutation?.errors` |
+| Exposing GraphQL types | Coupling | Map to domain types in repository |
+| Missing error context | Hard to debug | Include operation name in errors |
+| Stale schema | Type errors | Run `pnpm fetch-schema` after Saleor updates |
+| Not using fragments | Code duplication | Extract shared fields to fragments |
+
+## External Documentation
+
+For up-to-date library docs, use Context7 MCP:
+- urql: `mcp__context7__get-library-docs` with `/urql-graphql/urql`
+- gql.tada: Use `mcp__context7__resolve-library-id` with "gql.tada"
+
 ## References
 
+### Skill Reference Files
+- **[Error Handling](references/error-handling.md)** - Error types, wrapping, and recovery patterns
+- **[Fragment Patterns](references/fragment-patterns.md)** - Fragment composition and type inference
+
+### Project Resources
 - `{baseDir}/src/lib/graphql/client.ts` - Client configuration
 - `{baseDir}/src/lib/graphql/operations/` - Existing operations
 - `{baseDir}/docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards

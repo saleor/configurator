@@ -31,9 +31,28 @@ This documentation follows a **hub-and-spoke model** for optimal information ret
 - **[AGENTS.md](../AGENTS.md)** - Contributor workflow primer and quick navigation tips for agents
 
 ### 🏗️ Architecture & Design
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Service patterns, design decisions, and system architecture  
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Service patterns, design decisions, and system architecture
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Pipeline architecture and deployment procedures
 - **[EXAMPLES.md](EXAMPLES.md)** - Essential configuration examples and patterns
+
+## Claude Code Skills
+
+**ALWAYS** check and use available skills in `.claude/skills/` before starting work. These provide domain-specific guidance and enforce project standards.
+
+| Skill | Use When |
+|-------|----------|
+| `implementing-cli-patterns` | Adding CLI output, spinners, prompts |
+| `creating-changesets` | Preparing releases, version bumps |
+| `analyzing-test-coverage` | Writing tests, Vitest, MSW mocks |
+| `validating-pre-commit` | Running quality checks before commit |
+| `understanding-saleor-domain` | Working with entities, config schema |
+| `writing-graphql-operations` | GraphQL queries, gql.tada, repositories |
+| `managing-github-ci` | GitHub Actions, workflows, CI issues |
+| `designing-zod-schemas` | Validation schemas, branded types |
+| `reviewing-typescript-code` | Code review, type safety audits |
+| `adding-entity-types` | Implementing new Saleor entity support |
+
+Invoke skills proactively when the task matches their domain.
 
 ## Quick Start Essentials
 
