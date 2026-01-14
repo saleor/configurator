@@ -104,6 +104,31 @@ export class ProductService {
     return results;
   }
 
+  /**
+   * Wraps a plain text description in EditorJS JSON format, as expected by Saleor's JSONString type.
+   * If the description already looks like JSON, it is passed through unchanged.
+   */
+  private wrapDescriptionAsEditorJS(description: string | undefined): string | undefined {
+    if (!description || description.trim() === "") {
+      return undefined;
+    }
+    const raw = description.trim();
+    const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
+    return isJsonLike
+      ? raw
+      : JSON.stringify({
+          time: Date.now(),
+          blocks: [
+            {
+              id: `desc-${Date.now()}`,
+              data: { text: raw },
+              type: "paragraph",
+            },
+          ],
+          version: "2.24.3",
+        });
+  }
+
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
     return ServiceErrorWrapper.wrapServiceCall(
       "resolve product type reference",
@@ -485,25 +510,8 @@ export class ProductService {
       // Always include attributes array (tests expect this field)
       updateProductInput.attributes = attributes;
 
-      // Safely update description if provided
-      if (productInput.description && productInput.description.trim() !== "") {
-        const raw = productInput.description.trim();
-        // If the description already looks like JSON, pass through; otherwise wrap as EditorJS JSON
-        const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
-        updateProductInput.description = isJsonLike
-          ? raw
-          : JSON.stringify({
-              time: Date.now(),
-              blocks: [
-                {
-                  id: `desc-${Date.now()}`,
-                  data: { text: raw },
-                  type: "paragraph",
-                },
-              ],
-              version: "2.24.3",
-            });
-      }
+      // Wrap description in EditorJS JSON format (Saleor expects JSONString)
+      updateProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
 
       let product: Product;
       try {
@@ -556,25 +564,8 @@ export class ProductService {
     // Always include attributes array (tests expect this field)
     createProductInput.attributes = attributes;
 
-    // Only include description if provided; if the value looks like JSON, pass through.
-    // Otherwise, wrap plain text into a minimal EditorJS JSON structure (Saleor expects JSONString).
-    if (productInput.description && productInput.description.trim() !== "") {
-      const raw = productInput.description.trim();
-      const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
-      createProductInput.description = isJsonLike
-        ? raw
-        : JSON.stringify({
-            time: Date.now(),
-            blocks: [
-              {
-                id: `desc-${Date.now()}`,
-                data: { text: raw },
-                type: "paragraph",
-              },
-            ],
-            version: "2.24.3",
-          });
-    }
+    // Wrap description in EditorJS JSON format (Saleor expects JSONString)
+    createProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
 
     const product = await ServiceErrorWrapper.wrapServiceCall(
       "create product",
@@ -1029,7 +1020,7 @@ export class ProductService {
             const input: ProductCreateInput = {
               name: productInput.name,
               slug: productInput.slug,
-              description: productInput.description,
+              description: this.wrapDescriptionAsEditorJS(productInput.description),
               productType: productTypeId,
               category: categoryId,
               attributes,
@@ -1091,7 +1082,7 @@ export class ProductService {
         const updateInput: ProductUpdateInput = {
           name: input.name,
           slug: input.slug,
-          description: input.description,
+          description: this.wrapDescriptionAsEditorJS(input.description),
           category: categoryId,
           attributes,
         };

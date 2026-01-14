@@ -1415,4 +1415,153 @@ describe("ProductService", () => {
       expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
     });
   });
+
+  describe("Description EditorJS JSON wrapping for bulk create", () => {
+    beforeEach(() => {
+      // Setup common mocks for bulk operations
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+    });
+
+    it("should wrap plain text description in EditorJS JSON format for bulk create", async () => {
+      // Setup: Mock successful product creation
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "product-123",
+              name: "Test Product",
+              slug: "test-product",
+              description: '{"blocks":[...]}',
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      // Execute: Bootstrap product with plain text description
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: "This is a plain text description that should be wrapped",
+        },
+      ]);
+
+      // Assert: Verify description was wrapped in EditorJS JSON format
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      const productInput = callArgs.products[0];
+
+      expect(productInput.description).toBeDefined();
+      expect(productInput.description).not.toBe(
+        "This is a plain text description that should be wrapped"
+      );
+
+      // Should be valid JSON with EditorJS structure
+      const parsed = JSON.parse(productInput.description as string);
+      expect(parsed).toHaveProperty("blocks");
+      expect(parsed).toHaveProperty("version");
+      expect(parsed.blocks[0].data.text).toBe(
+        "This is a plain text description that should be wrapped"
+      );
+    });
+
+    it("should pass through JSON description unchanged for bulk create", async () => {
+      // Setup
+      const editorJsDescription = JSON.stringify({
+        time: 1234567890,
+        blocks: [{ id: "1", data: { text: "Existing JSON" }, type: "paragraph" }],
+        version: "2.24.3",
+      });
+
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "p-1",
+              name: "P",
+              slug: "p",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: null,
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      // Execute
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: editorJsDescription,
+        },
+      ]);
+
+      // Assert: JSON description passed through unchanged
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products[0].description).toBe(editorJsDescription);
+    });
+
+    it("should handle undefined description for bulk create", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "p-1",
+              name: "P",
+              slug: "p",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: null,
+              channelListings: [],
+              media: [],
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+
+      // Execute: No description provided
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test Product",
+          slug: "test-product",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+        },
+      ]);
+
+      // Assert: Description should be undefined
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products[0].description).toBeUndefined();
+    });
+  });
 });
