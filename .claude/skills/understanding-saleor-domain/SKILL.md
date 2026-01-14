@@ -318,3 +318,9 @@ For detailed information, see:
 - **Implementing entities**: See `adding-entity-types` for complete implementation workflow
 - **Config schemas**: See `designing-zod-schemas` for schema patterns
 - **GraphQL operations**: See `writing-graphql-operations` for Saleor API integration
+
+## Quick Reference Rules
+
+For condensed quick references, see:
+- `.claude/rules/entity-development.md` (automatically loaded when editing `src/modules/**/*.ts`)
+- `.claude/rules/diff-engine.md` (automatically loaded when editing `src/core/diff/**/*.ts`)

@@ -463,3 +463,7 @@ if (validationErrors.length > 0) {
 
 - **Complete entity workflow**: See `adding-entity-types` for CLI integration patterns
 - **Error handling**: See `reviewing-typescript-code` for error message standards
+
+## Quick Reference Rule
+
+For a condensed quick reference, see `.claude/rules/cli-development.md` (automatically loaded when editing `src/cli/**/*.ts` and `src/commands/**/*.ts` files).

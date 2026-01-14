@@ -442,3 +442,7 @@ For up-to-date library docs, use Context7 MCP:
 - **Complete entity workflow**: See `adding-entity-types` for full implementation including bulk mutations
 - **Bulk operations**: See `adding-entity-types/references/bulk-mutations.md` for chunking patterns
 - **Testing GraphQL**: See `analyzing-test-coverage` for MSW setup
+
+## Quick Reference Rule
+
+For a condensed quick reference, see `.claude/rules/graphql-patterns.md` (automatically loaded when editing GraphQL operations and repository files).
