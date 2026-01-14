@@ -1,0 +1,1030 @@
+# Global store settings
+shop:
+  defaultMailSenderName: "Industrial Supply Co."
+  defaultMailSenderAddress: "orders@industrialsupply.demo"
+  displayGrossPrices: false              # B2B typically shows net prices
+  enableAccountConfirmationByEmail: true
+  trackInventoryByDefault: true
+  limitQuantityPerCheckout: 500          # B2B bulk orders
+  reserveStockDurationAnonymousUser: 30
+  reserveStockDurationAuthenticatedUser: 1440  # 24 hours for B2B customers
+  defaultWeightUnit: KG
+
+# ============================================================================
+# MULTI-CHANNEL SETUP (Different Markets/Business Units)
+# Demonstrates: Management of pricing, Multiple Ship To's concept
+# ============================================================================
+channels:
+  # US B2B Channel - Primary market
+  - name: "US B2B"
+    currencyCode: USD
+    defaultCountry: US
+    slug: us-b2b
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false  # B2B needs approval workflow
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 30
+      deleteExpiredOrdersAfter: 90
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: true                  # B2B Net-30 terms
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+      includeDraftOrderInVoucherUsage: true
+      useLegacyErrorFlow: false
+    taxConfiguration:
+      taxCalculationStrategy: TAX_APP         # For Vertex integration demo
+      pricesEnteredWithTax: false
+      displayGrossPrices: false
+
+  # Canada B2B Channel
+  - name: "Canada B2B"
+    currencyCode: CAD
+    defaultCountry: CA
+    slug: canada-b2b
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false
+      expireOrdersAfter: 30
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: true
+      defaultTransactionFlowStrategy: AUTHORIZATION
+
+  # Mexico B2B Channel
+  - name: "Mexico B2B"
+    currencyCode: MXN
+    defaultCountry: MX
+    slug: mexico-b2b
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: true
+
+# ============================================================================
+# TAX CLASSES (Vertex Integration Ready)
+# Demonstrates: Plug-ins/tools integration (Vertex)
+# ============================================================================
+taxClasses:
+  - name: "Standard Industrial Equipment"
+    countryRates:
+      - countryCode: US
+        rate: 0              # Calculated by Vertex
+      - countryCode: CA
+        rate: 13             # HST fallback
+      - countryCode: MX
+        rate: 16             # IVA fallback
+
+  - name: "Tax Exempt - Resale"
+    countryRates:
+      - countryCode: US
+        rate: 0
+      - countryCode: CA
+        rate: 0
+      - countryCode: MX
+        rate: 0
+
+  - name: "Reduced Rate - Safety Equipment"
+    countryRates:
+      - countryCode: US
+        rate: 0
+      - countryCode: CA
+        rate: 5
+      - countryCode: MX
+        rate: 0
+
+# ============================================================================
+# WAREHOUSES (Multiple Distribution Centers)
+# Demonstrates: Multiple Ship To's, inventory allocation
+# ============================================================================
+warehouses:
+  - name: "US East Distribution Center"
+    slug: "us-east-dc"
+    email: "east-dc@industrialsupply.demo"
+    isPrivate: false
+    clickAndCollectOption: "LOCAL"
+    address:
+      streetAddress1: "1200 Industrial Parkway"
+      streetAddress2: "Building A"
+      city: "Newark"
+      postalCode: "07102"
+      country: "US"
+      countryArea: "NJ"
+      companyName: "Industrial Supply Co."
+      phone: "+1-800-555-0101"
+    shippingZones: ["us-east-zone", "us-national-zone"]
+
+  - name: "US West Distribution Center"
+    slug: "us-west-dc"
+    email: "west-dc@industrialsupply.demo"
+    isPrivate: false
+    clickAndCollectOption: "LOCAL"
+    address:
+      streetAddress1: "5500 Commerce Drive"
+      city: "Phoenix"
+      postalCode: "85034"
+      country: "US"
+      countryArea: "AZ"
+      companyName: "Industrial Supply Co."
+      phone: "+1-800-555-0102"
+    shippingZones: ["us-west-zone", "us-national-zone"]
+
+  - name: "Canada Distribution Center"
+    slug: "canada-dc"
+    email: "canada-dc@industrialsupply.demo"
+    isPrivate: false
+    clickAndCollectOption: "DISABLED"
+    address:
+      streetAddress1: "8900 Industrial Blvd"
+      city: "Toronto"
+      postalCode: "M5V 2H1"
+      country: "CA"
+      countryArea: "ON"
+      companyName: "Industrial Supply Canada Inc."
+      phone: "+1-800-555-0103"
+    shippingZones: ["canada-zone"]
+
+  - name: "Mexico Distribution Center"
+    slug: "mexico-dc"
+    email: "mexico-dc@industrialsupply.demo"
+    isPrivate: false
+    clickAndCollectOption: "DISABLED"
+    address:
+      streetAddress1: "Av. Industrial 1500"
+      city: "Monterrey"
+      postalCode: "64000"
+      country: "MX"
+      countryArea: "Nuevo León"
+      companyName: "Industrial Supply Mexico S.A."
+      phone: "+52-800-555-0104"
+    shippingZones: ["mexico-zone"]
+
+# ============================================================================
+# SHIPPING ZONES (Regional and Cross-Border)
+# Demonstrates: Complex fulfillment logistics
+# ============================================================================
+shippingZones:
+  - name: "US East Zone"
+    slug: "us-east-zone"
+    description: "Eastern United States - fast delivery from Newark DC"
+    default: false
+    countries: ["US"]
+    warehouses: ["us-east-dc"]
+    channels: ["us-b2b"]
+    shippingMethods:
+      - name: "Ground Freight (3-5 days)"
+        type: "WEIGHT"
+        maximumDeliveryDays: 5
+        minimumDeliveryDays: 3
+        channelListings:
+          - channel: "us-b2b"
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            maximumOrderWeight:
+              unit: "KG"
+              value: 1000
+            price: 0              # Free for B2B accounts
+
+      - name: "Express Freight (1-2 days)"
+        type: "WEIGHT"
+        maximumDeliveryDays: 2
+        minimumDeliveryDays: 1
+        channelListings:
+          - channel: "us-b2b"
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            maximumOrderWeight:
+              unit: "KG"
+              value: 500
+            price: 150.00
+
+  - name: "US West Zone"
+    slug: "us-west-zone"
+    description: "Western United States - fast delivery from Phoenix DC"
+    default: false
+    countries: ["US"]
+    warehouses: ["us-west-dc"]
+    channels: ["us-b2b"]
+    shippingMethods:
+      - name: "Ground Freight (3-5 days)"
+        type: "WEIGHT"
+        maximumDeliveryDays: 5
+        minimumDeliveryDays: 3
+        channelListings:
+          - channel: "us-b2b"
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            maximumOrderWeight:
+              unit: "KG"
+              value: 1000
+            price: 0
+
+  - name: "US National Zone"
+    slug: "us-national-zone"
+    description: "National coverage from any US DC"
+    default: true
+    countries: ["US"]
+    warehouses: ["us-east-dc", "us-west-dc"]
+    channels: ["us-b2b"]
+    shippingMethods:
+      - name: "Will Call / Pickup"
+        type: "PRICE"
+        maximumDeliveryDays: 1
+        minimumDeliveryDays: 0
+        channelListings:
+          - channel: "us-b2b"
+            price: 0
+
+  - name: "Canada Zone"
+    slug: "canada-zone"
+    description: "Canadian fulfillment"
+    default: false
+    countries: ["CA"]
+    warehouses: ["canada-dc"]
+    channels: ["canada-b2b"]
+    shippingMethods:
+      - name: "Standard Freight (5-7 days)"
+        type: "WEIGHT"
+        maximumDeliveryDays: 7
+        minimumDeliveryDays: 5
+        channelListings:
+          - channel: "canada-b2b"
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            maximumOrderWeight:
+              unit: "KG"
+              value: 1000
+            price: 0
+
+  - name: "Mexico Zone"
+    slug: "mexico-zone"
+    description: "Mexico fulfillment"
+    default: false
+    countries: ["MX"]
+    warehouses: ["mexico-dc"]
+    channels: ["mexico-b2b"]
+    shippingMethods:
+      - name: "Standard Freight (7-10 days)"
+        type: "WEIGHT"
+        maximumDeliveryDays: 10
+        minimumDeliveryDays: 7
+        channelListings:
+          - channel: "mexico-b2b"
+            minimumOrderWeight:
+              unit: "KG"
+              value: 0
+            maximumOrderWeight:
+              unit: "KG"
+              value: 1000
+            price: 0
+
+# ============================================================================
+# PRODUCT TYPES (B2B Industrial Catalog)
+# Demonstrates: Management of products and catalogs
+# ============================================================================
+productTypes:
+  # Industrial Equipment - large machinery
+  - name: "Industrial Equipment"
+    isShippingRequired: true
+    taxClass: "Standard Industrial Equipment"
+    productAttributes:
+      - name: "Manufacturer"
+        inputType: PLAIN_TEXT
+      - name: "Model Number"
+        inputType: PLAIN_TEXT
+      - name: "Warranty Period"
+        inputType: DROPDOWN
+        values:
+          - name: "1 Year"
+          - name: "2 Years"
+          - name: "3 Years"
+          - name: "5 Years"
+      - name: "Equipment Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Conveyor Systems"
+          - name: "Packaging Equipment"
+          - name: "Material Handling"
+          - name: "Processing Equipment"
+      - name: "Power Requirements"
+        inputType: DROPDOWN
+        values:
+          - name: "110V"
+          - name: "220V"
+          - name: "380V"
+          - name: "480V"
+      - name: "Technical Specifications"
+        inputType: RICH_TEXT
+      - name: "Related Products"
+        inputType: REFERENCE
+        entityType: PRODUCT
+    variantAttributes:
+      - name: "Configuration"
+        inputType: DROPDOWN
+        values:
+          - name: "Standard"
+          - name: "Heavy Duty"
+          - name: "Custom"
+
+  # Replacement Parts
+  - name: "Replacement Parts"
+    isShippingRequired: true
+    taxClass: "Standard Industrial Equipment"
+    productAttributes:
+      - attribute: "Manufacturer"
+      - name: "Part Number"
+        inputType: PLAIN_TEXT
+      - name: "Compatible Equipment"
+        inputType: REFERENCE
+        entityType: PRODUCT
+      - name: "Part Category"
+        inputType: DROPDOWN
+        values:
+          - name: "Motors"
+          - name: "Belts"
+          - name: "Bearings"
+          - name: "Sensors"
+          - name: "Controllers"
+          - name: "Hydraulics"
+    variantAttributes:
+      - name: "Condition"
+        inputType: DROPDOWN
+        values:
+          - name: "New OEM"
+          - name: "Refurbished"
+          - name: "Aftermarket"
+
+  # Safety Equipment
+  - name: "Safety Equipment"
+    isShippingRequired: true
+    taxClass: "Reduced Rate - Safety Equipment"
+    productAttributes:
+      - attribute: "Manufacturer"
+      - name: "Safety Certification"
+        inputType: MULTISELECT
+        values:
+          - name: "OSHA Compliant"
+          - name: "ANSI Certified"
+          - name: "CSA Approved"
+          - name: "CE Marked"
+      - name: "Protection Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Head Protection"
+          - name: "Eye Protection"
+          - name: "Hearing Protection"
+          - name: "Hand Protection"
+          - name: "Fall Protection"
+          - name: "Respiratory"
+    variantAttributes:
+      - name: "Size"
+        inputType: DROPDOWN
+        values:
+          - name: "Small"
+          - name: "Medium"
+          - name: "Large"
+          - name: "X-Large"
+          - name: "XX-Large"
+
+  # Consumables & Supplies
+  - name: "Industrial Supplies"
+    isShippingRequired: true
+    taxClass: "Standard Industrial Equipment"
+    productAttributes:
+      - attribute: "Manufacturer"
+      - name: "Supply Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Lubricants"
+          - name: "Cleaning Supplies"
+          - name: "Fasteners"
+          - name: "Adhesives"
+          - name: "Abrasives"
+    variantAttributes:
+      - name: "Pack Size"
+        inputType: DROPDOWN
+        values:
+          - name: "Single Unit"
+          - name: "Case of 12"
+          - name: "Case of 24"
+          - name: "Bulk (100+)"
+
+  # Digital Products (Manuals, Certifications)
+  - name: "Digital Resources"
+    isShippingRequired: false
+    productAttributes:
+      - name: "Resource Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Technical Manual"
+          - name: "Safety Data Sheet"
+          - name: "Training Material"
+          - name: "Certification Document"
+      - name: "Related Equipment"
+        inputType: REFERENCE
+        entityType: PRODUCT
+
+# ============================================================================
+# CATEGORIES (Product Hierarchy)
+# Demonstrates: Catalog hierarchy management
+# ============================================================================
+categories:
+  - name: "Equipment"
+    slug: "equipment"
+    subcategories:
+      - name: "Conveyor Systems"
+        slug: "conveyors"
+        subcategories:
+          - name: "Belt Conveyors"
+            slug: "belt-conveyors"
+          - name: "Roller Conveyors"
+            slug: "roller-conveyors"
+          - name: "Chain Conveyors"
+            slug: "chain-conveyors"
+      - name: "Material Handling"
+        slug: "material-handling"
+        subcategories:
+          - name: "Forklifts"
+            slug: "forklifts"
+          - name: "Pallet Jacks"
+            slug: "pallet-jacks"
+          - name: "Hoists & Cranes"
+            slug: "hoists-cranes"
+      - name: "Packaging Equipment"
+        slug: "packaging"
+        subcategories:
+          - name: "Stretch Wrappers"
+            slug: "stretch-wrappers"
+          - name: "Case Sealers"
+            slug: "case-sealers"
+          - name: "Labeling Systems"
+            slug: "labeling-systems"
+
+  - name: "Parts & Components"
+    slug: "parts"
+    subcategories:
+      - name: "Motors & Drives"
+        slug: "motors-drives"
+      - name: "Bearings & Bushings"
+        slug: "bearings"
+      - name: "Belts & Chains"
+        slug: "belts-chains"
+      - name: "Sensors & Controls"
+        slug: "sensors-controls"
+      - name: "Hydraulic Components"
+        slug: "hydraulics"
+
+  - name: "Safety & Compliance"
+    slug: "safety"
+    subcategories:
+      - name: "Personal Protective Equipment"
+        slug: "ppe"
+      - name: "Machine Guarding"
+        slug: "machine-guarding"
+      - name: "Signage & Labels"
+        slug: "safety-signage"
+      - name: "First Aid"
+        slug: "first-aid"
+
+  - name: "Supplies & Consumables"
+    slug: "supplies"
+    subcategories:
+      - name: "Lubricants & Fluids"
+        slug: "lubricants"
+      - name: "Cleaning Products"
+        slug: "cleaning"
+      - name: "Fasteners"
+        slug: "fasteners"
+      - name: "Packaging Materials"
+        slug: "packaging-materials"
+
+# ============================================================================
+# COLLECTIONS (Merchandising & Promotions)
+# Demonstrates: Management of promotions, featured products
+# ============================================================================
+collections:
+  - name: "New Arrivals"
+    slug: "new-arrivals"
+    channelListings:
+      - channelSlug: "us-b2b"
+        isPublished: true
+      - channelSlug: "canada-b2b"
+        isPublished: true
+      - channelSlug: "mexico-b2b"
+        isPublished: true
+
+  - name: "Best Sellers"
+    slug: "best-sellers"
+    channelListings:
+      - channelSlug: "us-b2b"
+        isPublished: true
+      - channelSlug: "canada-b2b"
+        isPublished: true
+
+  - name: "Clearance - End of Line"
+    slug: "clearance"
+    channelListings:
+      - channelSlug: "us-b2b"
+        isPublished: true
+
+  - name: "Bulk Discount Items"
+    slug: "bulk-discount"
+    channelListings:
+      - channelSlug: "us-b2b"
+        isPublished: true
+      - channelSlug: "canada-b2b"
+        isPublished: true
+      - channelSlug: "mexico-b2b"
+        isPublished: true
+
+  - name: "Quick Ship - In Stock"
+    slug: "quick-ship"
+    channelListings:
+      - channelSlug: "us-b2b"
+        isPublished: true
+
+# ============================================================================
+# PAGE TYPES (CMS Content Structure)
+# Demonstrates: CMS Capabilities
+# ============================================================================
+pageTypes:
+  - name: "Product Information"
+    attributes:
+      - name: "Document Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Technical Specification"
+          - name: "Installation Guide"
+          - name: "Safety Data Sheet"
+          - name: "Warranty Information"
+      - name: "Related Product"
+        inputType: REFERENCE
+        entityType: PRODUCT
+      - name: "Last Updated"
+        inputType: DATE
+
+  - name: "Resource Article"
+    attributes:
+      - name: "Article Type"
+        inputType: DROPDOWN
+        values:
+          - name: "How-To Guide"
+          - name: "Industry News"
+          - name: "Product Comparison"
+          - name: "Maintenance Tips"
+      - name: "Featured Image"
+        inputType: FILE
+      - name: "Published Date"
+        inputType: DATE
+
+  - name: "Company Page"
+    attributes:
+      - name: "Page Section"
+        inputType: DROPDOWN
+        values:
+          - name: "About Us"
+          - name: "Contact"
+          - name: "Locations"
+          - name: "Careers"
+          - name: "Terms & Conditions"
+
+  # ============================================================================
+  # B2B COMPANY MODEL (Parent-Child Hierarchy)
+  # ============================================================================
+  # This page type models B2B companies with parent-child relationships.
+  # Companies are stored as "models" (pages) with structured attributes.
+  # Customers reference their company via privateMetadata.company_id
+  # ============================================================================
+  - name: "Company"
+    attributes:
+      - name: "Company Code"
+        inputType: PLAIN_TEXT           # Unique identifier like "ACME-001"
+      - name: "Company Type"
+        inputType: DROPDOWN
+        values:
+          - name: "Parent Company"      # Corporate HQ
+          - name: "Child Company"       # Subsidiary/division
+          - name: "Standalone"          # Independent
+      - name: "Parent Company"
+        inputType: REFERENCE
+        entityType: PAGE                # Self-reference to another Company model!
+      - name: "Tax Exempt ID"
+        inputType: PLAIN_TEXT           # For tax-exempt B2B customers
+      - name: "Payment Terms"
+        inputType: DROPDOWN
+        values:
+          - name: "Net 15"
+          - name: "Net 30"
+          - name: "Net 45"
+          - name: "Net 60"
+          - name: "Prepaid"
+      - name: "Credit Limit"
+        inputType: PLAIN_TEXT           # e.g., "50000" (USD)
+      - name: "Industry"
+        inputType: DROPDOWN
+        values:
+          - name: "Manufacturing"
+          - name: "Distribution"
+          - name: "Construction"
+          - name: "Healthcare"
+          - name: "Food & Beverage"
+          - name: "Automotive"
+          - name: "Other"
+      - name: "Account Manager"
+        inputType: PLAIN_TEXT           # Sales rep name/email
+      - name: "Contract Start Date"
+        inputType: DATE
+      - name: "Contract End Date"
+        inputType: DATE
+      - name: "Notes"
+        inputType: RICH_TEXT            # Internal notes about the company
+
+# ============================================================================
+# MENUS (Navigation Structure)
+# Demonstrates: Frontend customization capabilities
+# ============================================================================
+menus:
+  - name: "Main Navigation"
+    slug: "main-nav"
+    items:
+      - name: "Equipment"
+        category: "equipment"
+      - name: "Parts"
+        category: "parts"
+      - name: "Safety"
+        category: "safety"
+      - name: "Supplies"
+        category: "supplies"
+
+  - name: "Quick Links"
+    slug: "quick-links"
+    items:
+      - name: "New Arrivals"
+        collection: "new-arrivals"
+      - name: "Quick Ship"
+        collection: "quick-ship"
+      - name: "Bulk Discounts"
+        collection: "bulk-discount"
+
+  - name: "Footer Links"
+    slug: "footer"
+    items:
+      - name: "Contact Us"
+        url: "https://example.com/contact"
+      - name: "Track Order"
+        url: "https://example.com/order-tracking"
+      - name: "Request Quote"
+        url: "https://example.com/quote-request"
+      - name: "Return Policy"
+        url: "https://example.com/returns"
+
+# ============================================================================
+# MODEL TYPES (Define structure for Company entities)
+# ============================================================================
+modelTypes:
+  - name: "Company"
+    attributes:
+      - name: "Company Code"
+        inputType: PLAIN_TEXT
+        required: true
+      - name: "Company Type"
+        inputType: DROPDOWN
+        required: true
+        values:
+          - name: "Parent Company"
+          - name: "Child Company"
+          - name: "Standalone"
+      - name: "Parent Company"
+        inputType: REFERENCE
+        entityType: PAGE
+      - name: "Tax Exempt ID"
+        inputType: PLAIN_TEXT
+      - name: "Payment Terms"
+        inputType: DROPDOWN
+        values:
+          - name: "Net 15"
+          - name: "Net 30"
+          - name: "Net 45"
+          - name: "Net 60"
+          - name: "Prepaid"
+      - name: "Credit Limit"
+        inputType: PLAIN_TEXT
+      - name: "Industry"
+        inputType: DROPDOWN
+        values:
+          - name: "Manufacturing"
+          - name: "Construction"
+          - name: "Distribution"
+          - name: "Healthcare"
+          - name: "Technology"
+      - name: "Account Manager"
+        inputType: PLAIN_TEXT
+      - name: "Contract Start Date"
+        inputType: DATE
+      - name: "Contract End Date"
+        inputType: DATE
+
+# ============================================================================
+# COMPANY MODELS (B2B Customer Hierarchy Demo Data)
+# ============================================================================
+# These are instances of the "Company" model type, demonstrating:
+# - Parent company with multiple child companies (Ship-To's / Bill-To's)
+# - Different payment terms per company
+# - Industry classification
+# - Tax exempt status
+# ============================================================================
+models:
+  # Parent Company - Corporate HQ
+  - title: "Acme Manufacturing Corp"
+    slug: "acme-manufacturing-corp"
+    modelType: "Company"
+    isPublished: false                    # Internal only, not public
+    attributes:
+      Company Code: "ACME-001"
+      Company Type: "Parent Company"
+      # Parent Company: null              # No parent - this IS the parent
+      Tax Exempt ID: "TX-ACME-2024-001"
+      Payment Terms: "Net 30"
+      Credit Limit: "500000"
+      Industry: "Manufacturing"
+      Account Manager: "john.smith@industrialsupply.demo"
+      Contract Start Date: "2024-01-01"
+      Contract End Date: "2026-12-31"
+
+  # Child Company 1 - East Coast Division (Ship-To)
+  - title: "Acme East Division"
+    slug: "acme-east-division"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "ACME-001-EAST"
+      Company Type: "Child Company"
+      Parent Company: "acme-manufacturing-corp"    # Reference to parent!
+      Tax Exempt ID: "TX-ACME-2024-001"            # Same tax exempt as parent
+      Payment Terms: "Net 30"                       # Inherits from parent
+      Credit Limit: "150000"
+      Industry: "Manufacturing"
+      Account Manager: "john.smith@industrialsupply.demo"
+
+  # Child Company 2 - West Coast Division (Ship-To)
+  - title: "Acme West Division"
+    slug: "acme-west-division"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "ACME-001-WEST"
+      Company Type: "Child Company"
+      Parent Company: "acme-manufacturing-corp"
+      Tax Exempt ID: "TX-ACME-2024-001"
+      Payment Terms: "Net 30"
+      Credit Limit: "150000"
+      Industry: "Manufacturing"
+      Account Manager: "sarah.jones@industrialsupply.demo"
+
+  # Child Company 3 - Mexico Subsidiary
+  - title: "Acme Mexico S.A. de C.V."
+    slug: "acme-mexico"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "ACME-001-MX"
+      Company Type: "Child Company"
+      Parent Company: "acme-manufacturing-corp"
+      Tax Exempt ID: ""                             # Different tax rules in MX
+      Payment Terms: "Net 45"                       # Different terms for international
+      Credit Limit: "100000"
+      Industry: "Manufacturing"
+      Account Manager: "carlos.garcia@industrialsupply.demo"
+
+  # Another Parent Company - Standalone
+  - title: "BuildRight Construction"
+    slug: "buildright-construction"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "BRC-002"
+      Company Type: "Standalone"
+      Tax Exempt ID: ""
+      Payment Terms: "Net 15"
+      Credit Limit: "75000"
+      Industry: "Construction"
+      Account Manager: "mike.wilson@industrialsupply.demo"
+      Contract Start Date: "2024-06-01"
+      Contract End Date: "2025-05-31"
+
+  # Another Parent with Children - Distribution Company
+  - title: "Global Distributors Inc"
+    slug: "global-distributors"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "GDI-003"
+      Company Type: "Parent Company"
+      Tax Exempt ID: "TX-GDI-2024-003"
+      Payment Terms: "Net 60"
+      Credit Limit: "1000000"
+      Industry: "Distribution"
+      Account Manager: "emma.davis@industrialsupply.demo"
+      Contract Start Date: "2023-01-01"
+      Contract End Date: "2027-12-31"
+
+  - title: "Global Distributors - Chicago"
+    slug: "global-distributors-chicago"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "GDI-003-CHI"
+      Company Type: "Child Company"
+      Parent Company: "global-distributors"
+      Tax Exempt ID: "TX-GDI-2024-003"
+      Payment Terms: "Net 60"
+      Credit Limit: "300000"
+      Industry: "Distribution"
+      Account Manager: "emma.davis@industrialsupply.demo"
+
+  - title: "Global Distributors - Dallas"
+    slug: "global-distributors-dallas"
+    modelType: "Company"
+    isPublished: false
+    attributes:
+      Company Code: "GDI-003-DAL"
+      Company Type: "Child Company"
+      Parent Company: "global-distributors"
+      Tax Exempt ID: "TX-GDI-2024-003"
+      Payment Terms: "Net 60"
+      Credit Limit: "300000"
+      Industry: "Distribution"
+      Account Manager: "robert.brown@industrialsupply.demo"
+
+# ============================================================================
+# SAMPLE PRODUCTS (Demo Data)
+# ============================================================================
+products:
+  # Industrial Equipment
+  - name: "ProLine 3000 Belt Conveyor System"
+    slug: "proline-3000-conveyor"
+    productType: "Industrial Equipment"
+    category: "belt-conveyors"
+    description: "High-capacity belt conveyor system for warehouse and distribution center applications. Features modular design for easy expansion and maintenance."
+    attributes:
+      Manufacturer: "ConveyorTech Industries"
+      Model Number: "PL-3000-24"
+      Warranty Period: "3 Years"
+      Equipment Type: "Conveyor Systems"
+      Power Requirements: "220V"
+    collections: ["new-arrivals", "best-sellers"]
+    variants:
+      - name: "24-inch Standard"
+        sku: "PL3000-24-STD"
+        weight: 450
+        trackInventory: true
+        attributes:
+          Configuration: "Standard"
+        channelListings:
+          - channel: "us-b2b"
+            price: 12500.00
+            costPrice: 8500.00
+          - channel: "canada-b2b"
+            price: 16250.00
+            costPrice: 11000.00
+      - name: "24-inch Heavy Duty"
+        sku: "PL3000-24-HD"
+        weight: 580
+        trackInventory: true
+        attributes:
+          Configuration: "Heavy Duty"
+        channelListings:
+          - channel: "us-b2b"
+            price: 15800.00
+            costPrice: 10800.00
+          - channel: "canada-b2b"
+            price: 20540.00
+            costPrice: 14000.00
+
+  # Replacement Parts
+  - name: "High-Torque Drive Motor 5HP"
+    slug: "drive-motor-5hp"
+    productType: "Replacement Parts"
+    category: "motors-drives"
+    description: "Industrial-grade 5HP drive motor compatible with most conveyor systems. TEFC enclosure for harsh environments."
+    attributes:
+      Manufacturer: "MotorPro"
+      Part Number: "MP-DM-5HP-TEFC"
+      Part Category: "Motors"
+    collections: ["best-sellers", "quick-ship"]
+    variants:
+      - name: "New OEM"
+        sku: "MPDM5HP-OEM"
+        weight: 35
+        trackInventory: true
+        attributes:
+          Condition: "New OEM"
+        channelListings:
+          - channel: "us-b2b"
+            price: 1250.00
+            costPrice: 750.00
+          - channel: "canada-b2b"
+            price: 1625.00
+            costPrice: 975.00
+      - name: "Refurbished"
+        sku: "MPDM5HP-REF"
+        weight: 35
+        trackInventory: true
+        attributes:
+          Condition: "Refurbished"
+        channelListings:
+          - channel: "us-b2b"
+            price: 750.00
+            costPrice: 350.00
+
+  # Safety Equipment
+  - name: "Industrial Hard Hat with Face Shield"
+    slug: "hard-hat-face-shield"
+    productType: "Safety Equipment"
+    category: "ppe"
+    description: "OSHA-compliant hard hat with integrated face shield. Impact-resistant and comfortable for all-day wear."
+    attributes:
+      Manufacturer: "SafetyFirst"
+      Safety Certification: ["OSHA Compliant", "ANSI Certified"]
+      Protection Type: "Head Protection"
+    collections: ["bulk-discount"]
+    variants:
+      - name: "Medium - White"
+        sku: "SF-HH-M-WHT"
+        weight: 0.5
+        trackInventory: true
+        attributes:
+          Size: "Medium"
+        channelListings:
+          - channel: "us-b2b"
+            price: 45.00
+            costPrice: 18.00
+      - name: "Large - White"
+        sku: "SF-HH-L-WHT"
+        weight: 0.55
+        trackInventory: true
+        attributes:
+          Size: "Large"
+        channelListings:
+          - channel: "us-b2b"
+            price: 45.00
+            costPrice: 18.00
+      - name: "X-Large - White"
+        sku: "SF-HH-XL-WHT"
+        weight: 0.6
+        trackInventory: true
+        attributes:
+          Size: "X-Large"
+        channelListings:
+          - channel: "us-b2b"
+            price: 48.00
+            costPrice: 19.00
+
+  # Industrial Supplies
+  - name: "Multi-Purpose Industrial Lubricant"
+    slug: "industrial-lubricant"
+    productType: "Industrial Supplies"
+    category: "lubricants"
+    description: "High-performance lubricant for industrial machinery. Reduces friction and extends equipment life."
+    attributes:
+      Manufacturer: "LubeMax"
+      Supply Type: "Lubricants"
+    collections: ["bulk-discount", "quick-ship"]
+    variants:
+      - name: "1 Quart"
+        sku: "LM-MP-1QT"
+        weight: 1
+        trackInventory: true
+        attributes:
+          Pack Size: "Single Unit"
+        channelListings:
+          - channel: "us-b2b"
+            price: 24.99
+            costPrice: 8.00
+      - name: "Case of 12 (1 Quart each)"
+        sku: "LM-MP-12QT"
+        weight: 12
+        trackInventory: true
+        attributes:
+          Pack Size: "Case of 12"
+        channelListings:
+          - channel: "us-b2b"
+            price: 249.99
+            costPrice: 84.00
+      - name: "55 Gallon Drum"
+        sku: "LM-MP-55GAL"
+        weight: 200
+        trackInventory: true
+        attributes:
+          Pack Size: "Bulk (100+)"
+        channelListings:
+          - channel: "us-b2b"
+            price: 1850.00
+            costPrice: 750.00
