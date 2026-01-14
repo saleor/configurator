@@ -340,3 +340,7 @@ Well-implemented patterns worth highlighting.
 - **Complete entity workflow**: See `adding-entity-types` for architectural patterns
 - **Zod standards**: See `designing-zod-schemas` for schema review criteria
 - **Pre-commit checks**: See `validating-pre-commit` for quality gate commands
+
+## Quick Reference Rule
+
+For a condensed quick reference, see `.claude/rules/code-quality.md` (automatically loaded when editing `src/**/*.ts` files).

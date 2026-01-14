@@ -147,3 +147,7 @@ mcp__context7__get-library-docs with context7CompatibleLibraryID: "/colinhacks/z
 - **Complete entity workflow**: See `adding-entity-types` for full schema-to-service implementation
 - **Testing schemas**: See `analyzing-test-coverage` for test data builders
 - **GraphQL type mapping**: See `writing-graphql-operations` for schema-to-GraphQL patterns
+
+## Quick Reference Rule
+
+For a condensed quick reference, see `.claude/rules/config-schema.md` (automatically loaded when editing `src/modules/config/**/*.ts` files).

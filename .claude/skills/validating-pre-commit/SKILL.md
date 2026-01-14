@@ -246,3 +246,7 @@ These run automatically - no manual action needed.
 - **Code standards**: See `reviewing-typescript-code` for quality criteria
 - **CI integration**: See `managing-github-ci` for workflow troubleshooting
 - **Test failures**: See `analyzing-test-coverage` for test debugging
+
+## Quick Reference Rule
+
+For a condensed quick reference, see `.claude/rules/deployment-safety.md` (always loaded - applies to all files).
