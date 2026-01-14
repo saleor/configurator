@@ -94,6 +94,7 @@ export class ModelService {
   }
 
   private mapInputToUpdateInput(input: ModelInputConfig): PageInput {
+    // Note: attributes will be resolved and added separately in updateModel
     return object.filterUndefinedValues({
       title: input.title,
       slug: input.slug,
@@ -101,6 +102,22 @@ export class ModelService {
       isPublished: input.isPublished,
       publishedAt: input.publishedAt,
     });
+  }
+
+  private async mapInputToUpdateInputWithAttributes(
+    input: ModelInputConfig,
+    pageTypeId: string
+  ): Promise<PageInput> {
+    const baseInput = this.mapInputToUpdateInput(input);
+
+    // Resolve attributes if provided
+    if (input.attributes && Object.keys(input.attributes).length > 0) {
+      const attrResolver = new ModelAttributeResolver(this.attributeService.repo);
+      const attributeValues = await attrResolver.resolveAttributes(input.attributes);
+      return { ...baseInput, attributes: attributeValues };
+    }
+
+    return baseInput;
   }
 
   async createModel(input: ModelInputConfig): Promise<Page> {
@@ -131,14 +148,12 @@ export class ModelService {
     return ServiceErrorWrapper.wrapServiceCall("update model", "model", input.slug, async () => {
       logger.debug("Updating model/page", { id, title: input.title, slug: input.slug });
 
-      const updateInput = this.mapInputToUpdateInput(input);
-      const page = await this.repository.updatePage(id, updateInput);
+      // Resolve page type ID for attribute resolution
+      const pageTypeId = await this.resolvePageTypeId(input.modelType);
 
-      // Update attributes if provided
-      if (input.attributes !== undefined) {
-        const pageTypeId = await this.resolvePageTypeId(input.modelType);
-        await this.updateModelAttributes(id, input.attributes, pageTypeId);
-      }
+      // Build update input with attributes included (fixes attributeIds bug)
+      const updateInput = await this.mapInputToUpdateInputWithAttributes(input, pageTypeId);
+      const page = await this.repository.updatePage(id, updateInput);
 
       logger.debug("Successfully updated model/page", {
         id: page.id,
