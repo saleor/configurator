@@ -1,6 +1,6 @@
 {
   "name": "@saleor/configurator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "main": "dist/main.js",
