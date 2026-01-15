@@ -63,6 +63,49 @@ export class ProductService {
   }
 
   /**
+   * Wraps a plain text description in EditorJS JSON format.
+   * If the description is already valid JSON, it passes through unchanged.
+   * If it looks like JSON but is invalid, logs a warning and wraps as plain text.
+   *
+   * @param description - Raw description string from config
+   * @returns EditorJS JSON string, or undefined if empty/whitespace
+   */
+  private wrapDescriptionAsEditorJS(description: string | undefined): string | undefined {
+    if (!description || description.trim() === "") {
+      return undefined;
+    }
+
+    const raw = description.trim();
+
+    // Check if it looks like JSON (starts and ends with braces)
+    if (raw.startsWith("{") && raw.endsWith("}")) {
+      try {
+        JSON.parse(raw);
+        return raw; // Valid JSON, pass through unchanged
+      } catch {
+        // Looks like JSON but isn't - likely user error like "{Contact us}"
+        logger.warn("Description looks like JSON but failed to parse, wrapping as plain text", {
+          preview: raw.length > 100 ? `${raw.substring(0, 100)}...` : raw,
+        });
+        // Fall through to wrap as plain text
+      }
+    }
+
+    // Wrap plain text in EditorJS format
+    return JSON.stringify({
+      time: Date.now(),
+      blocks: [
+        {
+          id: `desc-${Date.now()}`,
+          data: { text: raw },
+          type: "paragraph",
+        },
+      ],
+      version: "2.24.3",
+    });
+  }
+
+  /**
    * Pre-warm caches with bulk data to reduce individual queries
    */
   async preCacheProducts(slugs: string[]): Promise<void> {
@@ -485,25 +528,8 @@ export class ProductService {
       // Always include attributes array (tests expect this field)
       updateProductInput.attributes = attributes;
 
-      // Safely update description if provided
-      if (productInput.description && productInput.description.trim() !== "") {
-        const raw = productInput.description.trim();
-        // If the description already looks like JSON, pass through; otherwise wrap as EditorJS JSON
-        const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
-        updateProductInput.description = isJsonLike
-          ? raw
-          : JSON.stringify({
-              time: Date.now(),
-              blocks: [
-                {
-                  id: `desc-${Date.now()}`,
-                  data: { text: raw },
-                  type: "paragraph",
-                },
-              ],
-              version: "2.24.3",
-            });
-      }
+      // Wrap description as EditorJS JSON if provided
+      updateProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
 
       let product: Product;
       try {
@@ -556,25 +582,8 @@ export class ProductService {
     // Always include attributes array (tests expect this field)
     createProductInput.attributes = attributes;
 
-    // Only include description if provided; if the value looks like JSON, pass through.
-    // Otherwise, wrap plain text into a minimal EditorJS JSON structure (Saleor expects JSONString).
-    if (productInput.description && productInput.description.trim() !== "") {
-      const raw = productInput.description.trim();
-      const isJsonLike = raw.startsWith("{") && raw.endsWith("}");
-      createProductInput.description = isJsonLike
-        ? raw
-        : JSON.stringify({
-            time: Date.now(),
-            blocks: [
-              {
-                id: `desc-${Date.now()}`,
-                data: { text: raw },
-                type: "paragraph",
-              },
-            ],
-            version: "2.24.3",
-          });
-    }
+    // Wrap description as EditorJS JSON if provided
+    createProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
 
     const product = await ServiceErrorWrapper.wrapServiceCall(
       "create product",
@@ -1029,7 +1038,7 @@ export class ProductService {
             const input: ProductCreateInput = {
               name: productInput.name,
               slug: productInput.slug,
-              description: productInput.description,
+              description: this.wrapDescriptionAsEditorJS(productInput.description),
               productType: productTypeId,
               category: categoryId,
               attributes,
@@ -1091,7 +1100,7 @@ export class ProductService {
         const updateInput: ProductUpdateInput = {
           name: input.name,
           slug: input.slug,
-          description: input.description,
+          description: this.wrapDescriptionAsEditorJS(input.description),
           category: categoryId,
           attributes,
         };

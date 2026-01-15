@@ -1415,4 +1415,156 @@ describe("ProductService", () => {
       expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
     });
   });
+
+  describe("Description EditorJS wrapping for bulk operations", () => {
+    const createMockProduct = (overrides = {}) =>
+      ({
+        id: "product-123",
+        name: "Test Product",
+        slug: "test-product",
+        description: null,
+        productType: { id: "type-123", name: "Book" },
+        category: { id: "cat-123", name: "Fiction" },
+        channelListings: null,
+        media: null,
+        ...overrides,
+      }) as any;
+
+    beforeEach(() => {
+      // Setup common mocks for bulk operations
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "type-123",
+        name: "Book",
+      } as any);
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-123",
+        name: "Fiction",
+      } as any);
+    });
+
+    it("should handle empty string description for bulk create", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [{ product: createMockProduct(), errors: [] }],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test",
+          slug: "test",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: "",
+        },
+      ]);
+
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products[0].description).toBeUndefined();
+    });
+
+    it("should handle whitespace-only description for bulk create", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [{ product: createMockProduct(), errors: [] }],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test",
+          slug: "test",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: "   ",
+        },
+      ]);
+
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products[0].description).toBeUndefined();
+    });
+
+    it("should wrap plain text description as EditorJS for bulk create", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [{ product: createMockProduct(), errors: [] }],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test",
+          slug: "test",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: "A simple product description",
+        },
+      ]);
+
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      const parsed = JSON.parse(callArgs.products[0].description as string);
+
+      expect(parsed).toHaveProperty("blocks");
+      expect(parsed.blocks[0].type).toBe("paragraph");
+      expect(parsed.blocks[0].data.text).toBe("A simple product description");
+    });
+
+    it("should pass through valid JSON description unchanged for bulk create", async () => {
+      const validEditorJS = JSON.stringify({
+        time: 1234567890,
+        blocks: [{ id: "123", type: "paragraph", data: { text: "Hello" } }],
+        version: "2.24.3",
+      });
+
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [{ product: createMockProduct(), errors: [] }],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test",
+          slug: "test",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: validEditorJS,
+        },
+      ]);
+
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products[0].description).toBe(validEditorJS);
+    });
+
+    it("should wrap JSON-like but invalid string as plain text for bulk create", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [{ product: createMockProduct(), errors: [] }],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Test",
+          slug: "test",
+          productType: "Book",
+          category: "Fiction",
+          variants: [],
+          description: "{Contact us at support@example.com}",
+        },
+      ]);
+
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      const parsed = JSON.parse(callArgs.products[0].description as string);
+
+      // Should be wrapped as EditorJS, not passed through
+      expect(parsed).toHaveProperty("blocks");
+      expect(parsed.blocks[0].data.text).toBe("{Contact us at support@example.com}");
+    });
+  });
 });
