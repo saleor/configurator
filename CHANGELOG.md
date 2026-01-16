@@ -1,5 +1,46 @@
 # saleor-configurator
 
+## 1.1.0
+
+### Minor Changes
+
+- 9ef53d2: Add CI/CD integration with GitHub Actions support
+
+  - CLI flags: `--json`, `--githubComment`, `--plan`, `--failOnDelete`, `--failOnBreaking`
+  - GitHub Action for automated workflows
+  - Workflow templates for PR preview, deploy, and drift detection
+
+- 7b7c776: Add Claude Code rules, hooks, and structured development workflows
+
+  - Move CLAUDE.md to .claude/ for better organization
+  - Add contextual rules that auto-load based on file patterns
+  - Add skill evaluation hook for reliable skill activation
+  - Add speckit commands for structured feature planning
+  - Include demo configurations and templates
+
+### Patch Changes
+
+- ba73c08: Fix bulk product operations not wrapping descriptions as EditorJS JSON
+
+  - Extract `wrapDescriptionAsEditorJS` method to consolidate description handling
+  - Fix `bootstrapProductsBulk` create path missing EditorJS wrapping
+  - Fix `bootstrapProductsBulk` update path missing EditorJS wrapping
+  - Add JSON.parse validation to catch invalid JSON-like strings (e.g., "{Contact us}")
+  - Log warning when description looks like JSON but fails to parse
+  - Add comprehensive tests for edge cases (empty, whitespace, invalid JSON)
+
+- 46da767: Fix model update failing with "attributeIds" required error
+
+  - Include attributes directly in pageUpdate mutation instead of using separate pageAttributeAssign call
+  - Resolves deployment failures when updating models with attribute values
+
+- 97bcf71: Optimize Claude Code skills and add Serena memories for AI-assisted development
+
+  - Add new `adding-entity-types` skill with complete E2E workflow documentation
+  - Update all 9 existing skills with improved descriptions and cross-references
+  - Add project-specific Serena memories (architecture, patterns, testing)
+  - Update Serena workflow tips with Configurator-specific examples
+
 ## 1.0.0
 
 ### Major Changes
