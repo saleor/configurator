@@ -262,5 +262,119 @@ describe("ProductComparator", () => {
         { externalUrl: "https://cdn.example.com/product.jpg", alt: "Updated alt" },
       ]);
     });
+
+    describe("skipMedia option", () => {
+      it("should NOT report media changes when skipMedia is true", () => {
+        const remote = [
+          {
+            ...sampleProduct,
+            media: [
+              {
+                externalUrl: "https://cdn.example.com/old-image.jpg",
+                alt: "Old",
+              },
+            ],
+          },
+        ];
+        const local = [
+          {
+            ...sampleProduct,
+            media: [
+              {
+                externalUrl: "https://cdn.example.com/new-image.jpg",
+                alt: "New",
+              },
+            ],
+          },
+        ];
+
+        const results = comparator.compare(local, remote, { skipMedia: true });
+
+        // No changes should be reported when only media differs
+        expect(results).toHaveLength(0);
+      });
+
+      it("should report media changes when skipMedia is false", () => {
+        const remote = [
+          {
+            ...sampleProduct,
+            media: [
+              {
+                externalUrl: "https://cdn.example.com/old-image.jpg",
+                alt: "Old",
+              },
+            ],
+          },
+        ];
+        const local = [
+          {
+            ...sampleProduct,
+            media: [
+              {
+                externalUrl: "https://cdn.example.com/new-image.jpg",
+                alt: "New",
+              },
+            ],
+          },
+        ];
+
+        const results = comparator.compare(local, remote, { skipMedia: false });
+
+        expect(results).toHaveLength(1);
+        expect(results[0].operation).toBe("UPDATE");
+        const mediaChange = results[0].changes?.find((change) => change.field === "media");
+        expect(mediaChange).toBeDefined();
+      });
+
+      it("should report media changes when options is undefined (default behavior)", () => {
+        const remote = [
+          {
+            ...sampleProduct,
+            media: [{ externalUrl: "https://cdn.example.com/old.jpg" }],
+          },
+        ];
+        const local = [
+          {
+            ...sampleProduct,
+            media: [{ externalUrl: "https://cdn.example.com/new.jpg" }],
+          },
+        ];
+
+        // No options passed
+        const results = comparator.compare(local, remote);
+
+        expect(results).toHaveLength(1);
+        const mediaChange = results[0].changes?.find((change) => change.field === "media");
+        expect(mediaChange).toBeDefined();
+      });
+
+      it("should still report non-media changes when skipMedia is true", () => {
+        const remote = [
+          {
+            ...sampleProduct,
+            productType: "Clothing",
+            media: [{ externalUrl: "https://cdn.example.com/old.jpg" }],
+          },
+        ];
+        const local = [
+          {
+            ...sampleProduct,
+            productType: "Electronics",
+            media: [{ externalUrl: "https://cdn.example.com/new.jpg" }],
+          },
+        ];
+
+        const results = comparator.compare(local, remote, { skipMedia: true });
+
+        // Should report productType change but not media change
+        expect(results).toHaveLength(1);
+        expect(results[0].operation).toBe("UPDATE");
+        expect(results[0].changes).toContainEqual(
+          expect.objectContaining({ field: "productType" })
+        );
+        const mediaChange = results[0].changes?.find((change) => change.field === "media");
+        expect(mediaChange).toBeUndefined();
+      });
+    });
   });
 });

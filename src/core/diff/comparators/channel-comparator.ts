@@ -1,7 +1,7 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import { EntityValidationError } from "../errors";
 import type { DiffChange } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 /**
  * Channel entity type for type safety
@@ -140,7 +140,11 @@ export class ChannelComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote channel entities
    */
-  protected compareEntityFields(local: ChannelEntity, remote: ChannelEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: ChannelEntity,
+    remote: ChannelEntity,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic channel fields

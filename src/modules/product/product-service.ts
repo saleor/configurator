@@ -703,18 +703,24 @@ export class ProductService {
     return createdVariants;
   }
 
-  async bootstrapProduct(productInput: ProductInput): Promise<{
+  async bootstrapProduct(
+    productInput: ProductInput,
+    options?: { skipMedia?: boolean }
+  ): Promise<{
     product: Product;
     variants: ProductVariant[];
   }> {
-    logger.debug("Bootstrapping product", { name: productInput.name });
+    logger.debug("Bootstrapping product", {
+      name: productInput.name,
+      skipMedia: options?.skipMedia,
+    });
 
     try {
       // 1. Create or get product
       let product = await this.upsertProduct(productInput);
 
-      // 2. Sync product media (external URLs)
-      if (productInput.media !== undefined) {
+      // 2. Sync product media (external URLs) - skip if skipMedia option is set
+      if (productInput.media !== undefined && !options?.skipMedia) {
         await this.syncProductMedia(product, productInput.media);
       }
 
@@ -810,14 +816,20 @@ export class ProductService {
     }
   }
 
-  async bootstrapProducts(products: ProductInput[]): Promise<void> {
-    logger.debug("Bootstrapping products", { count: products.length });
+  async bootstrapProducts(
+    products: ProductInput[],
+    options?: { skipMedia?: boolean }
+  ): Promise<void> {
+    logger.debug("Bootstrapping products", {
+      count: products.length,
+      skipMedia: options?.skipMedia,
+    });
 
     const results = await ServiceErrorWrapper.wrapBatch(
       products,
       "Bootstrap products",
       (product) => product.name,
-      (productInput) => this.bootstrapProduct(productInput)
+      (productInput) => this.bootstrapProduct(productInput, options)
     );
 
     if (results.failures.length > 0) {
@@ -980,8 +992,13 @@ export class ProductService {
    * Bootstrap multiple products using bulk mutations for improved performance
    * Uses bulk operations to reduce API calls and avoid rate limiting
    */
-  async bootstrapProductsBulk(products: ProductInput[]): Promise<void> {
-    logger.info(`Bootstrapping ${products.length} products via bulk operations`);
+  async bootstrapProductsBulk(
+    products: ProductInput[],
+    options?: { skipMedia?: boolean }
+  ): Promise<void> {
+    logger.info(`Bootstrapping ${products.length} products via bulk operations`, {
+      skipMedia: options?.skipMedia,
+    });
 
     // Step 1: Fetch existing products to determine create vs update
     const existingProductsMap = new Map<string, Product>();
@@ -1249,23 +1266,27 @@ export class ProductService {
       }
     }
 
-    // Step 7: Handle media for products (no bulk APIs)
+    // Step 7: Handle media for products (no bulk APIs) - skip if skipMedia option is set
     // Note: Channel listings are already updated in Step 5.5 before variant creation
-    await Promise.all(
-      allProductInputs.map(async (productInput) => {
-        const product = allProducts.find((p) => p.slug === productInput.slug);
-        if (!product) return;
+    if (!options?.skipMedia) {
+      await Promise.all(
+        allProductInputs.map(async (productInput) => {
+          const product = allProducts.find((p) => p.slug === productInput.slug);
+          if (!product) return;
 
-        // Sync media
-        if (productInput.media !== undefined) {
-          try {
-            await this.syncProductMedia(product, productInput.media);
-          } catch (error) {
-            logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
+          // Sync media
+          if (productInput.media !== undefined) {
+            try {
+              await this.syncProductMedia(product, productInput.media);
+            } catch (error) {
+              logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
+            }
           }
-        }
-      })
-    );
+        })
+      );
+    } else {
+      logger.debug("Skipping media sync for bulk products (skipMedia=true)");
+    }
 
     // Step 8: Report results
     if (allFailures.length > 0) {

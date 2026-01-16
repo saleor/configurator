@@ -1,7 +1,7 @@
 import type { MenuInput } from "../../../modules/config/schema/schema";
 import type { Menu, MenuItem } from "../../../modules/menu/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 interface MenuItemInput {
   name: string;
@@ -61,7 +61,11 @@ export class MenuComparator extends BaseEntityComparator<
     return entity.slug;
   }
 
-  protected compareEntityFields(local: MenuInput | Menu, remote: MenuInput | Menu): DiffChange[] {
+  protected compareEntityFields(
+    local: MenuInput | Menu,
+    remote: MenuInput | Menu,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic fields

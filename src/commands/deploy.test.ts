@@ -208,6 +208,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -241,6 +242,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(2)");
@@ -281,6 +283,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
@@ -317,6 +320,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -350,6 +354,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
@@ -371,6 +376,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(1)");
@@ -404,6 +410,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
@@ -449,6 +456,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       // Now exits with EXIT_CODES.SUCCESS when no changes
@@ -470,6 +478,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       // The deployment will succeed with exit code 0
@@ -493,6 +502,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
@@ -526,6 +536,7 @@ describe("Deploy Command", () => {
         plan: false,
         failOnDelete: false,
         reportPath: "custom-report.json",
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
@@ -550,6 +561,7 @@ describe("Deploy Command", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       };
 
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");

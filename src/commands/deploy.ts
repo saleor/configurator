@@ -47,6 +47,11 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
   plan: z.boolean().default(false).describe("Show deployment plan without executing"),
   /** Exit with error code if any deletions detected */
   failOnDelete: z.boolean().default(false).describe("Exit with error if deletions detected"),
+  /** Skip media fields during deployment (preserves target media) */
+  skipMedia: z
+    .boolean()
+    .default(false)
+    .describe("Skip media fields during deployment (preserves target media)"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -339,7 +344,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }> {
     const configurator = createConfigurator(args);
 
-    const { summary, output } = await configurator.diff();
+    const { summary, output } = await configurator.diff({
+      skipMedia: args.skipMedia,
+    });
 
     return {
       summary,
@@ -391,10 +398,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   /**
    * Handles plan (dry-run) mode output
    */
-  private handlePlanMode(
-    diffAnalysis: { summary: DiffSummary },
-    args: DeployCommandArgs
-  ): never {
+  private handlePlanMode(diffAnalysis: { summary: DiffSummary }, args: DeployCommandArgs): never {
     if (args.json) {
       console.log(this.formatJsonOutput(diffAnalysis.summary, args));
     } else {
@@ -482,6 +486,16 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     if (!args.json) {
       this.console.header("🚀 Saleor Configuration Deploy\n");
+      if (args.skipMedia) {
+        this.console.muted(
+          "📷 Media handling: Skipped (--skip-media flag) - existing media will be preserved"
+        );
+      } else {
+        // Warn about potential cross-environment media issues
+        this.console.muted(
+          "💡 Tip: Use --skip-media when deploying across environments to preserve target media"
+        );
+      }
     }
 
     await this.performDeploymentFlow(args);
@@ -509,5 +523,6 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
     `${COMMAND_NAME} deploy --plan # Dry-run: show what would be deployed`,
     `${COMMAND_NAME} deploy --json # Output deployment results as JSON`,
     `${COMMAND_NAME} deploy --fail-on-delete --ci # Block deployment if deletions detected`,
+    `${COMMAND_NAME} deploy --skip-media # Deploy without modifying existing media`,
   ],
 };

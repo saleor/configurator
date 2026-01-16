@@ -3,7 +3,7 @@ import type {
   TaxClassInput,
 } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 interface TaxClassEntity extends TaxClassInput, Record<string, unknown> {
   id?: string;
@@ -70,7 +70,11 @@ export class TaxClassComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote tax class entities
    */
-  protected compareEntityFields(local: TaxClassEntity, remote: TaxClassEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: TaxClassEntity,
+    remote: TaxClassEntity,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare name (though it shouldn't change as it's the identifier)

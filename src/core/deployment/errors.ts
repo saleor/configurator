@@ -431,5 +431,8 @@ export function toDeploymentError(error: unknown, operation = "deployment"): Dep
   const msg = error.message.toLowerCase();
   const matcher = ERROR_MATCHERS.find((m) => m.matches(msg));
 
-  return matcher?.create(error, operation) ?? new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error);
+  return (
+    matcher?.create(error, operation) ??
+    new UnexpectedDeploymentError(`Unexpected error during ${operation}`, error)
+  );
 }

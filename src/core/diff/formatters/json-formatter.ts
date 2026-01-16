@@ -104,7 +104,6 @@ export class JsonDiffFormatter extends BaseDiffFormatter {
 
     return result;
   }
-
 }
 
 /**

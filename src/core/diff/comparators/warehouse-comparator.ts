@@ -1,7 +1,7 @@
 import type { WarehouseInput } from "../../../modules/config/schema/schema";
 import type { Warehouse } from "../../../modules/warehouse/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 // Type for country in remote warehouse address
 type RemoteCountry = {
@@ -186,7 +186,11 @@ export class WarehouseComparator extends BaseEntityComparator<
     return [];
   }
 
-  protected compareEntityFields(local: WarehouseInput, remote: Warehouse): DiffChange[] {
+  protected compareEntityFields(
+    local: WarehouseInput,
+    remote: Warehouse,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic fields

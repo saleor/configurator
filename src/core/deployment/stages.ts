@@ -697,16 +697,23 @@ export const productsStage: DeploymentStage = {
       }
 
       // Size-adaptive strategy: use bulk operations for larger deployments
+      const productOptions = context.args.skipMedia ? { skipMedia: true } : undefined;
       if (productsToProcess.length <= BulkOperationThresholds.PRODUCTS) {
         // Small config: use existing sequential approach for better error granularity
         logger.debug(
           BulkOperationMessages.SEQUENTIAL_PROCESSING(productsToProcess.length, "products")
         );
-        await context.configurator.services.product.bootstrapProducts(productsToProcess);
+        await context.configurator.services.product.bootstrapProducts(
+          productsToProcess,
+          productOptions
+        );
       } else {
         // Large config: use bulk mutations for efficiency and to avoid rate limiting
         logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
-        await context.configurator.services.product.bootstrapProductsBulk(productsToProcess);
+        await context.configurator.services.product.bootstrapProductsBulk(
+          productsToProcess,
+          productOptions
+        );
       }
     } catch (error) {
       throw new Error(

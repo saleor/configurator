@@ -4,7 +4,7 @@ import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import { formatDiff } from "./diff";
-import type { ParsedSelectiveOptions } from "./diff/types";
+import type { DiffOptions, ParsedSelectiveOptions } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
 
 export class SaleorConfigurator {
@@ -160,11 +160,11 @@ export class SaleorConfigurator {
     }
   }
 
-  async diff() {
+  async diff(options?: DiffOptions) {
     cliConsole.progress.start("Comparing local and remote configurations");
     try {
       // Use the shared diff service instance from service container to ensure consistency
-      const summary = await this.services.diffService.compare();
+      const summary = await this.services.diffService.compare(options);
       cliConsole.progress.succeed("Configuration comparison completed");
 
       const output = formatDiff(summary);

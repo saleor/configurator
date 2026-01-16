@@ -64,6 +64,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -142,6 +143,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -186,6 +188,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -241,6 +244,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -295,6 +299,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(2)");
 
@@ -343,6 +348,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(3)");
 
@@ -374,6 +380,7 @@ describe("Deploy Command - Integration Tests", () => {
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -408,6 +415,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -434,6 +442,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -574,6 +583,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -663,6 +673,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -759,6 +770,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -791,6 +803,7 @@ invalid_yaml: [
           json: false,
           plan: false,
           failOnDelete: false,
+          skipMedia: false,
         })
       ).rejects.toThrow("process.exit(0)");
 

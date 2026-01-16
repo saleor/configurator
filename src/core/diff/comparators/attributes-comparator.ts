@@ -1,6 +1,6 @@
 import type { FullAttribute } from "../../../modules/config/schema/attribute.schema";
 import type { DiffChange, DiffResult } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 type AttributeEntity = FullAttribute;
 
@@ -40,7 +40,11 @@ export class AttributesComparator extends BaseEntityComparator<
     return entity.name;
   }
 
-  protected compareEntityFields(local: AttributeEntity, remote: AttributeEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: AttributeEntity,
+    remote: AttributeEntity,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
     if (local.inputType !== remote.inputType) {
       changes.push(this.createFieldChange("inputType", remote.inputType, local.inputType));

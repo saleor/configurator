@@ -19,8 +19,7 @@ export type EntityType =
   | "Warehouses"
   | "TaxClasses"
   | "Shipping Zones"
-  | "Attributes"
-  | "Products";
+  | "Attributes";
 
 /**
  * Represents a single field change in a diff operation
@@ -81,6 +80,11 @@ export interface DiffOptions {
   readonly includeDetails?: boolean;
   /** Entity types to include in the diff (all by default) */
   readonly entityTypes?: readonly EntityType[];
+  /**
+   * When true, excludes media fields from comparison.
+   * Media differences will not be reported in diff results.
+   */
+  readonly skipMedia?: boolean;
 }
 
 /**

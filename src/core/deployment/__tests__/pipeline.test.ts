@@ -21,6 +21,7 @@ describe("DeploymentPipeline", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       },
       summary: { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] },
       startTime: new Date(),

@@ -74,6 +74,7 @@ describe("diff command", () => {
           failOnDelete: false,
           failOnBreaking: false,
           summary: false,
+          skipMedia: false,
         });
       }
     });
@@ -96,6 +97,7 @@ describe("diff command", () => {
           failOnDelete: false,
           failOnBreaking: false,
           summary: false,
+          skipMedia: false,
         });
       }
     });
@@ -133,6 +135,7 @@ describe("diff command", () => {
       failOnDelete: false,
       failOnBreaking: false,
       summary: false,
+      skipMedia: false,
     };
 
     it("should display header", async () => {
@@ -269,6 +272,7 @@ describe("diff command", () => {
       failOnDelete: false,
       failOnBreaking: false,
       summary: false,
+      skipMedia: false,
     };
 
     it("should handle configuration loading errors", async () => {
@@ -306,6 +310,7 @@ describe("diff command", () => {
       failOnDelete: false,
       failOnBreaking: false,
       summary: false,
+      skipMedia: false,
     };
 
     it("should handle large diff results", async () => {
