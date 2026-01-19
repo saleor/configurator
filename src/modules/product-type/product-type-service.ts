@@ -2,14 +2,70 @@ import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { AttributeService } from "../attribute/attribute-service";
 import { isReferencedAttribute } from "../attribute/attribute-service";
-import type { AttributeInput, SimpleAttribute } from "../config/schema/attribute.schema";
+import type { Attribute } from "../attribute/repository";
+import {
+  type AttributeInput,
+  type SimpleAttribute,
+  VARIANT_SELECTION_SUPPORTED_TYPES,
+} from "../config/schema/attribute.schema";
 import type { ProductTypeInput } from "../config/schema/schema";
 import {
   ProductTypeAttributeValidationError,
   ProductTypeCreationError,
   ProductTypeUpdateError,
 } from "./errors";
-import type { ProductType, ProductTypeOperations } from "./repository";
+import type { AttributeAssignmentInput, ProductType, ProductTypeOperations } from "./repository";
+
+/** Helper to check if an attribute has variantSelection enabled */
+const hasVariantSelection = (attr: AttributeInput): boolean =>
+  "variantSelection" in attr && attr.variantSelection === true;
+
+/** Build a map of attribute names to variantSelection for referenced attributes */
+const buildReferencedVariantSelectionMap = (attributes: AttributeInput[]): Map<string, true> =>
+  new Map(
+    attributes
+      .filter(isReferencedAttribute)
+      .filter(hasVariantSelection)
+      .map((attr) => [attr.attribute, true] as const)
+  );
+
+/** Build a map of attribute names to variantSelection for inline attributes */
+const buildInlineVariantSelectionMap = (attributes: AttributeInput[]): Map<string, true> =>
+  new Map(
+    attributes
+      .filter((attr): attr is SimpleAttribute => !isReferencedAttribute(attr))
+      .filter(hasVariantSelection)
+      .map((attr) => [attr.name, true] as const)
+  );
+
+/** Extract referenced attribute names from input attributes */
+const getReferencedAttributeNames = (attributes: AttributeInput[]): string[] =>
+  attributes.filter(isReferencedAttribute).map((attr) => attr.attribute);
+
+/** Validate variantSelection against attribute input types */
+const validateVariantSelectionInputTypes = (
+  variantSelectionNames: string[],
+  attributesByName: Map<string, Attribute>,
+  productTypeName: string
+): void => {
+  for (const attrName of variantSelectionNames) {
+    const attr = attributesByName.get(attrName);
+    if (!attr?.inputType) continue;
+
+    const isSupported = VARIANT_SELECTION_SUPPORTED_TYPES.includes(
+      attr.inputType as (typeof VARIANT_SELECTION_SUPPORTED_TYPES)[number]
+    );
+
+    if (!isSupported) {
+      throw new ProductTypeAttributeValidationError(
+        `Attribute "${attrName}" has variantSelection: true but input type "${attr.inputType}" does not support variant selection. ` +
+          `Supported input types are: ${VARIANT_SELECTION_SUPPORTED_TYPES.join(", ")}`,
+        productTypeName,
+        attrName
+      );
+    }
+  }
+};
 
 export class ProductTypeService {
   constructor(
@@ -95,19 +151,63 @@ export class ProductTypeService {
   private async getExistingAttributesToAssign(
     productType: ProductType,
     inputAttributes: AttributeInput[]
-  ) {
-    const existingAttributeNames = [
-      ...(productType.productAttributes?.map((a) => a.name) ?? []),
-      ...(productType.variantAttributes?.map((a) => a.name) ?? []),
-    ].filter((name): name is string => name !== null);
+  ): Promise<AttributeAssignmentInput[]> {
+    const referencedAttrNames = getReferencedAttributeNames(inputAttributes);
 
-    const referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
-      inputAttributes,
-      "PRODUCT_TYPE",
-      existingAttributeNames
+    if (referencedAttrNames.length === 0) {
+      return [];
+    }
+
+    // Fetch attribute metadata once (fixes duplicate API call issue)
+    const resolvedAttributes = await this.attributeService.repo.getAttributesByNames({
+      names: referencedAttrNames,
+      type: "PRODUCT_TYPE",
+    });
+
+    // Fail-fast: validate resolution succeeded before doing any more work
+    if (!resolvedAttributes) {
+      logger.error("Failed to resolve referenced attributes", {
+        productTypeName: productType.name,
+        attributeNames: referencedAttrNames,
+      });
+      throw new ProductTypeAttributeValidationError(
+        `Failed to resolve referenced attributes for product type "${productType.name}". ` +
+          `This may indicate a network issue or that the attributes do not exist: ${referencedAttrNames.join(", ")}`,
+        productType.name ?? "unknown",
+        referencedAttrNames.join(", ")
+      );
+    }
+
+    // Build lookup maps from resolved data
+    const attributesByName = new Map(
+      resolvedAttributes
+        .filter((attr): attr is Attribute & { name: string } => Boolean(attr.name))
+        .map((attr) => [attr.name, attr] as const)
     );
 
-    return referencedAttributeIds;
+    // Build variantSelection map and validate input types (fail-fast)
+    const variantSelectionByName = buildReferencedVariantSelectionMap(inputAttributes);
+    validateVariantSelectionInputTypes(
+      [...variantSelectionByName.keys()],
+      attributesByName,
+      productType.name ?? "unknown"
+    );
+
+    // Filter out already-assigned attributes
+    const existingAttributeNames = new Set(
+      [
+        ...(productType.productAttributes?.map((a) => a.name) ?? []),
+        ...(productType.variantAttributes?.map((a) => a.name) ?? []),
+      ].filter((name): name is string => name !== null)
+    );
+
+    // Return attribute assignments with variantSelection
+    return resolvedAttributes
+      .filter((attr) => attr.name && !existingAttributeNames.has(attr.name))
+      .map((attr) => ({
+        id: attr.id,
+        variantSelection: attr.name ? variantSelectionByName.get(attr.name) : undefined,
+      }));
   }
 
   private async upsertAndAssignAttributes(
@@ -119,26 +219,32 @@ export class ProductTypeService {
 
     const createdAttributes = await this.createAttributes(productType, inputAttributes);
 
-    const existingAttributeIdsToAssign = await this.getExistingAttributesToAssign(
+    const existingAttributesToAssign = await this.getExistingAttributesToAssign(
       productType,
       inputAttributes
     );
 
     logger.debug("Existing attributes to assign", {
       inputAttributes,
-      existingAttributeIdsToAssign: existingAttributeIdsToAssign.length,
+      existingAttributesToAssign: existingAttributesToAssign.length,
       productTypeName: productType.name,
     });
 
-    const attributeToAssignIds = [
-      ...createdAttributes.map((a) => a.id),
-      ...existingAttributeIdsToAssign,
-    ];
+    // Build variantSelection map for inline (non-referenced) attributes
+    const variantSelectionByName = buildInlineVariantSelectionMap(inputAttributes);
 
-    if (attributeToAssignIds.length > 0) {
+    // Map created attributes to assignment inputs with variantSelection
+    const createdAttributeAssignments: AttributeAssignmentInput[] = createdAttributes.map((a) => ({
+      id: a.id,
+      variantSelection: a.name ? variantSelectionByName.get(a.name) : undefined,
+    }));
+
+    const attributesToAssign = [...createdAttributeAssignments, ...existingAttributesToAssign];
+
+    if (attributesToAssign.length > 0) {
       await this.repository.assignAttributesToProductType({
         productTypeId: productType.id,
-        attributeIds: attributeToAssignIds,
+        attributes: attributesToAssign,
         type,
       });
     }
@@ -264,6 +370,27 @@ export class ProductTypeService {
             attr.name
           );
         }
+      }
+    }
+
+    // Validate variantSelection is only used on variant attributes with supported input types
+    // Note: For referenced attributes, validation happens in getExistingAttributesToAssign
+    for (const attr of input.variantAttributes ?? []) {
+      if (!hasVariantSelection(attr)) continue;
+      if (isReferencedAttribute(attr)) continue;
+      if (!("inputType" in attr)) continue;
+
+      const isSupported = VARIANT_SELECTION_SUPPORTED_TYPES.includes(
+        attr.inputType as (typeof VARIANT_SELECTION_SUPPORTED_TYPES)[number]
+      );
+
+      if (!isSupported) {
+        throw new ProductTypeAttributeValidationError(
+          `Attribute "${attr.name}" has variantSelection: true but input type "${attr.inputType}" does not support variant selection. ` +
+            `Supported input types are: ${VARIANT_SELECTION_SUPPORTED_TYPES.join(", ")}`,
+          input.name,
+          attr.name
+        );
       }
     }
 

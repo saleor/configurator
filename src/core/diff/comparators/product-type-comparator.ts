@@ -147,8 +147,15 @@ export class ProductTypeComparator extends BaseEntityComparator<
     const changes: DiffChange[] = [];
 
     const getName = (a: AttributeInput): string => ("attribute" in a ? a.attribute : a.name);
+    const getVariantSelection = (a: AttributeInput): boolean =>
+      "variantSelection" in a ? Boolean(a.variantSelection) : false;
+
     const lNames = new Set(local.map(getName));
     const rNames = new Set(remote.map(getName));
+
+    // Build maps for quick lookup
+    const localByName = new Map(local.map((a) => [getName(a), a]));
+    const remoteByName = new Map(remote.map((a) => [getName(a), a]));
 
     for (const name of lNames) {
       if (!rNames.has(name)) {
@@ -156,6 +163,26 @@ export class ProductTypeComparator extends BaseEntityComparator<
           ? `Attribute "${name}" will be created`
           : `Attribute "${name}" added`;
         changes.push(this.createFieldChange("attributes", null, name, description));
+      } else {
+        // Attribute exists in both - compare variantSelection
+        const localAttr = localByName.get(name);
+        const remoteAttr = remoteByName.get(name);
+
+        if (localAttr && remoteAttr) {
+          const localVariantSelection = getVariantSelection(localAttr);
+          const remoteVariantSelection = getVariantSelection(remoteAttr);
+
+          if (localVariantSelection !== remoteVariantSelection) {
+            changes.push(
+              this.createFieldChange(
+                `attributes.${name}.variantSelection`,
+                remoteVariantSelection,
+                localVariantSelection,
+                `Attribute "${name}" variantSelection: ${remoteVariantSelection} → ${localVariantSelection}`
+              )
+            );
+          }
+        }
       }
     }
 
@@ -167,12 +194,6 @@ export class ProductTypeComparator extends BaseEntityComparator<
       }
     }
 
-    // No detailed comparison of inputType/values at assignment level
     return changes;
   }
-
-  /**
-   * Compares detailed properties of matching attributes
-   */
-  // Remove detailed attribute comparison at product type level
 }

@@ -226,16 +226,38 @@ export class ConfigurationService {
         name: edge.node.name,
         isShippingRequired: edge.node.isShippingRequired,
         productAttributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
-        variantAttributes: this.mapAttributes(
-          edge.node.assignedVariantAttributes?.map(
-            (
-              attribute: NonNullable<ProductTypeEdge>["node"]["assignedVariantAttributes"][number]
-            ) => attribute.attribute
-          ) ?? [],
+        variantAttributes: this.mapVariantAttributes(
+          edge.node.assignedVariantAttributes ?? [],
           "PRODUCT_TYPE"
         ),
       })) ?? []
     );
+  }
+
+  /**
+   * Maps variant attributes including variantSelection property.
+   * Only includes variantSelection when true (omits when false for cleaner YAML).
+   */
+  private mapVariantAttributes(
+    assignedVariantAttributes: NonNullable<
+      NonNullable<
+        RawSaleorConfig["productTypes"]
+      >["edges"][number]["node"]["assignedVariantAttributes"]
+    >,
+    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
+  ): FullAttribute[] {
+    type AssignedVariantAttribute = NonNullable<
+      RawSaleorConfig["productTypes"]
+    >["edges"][number]["node"]["assignedVariantAttributes"][number];
+
+    return assignedVariantAttributes.map((assigned: AssignedVariantAttribute) => {
+      const baseAttribute = this.mapAttribute(assigned.attribute, attributeType);
+      // Only include variantSelection when true (omit when false for cleaner YAML)
+      if (assigned.variantSelection) {
+        return { ...baseAttribute, variantSelection: true };
+      }
+      return baseAttribute;
+    });
   }
 
   private mapAllAttributes(raw: RawSaleorConfig): FullAttribute[] {
@@ -578,7 +600,14 @@ export class ConfigurationService {
   }
 
   private convertAllToReferences(attributes: FullAttribute[]): AttributeInput[] {
-    return attributes.map((attr) => ({ attribute: attr.name }));
+    return attributes.map((attr) => {
+      const ref: AttributeInput = { attribute: attr.name };
+      // Preserve variantSelection when true (only applies to variant attributes)
+      if ("variantSelection" in attr && attr.variantSelection === true) {
+        return { ...ref, variantSelection: true };
+      }
+      return ref;
+    });
   }
 
   mapConfig(rawConfig: RawSaleorConfig, selectiveOptions?: ParsedSelectiveOptions): SaleorConfig {

@@ -6,9 +6,25 @@ const attributeValueSchema = z.object({
 
 const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);
 
+/**
+ * Input types that support variantSelection when assigned as variant attributes.
+ * These types allow customers to select variants in storefronts.
+ */
+export const VARIANT_SELECTION_SUPPORTED_TYPES = [
+  "DROPDOWN",
+  "BOOLEAN",
+  "SWATCH",
+  "NUMERIC",
+] as const;
+
 // Base attribute fields that are common to all types
 const baseAttributeSchema = z.object({
   name: z.string(),
+  /**
+   * When true, this attribute will be used for variant selection in storefronts.
+   * Only applies to variant attributes with supported input types.
+   */
+  variantSelection: z.boolean().optional(),
 });
 
 // Schema for attributes with multiple values (dropdown, multiselect, swatch)
@@ -42,6 +58,11 @@ export type SimpleAttribute = z.infer<typeof simpleAttributeSchema>;
 export const referencedAttributeSchema = z
   .object({
     attribute: z.string(), // ? maybe should be called "slug"
+    /**
+     * When true, this attribute will be used for variant selection in storefronts.
+     * Only applies to variant attributes with supported input types.
+     */
+    variantSelection: z.boolean().optional(),
   })
   .describe("Reference to an existing attribute by slug");
 
