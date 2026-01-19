@@ -17,39 +17,41 @@ import {
 import type { AttributeAssignmentInput, ProductType, ProductTypeOperations } from "./repository";
 
 /** Type guard to check if an attribute has variantSelection enabled */
-const hasVariantSelection = (
+function hasVariantSelection(
   attr: AttributeInput
-): attr is AttributeInput & { variantSelection: true } =>
-  "variantSelection" in attr && attr.variantSelection === true;
+): attr is AttributeInput & { variantSelection: true } {
+  return "variantSelection" in attr && attr.variantSelection === true;
+}
 
-/** Build a map of attribute names to variantSelection for referenced attributes */
-const buildReferencedVariantSelectionMap = (attributes: AttributeInput[]): Map<string, true> =>
-  new Map(
-    attributes
-      .filter(isReferencedAttribute)
-      .filter(hasVariantSelection)
-      .map((attr) => [attr.attribute, true] as const)
-  );
+/** Get the name of an attribute (handles both inline and referenced formats) */
+function getAttributeName(attr: AttributeInput): string {
+  return isReferencedAttribute(attr) ? attr.attribute : attr.name;
+}
 
-/** Build a map of attribute names to variantSelection for inline attributes */
-const buildInlineVariantSelectionMap = (attributes: AttributeInput[]): Map<string, true> =>
-  new Map(
+/** Build a map of attribute names to variantSelection for attributes with variantSelection: true */
+function buildVariantSelectionMap(
+  attributes: AttributeInput[],
+  filterFn: (attr: AttributeInput) => boolean
+): Map<string, true> {
+  return new Map(
     attributes
-      .filter((attr): attr is SimpleAttribute => !isReferencedAttribute(attr))
+      .filter(filterFn)
       .filter(hasVariantSelection)
-      .map((attr) => [attr.name, true] as const)
+      .map((attr) => [getAttributeName(attr), true] as const)
   );
+}
 
 /** Extract referenced attribute names from input attributes */
-const getReferencedAttributeNames = (attributes: AttributeInput[]): string[] =>
-  attributes.filter(isReferencedAttribute).map((attr) => attr.attribute);
+function getReferencedAttributeNames(attributes: AttributeInput[]): string[] {
+  return attributes.filter(isReferencedAttribute).map((attr) => attr.attribute);
+}
 
 /** Validate variantSelection against attribute input types */
-const validateVariantSelectionInputTypes = (
+function validateVariantSelectionInputTypes(
   variantSelectionNames: string[],
   attributesByName: Map<string, Attribute>,
   productTypeName: string
-): void => {
+): void {
   for (const attrName of variantSelectionNames) {
     const attr = attributesByName.get(attrName);
     if (!attr) {
@@ -81,7 +83,7 @@ const validateVariantSelectionInputTypes = (
       );
     }
   }
-};
+}
 
 export class ProductTypeService {
   constructor(
@@ -202,7 +204,7 @@ export class ProductTypeService {
     );
 
     // Build variantSelection map and validate input types (fail-fast)
-    const variantSelectionByName = buildReferencedVariantSelectionMap(inputAttributes);
+    const variantSelectionByName = buildVariantSelectionMap(inputAttributes, isReferencedAttribute);
     validateVariantSelectionInputTypes(
       [...variantSelectionByName.keys()],
       attributesByName,
@@ -247,7 +249,10 @@ export class ProductTypeService {
     });
 
     // Build variantSelection map for inline (non-referenced) attributes
-    const variantSelectionByName = buildInlineVariantSelectionMap(inputAttributes);
+    const variantSelectionByName = buildVariantSelectionMap(
+      inputAttributes,
+      (attr) => !isReferencedAttribute(attr)
+    );
 
     // Map created attributes to assignment inputs with variantSelection
     const createdAttributeAssignments: AttributeAssignmentInput[] = createdAttributes.map((a) => {
@@ -276,64 +281,62 @@ export class ProductTypeService {
     return { createdAttributes, updatedAttributes };
   }
 
-  private async updateAttributes(productType: ProductType, inputAttributes: AttributeInput[]) {
-    const updatedAttributes = [];
+  private async updateAttributes(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ): Promise<Attribute[]> {
+    const existingAttributeNames = new Set(
+      productType.productAttributes?.map((attr) => attr.name) ?? []
+    );
 
-    const existingAttributeNames = productType.productAttributes?.map((attr) => attr.name) || [];
+    const attributesToUpdate = inputAttributes.filter(
+      (a): a is SimpleAttribute => !isReferencedAttribute(a) && existingAttributeNames.has(a.name)
+    );
 
-    const attributesToUpdate = inputAttributes.filter((a) => {
-      // Exclude attributes that are referenced by name, they are only meant to be assigned to the product type
-      if (isReferencedAttribute(a)) {
-        return false;
-      }
+    if (attributesToUpdate.length === 0) {
+      return [];
+    }
 
-      return existingAttributeNames.includes(a.name);
-    }) as SimpleAttribute[];
+    logger.debug("Updating existing attributes", { count: attributesToUpdate.length });
 
-    if (attributesToUpdate.length > 0) {
-      logger.debug("Updating existing attributes", {
-        count: attributesToUpdate.length,
-      });
-      const existingAttributes = await this.attributeService.repo.getAttributesByNames({
-        names: attributesToUpdate.map((a) => a.name),
-        type: "PRODUCT_TYPE",
-      });
-      if (existingAttributes) {
-        for (const inputAttr of attributesToUpdate) {
-          const existingAttr = existingAttributes.find((attr) => attr.name === inputAttr.name);
-          if (existingAttr) {
-            const updated = await this.attributeService.updateAttribute(
-              { ...inputAttr, type: "PRODUCT_TYPE" },
-              existingAttr
-            );
-            updatedAttributes.push(updated);
-          }
-        }
+    const existingAttributes = await this.attributeService.repo.getAttributesByNames({
+      names: attributesToUpdate.map((a) => a.name),
+      type: "PRODUCT_TYPE",
+    });
+
+    if (!existingAttributes) {
+      return [];
+    }
+
+    const updatedAttributes: Attribute[] = [];
+    for (const inputAttr of attributesToUpdate) {
+      const existingAttr = existingAttributes.find((attr) => attr.name === inputAttr.name);
+      if (existingAttr) {
+        const updated = await this.attributeService.updateAttribute(
+          { ...inputAttr, type: "PRODUCT_TYPE" },
+          existingAttr
+        );
+        updatedAttributes.push(updated);
       }
     }
+
     return updatedAttributes;
   }
 
-  private async createAttributes(productType: ProductType, inputAttributes: AttributeInput[]) {
-    const existingProductAttributeNames =
-      productType.productAttributes?.map((attr) => attr.name) || [];
+  private async createAttributes(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ): Promise<Attribute[]> {
+    const existingAttributeNames = new Set([
+      ...(productType.productAttributes?.map((attr) => attr.name) ?? []),
+      ...(productType.variantAttributes?.map((attr) => attr.name) ?? []),
+    ]);
 
-    const existingVariantAttributeNames =
-      productType.variantAttributes?.map((attr) => attr.name) || [];
+    const attributesToProcess = inputAttributes.filter(
+      (a): a is SimpleAttribute => !isReferencedAttribute(a) && !existingAttributeNames.has(a.name)
+    );
 
-    const attributesToProcess = inputAttributes.filter((a) => {
-      // Exclude attributes that are referenced by name, they are only meant to be assigned to the product type
-      if (isReferencedAttribute(a)) {
-        return false;
-      }
-
-      return (
-        !existingProductAttributeNames.includes(a.name) &&
-        !existingVariantAttributeNames.includes(a.name)
-      );
-    }) as SimpleAttribute[];
-
-    const newAttributes = [];
+    const newAttributes: Attribute[] = [];
 
     for (const attributeInput of attributesToProcess) {
       // Check if the attribute already exists globally
@@ -343,34 +346,22 @@ export class ProductTypeService {
       });
 
       if (existingAttributes && existingAttributes.length > 0) {
-        // Attribute exists globally from a previous deployment or another product type
-        // We should reuse the existing attribute rather than trying to create a duplicate
+        // Reuse existing global attribute from previous deployment or another product type
         const existingAttribute = existingAttributes[0];
-
         logger.debug("Reusing existing global attribute", {
           attributeName: attributeInput.name,
           attributeId: existingAttribute.id,
           productTypeName: productType.name,
         });
-
-        // Use the existing attribute
         newAttributes.push(existingAttribute);
         continue;
       }
 
       // Create the attribute since it doesn't exist
       const createdAttributes = await this.attributeService.bootstrapAttributes({
-        attributeInputs: [
-          {
-            ...attributeInput,
-            type: "PRODUCT_TYPE",
-          },
-        ],
+        attributeInputs: [{ ...attributeInput, type: "PRODUCT_TYPE" }],
       });
-
-      const createdAttribute = createdAttributes[0];
-
-      newAttributes.push(createdAttribute);
+      newAttributes.push(createdAttributes[0]);
     }
 
     return newAttributes;
