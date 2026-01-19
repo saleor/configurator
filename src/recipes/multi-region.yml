@@ -1,0 +1,141 @@
+---
+name: multi-region
+description: Configure channels for US, EU, and UK markets with regional warehouses and shipping zones
+category: multi-region
+version: "1.0.0"
+saleorVersion: ">=3.15"
+docsUrl: https://docs.saleor.io/docs/channels
+useCase: |
+  Set up a global e-commerce presence with separate channels
+  for different regions, each with appropriate currency and locale.
+  This recipe creates complete multi-region infrastructure including
+  channels, warehouses, and shipping zones for US, EU, and UK markets.
+prerequisites:
+  - Saleor instance with multi-channel license
+  - Tax configuration for target regions
+customizationHints:
+  - Modify currency codes for your target markets
+  - Adjust country codes in shipping zones as needed
+  - Update warehouse addresses to your actual locations
+entitySummary:
+  channels: 3
+  warehouses: 3
+  shippingZones: 3
+examples:
+  before: |
+    # Empty config or single channel setup
+    channels: []
+  after: |
+    # Multi-region with 3 channels
+    channels:
+      - slug: us-channel
+        currencyCode: USD
+      - slug: eu-channel
+        currencyCode: EUR
+      - slug: uk-channel
+        currencyCode: GBP
+---
+channels:
+  - name: United States
+    slug: us-channel
+    currencyCode: USD
+    defaultCountry: US
+    isActive: true
+
+  - name: Europe
+    slug: eu-channel
+    currencyCode: EUR
+    defaultCountry: DE
+    isActive: true
+
+  - name: United Kingdom
+    slug: uk-channel
+    currencyCode: GBP
+    defaultCountry: GB
+    isActive: true
+
+warehouses:
+  - name: US Warehouse
+    slug: us-warehouse
+    address:
+      streetAddress1: 123 Main Street
+      city: New York
+      postalCode: "10001"
+      country: US
+    shippingZones:
+      - US Domestic
+
+  - name: EU Warehouse
+    slug: eu-warehouse
+    address:
+      streetAddress1: Hauptstraße 1
+      city: Berlin
+      postalCode: "10115"
+      country: DE
+    shippingZones:
+      - EU Zone
+
+  - name: UK Warehouse
+    slug: uk-warehouse
+    address:
+      streetAddress1: 1 High Street
+      city: London
+      postalCode: SW1A 1AA
+      country: GB
+    shippingZones:
+      - UK Zone
+
+shippingZones:
+  - name: US Domestic
+    countries:
+      - US
+    channels:
+      - us-channel
+    shippingMethods:
+      - name: Standard Shipping
+        type: PRICE
+        channelListings:
+          - channel: us-channel
+            price: 5.99
+            minimumOrderPrice: 0
+
+      - name: Express Shipping
+        type: PRICE
+        minimumDeliveryDays: 1
+        maximumDeliveryDays: 3
+        channelListings:
+          - channel: us-channel
+            price: 15.99
+            minimumOrderPrice: 0
+
+  - name: EU Zone
+    countries:
+      - DE
+      - FR
+      - IT
+      - ES
+      - NL
+      - BE
+      - AT
+    channels:
+      - eu-channel
+    shippingMethods:
+      - name: Standard Shipping
+        type: PRICE
+        channelListings:
+          - channel: eu-channel
+            price: 4.99
+            minimumOrderPrice: 0
+
+  - name: UK Zone
+    countries:
+      - GB
+    channels:
+      - uk-channel
+    shippingMethods:
+      - name: Standard Shipping
+        type: PRICE
+        channelListings:
+          - channel: uk-channel
+            price: 3.99
+            minimumOrderPrice: 0

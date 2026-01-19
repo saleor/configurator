@@ -1,0 +1,131 @@
+---
+name: custom-shipping
+description: Configure shipping zones with methods and rate structures for common regions
+category: shipping
+version: "1.0.0"
+saleorVersion: ">=3.15"
+docsUrl: https://docs.saleor.io/docs/developer/shipping
+useCase: |
+  Set up a complete shipping configuration with zones for domestic and
+  international shipping. This recipe includes standard, express, and
+  free shipping methods with rate structures that can be customized
+  for your specific needs.
+prerequisites:
+  - Saleor instance with at least one channel
+  - Knowledge of your shipping costs and regions
+customizationHints:
+  - Adjust country codes for your target markets
+  - Modify shipping rates based on your carrier agreements
+  - Add weight-based pricing for heavy items
+  - Consider adding minimum order thresholds for free shipping
+entitySummary:
+  shippingZones: 3
+examples:
+  before: |
+    # No shipping zones configured
+    shippingZones: []
+  after: |
+    # Complete shipping setup
+    shippingZones:
+      - name: Domestic
+      - name: Europe
+      - name: International
+---
+shippingZones:
+  - name: Domestic Shipping
+    countries:
+      - US
+    channels:
+      - default-channel
+    shippingMethods:
+      - name: Standard Shipping
+        type: PRICE
+        minimumDeliveryDays: 5
+        maximumDeliveryDays: 7
+        channelListings:
+          - channel: default-channel
+            price: 5.99
+            minimumOrderPrice: 0
+
+      - name: Express Shipping
+        type: PRICE
+        minimumDeliveryDays: 2
+        maximumDeliveryDays: 3
+        channelListings:
+          - channel: default-channel
+            price: 14.99
+            minimumOrderPrice: 0
+
+      - name: Free Shipping
+        type: PRICE
+        minimumDeliveryDays: 5
+        maximumDeliveryDays: 10
+        channelListings:
+          - channel: default-channel
+            price: 0
+            minimumOrderPrice: 50
+
+  - name: European Shipping
+    countries:
+      - GB
+      - DE
+      - FR
+      - IT
+      - ES
+      - NL
+      - BE
+      - AT
+      - PL
+      - SE
+    channels:
+      - default-channel
+    shippingMethods:
+      - name: Standard International
+        type: PRICE
+        minimumDeliveryDays: 7
+        maximumDeliveryDays: 14
+        channelListings:
+          - channel: default-channel
+            price: 12.99
+            minimumOrderPrice: 0
+
+      - name: Express International
+        type: PRICE
+        minimumDeliveryDays: 3
+        maximumDeliveryDays: 5
+        channelListings:
+          - channel: default-channel
+            price: 29.99
+            minimumOrderPrice: 0
+
+  - name: Rest of World
+    countries:
+      - CA
+      - AU
+      - JP
+      - KR
+      - SG
+      - HK
+      - NZ
+      - BR
+      - MX
+    channels:
+      - default-channel
+    shippingMethods:
+      - name: International Standard
+        type: PRICE
+        minimumDeliveryDays: 10
+        maximumDeliveryDays: 21
+        channelListings:
+          - channel: default-channel
+            price: 19.99
+            minimumOrderPrice: 0
+
+      - name: International Express
+        type: PRICE
+        minimumDeliveryDays: 5
+        maximumDeliveryDays: 7
+        channelListings:
+          - channel: default-channel
+            price: 49.99
+            minimumOrderPrice: 0

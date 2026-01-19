@@ -1,0 +1,78 @@
+---
+name: click-and-collect
+description: Configure warehouses as pickup points with local collection shipping
+category: fulfillment
+version: "1.0.0"
+saleorVersion: ">=3.15"
+docsUrl: https://docs.saleor.io/docs/developer/stock/warehouses
+useCase: |
+  Enable click-and-collect functionality for your stores. This recipe
+  configures warehouses with pickup enabled and creates a shipping zone
+  for local pickup orders. Perfect for retailers with physical locations
+  who want to offer in-store collection.
+prerequisites:
+  - Saleor instance with warehouse support
+  - At least one channel configured
+  - Physical store locations for pickup
+customizationHints:
+  - Update warehouse addresses to your actual store locations
+  - Adjust the channel references to match your existing channels
+  - Modify pickup hours and collection instructions as needed
+entitySummary:
+  warehouses: 2
+  shippingZones: 1
+examples:
+  before: |
+    # Standard warehouse without pickup
+    warehouses:
+      - name: Main Warehouse
+        clickAndCollectOption: DISABLED
+  after: |
+    # Warehouse with pickup enabled
+    warehouses:
+      - name: Store Pickup - Downtown
+        clickAndCollectOption: ALL
+---
+warehouses:
+  - name: Store Pickup - Downtown
+    slug: store-pickup-downtown
+    address:
+      streetAddress1: 100 Main Street
+      city: New York
+      postalCode: "10001"
+      country: US
+    clickAndCollectOption: ALL
+    shippingZones:
+      - Local Pickup
+
+  - name: Store Pickup - Mall Location
+    slug: store-pickup-mall
+    address:
+      streetAddress1: 500 Shopping Center Drive
+      city: New York
+      postalCode: "10002"
+      country: US
+    clickAndCollectOption: ALL
+    shippingZones:
+      - Local Pickup
+
+shippingZones:
+  - name: Local Pickup
+    countries:
+      - US
+    channels:
+      - default-channel
+    shippingMethods:
+      - name: In-Store Pickup
+        type: PRICE
+        channelListings:
+          - channel: default-channel
+            price: 0
+            minimumOrderPrice: 0
+
+      - name: Curbside Pickup
+        type: PRICE
+        channelListings:
+          - channel: default-channel
+            price: 0
+            minimumOrderPrice: 0
