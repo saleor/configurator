@@ -17,6 +17,9 @@ export const VARIANT_SELECTION_SUPPORTED_TYPES = [
   "NUMERIC",
 ] as const;
 
+/** Derived type for input types that support variantSelection */
+export type VariantSelectionSupportedType = (typeof VARIANT_SELECTION_SUPPORTED_TYPES)[number];
+
 // Base attribute fields that are common to all types
 const baseAttributeSchema = z.object({
   name: z.string(),
@@ -46,7 +49,7 @@ const singleAttributeSchema = baseAttributeSchema.extend({
   inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
 });
 
-// Combined attribute schema using discriminted union based on inputType
+// Combined attribute schema using discriminated union based on inputType
 export const simpleAttributeSchema = z.discriminatedUnion("inputType", [
   multipleValuesAttributeSchema,
   referenceAttributeSchema,

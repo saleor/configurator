@@ -56,11 +56,18 @@ export class ConfigurationService {
       // Ensure attributes appear before productTypes in YAML ordering
       this.reorderConfigKeys(config as SaleorConfig);
     } catch (error) {
-      logger.warn(
-        "Failed to extract top-level attributes: %s",
-        error instanceof Error ? error.message : String(error)
-      );
-      // Continue without top-level attributes - they'll be inline in types
+      // Only catch expected errors from attribute mapping (e.g., malformed data)
+      // Unexpected errors (network, permissions) should propagate
+      if (error instanceof UnsupportedInputTypeError) {
+        logger.error(
+          "Failed to extract top-level attributes due to unsupported input type. " +
+            "Attributes will be inlined in product/page types instead: %s",
+          error.message
+        );
+        // Continue without top-level attributes - they'll be inline in types
+      } else {
+        throw error;
+      }
     }
     await this.storage.save(config);
     return config;

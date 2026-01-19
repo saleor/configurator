@@ -16,8 +16,10 @@ import {
 } from "./errors";
 import type { AttributeAssignmentInput, ProductType, ProductTypeOperations } from "./repository";
 
-/** Helper to check if an attribute has variantSelection enabled */
-const hasVariantSelection = (attr: AttributeInput): boolean =>
+/** Type guard to check if an attribute has variantSelection enabled */
+const hasVariantSelection = (
+  attr: AttributeInput
+): attr is AttributeInput & { variantSelection: true } =>
   "variantSelection" in attr && attr.variantSelection === true;
 
 /** Build a map of attribute names to variantSelection for referenced attributes */
@@ -50,7 +52,21 @@ const validateVariantSelectionInputTypes = (
 ): void => {
   for (const attrName of variantSelectionNames) {
     const attr = attributesByName.get(attrName);
-    if (!attr?.inputType) continue;
+    if (!attr) {
+      logger.warn(
+        'Attribute "%s" referenced with variantSelection not found in resolved attributes for product type "%s"',
+        attrName,
+        productTypeName
+      );
+      continue;
+    }
+    if (!attr.inputType) {
+      logger.debug(
+        'Skipping variantSelection validation for attribute "%s" - no inputType available',
+        attrName
+      );
+      continue;
+    }
 
     const isSupported = VARIANT_SELECTION_SUPPORTED_TYPES.includes(
       attr.inputType as (typeof VARIANT_SELECTION_SUPPORTED_TYPES)[number]
@@ -158,7 +174,7 @@ export class ProductTypeService {
       return [];
     }
 
-    // Fetch attribute metadata once (fixes duplicate API call issue)
+    // Fetch referenced attribute metadata for validation and assignment
     const resolvedAttributes = await this.attributeService.repo.getAttributesByNames({
       names: referencedAttrNames,
       type: "PRODUCT_TYPE",
@@ -234,10 +250,18 @@ export class ProductTypeService {
     const variantSelectionByName = buildInlineVariantSelectionMap(inputAttributes);
 
     // Map created attributes to assignment inputs with variantSelection
-    const createdAttributeAssignments: AttributeAssignmentInput[] = createdAttributes.map((a) => ({
-      id: a.id,
-      variantSelection: a.name ? variantSelectionByName.get(a.name) : undefined,
-    }));
+    const createdAttributeAssignments: AttributeAssignmentInput[] = createdAttributes.map((a) => {
+      if (!a.name) {
+        logger.warn("Created attribute has no name, variantSelection cannot be applied", {
+          attributeId: a.id,
+          productTypeName: productType.name,
+        });
+      }
+      return {
+        id: a.id,
+        variantSelection: a.name ? variantSelectionByName.get(a.name) : undefined,
+      };
+    });
 
     const attributesToAssign = [...createdAttributeAssignments, ...existingAttributesToAssign];
 
@@ -258,7 +282,7 @@ export class ProductTypeService {
     const existingAttributeNames = productType.productAttributes?.map((attr) => attr.name) || [];
 
     const attributesToUpdate = inputAttributes.filter((a) => {
-      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // Exclude attributes that are referenced by name, they are only meant to be assigned to the product type
       if (isReferencedAttribute(a)) {
         return false;
       }
@@ -298,7 +322,7 @@ export class ProductTypeService {
       productType.variantAttributes?.map((attr) => attr.name) || [];
 
     const attributesToProcess = inputAttributes.filter((a) => {
-      // Exclude attributes that are referenced by slug, they are only meant to be assigned to the product type
+      // Exclude attributes that are referenced by name, they are only meant to be assigned to the product type
       if (isReferencedAttribute(a)) {
         return false;
       }

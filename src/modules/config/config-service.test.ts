@@ -625,6 +625,31 @@ describe("ConfigurationService", () => {
       );
       expect(materialAttr?.variantSelection).toBeUndefined();
     });
+
+    it("should handle null assignedVariantAttributes gracefully", () => {
+      // When assignedVariantAttributes is explicitly null (possible from API)
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "product-type-1",
+            name: "Simple Product",
+            isShippingRequired: false,
+            productAttributes: [],
+            assignedVariantAttributes: null,
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+
+      // Should not throw - null should be handled gracefully
+      expect(() => service.mapConfig(rawConfig)).not.toThrow();
+
+      const result = service.mapConfig(rawConfig);
+      expect(result.productTypes).toHaveLength(1);
+      // variantAttributes should be an empty array when assignedVariantAttributes is null
+      expect(result.productTypes?.[0]?.variantAttributes).toEqual([]);
+    });
   });
 
   describe("mapCategories - nested category support", () => {

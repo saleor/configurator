@@ -229,5 +229,48 @@ describe("ProductTypeComparator", () => {
       expect(results[0].changes?.[0].currentValue).toBe(false);
       expect(results[0].changes?.[0].desiredValue).toBe(true);
     });
+
+    it("should detect variantSelection change with referenced attribute format", () => {
+      const comparator = new ProductTypeComparator();
+
+      // Local config uses referenced attribute format { attribute: "Color", variantSelection: true }
+      const local = [
+        {
+          name: "T-Shirt",
+          isShippingRequired: true,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "Color",
+              variantSelection: true,
+            },
+          ],
+        },
+      ];
+
+      // Remote has full attribute definition (from introspection)
+      const remote = [
+        {
+          name: "T-Shirt",
+          isShippingRequired: true,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "Color",
+              variantSelection: false,
+            },
+          ],
+        },
+      ];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].operation).toBe("UPDATE");
+      expect(results[0].changes).toHaveLength(1);
+      expect(results[0].changes?.[0].field).toBe("attributes.Color.variantSelection");
+      expect(results[0].changes?.[0].currentValue).toBe(false);
+      expect(results[0].changes?.[0].desiredValue).toBe(true);
+    });
   });
 });

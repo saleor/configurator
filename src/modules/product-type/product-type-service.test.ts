@@ -1170,5 +1170,65 @@ describe("ProductTypeService", () => {
         type: "VARIANT",
       });
     });
+
+    it("should not throw validation error when variantSelection is on productAttributes", async () => {
+      // variantSelection validation only applies to variantAttributes, not productAttributes
+      // When specified on a productAttribute, it should not throw validation error
+      // (The repository layer handles filtering variantSelection for PRODUCT type)
+      const newProductType: ProductType = {
+        id: "9",
+        name: "Product With VariantSelection on ProductAttr",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const colorAttribute = {
+        id: "color-1",
+        name: "Color",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(colorAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // variantSelection on productAttribute should not throw validation error
+      // (variantSelection validation is only done for variantAttributes)
+      await expect(
+        service.bootstrapProductType({
+          name: newProductType.name,
+          isShippingRequired: false,
+          productAttributes: [
+            {
+              name: "Color",
+              inputType: "DROPDOWN",
+              values: [{ name: "Red" }],
+              variantSelection: true, // This should not cause validation error
+            },
+          ],
+          variantAttributes: [],
+        })
+      ).resolves.not.toThrow();
+
+      // Service passes variantSelection through; repository filters it for PRODUCT type
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: newProductType.id,
+        attributes: [{ id: colorAttribute.id, variantSelection: true }],
+        type: "PRODUCT",
+      });
+    });
   });
 });
