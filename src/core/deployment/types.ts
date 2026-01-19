@@ -7,6 +7,7 @@ export interface DeploymentContext {
   readonly args: DeployCommandArgs;
   readonly summary: DiffSummary;
   readonly startTime: Date;
+  // Note: skipMedia is accessed via args.skipMedia to avoid duplication
 }
 
 export interface DeploymentStage {

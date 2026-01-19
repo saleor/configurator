@@ -25,6 +25,7 @@ import { DiffComparisonError } from "./errors";
 import { IntrospectDiffFormatter } from "./formatters";
 import type {
   ConfigurationSection,
+  DiffOptions,
   DiffResult,
   DiffServiceIntrospectOptions,
   DiffSummary,
@@ -71,14 +72,15 @@ export class DiffService {
 
   /**
    * Compares local and remote configurations and returns a summary of differences
+   * @param options - Optional diff options (e.g., skipMedia)
    * @returns Promise resolving to diff summary
    * @throws {ConfigurationLoadError} When local configuration cannot be loaded
    * @throws {RemoteConfigurationError} When remote configuration cannot be retrieved
    * @throws {DiffComparisonError} When comparison fails
    */
-  async compare(): Promise<DiffSummary> {
+  async compare(options?: DiffOptions): Promise<DiffSummary> {
     const startTime = Date.now();
-    logger.info("Starting diff comparison");
+    logger.info("Starting diff comparison", { skipMedia: options?.skipMedia });
 
     try {
       // Load configurations concurrently for better performance
@@ -94,8 +96,8 @@ export class DiffService {
         });
       }
 
-      // Perform comparisons
-      const results = await this.performComparisons(localConfig, remoteConfig);
+      // Perform comparisons with options
+      const results = await this.performComparisons(localConfig, remoteConfig, options);
 
       // Calculate summary statistics
       const summary = this.calculateSummary(results);
@@ -362,13 +364,16 @@ export class DiffService {
    */
   private async performComparisons(
     localConfig: SaleorConfig,
-    remoteConfig: SaleorConfig
+    remoteConfig: SaleorConfig,
+    options?: DiffOptions
   ): Promise<readonly DiffResult[]> {
     const comparisons: Promise<readonly DiffResult[]>[] = [];
 
     // Shop settings comparison
     if (this.comparators.has("shop")) {
-      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
+      comparisons.push(
+        this.performComparison("shop", localConfig.shop, remoteConfig.shop, options)
+      );
     }
 
     // Entity array comparisons
@@ -394,7 +399,8 @@ export class DiffService {
           this.performComparison(
             entityType,
             localConfig[entityType] || [],
-            remoteConfig[entityType] || []
+            remoteConfig[entityType] || [],
+            options
           )
         );
       }
@@ -469,7 +475,8 @@ export class DiffService {
   private async performComparison(
     entityType: string,
     local: unknown,
-    remote: unknown
+    remote: unknown,
+    options?: DiffOptions
   ): Promise<readonly DiffResult[]> {
     try {
       const comparator = this.comparators.get(entityType);
@@ -478,7 +485,8 @@ export class DiffService {
         return [];
       }
 
-      const results = await comparator.compare(local, remote);
+      // Pass options to comparator for entities that support it (e.g., products with skipMedia)
+      const results = await comparator.compare(local, remote, options);
 
       if (this.config.enableDebugLogging && results.length > 0) {
         logger.debug(`Comparison completed for ${entityType}`, {

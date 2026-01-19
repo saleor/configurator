@@ -1,6 +1,11 @@
 import { logger } from "../../../lib/logger";
 import { EntityValidationError } from "../errors";
-import type { DiffChange, DiffResult, EntityType } from "../types";
+import type { DiffChange, DiffOptions, DiffResult, EntityType } from "../types";
+
+/**
+ * Options for comparator operations. Uses Pick to avoid redundant type definitions.
+ */
+export type ComparatorOptions = Pick<DiffOptions, "skipMedia">;
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle
@@ -12,9 +17,14 @@ export interface EntityComparator<TLocal = unknown, TRemote = unknown> {
    * Compares local and remote entities and returns diff results
    * @param local Local entities from configuration
    * @param remote Remote entities from Saleor
+   * @param options Optional comparator options (e.g., skipMedia)
    * @returns Array of diff results
    */
-  compare(local: TLocal, remote: TRemote): Promise<readonly DiffResult[]> | readonly DiffResult[];
+  compare(
+    local: TLocal,
+    remote: TRemote,
+    options?: ComparatorOptions | DiffOptions
+  ): Promise<readonly DiffResult[]> | readonly DiffResult[];
 }
 
 /**
@@ -33,8 +43,13 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
 
   /**
    * Compares local and remote entity collections
+   * @param options Optional comparator options (e.g., skipMedia)
    */
-  abstract compare(local: TLocal, remote: TRemote): readonly DiffResult[];
+  abstract compare(
+    local: TLocal,
+    remote: TRemote,
+    options?: ComparatorOptions | DiffOptions
+  ): readonly DiffResult[];
 
   /**
    * Gets the unique identifier of an entity
@@ -49,9 +64,14 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
    * Compares two entities of the same type and returns field changes
    * @param local Local entity
    * @param remote Remote entity
+   * @param options Optional comparator options (e.g., skipMedia)
    * @returns Array of field changes
    */
-  protected abstract compareEntityFields(local: TEntity, remote: TEntity): DiffChange[];
+  protected abstract compareEntityFields(
+    local: TEntity,
+    remote: TEntity,
+    options?: ComparatorOptions
+  ): DiffChange[];
 
   /**
    * Creates a map of entities by their names for efficient lookup

@@ -191,13 +191,19 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
 
     // Add each operation group using the helper
     lines.push(
-      ...this.formatOperationGroup("Creates", creates, (r) => `- :heavy_plus_sign: \`${r.entityName}\``)
+      ...this.formatOperationGroup(
+        "Creates",
+        creates,
+        (r) => `- :heavy_plus_sign: \`${r.entityName}\``
+      )
     );
+    lines.push(...this.formatOperationGroup("Updates", updates, (r) => this.formatUpdateResult(r)));
     lines.push(
-      ...this.formatOperationGroup("Updates", updates, (r) => this.formatUpdateResult(r))
-    );
-    lines.push(
-      ...this.formatOperationGroup("Deletes", deletes, (r) => `- :heavy_minus_sign: \`${r.entityName}\``)
+      ...this.formatOperationGroup(
+        "Deletes",
+        deletes,
+        (r) => `- :heavy_minus_sign: \`${r.entityName}\``
+      )
     );
 
     lines.push("</details>");
@@ -224,7 +230,9 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
     }
 
     if (changes.length > FORMATTER_LIMITS.MAX_FIELD_CHANGES) {
-      lines.push(`  - _...and ${changes.length - FORMATTER_LIMITS.MAX_FIELD_CHANGES} more changes_`);
+      lines.push(
+        `  - _...and ${changes.length - FORMATTER_LIMITS.MAX_FIELD_CHANGES} more changes_`
+      );
     }
 
     return lines.join("\n");

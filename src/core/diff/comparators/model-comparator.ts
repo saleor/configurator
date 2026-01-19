@@ -1,7 +1,7 @@
 import type { ModelInput } from "../../../modules/config/schema/schema";
 import type { Page } from "../../../modules/model/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 export class ModelComparator extends BaseEntityComparator<
   readonly ModelInput[],
@@ -107,7 +107,11 @@ export class ModelComparator extends BaseEntityComparator<
     return page.pageType?.name;
   }
 
-  protected compareEntityFields(local: ModelInput | Page, remote: ModelInput | Page): DiffChange[] {
+  protected compareEntityFields(
+    local: ModelInput | Page,
+    remote: ModelInput | Page,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare title

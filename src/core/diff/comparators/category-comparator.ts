@@ -1,6 +1,6 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 /**
  * Category entity type for type safety
@@ -77,7 +77,11 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote category entities
    */
-  protected compareEntityFields(local: CategoryEntity, remote: CategoryEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: CategoryEntity,
+    remote: CategoryEntity,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare slug if it exists

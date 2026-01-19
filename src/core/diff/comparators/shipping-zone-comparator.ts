@@ -1,7 +1,7 @@
 import type { ShippingMethodInput, ShippingZoneInput } from "../../../modules/config/schema/schema";
 import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zone/repository";
 import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 // Type definitions for channel listings
 interface NormalizedChannelListing {
@@ -316,7 +316,11 @@ export class ShippingZoneComparator extends BaseEntityComparator<
     return changes;
   }
 
-  protected compareEntityFields(local: ShippingZoneInput, remote: ShippingZone): DiffChange[] {
+  protected compareEntityFields(
+    local: ShippingZoneInput,
+    remote: ShippingZone,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic fields

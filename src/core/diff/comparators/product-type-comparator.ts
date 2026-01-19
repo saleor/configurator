@@ -1,7 +1,7 @@
 import type { AttributeInput } from "../../../modules/config/schema/attribute.schema";
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 /**
  * Product type entity type for type safety
@@ -94,7 +94,11 @@ export class ProductTypeComparator extends BaseEntityComparator<
   /**
    * Compares fields between local and remote product type entities
    */
-  protected compareEntityFields(local: ProductTypeEntity, remote: ProductTypeEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: ProductTypeEntity,
+    remote: ProductTypeEntity,
+    _options?: ComparatorOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare attributes if they exist

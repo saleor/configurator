@@ -34,6 +34,8 @@ export const diffCommandSchema = baseCommandArgsSchema.extend({
   outputFile: z.string().optional().describe("Write output to file"),
   /** Show only summary counts, no details */
   summary: z.boolean().default(false).describe("Show only summary counts"),
+  /** Exclude media fields from diff comparison */
+  skipMedia: z.boolean().default(false).describe("Exclude media fields from diff comparison"),
 });
 
 export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
@@ -149,7 +151,9 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
       logger.warn("Preflight duplicate scan failed", { error: e });
     }
 
-    const { summary, output: defaultOutput } = await configurator.diff();
+    const { summary, output: defaultOutput } = await configurator.diff({
+      skipMedia: args.skipMedia,
+    });
 
     // Format output based on flags
     const output = this.formatOutput(summary, defaultOutput, args);
@@ -183,6 +187,9 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
 
     if (!isMachineReadable) {
       this.console.header("🔍 Saleor Configuration Diff\n");
+      if (args.skipMedia) {
+        this.console.muted("📷 Media handling: Excluded from comparison (--skip-media flag)");
+      }
     }
 
     await this.performDiffOperation(args);
@@ -208,5 +215,6 @@ export const diffCommandConfig: CommandConfig<typeof diffCommandSchema> = {
     `${COMMAND_NAME} diff --fail-on-delete`,
     `${COMMAND_NAME} diff --fail-on-breaking`,
     `${COMMAND_NAME} diff --json --output-file diff-results.json`,
+    `${COMMAND_NAME} diff --skip-media # Exclude media fields from comparison`,
   ],
 };

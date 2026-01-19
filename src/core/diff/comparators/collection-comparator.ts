@@ -1,7 +1,7 @@
 import type { Collection } from "../../../modules/collection/repository";
 import type { CollectionInput } from "../../../modules/config/schema/schema";
 import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 export class CollectionComparator extends BaseEntityComparator<
   readonly CollectionInput[],
@@ -101,7 +101,8 @@ export class CollectionComparator extends BaseEntityComparator<
 
   protected compareEntityFields(
     local: CollectionInput | Collection,
-    remote: CollectionInput | Collection
+    remote: CollectionInput | Collection,
+    _options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 

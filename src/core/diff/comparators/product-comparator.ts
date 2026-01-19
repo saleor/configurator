@@ -1,6 +1,6 @@
 import type { ProductVariantInput, SaleorConfig } from "../../../modules/config/schema/schema";
-import type { DiffChange } from "../types";
-import { BaseEntityComparator } from "./base-comparator";
+import type { DiffChange, DiffOptions } from "../types";
+import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 /**
  * Product entity type for type safety
@@ -19,10 +19,12 @@ export class ProductComparator extends BaseEntityComparator<
 
   /**
    * Compares local and remote product arrays
+   * @param options Optional comparator options (e.g., skipMedia)
    */
   compare(
     local: readonly ProductEntity[],
-    remote: readonly ProductEntity[]
+    remote: readonly ProductEntity[],
+    options?: ComparatorOptions | DiffOptions
   ): readonly import("../types").DiffResult[] {
     // Validate unique identifiers and block on duplicates
     this.validateUniqueIdentifiers(local);
@@ -39,8 +41,8 @@ export class ProductComparator extends BaseEntityComparator<
       if (!remoteProduct) {
         results.push(this.createCreateResult(localProduct));
       } else {
-        // Check for updates
-        const changes = this.compareEntityFields(localProduct, remoteProduct);
+        // Check for updates, passing options for skipMedia support
+        const changes = this.compareEntityFields(localProduct, remoteProduct, options);
         if (changes.length > 0) {
           results.push(this.createUpdateResult(localProduct, remoteProduct, changes));
         }
@@ -69,9 +71,15 @@ export class ProductComparator extends BaseEntityComparator<
 
   /**
    * Compares fields between local and remote product entities
+   * @param options Optional comparator options (e.g., skipMedia)
    */
-  protected compareEntityFields(local: ProductEntity, remote: ProductEntity): DiffChange[] {
+  protected compareEntityFields(
+    local: ProductEntity,
+    remote: ProductEntity,
+    options?: ComparatorOptions | DiffOptions
+  ): DiffChange[] {
     const changes: DiffChange[] = [];
+    const skipMedia = options?.skipMedia ?? false;
 
     // Compare basic fields
     if (local.name !== remote.name) {
@@ -269,13 +277,16 @@ export class ProductComparator extends BaseEntityComparator<
       }
     }
 
-    const localMedia = this.normalizeMediaArray(local.media);
-    const remoteMedia = this.normalizeMediaArray(remote.media);
+    // Compare media fields only if not skipped
+    if (!skipMedia) {
+      const localMedia = this.normalizeMediaArray(local.media);
+      const remoteMedia = this.normalizeMediaArray(remote.media);
 
-    if (!this.equalsMedia(localMedia, remoteMedia)) {
-      changes.push(
-        this.createFieldChange("media", remoteMedia, localMedia, "Product media entries changed")
-      );
+      if (!this.equalsMedia(localMedia, remoteMedia)) {
+        changes.push(
+          this.createFieldChange("media", remoteMedia, localMedia, "Product media entries changed")
+        );
+      }
     }
 
     return changes;

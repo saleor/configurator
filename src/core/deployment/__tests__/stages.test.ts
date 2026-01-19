@@ -45,6 +45,7 @@ describe("Deployment Stages", () => {
         json: false,
         plan: false,
         failOnDelete: false,
+        skipMedia: false,
       },
       summary: {
         totalChanges: 1,
