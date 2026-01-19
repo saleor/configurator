@@ -18,17 +18,17 @@ export type RecipeCategory = z.infer<typeof recipeCategorySchema>;
  * Summary of entities included in a recipe
  */
 export const entitySummarySchema = z.object({
-  channels: z.number().optional(),
-  warehouses: z.number().optional(),
-  shippingZones: z.number().optional(),
-  taxClasses: z.number().optional(),
-  attributes: z.number().optional(),
-  productTypes: z.number().optional(),
-  pageTypes: z.number().optional(),
-  categories: z.number().optional(),
-  collections: z.number().optional(),
-  menus: z.number().optional(),
-  products: z.number().optional(),
+  channels: z.number().int().nonnegative().optional(),
+  warehouses: z.number().int().nonnegative().optional(),
+  shippingZones: z.number().int().nonnegative().optional(),
+  taxClasses: z.number().int().nonnegative().optional(),
+  attributes: z.number().int().nonnegative().optional(),
+  productTypes: z.number().int().nonnegative().optional(),
+  pageTypes: z.number().int().nonnegative().optional(),
+  categories: z.number().int().nonnegative().optional(),
+  collections: z.number().int().nonnegative().optional(),
+  menus: z.number().int().nonnegative().optional(),
+  products: z.number().int().nonnegative().optional(),
 });
 
 export type EntitySummary = z.infer<typeof entitySummarySchema>;
@@ -75,15 +75,17 @@ export type RecipeMetadata = z.infer<typeof recipeMetadataSchema>;
  */
 export const recipeManifestEntrySchema = z.object({
   /** Recipe name (matches metadata name) */
-  name: z.string(),
+  name: z.string().regex(/^[a-z0-9-]+$/, "Recipe name must be lowercase with hyphens only"),
   /** Brief description */
-  description: z.string(),
+  description: z.string().min(10).max(500),
   /** Category */
   category: recipeCategorySchema,
   /** Filename in recipes directory */
-  file: z.string(),
-  /** Recipe version */
-  version: z.string(),
+  file: z.string().regex(/^[a-z0-9-]+\.ya?ml$/, "File must be a YAML file with valid name"),
+  /** Recipe version (semver) */
+  version: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/, "Version must follow semantic versioning (e.g., 1.0.0)"),
   /** Saleor version compatibility */
   saleorVersion: z.string(),
   /** Entity counts */

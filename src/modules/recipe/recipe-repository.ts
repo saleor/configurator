@@ -1,15 +1,54 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ZodValidationError } from "../../lib/errors/zod";
+import type { SaleorConfig } from "../config/schema/schema";
 import { configSchema } from "../config/schema/schema";
 import { ManifestLoadError, RecipeNotFoundError, RecipeValidationError } from "./errors";
 import { getRecipesDir, loadRecipeFile } from "./recipe-loader";
 import {
   type Recipe,
   type RecipeManifest,
+  type RecipeMetadata,
   recipeManifestSchema,
   recipeMetadataSchema,
 } from "./schema";
+
+/**
+ * Parsed YAML content from a recipe file
+ */
+interface ParsedRecipeYaml {
+  metadata: unknown;
+  config: unknown;
+}
+
+/**
+ * Validates parsed recipe content and returns typed Recipe
+ */
+function validateRecipeContent(
+  parsed: ParsedRecipeYaml,
+  sourceDescription: string
+): { metadata: RecipeMetadata; config: SaleorConfig } {
+  const metadataResult = recipeMetadataSchema.safeParse(parsed.metadata);
+  if (!metadataResult.success) {
+    throw new RecipeValidationError(
+      `Invalid recipe metadata in "${sourceDescription}"`,
+      metadataResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
+    );
+  }
+
+  const configResult = configSchema.safeParse(parsed.config);
+  if (!configResult.success) {
+    throw new RecipeValidationError(
+      `Invalid recipe configuration in "${sourceDescription}"`,
+      configResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
+    );
+  }
+
+  return {
+    metadata: metadataResult.data,
+    config: configResult.data,
+  };
+}
 
 /**
  * Loads the recipe manifest from the recipes directory.
@@ -58,37 +97,17 @@ export function loadRecipe(recipeName: string): Recipe {
   const recipePath = path.join(recipesDir, entry.file);
 
   const parsed = loadRecipeFile(recipePath);
-
-  // Validate metadata
-  const metadataResult = recipeMetadataSchema.safeParse(parsed.metadata);
-  if (!metadataResult.success) {
-    throw new RecipeValidationError(
-      `Invalid recipe metadata in "${entry.file}"`,
-      metadataResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
-    );
-  }
-
-  // Validate config against configSchema (FR-006 explicit validation)
-  const configResult = configSchema.safeParse(parsed.config);
-  if (!configResult.success) {
-    throw new RecipeValidationError(
-      `Invalid recipe configuration in "${entry.file}"`,
-      configResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
-    );
-  }
+  const validated = validateRecipeContent(parsed, entry.file);
 
   // Verify metadata name matches filename (supports both .yml and .yaml)
   const expectedName = path.basename(entry.file, path.extname(entry.file));
-  if (metadataResult.data.name !== expectedName) {
+  if (validated.metadata.name !== expectedName) {
     throw new RecipeValidationError(
-      `Metadata name "${metadataResult.data.name}" does not match filename "${entry.file}"`
+      `Metadata name "${validated.metadata.name}" does not match filename "${entry.file}"`
     );
   }
 
-  return {
-    metadata: metadataResult.data,
-    config: configResult.data,
-  };
+  return validated;
 }
 
 /**
@@ -97,27 +116,5 @@ export function loadRecipe(recipeName: string): Recipe {
  */
 export function loadRecipeFromFile(filePath: string): Recipe {
   const parsed = loadRecipeFile(filePath);
-
-  // Validate metadata
-  const metadataResult = recipeMetadataSchema.safeParse(parsed.metadata);
-  if (!metadataResult.success) {
-    throw new RecipeValidationError(
-      `Invalid recipe metadata in "${filePath}"`,
-      metadataResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
-    );
-  }
-
-  // Validate config against configSchema (FR-006 explicit validation)
-  const configResult = configSchema.safeParse(parsed.config);
-  if (!configResult.success) {
-    throw new RecipeValidationError(
-      `Invalid recipe configuration in "${filePath}"`,
-      configResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
-    );
-  }
-
-  return {
-    metadata: metadataResult.data,
-    config: configResult.data,
-  };
+  return validateRecipeContent(parsed, filePath);
 }

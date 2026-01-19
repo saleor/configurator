@@ -11,7 +11,7 @@ import { createConfigurator } from "../core/configurator";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
-import { RecipeNotFoundError } from "../modules/recipe/errors";
+import { RecipeLoadError, RecipeNotFoundError } from "../modules/recipe/errors";
 import { loadManifest } from "../modules/recipe/recipe-repository";
 import {
   exportRecipe,
@@ -24,6 +24,34 @@ import {
   loadRecipeConfig,
 } from "../modules/recipe/recipe-service";
 import { recipeCategorySchema } from "../modules/recipe/schema";
+
+// ============================================================================
+// Shared helpers
+// ============================================================================
+
+/**
+ * Handles RecipeNotFoundError with available recipe suggestions
+ */
+function handleRecipeNotFound(error: RecipeNotFoundError, cliConsole: Console): never {
+  cliConsole.error(error.message);
+
+  try {
+    const manifest = loadManifest();
+    if (manifest.recipes.length > 0) {
+      console.log("\nAvailable recipes:");
+      for (const recipe of manifest.recipes) {
+        console.log(`  - ${recipe.name}`);
+      }
+    }
+  } catch (manifestError) {
+    logger.debug("Failed to load manifest for suggestions", {
+      error: manifestError instanceof Error ? manifestError.message : String(manifestError),
+    });
+  }
+
+  console.log("\nUse 'configurator recipe' to see all recipes");
+  process.exit(1);
+}
 
 // ============================================================================
 // recipe list (or just 'recipe' with no args)
@@ -109,16 +137,7 @@ async function showHandler(args: RecipeShowArgs): Promise<void> {
     logger.info("Recipe show complete", { name: args.name });
   } catch (error) {
     if (error instanceof RecipeNotFoundError) {
-      cliConsole.error(error.message);
-      const manifest = loadManifest();
-      if (manifest.recipes.length > 0) {
-        console.log("\nAvailable recipes:");
-        for (const recipe of manifest.recipes) {
-          console.log(`  - ${recipe.name}`);
-        }
-      }
-      console.log("\nUse 'configurator recipe' to see all recipes");
-      process.exit(1);
+      handleRecipeNotFound(error, cliConsole);
     }
     throw error;
   }
@@ -150,7 +169,6 @@ export const recipeApplyArgsSchema = baseCommandArgsSchema.extend({
   ci: z.boolean().default(false).describe("CI mode - skip all confirmations"),
   plan: z.boolean().default(false).describe("Show deployment plan without applying"),
   json: z.boolean().default(false).describe("Output as JSON for automation"),
-  skipVersionCheck: z.boolean().default(false).describe("Skip Saleor version compatibility check"),
 });
 
 export type RecipeApplyArgs = z.infer<typeof recipeApplyArgsSchema>;
@@ -162,7 +180,14 @@ function writeTempConfig(config: Record<string, unknown>): string {
   const tempDir = os.tmpdir();
   const tempFile = path.join(tempDir, `recipe-config-${Date.now()}.yml`);
   const yamlContent = stringify(config, { lineWidth: 120 });
-  fs.writeFileSync(tempFile, yamlContent, "utf-8");
+
+  try {
+    fs.writeFileSync(tempFile, yamlContent, "utf-8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new RecipeLoadError(tempFile, `Failed to write temporary config: ${message}`);
+  }
+
   return tempFile;
 }
 
@@ -174,8 +199,11 @@ function cleanupTempConfig(filePath: string): void {
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-  } catch {
-    // Best effort cleanup, ignore errors
+  } catch (error) {
+    logger.debug("Failed to cleanup temp config", {
+      path: filePath,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -359,7 +387,7 @@ async function applyHandler(args: RecipeApplyArgs): Promise<void> {
     const recipe = loadRecipeConfig(args.name);
     spinner?.succeed(`Loaded recipe: ${recipe.metadata.name}`);
 
-    if (!args.skipVersionCheck && !args.json) {
+    if (!args.json) {
       cliConsole.muted(`Recipe requires Saleor ${recipe.metadata.saleorVersion}`);
     }
 
@@ -493,15 +521,7 @@ async function exportHandler(args: RecipeExportArgs): Promise<void> {
     logger.info("Recipe export complete", { name: recipe.metadata.name, path: outputPath });
   } catch (error) {
     if (error instanceof RecipeNotFoundError) {
-      cliConsole.error(error.message);
-      const manifest = loadManifest();
-      if (manifest.recipes.length > 0) {
-        console.log("\nAvailable recipes:");
-        for (const r of manifest.recipes) {
-          console.log(`  - ${r.name}`);
-        }
-      }
-      process.exit(1);
+      handleRecipeNotFound(error, cliConsole);
     }
     throw error;
   }

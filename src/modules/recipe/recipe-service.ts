@@ -4,8 +4,9 @@ import chalk from "chalk";
 import { stringify } from "yaml";
 import { logger } from "../../lib/logger";
 import type { SaleorConfig } from "../config/schema/schema";
+import { RecipeLoadError } from "./errors";
 import { loadManifest, loadRecipe, loadRecipeFromFile } from "./recipe-repository";
-import type { Recipe, RecipeCategory, RecipeManifestEntry } from "./schema";
+import type { EntitySummary, Recipe, RecipeCategory, RecipeManifestEntry } from "./schema";
 
 /**
  * Options for listing recipes
@@ -32,7 +33,7 @@ export function listRecipes(options: ListRecipesOptions = {}): RecipeManifestEnt
 /**
  * Formats entity summary for display
  */
-function formatEntitySummary(entitySummary: Record<string, number | undefined>): string {
+function formatEntitySummary(entitySummary: EntitySummary): string {
   const parts = Object.entries(entitySummary)
     .filter(([, value]) => value !== undefined && value > 0)
     .map(([key, value]) => `${value} ${key}`);
@@ -46,11 +47,16 @@ function formatEntitySummary(entitySummary: Record<string, number | undefined>):
 function groupByCategory(
   recipes: RecipeManifestEntry[]
 ): Map<RecipeCategory, RecipeManifestEntry[]> {
-  return recipes.reduce((groups, recipe) => {
-    const existing = groups.get(recipe.category) || [];
-    groups.set(recipe.category, [...existing, recipe]);
-    return groups;
-  }, new Map<RecipeCategory, RecipeManifestEntry[]>());
+  const groups = new Map<RecipeCategory, RecipeManifestEntry[]>();
+  for (const recipe of recipes) {
+    const existing = groups.get(recipe.category);
+    if (existing) {
+      existing.push(recipe);
+    } else {
+      groups.set(recipe.category, [recipe]);
+    }
+  }
+  return groups;
 }
 
 /**
@@ -203,10 +209,13 @@ function formatPrerequisites(prerequisites: string[]): string[] {
 /**
  * Formats entities section
  */
-function formatEntitiesSection(entitySummary: Record<string, number | undefined>): string[] {
-  const summary = formatEntitySummary(entitySummary);
-  const entities = summary.split(", ").filter((e) => e && e !== "No entities");
-  return [chalk.cyan("Entities Included"), ...entities.map((e) => `  - ${e}`), ""];
+function formatEntitiesSection(entitySummary: EntitySummary): string[] {
+  const entries = Object.entries(entitySummary)
+    .filter(([, value]) => value !== undefined && value > 0)
+    .map(([key, value]) => `  - ${value} ${key}`);
+
+  if (entries.length === 0) return [];
+  return [chalk.cyan("Entities Included"), ...entries, ""];
 }
 
 /**
@@ -339,7 +348,12 @@ export function exportRecipe(
 
   const content = `---\n${metadataYaml}---\n${configYaml}`;
 
-  fs.writeFileSync(finalPath, content, "utf-8");
+  try {
+    fs.writeFileSync(finalPath, content, "utf-8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new RecipeLoadError(finalPath, `Failed to write recipe file: ${message}`);
+  }
 
   logger.debug("Exported recipe", { name: recipe.metadata.name, path: finalPath });
   return { path: finalPath, recipe };
@@ -374,7 +388,14 @@ function satisfiesOperator(cmp: number, operator: string): boolean {
     "<": (n) => n < 0,
     "=": (n) => n === 0,
   };
-  return checks[operator]?.(cmp) ?? true;
+
+  const check = checks[operator];
+  if (!check) {
+    logger.warn("Unknown version operator, treating as compatible", { operator });
+    return true;
+  }
+
+  return check(cmp);
 }
 
 /**
@@ -386,13 +407,23 @@ export function validateSaleorVersion(
   instanceVersion: string
 ): { compatible: boolean; reason?: string } {
   const match = recipeVersion.match(/^(>=?|<=?|=)?(\d+\.\d+)/);
-  if (!match) return { compatible: true };
+  if (!match) {
+    logger.debug("Could not parse recipe version constraint, treating as compatible", {
+      recipeVersion,
+    });
+    return { compatible: true };
+  }
 
   const operator = match[1] || ">=";
   const requiredVersion = match[2];
   const instanceMajorMinor = parseVersion(instanceVersion);
 
-  if (!instanceMajorMinor) return { compatible: true };
+  if (!instanceMajorMinor) {
+    logger.debug("Could not parse instance version, treating as compatible", {
+      instanceVersion,
+    });
+    return { compatible: true };
+  }
 
   const cmp = compareVersions(instanceMajorMinor, requiredVersion);
 
