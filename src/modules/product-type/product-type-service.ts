@@ -41,6 +41,13 @@ function buildVariantSelectionMap(
   );
 }
 
+/** Build a map of ALL attribute names to their variantSelection value (true or false) */
+function buildFullVariantSelectionMap(attributes: AttributeInput[]): Map<string, boolean> {
+  return new Map(
+    attributes.map((attr) => [getAttributeName(attr), hasVariantSelection(attr)] as const)
+  );
+}
+
 /** Extract referenced attribute names from input attributes */
 function getReferencedAttributeNames(attributes: AttributeInput[]): string[] {
   return attributes.filter(isReferencedAttribute).map((attr) => attr.attribute);
@@ -278,7 +285,76 @@ export class ProductTypeService {
       });
     }
 
+    // Update variantSelection on already-assigned attributes (VARIANT type only)
+    if (type === "VARIANT") {
+      await this.updateExistingAttributeAssignments(productType, inputAttributes);
+    }
+
     return { createdAttributes, updatedAttributes };
+  }
+
+  /**
+   * Updates variantSelection on attributes that are already assigned to the product type.
+   * This handles the case where a user changes variantSelection on an existing assignment.
+   */
+  private async updateExistingAttributeAssignments(
+    productType: ProductType,
+    inputAttributes: AttributeInput[]
+  ): Promise<void> {
+    // Check if repository supports updates (optional method)
+    if (!this.repository.updateAttributeAssignments) {
+      logger.debug("Repository does not support updateAttributeAssignments, skipping");
+      return;
+    }
+
+    // Get already-assigned variant attributes with their IDs
+    const existingVariantAttrs = productType.variantAttributes ?? [];
+    if (existingVariantAttrs.length === 0) {
+      return;
+    }
+
+    // Build map of desired variantSelection from input (for both inline and referenced)
+    const desiredVariantSelection = buildFullVariantSelectionMap(inputAttributes);
+
+    // Find attributes that need updating
+    // Currently-assigned attributes have variantSelection=false by default if not set
+    // We need to find ones where desired !== current
+    const attributesToUpdate: Array<{ id: string; variantSelection: boolean }> = [];
+
+    for (const existingAttr of existingVariantAttrs) {
+      if (!existingAttr.name) continue;
+
+      const desiredValue = desiredVariantSelection.get(existingAttr.name);
+      // If the attribute is not in the input, skip it (no desired change)
+      if (desiredValue === undefined) continue;
+
+      // We need to compare against the current state in Saleor
+      // Since the ProductType response doesn't include variantSelection status,
+      // we always update to the desired value when it's defined in input
+      // This ensures the desired state is applied
+      attributesToUpdate.push({
+        id: existingAttr.id,
+        variantSelection: desiredValue,
+      });
+    }
+
+    if (attributesToUpdate.length === 0) {
+      logger.debug("No existing attribute assignments need variantSelection updates");
+      return;
+    }
+
+    logger.debug("Updating variantSelection on existing attribute assignments", {
+      productTypeName: productType.name,
+      updates: attributesToUpdate.map((u) => ({
+        id: u.id,
+        variantSelection: u.variantSelection,
+      })),
+    });
+
+    await this.repository.updateAttributeAssignments({
+      productTypeId: productType.id,
+      operations: attributesToUpdate,
+    });
   }
 
   private async updateAttributes(
