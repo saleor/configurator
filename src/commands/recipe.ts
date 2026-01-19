@@ -9,6 +9,7 @@ import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { DeployDiffFormatter } from "../core/diff/formatters";
+import type { DiffSummary } from "../core/diff/types";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { RecipeLoadError, RecipeNotFoundError } from "../modules/recipe/errors";
@@ -23,11 +24,38 @@ import {
   listRecipes,
   loadRecipeConfig,
 } from "../modules/recipe/recipe-service";
+import type { Recipe } from "../modules/recipe/schema";
 import { recipeCategorySchema } from "../modules/recipe/schema";
 
 // ============================================================================
 // Shared helpers
 // ============================================================================
+
+/**
+ * Extracts error message from unknown error
+ */
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Outputs JSON to console with formatting
+ */
+function outputJson(data: Record<string, unknown>): void {
+  console.log(JSON.stringify(data, null, 2));
+}
+
+/**
+ * Creates change counts object from summary
+ */
+function createChangeCounts(summary: DiffSummary) {
+  return {
+    total: summary.totalChanges,
+    creates: summary.creates,
+    updates: summary.updates,
+    deletes: summary.deletes,
+  };
+}
 
 /**
  * Handles RecipeNotFoundError with available recipe suggestions
@@ -45,7 +73,7 @@ function handleRecipeNotFound(error: RecipeNotFoundError, cliConsole: Console): 
     }
   } catch (manifestError) {
     logger.debug("Failed to load manifest for suggestions", {
-      error: manifestError instanceof Error ? manifestError.message : String(manifestError),
+      error: getErrorMessage(manifestError),
     });
   }
 
@@ -229,9 +257,9 @@ function formatRecipeApplyPreview(recipeName: string, totalChanges: number): str
 interface ApplyContext {
   args: RecipeApplyArgs;
   cliConsole: Console;
-  recipe: ReturnType<typeof loadRecipeConfig>;
+  recipe: Recipe;
   configurator: ReturnType<typeof createConfigurator>;
-  summary: Awaited<ReturnType<ReturnType<typeof createConfigurator>["diff"]>>["summary"];
+  summary: DiffSummary;
 }
 
 /**
@@ -239,17 +267,11 @@ interface ApplyContext {
  */
 function outputNoChanges(ctx: Pick<ApplyContext, "args" | "cliConsole" | "recipe">): void {
   if (ctx.args.json) {
-    console.log(
-      JSON.stringify(
-        {
-          status: "no_changes",
-          recipe: ctx.recipe.metadata.name,
-          message: "Recipe configuration already matches remote",
-        },
-        null,
-        2
-      )
-    );
+    outputJson({
+      status: "no_changes",
+      recipe: ctx.recipe.metadata.name,
+      message: "Recipe configuration already matches remote",
+    });
   } else {
     ctx.cliConsole.success("✅ No changes detected - recipe configuration already matches remote");
   }
@@ -262,23 +284,12 @@ function outputPlanMode(
   ctx: Pick<ApplyContext, "args" | "cliConsole" | "recipe" | "summary">
 ): void {
   if (ctx.args.json) {
-    console.log(
-      JSON.stringify(
-        {
-          status: "plan",
-          recipe: ctx.recipe.metadata.name,
-          changes: {
-            total: ctx.summary.totalChanges,
-            creates: ctx.summary.creates,
-            updates: ctx.summary.updates,
-            deletes: ctx.summary.deletes,
-          },
-          results: ctx.summary.results,
-        },
-        null,
-        2
-      )
-    );
+    outputJson({
+      status: "plan",
+      recipe: ctx.recipe.metadata.name,
+      changes: createChangeCounts(ctx.summary),
+      results: ctx.summary.results,
+    });
   } else {
     ctx.cliConsole.muted("\n📋 Plan mode: No changes will be applied");
   }
@@ -291,22 +302,11 @@ function outputSuccess(
   ctx: Pick<ApplyContext, "args" | "cliConsole" | "recipe" | "summary">
 ): void {
   if (ctx.args.json) {
-    console.log(
-      JSON.stringify(
-        {
-          status: "success",
-          recipe: ctx.recipe.metadata.name,
-          changes: {
-            total: ctx.summary.totalChanges,
-            creates: ctx.summary.creates,
-            updates: ctx.summary.updates,
-            deletes: ctx.summary.deletes,
-          },
-        },
-        null,
-        2
-      )
-    );
+    outputJson({
+      status: "success",
+      recipe: ctx.recipe.metadata.name,
+      changes: createChangeCounts(ctx.summary),
+    });
   } else {
     ctx.cliConsole.success(`\n✅ Recipe "${ctx.recipe.metadata.name}" applied successfully!`);
     ctx.cliConsole.hint(`Run '${COMMAND_NAME} diff' to verify the configuration`);
@@ -317,21 +317,11 @@ function outputSuccess(
  * Outputs error result in JSON or human-readable format
  */
 function outputError(args: RecipeApplyArgs, cliConsole: Console, error: unknown): void {
+  const message = getErrorMessage(error);
   if (args.json) {
-    console.log(
-      JSON.stringify(
-        {
-          status: "error",
-          message: error instanceof Error ? error.message : String(error),
-        },
-        null,
-        2
-      )
-    );
+    outputJson({ status: "error", message });
   } else {
-    cliConsole.error(
-      `Recipe apply failed: ${error instanceof Error ? error.message : String(error)}`
-    );
+    cliConsole.error(`Recipe apply failed: ${message}`);
   }
 }
 
@@ -495,17 +485,7 @@ async function exportHandler(args: RecipeExportArgs): Promise<void> {
     const { path: outputPath, recipe } = exportRecipe(args.name, args.output);
 
     if (args.json) {
-      console.log(
-        JSON.stringify(
-          {
-            status: "success",
-            recipe: recipe.metadata.name,
-            outputPath,
-          },
-          null,
-          2
-        )
-      );
+      outputJson({ status: "success", recipe: recipe.metadata.name, outputPath });
     } else {
       cliConsole.header("🍳 Recipe Export\n");
       cliConsole.success(`Exported recipe "${recipe.metadata.name}" to ${outputPath}`);
