@@ -1,0 +1,11 @@
+{
+  "name": "saleor-configurator-marketplace",
+  "description": "Official Saleor Configurator plugins for AI-powered e-commerce configuration",
+  "plugins": [
+    {
+      "name": "saleor-configurator",
+      "description": "AI-powered Saleor e-commerce configuration through natural language. Create, edit, validate, and deploy store configurations using conversational AI.",
+      "source": "."
+    }
+  ]
+}
