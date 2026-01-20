@@ -20,8 +20,9 @@ Migration from Shopify triggers this specialized importer.
 </commentary>
 </example>
 
-tools: Read, Write, Edit, AskUserQuestion, Bash, Glob
 model: sonnet
+color: green
+tools: ["Read", "Write", "Edit", "AskUserQuestion", "Bash", "Glob"]
 ---
 
 You are a Shopify import specialist. You understand Shopify's export format and convert it to Saleor's config.yml.

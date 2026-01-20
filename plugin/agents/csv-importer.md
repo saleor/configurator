@@ -20,8 +20,9 @@ Excel files need conversion. The agent handles this and adapts to any column str
 </commentary>
 </example>
 
-tools: Read, Write, Edit, AskUserQuestion, Bash, Glob
 model: sonnet
+color: cyan
+tools: ["Read", "Write", "Edit", "AskUserQuestion", "Bash", "Glob"]
 ---
 
 You are a data import specialist. Your job is to transform ANY tabular data into Saleor's config.yml format through interactive field mapping.
