@@ -1,0 +1,401 @@
+# Fashion Store Configuration Template
+# A complete Saleor configuration for apparel and fashion retail
+#
+# Customize this template for your specific needs:
+# - Update channel names and currencies for your markets
+# - Modify categories to match your product catalog
+# - Adjust attributes for your specific products
+# - Add your actual products and variants
+
+# =============================================================================
+# CHANNELS
+# =============================================================================
+# Sales channels for different markets/regions
+channels:
+  - name: "US Store"
+    slug: "us-store"
+    currencyCode: USD
+    defaultCountry: US
+    isActive: true
+    stockSettings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+
+  - name: "EU Store"
+    slug: "eu-store"
+    currencyCode: EUR
+    defaultCountry: DE
+    isActive: true
+    stockSettings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+
+# =============================================================================
+# PRODUCT TYPES
+# =============================================================================
+# Define the structure for different product categories
+productTypes:
+  # T-Shirt with size and color variants
+  - name: "T-Shirt"
+    isShippingRequired: true
+    weight:
+      value: 200
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "House Brand"
+          - name: "Premium Collection"
+      - name: "Material"
+        type: DROPDOWN
+        values:
+          - name: "100% Cotton"
+          - name: "Cotton Blend"
+          - name: "Organic Cotton"
+      - name: "Care Instructions"
+        type: RICH_TEXT
+    variantAttributes:
+      - name: "Size"
+        type: DROPDOWN
+        values:
+          - name: "XS"
+          - name: "S"
+          - name: "M"
+          - name: "L"
+          - name: "XL"
+          - name: "XXL"
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Black"
+            value: "#000000"
+          - name: "White"
+            value: "#FFFFFF"
+          - name: "Navy"
+            value: "#000080"
+          - name: "Gray"
+            value: "#808080"
+          - name: "Red"
+            value: "#FF0000"
+
+  # Pants with waist, length, and color variants
+  - name: "Pants"
+    isShippingRequired: true
+    weight:
+      value: 400
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Material"
+        type: DROPDOWN
+        values:
+          - name: "Denim"
+          - name: "Cotton"
+          - name: "Chino"
+          - name: "Linen"
+      - name: "Fit"
+        type: DROPDOWN
+        values:
+          - name: "Slim"
+          - name: "Regular"
+          - name: "Relaxed"
+    variantAttributes:
+      - name: "Waist"
+        type: DROPDOWN
+        values:
+          - name: "28"
+          - name: "30"
+          - name: "32"
+          - name: "34"
+          - name: "36"
+          - name: "38"
+      - name: "Length"
+        type: DROPDOWN
+        values:
+          - name: "30"
+          - name: "32"
+          - name: "34"
+      - name: "Color"
+        type: SWATCH
+
+  # Dress with size and color variants
+  - name: "Dress"
+    isShippingRequired: true
+    weight:
+      value: 300
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Material"
+        type: DROPDOWN
+      - name: "Style"
+        type: DROPDOWN
+        values:
+          - name: "Casual"
+          - name: "Formal"
+          - name: "Party"
+          - name: "Summer"
+    variantAttributes:
+      - name: "Size"
+        type: DROPDOWN
+        values:
+          - name: "XS"
+          - name: "S"
+          - name: "M"
+          - name: "L"
+          - name: "XL"
+      - name: "Color"
+        type: SWATCH
+
+  # Shoes with size and color variants
+  - name: "Shoes"
+    isShippingRequired: true
+    weight:
+      value: 800
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Material"
+        type: DROPDOWN
+        values:
+          - name: "Leather"
+          - name: "Synthetic"
+          - name: "Canvas"
+          - name: "Suede"
+    variantAttributes:
+      - name: "Size"
+        type: DROPDOWN
+        values:
+          - name: "6"
+          - name: "7"
+          - name: "8"
+          - name: "9"
+          - name: "10"
+          - name: "11"
+          - name: "12"
+      - name: "Color"
+        type: SWATCH
+
+  # Accessories (bags, jewelry, etc.)
+  - name: "Accessory"
+    isShippingRequired: true
+    weight:
+      value: 150
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Material"
+        type: DROPDOWN
+    variantAttributes:
+      - name: "Color"
+        type: SWATCH
+
+# =============================================================================
+# CATEGORIES
+# =============================================================================
+# Hierarchical product organization
+categories:
+  - name: "Clothing"
+    slug: "clothing"
+    description: "All clothing items"
+    children:
+      - name: "Men's"
+        slug: "mens"
+        description: "Men's clothing"
+        children:
+          - name: "T-Shirts"
+            slug: "mens-t-shirts"
+            description: "Men's t-shirts and casual tops"
+          - name: "Pants"
+            slug: "mens-pants"
+            description: "Men's pants and jeans"
+          - name: "Shoes"
+            slug: "mens-shoes"
+            description: "Men's footwear"
+      - name: "Women's"
+        slug: "womens"
+        description: "Women's clothing"
+        children:
+          - name: "Dresses"
+            slug: "womens-dresses"
+            description: "Women's dresses"
+          - name: "Tops"
+            slug: "womens-tops"
+            description: "Women's tops and blouses"
+          - name: "Pants"
+            slug: "womens-pants"
+            description: "Women's pants and jeans"
+          - name: "Shoes"
+            slug: "womens-shoes"
+            description: "Women's footwear"
+
+  - name: "Accessories"
+    slug: "accessories"
+    description: "Fashion accessories"
+    children:
+      - name: "Bags"
+        slug: "bags"
+        description: "Handbags, backpacks, and more"
+      - name: "Jewelry"
+        slug: "jewelry"
+        description: "Necklaces, bracelets, and rings"
+      - name: "Belts"
+        slug: "belts"
+        description: "Leather and fabric belts"
+
+# =============================================================================
+# COLLECTIONS
+# =============================================================================
+# Curated product groupings
+collections:
+  - name: "New Arrivals"
+    slug: "new-arrivals"
+    description: "Just landed - our newest styles"
+    channelListings:
+      - channel: "us-store"
+        isPublished: true
+      - channel: "eu-store"
+        isPublished: true
+
+  - name: "Best Sellers"
+    slug: "best-sellers"
+    description: "Our most popular items"
+    channelListings:
+      - channel: "us-store"
+        isPublished: true
+      - channel: "eu-store"
+        isPublished: true
+
+  - name: "Sale"
+    slug: "sale"
+    description: "Special offers and discounts"
+    channelListings:
+      - channel: "us-store"
+        isPublished: true
+      - channel: "eu-store"
+        isPublished: true
+
+  - name: "Summer Collection"
+    slug: "summer-collection"
+    description: "Light and breezy styles for warm weather"
+    channelListings:
+      - channel: "us-store"
+        isPublished: true
+      - channel: "eu-store"
+        isPublished: true
+
+# =============================================================================
+# WAREHOUSES
+# =============================================================================
+warehouses:
+  - name: "Main Warehouse"
+    slug: "main-warehouse"
+    email: "warehouse@example.com"
+    address:
+      streetAddress1: "123 Warehouse Street"
+      city: "Newark"
+      postalCode: "07101"
+      country: US
+      countryArea: "NJ"
+
+# =============================================================================
+# SHIPPING ZONES
+# =============================================================================
+shippingZones:
+  - name: "US Domestic"
+    countries:
+      - US
+    warehouses:
+      - "main-warehouse"
+    shippingMethods:
+      - name: "Standard Shipping"
+        type: PRICE
+        channelListings:
+          - channel: "us-store"
+            price: 5.99
+            minimumOrderPrice: 0
+            maximumOrderPrice: 49.99
+      - name: "Free Shipping"
+        type: PRICE
+        channelListings:
+          - channel: "us-store"
+            price: 0
+            minimumOrderPrice: 50
+      - name: "Express Shipping"
+        type: PRICE
+        channelListings:
+          - channel: "us-store"
+            price: 14.99
+
+  - name: "Europe"
+    countries:
+      - DE
+      - FR
+      - IT
+      - ES
+      - GB
+    warehouses:
+      - "main-warehouse"
+    shippingMethods:
+      - name: "Standard International"
+        type: PRICE
+        channelListings:
+          - channel: "eu-store"
+            price: 9.99
+      - name: "Express International"
+        type: PRICE
+        channelListings:
+          - channel: "eu-store"
+            price: 24.99
+
+# =============================================================================
+# TAX CLASSES
+# =============================================================================
+taxClasses:
+  - name: "Standard Rate"
+    countries:
+      - country: US
+        rate: 0
+      - country: DE
+        rate: 19
+      - country: FR
+        rate: 20
+      - country: GB
+        rate: 20
+
+# =============================================================================
+# EXAMPLE PRODUCT (customize with your actual products)
+# =============================================================================
+products:
+  - name: "Classic Crew Neck T-Shirt"
+    slug: "classic-crew-neck-tshirt"
+    productType: "T-Shirt"
+    category: "clothing/mens/mens-t-shirts"
+    description: |
+      Our signature crew neck t-shirt. Made from 100% premium cotton
+      for all-day comfort. Pre-shrunk and machine washable.
+    channelListings:
+      - channel: "us-store"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+      - channel: "eu-store"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "CREW-BLK-M"
+        attributes:
+          Size: "M"
+          Color: "Black"
+        channelListings:
+          - channel: "us-store"
+            price: 29.99
+          - channel: "eu-store"
+            price: 24.99
+        stocks:
+          - warehouse: "main-warehouse"
+            quantity: 100

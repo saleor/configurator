@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@context7/mcp-server"],
+      "env": {}
+    },
+    "saleor": {
+      "command": "npx",
+      "args": ["-y", "@saleor/mcp-server"],
+      "env": {
+        "SALEOR_API_URL": "${SALEOR_API_URL}",
+        "SALEOR_TOKEN": "${SALEOR_TOKEN}"
+      }
+    }
+  }
+}
