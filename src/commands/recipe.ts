@@ -1,15 +1,16 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { Command } from "@commander-js/extra-typings";
 import ora from "ora";
 import { stringify } from "yaml";
 import { z } from "zod";
-import type { CommandConfig } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
-import { Console } from "../cli/console";
+import { Console, cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import type { DiffSummary } from "../core/diff/types";
+import { ZodValidationError } from "../lib/errors/zod";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { RecipeLoadError, RecipeNotFoundError } from "../modules/recipe/errors";
@@ -77,7 +78,7 @@ function handleRecipeNotFound(error: RecipeNotFoundError, cliConsole: Console): 
     });
   }
 
-  console.log("\nUse 'configurator recipe' to see all recipes");
+  console.log("\nUse 'configurator recipe list' to see all recipes");
   process.exit(1);
 }
 
@@ -115,20 +116,7 @@ async function listHandler(args: RecipeListArgs): Promise<void> {
   logger.info("Recipe list complete", { count: recipes.length });
 }
 
-/**
- * Recipe list command configuration
- */
-export const recipeCommandConfig: CommandConfig<typeof recipeListArgsSchema> = {
-  name: "recipe",
-  description: "List available configuration recipes",
-  schema: recipeListArgsSchema,
-  handler: listHandler,
-  examples: [
-    `${COMMAND_NAME} recipe # List all available recipes`,
-    `${COMMAND_NAME} recipe --category multi-region # Filter by category`,
-    `${COMMAND_NAME} recipe --json # Output as JSON for automation`,
-  ],
-};
+// Note: Command configuration is now built via createRecipeCommand() at the bottom of the file
 
 // ============================================================================
 // recipe-show
@@ -171,19 +159,7 @@ async function showHandler(args: RecipeShowArgs): Promise<void> {
   }
 }
 
-/**
- * Recipe show command configuration
- */
-export const recipeShowCommandConfig: CommandConfig<typeof recipeShowArgsSchema> = {
-  name: "recipe-show",
-  description: "Preview a recipe's configuration",
-  schema: recipeShowArgsSchema,
-  handler: showHandler,
-  examples: [
-    `${COMMAND_NAME} recipe-show --name multi-region # Preview the multi-region recipe`,
-    `${COMMAND_NAME} recipe-show --name digital-products --json # Get JSON output`,
-  ],
-};
+// Note: Command configuration is now built via createRecipeCommand() at the bottom of the file
 
 // ============================================================================
 // recipe-apply
@@ -440,23 +416,7 @@ async function applyHandler(args: RecipeApplyArgs): Promise<void> {
   }
 }
 
-/**
- * Recipe apply command configuration
- */
-export const recipeApplyCommandConfig: CommandConfig<typeof recipeApplyArgsSchema> = {
-  name: "recipe-apply",
-  description: "Apply a recipe configuration to your Saleor instance",
-  schema: recipeApplyArgsSchema,
-  handler: applyHandler,
-  requiresInteractive: true,
-  examples: [
-    `${COMMAND_NAME} recipe-apply --name multi-region --url https://store.saleor.cloud/graphql/ --token token123`,
-    `${COMMAND_NAME} recipe-apply --name ./custom-recipe.yml --url https://store.saleor.cloud/graphql/ --token token123`,
-    `${COMMAND_NAME} recipe-apply --name multi-region --plan # Preview without applying`,
-    `${COMMAND_NAME} recipe-apply --name multi-region --ci # Skip confirmations`,
-    `${COMMAND_NAME} recipe-apply --name multi-region --json # JSON output`,
-  ],
-};
+// Note: Command configuration is now built via createRecipeCommand() at the bottom of the file
 
 // ============================================================================
 // recipe-export
@@ -493,9 +453,7 @@ async function exportHandler(args: RecipeExportArgs): Promise<void> {
       cliConsole.hint("Next steps:");
       console.log(`  1. Edit ${outputPath} to customize the configuration`);
       console.log(`  2. Apply the customized recipe:`);
-      console.log(
-        `     ${COMMAND_NAME} recipe-apply --name ${outputPath} --url <URL> --token <TOKEN>`
-      );
+      console.log(`     ${COMMAND_NAME} recipe apply ${outputPath} --url <URL> --token <TOKEN>`);
     }
 
     logger.info("Recipe export complete", { name: recipe.metadata.name, path: outputPath });
@@ -507,17 +465,144 @@ async function exportHandler(args: RecipeExportArgs): Promise<void> {
   }
 }
 
+// ============================================================================
+// Recipe command with subcommands
+// ============================================================================
+
 /**
- * Recipe export command configuration
+ * Handles errors from subcommand handlers
  */
-export const recipeExportCommandConfig: CommandConfig<typeof recipeExportArgsSchema> = {
-  name: "recipe-export",
-  description: "Export a recipe to a local file for customization",
-  schema: recipeExportArgsSchema,
-  handler: exportHandler,
-  examples: [
-    `${COMMAND_NAME} recipe-export --name multi-region # Export to multi-region.yml`,
-    `${COMMAND_NAME} recipe-export --name multi-region --output my-config.yml # Custom output path`,
-    `${COMMAND_NAME} recipe-export --name digital-products --json # JSON output`,
-  ],
-};
+function handleSubcommandError(error: unknown): never {
+  cliConsole.error(error);
+  process.exit(1);
+}
+
+/**
+ * Creates the list subcommand
+ */
+function createListSubcommand() {
+  const cmd = new Command("list")
+    .description("List available configuration recipes")
+    .option("--category <category>", "Filter recipes by category")
+    .option("--json", "Output as JSON for automation");
+
+  cmd.action(async (options: { category?: string; json?: boolean }) => {
+    try {
+      const result = recipeListArgsSchema.safeParse(options);
+      if (!result.success) {
+        throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
+      }
+      await listHandler(result.data);
+    } catch (error) {
+      handleSubcommandError(error);
+    }
+  });
+
+  return cmd;
+}
+
+/**
+ * Creates the show subcommand
+ */
+function createShowSubcommand() {
+  const cmd = new Command("show")
+    .description("Preview a recipe's configuration")
+    .argument("<name>", "Recipe name to preview")
+    .option("--json", "Output as JSON for automation");
+
+  cmd.action(async (name: string, options: { json?: boolean }) => {
+    try {
+      const result = recipeShowArgsSchema.safeParse({ name, ...options });
+      if (!result.success) {
+        throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
+      }
+      await showHandler(result.data);
+    } catch (error) {
+      handleSubcommandError(error);
+    }
+  });
+
+  return cmd;
+}
+
+/**
+ * Creates the apply subcommand
+ */
+function createApplySubcommand() {
+  const cmd = new Command("apply")
+    .description("Apply a recipe configuration to your Saleor instance")
+    .argument("<name>", "Recipe name or path to apply")
+    .requiredOption("--url <url>", "Saleor instance URL")
+    .requiredOption("--token <token>", "Saleor API token")
+    .option("--config <config>", "Configuration file path", "config.yml")
+    .option("--quiet", "Suppress output")
+    .option("--ci", "CI mode - skip all confirmations")
+    .option("--plan", "Show deployment plan without applying")
+    .option("--json", "Output as JSON for automation");
+
+  cmd.action(async (name: string, options: Record<string, unknown>) => {
+    try {
+      const result = recipeApplyArgsSchema.safeParse({ name, ...options });
+      if (!result.success) {
+        throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
+      }
+      await applyHandler(result.data);
+    } catch (error) {
+      handleSubcommandError(error);
+    }
+  });
+
+  return cmd;
+}
+
+/**
+ * Creates the export subcommand
+ */
+function createExportSubcommand() {
+  const cmd = new Command("export")
+    .description("Export a recipe to a local file for customization")
+    .argument("<name>", "Recipe name to export")
+    .option("--output <output>", "Output file path (defaults to <recipe-name>.yml)")
+    .option("--json", "Output as JSON for automation");
+
+  cmd.action(async (name: string, options: { output?: string; json?: boolean }) => {
+    try {
+      const result = recipeExportArgsSchema.safeParse({ name, ...options });
+      if (!result.success) {
+        throw ZodValidationError.fromZodError(result.error, "Invalid arguments");
+      }
+      await exportHandler(result.data);
+    } catch (error) {
+      handleSubcommandError(error);
+    }
+  });
+
+  return cmd;
+}
+
+/**
+ * Creates the main recipe command with all subcommands
+ */
+export function createRecipeCommand() {
+  const recipeCommand = new Command("recipe")
+    .description("Manage configuration recipes for your Saleor instance")
+    .addCommand(createListSubcommand())
+    .addCommand(createShowSubcommand())
+    .addCommand(createApplySubcommand())
+    .addCommand(createExportSubcommand());
+
+  // Add help examples
+  recipeCommand.addHelpText(
+    "after",
+    `
+Examples:
+  ${COMMAND_NAME} recipe list                              # List all available recipes
+  ${COMMAND_NAME} recipe list --category multi-region      # Filter by category
+  ${COMMAND_NAME} recipe show multi-region                 # Preview a recipe
+  ${COMMAND_NAME} recipe apply multi-region --url <URL> --token <TOKEN>  # Apply a recipe
+  ${COMMAND_NAME} recipe export multi-region               # Export for customization
+`
+  );
+
+  return recipeCommand;
+}

@@ -2,7 +2,7 @@
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import packageJson from "../../package.json";
-import { commands } from "../commands/index.js";
+import { commands, subcommandCreators } from "../commands/index.js";
 import { isCiOutputMode } from "../lib/ci-mode";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
@@ -23,10 +23,15 @@ const CLI_CONFIG = {
 } as const;
 
 function registerCommands(program: Command): void {
+  // Register commands using CommandConfig pattern
   for (const commandConfig of commands) {
     const command = createCommand(commandConfig as CommandConfig<typeof commandConfig.schema>);
-
     program.addCommand(command);
+  }
+
+  // Register commands using subcommand pattern (Commander.js Command instances)
+  for (const createSubcommand of subcommandCreators) {
+    program.addCommand(createSubcommand());
   }
 }
 
