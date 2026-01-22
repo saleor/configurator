@@ -1,3 +1,4 @@
+import { StageAggregateError } from "../../core/deployment/errors";
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
@@ -1079,7 +1080,7 @@ export class ProductService {
                 entity: toCreate[index].name,
                 error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
               });
-              logger.warn(`Failed to create product: ${toCreate[index].name}`, { errors });
+              logger.debug(`Failed to create product: ${toCreate[index].name}`, { errors });
             } else if (product) {
               createdProducts.push(product);
             }
@@ -1129,7 +1130,7 @@ export class ProductService {
           entity: input.name,
           error: error instanceof Error ? error : new Error(String(error)),
         });
-        logger.warn(`Failed to update product: ${input.name}`, { error });
+        logger.debug(`Failed to update product: ${input.name}`, { error });
       }
     }
 
@@ -1290,9 +1291,8 @@ export class ProductService {
 
     // Step 8: Report results
     if (allFailures.length > 0) {
-      const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products`;
-      logger.error(errorMessage, { failures: allFailures });
-      throw new ProductError(errorMessage);
+      const successNames = allProducts.map((p) => p.name);
+      throw new StageAggregateError("Managing products", allFailures, successNames);
     }
 
     logger.info("Successfully bootstrapped all products via bulk operations", {

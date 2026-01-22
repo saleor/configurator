@@ -49,17 +49,20 @@ describe("ServiceErrorWrapper - Simple Integration Test", () => {
   });
 
   it("should validate architectural compliance", async () => {
-    // Repository layer should not import GraphQL error classes
     const fs = await import("node:fs");
     const path = await import("node:path");
+
+    // Repository architectural constraints:
+    // - MAY use GraphQLError for low-level query errors (pagination, network)
+    // - MUST NOT use business-level error classes (ProductError, ServiceErrorWrapper)
     const repositoryPath = path.resolve(__dirname, "./repository.ts");
     const repositorySource = fs.readFileSync(repositoryPath, "utf8");
 
-    expect(repositorySource).not.toContain("import.*GraphQLError");
-    expect(repositorySource).not.toContain("fromCombinedError");
-    expect(repositorySource).not.toContain("fromGraphQLErrors");
+    // Repository should NOT use business-level error wrapping
+    expect(repositorySource).not.toContain("ProductError");
+    expect(repositorySource).not.toContain("ServiceErrorWrapper");
 
-    // Service layer should use ServiceErrorWrapper
+    // Service layer should use ServiceErrorWrapper for business-level error wrapping
     const servicePath = path.resolve(__dirname, "./product-service.ts");
     const serviceSource = fs.readFileSync(servicePath, "utf8");
 

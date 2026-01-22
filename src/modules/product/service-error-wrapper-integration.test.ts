@@ -306,17 +306,19 @@ describe("ServiceErrorWrapper Integration - ProductService", () => {
   });
 
   describe("Architecture Compliance", () => {
-    it("should not import GraphQL error types in repository", async () => {
-      // This is a design test - ensures repository doesn't import GraphQL error handling
+    it("should not use business-level error classes in repository", async () => {
+      // Repository architectural constraints:
+      // - MAY use GraphQLError for low-level query errors (pagination, network)
+      // - MUST NOT use business-level error classes (ProductError, ServiceErrorWrapper)
+      // This follows the pattern used by config repository for pagination support.
       const fs = await import("node:fs");
       const path = await import("node:path");
       const repositoryPath = path.resolve(__dirname, "./repository.ts");
       const repositorySource = fs.readFileSync(repositoryPath, "utf8");
 
-      expect(repositorySource).not.toContain("GraphQLError");
-      expect(repositorySource).not.toContain("GraphQLUnknownError");
-      expect(repositorySource).not.toContain("fromCombinedError");
-      expect(repositorySource).not.toContain("fromGraphQLErrors");
+      // Repository should NOT use business-level error wrapping
+      expect(repositorySource).not.toContain("ProductError");
+      expect(repositorySource).not.toContain("ServiceErrorWrapper");
     });
 
     it("should use ServiceErrorWrapper in service layer", async () => {

@@ -1,5 +1,6 @@
-import type { Client } from "@urql/core";
+import type { Client, CombinedError } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
+import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
 import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
@@ -218,9 +219,13 @@ const getProductBySlugQuery = graphql(`
   }
 `);
 
-const getProductsBySlugsBulkQuery = graphql(`
-  query GetProductsBySlugs($slugs: [String!]!) {
-    products(filter: { slugs: $slugs }, first: 100) {
+const getProductsBySlugsBulkPageQuery = graphql(`
+  query GetProductsBySlugsPage($slugs: [String!]!, $first: Int!, $after: String) {
+    products(filter: { slugs: $slugs }, first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -1005,26 +1010,61 @@ export class ProductRepository implements ProductOperations {
     return product || null;
   }
 
+  /**
+   * Fetches products by their slugs with pagination support (handles >100 products).
+   *
+   * @throws {GraphQLError} When GraphQL query fails (network errors, rate limiting)
+   * @note Uses GraphQLError for low-level query errors, matching ConfigRepository pattern.
+   *       The service layer wraps these with business context.
+   */
   async getProductsBySlugs(slugs: string[]): Promise<Product[]> {
     if (slugs.length === 0) {
       return [];
     }
 
-    const result = await this.client.query(getProductsBySlugsBulkQuery, {
-      slugs,
-    });
+    logger.debug("Fetching products by slugs with pagination", { slugCount: slugs.length });
 
-    if (result.error) {
-      throw new Error(`Failed to fetch products by slugs: ${result.error.message}`);
+    type ProductsEdge = NonNullable<
+      NonNullable<ResultOf<typeof getProductsBySlugsBulkPageQuery>["products"]>["edges"]
+    >[number];
+
+    type ProductsPageResult = {
+      data?: {
+        products?: {
+          pageInfo?: { endCursor: string | null; hasNextPage: boolean } | null;
+          edges?: ProductsEdge[];
+        } | null;
+      };
+      error?: CombinedError;
+    };
+
+    const edges: ProductsEdge[] = [];
+    let after: string | null = null;
+
+    for (;;) {
+      const result: ProductsPageResult = await this.client.query(getProductsBySlugsBulkPageQuery, {
+        slugs,
+        first: 100,
+        after,
+      });
+
+      if (result.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch products by slugs", result.error);
+      }
+
+      const page = result.data?.products;
+      if (!page) break;
+      edges.push(...(page.edges || []));
+
+      if (!page.pageInfo?.hasNextPage) break;
+      after = page.pageInfo.endCursor || null;
+
+      // Rate limiting delay (50ms matches existing pattern)
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
-    if (!result.data?.products?.edges) {
-      return [];
-    }
-
-    return result.data.products.edges
-      .map((edge) => edge.node)
-      .filter((node) => node !== null) as Product[];
+    logger.debug("Completed fetching products", { totalProducts: edges.length });
+    return edges.map((e) => e.node).filter((node) => node !== null) as Product[];
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {

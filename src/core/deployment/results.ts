@@ -315,5 +315,10 @@ function extractSuggestions(errorMessage: string): string[] {
     suggestions.push("Check channel slug spelling and ensure it matches exactly");
   }
 
+  if (errorMessage.includes("Slug already exists")) {
+    suggestions.push("This product already exists in Saleor");
+    suggestions.push("Run 'introspect' to sync your config with current Saleor state");
+  }
+
   return suggestions;
 }

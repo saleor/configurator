@@ -716,6 +716,10 @@ export const productsStage: DeploymentStage = {
         );
       }
     } catch (error) {
+      // Preserve StageAggregateError for pipeline to extract entity details
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`
       );
