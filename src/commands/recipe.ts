@@ -73,7 +73,7 @@ function handleRecipeNotFound(error: RecipeNotFoundError, cliConsole: Console): 
       }
     }
   } catch (manifestError) {
-    logger.debug("Failed to load manifest for suggestions", {
+    logger.warn("Failed to load manifest for suggestions", {
       error: getErrorMessage(manifestError),
     });
   }
@@ -204,7 +204,7 @@ function cleanupTempConfig(filePath: string): void {
       fs.unlinkSync(filePath);
     }
   } catch (error) {
-    logger.debug("Failed to cleanup temp config", {
+    logger.warn("Failed to cleanup temp config", {
       path: filePath,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -534,7 +534,6 @@ function createApplySubcommand() {
     .argument("<name>", "Recipe name or path to apply")
     .requiredOption("--url <url>", "Saleor instance URL")
     .requiredOption("--token <token>", "Saleor API token")
-    .option("--config <config>", "Configuration file path", "config.yml")
     .option("--quiet", "Suppress output")
     .option("--ci", "CI mode - skip all confirmations")
     .option("--plan", "Show deployment plan without applying")
