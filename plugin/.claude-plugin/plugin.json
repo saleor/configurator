@@ -1,0 +1,23 @@
+{
+  "name": "saleor-configurator",
+  "version": "1.0.0",
+  "description": "AI-powered Saleor e-commerce configuration through natural language",
+  "author": {
+    "name": "Saleor",
+    "email": "hello@saleor.io",
+    "url": "https://github.com/saleor/configurator"
+  },
+  "homepage": "https://docs.saleor.io/configurator",
+  "repository": "https://github.com/saleor/configurator-claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "saleor",
+    "e-commerce",
+    "configurator",
+    "yaml",
+    "graphql",
+    "commerce-as-code",
+    "product-management",
+    "store-configuration"
+  ]
+}

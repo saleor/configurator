@@ -1,0 +1,516 @@
+# Navigation Structures (Menus) Examples
+# Complete examples of hierarchical navigation and curated guides
+
+# =============================================================================
+# MAIN NAVIGATION
+# =============================================================================
+# Primary header navigation for e-commerce store
+
+menus:
+  - name: "Main Navigation"
+    slug: "main-nav"
+    items:
+      # Shop dropdown with categories
+      - name: "Shop"
+        children:
+          - name: "New Arrivals"
+            collection: "new-arrivals"
+          - name: "Best Sellers"
+            collection: "best-sellers"
+          - name: "Electronics"
+            category: "electronics"
+            children:
+              - name: "Phones"
+                category: "phones"
+              - name: "Laptops"
+                category: "laptops"
+              - name: "Audio"
+                category: "audio"
+              - name: "Accessories"
+                category: "electronics-accessories"
+          - name: "Clothing"
+            category: "clothing"
+            children:
+              - name: "Men's"
+                category: "mens"
+              - name: "Women's"
+                category: "womens"
+              - name: "Kids"
+                category: "kids"
+          - name: "Home & Garden"
+            category: "home-garden"
+          - name: "Sale"
+            collection: "sale"
+
+      # Brands linking to Model pages
+      - name: "Brands"
+        children:
+          - name: "Featured Brands"
+            children:
+              - name: "Apple"
+                page: "apple"
+              - name: "Samsung"
+                page: "samsung"
+              - name: "Nike"
+                page: "nike"
+              - name: "Sony"
+                page: "sony"
+          - name: "All Brands"
+            url: "/brands"
+
+      # About section with content pages
+      - name: "About"
+        children:
+          - name: "Our Story"
+            page: "about-us"
+          - name: "Sustainability"
+            page: "sustainability"
+          - name: "Careers"
+            page: "careers"
+          - name: "Contact"
+            page: "contact"
+
+# =============================================================================
+# FOOTER NAVIGATION
+# =============================================================================
+
+  - name: "Footer"
+    slug: "footer"
+    items:
+      - name: "Shop"
+        children:
+          - name: "New Arrivals"
+            collection: "new-arrivals"
+          - name: "Best Sellers"
+            collection: "best-sellers"
+          - name: "Gift Cards"
+            category: "gift-cards"
+          - name: "Sale"
+            collection: "sale"
+
+      - name: "Customer Service"
+        children:
+          - name: "Help Center"
+            page: "help"
+          - name: "Shipping Info"
+            page: "shipping"
+          - name: "Returns & Exchanges"
+            page: "returns"
+          - name: "Size Guide"
+            page: "size-guide"
+          - name: "Track Order"
+            url: "/order-tracking"
+
+      - name: "Company"
+        children:
+          - name: "About Us"
+            page: "about-us"
+          - name: "Careers"
+            page: "careers"
+          - name: "Press"
+            page: "press"
+          - name: "Affiliates"
+            page: "affiliates"
+
+      - name: "Legal"
+        children:
+          - name: "Privacy Policy"
+            page: "privacy"
+          - name: "Terms of Service"
+            page: "terms"
+          - name: "Cookie Policy"
+            page: "cookies"
+          - name: "Accessibility"
+            page: "accessibility"
+
+      - name: "Connect"
+        children:
+          - name: "Instagram"
+            url: "https://instagram.com/store"
+          - name: "Facebook"
+            url: "https://facebook.com/store"
+          - name: "Twitter"
+            url: "https://twitter.com/store"
+          - name: "YouTube"
+            url: "https://youtube.com/store"
+          - name: "TikTok"
+            url: "https://tiktok.com/@store"
+
+# =============================================================================
+# MEGA MENU - ELECTRONICS
+# =============================================================================
+# Detailed category navigation for electronics department
+
+  - name: "Mega Menu - Electronics"
+    slug: "mega-electronics"
+    items:
+      - name: "Phones & Tablets"
+        category: "phones-tablets"
+        children:
+          - name: "Smartphones"
+            category: "smartphones"
+          - name: "Tablets"
+            category: "tablets"
+          - name: "Wearables"
+            category: "wearables"
+          - name: "Phone Accessories"
+            category: "phone-accessories"
+          - name: "New iPhone 16"
+            collection: "iphone-16"
+
+      - name: "Computers"
+        category: "computers"
+        children:
+          - name: "Laptops"
+            category: "laptops"
+          - name: "Desktops"
+            category: "desktops"
+          - name: "Monitors"
+            category: "monitors"
+          - name: "Computer Accessories"
+            category: "computer-accessories"
+          - name: "Gaming PCs"
+            collection: "gaming-pcs"
+
+      - name: "Audio"
+        category: "audio"
+        children:
+          - name: "Headphones"
+            category: "headphones"
+          - name: "Speakers"
+            category: "speakers"
+          - name: "Home Audio"
+            category: "home-audio"
+          - name: "Wireless Audio"
+            collection: "wireless-audio"
+
+      - name: "Featured Brands"
+        children:
+          - name: "Apple"
+            page: "apple"
+          - name: "Samsung"
+            page: "samsung"
+          - name: "Sony"
+            page: "sony"
+          - name: "Bose"
+            page: "bose"
+          - name: "View All Brands"
+            url: "/brands/electronics"
+
+      - name: "Deals & Offers"
+        collection: "electronics-deals"
+
+# =============================================================================
+# CURATED GUIDE - HOME OFFICE
+# =============================================================================
+# Mixes content (Models), products (Categories), and promotions (Collections)
+
+  - name: "Home Office Setup Guide"
+    slug: "home-office-guide"
+    items:
+      - name: "Introduction"
+        page: "home-office-intro"
+
+      - name: "Workspace Essentials"
+        children:
+          - name: "Choosing Your Desk"
+            page: "desk-guide"
+          - name: "Desks"
+            category: "desks"
+          - name: "Ergonomic Chairs"
+            page: "chair-guide"
+          - name: "Office Chairs"
+            category: "office-chairs"
+          - name: "Desk Accessories"
+            category: "desk-accessories"
+
+      - name: "Technology Setup"
+        children:
+          - name: "Monitor Guide"
+            page: "monitor-guide"
+          - name: "Monitors"
+            category: "monitors"
+          - name: "Keyboard & Mouse Guide"
+            page: "peripherals-guide"
+          - name: "Keyboards"
+            category: "keyboards"
+          - name: "Mice"
+            category: "mice"
+          - name: "Webcams"
+            category: "webcams"
+
+      - name: "Connectivity"
+        children:
+          - name: "WiFi Optimization"
+            page: "wifi-guide"
+          - name: "Routers"
+            category: "routers"
+          - name: "Network Accessories"
+            category: "network-accessories"
+          - name: "Cable Management"
+            page: "cable-management"
+
+      - name: "Lighting & Environment"
+        children:
+          - name: "Lighting Guide"
+            page: "lighting-guide"
+          - name: "Desk Lamps"
+            category: "desk-lamps"
+          - name: "Plants for Office"
+            category: "office-plants"
+
+      - name: "Bundle Deals"
+        collection: "home-office-bundles"
+
+# =============================================================================
+# SEASONAL GUIDE - HOLIDAY GIFT
+# =============================================================================
+# Campaign-focused structure for holiday shopping
+
+  - name: "Holiday Gift Guide 2024"
+    slug: "holiday-gift-guide-2024"
+    items:
+      - name: "Shop by Price"
+        children:
+          - name: "Under $25"
+            collection: "gifts-under-25"
+          - name: "Under $50"
+            collection: "gifts-under-50"
+          - name: "Under $100"
+            collection: "gifts-under-100"
+          - name: "Luxury Gifts"
+            collection: "luxury-gifts"
+
+      - name: "Shop by Recipient"
+        children:
+          - name: "For Him"
+            collection: "gifts-for-him"
+          - name: "For Her"
+            collection: "gifts-for-her"
+          - name: "For Kids"
+            collection: "gifts-for-kids"
+          - name: "For Teens"
+            collection: "gifts-for-teens"
+          - name: "For Parents"
+            collection: "gifts-for-parents"
+          - name: "For Couples"
+            collection: "gifts-for-couples"
+
+      - name: "Gift Ideas by Interest"
+        children:
+          - name: "Tech Lover"
+            collection: "tech-gifts"
+          - name: "Fitness Enthusiast"
+            collection: "fitness-gifts"
+          - name: "Home Chef"
+            collection: "kitchen-gifts"
+          - name: "Bookworm"
+            collection: "book-gifts"
+          - name: "Gamer"
+            collection: "gaming-gifts"
+
+      - name: "Last Minute"
+        children:
+          - name: "Gift Cards"
+            category: "gift-cards"
+          - name: "Digital Downloads"
+            category: "digital-products"
+          - name: "Same-Day Pickup"
+            collection: "same-day-pickup"
+
+      - name: "Gift Services"
+        children:
+          - name: "Gift Wrapping"
+            page: "gift-wrapping"
+          - name: "Personal Shopping"
+            page: "personal-shopping"
+          - name: "Corporate Gifts"
+            page: "corporate-gifts"
+
+# =============================================================================
+# WINE STORE NAVIGATION
+# =============================================================================
+# Complex navigation with Models for regions and grapes
+
+  - name: "Wine Navigation"
+    slug: "wine-nav"
+    items:
+      - name: "Shop by Region"
+        children:
+          - name: "France"
+            children:
+              - name: "Bordeaux"
+                page: "bordeaux"
+              - name: "Burgundy"
+                page: "burgundy"
+              - name: "Champagne"
+                page: "champagne"
+              - name: "Rhône Valley"
+                page: "rhone"
+              - name: "Loire Valley"
+                page: "loire"
+          - name: "Italy"
+            children:
+              - name: "Tuscany"
+                page: "tuscany"
+              - name: "Piedmont"
+                page: "piedmont"
+              - name: "Veneto"
+                page: "veneto"
+          - name: "Spain"
+            children:
+              - name: "Rioja"
+                page: "rioja"
+              - name: "Ribera del Duero"
+                page: "ribera"
+          - name: "USA"
+            children:
+              - name: "Napa Valley"
+                page: "napa"
+              - name: "Sonoma"
+                page: "sonoma"
+              - name: "Oregon"
+                page: "oregon"
+          - name: "All Regions"
+            url: "/regions"
+
+      - name: "Shop by Grape"
+        children:
+          - name: "Red Grapes"
+            children:
+              - name: "Cabernet Sauvignon"
+                page: "cabernet-sauvignon"
+              - name: "Merlot"
+                page: "merlot"
+              - name: "Pinot Noir"
+                page: "pinot-noir"
+              - name: "Syrah/Shiraz"
+                page: "syrah"
+              - name: "Malbec"
+                page: "malbec"
+          - name: "White Grapes"
+            children:
+              - name: "Chardonnay"
+                page: "chardonnay"
+              - name: "Sauvignon Blanc"
+                page: "sauvignon-blanc"
+              - name: "Riesling"
+                page: "riesling"
+              - name: "Pinot Grigio"
+                page: "pinot-grigio"
+          - name: "All Grapes"
+            url: "/grapes"
+
+      - name: "Shop by Type"
+        children:
+          - name: "Red Wine"
+            category: "red-wine"
+          - name: "White Wine"
+            category: "white-wine"
+          - name: "Rosé"
+            category: "rose-wine"
+          - name: "Sparkling"
+            category: "sparkling-wine"
+          - name: "Dessert Wine"
+            category: "dessert-wine"
+
+      - name: "Collections"
+        children:
+          - name: "Staff Picks"
+            collection: "staff-picks"
+          - name: "Award Winners"
+            collection: "award-winners"
+          - name: "Under $20"
+            collection: "under-20"
+          - name: "Organic & Biodynamic"
+            collection: "organic-wines"
+          - name: "New Arrivals"
+            collection: "new-arrivals"
+
+      - name: "Learn"
+        children:
+          - name: "Wine Guide"
+            page: "wine-guide"
+          - name: "Food Pairings"
+            page: "food-pairings"
+          - name: "Tasting Events"
+            page: "events"
+
+# =============================================================================
+# FASHION STORE NAVIGATION
+# =============================================================================
+
+  - name: "Fashion Navigation"
+    slug: "fashion-nav"
+    items:
+      - name: "Women"
+        category: "womens"
+        children:
+          - name: "New Arrivals"
+            collection: "womens-new"
+          - name: "Dresses"
+            category: "womens-dresses"
+          - name: "Tops"
+            category: "womens-tops"
+          - name: "Pants & Jeans"
+            category: "womens-pants"
+          - name: "Outerwear"
+            category: "womens-outerwear"
+          - name: "Shoes"
+            category: "womens-shoes"
+          - name: "Accessories"
+            category: "womens-accessories"
+          - name: "Sale"
+            collection: "womens-sale"
+
+      - name: "Men"
+        category: "mens"
+        children:
+          - name: "New Arrivals"
+            collection: "mens-new"
+          - name: "T-Shirts"
+            category: "mens-tshirts"
+          - name: "Shirts"
+            category: "mens-shirts"
+          - name: "Pants & Jeans"
+            category: "mens-pants"
+          - name: "Outerwear"
+            category: "mens-outerwear"
+          - name: "Shoes"
+            category: "mens-shoes"
+          - name: "Accessories"
+            category: "mens-accessories"
+          - name: "Sale"
+            collection: "mens-sale"
+
+      - name: "Kids"
+        category: "kids"
+        children:
+          - name: "Girls"
+            category: "girls"
+          - name: "Boys"
+            category: "boys"
+          - name: "Baby"
+            category: "baby"
+
+      - name: "Collections"
+        children:
+          - name: "Summer 2024"
+            collection: "summer-2024"
+          - name: "Sustainable Fashion"
+            collection: "sustainable"
+          - name: "Basics"
+            collection: "basics"
+          - name: "Activewear"
+            collection: "activewear"
+
+      - name: "Brands"
+        children:
+          - name: "Nike"
+            page: "nike"
+          - name: "Adidas"
+            page: "adidas"
+          - name: "Levi's"
+            page: "levis"
+          - name: "All Brands"
+            url: "/brands"
