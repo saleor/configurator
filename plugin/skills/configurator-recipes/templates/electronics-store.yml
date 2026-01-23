@@ -1,0 +1,401 @@
+# Electronics Store Configuration Template
+# A complete Saleor configuration for electronics and tech retail
+#
+# Customize this template for your specific needs:
+# - Update channel settings for your market
+# - Modify product types for your catalog
+# - Adjust attributes for your specific products
+# - Add your actual products and variants
+
+# =============================================================================
+# CHANNELS
+# =============================================================================
+channels:
+  - name: "Electronics Store"
+    slug: "electronics-store"
+    currencyCode: USD
+    defaultCountry: US
+    isActive: true
+    stockSettings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+
+# =============================================================================
+# PRODUCT TYPES
+# =============================================================================
+productTypes:
+  # Smartphone with storage and color variants
+  - name: "Smartphone"
+    isShippingRequired: true
+    weight:
+      value: 200
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Samsung"
+          - name: "Google"
+          - name: "OnePlus"
+      - name: "Screen Size"
+        type: PLAIN_TEXT
+      - name: "Display Type"
+        type: DROPDOWN
+        values:
+          - name: "OLED"
+          - name: "AMOLED"
+          - name: "LCD"
+      - name: "Warranty"
+        type: DROPDOWN
+        values:
+          - name: "1 Year"
+          - name: "2 Years"
+    variantAttributes:
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "64GB"
+          - name: "128GB"
+          - name: "256GB"
+          - name: "512GB"
+          - name: "1TB"
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Black"
+            value: "#000000"
+          - name: "White"
+            value: "#FFFFFF"
+          - name: "Blue"
+            value: "#0066CC"
+          - name: "Gold"
+            value: "#FFD700"
+
+  # Laptop with RAM, storage, and color variants
+  - name: "Laptop"
+    isShippingRequired: true
+    weight:
+      value: 2000
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Dell"
+          - name: "HP"
+          - name: "Lenovo"
+          - name: "ASUS"
+      - name: "Processor"
+        type: DROPDOWN
+        values:
+          - name: "Intel Core i5"
+          - name: "Intel Core i7"
+          - name: "Intel Core i9"
+          - name: "Apple M1"
+          - name: "Apple M2"
+          - name: "Apple M3"
+          - name: "AMD Ryzen 5"
+          - name: "AMD Ryzen 7"
+      - name: "Screen Size"
+        type: DROPDOWN
+        values:
+          - name: "13 inch"
+          - name: "14 inch"
+          - name: "15 inch"
+          - name: "16 inch"
+          - name: "17 inch"
+      - name: "Warranty"
+        type: DROPDOWN
+    variantAttributes:
+      - name: "RAM"
+        type: DROPDOWN
+        values:
+          - name: "8GB"
+          - name: "16GB"
+          - name: "32GB"
+          - name: "64GB"
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "256GB SSD"
+          - name: "512GB SSD"
+          - name: "1TB SSD"
+          - name: "2TB SSD"
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Silver"
+            value: "#C0C0C0"
+          - name: "Space Gray"
+            value: "#4A4A4A"
+          - name: "Black"
+            value: "#000000"
+
+  # Tablet with storage and color variants
+  - name: "Tablet"
+    isShippingRequired: true
+    weight:
+      value: 500
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Screen Size"
+        type: DROPDOWN
+        values:
+          - name: "8 inch"
+          - name: "10 inch"
+          - name: "11 inch"
+          - name: "12.9 inch"
+      - name: "Warranty"
+        type: DROPDOWN
+    variantAttributes:
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "64GB"
+          - name: "128GB"
+          - name: "256GB"
+          - name: "512GB"
+      - name: "Connectivity"
+        type: DROPDOWN
+        values:
+          - name: "WiFi Only"
+          - name: "WiFi + Cellular"
+      - name: "Color"
+        type: SWATCH
+
+  # Tech Accessory
+  - name: "Tech Accessory"
+    isShippingRequired: true
+    weight:
+      value: 100
+      unit: G
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+      - name: "Compatibility"
+        type: MULTISELECT
+        values:
+          - name: "iPhone"
+          - name: "Android"
+          - name: "iPad"
+          - name: "MacBook"
+          - name: "Windows PC"
+    variantAttributes:
+      - name: "Color"
+        type: SWATCH
+
+  # Software/Digital Product
+  - name: "Software"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Publisher"
+        type: DROPDOWN
+      - name: "Platform"
+        type: MULTISELECT
+        values:
+          - name: "Windows"
+          - name: "macOS"
+          - name: "Linux"
+          - name: "iOS"
+          - name: "Android"
+    variantAttributes:
+      - name: "License Type"
+        type: DROPDOWN
+        values:
+          - name: "Single User"
+          - name: "Family (5 users)"
+          - name: "Business"
+          - name: "Enterprise"
+
+# =============================================================================
+# CATEGORIES
+# =============================================================================
+categories:
+  - name: "Electronics"
+    slug: "electronics"
+    description: "Electronic devices and gadgets"
+    children:
+      - name: "Phones"
+        slug: "phones"
+        description: "Smartphones and mobile devices"
+        children:
+          - name: "Smartphones"
+            slug: "smartphones"
+          - name: "Phone Cases"
+            slug: "phone-cases"
+          - name: "Phone Accessories"
+            slug: "phone-accessories"
+      - name: "Computers"
+        slug: "computers"
+        description: "Laptops, desktops, and accessories"
+        children:
+          - name: "Laptops"
+            slug: "laptops"
+          - name: "Desktops"
+            slug: "desktops"
+          - name: "Computer Accessories"
+            slug: "computer-accessories"
+      - name: "Tablets"
+        slug: "tablets"
+        description: "Tablets and e-readers"
+      - name: "Audio"
+        slug: "audio"
+        description: "Headphones, speakers, and audio equipment"
+        children:
+          - name: "Headphones"
+            slug: "headphones"
+          - name: "Speakers"
+            slug: "speakers"
+          - name: "Earbuds"
+            slug: "earbuds"
+      - name: "Wearables"
+        slug: "wearables"
+        description: "Smartwatches and fitness trackers"
+      - name: "Software"
+        slug: "software"
+        description: "Digital software and apps"
+        children:
+          - name: "Productivity"
+            slug: "productivity-software"
+          - name: "Security"
+            slug: "security-software"
+          - name: "Creative"
+            slug: "creative-software"
+
+# =============================================================================
+# COLLECTIONS
+# =============================================================================
+collections:
+  - name: "New Arrivals"
+    slug: "new-arrivals"
+    description: "Latest tech just released"
+    channelListings:
+      - channel: "electronics-store"
+        isPublished: true
+
+  - name: "Best Sellers"
+    slug: "best-sellers"
+    description: "Our most popular products"
+    channelListings:
+      - channel: "electronics-store"
+        isPublished: true
+
+  - name: "Deals & Offers"
+    slug: "deals"
+    description: "Special prices on select items"
+    channelListings:
+      - channel: "electronics-store"
+        isPublished: true
+
+  - name: "Work From Home"
+    slug: "work-from-home"
+    description: "Essential tech for remote work"
+    channelListings:
+      - channel: "electronics-store"
+        isPublished: true
+
+# =============================================================================
+# WAREHOUSES
+# =============================================================================
+warehouses:
+  - name: "Tech Distribution Center"
+    slug: "tech-dc"
+    email: "fulfillment@example.com"
+    address:
+      streetAddress1: "456 Tech Park Drive"
+      city: "Austin"
+      postalCode: "78701"
+      country: US
+      countryArea: "TX"
+
+# =============================================================================
+# SHIPPING ZONES
+# =============================================================================
+shippingZones:
+  - name: "US Shipping"
+    countries:
+      - US
+    warehouses:
+      - "tech-dc"
+    shippingMethods:
+      - name: "Standard Shipping"
+        type: PRICE
+        channelListings:
+          - channel: "electronics-store"
+            price: 7.99
+            minimumOrderPrice: 0
+            maximumOrderPrice: 99.99
+      - name: "Free Shipping"
+        type: PRICE
+        channelListings:
+          - channel: "electronics-store"
+            price: 0
+            minimumOrderPrice: 100
+      - name: "Express (2-Day)"
+        type: PRICE
+        channelListings:
+          - channel: "electronics-store"
+            price: 19.99
+      - name: "Next Day"
+        type: PRICE
+        channelListings:
+          - channel: "electronics-store"
+            price: 34.99
+
+# =============================================================================
+# TAX CLASSES
+# =============================================================================
+taxClasses:
+  - name: "Electronics"
+    countries:
+      - country: US
+        rate: 0
+
+  - name: "Digital Products"
+    countries:
+      - country: US
+        rate: 0
+
+# =============================================================================
+# EXAMPLE PRODUCT
+# =============================================================================
+products:
+  - name: "Pro Laptop 15"
+    slug: "pro-laptop-15"
+    productType: "Laptop"
+    category: "electronics/computers/laptops"
+    description: |
+      Powerful laptop for professionals. Features the latest processor,
+      stunning display, and all-day battery life.
+    channelListings:
+      - channel: "electronics-store"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "LAPTOP-15-16GB-512"
+        attributes:
+          RAM: "16GB"
+          Storage: "512GB SSD"
+          Color: "Space Gray"
+        channelListings:
+          - channel: "electronics-store"
+            price: 1299.99
+        stocks:
+          - warehouse: "tech-dc"
+            quantity: 50
+      - sku: "LAPTOP-15-32GB-1TB"
+        attributes:
+          RAM: "32GB"
+          Storage: "1TB SSD"
+          Color: "Silver"
+        channelListings:
+          - channel: "electronics-store"
+            price: 1799.99
+        stocks:
+          - warehouse: "tech-dc"
+            quantity: 25
