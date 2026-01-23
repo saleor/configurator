@@ -1,0 +1,84 @@
+---
+name: digital-products
+description: Configure product types for selling digital goods without shipping requirements
+category: digital
+saleorVersion: ">=3.15"
+docsUrl: https://docs.saleor.io/docs/developer/products
+useCase: |
+  Set up your store for selling digital products like software, ebooks,
+  music, or online courses. This recipe creates product types with
+  shipping disabled and digital-specific attributes for managing
+  downloadable content.
+prerequisites:
+  - Saleor instance running
+  - Admin access to create product types
+customizationHints:
+  - Add additional attributes for your specific digital product types
+  - Adjust product type names to match your catalog structure
+  - Consider adding license duration attributes for subscription products
+entitySummary:
+  productTypes: 3
+examples:
+  before: |
+    # No digital product types configured
+    productTypes: []
+  after: |
+    # Digital product types ready to use
+    productTypes:
+      - name: Digital Download
+        isShippingRequired: false
+      - name: Software License
+        isShippingRequired: false
+---
+productTypes:
+  - name: Digital Download
+    isShippingRequired: false
+    productAttributes:
+      - name: Download URL
+        inputType: PLAIN_TEXT
+      - name: File Size
+        inputType: PLAIN_TEXT
+      - name: File Format
+        inputType: DROPDOWN
+        values:
+          - name: PDF
+          - name: EPUB
+          - name: MP3
+          - name: ZIP
+
+  - name: Software License
+    isShippingRequired: false
+    productAttributes:
+      - name: License Key
+        inputType: PLAIN_TEXT
+      - name: License Type
+        inputType: DROPDOWN
+        values:
+          - name: Single User
+          - name: Multi User
+          - name: Enterprise
+      - name: Platform
+        inputType: MULTISELECT
+        values:
+          - name: Windows
+          - name: macOS
+          - name: Linux
+
+  - name: Online Course
+    isShippingRequired: false
+    productAttributes:
+      - name: Course Duration
+        inputType: PLAIN_TEXT
+      - name: Skill Level
+        inputType: DROPDOWN
+        values:
+          - name: Beginner
+          - name: Intermediate
+          - name: Advanced
+      - name: Language
+        inputType: DROPDOWN
+        values:
+          - name: English
+          - name: Spanish
+          - name: French
+          - name: German

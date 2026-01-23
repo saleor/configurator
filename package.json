@@ -11,6 +11,7 @@
   "files": [
     "dist",
     "bin",
+    "recipes",
     "README.md",
     "LICENSE",
     "schema.json",
@@ -33,7 +34,8 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims",
+    "copy-recipes": "cp -r src/recipes dist/recipes",
+    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims && pnpm copy-recipes",
     "prepublishOnly": "pnpm build",
     "generate-json-schema": "tsx scripts/generate-json-schema.ts",
     "generate-schema-docs": "tsx scripts/generate-schema-docs.ts",
