@@ -1,0 +1,15 @@
+# User-specific settings (contains credentials)
+.claude/*.local.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log

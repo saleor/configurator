@@ -1,0 +1,256 @@
+# =============================================================================
+# Saleor Configurator - Skeleton Configuration
+# =============================================================================
+#
+# This is a minimal config.yml skeleton showing the structure of each section.
+# Copy this file and fill in your actual values.
+#
+# Validation: npx configurator validate (or use the JSON schema at schemas/config.schema.json)
+#
+# Entity Identification Rules:
+#   - slug-based: channels, categories, collections, products, warehouses, menus, pages
+#   - name-based: productTypes, pageTypes, attributes, taxClasses, shippingZones
+#
+# Required fields are marked with [REQUIRED], optional with [OPTIONAL]
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SHOP SETTINGS (singleton - store-wide configuration)
+# -----------------------------------------------------------------------------
+# shop:
+#   name: "My Store"                              # [OPTIONAL] Store display name
+#   description: "Store description"              # [OPTIONAL] Store description
+#   defaultMailSenderName: "My Store"             # [OPTIONAL] Email sender name
+#   defaultMailSenderAddress: "noreply@store.com" # [OPTIONAL] Email sender address
+
+# -----------------------------------------------------------------------------
+# CHANNELS (slug-based identification)
+# -----------------------------------------------------------------------------
+# At least one channel is required for most operations
+channels:
+  - name: "Default Channel"                       # [REQUIRED] Display name
+    slug: "default-channel"                       # [REQUIRED] Unique identifier (lowercase, hyphens)
+    currencyCode: USD                             # [REQUIRED] ISO 4217 currency code
+    defaultCountry: US                            # [REQUIRED] ISO 3166-1 alpha-2 country code
+    isActive: true                                # [OPTIONAL] Default: true
+    # stockSettings:                              # [OPTIONAL] Inventory settings
+    #   allocationStrategy: PRIORITIZE_HIGH_STOCK # PRIORITIZE_HIGH_STOCK or PRIORITIZE_SORTING_ORDER
+
+# -----------------------------------------------------------------------------
+# PRODUCT TYPES (name-based identification)
+# -----------------------------------------------------------------------------
+# Define the structure for your products before creating products
+productTypes:
+  - name: "Default Product Type"                  # [REQUIRED] Unique name (identifier)
+    isShippingRequired: true                      # [REQUIRED] Physical vs digital
+    # isDigital: false                            # [OPTIONAL] For digital products
+    # weight:                                     # [OPTIONAL] Default weight
+    #   value: 100
+    #   unit: G                                   # KG, LB, OZ, G
+    # taxClass: "Standard Rate"                   # [OPTIONAL] Reference to tax class name
+
+    # Product-level attributes (same for all variants)
+    # productAttributes:
+    #   - name: "Brand"
+    #     type: DROPDOWN                          # DROPDOWN, MULTISELECT, RICH_TEXT, PLAIN_TEXT, NUMERIC, BOOLEAN, DATE, DATE_TIME, SWATCH, FILE, REFERENCE
+    #     values:
+    #       - name: "Brand A"
+    #       - name: "Brand B"
+
+    # Variant-level attributes (differ per variant - creates variant matrix)
+    # variantAttributes:
+    #   - name: "Size"
+    #     type: DROPDOWN
+    #     values:
+    #       - name: "S"
+    #       - name: "M"
+    #       - name: "L"
+    #   - name: "Color"
+    #     type: SWATCH
+    #     values:
+    #       - name: "Black"
+    #         value: "#000000"                    # Hex color for SWATCH type
+
+# -----------------------------------------------------------------------------
+# ATTRIBUTES (name-based identification) - standalone reusable attributes
+# -----------------------------------------------------------------------------
+# Define attributes separately if reused across multiple product types
+# attributes:
+#   - name: "Material"                            # [REQUIRED] Unique attribute name
+#     type: DROPDOWN                              # [REQUIRED] Attribute type
+#     inputType: DROPDOWN                         # [OPTIONAL] Input type
+#     valueRequired: false                        # [OPTIONAL] Is selection required
+#     visibleInStorefront: true                   # [OPTIONAL] Show in storefront
+#     filterableInStorefront: true                # [OPTIONAL] Enable filtering
+#     values:
+#       - name: "Cotton"
+#       - name: "Polyester"
+
+# -----------------------------------------------------------------------------
+# CATEGORIES (slug-based identification, hierarchical)
+# -----------------------------------------------------------------------------
+# Categories organize products in a tree structure
+categories:
+  - name: "All Products"                          # [REQUIRED] Display name
+    slug: "all-products"                          # [REQUIRED] Unique identifier
+    # description: "Browse all our products"      # [OPTIONAL] Category description
+    # seoTitle: "Shop All Products"               # [OPTIONAL] SEO title (max 70 chars)
+    # seoDescription: "..."                       # [OPTIONAL] SEO description (max 300 chars)
+    # backgroundImage: "path/to/image.jpg"        # [OPTIONAL] Background image
+
+    # Nested categories (can be multiple levels deep)
+    # children:
+    #   - name: "Subcategory"
+    #     slug: "subcategory"
+    #     children:
+    #       - name: "Sub-subcategory"
+    #         slug: "sub-subcategory"
+
+# -----------------------------------------------------------------------------
+# COLLECTIONS (slug-based identification)
+# -----------------------------------------------------------------------------
+# Collections are curated product groups (can span categories)
+# collections:
+#   - name: "Featured"                            # [REQUIRED] Collection name
+#     slug: "featured"                            # [REQUIRED] Unique identifier
+#     description: "Featured products"            # [OPTIONAL]
+#     channelListings:                            # [REQUIRED] At least one channel
+#       - channel: "default-channel"              # Reference to channel slug
+#         isPublished: true
+#     # products:                                 # [OPTIONAL] Product slugs in this collection
+#     #   - "product-slug-1"
+#     #   - "product-slug-2"
+
+# -----------------------------------------------------------------------------
+# PRODUCTS (slug-based identification)
+# -----------------------------------------------------------------------------
+# Products are the items you sell
+products:
+  - name: "Example Product"                       # [REQUIRED] Product name
+    slug: "example-product"                       # [REQUIRED] Unique identifier
+    productType: "Default Product Type"           # [REQUIRED] Reference to product type name
+    # category: "all-products"                    # [OPTIONAL] Category slug or path (e.g., "parent/child")
+    # description: "Product description"          # [OPTIONAL] Product description
+
+    # Channel visibility and availability
+    channelListings:
+      - channel: "default-channel"                # [REQUIRED] Reference to channel slug
+        isPublished: true                         # [OPTIONAL] Is visible
+        isAvailableForPurchase: true              # [OPTIONAL] Can be purchased
+        visibleInListings: true                   # [OPTIONAL] Shows in listings
+
+    # Product attributes (values for productAttributes defined in product type)
+    # attributes:
+    #   Brand: "Brand A"
+
+    # At least one variant is required
+    variants:
+      - sku: "EXAMPLE-001"                        # [REQUIRED] Unique SKU
+        # name: "Variant Name"                    # [OPTIONAL] Variant display name
+        # trackInventory: true                    # [OPTIONAL] Track stock
+
+        # Variant attributes (values for variantAttributes defined in product type)
+        # attributes:
+        #   Size: "M"
+        #   Color: "Black"
+
+        # Pricing per channel
+        channelListings:
+          - channel: "default-channel"            # [REQUIRED] Reference to channel slug
+            price: 0.00                           # [REQUIRED] Price in channel currency
+            # costPrice: 0.00                     # [OPTIONAL] Cost price
+
+        # Inventory per warehouse
+        # stocks:
+        #   - warehouse: "main-warehouse"         # Reference to warehouse slug
+        #     quantity: 0
+
+# -----------------------------------------------------------------------------
+# WAREHOUSES (slug-based identification)
+# -----------------------------------------------------------------------------
+# Physical or virtual inventory locations
+# warehouses:
+#   - name: "Main Warehouse"                      # [REQUIRED] Display name
+#     slug: "main-warehouse"                      # [REQUIRED] Unique identifier
+#     email: "warehouse@example.com"              # [OPTIONAL] Contact email
+#     # isPrivate: false                          # [OPTIONAL] Hide from customers
+#     # clickAndCollectOption: DISABLED           # [OPTIONAL] DISABLED, LOCAL_STOCK, ALL_WAREHOUSES
+#     address:
+#       streetAddress1: "123 Warehouse St"        # [OPTIONAL] Address line 1
+#       city: "City"                              # [OPTIONAL] City
+#       postalCode: "12345"                       # [OPTIONAL] Postal/ZIP code
+#       country: US                               # [REQUIRED] ISO 3166-1 alpha-2
+
+# -----------------------------------------------------------------------------
+# SHIPPING ZONES (name-based identification)
+# -----------------------------------------------------------------------------
+# Geographic regions with shipping methods
+# shippingZones:
+#   - name: "Domestic"                            # [REQUIRED] Unique name (identifier)
+#     countries:                                  # [REQUIRED] List of country codes
+#       - US
+#     warehouses:                                 # [OPTIONAL] Warehouse slugs
+#       - "main-warehouse"
+#     shippingMethods:
+#       - name: "Standard Shipping"
+#         type: PRICE                             # PRICE_BASED or WEIGHT_BASED
+#         channelListings:
+#           - channel: "default-channel"
+#             price: 5.99
+#             minimumOrderPrice: 0                # [OPTIONAL] Minimum order for this method
+#             # maximumOrderPrice: 50             # [OPTIONAL] Maximum order for this method
+
+# -----------------------------------------------------------------------------
+# TAX CLASSES (name-based identification)
+# -----------------------------------------------------------------------------
+# Tax rate configurations
+# taxClasses:
+#   - name: "Standard Rate"                       # [REQUIRED] Unique name (identifier)
+#     countries:
+#       - country: US
+#         rate: 0                                 # Tax rate percentage
+#       - country: DE
+#         rate: 19
+
+# -----------------------------------------------------------------------------
+# MENUS (slug-based identification)
+# -----------------------------------------------------------------------------
+# Navigation menus with nested items
+# menus:
+#   - name: "Main Menu"                           # [REQUIRED] Menu name
+#     slug: "main-menu"                           # [REQUIRED] Unique identifier
+#     items:
+#       - name: "Shop"                            # [REQUIRED] Item name
+#         category: "all-products"                # [OPTIONAL] Link to category slug
+#         # collection: "featured"                # [OPTIONAL] Link to collection slug
+#         # page: "about"                         # [OPTIONAL] Link to page slug
+#         # url: "https://example.com"            # [OPTIONAL] External URL
+#         # children:                             # [OPTIONAL] Nested menu items
+#         #   - name: "Submenu Item"
+#         #     category: "subcategory"
+
+# -----------------------------------------------------------------------------
+# PAGE TYPES (name-based identification)
+# -----------------------------------------------------------------------------
+# Define structure for content pages
+# pageTypes:
+#   - name: "Standard Page"                       # [REQUIRED] Unique name (identifier)
+#     attributes:                                 # [OPTIONAL] Page attributes
+#       - name: "Hero Image"
+#         type: FILE
+
+# -----------------------------------------------------------------------------
+# PAGES (slug-based identification)
+# -----------------------------------------------------------------------------
+# Content pages (about, contact, etc.)
+# pages:
+#   - title: "About Us"                           # [REQUIRED] Page title
+#     slug: "about-us"                            # [REQUIRED] Unique identifier
+#     pageType: "Standard Page"                   # [REQUIRED] Reference to page type name
+#     content: |                                  # [OPTIONAL] Page content (HTML or markdown)
+#       <h1>About Us</h1>
+#       <p>Our story...</p>
+#     isPublished: true                           # [OPTIONAL] Is visible
+#     # seoTitle: "About Our Company"             # [OPTIONAL] SEO title
+#     # seoDescription: "Learn about..."          # [OPTIONAL] SEO description

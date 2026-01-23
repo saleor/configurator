@@ -1,0 +1,421 @@
+# Perfume Store - Complete Model Configuration
+# Demonstrates using Models (Pages) for custom entities
+
+# =============================================================================
+# MODEL TYPES (PageTypes)
+# =============================================================================
+# Define schemas for custom entities
+
+pageTypes:
+  # --------------------------------------------------------------------------
+  # SCENT PROFILE
+  # --------------------------------------------------------------------------
+  # Shared scent profiles linked to multiple fragrances
+  - name: "Scent Profile"
+    attributes:
+      - name: "Scent Family"
+        type: DROPDOWN
+        values:
+          - name: "Citrus"
+          - name: "Floral"
+          - name: "Woody"
+          - name: "Oriental"
+          - name: "Fresh"
+          - name: "Gourmand"
+          - name: "Aquatic"
+          - name: "Green"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Top Notes"
+        type: MULTISELECT
+        values:
+          - name: "Bergamot"
+          - name: "Lemon"
+          - name: "Orange"
+          - name: "Grapefruit"
+          - name: "Mandarin"
+          - name: "Lime"
+          - name: "Pepper"
+          - name: "Ginger"
+        visibleInStorefront: true
+
+      - name: "Heart Notes"
+        type: MULTISELECT
+        values:
+          - name: "Rose"
+          - name: "Jasmine"
+          - name: "Lavender"
+          - name: "Iris"
+          - name: "Violet"
+          - name: "Ylang-Ylang"
+          - name: "Geranium"
+          - name: "Tuberose"
+        visibleInStorefront: true
+
+      - name: "Base Notes"
+        type: MULTISELECT
+        values:
+          - name: "Sandalwood"
+          - name: "Vanilla"
+          - name: "Musk"
+          - name: "Amber"
+          - name: "Cedarwood"
+          - name: "Vetiver"
+          - name: "Patchouli"
+          - name: "Oud"
+        visibleInStorefront: true
+
+      - name: "Intensity"
+        type: DROPDOWN
+        values:
+          - name: "Light"
+          - name: "Moderate"
+          - name: "Strong"
+          - name: "Intense"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Longevity"
+        type: DROPDOWN
+        values:
+          - name: "2-4 hours"
+          - name: "4-6 hours"
+          - name: "6-8 hours"
+          - name: "8+ hours"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Best Season"
+        type: MULTISELECT
+        values:
+          - name: "Spring"
+          - name: "Summer"
+          - name: "Fall"
+          - name: "Winter"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Best Occasion"
+        type: MULTISELECT
+        values:
+          - name: "Daily Wear"
+          - name: "Office"
+          - name: "Evening"
+          - name: "Special Occasions"
+          - name: "Romantic"
+          - name: "Sports"
+        visibleInStorefront: true
+
+      - name: "Description"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+  # --------------------------------------------------------------------------
+  # PERFUMER (Nose)
+  # --------------------------------------------------------------------------
+  - name: "Perfumer"
+    attributes:
+      - name: "Nationality"
+        type: DROPDOWN
+        values:
+          - name: "French"
+          - name: "Italian"
+          - name: "American"
+          - name: "British"
+          - name: "Spanish"
+          - name: "Swiss"
+        visibleInStorefront: true
+
+      - name: "House Affiliation"
+        type: MULTISELECT
+        values:
+          - name: "Givaudan"
+          - name: "Firmenich"
+          - name: "IFF"
+          - name: "Symrise"
+          - name: "Independent"
+        visibleInStorefront: true
+
+      - name: "Signature Style"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Notable Creations"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+      - name: "Biography"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+      - name: "Portrait"
+        type: FILE
+        visibleInStorefront: true
+
+  # --------------------------------------------------------------------------
+  # FRAGRANCE HOUSE (Brand)
+  # --------------------------------------------------------------------------
+  - name: "Fragrance House"
+    attributes:
+      - name: "Founded"
+        type: NUMERIC
+        visibleInStorefront: true
+
+      - name: "Country"
+        type: DROPDOWN
+        values:
+          - name: "France"
+          - name: "Italy"
+          - name: "USA"
+          - name: "UK"
+          - name: "Spain"
+          - name: "Middle East"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Category"
+        type: DROPDOWN
+        values:
+          - name: "Designer"
+          - name: "Niche"
+          - name: "Luxury"
+          - name: "Artisan"
+          - name: "Celebrity"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Signature"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "History"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+      - name: "Logo"
+        type: FILE
+        visibleInStorefront: true
+
+      - name: "Website"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+# =============================================================================
+# MODELS (Pages) - Instances
+# =============================================================================
+
+models:
+  # --------------------------------------------------------------------------
+  # SCENT PROFILES
+  # --------------------------------------------------------------------------
+  - title: "Citrus Burst"
+    slug: "citrus-burst"
+    pageType: "Scent Profile"
+    isPublished: true
+    attributes:
+      Scent Family: "Citrus"
+      Top Notes: ["Bergamot", "Lemon", "Grapefruit"]
+      Heart Notes: ["Jasmine", "Geranium"]
+      Base Notes: ["Musk", "Cedarwood"]
+      Intensity: "Light"
+      Longevity: "4-6 hours"
+      Best Season: ["Spring", "Summer"]
+      Best Occasion: ["Daily Wear", "Office"]
+    content: |
+      A vibrant, energizing scent profile dominated by fresh citrus notes.
+      Perfect for warm weather and professional settings where you want
+      to feel refreshed without overwhelming.
+
+  - title: "Woody Elegance"
+    slug: "woody-elegance"
+    pageType: "Scent Profile"
+    isPublished: true
+    attributes:
+      Scent Family: "Woody"
+      Top Notes: ["Pepper", "Bergamot"]
+      Heart Notes: ["Iris", "Violet"]
+      Base Notes: ["Sandalwood", "Cedarwood", "Vetiver"]
+      Intensity: "Moderate"
+      Longevity: "6-8 hours"
+      Best Season: ["Fall", "Winter"]
+      Best Occasion: ["Office", "Evening"]
+    content: |
+      A sophisticated woody composition with depth and refinement.
+      The dry woods create a professional, confident impression
+      suitable for business and evening occasions.
+
+  - title: "Oriental Nights"
+    slug: "oriental-nights"
+    pageType: "Scent Profile"
+    isPublished: true
+    attributes:
+      Scent Family: "Oriental"
+      Top Notes: ["Ginger", "Pepper"]
+      Heart Notes: ["Rose", "Ylang-Ylang"]
+      Base Notes: ["Amber", "Vanilla", "Oud"]
+      Intensity: "Intense"
+      Longevity: "8+ hours"
+      Best Season: ["Fall", "Winter"]
+      Best Occasion: ["Evening", "Special Occasions", "Romantic"]
+    content: |
+      A rich, opulent scent profile with warm spices and precious woods.
+      Designed for memorable evenings and special moments where
+      you want to leave a lasting impression.
+
+  # --------------------------------------------------------------------------
+  # PERFUMERS
+  # --------------------------------------------------------------------------
+  - title: "Francis Kurkdjian"
+    slug: "francis-kurkdjian"
+    pageType: "Perfumer"
+    isPublished: true
+    attributes:
+      Nationality: "French"
+      House Affiliation: ["Independent"]
+      Signature Style: "Elegant simplicity with modern sophistication"
+    content: |
+      Francis Kurkdjian is one of the most celebrated perfumers of his generation.
+      Known for creating Baccarat Rouge 540 and founding Maison Francis Kurkdjian,
+      his work combines classical French perfumery with innovative modern touches.
+
+  # --------------------------------------------------------------------------
+  # FRAGRANCE HOUSES
+  # --------------------------------------------------------------------------
+  - title: "Maison Francis Kurkdjian"
+    slug: "maison-francis-kurkdjian"
+    pageType: "Fragrance House"
+    isPublished: true
+    attributes:
+      Founded: 2009
+      Country: "France"
+      Category: "Niche"
+      Signature: "Elegant, refined compositions with exceptional raw materials"
+    content: |
+      Founded in Paris by master perfumer Francis Kurkdjian,
+      Maison Francis Kurkdjian represents the pinnacle of modern
+      French perfumery. Each fragrance is crafted with the finest
+      ingredients and an unwavering attention to detail.
+
+  - title: "Byredo"
+    slug: "byredo"
+    pageType: "Fragrance House"
+    isPublished: true
+    attributes:
+      Founded: 2006
+      Country: "Sweden"
+      Category: "Niche"
+      Signature: "Minimalist Scandinavian design with evocative scents"
+    content: |
+      Founded in Stockholm by Ben Gorham, Byredo brings a uniquely
+      Scandinavian perspective to perfumery. Known for their
+      minimalist aesthetic and emotionally evocative compositions.
+
+# =============================================================================
+# PRODUCT TYPE (Fragrance)
+# =============================================================================
+# Links to Models via REFERENCE attributes
+
+productTypes:
+  - name: "Fragrance"
+    isShippingRequired: true
+    weight:
+      value: 100
+      unit: G
+    productAttributes:
+      # REFERENCE to Fragrance House Model
+      - name: "Brand"
+        type: REFERENCE
+        entityType: PAGE
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      # REFERENCE to Perfumer Model
+      - name: "Perfumer"
+        type: REFERENCE
+        entityType: PAGE
+        visibleInStorefront: true
+
+      # REFERENCE to Scent Profile Models (can have multiple)
+      - name: "Scent Profiles"
+        type: REFERENCE
+        entityType: PAGE
+        visibleInStorefront: true
+
+      - name: "Concentration"
+        type: DROPDOWN
+        values:
+          - name: "Eau de Cologne (2-4%)"
+          - name: "Eau de Toilette (5-15%)"
+          - name: "Eau de Parfum (15-20%)"
+          - name: "Parfum/Extrait (20-30%)"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Gender"
+        type: DROPDOWN
+        values:
+          - name: "For Her"
+          - name: "For Him"
+          - name: "Unisex"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Year Released"
+        type: NUMERIC
+        visibleInStorefront: true
+
+      - name: "Description"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+    variantAttributes:
+      - name: "Size"
+        type: DROPDOWN
+        values:
+          - name: "10ml Travel"
+          - name: "30ml"
+          - name: "50ml"
+          - name: "70ml"
+          - name: "100ml"
+          - name: "200ml"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+# =============================================================================
+# EXAMPLE PRODUCT
+# =============================================================================
+
+products:
+  - name: "Baccarat Rouge 540"
+    slug: "baccarat-rouge-540"
+    productType: "Fragrance"
+    category: "fragrances/unisex"
+    attributes:
+      Brand: "maison-francis-kurkdjian"     # Reference to Model
+      Perfumer: "francis-kurkdjian"          # Reference to Model
+      Scent Profiles: "oriental-nights"      # Reference to Model
+      Concentration: "Eau de Parfum (15-20%)"
+      Gender: "Unisex"
+      Year Released: 2015
+    description: |
+      A luminous and sophisticated fragrance designed in tribute to
+      the 250th anniversary of Baccarat crystal. Notes of jasmine,
+      saffron, and amberwood create an unmistakable signature.
+    channelListings:
+      - channel: "default"
+        isPublished: true
+        isAvailableForPurchase: true
+    variants:
+      - sku: "BR540-30"
+        attributes:
+          Size: "30ml"
+        channelListings:
+          - channel: "default"
+            price: 195.00
+      - sku: "BR540-70"
+        attributes:
+          Size: "70ml"
+        channelListings:
+          - channel: "default"
+            price: 325.00

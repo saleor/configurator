@@ -1,0 +1,54 @@
+---
+# Saleor Configurator Plugin Settings
+# Copy this file to: .claude/saleor-configurator.local.md
+# This file is gitignored and contains user-specific settings
+
+# Saleor instance configuration
+saleor_api_url: ""  # e.g., "https://your-store.saleor.cloud/graphql/"
+saleor_token: ""    # Your Saleor API token (keep secret!)
+
+# Default behavior settings
+auto_validate: true           # Auto-validate after config changes
+dry_run_default: true         # Default to dry-run for deployments
+show_deletion_warnings: true  # Warn before destructive operations
+
+# Preferred channels (for import operations)
+default_channel: ""           # e.g., "us-store"
+default_warehouse: ""         # e.g., "main-warehouse"
+
+# Template preferences
+preferred_recipe: ""          # fashion-store, electronics-store, subscription-service
+---
+
+# User Notes
+
+Add any project-specific notes or configuration reminders here.
+
+## Project Details
+
+- **Store Name**:
+- **Environment**: development | staging | production
+- **Primary Region**:
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Validate configuration
+/configurator-validate
+
+# Review before deployment
+/configurator-review
+
+# Deploy to Saleor
+npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+
+# Preview changes
+npx configurator diff --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+```
+
+### Notes
+
+<!-- Add your project-specific notes below -->
+

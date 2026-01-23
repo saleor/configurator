@@ -1,0 +1,322 @@
+# Subscription Service Configuration Template
+# A complete Saleor configuration for subscription-based products and SaaS
+#
+# Customize this template for your specific needs:
+# - Update plan tiers and pricing
+# - Modify features for your service
+# - Adjust billing cycles
+# - Add your actual subscription products
+
+# =============================================================================
+# CHANNELS
+# =============================================================================
+channels:
+  - name: "Subscription Portal"
+    slug: "subscription-portal"
+    currencyCode: USD
+    defaultCountry: US
+    isActive: true
+
+# =============================================================================
+# PRODUCT TYPES
+# =============================================================================
+productTypes:
+  # Monthly Subscription
+  - name: "Monthly Subscription"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Plan Description"
+        type: RICH_TEXT
+      - name: "Features Included"
+        type: MULTISELECT
+        values:
+          - name: "Basic Support"
+          - name: "Priority Support"
+          - name: "24/7 Support"
+          - name: "API Access"
+          - name: "Advanced Analytics"
+          - name: "Custom Branding"
+          - name: "SSO Integration"
+          - name: "Dedicated Account Manager"
+    variantAttributes:
+      - name: "Plan Tier"
+        type: DROPDOWN
+        values:
+          - name: "Basic"
+          - name: "Professional"
+          - name: "Enterprise"
+      - name: "User Limit"
+        type: DROPDOWN
+        values:
+          - name: "1 User"
+          - name: "5 Users"
+          - name: "10 Users"
+          - name: "25 Users"
+          - name: "Unlimited"
+
+  # Annual Subscription (discounted)
+  - name: "Annual Subscription"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Plan Description"
+        type: RICH_TEXT
+      - name: "Features Included"
+        type: MULTISELECT
+      - name: "Annual Discount"
+        type: PLAIN_TEXT
+    variantAttributes:
+      - name: "Plan Tier"
+        type: DROPDOWN
+        values:
+          - name: "Basic"
+          - name: "Professional"
+          - name: "Enterprise"
+      - name: "User Limit"
+        type: DROPDOWN
+
+  # One-Time Purchase (lifetime access, credits, etc.)
+  - name: "One-Time Purchase"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Product Description"
+        type: RICH_TEXT
+      - name: "Validity"
+        type: DROPDOWN
+        values:
+          - name: "Lifetime"
+          - name: "1 Year"
+          - name: "Never Expires"
+
+  # Add-On Service
+  - name: "Add-On Service"
+    isShippingRequired: false
+    isDigital: true
+    productAttributes:
+      - name: "Add-On Description"
+        type: RICH_TEXT
+      - name: "Requirements"
+        type: PLAIN_TEXT
+    variantAttributes:
+      - name: "Billing Cycle"
+        type: DROPDOWN
+        values:
+          - name: "Monthly"
+          - name: "Annual"
+          - name: "One-Time"
+
+# =============================================================================
+# CATEGORIES
+# =============================================================================
+categories:
+  - name: "Subscriptions"
+    slug: "subscriptions"
+    description: "All subscription plans"
+    children:
+      - name: "Plans"
+        slug: "plans"
+        description: "Subscription plans"
+        children:
+          - name: "Basic Plans"
+            slug: "basic-plans"
+            description: "Entry-level subscriptions"
+          - name: "Professional Plans"
+            slug: "professional-plans"
+            description: "Professional tier subscriptions"
+          - name: "Enterprise Plans"
+            slug: "enterprise-plans"
+            description: "Enterprise solutions"
+
+  - name: "Add-Ons"
+    slug: "add-ons"
+    description: "Additional services and features"
+    children:
+      - name: "Storage"
+        slug: "storage-add-ons"
+        description: "Additional storage capacity"
+      - name: "Support"
+        slug: "support-add-ons"
+        description: "Enhanced support options"
+      - name: "Features"
+        slug: "feature-add-ons"
+        description: "Additional feature packs"
+
+  - name: "One-Time Purchases"
+    slug: "one-time"
+    description: "Single purchase items"
+    children:
+      - name: "Credits"
+        slug: "credits"
+        description: "Credit packs"
+      - name: "Training"
+        slug: "training"
+        description: "Training and onboarding"
+
+# =============================================================================
+# COLLECTIONS
+# =============================================================================
+collections:
+  - name: "Most Popular"
+    slug: "most-popular"
+    description: "Our most chosen plans"
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+
+  - name: "Best Value"
+    slug: "best-value"
+    description: "Annual plans with maximum savings"
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+
+  - name: "Enterprise Solutions"
+    slug: "enterprise-solutions"
+    description: "Custom solutions for large organizations"
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+
+# =============================================================================
+# TAX CLASSES
+# =============================================================================
+taxClasses:
+  - name: "Digital Services"
+    countries:
+      - country: US
+        rate: 0
+      - country: GB
+        rate: 20
+      - country: DE
+        rate: 19
+
+# =============================================================================
+# EXAMPLE PRODUCTS
+# =============================================================================
+products:
+  # Monthly Subscription Product
+  - name: "Professional Monthly"
+    slug: "professional-monthly"
+    productType: "Monthly Subscription"
+    category: "subscriptions/plans/professional-plans"
+    description: |
+      Our most popular plan for growing teams. Includes priority support,
+      API access, and advanced analytics. Billed monthly.
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "PRO-MONTHLY-5"
+        attributes:
+          "Plan Tier": "Professional"
+          "User Limit": "5 Users"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 49.99
+      - sku: "PRO-MONTHLY-10"
+        attributes:
+          "Plan Tier": "Professional"
+          "User Limit": "10 Users"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 89.99
+      - sku: "PRO-MONTHLY-25"
+        attributes:
+          "Plan Tier": "Professional"
+          "User Limit": "25 Users"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 179.99
+
+  # Annual Subscription Product (with discount)
+  - name: "Professional Annual"
+    slug: "professional-annual"
+    productType: "Annual Subscription"
+    category: "subscriptions/plans/professional-plans"
+    description: |
+      Our Professional plan with annual billing. Save 20% compared to monthly!
+      Includes all Professional features with priority support.
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "PRO-ANNUAL-5"
+        attributes:
+          "Plan Tier": "Professional"
+          "User Limit": "5 Users"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 479.99
+      - sku: "PRO-ANNUAL-10"
+        attributes:
+          "Plan Tier": "Professional"
+          "User Limit": "10 Users"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 859.99
+
+  # Add-On: Extra Storage
+  - name: "Additional Storage"
+    slug: "additional-storage"
+    productType: "Add-On Service"
+    category: "add-ons/storage-add-ons"
+    description: |
+      Need more space? Add additional storage to your subscription.
+      Requires an active subscription plan.
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "STORAGE-50GB-MONTHLY"
+        attributes:
+          "Billing Cycle": "Monthly"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 9.99
+      - sku: "STORAGE-100GB-MONTHLY"
+        attributes:
+          "Billing Cycle": "Monthly"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 19.99
+      - sku: "STORAGE-500GB-MONTHLY"
+        attributes:
+          "Billing Cycle": "Monthly"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 49.99
+
+  # One-Time: Credit Pack
+  - name: "API Credit Pack"
+    slug: "api-credit-pack"
+    productType: "One-Time Purchase"
+    category: "one-time/credits"
+    description: |
+      Pre-purchase API credits for usage beyond your plan limits.
+      Credits never expire and can be used with any subscription tier.
+    channelListings:
+      - channel: "subscription-portal"
+        isPublished: true
+        isAvailableForPurchase: true
+        visibleInListings: true
+    variants:
+      - sku: "CREDITS-1000"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 99.99
+      - sku: "CREDITS-5000"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 449.99
+      - sku: "CREDITS-10000"
+        channelListings:
+          - channel: "subscription-portal"
+            price: 799.99
