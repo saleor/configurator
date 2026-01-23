@@ -11,14 +11,15 @@ Quick reference for all supported entities in the Saleor Configurator, their ide
 | Categories | slug | CategoryOperations | CategoryService | CategoryComparator | Hierarchical structure |
 | Collections | slug | CollectionOperations | CollectionService | CollectionComparator | Product groupings |
 | Menus | slug | MenuOperations | MenuService | MenuComparator | Navigation structures |
-| Models/Pages | slug | ModelOperations | ModelService | ModelComparator | Content pages |
+| Pages | slug | ModelOperations | ModelService | ModelComparator | Content pages (internal: Models) |
 | Products | slug | ProductOperations | ProductService | ProductComparator | Product catalog |
-| ProductTypes | name | ProductTypeOperations | ProductTypeService | ProductTypeComparator | Product type definitions |
-| PageTypes | name | PageTypeOperations | PageTypeService | PageTypeComparator | Page type definitions |
+| ProductTypes | name | ProductTypeOperations | ProductTypeService | ProductTypeComparator | Product structure definitions |
+| PageTypes | name | PageTypeOperations | PageTypeService | PageTypeComparator | Page structure definitions |
 | TaxClasses | name | TaxOperations | TaxService | TaxClassComparator | Tax configurations |
 | Warehouses | slug | WarehouseOperations | WarehouseService | WarehouseComparator | Inventory locations |
 | ShippingZones | name | ShippingZoneOperations | ShippingZoneService | ShippingZoneComparator | Shipping configurations |
-| Attributes | name | AttributeOperations | AttributeService | - | Reusable attributes |
+| Attributes | name | AttributeRepository | AttributeService | AttributesComparator | Reusable attributes |
+| Configuration | internal | ConfigurationRepository | ConfigurationService | — | Full config orchestration |
 
 ## Entity Identification Strategy
 
@@ -77,6 +78,36 @@ protected getEntityName(entity: Entity): string {
 }
 ```
 
+### Content Page Entities
+
+The content page system has three related concepts:
+
+| Concept | Identifier | Purpose |
+|---------|------------|---------|
+| **PageTypes** | name | Define structure and attributes for pages |
+| **Pages** | slug | Actual content instances using a PageType |
+
+**Configuration Example:**
+```yaml
+# First, define the page structure
+pageTypes:
+  - name: "Blog Post"
+    attributes:
+      - name: "Author"
+        inputType: PLAIN_TEXT
+      - name: "Published Date"
+        inputType: DATE
+
+# Then, create pages using that type
+pages:
+  - name: "Welcome Post"
+    slug: "welcome-post"
+    pageType: "Blog Post"  # References PageType by name
+    content: "Welcome to our blog..."
+```
+
+> **Note:** Internally, Pages are called "Models" in the codebase. The CLI uses "pages" in config.yml for clarity.
+
 ### Singleton Entities
 **Entities**: Shop
 
@@ -109,6 +140,103 @@ protected getEntityName(entity: Entity): string {
 - **Error Wrapping**: Use ServiceErrorWrapper for consistent error handling
 - **Dependency Injection**: Register in ServiceContainer
 - **Bootstrap Operations**: Support bulk entity creation
+
+## Attribute System
+
+Attributes are reusable typed fields that can be assigned to Products (via ProductTypes) or Models (via PageTypes).
+
+### Attribute Types
+
+| inputType | Description | Required Fields | Example |
+|-----------|-------------|-----------------|---------|
+| `DROPDOWN` | Single-select from predefined values | `values` array | Color: Red, Blue, Green |
+| `MULTISELECT` | Multi-select from predefined values | `values` array | Tags: Sale, New, Featured |
+| `PLAIN_TEXT` | Unformatted text | none | Material: "100% Cotton" |
+| `RICH_TEXT` | Formatted content blocks | none | Product description with HTML |
+| `NUMERIC` | Numbers with optional units | none | Weight: 500, Dimensions |
+| `BOOLEAN` | Yes/no values | none | Is Organic: true/false |
+| `DATE` | Date values | none | Release Date: 2024-01-15 |
+| `DATE_TIME` | Date and time values | none | Event Time: 2024-01-15T10:00:00 |
+| `FILE` | File attachments | none | Product Manual (PDF) |
+| `SWATCH` | Color codes or images | `values` array | Visual color picker |
+| `REFERENCE` | Links to other entities | `entityType` | Related Products |
+
+### REFERENCE Attribute Entity Types
+
+REFERENCE attributes link entities together. The `entityType` field specifies what can be linked:
+
+| entityType | Links To | Use Case |
+|------------|----------|----------|
+| `PAGE` | Models/Pages | Custom entities (Brands, Authors, Ingredients) |
+| `PRODUCT` | Products | Related products, cross-sells, upsells |
+| `PRODUCT_VARIANT` | Product Variants | Specific variant references |
+
+**Example Configuration:**
+```yaml
+productTypes:
+  - name: "Perfume"
+    productAttributes:
+      # Link to custom Models
+      - name: "Scent Profiles"
+        inputType: REFERENCE
+        entityType: PAGE
+
+      # Link to other Products
+      - name: "Frequently Bought Together"
+        inputType: REFERENCE
+        entityType: PRODUCT
+
+pageTypes:
+  - name: "Author"
+    attributes:
+      # Link to Products the author wrote
+      - name: "Books Written"
+        inputType: REFERENCE
+        entityType: PRODUCT
+
+      # Link to other Authors (collaborators)
+      - name: "Co-Authors"
+        inputType: REFERENCE
+        entityType: PAGE
+```
+
+### Attribute Reuse Pattern
+
+Attributes can be reused across different ProductTypes or PageTypes:
+
+```yaml
+productTypes:
+  # First type: defines the attribute
+  - name: "Book"
+    productAttributes:
+      - name: "Author"
+        inputType: PLAIN_TEXT
+      - name: "Genre"
+        inputType: DROPDOWN
+        values:
+          - name: "Fiction"
+          - name: "Non-Fiction"
+
+  # Second type: reuses existing attributes
+  - name: "E-Book"
+    productAttributes:
+      - attribute: Author     # Reuses "Author" from Book
+      - attribute: Genre      # Reuses "Genre" from Book
+      - name: "File Format"   # New attribute specific to E-Books
+        inputType: DROPDOWN
+        values:
+          - name: "PDF"
+          - name: "EPUB"
+```
+
+### Models/Pages Terminology
+
+> **Note**: Saleor documentation uses "Models" and "Model Types", but the GraphQL API still uses `pages` and `pageTypes`. The configurator supports both terms.
+
+| Documentation Term | API/Config Term | Purpose |
+|-------------------|-----------------|---------|
+| Model Types | `pageTypes` | Define structure and attributes for custom entities |
+| Models | `models` | Instances with specific attribute values |
 
 ## Cross-Entity Relationships
 
