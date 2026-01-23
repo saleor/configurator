@@ -122,66 +122,78 @@ export class CategoryService implements EntityService<CategoryInput, Category> {
 }
 ```
 
-### Service Container Pattern
+### Service Composition Pattern
 
-**Dependency Injection**: Uses a custom service container for loose coupling:
+**Composition Root**: Uses a factory-based composition pattern via `ServiceComposer`:
 
 ```typescript
-export class ServiceContainer {
-  private services = new Map<string, ServiceFactory<any>>();
-  
-  register<T>(name: string, factory: ServiceFactory<T>): ServiceContainer {
-    this.services.set(name, factory);
-    return this;
-  }
-  
-  resolve<T>(name: string): T {
-    const factory = this.services.get(name);
-    if (!factory) {
-      throw new ServiceNotFoundError(`Service '${name}' not found`);
-    }
-    
-    return factory(this);
-  }
-  
-  // Singleton registration
-  registerSingleton<T>(name: string, factory: ServiceFactory<T>): ServiceContainer {
-    let instance: T | null = null;
-    
-    return this.register(name, (container) => {
-      if (!instance) {
-        instance = factory(container);
-      }
-      return instance;
+// ServiceContainer interface defines all available services
+export interface ServiceContainer {
+  readonly attribute: AttributeService;
+  readonly channel: ChannelService;
+  readonly category: CategoryService;
+  readonly product: ProductService;
+  readonly collection: CollectionService;
+  // ... all 14 domain services
+  readonly diffService: DiffService;
+}
+
+// ServiceComposer creates all services with their dependencies
+export class ServiceComposer {
+  static compose(client: Client, configPath?: string): ServiceContainer {
+    // Create all repositories (data access layer)
+    const repositories = {
+      attribute: new AttributeRepository(client),
+      channel: new ChannelRepository(client),
+      category: new CategoryRepository(client),
+      // ... all repositories
+    } as const;
+
+    // Create services with explicit dependencies
+    const channelService = new ChannelService(repositories.channel);
+    const categoryService = new CategoryService(repositories.category);
+    const productService = new ProductService(repositories.product, {
+      getChannelIdBySlug: (slug) => channelService.getChannelIdBySlugCached(slug),
     });
+
+    // Return composed container
+    return {
+      channel: channelService,
+      category: categoryService,
+      product: productService,
+      // ... all services
+    };
   }
 }
 ```
 
-**Service Registration**:
+**Design Rationale**:
+
+- **Explicit Dependencies**: Each service declares its dependencies through constructor parameters
+- **Typed Interface**: `ServiceContainer` provides compile-time guarantees for service availability
+- **Eager Instantiation**: All services are created upfront, enabling cross-service caching
+- **No String Keys**: Direct property access instead of string-based resolution
+
+**Usage in Commands**:
+
 ```typescript
-export function createServiceContainer(): ServiceContainer {
-  return new ServiceContainer()
-    // Infrastructure services
-    .registerSingleton('logger', () => createLogger())
-    .registerSingleton('graphqlClient', (c) => createGraphQLClient())
-    
-    // Repository layer
-    .register('categoryRepository', (c) => 
-      new CategoryRepository(c.resolve('graphqlClient'), c.resolve('logger'))
-    )
-    .register('productRepository', (c) => 
-      new ProductRepository(c.resolve('graphqlClient'), c.resolve('logger'))
-    )
-    
-    // Service layer
-    .register('categoryService', (c) => 
-      new CategoryService(c.resolve('categoryRepository'), c.resolve('logger'))
-    )
-    .register('productService', (c) => 
-      new ProductService(c.resolve('productRepository'), c.resolve('logger'))
-    );
-}
+// In command handlers
+const services = ServiceComposer.compose(graphqlClient, configPath);
+await services.category.bootstrapCategories(config.categories);
+await services.product.bootstrapProducts(config.products);
+```
+
+**Cross-Service Dependencies**:
+
+Some services require callbacks to other services for features like caching:
+
+```typescript
+const productService = new ProductService(repositories.product, {
+  // ProductService can resolve channels via ChannelService's cache
+  getChannelIdBySlug: async (slug: string) => {
+    return await channelService.getChannelIdBySlugCached(slug);
+  },
+});
 ```
 
 ### Service Error Wrapper Pattern
@@ -746,101 +758,204 @@ export class ConfigurationValidator {
 
 ## Performance Architecture
 
-### Optimization Strategies
+### GraphQL Client Optimization
 
-**Lazy Loading**: Services and repositories are created on-demand:
+**Retry Logic**: The GraphQL client uses urql's `retryExchange` for resilient API calls:
 
 ```typescript
-export class LazyServiceContainer extends ServiceContainer {
-  private instances = new Map<string, any>();
-  
-  resolve<T>(name: string): T {
-    // Return cached instance if available
-    if (this.instances.has(name)) {
-      return this.instances.get(name);
+import { retryExchange } from "@urql/exchange-retry";
+
+// Retry configuration for rate limiting and network errors
+const retryOptions = {
+  initialDelayMs: 1000,
+  maxDelayMs: 15000,
+  randomDelay: true,
+  maxNumberAttempts: 3,
+  retryIf: (error: CombinedError) => {
+    // Retry on rate limiting (429)
+    if (error.response?.status === 429) return true;
+    // Retry on network errors
+    if (error.networkError) return true;
+    return false;
+  },
+};
+
+const client = createClient({
+  url,
+  requestPolicy: "network-only",
+  exchanges: [
+    authExchange({ ... }),
+    retryExchange(retryOptions),
+    fetchExchange,
+  ],
+});
+```
+
+**Bulk Mutations**: Deployment uses bulk GraphQL mutations for performance (see ADR-001):
+
+```typescript
+// Instead of N sequential mutations:
+for (const category of categories) {
+  await createCategory(category);  // ❌ Slow: N round trips
+}
+
+// Use bulk mutation:
+await bulkCategoryCreate(categories);  // ✅ Fast: 1 round trip
+```
+
+### Service-Level Caching
+
+Services implement caching for frequently accessed data:
+
+```typescript
+class ChannelService {
+  private channelCache = new Map<string, string>();  // slug → id
+
+  async getChannelIdBySlugCached(slug: string): Promise<string | null> {
+    if (this.channelCache.has(slug)) {
+      return this.channelCache.get(slug)!;
     }
-    
-    // Create and cache new instance
-    const instance = super.resolve<T>(name);
-    this.instances.set(name, instance);
-    
-    return instance;
+    const id = await this.repository.getChannelIdBySlug(slug);
+    if (id) this.channelCache.set(slug, id);
+    return id;
   }
 }
 ```
 
-**Batch Processing**: Efficient GraphQL operations:
+### Concurrent Operations
+
+The diff service runs comparisons concurrently with configurable limits:
 
 ```typescript
-export class BatchGraphQLExecutor {
-  private batchQueue: Array<{
-    operation: DocumentNode;
-    variables: any;
-    resolve: (result: any) => void;
-    reject: (error: Error) => void;
-  }> = [];
-  
-  async executeBatch<T>(
-    operation: DocumentNode,
-    variables: any
-  ): Promise<T> {
-    return new Promise((resolve, reject) => {
-      this.batchQueue.push({ operation, variables, resolve, reject });
-      
-      // Process batch on next tick
-      process.nextTick(() => this.processBatch());
-    });
-  }
-  
-  private async processBatch(): void {
-    if (this.batchQueue.length === 0) return;
-    
-    const batch = this.batchQueue.splice(0, 10); // Process 10 at a time
-    
-    try {
-      const results = await Promise.all(
-        batch.map(item => 
-          this.client.query(item.operation, item.variables)
-        )
-      );
-      
-      batch.forEach((item, index) => {
-        item.resolve(results[index]);
-      });
-      
-    } catch (error) {
-      batch.forEach(item => item.reject(error as Error));
-    }
-  }
+const diffOptions = {
+  maxConcurrentComparisons: 5,  // Limit parallel entity comparisons
+  skipMedia: false,              // Skip media field comparison
+};
+
+// Comparisons run in parallel, respecting concurrency limit
+const results = await Promise.all(
+  entityTypes.map(type => compareEntityType(type, diffOptions))
+);
+```
+
+## Recipe System Architecture
+
+The recipe system provides pre-built configuration templates for common e-commerce scenarios.
+
+### Recipe Module Structure
+
+```
+src/
+├── recipes/                    # Bundled recipe YAML files
+│   ├── manifest.json          # Recipe metadata catalog
+│   ├── multi-region.yml       # Regional e-commerce setup
+│   ├── digital-products.yml   # Non-physical goods
+│   ├── click-and-collect.yml  # Store pickup
+│   └── custom-shipping.yml    # Shipping zones
+├── modules/recipe/
+│   ├── recipe-service.ts      # Recipe loading and formatting
+│   └── repository.ts          # Recipe discovery and parsing
+└── commands/recipe.ts         # CLI command handler
+```
+
+### Recipe Discovery
+
+Recipes are bundled in the npm package and discovered via manifest:
+
+```typescript
+// Recipe manifest structure
+interface RecipeManifest {
+  generatedAt: string;
+  recipes: RecipeMetadata[];
+}
+
+interface RecipeMetadata {
+  name: string;           // e.g., "multi-region"
+  description: string;    // User-facing description
+  category: string;       // e.g., "fulfillment", "shipping"
+  file: string;           // Relative path to YAML
+  saleorVersion: string;  // e.g., ">=3.15"
+  entitySummary: Record<string, number>;  // Entity counts
 }
 ```
 
-### Memory Management
+### Recipe Operations
 
-**Resource Cleanup**: Proper resource management:
+| Operation | Description |
+|-----------|-------------|
+| `list` | Read manifest, display available recipes |
+| `show` | Load and format recipe YAML for display |
+| `apply` | Parse recipe, validate, deploy to Saleor |
+| `export` | Copy recipe YAML to local filesystem |
+
+## Deployment Pipeline Architecture
+
+The deployment system supports two pipeline implementations for different use cases.
+
+### Simple Pipeline
+
+Sequential execution with fail-fast behavior:
 
 ```typescript
-export class ResourceManager {
-  private resources = new Set<Disposable>();
-  
-  register(resource: Disposable): void {
-    this.resources.add(resource);
-  }
-  
-  async cleanup(): Promise<void> {
-    const cleanupPromises = Array.from(this.resources).map(resource =>
-      resource.dispose().catch(error => {
-        console.error('Failed to dispose resource:', error);
-      })
-    );
-    
-    await Promise.all(cleanupPromises);
-    this.resources.clear();
-  }
+interface DeploymentStage {
+  name: string;
+  execute: (context: DeploymentContext) => Promise<void>;
+  skip?: (context: DeploymentContext) => boolean;
 }
 
-interface Disposable {
-  dispose(): Promise<void>;
+// Stages execute in order, stop on first failure
+const stages: DeploymentStage[] = [
+  { name: 'validation', execute: validateConfiguration },
+  { name: 'preflight', execute: preflightChecks },
+  { name: 'diff', execute: computeDiff },
+  { name: 'confirm', execute: getUserConfirmation, skip: (ctx) => ctx.ci },
+  { name: 'execute', execute: applyChanges },
+  { name: 'verify', execute: verifyDeployment },
+];
+```
+
+### Enhanced Pipeline
+
+Result collection with partial failure support:
+
+```typescript
+interface EnhancedPipelineResult {
+  success: boolean;
+  stages: StageResult[];
+  metrics: DeploymentMetrics;
+  report: DeploymentReport;
+}
+
+interface StageResult {
+  stage: string;
+  status: 'success' | 'failed' | 'skipped';
+  duration: number;
+  entityResults?: EntityResult[];
+  error?: Error;
+}
+
+// Enhanced pipeline continues on partial failures
+// Collects results instead of throwing
+const result = await enhancedPipeline.execute(config, options);
+if (!result.success) {
+  console.log(`Partial failure: ${result.stages.filter(s => s.status === 'failed').length} stages failed`);
+}
+```
+
+### Preflight Validation
+
+Before contacting the Saleor API, the preflight validator checks:
+
+```typescript
+interface PreflightValidation {
+  // Detect duplicate identifiers across all entity types
+  validateUniqueIdentifiers(config: Configuration): ValidationResult;
+
+  // Validate cross-entity references exist
+  validateEntityReferences(config: Configuration): ValidationResult;
+
+  // Check for circular dependencies in hierarchies
+  validateHierarchies(config: Configuration): ValidationResult;
 }
 ```
 
@@ -848,34 +963,52 @@ interface Disposable {
 
 ### Test Infrastructure
 
-**Test Service Container**: Isolated testing environment:
+**Mocking Pattern**: Tests mock repositories and external dependencies:
 
 ```typescript
-export function createTestServiceContainer(): ServiceContainer {
-  return new ServiceContainer()
-    .registerSingleton('logger', () => createTestLogger())
-    .registerSingleton('graphqlClient', () => createMockGraphQLClient())
-    .register('categoryRepository', (c) => 
-      new CategoryRepository(c.resolve('graphqlClient'), c.resolve('logger'))
-    );
-}
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
-function createTestLogger(): Logger {
-  return {
-    debug: vi.fn(),
-    info: vi.fn(), 
-    warn: vi.fn(),
-    error: vi.fn()
-  } as any;
-}
+describe("CategoryService", () => {
+  let mockRepository: MockedCategoryRepository;
+  let service: CategoryService;
 
-function createMockGraphQLClient(): Client {
-  return {
-    query: vi.fn(),
-    mutation: vi.fn(),
-    subscription: vi.fn()
-  } as any;
-}
+  beforeEach(() => {
+    // Create typed mocks for repository methods
+    mockRepository = {
+      getAll: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    };
+    service = new CategoryService(mockRepository);
+  });
+
+  it("should create categories", async () => {
+    mockRepository.create.mockResolvedValue({ id: "cat-1", slug: "test" });
+    await service.bootstrapCategories([{ name: "Test", slug: "test" }]);
+    expect(mockRepository.create).toHaveBeenCalled();
+  });
+});
+```
+
+**MSW for GraphQL Mocking**: Integration tests use MSW (Mock Service Worker):
+
+```typescript
+import { graphql, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
+
+const handlers = [
+  graphql.query("GetCategories", () => {
+    return HttpResponse.json({
+      data: { categories: { edges: [] } },
+    });
+  }),
+];
+
+const server = setupServer(...handlers);
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 ```
 
 **Test Data Builders**: Consistent test data creation:
@@ -914,6 +1047,7 @@ export class CategoryTestBuilder {
 **Related Documentation:**
 - [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Development processes using these patterns
 - [TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md) - Testing strategies for this architecture
-- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Deployment pipeline implementation details
-- [../AGENTS.md](../AGENTS.md) - Agent-oriented contributor guidance for navigating the layered architecture
-- [CLAUDE.md](CLAUDE.md) - Main navigation hub
+- [COMMANDS.md](COMMANDS.md) - CLI commands including recipe and CI/CD flags
+- [ci-cd/README.md](ci-cd/README.md) - CI/CD integration guide
+- [../recipes/README.md](../recipes/README.md) - Recipe system documentation
+- [adr/001-bulk-mutations-optimization.md](adr/001-bulk-mutations-optimization.md) - Bulk mutation performance ADR
