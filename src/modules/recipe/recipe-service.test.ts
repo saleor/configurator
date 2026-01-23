@@ -20,11 +20,9 @@ import {
   formatRecipeDetailsJson,
   formatRecipeList,
   formatRecipeListJson,
-  getRecipe,
   listRecipes,
   loadRecipeConfig,
   resolveRecipeSource,
-  validateSaleorVersion,
 } from "./recipe-service";
 
 // Test fixtures
@@ -35,7 +33,6 @@ const createMockManifestEntry = (
   description: "A test recipe for testing",
   category: "general",
   file: "test-recipe.yml",
-  version: "1.0.0",
   saleorVersion: ">=3.15",
   entitySummary: {
     channels: 1,
@@ -49,7 +46,6 @@ const createMockRecipe = (overrides: Partial<Recipe> = {}): Recipe => ({
     name: "test-recipe",
     description: "A test recipe for testing",
     category: "general",
-    version: "1.0.0",
     saleorVersion: ">=3.15",
     docsUrl: "https://docs.example.com",
     useCase: "Testing the recipe system",
@@ -91,7 +87,6 @@ describe("recipe-service", () => {
         createMockManifestEntry({ name: "recipe-3", category: "digital" }),
       ];
       vi.mocked(loadManifest).mockReturnValue({
-        version: "1.0.0",
         generatedAt: "2026-01-19T00:00:00Z",
         recipes: mockEntries,
       });
@@ -109,7 +104,6 @@ describe("recipe-service", () => {
         createMockManifestEntry({ name: "recipe-3", category: "multi-region" }),
       ];
       vi.mocked(loadManifest).mockReturnValue({
-        version: "1.0.0",
         generatedAt: "2026-01-19T00:00:00Z",
         recipes: mockEntries,
       });
@@ -125,7 +119,6 @@ describe("recipe-service", () => {
         createMockManifestEntry({ name: "recipe-1", category: "general" }),
       ];
       vi.mocked(loadManifest).mockReturnValue({
-        version: "1.0.0",
         generatedAt: "2026-01-19T00:00:00Z",
         recipes: mockEntries,
       });
@@ -208,18 +201,6 @@ describe("recipe-service", () => {
     });
   });
 
-  describe("getRecipe", () => {
-    it("delegates to loadRecipe", () => {
-      const mockRecipe = createMockRecipe();
-      vi.mocked(loadRecipe).mockReturnValue(mockRecipe);
-
-      const result = getRecipe("test-recipe");
-
-      expect(loadRecipe).toHaveBeenCalledWith("test-recipe");
-      expect(result).toBe(mockRecipe);
-    });
-  });
-
   describe("resolveRecipeSource", () => {
     it("identifies file paths with forward slashes", () => {
       const result = resolveRecipeSource("./recipes/custom.yml");
@@ -290,12 +271,11 @@ describe("recipe-service", () => {
       expect(result).toContain("My awesome recipe description");
     });
 
-    it("includes category, version, and saleor version", () => {
+    it("includes category and saleor version", () => {
       const recipe = createMockRecipe({
         metadata: {
           ...createMockRecipe().metadata,
           category: "multi-region",
-          version: "2.0.0",
           saleorVersion: ">=3.16",
         },
       });
@@ -303,7 +283,6 @@ describe("recipe-service", () => {
       const result = formatRecipeDetails(recipe);
 
       expect(result).toContain("multi-region");
-      expect(result).toContain("2.0.0");
       expect(result).toContain(">=3.16");
     });
 
@@ -492,113 +471,6 @@ describe("recipe-service", () => {
       expect(parsed.metadata.name).toBe("custom-recipe");
       expect(parsed.metadata.category).toBe("digital");
       expect(parsed.config.productTypes).toHaveLength(1);
-    });
-  });
-
-  describe("validateSaleorVersion", () => {
-    describe("with >= operator", () => {
-      it("returns compatible for matching version", () => {
-        const result = validateSaleorVersion(">=3.15", "3.15.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns compatible for higher version", () => {
-        const result = validateSaleorVersion(">=3.15", "3.16.2");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns incompatible for lower version", () => {
-        const result = validateSaleorVersion(">=3.15", "3.14.0");
-        expect(result.compatible).toBe(false);
-        expect(result.reason).toContain("3.15");
-        expect(result.reason).toContain("3.14");
-      });
-    });
-
-    describe("with > operator", () => {
-      it("returns compatible for higher version", () => {
-        const result = validateSaleorVersion(">3.15", "3.16.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns incompatible for equal version", () => {
-        const result = validateSaleorVersion(">3.15", "3.15.0");
-        expect(result.compatible).toBe(false);
-      });
-
-      it("returns incompatible for lower version", () => {
-        const result = validateSaleorVersion(">3.15", "3.14.0");
-        expect(result.compatible).toBe(false);
-      });
-    });
-
-    describe("with <= operator", () => {
-      it("returns compatible for matching version", () => {
-        const result = validateSaleorVersion("<=3.15", "3.15.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns compatible for lower version", () => {
-        const result = validateSaleorVersion("<=3.15", "3.14.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns incompatible for higher version", () => {
-        const result = validateSaleorVersion("<=3.15", "3.16.0");
-        expect(result.compatible).toBe(false);
-      });
-    });
-
-    describe("with < operator", () => {
-      it("returns compatible for lower version", () => {
-        const result = validateSaleorVersion("<3.15", "3.14.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns incompatible for equal version", () => {
-        const result = validateSaleorVersion("<3.15", "3.15.0");
-        expect(result.compatible).toBe(false);
-      });
-
-      it("returns incompatible for higher version", () => {
-        const result = validateSaleorVersion("<3.15", "3.16.0");
-        expect(result.compatible).toBe(false);
-      });
-    });
-
-    describe("with = operator", () => {
-      it("returns compatible for exact version", () => {
-        const result = validateSaleorVersion("=3.15", "3.15.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns incompatible for different version", () => {
-        const result = validateSaleorVersion("=3.15", "3.16.0");
-        expect(result.compatible).toBe(false);
-        expect(result.reason).toContain("exactly");
-      });
-    });
-
-    describe("edge cases", () => {
-      it("returns compatible for unparseable recipe version", () => {
-        const result = validateSaleorVersion("any", "3.15.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("returns compatible for unparseable instance version", () => {
-        const result = validateSaleorVersion(">=3.15", "unknown");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("handles version without operator (defaults to >=)", () => {
-        const result = validateSaleorVersion("3.15", "3.15.0");
-        expect(result.compatible).toBe(true);
-      });
-
-      it("handles major version comparison", () => {
-        const result = validateSaleorVersion(">=4.0", "3.20.0");
-        expect(result.compatible).toBe(false);
-      });
     });
   });
 

@@ -69,7 +69,6 @@ describe("Recipe Schemas", () => {
       name: "multi-region",
       description: "Configure channels for US, EU, and UK markets",
       category: "multi-region",
-      version: "1.0.0",
       saleorVersion: ">=3.15",
       docsUrl: "https://docs.saleor.io/docs/channels",
       useCase: "Set up a global e-commerce presence",
@@ -112,13 +111,6 @@ describe("Recipe Schemas", () => {
       expect(() => recipeMetadataSchema.parse(input)).toThrow();
     });
 
-    it("should reject invalid version format", () => {
-      const input = { ...validMetadata, version: "1.0" };
-      expect(() => recipeMetadataSchema.parse(input)).toThrow(
-        /Version must follow semantic versioning/
-      );
-    });
-
     it("should reject invalid URL", () => {
       const input = { ...validMetadata, docsUrl: "not-a-url" };
       expect(() => recipeMetadataSchema.parse(input)).toThrow(
@@ -134,7 +126,6 @@ describe("Recipe Schemas", () => {
         description: "Configure multi-region setup",
         category: "multi-region",
         file: "multi-region.yml",
-        version: "1.0.0",
         saleorVersion: ">=3.15",
         entitySummary: { channels: 3 },
       };
@@ -149,7 +140,6 @@ describe("Recipe Schemas", () => {
   describe("recipeManifestSchema", () => {
     it("should parse valid manifest", () => {
       const input = {
-        version: "1.0.0",
         generatedAt: "2026-01-19T10:30:00Z",
         recipes: [
           {
@@ -157,7 +147,6 @@ describe("Recipe Schemas", () => {
             description: "Multi-region setup",
             category: "multi-region",
             file: "multi-region.yml",
-            version: "1.0.0",
             saleorVersion: ">=3.15",
             entitySummary: { channels: 3 },
           },
@@ -166,19 +155,8 @@ describe("Recipe Schemas", () => {
 
       const result = recipeManifestSchema.parse(input);
 
-      expect(result.version).toBe("1.0.0");
       expect(result.recipes).toHaveLength(1);
       expect(result.recipes[0].name).toBe("multi-region");
-    });
-
-    it("should reject invalid manifest version", () => {
-      const input = {
-        version: "2.0.0",
-        generatedAt: "2026-01-19T10:30:00Z",
-        recipes: [],
-      };
-
-      expect(() => recipeManifestSchema.parse(input)).toThrow();
     });
   });
 
@@ -189,7 +167,6 @@ describe("Recipe Schemas", () => {
           name: "test-recipe",
           description: "A test recipe for validation",
           category: "general",
-          version: "1.0.0",
           saleorVersion: ">=3.15",
           docsUrl: "https://docs.saleor.io",
           useCase: "Testing purposes",
@@ -212,7 +189,6 @@ describe("Recipe Schemas", () => {
           name: "channel-recipe",
           description: "Creates channels for testing",
           category: "multi-region",
-          version: "1.0.0",
           saleorVersion: ">=3.15",
           docsUrl: "https://docs.saleor.io",
           useCase: "Test channels",

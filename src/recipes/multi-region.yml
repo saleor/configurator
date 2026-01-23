@@ -2,7 +2,6 @@
 name: multi-region
 description: Configure channels for US, EU, and UK markets with regional warehouses and shipping zones
 category: multi-region
-version: "1.0.0"
 saleorVersion: ">=3.15"
 docsUrl: https://docs.saleor.io/docs/channels
 useCase: |

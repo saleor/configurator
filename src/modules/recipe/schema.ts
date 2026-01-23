@@ -43,10 +43,6 @@ export const recipeMetadataSchema = z.object({
   description: z.string().min(10).max(500),
   /** Category for filtering and organization */
   category: recipeCategorySchema,
-  /** Recipe version (semver) */
-  version: z
-    .string()
-    .regex(/^\d+\.\d+\.\d+$/, "Version must follow semantic versioning (e.g., 1.0.0)"),
   /** Minimum Saleor version required (semver range) */
   saleorVersion: z.string(),
   /** Link to relevant Saleor documentation */
@@ -82,10 +78,6 @@ export const recipeManifestEntrySchema = z.object({
   category: recipeCategorySchema,
   /** Filename in recipes directory */
   file: z.string().regex(/^[a-z0-9-]+\.ya?ml$/, "File must be a YAML file with valid name"),
-  /** Recipe version (semver) */
-  version: z
-    .string()
-    .regex(/^\d+\.\d+\.\d+$/, "Version must follow semantic versioning (e.g., 1.0.0)"),
   /** Saleor version compatibility */
   saleorVersion: z.string(),
   /** Entity counts */
@@ -98,8 +90,6 @@ export type RecipeManifestEntry = z.infer<typeof recipeManifestEntrySchema>;
  * Recipe manifest - index of all available recipes, generated at build time
  */
 export const recipeManifestSchema = z.object({
-  /** Manifest format version */
-  version: z.literal("1.0.0"),
   /** Generation timestamp */
   generatedAt: z.iso.datetime(),
   /** List of available recipes */

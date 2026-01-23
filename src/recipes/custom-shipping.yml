@@ -2,7 +2,6 @@
 name: custom-shipping
 description: Configure shipping zones with methods and rate structures for common regions
 category: shipping
-version: "1.0.0"
 saleorVersion: ">=3.15"
 docsUrl: https://docs.saleor.io/docs/developer/shipping
 useCase: |

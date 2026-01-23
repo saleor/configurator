@@ -1,5 +1,4 @@
 {
-  "version": "1.0.0",
   "generatedAt": "2026-01-19T17:52:45.217Z",
   "recipes": [
     {
@@ -7,7 +6,6 @@
       "description": "Configure warehouses as pickup points with local collection shipping",
       "category": "fulfillment",
       "file": "click-and-collect.yml",
-      "version": "1.0.0",
       "saleorVersion": ">=3.15",
       "entitySummary": {
         "warehouses": 2,
@@ -19,7 +17,6 @@
       "description": "Configure shipping zones with methods and rate structures for common regions",
       "category": "shipping",
       "file": "custom-shipping.yml",
-      "version": "1.0.0",
       "saleorVersion": ">=3.15",
       "entitySummary": {
         "shippingZones": 3
@@ -30,7 +27,6 @@
       "description": "Configure product types for selling digital goods without shipping requirements",
       "category": "digital",
       "file": "digital-products.yml",
-      "version": "1.0.0",
       "saleorVersion": ">=3.15",
       "entitySummary": {
         "productTypes": 3
@@ -41,7 +37,6 @@
       "description": "Configure channels for US, EU, and UK markets with regional warehouses and shipping zones",
       "category": "multi-region",
       "file": "multi-region.yml",
-      "version": "1.0.0",
       "saleorVersion": ">=3.15",
       "entitySummary": {
         "channels": 3,

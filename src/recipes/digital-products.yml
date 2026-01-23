@@ -2,7 +2,6 @@
 name: digital-products
 description: Configure product types for selling digital goods without shipping requirements
 category: digital
-version: "1.0.0"
 saleorVersion: ">=3.15"
 docsUrl: https://docs.saleor.io/docs/developer/products
 useCase: |

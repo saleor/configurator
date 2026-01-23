@@ -47,12 +47,12 @@ describe("Recipe Errors", () => {
     });
 
     it("should include validation details in suggestions", () => {
-      const details = ["name: Required", "version: Invalid format"];
+      const details = ["name: Required", "category: Invalid format"];
       const error = new RecipeValidationError("Invalid recipe", details);
 
       const suggestions = error.getRecoverySuggestions();
       expect(suggestions).toContain("name: Required");
-      expect(suggestions).toContain("version: Invalid format");
+      expect(suggestions).toContain("category: Invalid format");
     });
 
     it("should provide default suggestion when no details provided", () => {

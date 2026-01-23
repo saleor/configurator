@@ -1,10 +1,16 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseAllDocuments } from "yaml";
 import { ZodValidationError } from "../../lib/errors/zod";
 import type { SaleorConfig } from "../config/schema/schema";
 import { configSchema } from "../config/schema/schema";
-import { ManifestLoadError, RecipeNotFoundError, RecipeValidationError } from "./errors";
-import { getRecipesDir, loadRecipeFile } from "./recipe-loader";
+import {
+  ManifestLoadError,
+  RecipeLoadError,
+  RecipeNotFoundError,
+  RecipeValidationError,
+} from "./errors";
 import {
   type Recipe,
   type RecipeManifest,
@@ -13,17 +19,68 @@ import {
   recipeMetadataSchema,
 } from "./schema";
 
-/**
- * Parsed YAML content from a recipe file
- */
 interface ParsedRecipeYaml {
   metadata: unknown;
   config: unknown;
 }
 
 /**
- * Validates parsed recipe content and returns typed Recipe
+ * Gets the path to the recipes directory in the package.
  */
+export function getRecipesDir(): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const distDir = path.resolve(moduleDir, "..", "..");
+  return path.join(distDir, "recipes");
+}
+
+/**
+ * Parses a multi-document YAML recipe file.
+ */
+export function parseRecipeYaml(content: string, filePath: string): ParsedRecipeYaml {
+  const documents = parseAllDocuments(content);
+
+  if (documents.length !== 2) {
+    throw new RecipeLoadError(
+      filePath,
+      `Expected 2 YAML documents (metadata and config), found ${documents.length}`
+    );
+  }
+
+  const [metadataDoc, configDoc] = documents;
+
+  if (metadataDoc.errors.length > 0) {
+    throw new RecipeLoadError(
+      filePath,
+      `Invalid metadata YAML: ${metadataDoc.errors.map((e) => e.message).join(", ")}`
+    );
+  }
+
+  if (configDoc.errors.length > 0) {
+    throw new RecipeLoadError(
+      filePath,
+      `Invalid config YAML: ${configDoc.errors.map((e) => e.message).join(", ")}`
+    );
+  }
+
+  return {
+    metadata: metadataDoc.toJSON(),
+    config: configDoc.toJSON(),
+  };
+}
+
+function loadRecipeFile(filePath: string): ParsedRecipeYaml {
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    return parseRecipeYaml(content, filePath);
+  } catch (error) {
+    if (error instanceof RecipeLoadError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    throw new RecipeLoadError(filePath, message);
+  }
+}
+
 function validateRecipeContent(
   parsed: ParsedRecipeYaml,
   sourceDescription: string
@@ -50,10 +107,6 @@ function validateRecipeContent(
   };
 }
 
-/**
- * Loads the recipe manifest from the recipes directory.
- * The manifest contains metadata for all available recipes.
- */
 export function loadManifest(): RecipeManifest {
   const recipesDir = getRecipesDir();
   const manifestPath = path.join(recipesDir, "manifest.json");
@@ -80,10 +133,6 @@ export function loadManifest(): RecipeManifest {
   }
 }
 
-/**
- * Loads a full recipe by name from the recipes directory.
- * Validates both metadata and config against their respective schemas.
- */
 export function loadRecipe(recipeName: string): Recipe {
   const manifest = loadManifest();
 
@@ -99,7 +148,6 @@ export function loadRecipe(recipeName: string): Recipe {
   const parsed = loadRecipeFile(recipePath);
   const validated = validateRecipeContent(parsed, entry.file);
 
-  // Verify metadata name matches filename (supports both .yml and .yaml)
   const expectedName = path.basename(entry.file, path.extname(entry.file));
   if (validated.metadata.name !== expectedName) {
     throw new RecipeValidationError(
@@ -110,10 +158,6 @@ export function loadRecipe(recipeName: string): Recipe {
   return validated;
 }
 
-/**
- * Loads a recipe from a local file path (for custom/exported recipes).
- * Validates both metadata and config against their respective schemas.
- */
 export function loadRecipeFromFile(filePath: string): Recipe {
   const parsed = loadRecipeFile(filePath);
   return validateRecipeContent(parsed, filePath);
