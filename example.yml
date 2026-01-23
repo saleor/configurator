@@ -242,3 +242,216 @@ shippingZones:
         maximumDeliveryDays: 10
         minimumDeliveryDays: 7
         channelListings: []
+
+# ============================================================================
+# TAX CONFIGURATION
+# ============================================================================
+
+# Tax classes define tax rates per country
+taxClasses:
+  - name: "Standard Rate"
+    countryRates:
+      - countryCode: PL
+        rate: 23                    # 23% VAT in Poland
+      - countryCode: DE
+        rate: 19                    # 19% VAT in Germany
+      - countryCode: FR
+        rate: 20                    # 20% VAT in France
+
+  - name: "Reduced Rate"
+    countryRates:
+      - countryCode: PL
+        rate: 8                     # Reduced rate for books in Poland
+      - countryCode: DE
+        rate: 7                     # Reduced rate in Germany
+      - countryCode: FR
+        rate: 5.5                   # Reduced rate in France
+
+  - name: "Zero Rate"
+    countryRates:
+      - countryCode: PL
+        rate: 0
+      - countryCode: DE
+        rate: 0
+      - countryCode: FR
+        rate: 0
+
+# ============================================================================
+# COLLECTIONS & MERCHANDISING
+# ============================================================================
+
+# Curated product groupings for promotions and merchandising
+collections:
+  - name: "Summer Sale"
+    slug: "summer-sale"
+    description: "Hot deals for the summer season"
+    products:
+      - "sample-fiction-book"       # Reference products by slug
+    channelListings:
+      - channelSlug: "poland"
+        isPublished: true
+
+  - name: "New Arrivals"
+    slug: "new-arrivals"
+    description: "Latest additions to our catalog"
+    products: []
+    channelListings:
+      - channelSlug: "poland"
+        isPublished: true
+
+  - name: "Best Sellers"
+    slug: "best-sellers"
+    description: "Our most popular items"
+    products:
+      - "sample-fiction-book"
+    channelListings:
+      - channelSlug: "poland"
+        isPublished: true
+
+# ============================================================================
+# DOMAIN MODELING - Custom Entities
+# ============================================================================
+
+# Model Types define structure for custom entities (API uses pageTypes)
+# Use these to extend beyond Products/Categories/Collections
+pageTypes:
+  - name: "Brand"
+    attributes:
+      - name: "Country of Origin"
+        inputType: DROPDOWN
+        values:
+          - name: "USA"
+          - name: "UK"
+          - name: "France"
+          - name: "Italy"
+          - name: "Germany"
+      - name: "Founded Year"
+        inputType: NUMERIC
+      - name: "Website"
+        inputType: PLAIN_TEXT
+      - name: "Logo"
+        inputType: FILE
+
+  - name: "Author Profile"
+    attributes:
+      - name: "Biography"
+        inputType: RICH_TEXT
+      - name: "Photo"
+        inputType: FILE
+      - name: "Books Written"
+        inputType: REFERENCE
+        entityType: PRODUCT          # Links to products
+
+  - name: "Blog Post"
+    attributes:
+      - name: "Published Date"
+        inputType: DATE
+      - name: "Author"
+        inputType: PLAIN_TEXT
+      - name: "Featured Image"
+        inputType: FILE
+      - name: "Tags"
+        inputType: MULTISELECT
+        values:
+          - name: "News"
+          - name: "Tutorial"
+          - name: "Review"
+          - name: "Interview"
+      - name: "Related Posts"
+        inputType: REFERENCE
+        entityType: PAGE             # Links to other models/pages
+
+# Models are instances of Model Types (API uses pages)
+models:
+  - title: "Penguin Books"
+    slug: "penguin-books"
+    modelType: "Brand"
+    isPublished: true
+    content: "Penguin Books is a British publishing house founded in 1935."
+    attributes:
+      country-of-origin: "UK"
+      founded-year: 1935
+      website: "https://www.penguin.co.uk"
+
+  - title: "HarperCollins"
+    slug: "harpercollins"
+    modelType: "Brand"
+    isPublished: true
+    content: "HarperCollins Publishers is one of the world's largest publishing companies."
+    attributes:
+      country-of-origin: "USA"
+      founded-year: 1989
+      website: "https://www.harpercollins.com"
+
+  - title: "Jane Doe"
+    slug: "jane-doe"
+    modelType: "Author Profile"
+    isPublished: true
+    content: "Jane Doe is an award-winning fiction author known for her captivating storytelling."
+    attributes:
+      biography: "<p>Jane Doe has written over 20 bestselling novels...</p>"
+
+  - title: "Welcome to Our Store"
+    slug: "welcome-post"
+    modelType: "Blog Post"
+    isPublished: true
+    content: "<h2>Welcome!</h2><p>We're excited to launch our new online bookstore...</p>"
+    attributes:
+      published-date: "2024-01-15"
+      author: "Store Team"
+      tags:
+        - "News"
+
+# ============================================================================
+# NAVIGATION STRUCTURES
+# ============================================================================
+
+# Menus organize entities hierarchically for navigation
+menus:
+  - name: "Main Navigation"
+    slug: "main-nav"
+    items:
+      - name: "Shop by Category"
+        children:
+          - name: "Fiction"
+            category: "fiction"        # Link to category by slug
+          - name: "Non-Fiction"
+            category: "non-fiction"
+      - name: "Collections"
+        children:
+          - name: "New Arrivals"
+            collection: "new-arrivals"  # Link to collection by slug
+          - name: "Best Sellers"
+            collection: "best-sellers"
+          - name: "Summer Sale"
+            collection: "summer-sale"
+      - name: "Our Brands"
+        children:
+          - name: "Penguin Books"
+            page: "penguin-books"       # Link to model/page by slug
+          - name: "HarperCollins"
+            page: "harpercollins"
+
+  - name: "Footer Navigation"
+    slug: "footer-nav"
+    items:
+      - name: "About Us"
+        url: "/about"                   # External/internal URL
+      - name: "Contact"
+        url: "/contact"
+      - name: "Blog"
+        page: "welcome-post"
+      - name: "Privacy Policy"
+        url: "/privacy"
+      - name: "Terms of Service"
+        url: "/terms"
+
+  - name: "Help Center"
+    slug: "help-center"
+    items:
+      - name: "Shipping Information"
+        url: "/help/shipping"
+      - name: "Returns & Refunds"
+        url: "/help/returns"
+      - name: "FAQs"
+        url: "/help/faq"
