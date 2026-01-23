@@ -46,6 +46,72 @@ npm install -g @saleor/configurator
 pnpm add -g @saleor/configurator
 ```
 
+### Getting Your API Token
+
+Before using Saleor Configurator, you need an API token from your Saleor instance. This token allows the CLI to read and modify your store configuration.
+
+#### Step 1: Access Your Saleor Dashboard
+
+Go to your Saleor Dashboard:
+- **Saleor Cloud**: `https://your-store.saleor.cloud/dashboard/`
+- **Self-hosted**: `https://your-domain.com/dashboard/`
+
+#### Step 2: Create a New App
+
+1. Navigate to **Extensions** → **Installed** in the sidebar
+2. Click **Add Extension** → **Provide details manually**
+3. Enter a name like `Configurator` or `Configuration Manager`
+
+#### Step 3: Assign Permissions
+
+Grant the app **all permissions** needed for configuration management:
+
+| Permission Category | Required For |
+|---------------------|--------------|
+| **Products** | Product types, categories, products, variants |
+| **Channels** | Sales channels, currency settings |
+| **Shipping** | Shipping zones, methods, warehouses |
+| **Pages** | Page types (model types), pages (models) |
+| **Menus** | Navigation structures |
+| **Discounts** | Vouchers and sales (if using) |
+| **Settings** | Shop settings, tax configuration |
+
+> **Tip:** For full configuration management, select all available permissions. You can restrict permissions later for specific environments.
+
+#### Step 4: Generate the Token
+
+1. After creating the app, go to the app's detail page
+2. Find the **Tokens** section
+3. Click **Create Token**
+4. Copy the token immediately — it won't be shown again
+
+Your token will look like: `eyJhbGciOiJSUzI1NiIsInR5cCI6...` (JWT format) or a shorter alphanumeric string.
+
+#### Step 5: Store Your Credentials
+
+For repeated use, store your credentials as environment variables:
+
+```bash
+# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+export SALEOR_URL="https://your-store.saleor.cloud/graphql/"
+export SALEOR_TOKEN="your-token-here"
+
+# Then use in commands
+npx @saleor/configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
+```
+
+> **Security Note:** Never commit tokens to version control. Use environment variables or a secrets manager.
+
+#### Verify Your Setup
+
+Test that your token works:
+
+```bash
+npx @saleor/configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --include shop
+```
+
+If successful, you'll see your shop settings downloaded. If you get an authentication error, verify your token and URL (ensure the URL ends with `/graphql/`).
+
 ### First-Time Setup
 
 The easiest way to get started is with the interactive wizard:
@@ -75,7 +141,7 @@ npx @saleor/configurator deploy \
   --token your-app-token
 ```
 
-> **Tip:** Create an app token with all permissions in your Saleor dashboard under **Configuration > Apps**.
+> **Need a token?** See [Getting Your API Token](#getting-your-api-token) above for step-by-step instructions.
 
 ### Quick Reference
 
