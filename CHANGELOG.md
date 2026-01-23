@@ -1,5 +1,56 @@
 # saleor-configurator
 
+## 1.2.0
+
+### Minor Changes
+
+- 11cef9e: Add recipes: pre-built configuration templates for common e-commerce patterns
+
+  New `configurator recipe` command with subcommands:
+
+  - `configurator recipe list [--category <category>]` - Browse available recipes
+  - `configurator recipe show <name>` - Preview a recipe's configuration and metadata
+  - `configurator recipe apply <name> --url <url> --token <token>` - Apply a recipe to your Saleor instance
+  - `configurator recipe export <name> [--output <path>]` - Export a recipe for local customization
+
+  Built-in recipes included:
+
+  - **multi-region** - Configure channels for US, EU, and UK markets with regional warehouses
+  - **digital-products** - Product types for digital goods (ebooks, software, subscriptions)
+  - **click-and-collect** - Warehouse pickup points with local collection shipping
+  - **custom-shipping** - Shipping zones with tiered rates for US, EU, and worldwide
+
+  All commands support `--json` flag for CI/CD automation and scripting.
+
+- 25646e5: Add `--skip-media` flag to `diff` and `deploy` commands
+
+  This feature allows users to exclude media fields from comparison and deployment operations when syncing across environments with different media URLs.
+
+  ### New Features:
+
+  - **`--skip-media` flag**: Available on both `diff` and `deploy` commands
+  - **Media comparison skipping**: When enabled, media differences are not reported in diff results
+  - **Media sync skipping**: When enabled, existing media on target environment is preserved during deployment
+  - **CLI feedback**: Clear status messages indicate when media handling is being skipped
+
+  ### Usage:
+
+  ```bash
+  # Show diff excluding media differences
+  saleor-configurator diff --skip-media
+
+  # Deploy without modifying target media
+  saleor-configurator deploy --skip-media
+  ```
+
+  ### Technical Improvements:
+
+  - Unified `ComparatorOptions` type using `Pick<DiffOptions, 'skipMedia'>`
+  - Removed duplicate `Products` entry from EntityType union
+  - Removed redundant `skipMedia` field from `DeploymentContext` (access via `args.skipMedia`)
+  - Updated all entity comparators with consistent options signature
+  - Added unit tests for skipMedia behavior in ProductComparator
+
 ## 1.1.0
 
 ### Minor Changes
