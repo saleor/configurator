@@ -1,67 +1,184 @@
 # ============================================================================
-# COMPLETE SALEOR CONFIGURATOR EXAMPLE
+# SALEOR CONFIGURATOR - COMPLETE REFERENCE EXAMPLE
 # ============================================================================
-# This example demonstrates all major features of Saleor Configurator.
-# Start with introspection, then customize based on your needs.
+# This example demonstrates ALL supported entities and features.
+# Use it as a reference for building your own configuration.
 #
 # Quick Start:
 #   1. pnpm dlx @saleor/configurator introspect --url <your-url> --token <your-token>
 #   2. Modify this configuration based on your requirements
 #   3. pnpm dlx @saleor/configurator deploy --url <your-url> --token <your-token>
 #
-# Documentation: See SCHEMA.md for complete field reference
+# Entity Identification:
+#   - Slug-based: Categories, Products, Collections, Channels, Menus, Warehouses
+#   - Name-based: ProductTypes, PageTypes, Attributes, TaxClasses, ShippingZones
+#
+# Dependency Order (for deployment):
+#   1. Shop, Channels, ProductTypes, PageTypes, TaxClasses
+#   2. Categories, Warehouses, ShippingZones
+#   3. Collections, Models/Pages
+#   4. Products, Menus
 # ============================================================================
 
-# Global store settings - applies across all channels
-shop:
-  defaultMailSenderName: "Saleor Store"
-  defaultMailSenderAddress: "store@example.com"
-  displayGrossPrices: true              # Show prices with tax included
-  enableAccountConfirmationByEmail: true
-  trackInventoryByDefault: true         # New products track inventory by default
-  limitQuantityPerCheckout: 50          # Maximum items per checkout session
-  reserveStockDurationAnonymousUser: 60     # Minutes to hold stock for anonymous users
-  reserveStockDurationAuthenticatedUser: 120  # Minutes to hold stock for logged-in users
-  defaultDigitalMaxDownloads: 5         # Download limit for digital products
-  defaultDigitalUrlValidDays: 30        # Days download links remain valid
-  defaultWeightUnit: KG                 # Default unit for product weights
+# ============================================================================
+# SHOP SETTINGS (Singleton)
+# ============================================================================
+# Global settings that apply across all channels.
+# Only one shop exists per Saleor instance.
 
-# Sales channels - different storefronts or markets
+shop:
+  # Email settings
+  defaultMailSenderName: "Acme Bookstore"
+  defaultMailSenderAddress: "noreply@acmebooks.example.com"
+  customerSetPasswordUrl: "https://acmebooks.example.com/reset-password"
+
+  # Display settings
+  displayGrossPrices: true                      # Show prices with tax included
+
+  # Account settings
+  enableAccountConfirmationByEmail: true
+  allowLoginWithoutConfirmation: false
+
+  # Inventory settings
+  trackInventoryByDefault: true
+  defaultWeightUnit: KG
+
+  # Stock reservation (minutes)
+  reserveStockDurationAnonymousUser: 60
+  reserveStockDurationAuthenticatedUser: 120
+
+  # Checkout limits
+  limitQuantityPerCheckout: 50
+
+  # Digital products
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30
+
+  # Fulfillment automation
+  automaticFulfillmentDigitalProducts: true
+  fulfillmentAutoApprove: false
+  fulfillmentAllowUnpaid: false
+
+# ============================================================================
+# CHANNELS
+# ============================================================================
+# Sales channels represent different storefronts or markets.
+# Each channel can have its own currency, country, and settings.
+
 channels:
   - name: Poland
-    currencyCode: PLN                   # Currency for this channel
-    defaultCountry: PL                  # Default country for shipping/tax
-    slug: poland                        # URL identifier
+    slug: poland
+    currencyCode: PLN
+    defaultCountry: PL
+    isActive: true
     settings:
-      # Order processing automation
+      # Stock allocation strategy
       allocationStrategy: PRIORITIZE_SORTING_ORDER
+
+      # Order automation
       automaticallyConfirmAllNewOrders: true
       automaticallyFulfillNonShippableGiftCard: true
-      
-      # Order lifecycle management
-      expireOrdersAfter: 30             # Days before orders expire
-      deleteExpiredOrdersAfter: 60      # Days before expired orders are deleted
-      
-      # Payment processing
+
+      # Order lifecycle
+      expireOrdersAfter: 60                     # Minutes before unpaid orders expire
+      deleteExpiredOrdersAfter: 90              # Days before expired orders are deleted
+
+      # Payment settings
       markAsPaidStrategy: TRANSACTION_FLOW
-      allowUnpaidOrders: false          # Require payment before fulfillment
-      automaticallyCompleteFullyPaidCheckouts: true
       defaultTransactionFlowStrategy: AUTHORIZATION
-      
-      # Business rules  
+      allowUnpaidOrders: false
+      automaticallyCompleteFullyPaidCheckouts: true
+
+      # Business rules
       includeDraftOrderInVoucherUsage: true
       useLegacyErrorFlow: false
 
-# ============================================================================
-# PRODUCT CATALOG STRUCTURE
-# ============================================================================
+    # Tax configuration for this channel
+    taxConfiguration:
+      taxCalculationStrategy: FLAT_RATES
+      chargeTaxes: true
+      displayGrossPrices: true
+      pricesEnteredWithTax: false
 
-# Product type templates - define structure and attributes for similar products
+  - name: Germany
+    slug: germany
+    currencyCode: EUR
+    defaultCountry: DE
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: CHARGE
+      allowUnpaidOrders: false
+    taxConfiguration:
+      taxCalculationStrategy: FLAT_RATES
+      chargeTaxes: true
+      displayGrossPrices: true
+      pricesEnteredWithTax: true               # German prices include VAT
+
+  - name: United States
+    slug: usa
+    currencyCode: USD
+    defaultCountry: US
+    isActive: false                            # Inactive channel example
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: false  # Manual review required
+      markAsPaidStrategy: TRANSACTION_FLOW
+
+# ============================================================================
+# TAX CLASSES
+# ============================================================================
+# Tax classes define tax rates per country.
+# Assign to products, product types, or shipping methods.
+
+taxClasses:
+  - name: "Standard Rate"
+    countryRates:
+      - countryCode: PL
+        rate: 23                               # 23% VAT in Poland
+      - countryCode: DE
+        rate: 19                               # 19% VAT in Germany
+      - countryCode: US
+        rate: 0                                # No federal sales tax
+
+  - name: "Reduced Rate - Books"
+    countryRates:
+      - countryCode: PL
+        rate: 5                                # Reduced rate for books in Poland
+      - countryCode: DE
+        rate: 7                                # Reduced rate in Germany
+      - countryCode: US
+        rate: 0
+
+  - name: "Zero Rate - Digital"
+    countryRates:
+      - countryCode: PL
+        rate: 0
+      - countryCode: DE
+        rate: 0
+      - countryCode: US
+        rate: 0
+
+# ============================================================================
+# PRODUCT TYPES
+# ============================================================================
+# Product types define the structure and attributes for groups of products.
+# Name-based identification.
+
 productTypes:
+  # Physical product example
   - name: Book
     isShippingRequired: true
+    taxClass: "Reduced Rate - Books"           # Default tax class for this type
     productAttributes:
       - name: Author
+        inputType: PLAIN_TEXT
+      - name: Publisher
+        inputType: PLAIN_TEXT
+      - name: ISBN
         inputType: PLAIN_TEXT
       - name: Genre
         inputType: DROPDOWN
@@ -69,389 +186,821 @@ productTypes:
           - name: Fiction
           - name: Non-Fiction
           - name: Fantasy
+          - name: Science Fiction
+          - name: Mystery
+          - name: Biography
+      - name: Publication Year
+        inputType: NUMERIC
       - name: Related Books
         inputType: REFERENCE
-        entityType: PRODUCT
+        entityType: PRODUCT                    # Links to other products
     variantAttributes:
-      - name: Size
+      - name: Format
         inputType: DROPDOWN
         values:
-          - name: Small
-          - name: Medium
-          - name: Large
+          - name: Hardcover
+          - name: Paperback
+          - name: Large Print
+
+  # Digital product example (attribute reuse pattern)
   - name: E-Book
-    isShippingRequired: false           # Digital products don't need shipping
+    isShippingRequired: false                  # No shipping for digital products
+    taxClass: "Zero Rate - Digital"
     productAttributes:
-      # Attribute reuse pattern - reference existing attributes by name
-      - attribute: Author               # Reuses the "Author" attribute from Book type
-      - attribute: Genre                # Reuses the "Genre" attribute from Book type
-      - name: File Format               # Define new attribute specific to E-Books
+      - attribute: Author                      # Reuse "Author" from Book type
+      - attribute: Genre                       # Reuse "Genre" from Book type
+      - attribute: ISBN
+      - name: File Format
         inputType: DROPDOWN
         values:
           - name: PDF
           - name: EPUB
           - name: MOBI
 
-# Content management - structured pages and content
-pageTypes:
-  - name: Blog Post
-    attributes:
-      - name: Published Date # Define a new attribute
-        inputType: DATE
-      - name: Related Posts
+  # Apparel example with variant attributes
+  - name: Apparel
+    isShippingRequired: true
+    taxClass: "Standard Rate"
+    productAttributes:
+      - name: Brand
         inputType: REFERENCE
-        entityType: PAGE
-  - name: Article
-    attributes:
-      - attribute: Published Date # Reference the existing attribute
-      - name: Tags
+        entityType: PAGE                       # Links to Brand model
+      - name: Material
+        inputType: PLAIN_TEXT
+      - name: Care Instructions
+        inputType: RICH_TEXT
+    variantAttributes:
+      - name: Size
         inputType: DROPDOWN
         values:
-          - name: Technology
-          - name: Business
-          - name: Lifestyle
+          - name: XS
+          - name: S
+          - name: M
+          - name: L
+          - name: XL
+          - name: XXL
+      - name: Color
+        inputType: SWATCH
+        values:
+          - name: Black
+          - name: White
+          - name: Navy
+          - name: Red
+          - name: Green
+
+# ============================================================================
+# PAGE TYPES (Model Types)
+# ============================================================================
+# Define structure for custom content entities.
+# Use for Brands, Authors, Blog Posts, Landing Pages, etc.
+
+pageTypes:
+  - name: Brand
+    attributes:
+      - name: Country of Origin
+        inputType: DROPDOWN
+        values:
+          - name: USA
+          - name: UK
+          - name: France
+          - name: Italy
+          - name: Germany
+          - name: Japan
+      - name: Founded Year
+        inputType: NUMERIC
+      - name: Website
+        inputType: PLAIN_TEXT
+      - name: Logo
+        inputType: FILE
+
+  - name: Author Profile
+    attributes:
+      - name: Biography
+        inputType: RICH_TEXT
+      - name: Photo
+        inputType: FILE
+      - name: Birth Date
+        inputType: DATE
+      - name: Books Written
+        inputType: REFERENCE
+        entityType: PRODUCT                    # Links to products
+
+  - name: Blog Post
+    attributes:
+      - name: Published Date
+        inputType: DATE
+      - name: Author Name
+        inputType: PLAIN_TEXT
+      - name: Featured Image
+        inputType: FILE
+      - name: Tags
+        inputType: MULTISELECT
+        values:
+          - name: News
+          - name: Tutorial
+          - name: Review
+          - name: Interview
+          - name: Announcement
+      - name: Related Posts
+        inputType: REFERENCE
+        entityType: PAGE                       # Links to other pages/models
+
+  - name: Landing Page
+    attributes:
+      - name: Hero Image
+        inputType: FILE
+      - name: CTA Text
+        inputType: PLAIN_TEXT
+      - name: CTA Link
+        inputType: PLAIN_TEXT
+      - name: Is Active
+        inputType: BOOLEAN
+
+# ============================================================================
+# CATEGORIES (Hierarchical)
+# ============================================================================
+# Product categories with nested subcategories.
+# Slug-based identification.
 
 categories:
-  - name: "Fiction"
-    slug: "fiction"
+  - name: Books
+    slug: books
     subcategories:
-      - name: "Fantasy"
-        slug: "fantasy"
-  - name: "Non-Fiction"
-    slug: "non-fiction"
-    subcategories:
-      - name: "Science"
-        slug: "science"
-      - name: "History"
-        slug: "history"
+      - name: Fiction
+        slug: fiction
+        subcategories:
+          - name: Fantasy
+            slug: fantasy
+          - name: Science Fiction
+            slug: science-fiction
+          - name: Mystery & Thriller
+            slug: mystery-thriller
+      - name: Non-Fiction
+        slug: non-fiction
+        subcategories:
+          - name: Biography
+            slug: biography
+          - name: Science
+            slug: science
+          - name: History
+            slug: history
+          - name: Self-Help
+            slug: self-help
 
-products:
-  - name: "Sample Fiction Book"
-    slug: "sample-fiction-book"
-    productType: "Book"
-    category: "Fiction"
-    attributes:
-      Author: "Jane Doe"
-      Genre: "Fiction"
-    media:
-      - externalUrl: "https://cdn.example.com/products/sample-fiction-book.jpg"
-        alt: "Cover of Sample Fiction Book"
-    variants:
-      - name: "Hardcover"
-        sku: "BOOK-001-HC"
-        weight: 1.2
-        attributes:
-          Size: "Large"
-          Cover: "Hardcover"
-        channelListings: []
-      - name: "Paperback"
-        sku: "BOOK-001-PB"
-        weight: 0.8
-        attributes:
-          Size: "Standard"
-          Cover: "Paperback"
-        channelListings: []
+  - name: E-Books
+    slug: ebooks
+    subcategories:
+      - name: Fiction E-Books
+        slug: fiction-ebooks
+      - name: Non-Fiction E-Books
+        slug: non-fiction-ebooks
+
+  - name: Apparel
+    slug: apparel
+    subcategories:
+      - name: Men's Clothing
+        slug: mens-clothing
+      - name: Women's Clothing
+        slug: womens-clothing
+      - name: Accessories
+        slug: accessories
 
 # ============================================================================
-# LOGISTICS & FULFILLMENT
+# WAREHOUSES
 # ============================================================================
+# Physical locations for inventory storage and fulfillment.
+# Slug-based identification.
 
-# Physical storage locations for inventory management
 warehouses:
-  - name: "Main Warehouse"
-    slug: "main-warehouse"
-    email: "warehouse@example.com"
+  - name: Main Warehouse
+    slug: main-warehouse
+    email: warehouse@acmebooks.example.com
     isPrivate: false
-    clickAndCollectOption: "LOCAL"
+    clickAndCollectOption: LOCAL
     address:
       streetAddress1: "123 Commerce Street"
       streetAddress2: "Building A"
-      city: "Warsaw"
-      cityArea: "Downtown"
+      city: Warsaw
+      cityArea: Mokotow
       postalCode: "00-001"
-      country: "PL"
-      countryArea: "Mazowieckie"
-      companyName: "Example Store Ltd."
+      country: PL
+      countryArea: Mazowieckie
+      companyName: "Acme Bookstore Ltd."
       phone: "+48123456789"
-    shippingZones: ["poland-zone"]
+    shippingZones:
+      - "Poland Zone"
+      - "Europe Zone"
 
-  - name: "Secondary Distribution Center"
-    slug: "secondary-dc"
-    email: "dc2@example.com"
-    isPrivate: true
-    clickAndCollectOption: "DISABLED"
+  - name: German Distribution Center
+    slug: german-dc
+    email: de-warehouse@acmebooks.example.com
+    isPrivate: false
+    clickAndCollectOption: DISABLED
     address:
-      streetAddress1: "456 Storage Avenue"
-      city: "Krakow"
-      postalCode: "30-001"
-      country: "PL"
-      companyName: "Example Store Ltd."
-    shippingZones: ["poland-zone", "europe-zone"]
+      streetAddress1: "456 Logistik Strasse"
+      city: Frankfurt
+      postalCode: "60311"
+      country: DE
+      countryArea: Hessen
+      companyName: "Acme Books GmbH"
+    shippingZones:
+      - "Europe Zone"
 
-# Geographic shipping regions with methods and pricing
+  - name: Digital Fulfillment
+    slug: digital-fulfillment
+    email: digital@acmebooks.example.com
+    isPrivate: true                            # Internal warehouse
+    clickAndCollectOption: DISABLED
+    address:
+      streetAddress1: "1 Cloud Drive"
+      city: Warsaw
+      postalCode: "00-001"
+      country: PL
+      companyName: "Acme Bookstore Ltd."
+
+# ============================================================================
+# SHIPPING ZONES
+# ============================================================================
+# Geographic regions with shipping methods and pricing.
+# Name-based identification.
+
 shippingZones:
-  - name: "Poland Zone"
-    slug: "poland-zone"
-    description: "Shipping zone for Poland"
-    countries: ["PL"]                   # Countries served by this zone
-    warehouses: ["main-warehouse", "secondary-dc"]  # Warehouses that can fulfill orders
-    channels: ["poland"]                # Channels this zone serves
+  - name: Poland Zone
+    description: "Domestic shipping within Poland"
+    countries:
+      - PL
+    warehouses:
+      - main-warehouse
+    channels:
+      - poland
     shippingMethods:
-      - name: "Standard Shipping"
-        type: "PRICE"
-        maximumDeliveryDays: 5
+      - name: Standard Shipping
+        type: PRICE
         minimumDeliveryDays: 3
+        maximumDeliveryDays: 5
+        taxClass: "Standard Rate"
         channelListings:
-          - channel: "poland"
-            maximumOrderPrice: 1000.00
-            minimumOrderPrice: 0.00
-            price: 19.99
-      
-      - name: "Express Shipping"
-        type: "PRICE"
-        maximumDeliveryDays: 2
-        minimumDeliveryDays: 1
-        channelListings:
-          - channel: "poland"
-            minimumOrderPrice: 0.00
-            price: 39.99
+          - channel: poland
+            price: 9.99
+            minimumOrderPrice: 0
+            maximumOrderPrice: 200
 
-      - name: "Weight-based Shipping"
-        type: "WEIGHT"
-        maximumDeliveryDays: 7
+      - name: Free Shipping
+        type: PRICE
         minimumDeliveryDays: 5
+        maximumDeliveryDays: 7
         channelListings:
-          - channel: "poland"
-            maximumOrderWeight:
-              unit: "KG"
-              value: 30
-            minimumOrderWeight:
-              unit: "KG"
-              value: 0
-            price: 15.00
+          - channel: poland
+            price: 0
+            minimumOrderPrice: 200             # Free for orders over 200 PLN
 
-  - name: "Europe Zone"
-    slug: "europe-zone"
-    description: "Shipping zone for European Union countries"
-    countries: ["DE", "FR", "IT", "ES", "CZ", "SK"]
-    warehouses: ["secondary-dc"]
-    channels: []
-    shippingMethods:
-      - name: "EU Standard Delivery"
-        type: "PRICE"
+      - name: Express Shipping
+        type: PRICE
+        minimumDeliveryDays: 1
+        maximumDeliveryDays: 2
+        taxClass: "Standard Rate"
+        channelListings:
+          - channel: poland
+            price: 29.99
+            minimumOrderPrice: 0
+
+      - name: Heavy Items
+        type: WEIGHT
+        description: "For items over 5kg"
+        minimumDeliveryDays: 5
         maximumDeliveryDays: 10
-        minimumDeliveryDays: 7
-        channelListings: []
+        minimumOrderWeight:
+          unit: KG
+          value: 5
+        maximumOrderWeight:
+          unit: KG
+          value: 30
+        channelListings:
+          - channel: poland
+            price: 49.99
+
+  - name: Europe Zone
+    description: "Shipping to European Union countries"
+    countries:
+      - DE
+      - FR
+      - IT
+      - ES
+      - NL
+      - BE
+      - AT
+      - CZ
+      - SK
+    warehouses:
+      - main-warehouse
+      - german-dc
+    channels:
+      - germany
+    shippingMethods:
+      - name: EU Standard Delivery
+        type: PRICE
+        minimumDeliveryDays: 5
+        maximumDeliveryDays: 10
+        channelListings:
+          - channel: germany
+            price: 9.99
+            currency: EUR
+            minimumOrderPrice: 0
+
+      - name: EU Express Delivery
+        type: PRICE
+        minimumDeliveryDays: 2
+        maximumDeliveryDays: 4
+        channelListings:
+          - channel: germany
+            price: 19.99
+            currency: EUR
+
+  - name: Rest of World
+    description: "International shipping outside EU"
+    default: true                              # Catch-all zone
+    countries:
+      - US
+      - CA
+      - GB
+      - AU
+      - JP
+    warehouses:
+      - main-warehouse
+    channels:
+      - usa
+    shippingMethods:
+      - name: International Standard
+        type: PRICE
+        minimumDeliveryDays: 14
+        maximumDeliveryDays: 21
+        channelListings:
+          - channel: usa
+            price: 24.99
+            currency: USD
 
 # ============================================================================
-# TAX CONFIGURATION
+# PRODUCTS
 # ============================================================================
+# Product catalog with variants, attributes, and channel listings.
+# Slug-based identification.
 
-# Tax classes define tax rates per country
-taxClasses:
-  - name: "Standard Rate"
-    countryRates:
-      - countryCode: PL
-        rate: 23                    # 23% VAT in Poland
-      - countryCode: DE
-        rate: 19                    # 19% VAT in Germany
-      - countryCode: FR
-        rate: 20                    # 20% VAT in France
+products:
+  # Physical book with multiple variants
+  - name: "The Great Adventure"
+    slug: the-great-adventure
+    description: "An epic journey through uncharted territories. This bestselling novel has captivated readers worldwide."
+    productType: Book
+    category: fiction
+    taxClass: "Reduced Rate - Books"           # Override product type default
+    attributes:
+      Author: "Jane Smith"
+      Publisher: "Penguin Books"
+      ISBN: "978-0-123456-78-9"
+      Genre: Fiction
+      Publication Year: "2024"
+    media:
+      - externalUrl: "https://cdn.example.com/books/great-adventure-cover.jpg"
+        alt: "The Great Adventure book cover"
+      - externalUrl: "https://cdn.example.com/books/great-adventure-back.jpg"
+        alt: "The Great Adventure back cover"
+    channelListings:
+      - channel: poland
+        isPublished: true
+        visibleInListings: true
+        isAvailableForPurchase: true
+        publishedAt: "2024-01-15T00:00:00Z"
+      - channel: germany
+        isPublished: true
+        visibleInListings: true
+        isAvailableForPurchase: true
+    variants:
+      - name: Hardcover
+        sku: BOOK-ADVENTURE-HC
+        weight: 0.8
+        attributes:
+          Format: Hardcover
+        channelListings:
+          - channel: poland
+            price: 89.99
+            costPrice: 35.00
+          - channel: germany
+            price: 24.99
+            costPrice: 10.00
+      - name: Paperback
+        sku: BOOK-ADVENTURE-PB
+        weight: 0.4
+        attributes:
+          Format: Paperback
+        channelListings:
+          - channel: poland
+            price: 49.99
+            costPrice: 15.00
+          - channel: germany
+            price: 14.99
+            costPrice: 5.00
+      - name: Large Print Edition
+        sku: BOOK-ADVENTURE-LP
+        weight: 1.0
+        attributes:
+          Format: Large Print
+        channelListings:
+          - channel: poland
+            price: 99.99
+            costPrice: 45.00
 
-  - name: "Reduced Rate"
-    countryRates:
-      - countryCode: PL
-        rate: 8                     # Reduced rate for books in Poland
-      - countryCode: DE
-        rate: 7                     # Reduced rate in Germany
-      - countryCode: FR
-        rate: 5.5                   # Reduced rate in France
+  # Digital product (E-Book)
+  - name: "The Great Adventure - E-Book"
+    slug: the-great-adventure-ebook
+    description: "Digital edition of The Great Adventure. Available in multiple formats."
+    productType: E-Book
+    category: fiction-ebooks
+    attributes:
+      Author: "Jane Smith"
+      Genre: Fiction
+      ISBN: "978-0-123456-78-9-E"
+      File Format: EPUB
+    channelListings:
+      - channel: poland
+        isPublished: true
+        visibleInListings: true
+        isAvailableForPurchase: true
+      - channel: germany
+        isPublished: true
+        visibleInListings: true
+    variants:
+      - name: Digital Download
+        sku: EBOOK-ADVENTURE-DL
+        digital: true                          # Mark as digital product
+        channelListings:
+          - channel: poland
+            price: 29.99
+            costPrice: 5.00
+          - channel: germany
+            price: 9.99
+            costPrice: 2.00
 
-  - name: "Zero Rate"
-    countryRates:
-      - countryCode: PL
-        rate: 0
-      - countryCode: DE
-        rate: 0
-      - countryCode: FR
-        rate: 0
+  # Non-fiction book
+  - name: "The Science of Everything"
+    slug: science-of-everything
+    description: "A comprehensive guide to understanding the universe, from quantum physics to cosmology."
+    productType: Book
+    category: science
+    attributes:
+      Author: "Dr. Robert Chen"
+      Publisher: "Academic Press"
+      ISBN: "978-0-987654-32-1"
+      Genre: Non-Fiction
+      Publication Year: "2023"
+    media:
+      - externalUrl: "https://cdn.example.com/books/science-everything-cover.jpg"
+        alt: "The Science of Everything cover"
+    channelListings:
+      - channel: poland
+        isPublished: true
+        isAvailableForPurchase: true
+      - channel: germany
+        isPublished: true
+    variants:
+      - name: Hardcover
+        sku: BOOK-SCIENCE-HC
+        weight: 1.2
+        attributes:
+          Format: Hardcover
+        channelListings:
+          - channel: poland
+            price: 149.99
+            costPrice: 60.00
+          - channel: germany
+            price: 39.99
+            costPrice: 15.00
+      - name: Paperback
+        sku: BOOK-SCIENCE-PB
+        weight: 0.6
+        attributes:
+          Format: Paperback
+        channelListings:
+          - channel: poland
+            price: 79.99
+            costPrice: 25.00
+
+  # Apparel product with size/color variants
+  - name: "Classic Logo T-Shirt"
+    slug: classic-logo-tshirt
+    description: "Premium cotton t-shirt with the Acme Bookstore logo."
+    productType: Apparel
+    category: mens-clothing
+    attributes:
+      Material: "100% Organic Cotton"
+      Care Instructions: "<p>Machine wash cold. Tumble dry low. Do not bleach.</p>"
+    media:
+      - externalUrl: "https://cdn.example.com/apparel/tshirt-black.jpg"
+        alt: "Classic Logo T-Shirt in Black"
+      - externalUrl: "https://cdn.example.com/apparel/tshirt-white.jpg"
+        alt: "Classic Logo T-Shirt in White"
+    channelListings:
+      - channel: poland
+        isPublished: true
+        isAvailableForPurchase: true
+    variants:
+      - name: Black - Medium
+        sku: TSHIRT-BLK-M
+        weight: 0.2
+        attributes:
+          Size: M
+          Color: Black
+        channelListings:
+          - channel: poland
+            price: 79.99
+            costPrice: 20.00
+      - name: Black - Large
+        sku: TSHIRT-BLK-L
+        weight: 0.22
+        attributes:
+          Size: L
+          Color: Black
+        channelListings:
+          - channel: poland
+            price: 79.99
+            costPrice: 20.00
+      - name: White - Medium
+        sku: TSHIRT-WHT-M
+        weight: 0.2
+        attributes:
+          Size: M
+          Color: White
+        channelListings:
+          - channel: poland
+            price: 79.99
+            costPrice: 20.00
+      - name: White - Large
+        sku: TSHIRT-WHT-L
+        weight: 0.22
+        attributes:
+          Size: L
+          Color: White
+        channelListings:
+          - channel: poland
+            price: 79.99
+            costPrice: 20.00
 
 # ============================================================================
-# COLLECTIONS & MERCHANDISING
+# COLLECTIONS
 # ============================================================================
+# Curated product groupings for merchandising.
+# Slug-based identification.
 
-# Curated product groupings for promotions and merchandising
 collections:
-  - name: "Summer Sale"
-    slug: "summer-sale"
-    description: "Hot deals for the summer season"
-    products:
-      - "sample-fiction-book"       # Reference products by slug
-    channelListings:
-      - channelSlug: "poland"
-        isPublished: true
-
   - name: "New Arrivals"
-    slug: "new-arrivals"
-    description: "Latest additions to our catalog"
-    products: []
-    channelListings:
-      - channelSlug: "poland"
-        isPublished: true
-
-  - name: "Best Sellers"
-    slug: "best-sellers"
-    description: "Our most popular items"
+    slug: new-arrivals
+    description: "The latest additions to our catalog"
     products:
-      - "sample-fiction-book"
+      - the-great-adventure
+      - science-of-everything
     channelListings:
-      - channelSlug: "poland"
+      - channelSlug: poland
+        isPublished: true
+        publishedAt: "2024-01-01T00:00:00Z"
+      - channelSlug: germany
         isPublished: true
 
+  - name: "Bestsellers"
+    slug: bestsellers
+    description: "Our most popular titles"
+    products:
+      - the-great-adventure
+    channelListings:
+      - channelSlug: poland
+        isPublished: true
+      - channelSlug: germany
+        isPublished: true
+
+  - name: "Staff Picks"
+    slug: staff-picks
+    description: "Handpicked favorites from our team"
+    products:
+      - the-great-adventure
+      - science-of-everything
+    channelListings:
+      - channelSlug: poland
+        isPublished: true
+
+  - name: "E-Books Collection"
+    slug: ebooks-collection
+    description: "All digital editions"
+    products:
+      - the-great-adventure-ebook
+    channelListings:
+      - channelSlug: poland
+        isPublished: true
+      - channelSlug: germany
+        isPublished: true
+
+  - name: "Summer Sale"
+    slug: summer-sale
+    description: "Special summer discounts"
+    products: []                               # Empty collection (products added later)
+    channelListings:
+      - channelSlug: poland
+        isPublished: false                     # Not yet active
+
 # ============================================================================
-# DOMAIN MODELING - Custom Entities
+# MODELS (Content Pages)
 # ============================================================================
+# Custom content entities based on page types.
+# Slug-based identification.
 
-# Model Types define structure for custom entities (API uses pageTypes)
-# Use these to extend beyond Products/Categories/Collections
-pageTypes:
-  - name: "Brand"
-    attributes:
-      - name: "Country of Origin"
-        inputType: DROPDOWN
-        values:
-          - name: "USA"
-          - name: "UK"
-          - name: "France"
-          - name: "Italy"
-          - name: "Germany"
-      - name: "Founded Year"
-        inputType: NUMERIC
-      - name: "Website"
-        inputType: PLAIN_TEXT
-      - name: "Logo"
-        inputType: FILE
-
-  - name: "Author Profile"
-    attributes:
-      - name: "Biography"
-        inputType: RICH_TEXT
-      - name: "Photo"
-        inputType: FILE
-      - name: "Books Written"
-        inputType: REFERENCE
-        entityType: PRODUCT          # Links to products
-
-  - name: "Blog Post"
-    attributes:
-      - name: "Published Date"
-        inputType: DATE
-      - name: "Author"
-        inputType: PLAIN_TEXT
-      - name: "Featured Image"
-        inputType: FILE
-      - name: "Tags"
-        inputType: MULTISELECT
-        values:
-          - name: "News"
-          - name: "Tutorial"
-          - name: "Review"
-          - name: "Interview"
-      - name: "Related Posts"
-        inputType: REFERENCE
-        entityType: PAGE             # Links to other models/pages
-
-# Models are instances of Model Types (API uses pages)
 models:
+  # Brand pages
   - title: "Penguin Books"
-    slug: "penguin-books"
-    modelType: "Brand"
+    slug: penguin-books
+    modelType: Brand
     isPublished: true
-    content: "Penguin Books is a British publishing house founded in 1935."
+    content: |
+      <h2>About Penguin Books</h2>
+      <p>Penguin Books is a British publishing house founded in 1935 by Sir Allen Lane.</p>
+      <p>Known for pioneering the paperback revolution, Penguin has published countless classics and bestsellers.</p>
     attributes:
-      country-of-origin: "UK"
+      country-of-origin: UK
       founded-year: 1935
       website: "https://www.penguin.co.uk"
 
-  - title: "HarperCollins"
-    slug: "harpercollins"
-    modelType: "Brand"
+  - title: "Academic Press"
+    slug: academic-press
+    modelType: Brand
     isPublished: true
-    content: "HarperCollins Publishers is one of the world's largest publishing companies."
+    content: |
+      <p>Academic Press is a leading publisher of scientific and technical books.</p>
     attributes:
-      country-of-origin: "USA"
-      founded-year: 1989
-      website: "https://www.harpercollins.com"
+      country-of-origin: USA
+      founded-year: 1941
+      website: "https://www.academicpress.com"
 
-  - title: "Jane Doe"
-    slug: "jane-doe"
-    modelType: "Author Profile"
+  # Author profiles
+  - title: "Jane Smith"
+    slug: jane-smith
+    modelType: Author Profile
     isPublished: true
-    content: "Jane Doe is an award-winning fiction author known for her captivating storytelling."
+    content: |
+      <p>Jane Smith is a bestselling fiction author known for her captivating adventure novels.</p>
     attributes:
-      biography: "<p>Jane Doe has written over 20 bestselling novels...</p>"
+      biography: |
+        <p>Jane Smith was born in London and has been writing since the age of twelve.
+        Her debut novel "The Great Adventure" became an instant bestseller,
+        translated into over 30 languages.</p>
+        <p>When not writing, Jane enjoys hiking and exploring new places for inspiration.</p>
+      birth-date: "1985-03-15"
 
-  - title: "Welcome to Our Store"
-    slug: "welcome-post"
-    modelType: "Blog Post"
+  - title: "Dr. Robert Chen"
+    slug: dr-robert-chen
+    modelType: Author Profile
     isPublished: true
-    content: "<h2>Welcome!</h2><p>We're excited to launch our new online bookstore...</p>"
+    content: |
+      <p>Dr. Robert Chen is a physicist and science communicator.</p>
     attributes:
-      published-date: "2024-01-15"
-      author: "Store Team"
+      biography: |
+        <p>Dr. Chen holds a PhD in Theoretical Physics from MIT and has dedicated
+        his career to making complex scientific concepts accessible to everyone.</p>
+
+  # Blog posts
+  - title: "Welcome to Acme Bookstore"
+    slug: welcome-post
+    modelType: Blog Post
+    isPublished: true
+    publishedAt: "2024-01-01T00:00:00Z"
+    content: |
+      <h2>Welcome to Our Online Bookstore!</h2>
+      <p>We're thrilled to launch our new e-commerce platform. Browse thousands of books,
+      from bestselling fiction to academic texts.</p>
+      <h3>What We Offer</h3>
+      <ul>
+        <li>Physical books in hardcover and paperback</li>
+        <li>E-books for instant download</li>
+        <li>Fast shipping across Europe</li>
+      </ul>
+    attributes:
+      published-date: "2024-01-01"
+      author-name: "Acme Team"
       tags:
-        - "News"
+        - Announcement
+        - News
+
+  - title: "Summer Reading Recommendations"
+    slug: summer-reading-2024
+    modelType: Blog Post
+    isPublished: true
+    publishedAt: "2024-06-01T00:00:00Z"
+    content: |
+      <h2>Top Books for Summer 2024</h2>
+      <p>Looking for your next great read? Here are our top picks for the summer season.</p>
+    attributes:
+      published-date: "2024-06-01"
+      author-name: "Editorial Team"
+      tags:
+        - Review
+        - News
+
+  # Landing page
+  - title: "Summer Sale Landing"
+    slug: summer-sale-landing
+    modelType: Landing Page
+    isPublished: false                         # Not yet active
+    content: |
+      <h1>Summer Sale - Up to 50% Off!</h1>
+      <p>Don't miss our biggest sale of the year.</p>
+    attributes:
+      cta-text: "Shop Now"
+      cta-link: "/collections/summer-sale"
+      is-active: false
 
 # ============================================================================
-# NAVIGATION STRUCTURES
+# MENUS (Navigation)
 # ============================================================================
+# Hierarchical navigation structures.
+# Slug-based identification.
 
-# Menus organize entities hierarchically for navigation
 menus:
-  - name: "Main Navigation"
-    slug: "main-nav"
+  - name: Main Navigation
+    slug: main-nav
     items:
-      - name: "Shop by Category"
+      - name: Shop
         children:
-          - name: "Fiction"
-            category: "fiction"        # Link to category by slug
-          - name: "Non-Fiction"
-            category: "non-fiction"
-      - name: "Collections"
+          - name: All Books
+            category: books
+          - name: Fiction
+            category: fiction
+          - name: Non-Fiction
+            category: non-fiction
+          - name: E-Books
+            category: ebooks
+          - name: Apparel
+            category: apparel
+      - name: Collections
         children:
-          - name: "New Arrivals"
-            collection: "new-arrivals"  # Link to collection by slug
-          - name: "Best Sellers"
-            collection: "best-sellers"
-          - name: "Summer Sale"
-            collection: "summer-sale"
-      - name: "Our Brands"
+          - name: New Arrivals
+            collection: new-arrivals
+          - name: Bestsellers
+            collection: bestsellers
+          - name: Staff Picks
+            collection: staff-picks
+          - name: E-Books
+            collection: ebooks-collection
+      - name: Publishers
         children:
-          - name: "Penguin Books"
-            page: "penguin-books"       # Link to model/page by slug
-          - name: "HarperCollins"
-            page: "harpercollins"
+          - name: Penguin Books
+            page: penguin-books
+          - name: Academic Press
+            page: academic-press
+      - name: Blog
+        page: welcome-post
 
-  - name: "Footer Navigation"
-    slug: "footer-nav"
+  - name: Footer Navigation
+    slug: footer-nav
     items:
-      - name: "About Us"
-        url: "/about"                   # External/internal URL
-      - name: "Contact"
-        url: "/contact"
-      - name: "Blog"
-        page: "welcome-post"
-      - name: "Privacy Policy"
-        url: "/privacy"
-      - name: "Terms of Service"
-        url: "/terms"
+      - name: Customer Service
+        children:
+          - name: Contact Us
+            url: /contact
+          - name: Shipping Info
+            url: /shipping
+          - name: Returns & Refunds
+            url: /returns
+          - name: FAQ
+            url: /faq
+      - name: About
+        children:
+          - name: Our Story
+            url: /about
+          - name: Careers
+            url: /careers
+          - name: Press
+            url: /press
+      - name: Legal
+        children:
+          - name: Privacy Policy
+            url: /privacy
+          - name: Terms of Service
+            url: /terms
+          - name: Cookie Policy
+            url: /cookies
 
-  - name: "Help Center"
-    slug: "help-center"
+  - name: Mobile Menu
+    slug: mobile-menu
     items:
-      - name: "Shipping Information"
-        url: "/help/shipping"
-      - name: "Returns & Refunds"
-        url: "/help/returns"
-      - name: "FAQs"
-        url: "/help/faq"
+      - name: Books
+        category: books
+      - name: E-Books
+        category: ebooks
+      - name: New Arrivals
+        collection: new-arrivals
+      - name: Sale
+        collection: summer-sale
+
+# ============================================================================
+# END OF CONFIGURATION
+# ============================================================================
+# For more information:
+# - Documentation: See docs/ folder
+# - CLI Help: pnpm dlx @saleor/configurator --help
+# - Validation: pnpm dlx @saleor/configurator diff --url <url> --token <token>
+# ============================================================================
