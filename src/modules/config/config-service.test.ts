@@ -3,6 +3,31 @@ import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { ProductInput, SaleorConfig } from "./schema/schema";
 
+/** Raw product type edge for test fixtures */
+type ProductTypeEdge = NonNullable<RawSaleorConfig["productTypes"]>["edges"][number];
+
+/** Create a base raw config with default empty values */
+const createBaseRawConfig = (overrides: Partial<RawSaleorConfig> = {}): RawSaleorConfig => ({
+  shop: mockRawShopData,
+  channels: [],
+  productTypes: { edges: [] },
+  pageTypes: { edges: [] },
+  categories: { edges: [] },
+  warehouses: { edges: [] },
+  shippingZones: { edges: [] },
+  taxClasses: { edges: [] },
+  collections: { edges: [] },
+  pages: { edges: [] },
+  menus: { edges: [] },
+  ...overrides,
+});
+
+/** Create a raw config with product type edges */
+const createRawConfigWithProductTypes = (productTypeEdges: ProductTypeEdge[]): RawSaleorConfig =>
+  createBaseRawConfig({
+    productTypes: { edges: productTypeEdges },
+  });
+
 const mockRawShopData: RawSaleorConfig["shop"] = {
   defaultMailSenderName: "Test Store",
   defaultMailSenderAddress: "test@example.com",
@@ -440,6 +465,190 @@ describe("ConfigurationService", () => {
       expect(service).toBeInstanceOf(ConfigurationService);
       expect(service.retrieve).toBeInstanceOf(Function);
       expect(service.mapConfig).toBeInstanceOf(Function);
+    });
+  });
+
+  describe("mapVariantAttributes", () => {
+    it("should include variantSelection: true for variant attributes with variantSelection enabled", () => {
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "product-type-1",
+            name: "T-Shirt",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [
+              {
+                attribute: {
+                  id: "attr-color",
+                  name: "Color",
+                  type: "PRODUCT_TYPE",
+                  inputType: "DROPDOWN",
+                  choices: { edges: [{ node: { name: "Red" } }] },
+                },
+                variantSelection: true,
+              },
+            ],
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.productTypes).toHaveLength(1);
+      const productType = result.productTypes?.[0];
+      expect(productType?.variantAttributes).toHaveLength(1);
+
+      // Note: mapConfig converts variant attributes to reference format with 'attribute' property
+      const variantAttr = productType?.variantAttributes?.[0] as {
+        attribute?: string;
+        variantSelection?: boolean;
+        name?: string;
+      };
+      // Should include variantSelection: true (attribute is in reference format)
+      expect(variantAttr?.attribute).toBe("Color");
+      expect(variantAttr?.variantSelection).toBe(true);
+    });
+
+    it("should omit variantSelection when false for cleaner YAML output", () => {
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "product-type-1",
+            name: "Book",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [
+              {
+                attribute: {
+                  id: "attr-format",
+                  name: "Format",
+                  type: "PRODUCT_TYPE",
+                  inputType: "DROPDOWN",
+                  choices: { edges: [{ node: { name: "Hardcover" } }] },
+                },
+                variantSelection: false,
+              },
+            ],
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.productTypes).toHaveLength(1);
+      const productType = result.productTypes?.[0];
+      expect(productType?.variantAttributes).toHaveLength(1);
+
+      // Note: mapConfig converts variant attributes to reference format with 'attribute' property
+      const variantAttr = productType?.variantAttributes?.[0] as {
+        attribute?: string;
+        variantSelection?: boolean;
+        name?: string;
+      };
+      // Should NOT include variantSelection when false (omitted for cleaner YAML)
+      expect(variantAttr?.attribute).toBe("Format");
+      expect(variantAttr?.variantSelection).toBeUndefined();
+    });
+
+    it("should handle mixed variantSelection values on multiple attributes", () => {
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "product-type-1",
+            name: "Clothing",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [
+              {
+                attribute: {
+                  id: "attr-color",
+                  name: "Color",
+                  type: "PRODUCT_TYPE",
+                  inputType: "DROPDOWN",
+                  choices: { edges: [{ node: { name: "Red" } }] },
+                },
+                variantSelection: true,
+              },
+              {
+                attribute: {
+                  id: "attr-size",
+                  name: "Size",
+                  type: "PRODUCT_TYPE",
+                  inputType: "DROPDOWN",
+                  choices: { edges: [{ node: { name: "S" } }] },
+                },
+                variantSelection: true,
+              },
+              {
+                attribute: {
+                  id: "attr-material",
+                  name: "Material",
+                  type: "PRODUCT_TYPE",
+                  inputType: "PLAIN_TEXT",
+                  choices: null,
+                },
+                variantSelection: false,
+              },
+            ],
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.productTypes).toHaveLength(1);
+      const productType = result.productTypes?.[0];
+      expect(productType?.variantAttributes).toHaveLength(3);
+
+      // Note: mapConfig converts variant attributes to reference format with 'attribute' property
+      const variantAttrs = productType?.variantAttributes as Array<{
+        attribute?: string;
+        name?: string;
+        variantSelection?: boolean;
+      }>;
+
+      // Color should have variantSelection: true (reference format)
+      const colorAttr = variantAttrs?.find((a) => a.attribute === "Color" || a.name === "Color");
+      expect(colorAttr?.variantSelection).toBe(true);
+
+      // Size should have variantSelection: true
+      const sizeAttr = variantAttrs?.find((a) => a.attribute === "Size" || a.name === "Size");
+      expect(sizeAttr?.variantSelection).toBe(true);
+
+      // Material should NOT have variantSelection (false is omitted)
+      const materialAttr = variantAttrs?.find(
+        (a) => a.attribute === "Material" || a.name === "Material"
+      );
+      expect(materialAttr?.variantSelection).toBeUndefined();
+    });
+
+    it("should handle null assignedVariantAttributes gracefully", () => {
+      // When assignedVariantAttributes is explicitly null (possible from API)
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "product-type-1",
+            name: "Simple Product",
+            isShippingRequired: false,
+            productAttributes: [],
+            assignedVariantAttributes: null,
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+
+      // Should not throw - null should be handled gracefully
+      expect(() => service.mapConfig(rawConfig)).not.toThrow();
+
+      const result = service.mapConfig(rawConfig);
+      expect(result.productTypes).toHaveLength(1);
+      // variantAttributes should be an empty array when assignedVariantAttributes is null
+      expect(result.productTypes?.[0]?.variantAttributes).toEqual([]);
     });
   });
 

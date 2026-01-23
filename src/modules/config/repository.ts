@@ -69,6 +69,7 @@ const getConfigQuery = graphql(`
             }
           }
           assignedVariantAttributes {
+            variantSelection
             attribute {
               id
               name

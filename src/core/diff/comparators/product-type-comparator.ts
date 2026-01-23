@@ -8,6 +8,16 @@ import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator"
  */
 type ProductTypeEntity = NonNullable<SaleorConfig["productTypes"]>[number];
 
+/** Get the name of an attribute (handles both inline and referenced formats) */
+function getAttributeName(attr: AttributeInput): string {
+  return "attribute" in attr ? attr.attribute : attr.name;
+}
+
+/** Get variantSelection value, treating undefined as false */
+function getVariantSelection(attr: AttributeInput): boolean {
+  return "variantSelection" in attr ? Boolean(attr.variantSelection) : false;
+}
+
 /**
  * Comparator for product type entities
  */
@@ -142,37 +152,53 @@ export class ProductTypeComparator extends BaseEntityComparator<
   private compareAttributes(
     local: readonly AttributeInput[],
     remote: readonly AttributeInput[],
-    isCreating: boolean = false
+    isCreating = false
   ): DiffChange[] {
+    const localByName = new Map(local.map((a) => [getAttributeName(a), a]));
+    const remoteByName = new Map(remote.map((a) => [getAttributeName(a), a]));
+    const localNames = new Set(localByName.keys());
+    const remoteNames = new Set(remoteByName.keys());
+
     const changes: DiffChange[] = [];
 
-    const getName = (a: AttributeInput): string => ("attribute" in a ? a.attribute : a.name);
-    const lNames = new Set(local.map(getName));
-    const rNames = new Set(remote.map(getName));
-
-    for (const name of lNames) {
-      if (!rNames.has(name)) {
+    // Check for added attributes and variantSelection changes
+    for (const name of localNames) {
+      const remoteAttr = remoteByName.get(name);
+      if (!remoteAttr) {
         const description = isCreating
           ? `Attribute "${name}" will be created`
           : `Attribute "${name}" added`;
         changes.push(this.createFieldChange("attributes", null, name, description));
+        continue;
+      }
+
+      // Compare variantSelection for existing attributes
+      const localAttr = localByName.get(name);
+      if (!localAttr) continue;
+      const localVS = getVariantSelection(localAttr);
+      const remoteVS = getVariantSelection(remoteAttr);
+
+      if (localVS !== remoteVS) {
+        changes.push(
+          this.createFieldChange(
+            `attributes.${name}.variantSelection`,
+            remoteVS,
+            localVS,
+            `Attribute "${name}" variantSelection: ${remoteVS} → ${localVS}`
+          )
+        );
       }
     }
 
-    for (const name of rNames) {
-      if (!lNames.has(name)) {
+    // Check for removed attributes
+    for (const name of remoteNames) {
+      if (!localNames.has(name)) {
         changes.push(
           this.createFieldChange("attributes", name, null, `Attribute "${name}" removed`)
         );
       }
     }
 
-    // No detailed comparison of inputType/values at assignment level
     return changes;
   }
-
-  /**
-   * Compares detailed properties of matching attributes
-   */
-  // Remove detailed attribute comparison at product type level
 }
