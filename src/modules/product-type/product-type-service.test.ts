@@ -1,9 +1,51 @@
 import { describe, expect, it, vi } from "vitest";
 import { AttributeService } from "../attribute/attribute-service";
+import type { AttributeOperations } from "../attribute/repository";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { ProductTypeAttributeValidationError } from "./errors";
 import { ProductTypeService } from "./product-type-service";
-import type { ProductType } from "./repository";
+import type { ProductType, ProductTypeOperations } from "./repository";
+
+/** Create mock product type operations with default implementations */
+const createMockProductTypeOperations = (
+  overrides: Partial<ProductTypeOperations> = {}
+): ProductTypeOperations => ({
+  getProductTypeByName: vi.fn().mockResolvedValue(null),
+  createProductType: vi.fn(),
+  assignAttributesToProductType: vi.fn(),
+  updateAttributeAssignments: vi.fn().mockResolvedValue({ id: "mock-id" }),
+  ...overrides,
+});
+
+/** Create mock attribute operations with default implementations */
+const createMockAttributeOperations = (
+  overrides: Partial<AttributeOperations> = {}
+): AttributeOperations => ({
+  createAttribute: vi.fn(),
+  updateAttribute: vi.fn(),
+  getAttributesByNames: vi.fn().mockResolvedValue([]),
+  bulkCreateAttributes: vi.fn(),
+  bulkUpdateAttributes: vi.fn(),
+  ...overrides,
+});
+
+/** Create a ProductTypeService with mocked dependencies */
+const createTestService = (
+  productTypeOps: Partial<ProductTypeOperations> = {},
+  attributeOps: Partial<AttributeOperations> = {}
+) => {
+  const mockProductTypeOperations = createMockProductTypeOperations(productTypeOps);
+  const mockAttributeOperations = createMockAttributeOperations(attributeOps);
+  const attributeService = new AttributeService(mockAttributeOperations);
+  const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+  return {
+    service,
+    attributeService,
+    mockProductTypeOperations,
+    mockAttributeOperations,
+  };
+};
 
 describe("ProductTypeService", () => {
   describe("bootstrapProductType", () => {
@@ -11,44 +53,19 @@ describe("ProductTypeService", () => {
       const existingProductType: ProductType = {
         id: "1",
         name: "Product Type 1",
-        productAttributes: [
-          {
-            id: "1",
-            name: "Color",
-          },
-        ],
+        productAttributes: [{ id: "1", name: "Color" }],
         variantAttributes: [],
       };
 
-      const mockProductTypeOperations = {
+      const { service, mockProductTypeOperations, mockAttributeOperations } = createTestService({
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
-        createProductType: vi.fn(),
-        assignAttributesToProductType: vi.fn(),
-      };
-
-      const mockAttributeOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]), // Should not matter, but return empty
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const attributeService = new AttributeService(mockAttributeOperations);
-
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      });
 
       // When
       await service.bootstrapProductType({
         name: existingProductType.name,
         isShippingRequired: false,
-        productAttributes: [
-          {
-            name: "Color",
-            inputType: "DROPDOWN",
-            values: [{ name: "Red" }],
-          },
-        ],
+        productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }] }],
         variantAttributes: [],
       });
 
@@ -66,12 +83,6 @@ describe("ProductTypeService", () => {
         variantAttributes: [],
       };
 
-      const mockProductTypeOperations = {
-        getProductTypeByName: vi.fn().mockResolvedValue(null),
-        createProductType: vi.fn().mockResolvedValue(newProductType),
-        assignAttributesToProductType: vi.fn(),
-      };
-
       const newAttribute = {
         id: "1",
         name: "Color",
@@ -79,29 +90,16 @@ describe("ProductTypeService", () => {
         values: [{ name: "Red" }],
       };
 
-      const mockAttributeOperations = {
-        createAttribute: vi.fn().mockResolvedValue(newAttribute),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]), // Color doesn't exist globally
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const attributeService = new AttributeService(mockAttributeOperations);
-
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+      const { service, mockProductTypeOperations, mockAttributeOperations } = createTestService(
+        { createProductType: vi.fn().mockResolvedValue(newProductType) },
+        { createAttribute: vi.fn().mockResolvedValue(newAttribute) }
+      );
 
       // When
       await service.bootstrapProductType({
         name: newProductType.name,
         isShippingRequired: false,
-        productAttributes: [
-          {
-            name: "Color",
-            inputType: "DROPDOWN",
-            values: [{ name: "Red" }],
-          },
-        ],
+        productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }] }],
         variantAttributes: [],
       });
 
@@ -122,7 +120,7 @@ describe("ProductTypeService", () => {
       });
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: newProductType.id,
-        attributeIds: [newAttribute.id],
+        attributes: [{ id: newAttribute.id, variantSelection: undefined }],
         type: "PRODUCT",
       });
     });
@@ -420,7 +418,7 @@ describe("ProductTypeService", () => {
       });
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
-        attributeIds: ["attr-2"],
+        attributes: [{ id: "attr-2", variantSelection: undefined }],
         type: "PRODUCT",
       });
       // Only one call should be made since variantAttributes is empty
@@ -526,7 +524,7 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.updateAttribute).not.toHaveBeenCalled();
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
-        attributeIds: ["attr-1"],
+        attributes: [{ id: "attr-1", variantSelection: undefined }],
         type: "PRODUCT",
       });
     });
@@ -600,7 +598,7 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).not.toHaveBeenCalled();
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: "1",
-        attributeIds: ["attr-1"],
+        attributes: [{ id: "attr-1", variantSelection: undefined }],
         type: "PRODUCT",
       });
     });
@@ -758,6 +756,765 @@ describe("ProductTypeService", () => {
           variantAttributes: [],
         })
       ).resolves.not.toThrow();
+    });
+  });
+
+  describe("referenced attribute resolution failure", () => {
+    it("should throw error when referenced attributes fail to resolve", async () => {
+      const existingProductType: ProductType = {
+        id: "7",
+        name: "Product With Failed Resolution",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        // Return null to simulate resolution failure (network error, etc.)
+        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // Using a referenced attribute that will fail to resolve
+      // The error is wrapped by ServiceErrorWrapper, so we check the message content
+      await expect(
+        service.bootstrapProductType({
+          name: existingProductType.name,
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "NonExistentAttribute", // Referenced by name
+              variantSelection: true,
+            },
+          ],
+        })
+      ).rejects.toThrow(/Failed to resolve referenced attributes/);
+    });
+
+    it("should not throw when no referenced attributes need resolution", async () => {
+      const existingProductType: ProductType = {
+        id: "8",
+        name: "Product With Inline Attributes Only",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(existingProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const colorAttribute = {
+        id: "color-inline",
+        name: "Color",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(colorAttribute),
+        updateAttribute: vi.fn(),
+        // Return null, but since there are no referenced attrs, it should be fine
+        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // Only inline attributes, no referenced ones
+      await expect(
+        service.bootstrapProductType({
+          name: existingProductType.name,
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              name: "Color", // Inline attribute, not referenced
+              inputType: "DROPDOWN",
+              values: [{ name: "Red" }],
+            },
+          ],
+        })
+      ).resolves.not.toThrow();
+    });
+  });
+
+  describe("variantSelection", () => {
+    it("should pass variantSelection to assignment when true for supported input type", async () => {
+      const newProductType: ProductType = {
+        id: "2",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const colorAttribute = {
+        id: "color-1",
+        name: "Color",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(colorAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      await service.bootstrapProductType({
+        name: newProductType.name,
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            name: "Color",
+            inputType: "DROPDOWN",
+            values: [{ name: "Red" }, { name: "Blue" }],
+            variantSelection: true,
+          },
+        ],
+      });
+
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: newProductType.id,
+        attributes: [{ id: colorAttribute.id, variantSelection: true }],
+        type: "VARIANT",
+      });
+    });
+
+    it("should throw validation error when variantSelection is used with unsupported input type", async () => {
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn(),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // PLAIN_TEXT does not support variantSelection
+      await expect(
+        service.bootstrapProductType({
+          name: "Invalid Product Type",
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              name: "Description",
+              inputType: "PLAIN_TEXT",
+              variantSelection: true,
+            },
+          ],
+        })
+      ).rejects.toThrow(ProductTypeAttributeValidationError);
+    });
+
+    it("should allow variantSelection with all supported input types", async () => {
+      const newProductType: ProductType = {
+        id: "3",
+        name: "Product With All Variant Types",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      // Create mock attributes for each supported type
+      const dropdownAttr = { id: "dropdown-1", name: "Color", inputType: "DROPDOWN" as const };
+      const booleanAttr = { id: "boolean-1", name: "Is Organic", inputType: "BOOLEAN" as const };
+      const swatchAttr = { id: "swatch-1", name: "Pattern", inputType: "SWATCH" as const };
+      const numericAttr = { id: "numeric-1", name: "Size Number", inputType: "NUMERIC" as const };
+
+      let createCallCount = 0;
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockImplementation(() => {
+          createCallCount++;
+          switch (createCallCount) {
+            case 1:
+              return Promise.resolve(dropdownAttr);
+            case 2:
+              return Promise.resolve(booleanAttr);
+            case 3:
+              return Promise.resolve(swatchAttr);
+            case 4:
+              return Promise.resolve(numericAttr);
+            default:
+              return Promise.resolve(dropdownAttr);
+          }
+        }),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // All of these input types should support variantSelection
+      await expect(
+        service.bootstrapProductType({
+          name: newProductType.name,
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              name: "Color",
+              inputType: "DROPDOWN",
+              values: [{ name: "Red" }],
+              variantSelection: true,
+            },
+            {
+              name: "Is Organic",
+              inputType: "BOOLEAN",
+              variantSelection: true,
+            },
+            {
+              name: "Pattern",
+              inputType: "SWATCH",
+              values: [{ name: "Striped" }],
+              variantSelection: true,
+            },
+            {
+              name: "Size Number",
+              inputType: "NUMERIC",
+              variantSelection: true,
+            },
+          ],
+        })
+      ).resolves.not.toThrow();
+    });
+
+    it("should not pass variantSelection when false or undefined", async () => {
+      const newProductType: ProductType = {
+        id: "4",
+        name: "Simple Product",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const sizeAttribute = {
+        id: "size-1",
+        name: "Size",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(sizeAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      await service.bootstrapProductType({
+        name: newProductType.name,
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            name: "Size",
+            inputType: "DROPDOWN",
+            values: [{ name: "S" }, { name: "M" }],
+            // No variantSelection specified
+          },
+        ],
+      });
+
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: newProductType.id,
+        attributes: [{ id: sizeAttribute.id, variantSelection: undefined }],
+        type: "VARIANT",
+      });
+    });
+
+    it("should throw validation error when referenced attribute with variantSelection has unsupported input type", async () => {
+      const existingProductType: ProductType = {
+        id: "5",
+        name: "Product With Referenced Attr",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      // The referenced attribute has PLAIN_TEXT input type which doesn't support variantSelection
+      const plainTextAttribute = {
+        id: "plaintext-1",
+        name: "Description",
+        inputType: "PLAIN_TEXT" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([plainTextAttribute]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // Using a referenced attribute with variantSelection: true but the attribute has unsupported inputType
+      await expect(
+        service.bootstrapProductType({
+          name: existingProductType.name,
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "Description", // Referenced by name
+              variantSelection: true,
+            },
+          ],
+        })
+      ).rejects.toThrow(/does not support variant selection/);
+    });
+
+    it("should pass variantSelection for referenced attribute with supported input type", async () => {
+      const existingProductType: ProductType = {
+        id: "6",
+        name: "Product With Valid Referenced Attr",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      // The referenced attribute has DROPDOWN input type which supports variantSelection
+      const dropdownAttribute = {
+        id: "dropdown-ref-1",
+        name: "Color",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([dropdownAttribute]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      await service.bootstrapProductType({
+        name: existingProductType.name,
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            attribute: "Color", // Referenced by name
+            variantSelection: true,
+          },
+        ],
+      });
+
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: existingProductType.id,
+        attributes: [{ id: dropdownAttribute.id, variantSelection: true }],
+        type: "VARIANT",
+      });
+    });
+
+    it("should not throw validation error when variantSelection is on productAttributes", async () => {
+      // variantSelection validation only applies to variantAttributes, not productAttributes
+      // When specified on a productAttribute, it should not throw validation error
+      // (The repository layer handles filtering variantSelection for PRODUCT type)
+      const newProductType: ProductType = {
+        id: "9",
+        name: "Product With VariantSelection on ProductAttr",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(null),
+        createProductType: vi.fn().mockResolvedValue(newProductType),
+        assignAttributesToProductType: vi.fn(),
+      };
+
+      const colorAttribute = {
+        id: "color-1",
+        name: "Color",
+        inputType: "DROPDOWN" as const,
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn().mockResolvedValue(colorAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // variantSelection on productAttribute should not throw validation error
+      // (variantSelection validation is only done for variantAttributes)
+      await expect(
+        service.bootstrapProductType({
+          name: newProductType.name,
+          isShippingRequired: false,
+          productAttributes: [
+            {
+              name: "Color",
+              inputType: "DROPDOWN",
+              values: [{ name: "Red" }],
+              variantSelection: true, // This should not cause validation error
+            },
+          ],
+          variantAttributes: [],
+        })
+      ).resolves.not.toThrow();
+
+      // Service passes variantSelection through; repository filters it for PRODUCT type
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
+        productTypeId: newProductType.id,
+        attributes: [{ id: colorAttribute.id, variantSelection: true }],
+        type: "PRODUCT",
+      });
+    });
+  });
+
+  describe("updateExistingAttributeAssignments", () => {
+    it("should update variantSelection from false to true on existing assignment", async () => {
+      // Given: Product type with existing variant attribute (variantSelection was false)
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [{ id: "color-attr-id", name: "Color" }],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User updates config to set variantSelection: true
+      await service.updateProductType(existingProductType, {
+        name: "T-Shirt",
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            attribute: "Color",
+            variantSelection: true,
+          },
+        ],
+      });
+
+      // Then: updateAttributeAssignments should be called with variantSelection: true
+      expect(mockProductTypeOperations.updateAttributeAssignments).toHaveBeenCalledWith({
+        productTypeId: "1",
+        operations: [{ id: "color-attr-id", variantSelection: true }],
+      });
+    });
+
+    it("should update variantSelection from true to false on existing assignment", async () => {
+      // Given: Product type with existing variant attribute (variantSelection was true)
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [{ id: "color-attr-id", name: "Color" }],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User updates config to remove variantSelection (or set to false)
+      await service.updateProductType(existingProductType, {
+        name: "T-Shirt",
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            attribute: "Color",
+            // variantSelection not specified, defaults to false
+          },
+        ],
+      });
+
+      // Then: updateAttributeAssignments should be called with variantSelection: false
+      expect(mockProductTypeOperations.updateAttributeAssignments).toHaveBeenCalledWith({
+        productTypeId: "1",
+        operations: [{ id: "color-attr-id", variantSelection: false }],
+      });
+    });
+
+    it("should not call updateAttributeAssignments when no variant attributes exist", async () => {
+      // Given: Product type with no variant attributes
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Simple Product",
+        productAttributes: [{ id: "brand-attr-id", name: "Brand" }],
+        variantAttributes: [],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations();
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User updates product type
+      await service.updateProductType(existingProductType, {
+        name: "Simple Product",
+        isShippingRequired: false,
+        productAttributes: [{ attribute: "Brand" }],
+        variantAttributes: [],
+      });
+
+      // Then: updateAttributeAssignments should not be called
+      expect(mockProductTypeOperations.updateAttributeAssignments).not.toHaveBeenCalled();
+    });
+
+    it("should not call updateAttributeAssignments when attribute is not in input", async () => {
+      // Given: Product type with existing variant attribute
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [
+          { id: "color-attr-id", name: "Color" },
+          { id: "size-attr-id", name: "Size" },
+        ],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User updates only Color attribute, Size is not in input
+      await service.updateProductType(existingProductType, {
+        name: "T-Shirt",
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            attribute: "Color",
+            variantSelection: true,
+          },
+          // Size is not specified in input
+        ],
+      });
+
+      // Then: updateAttributeAssignments should only include Color
+      expect(mockProductTypeOperations.updateAttributeAssignments).toHaveBeenCalledWith({
+        productTypeId: "1",
+        operations: [{ id: "color-attr-id", variantSelection: true }],
+      });
+    });
+
+    it("should update variantSelection for inline attributes", async () => {
+      // Given: Product type with no existing variant attributes
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [{ id: "color-attr-id", name: "Color" }],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User specifies inline attribute with variantSelection
+      await service.updateProductType(existingProductType, {
+        name: "T-Shirt",
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          {
+            name: "Color",
+            inputType: "DROPDOWN",
+            values: [{ name: "Red" }, { name: "Blue" }],
+            variantSelection: true,
+          },
+        ],
+      });
+
+      // Then: updateAttributeAssignments should be called
+      expect(mockProductTypeOperations.updateAttributeAssignments).toHaveBeenCalledWith({
+        productTypeId: "1",
+        operations: [{ id: "color-attr-id", variantSelection: true }],
+      });
+    });
+
+    it("should gracefully handle repository without updateAttributeAssignments method", async () => {
+      // Given: Product type with existing variant attribute
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "T-Shirt",
+        productAttributes: [],
+        variantAttributes: [{ id: "color-attr-id", name: "Color" }],
+      };
+
+      // Repository WITHOUT updateAttributeAssignments method
+      const mockProductTypeOperations: ProductTypeOperations = {
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        createProductType: vi.fn(),
+        assignAttributesToProductType: vi.fn(),
+        // updateAttributeAssignments is intentionally NOT provided
+      };
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When/Then: Should not throw, should complete gracefully
+      await expect(
+        service.updateProductType(existingProductType, {
+          name: "T-Shirt",
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "Color",
+              variantSelection: true,
+            },
+          ],
+        })
+      ).resolves.not.toThrow();
+    });
+
+    it("should update multiple attributes with different variantSelection values", async () => {
+      // Given: Product type with multiple existing variant attributes
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Clothing",
+        productAttributes: [],
+        variantAttributes: [
+          { id: "color-attr-id", name: "Color" },
+          { id: "size-attr-id", name: "Size" },
+          { id: "material-attr-id", name: "Material" },
+        ],
+      };
+
+      const mockProductTypeOperations = createMockProductTypeOperations({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const mockAttributeOperations = createMockAttributeOperations({
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+      });
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
+
+      // When: User updates with different variantSelection values
+      await service.updateProductType(existingProductType, {
+        name: "Clothing",
+        isShippingRequired: false,
+        productAttributes: [],
+        variantAttributes: [
+          { attribute: "Color", variantSelection: true },
+          { attribute: "Size", variantSelection: true },
+          { attribute: "Material" }, // variantSelection: false
+        ],
+      });
+
+      // Then: updateAttributeAssignments should be called with all three
+      expect(mockProductTypeOperations.updateAttributeAssignments).toHaveBeenCalledWith({
+        productTypeId: "1",
+        operations: [
+          { id: "color-attr-id", variantSelection: true },
+          { id: "size-attr-id", variantSelection: true },
+          { id: "material-attr-id", variantSelection: false },
+        ],
+      });
     });
   });
 });

@@ -67,13 +67,49 @@ const getProductTypeByNameQuery = graphql(`
   }
 `);
 
+/**
+ * Mutation to update variantSelection on existing attribute assignments
+ */
+const updateAttributeAssignmentsMutation = graphql(`
+  mutation UpdateAttributeAssignments(
+    $productTypeId: ID!
+    $operations: [ProductAttributeAssignmentUpdateInput!]!
+  ) {
+    productAttributeAssignmentUpdate(
+      productTypeId: $productTypeId
+      operations: $operations
+    ) {
+      productType {
+        id
+      }
+      errors {
+        message
+      }
+    }
+  }
+`);
+
+/**
+ * Input for assigning an attribute to a product type
+ */
+export interface AttributeAssignmentInput {
+  /** The attribute ID */
+  id: string;
+  /** When true, use this attribute for variant selection in storefronts */
+  variantSelection?: boolean;
+}
+
 export interface ProductTypeOperations {
   createProductType(input: ProductTypeInput): Promise<ProductType>;
   getProductTypeByName(name: string): Promise<ProductType | null | undefined>;
   assignAttributesToProductType(input: {
-    attributeIds: string[];
+    attributes: AttributeAssignmentInput[];
     productTypeId: string;
     type: "PRODUCT" | "VARIANT";
+  }): Promise<{ id: string }>;
+  updateAttributeAssignments?(input: {
+    productTypeId: string;
+    operations: Array<{ id: string; variantSelection: boolean }>;
   }): Promise<{ id: string }>;
 }
 
@@ -113,19 +149,21 @@ export class ProductTypeRepository implements ProductTypeOperations {
   }
 
   async assignAttributesToProductType({
-    attributeIds,
+    attributes,
     productTypeId,
     type,
   }: {
-    attributeIds: string[];
+    attributes: AttributeAssignmentInput[];
     productTypeId: string;
     type: "PRODUCT" | "VARIANT";
   }) {
     const result = await this.client.mutation(assignAttributesToProductTypeMutation, {
       productTypeId,
-      operations: attributeIds.map((id) => ({
-        id,
+      operations: attributes.map((attr) => ({
+        id: attr.id,
         type,
+        // Only include variantSelection for VARIANT type when explicitly true
+        ...(type === "VARIANT" && attr.variantSelection && { variantSelection: true }),
       })),
     });
 
@@ -137,5 +175,27 @@ export class ProductTypeRepository implements ProductTypeOperations {
     }
 
     return result.data?.productAttributeAssign?.productType;
+  }
+
+  async updateAttributeAssignments({
+    productTypeId,
+    operations,
+  }: {
+    productTypeId: string;
+    operations: Array<{ id: string; variantSelection: boolean }>;
+  }) {
+    const result = await this.client.mutation(updateAttributeAssignmentsMutation, {
+      productTypeId,
+      operations,
+    });
+
+    if (!result.data?.productAttributeAssignmentUpdate?.productType) {
+      throw GraphQLError.fromDataErrors(
+        `Failed to update attribute assignments for product type ${productTypeId}`,
+        result.data?.productAttributeAssignmentUpdate?.errors ?? []
+      );
+    }
+
+    return result.data?.productAttributeAssignmentUpdate?.productType;
   }
 }

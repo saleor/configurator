@@ -71,7 +71,7 @@ describe("Attribute Duplicate Handling", () => {
       expect(result).toBe(mockProductType);
       expect(mockRepository.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: mockProductType.id,
-        attributeIds: [existingAttribute.id],
+        attributes: [{ id: existingAttribute.id, variantSelection: undefined }],
         type: "PRODUCT",
       });
     });
@@ -135,7 +135,7 @@ describe("Attribute Duplicate Handling", () => {
       expect(result).toBe(mockProductType);
       expect(mockRepository.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: mockProductType.id,
-        attributeIds: [existingAttribute.id],
+        attributes: [{ id: existingAttribute.id, variantSelection: undefined }],
         type: "PRODUCT",
       });
     });
