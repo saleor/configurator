@@ -342,6 +342,202 @@ collections:
    # Continue for each entity type
    ```
 
+## Domain Modeling Errors
+
+### Attribute Type Errors
+
+**Error**: `Invalid attribute input type` or `Attribute type mismatch`
+
+**Common Causes:**
+- Using wrong `inputType` for the data
+- Missing `values` array for DROPDOWN/MULTISELECT
+- Missing `entityType` for REFERENCE attributes
+
+**Resolution:**
+```yaml
+# WRONG - DROPDOWN without values
+- name: "Color"
+  inputType: DROPDOWN
+  # Missing values!
+
+# CORRECT - DROPDOWN with values
+- name: "Color"
+  inputType: DROPDOWN
+  values:
+    - name: "Red"
+    - name: "Blue"
+    - name: "Green"
+
+# WRONG - REFERENCE without entityType
+- name: "Related Products"
+  inputType: REFERENCE
+  # Missing entityType!
+
+# CORRECT - REFERENCE with entityType
+- name: "Related Products"
+  inputType: REFERENCE
+  entityType: PRODUCT    # PAGE, PRODUCT, or PRODUCT_VARIANT
+```
+
+**Attribute Type Reference:**
+| inputType | Required Fields | Use Case |
+|-----------|----------------|----------|
+| `DROPDOWN` | `values` array | Single-select from predefined options |
+| `MULTISELECT` | `values` array | Multi-select from predefined options |
+| `REFERENCE` | `entityType` | Links to other entities |
+| `PLAIN_TEXT` | none | Simple text fields |
+| `RICH_TEXT` | none | Formatted content |
+| `NUMERIC` | none | Numbers with optional units |
+| `BOOLEAN` | none | Yes/no values |
+| `DATE` | none | Date values |
+| `DATE_TIME` | none | Date and time values |
+| `FILE` | none | File attachments |
+| `SWATCH` | `values` array | Color/image swatches |
+
+### REFERENCE Attribute Errors
+
+**Error**: `Invalid entity type for reference` or `Referenced entity not found`
+
+**Resolution:**
+```yaml
+# Valid entityType values for REFERENCE attributes:
+- PAGE           # Links to Models/Pages
+- PRODUCT        # Links to Products
+- PRODUCT_VARIANT # Links to Product Variants
+
+# Example: Product linking to Models (custom entities)
+productTypes:
+  - name: "Perfume"
+    productAttributes:
+      - name: "Scent Profiles"
+        inputType: REFERENCE
+        entityType: PAGE      # Models use PAGE entityType
+
+# Example: Model linking to other Models
+pageTypes:
+  - name: "Blog Post"
+    attributes:
+      - name: "Related Posts"
+        inputType: REFERENCE
+        entityType: PAGE      # Links to other pages/models
+```
+
+### Models/Pages Terminology Confusion
+
+**Note**: Saleor documentation uses "Models" and "Model Types", but the API still uses `pages` and `pageTypes`. Both terms refer to the same entities.
+
+| Documentation Term | API/Config Term | Description |
+|-------------------|-----------------|-------------|
+| Model Types | `pageTypes` | Templates defining model structure |
+| Models | `models` | Instances with attribute values |
+
+**In config.yml:**
+```yaml
+# Define Model Types (structure templates)
+pageTypes:
+  - name: "Brand"
+    attributes:
+      - name: "Country"
+        inputType: PLAIN_TEXT
+
+# Create Model instances
+models:
+  - title: "Nike"
+    slug: "nike"
+    modelType: "Brand"    # References pageType by name
+    attributes:
+      country: "USA"
+```
+
+### Attribute Reuse Errors
+
+**Error**: `Referenced attribute not found` or `Attribute does not exist`
+
+**Cause**: Trying to reuse an attribute that hasn't been created yet.
+
+**Resolution:**
+```yaml
+# WRONG - Referencing non-existent attribute
+productTypes:
+  - name: "E-Book"
+    productAttributes:
+      - attribute: Author    # Error if "Author" doesn't exist
+
+# CORRECT - Define attribute first, then reference
+productTypes:
+  - name: "Book"
+    productAttributes:
+      - name: "Author"       # Creates the attribute
+        inputType: PLAIN_TEXT
+  - name: "E-Book"
+    productAttributes:
+      - attribute: Author    # Now works - reuses existing attribute
+```
+
+### Menu/Structure Link Errors
+
+**Error**: `Menu item target not found` or `Invalid reference`
+
+**Cause**: Menu item references entity that doesn't exist.
+
+**Resolution:**
+```yaml
+menus:
+  - name: "Main Nav"
+    slug: "main-nav"
+    items:
+      # Link to Category (by slug)
+      - name: "Fiction Books"
+        category: "fiction"         # Must match existing category slug
+
+      # Link to Collection (by slug)
+      - name: "Summer Sale"
+        collection: "summer-sale"   # Must match existing collection slug
+
+      # Link to Model/Page (by slug)
+      - name: "About Our Brand"
+        page: "brand-story"         # Must match existing model slug
+
+      # External URL (always valid)
+      - name: "Help"
+        url: "https://help.example.com"
+```
+
+**Diagnostic Command:**
+```bash
+# Check if referenced entities exist
+pnpm dev introspect --url=$URL --token=$TOKEN --include=categories,collections,models
+```
+
+### Model Attribute Value Errors
+
+**Error**: `Invalid attribute value` or `Attribute value type mismatch`
+
+**Resolution:**
+```yaml
+models:
+  - title: "Example Brand"
+    slug: "example-brand"
+    modelType: "Brand"
+    attributes:
+      # For DROPDOWN - use exact value name
+      country: "USA"              # Must match a value in the dropdown
+
+      # For MULTISELECT - use array
+      tags:
+        - "Premium"
+        - "Featured"
+
+      # For NUMERIC - use number
+      founded-year: 1990          # Not "1990" as string
+
+      # For BOOLEAN - use true/false
+      is-active: true             # Not "true" as string
+
+      # For DATE - use ISO format
+      launch-date: "2024-01-15"   # YYYY-MM-DD format
+```
+
 ## Common Error Scenarios
 
 ### Authentication Errors

@@ -63,36 +63,23 @@ pnpm dev introspect --url=$URL --token=$TOKEN --include=channels,productTypes,pa
 
 **Basic Diff:**
 ```bash
-# Show all differences
+# Show all differences (diff is always preview-only, never makes changes)
 pnpm dev diff --url=$URL --token=$TOKEN
-
-# Dry run format (safe to run)
-pnpm dev diff --url=$URL --token=$TOKEN --dry-run
 
 # With custom config file
 pnpm dev diff --url=$URL --token=$TOKEN --config=production.yml
 ```
 
-**Selective Diff:**
-```bash
-# Specific entities only
-pnpm dev diff --url=$URL --token=$TOKEN --include=collections,menus
-pnpm dev diff --url=$URL --token=$TOKEN --exclude=products,categories
-
-# Single entity type
-pnpm dev diff --url=$URL --token=$TOKEN --include=shop
-```
-
 **Output Formats:**
 ```bash
-# Table format (default)
-pnpm dev diff --url=$URL --token=$TOKEN --format=table
+# Default table format
+pnpm dev diff --url=$URL --token=$TOKEN
 
-# JSON output
-pnpm dev diff --url=$URL --token=$TOKEN --format=json
+# JSON output for scripting
+pnpm dev diff --url=$URL --token=$TOKEN --json
 
-# YAML output  
-pnpm dev diff --url=$URL --token=$TOKEN --format=yaml
+# GitHub PR comment markdown
+pnpm dev diff --url=$URL --token=$TOKEN --github-comment
 ```
 
 ### Deploy Commands
@@ -109,27 +96,148 @@ pnpm dev deploy --url=$URL --token=$TOKEN --config=production.yml
 pnpm dev deploy --url=$URL --token=$TOKEN --ci
 ```
 
-**Selective Deployment:**
-```bash
-# Deploy specific entities
-pnpm dev deploy --url=$URL --token=$TOKEN --include=collections,menus
-pnpm dev deploy --url=$URL --token=$TOKEN --exclude=products,categories
-
-# Deploy dependencies first, then dependents
-pnpm dev deploy --url=$URL --token=$TOKEN --include=channels,productTypes
-pnpm dev deploy --url=$URL --token=$TOKEN --include=products,collections
-```
-
 **Safe Deployment Options:**
 ```bash
-# Dry run (preview changes without applying)
-pnpm dev deploy --url=$URL --token=$TOKEN --dry-run
+# Preview deployment plan without applying
+pnpm dev deploy --url=$URL --token=$TOKEN --plan
 
-# With backup (creates backup before deployment)
-pnpm dev deploy --url=$URL --token=$TOKEN --backup
-
-# Verbose output
+# Verbose output (detailed error information)
 pnpm dev deploy --url=$URL --token=$TOKEN --verbose
+
+# Save deployment report to file
+pnpm dev deploy --url=$URL --token=$TOKEN --report-path=deploy-report.json
+```
+
+### Recipe Commands
+
+Apply pre-built configuration templates for common e-commerce scenarios.
+
+**Command Structure:**
+```
+recipe
+├── list                    # Browse available recipes
+├── show <name>            # Preview recipe contents
+├── apply <name>           # Deploy recipe to Saleor
+└── export <name>          # Save recipe to local file
+```
+
+**List Available Recipes:**
+```bash
+# List all recipes with descriptions
+pnpm dev recipe list
+
+# Filter by category
+pnpm dev recipe list --category=fulfillment
+
+# JSON output for scripting
+pnpm dev recipe list --json
+```
+
+**Preview Recipe Configuration:**
+```bash
+# Show full configuration for a recipe
+pnpm dev recipe show multi-region
+
+# JSON output
+pnpm dev recipe show multi-region --json
+```
+
+**Apply Recipe to Instance:**
+```bash
+# Apply with confirmation prompts
+pnpm dev recipe apply multi-region --url=$URL --token=$TOKEN
+
+# Preview what would be applied (no changes)
+pnpm dev recipe apply multi-region --url=$URL --token=$TOKEN --plan
+
+# CI mode (skip prompts)
+pnpm dev recipe apply multi-region --url=$URL --token=$TOKEN --ci
+
+# JSON output
+pnpm dev recipe apply multi-region --url=$URL --token=$TOKEN --json
+```
+
+**Export Recipe for Customization:**
+```bash
+# Export to default file (recipe-name.yml)
+pnpm dev recipe export multi-region
+
+# Export to custom path
+pnpm dev recipe export multi-region --output my-config.yml
+```
+
+### CI/CD Integration Flags
+
+Additional flags for automation and CI/CD pipelines.
+
+**Diff Command CI Flags:**
+```bash
+# Machine-readable JSON output
+pnpm dev diff --url=$URL --token=$TOKEN --json
+
+# GitHub PR comment format
+pnpm dev diff --url=$URL --token=$TOKEN --github-comment
+
+# Fail if deletions detected (exit code 6)
+pnpm dev diff --url=$URL --token=$TOKEN --fail-on-delete
+
+# Fail if breaking changes detected (exit code 7)
+pnpm dev diff --url=$URL --token=$TOKEN --fail-on-breaking
+
+# Write output to file
+pnpm dev diff --url=$URL --token=$TOKEN --output-file=diff-report.json
+
+# Summary counts only (no details)
+pnpm dev diff --url=$URL --token=$TOKEN --summary
+```
+
+**Deploy Command CI Flags:**
+```bash
+# Machine-readable JSON output
+pnpm dev deploy --url=$URL --token=$TOKEN --json
+
+# Preview mode (alias for --dry-run)
+pnpm dev deploy --url=$URL --token=$TOKEN --plan
+
+# Fail if deletions detected (exit code 6)
+pnpm dev deploy --url=$URL --token=$TOKEN --fail-on-delete
+
+# Save deployment report
+pnpm dev deploy --url=$URL --token=$TOKEN --report-path=deploy-report.json
+```
+
+**Media Handling:**
+```bash
+# Skip media fields (useful for cross-environment deployments)
+pnpm dev diff --url=$URL --token=$TOKEN --skip-media
+pnpm dev deploy --url=$URL --token=$TOKEN --skip-media
+```
+
+## Exit Codes
+
+Exit codes for scripting and CI/CD integration:
+
+| Code | Name | Description |
+|------|------|-------------|
+| 0 | Success | Operation completed successfully |
+| 1 | Changes/Error | For `diff`: changes detected. For other commands: unexpected error |
+| 2 | Auth Error | Invalid or expired authentication token |
+| 3 | Network Error | Connection failed or timed out |
+| 4 | Validation Error | Configuration failed validation |
+| 5 | Partial Failure | Some operations succeeded, some failed |
+| 6 | Deletion Blocked | Deletions detected with `--fail-on-delete` |
+| 7 | Breaking Blocked | Breaking changes detected with `--fail-on-breaking` |
+
+> **Note:** Exit code 1 has different meanings: for `diff` it indicates changes were found (informational), while for `deploy` and other commands it indicates an unexpected error.
+
+**Example CI Usage:**
+```bash
+# Check for changes and fail on deletions
+pnpm dev diff --url=$URL --token=$TOKEN --fail-on-delete
+if [ $? -eq 6 ]; then
+  echo "Deletions detected - manual review required"
+  exit 1
+fi
 ```
 
 ## Quality Assurance Commands
@@ -450,7 +558,9 @@ pnpm dev deploy --url=$URL --token=$TOKEN --include=problematic-entity --dry-run
 ```bash
 # Test connectivity
 curl -I $SALEOR_URL
-pnpm dev introspect --url=$URL --token=$TOKEN --include=shop --timeout=30
+
+# Test API access with minimal request
+pnpm dev introspect --url=$URL --token=$TOKEN --include=shop
 
 # Retry with backoff
 sleep 5  && pnpm dev deploy --url=$URL --token=$TOKEN || \
