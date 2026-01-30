@@ -1,0 +1,886 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://saleor.io/configurator/config.schema.json",
+  "title": "Saleor Configurator Configuration",
+  "description": "Schema for Saleor Configurator config.yml files",
+  "type": "object",
+  "properties": {
+    "shop": {
+      "$ref": "#/$defs/shop"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/channel"
+      },
+      "description": "Sales channels for the store"
+    },
+    "productTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/productType"
+      },
+      "description": "Product type definitions"
+    },
+    "attributes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attribute"
+      },
+      "description": "Attribute definitions"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/category"
+      },
+      "description": "Category hierarchy"
+    },
+    "collections": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/collection"
+      },
+      "description": "Product collections"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/product"
+      },
+      "description": "Product definitions"
+    },
+    "taxClasses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taxClass"
+      },
+      "description": "Tax classifications"
+    },
+    "shippingZones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/shippingZone"
+      },
+      "description": "Shipping zone definitions"
+    },
+    "warehouses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/warehouse"
+      },
+      "description": "Warehouse definitions"
+    },
+    "menus": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/menu"
+      },
+      "description": "Navigation menus"
+    },
+    "pageTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pageType"
+      },
+      "description": "Page type definitions"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/page"
+      },
+      "description": "Content pages"
+    }
+  },
+  "$defs": {
+    "shop": {
+      "type": "object",
+      "description": "Store-wide settings (singleton)",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Store name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Store description"
+        },
+        "defaultMailSenderName": {
+          "type": "string"
+        },
+        "defaultMailSenderAddress": {
+          "type": "string",
+          "format": "email"
+        },
+        "customerSetPasswordUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "required": ["name", "slug", "currencyCode", "defaultCountry"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name for the channel",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "description": "Unique identifier (lowercase, hyphens)",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "currencyCode": {
+          "type": "string",
+          "description": "ISO 4217 currency code",
+          "pattern": "^[A-Z]{3}$",
+          "examples": ["USD", "EUR", "GBP", "PLN"]
+        },
+        "defaultCountry": {
+          "type": "string",
+          "description": "ISO 3166-1 alpha-2 country code",
+          "pattern": "^[A-Z]{2}$",
+          "examples": ["US", "DE", "GB", "PL"]
+        },
+        "isActive": {
+          "type": "boolean",
+          "default": true
+        },
+        "stockSettings": {
+          "type": "object",
+          "properties": {
+            "allocationStrategy": {
+              "type": "string",
+              "enum": ["PRIORITIZE_HIGH_STOCK", "PRIORITIZE_SORTING_ORDER"]
+            }
+          }
+        },
+        "orderSettings": {
+          "type": "object",
+          "properties": {
+            "automaticallyConfirmAllNewOrders": {
+              "type": "boolean"
+            },
+            "automaticallyFulfillNonShippableGiftCard": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "productType": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique product type name",
+          "minLength": 1
+        },
+        "isShippingRequired": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether products of this type require shipping"
+        },
+        "isDigital": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this is a digital product"
+        },
+        "weight": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string", "enum": ["KG", "LB", "OZ", "G"] }
+          }
+        },
+        "taxClass": {
+          "type": "string",
+          "description": "Reference to a tax class name"
+        },
+        "productAttributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attributeReference"
+          },
+          "description": "Attributes shared across all variants"
+        },
+        "variantAttributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attributeReference"
+          },
+          "description": "Attributes that differ per variant"
+        }
+      }
+    },
+    "attributeReference": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Attribute name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["DROPDOWN", "MULTISELECT", "RICH_TEXT", "PLAIN_TEXT", "NUMERIC", "BOOLEAN", "DATE", "DATE_TIME", "SWATCH", "FILE", "REFERENCE"],
+          "description": "Attribute input type"
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["DROPDOWN", "MULTISELECT", "FILE", "REFERENCE", "NUMERIC", "RICH_TEXT", "PLAIN_TEXT", "SWATCH", "BOOLEAN", "DATE", "DATE_TIME"]
+        },
+        "valueRequired": {
+          "type": "boolean",
+          "default": false
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attributeValue"
+          }
+        }
+      }
+    },
+    "attribute": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique attribute name",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": ["DROPDOWN", "MULTISELECT", "RICH_TEXT", "PLAIN_TEXT", "NUMERIC", "BOOLEAN", "DATE", "DATE_TIME", "SWATCH", "FILE", "REFERENCE"]
+        },
+        "inputType": {
+          "type": "string",
+          "enum": ["DROPDOWN", "MULTISELECT", "FILE", "REFERENCE", "NUMERIC", "RICH_TEXT", "PLAIN_TEXT", "SWATCH", "BOOLEAN", "DATE", "DATE_TIME"]
+        },
+        "valueRequired": {
+          "type": "boolean",
+          "default": false
+        },
+        "visibleInStorefront": {
+          "type": "boolean",
+          "default": true
+        },
+        "filterableInStorefront": {
+          "type": "boolean",
+          "default": false
+        },
+        "filterableInDashboard": {
+          "type": "boolean",
+          "default": true
+        },
+        "availableInGrid": {
+          "type": "boolean",
+          "default": false
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attributeValue"
+          }
+        }
+      }
+    },
+    "attributeValue": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "description": "For SWATCH types, the color hex code"
+        },
+        "richText": {
+          "type": "string",
+          "description": "For RICH_TEXT types"
+        },
+        "file": {
+          "type": "string",
+          "description": "For FILE types, file path or URL"
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "backgroundImage": {
+          "type": "string",
+          "description": "Path to background image"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/category"
+          },
+          "description": "Child categories"
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "backgroundImage": {
+          "type": "string"
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Product slugs in this collection"
+        },
+        "channelListings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/collectionChannelListing"
+          }
+        }
+      }
+    },
+    "collectionChannelListing": {
+      "type": "object",
+      "required": ["channel"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel slug"
+        },
+        "isPublished": {
+          "type": "boolean",
+          "default": true
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "product": {
+      "type": "object",
+      "required": ["name", "slug", "productType"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "productType": {
+          "type": "string",
+          "description": "Reference to product type name"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category path (e.g., 'clothing/shirts')"
+        },
+        "description": {
+          "type": "string"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "weight": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string", "enum": ["KG", "LB", "OZ", "G"] }
+          }
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Product-level attribute values"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/productMedia"
+          }
+        },
+        "channelListings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/productChannelListing"
+          }
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/productVariant"
+          },
+          "minItems": 1,
+          "description": "At least one variant required"
+        }
+      }
+    },
+    "productMedia": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "Path to image file"
+        },
+        "alt": {
+          "type": "string"
+        },
+        "sortOrder": {
+          "type": "integer"
+        }
+      }
+    },
+    "productChannelListing": {
+      "type": "object",
+      "required": ["channel"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel slug"
+        },
+        "isPublished": {
+          "type": "boolean",
+          "default": true
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isAvailableForPurchase": {
+          "type": "boolean",
+          "default": true
+        },
+        "availableForPurchaseAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "visibleInListings": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "productVariant": {
+      "type": "object",
+      "required": ["sku"],
+      "properties": {
+        "sku": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique stock keeping unit"
+        },
+        "name": {
+          "type": "string"
+        },
+        "trackInventory": {
+          "type": "boolean",
+          "default": true
+        },
+        "weight": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string", "enum": ["KG", "LB", "OZ", "G"] }
+          }
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Variant-level attribute values"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "References to product media"
+        },
+        "channelListings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variantChannelListing"
+          }
+        },
+        "stocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stock"
+          }
+        }
+      }
+    },
+    "variantChannelListing": {
+      "type": "object",
+      "required": ["channel", "price"],
+      "properties": {
+        "channel": {
+          "type": "string",
+          "description": "Channel slug"
+        },
+        "price": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Price in channel currency"
+        },
+        "costPrice": {
+          "type": "number",
+          "minimum": 0
+        },
+        "preorderThreshold": {
+          "type": "integer"
+        }
+      }
+    },
+    "stock": {
+      "type": "object",
+      "required": ["warehouse", "quantity"],
+      "properties": {
+        "warehouse": {
+          "type": "string",
+          "description": "Warehouse slug"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "taxClass": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "country": {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$"
+              },
+              "rate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    "shippingZone": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "countries": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          }
+        },
+        "default": {
+          "type": "boolean",
+          "default": false
+        },
+        "warehouses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Warehouse slugs"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Channel slugs"
+        },
+        "shippingMethods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shippingMethod"
+          }
+        }
+      }
+    },
+    "shippingMethod": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["PRICE_BASED", "WEIGHT_BASED"]
+        },
+        "minimumOrderPrice": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximumOrderPrice": {
+          "type": "number"
+        },
+        "minimumOrderWeight": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        },
+        "maximumOrderWeight": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "unit": { "type": "string" }
+          }
+        },
+        "channelListings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "channel": { "type": "string" },
+              "price": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "warehouse": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "isPrivate": {
+          "type": "boolean",
+          "default": false
+        },
+        "clickAndCollectOption": {
+          "type": "string",
+          "enum": ["DISABLED", "LOCAL_STOCK", "ALL_WAREHOUSES"]
+        },
+        "address": {
+          "$ref": "#/$defs/address"
+        },
+        "shippingZones": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Shipping zone names"
+        }
+      }
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "streetAddress1": { "type": "string" },
+        "streetAddress2": { "type": "string" },
+        "city": { "type": "string" },
+        "cityArea": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        },
+        "countryArea": { "type": "string" },
+        "phone": { "type": "string" },
+        "companyName": { "type": "string" }
+      }
+    },
+    "menu": {
+      "type": "object",
+      "required": ["name", "slug"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/menuItem"
+          }
+        }
+      }
+    },
+    "menuItem": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category slug"
+        },
+        "collection": {
+          "type": "string",
+          "description": "Collection slug"
+        },
+        "page": {
+          "type": "string",
+          "description": "Page slug"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/menuItem"
+          }
+        }
+      }
+    },
+    "pageType": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attributeReference"
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["title", "slug", "pageType"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$"
+        },
+        "pageType": {
+          "type": "string",
+          "description": "Reference to page type name"
+        },
+        "content": {
+          "type": "string"
+        },
+        "seoTitle": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "seoDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "isPublished": {
+          "type": "boolean",
+          "default": true
+        },
+        "publishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

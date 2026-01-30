@@ -1,0 +1,571 @@
+# Electronics Store Product Types
+# Complete example of tech product modeling
+
+productTypes:
+  # ==========================================================================
+  # SMARTPHONE
+  # ==========================================================================
+  - name: "Smartphone"
+    isShippingRequired: true
+    weight:
+      value: 200
+      unit: G
+
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Samsung"
+          - name: "Google"
+          - name: "OnePlus"
+          - name: "Xiaomi"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Operating System"
+        type: DROPDOWN
+        values:
+          - name: "iOS"
+          - name: "Android"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Screen Size"
+        type: NUMERIC
+        unit: INCH
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Display Type"
+        type: DROPDOWN
+        values:
+          - name: "OLED"
+          - name: "AMOLED"
+          - name: "Super Retina XDR"
+          - name: "LCD"
+        visibleInStorefront: true
+
+      - name: "Processor"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "RAM"
+        type: DROPDOWN
+        values:
+          - name: "4GB"
+          - name: "6GB"
+          - name: "8GB"
+          - name: "12GB"
+          - name: "16GB"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Camera"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Battery"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Features"
+        type: MULTISELECT
+        values:
+          - name: "5G"
+          - name: "Wireless Charging"
+          - name: "Water Resistant"
+          - name: "Face ID"
+          - name: "Fingerprint"
+          - name: "NFC"
+          - name: "Dual SIM"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Specifications"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+    variantAttributes:
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "64GB"
+          - name: "128GB"
+          - name: "256GB"
+          - name: "512GB"
+          - name: "1TB"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Midnight"
+            value: "#1C1C1E"
+          - name: "Starlight"
+            value: "#F5F5DC"
+          - name: "Blue"
+            value: "#4169E1"
+          - name: "Purple"
+            value: "#9370DB"
+          - name: "Green"
+            value: "#98FB98"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+  # ==========================================================================
+  # LAPTOP
+  # ==========================================================================
+  - name: "Laptop"
+    isShippingRequired: true
+    weight:
+      value: 1500
+      unit: G
+
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Dell"
+          - name: "HP"
+          - name: "Lenovo"
+          - name: "ASUS"
+          - name: "Microsoft"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Category"
+        type: DROPDOWN
+        values:
+          - name: "Ultrabook"
+          - name: "Gaming"
+          - name: "Workstation"
+          - name: "2-in-1"
+          - name: "Chromebook"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Screen Size"
+        type: DROPDOWN
+        values:
+          - name: "13 inch"
+          - name: "14 inch"
+          - name: "15 inch"
+          - name: "16 inch"
+          - name: "17 inch"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Display Type"
+        type: DROPDOWN
+        values:
+          - name: "IPS LCD"
+          - name: "OLED"
+          - name: "Mini LED"
+          - name: "Retina"
+        visibleInStorefront: true
+
+      - name: "Operating System"
+        type: DROPDOWN
+        values:
+          - name: "Windows 11"
+          - name: "macOS"
+          - name: "Chrome OS"
+          - name: "Ubuntu"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Processor Family"
+        type: DROPDOWN
+        values:
+          - name: "Intel Core i5"
+          - name: "Intel Core i7"
+          - name: "Intel Core i9"
+          - name: "AMD Ryzen 5"
+          - name: "AMD Ryzen 7"
+          - name: "AMD Ryzen 9"
+          - name: "Apple M2"
+          - name: "Apple M3"
+          - name: "Apple M3 Pro"
+          - name: "Apple M3 Max"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Graphics"
+        type: DROPDOWN
+        values:
+          - name: "Integrated"
+          - name: "NVIDIA RTX 3060"
+          - name: "NVIDIA RTX 4060"
+          - name: "NVIDIA RTX 4070"
+          - name: "NVIDIA RTX 4080"
+          - name: "AMD Radeon"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Ports"
+        type: MULTISELECT
+        values:
+          - name: "USB-A"
+          - name: "USB-C"
+          - name: "Thunderbolt 4"
+          - name: "HDMI"
+          - name: "SD Card"
+          - name: "Ethernet"
+          - name: "Headphone Jack"
+        visibleInStorefront: true
+
+      - name: "Features"
+        type: MULTISELECT
+        values:
+          - name: "Touchscreen"
+          - name: "Backlit Keyboard"
+          - name: "Fingerprint Reader"
+          - name: "IR Camera"
+          - name: "Thunderbolt"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Specifications"
+        type: RICH_TEXT
+        visibleInStorefront: true
+
+    variantAttributes:
+      - name: "RAM"
+        type: DROPDOWN
+        values:
+          - name: "8GB"
+          - name: "16GB"
+          - name: "32GB"
+          - name: "64GB"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "256GB SSD"
+          - name: "512GB SSD"
+          - name: "1TB SSD"
+          - name: "2TB SSD"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Space Gray"
+            value: "#505050"
+          - name: "Silver"
+            value: "#C0C0C0"
+          - name: "Black"
+            value: "#000000"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+  # ==========================================================================
+  # HEADPHONES
+  # ==========================================================================
+  - name: "Headphones"
+    isShippingRequired: true
+    weight:
+      value: 300
+      unit: G
+
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Sony"
+          - name: "Bose"
+          - name: "Apple"
+          - name: "Sennheiser"
+          - name: "JBL"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Type"
+        type: DROPDOWN
+        values:
+          - name: "Over-Ear"
+          - name: "On-Ear"
+          - name: "In-Ear"
+          - name: "True Wireless"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Connection"
+        type: DROPDOWN
+        values:
+          - name: "Wireless (Bluetooth)"
+          - name: "Wired (3.5mm)"
+          - name: "Wired (USB-C)"
+          - name: "Hybrid (Both)"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Driver Size"
+        type: NUMERIC
+        unit: MM
+        visibleInStorefront: true
+
+      - name: "Frequency Response"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Battery Life"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Features"
+        type: MULTISELECT
+        values:
+          - name: "Active Noise Cancellation"
+          - name: "Transparency Mode"
+          - name: "Spatial Audio"
+          - name: "Multipoint Connection"
+          - name: "Fast Charging"
+          - name: "Voice Assistant"
+          - name: "Water Resistant"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Includes"
+        type: MULTISELECT
+        values:
+          - name: "Carrying Case"
+          - name: "Cable"
+          - name: "Ear Tips"
+          - name: "Airplane Adapter"
+        visibleInStorefront: true
+
+    variantAttributes:
+      - name: "Color"
+        type: SWATCH
+        values:
+          - name: "Black"
+            value: "#000000"
+          - name: "White"
+            value: "#FFFFFF"
+          - name: "Silver"
+            value: "#C0C0C0"
+          - name: "Navy"
+            value: "#000080"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+  # ==========================================================================
+  # SMARTWATCH
+  # ==========================================================================
+  - name: "Smartwatch"
+    isShippingRequired: true
+    weight:
+      value: 50
+      unit: G
+
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Samsung"
+          - name: "Garmin"
+          - name: "Fitbit"
+          - name: "Google"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Operating System"
+        type: DROPDOWN
+        values:
+          - name: "watchOS"
+          - name: "Wear OS"
+          - name: "Tizen"
+          - name: "Garmin OS"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Display Type"
+        type: DROPDOWN
+        values:
+          - name: "AMOLED"
+          - name: "LTPO OLED"
+          - name: "MIP"
+          - name: "LCD"
+        visibleInStorefront: true
+
+      - name: "Water Resistance"
+        type: DROPDOWN
+        values:
+          - name: "5 ATM"
+          - name: "10 ATM"
+          - name: "IP68"
+          - name: "MIL-STD-810"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Battery Life"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Health Features"
+        type: MULTISELECT
+        values:
+          - name: "Heart Rate"
+          - name: "Blood Oxygen"
+          - name: "ECG"
+          - name: "Sleep Tracking"
+          - name: "Stress Monitoring"
+          - name: "Body Temperature"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Fitness Features"
+        type: MULTISELECT
+        values:
+          - name: "GPS"
+          - name: "Running Coach"
+          - name: "Swim Tracking"
+          - name: "Cycling"
+          - name: "Golf"
+          - name: "Workout Detection"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Connectivity"
+        type: MULTISELECT
+        values:
+          - name: "Bluetooth"
+          - name: "WiFi"
+          - name: "LTE"
+          - name: "NFC"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+    variantAttributes:
+      - name: "Case Size"
+        type: DROPDOWN
+        values:
+          - name: "40mm"
+          - name: "41mm"
+          - name: "44mm"
+          - name: "45mm"
+          - name: "49mm"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Case Material"
+        type: DROPDOWN
+        values:
+          - name: "Aluminum"
+          - name: "Stainless Steel"
+          - name: "Titanium"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Color"
+        type: SWATCH
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+  # ==========================================================================
+  # TABLET
+  # ==========================================================================
+  - name: "Tablet"
+    isShippingRequired: true
+    weight:
+      value: 500
+      unit: G
+
+    productAttributes:
+      - name: "Brand"
+        type: DROPDOWN
+        values:
+          - name: "Apple"
+          - name: "Samsung"
+          - name: "Microsoft"
+          - name: "Lenovo"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Screen Size"
+        type: DROPDOWN
+        values:
+          - name: "8 inch"
+          - name: "10 inch"
+          - name: "11 inch"
+          - name: "12.9 inch"
+          - name: "13 inch"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Display Type"
+        type: DROPDOWN
+        values:
+          - name: "LCD"
+          - name: "Liquid Retina"
+          - name: "AMOLED"
+          - name: "Mini LED"
+        visibleInStorefront: true
+
+      - name: "Operating System"
+        type: DROPDOWN
+        values:
+          - name: "iPadOS"
+          - name: "Android"
+          - name: "Windows"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Processor"
+        type: PLAIN_TEXT
+        visibleInStorefront: true
+
+      - name: "Features"
+        type: MULTISELECT
+        values:
+          - name: "Apple Pencil Support"
+          - name: "Face ID"
+          - name: "Touch ID"
+          - name: "USB-C"
+          - name: "Keyboard Support"
+          - name: "5G"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+    variantAttributes:
+      - name: "Storage"
+        type: DROPDOWN
+        values:
+          - name: "64GB"
+          - name: "128GB"
+          - name: "256GB"
+          - name: "512GB"
+          - name: "1TB"
+          - name: "2TB"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Connectivity"
+        type: DROPDOWN
+        values:
+          - name: "WiFi Only"
+          - name: "WiFi + Cellular"
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+      - name: "Color"
+        type: SWATCH
+        visibleInStorefront: true
+        filterableInStorefront: true
+
+# =============================================================================
+# SKU ANALYSIS
+# =============================================================================
+# Smartphone: 5 storage × 5 colors = 25 SKUs max per product
+# Laptop: 4 RAM × 4 storage × 3 colors = 48 SKUs (manageable)
+# Headphones: 4 colors = 4 SKUs per product (simple)
+# Smartwatch: 5 sizes × 3 materials × colors = varies
+# Tablet: 6 storage × 2 connectivity × colors = moderate

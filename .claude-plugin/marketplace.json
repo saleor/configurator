@@ -1,0 +1,15 @@
+{
+  "name": "saleor-configurator",
+  "owner": {
+    "name": "Saleor",
+    "email": "hello@saleor.io"
+  },
+  "description": "Official Saleor Configurator plugin for AI-powered e-commerce configuration",
+  "plugins": [
+    {
+      "name": "saleor-configurator",
+      "description": "AI-powered Saleor e-commerce configuration through natural language",
+      "source": "./plugin"
+    }
+  ]
+}
