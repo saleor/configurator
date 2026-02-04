@@ -7,11 +7,16 @@ import {
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import type { CachedAttribute } from "../../modules/attribute/attribute-cache";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
 } from "../../modules/attribute/repository";
 import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
+import type {
+  ContentAttribute,
+  ProductAttribute,
+} from "../../modules/config/schema/global-attributes.schema";
 import type {
   ChannelInput,
   ChannelUpdateInput,
@@ -20,7 +25,7 @@ import type {
 } from "../../modules/config/schema/schema";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 import { StageAggregateError } from "./errors";
-import type { DeploymentStage } from "./types";
+import type { DeploymentContext, DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
   name: StageNames.VALIDATION,
@@ -68,13 +73,19 @@ export const productTypesStage: DeploymentStage = {
         return;
       }
 
+      // Pass attribute cache to ProductTypeService for fast reference resolution
+      const bootstrapOptions = { attributeCache: context.attributeCache };
+
       const { successes: processedSuccesses, failures: processedFailures } = await processInChunks(
         config.productTypes,
         async (chunk) => {
           // Process each product type in the chunk
           return Promise.all(
             chunk.map((productType) =>
-              context.configurator.services.productType.bootstrapProductType(productType)
+              context.configurator.services.productType.bootstrapProductType(
+                productType,
+                bootstrapOptions
+              )
             )
           );
         },
@@ -116,134 +127,221 @@ export const productTypesStage: DeploymentStage = {
   },
 };
 
+/**
+ * Helper function to convert global attribute (ProductAttribute or ContentAttribute)
+ * to FullAttribute format by adding the type field.
+ */
+function toFullAttribute(
+  attr: ProductAttribute | ContentAttribute,
+  type: "PRODUCT_TYPE" | "PAGE_TYPE"
+): FullAttribute {
+  return { ...attr, type } as FullAttribute;
+}
+
+/**
+ * Process a batch of attributes (create/update) and return CachedAttribute results.
+ * Returns the successfully processed attributes for caching.
+ */
+async function processGlobalAttributes(
+  context: DeploymentContext,
+  attributes: Array<ProductAttribute | ContentAttribute>,
+  type: "PRODUCT_TYPE" | "PAGE_TYPE",
+  sectionName: string
+): Promise<{ cached: CachedAttribute[]; failures: Array<{ entity: string; error: Error }> }> {
+  if (attributes.length === 0) {
+    return { cached: [], failures: [] };
+  }
+
+  const service = context.configurator.services.attribute;
+  const fullAttributes = attributes.map((attr) => toFullAttribute(attr, type));
+  const failures: Array<{ entity: string; error: Error }> = [];
+  const cached: CachedAttribute[] = [];
+
+  // Fetch existing attributes
+  const names = attributes.map((a) => a.name);
+  const existing = await service.repo.getAttributesByNames({ names, type });
+  const existingMap = new Map(existing?.filter((a) => a.name).map((a) => [a.name, a]) ?? []);
+
+  if (fullAttributes.length <= BulkOperationThresholds.ATTRIBUTES) {
+    // Sequential processing for small configs
+    logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(fullAttributes.length, sectionName));
+
+    const results = await Promise.allSettled(
+      fullAttributes.map(async (attr) => {
+        const existingAttr = existingMap.get(attr.name);
+        let result: AttributeMeta | undefined;
+
+        if (existingAttr) {
+          await service.updateAttribute(attr, existingAttr);
+          result = existingAttr;
+        } else {
+          await service.bootstrapAttributes({ attributeInputs: [attr] });
+          // Fetch the created attribute to get its ID
+          const fetched = await service.repo.getAttributesByNames({ names: [attr.name], type });
+          result = fetched?.[0];
+        }
+
+        if (result?.id && result?.name) {
+          return {
+            id: result.id,
+            name: result.name,
+            slug: result.name.toLowerCase().replace(/ /g, "-"),
+            inputType: result.inputType ?? attr.inputType,
+          } as CachedAttribute;
+        }
+        return null;
+      })
+    );
+
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) {
+        cached.push(r.value);
+      } else if (r.status === "rejected") {
+        failures.push({
+          entity: "attribute",
+          error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)),
+        });
+      }
+    }
+  } else {
+    // Bulk processing for large configs
+    logger.info(BulkOperationMessages.BULK_PROCESSING(fullAttributes.length, sectionName));
+
+    const toCreate = fullAttributes.filter((attr) => !existingMap.has(attr.name));
+    const toUpdate = fullAttributes
+      .filter((attr) => existingMap.has(attr.name))
+      .map((attr) => {
+        const existing = existingMap.get(attr.name);
+        if (!existing) throw new Error(`Expected attribute ${attr.name} in existing map`);
+        return { input: attr, existing };
+      });
+
+    if (toCreate.length > 0) {
+      logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
+      const createResult = await service.bootstrapAttributesBulk(toCreate);
+      createResult.failed.forEach(({ input, errors }) => {
+        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+      });
+    }
+
+    if (toUpdate.length > 0) {
+      logger.info(`Updating ${toUpdate.length} existing ${sectionName} via bulk mutation`);
+      const updateResult = await service.updateAttributesBulk(toUpdate);
+      updateResult.failed.forEach(({ input, errors }) => {
+        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+      });
+    }
+
+    // Fetch all attributes to cache
+    const allFetched = await service.repo.getAttributesByNames({ names, type });
+    for (const attr of allFetched ?? []) {
+      if (attr.id && attr.name && !failures.some((f) => f.entity === attr.name)) {
+        cached.push({
+          id: attr.id,
+          name: attr.name,
+          slug: attr.name.toLowerCase().replace(/ /g, "-"),
+          inputType: attr.inputType ?? "",
+        });
+      }
+    }
+  }
+
+  return { cached, failures };
+}
+
 export const attributesStage: DeploymentStage = {
   name: StageNames.ATTRIBUTES,
   async execute(context) {
     const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
-    const attributes = config.attributes;
-    if (!attributes || attributes.length === 0) return;
+    const productAttributes = config.productAttributes ?? [];
+    const contentAttributes = config.contentAttributes ?? [];
+    const legacyAttributes = config.attributes ?? [];
 
-    const service = context.configurator.services.attribute;
+    const allFailures: Array<{ entity: string; error: Error }> = [];
 
-    // Size-adaptive strategy: use bulk operations for larger configs
-    if (attributes.length <= BulkOperationThresholds.ATTRIBUTES) {
-      // Small config: use existing sequential approach for better error handling
-      logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(attributes.length, "attributes"));
-      const results = await Promise.allSettled(
-        attributes.map(async (attr) => {
-          const existing = await service.repo.getAttributesByNames({
-            names: [attr.name],
-            type: attr.type,
-          });
-          if (existing && existing.length > 0) {
-            await service.updateAttribute(attr, existing[0]);
-            return { name: attr.name, success: true } as const;
-          }
-          await service.bootstrapAttributes({ attributeInputs: [attr] });
-          return { name: attr.name, success: true } as const;
-        })
+    // 1. Process productAttributes section (PRODUCT_TYPE)
+    if (productAttributes.length > 0) {
+      logger.info(`Processing ${productAttributes.length} product attributes`);
+      const { cached, failures } = await processGlobalAttributes(
+        context,
+        productAttributes,
+        "PRODUCT_TYPE",
+        "product attributes"
       );
+      context.attributeCache.populateProductAttributes(cached);
+      allFailures.push(...failures);
+      logger.debug(`Cached ${cached.length} product attributes`);
+    }
 
-      const failures = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-      if (failures.length > 0) {
-        throw new StageAggregateError(
-          "Managing unassigned attributes",
-          failures.map((f) => ({
-            entity: "attribute",
-            error: f.reason instanceof Error ? f.reason : new Error(String(f.reason)),
-          }))
-        );
-      }
-    } else {
-      // Large config: use bulk mutations for efficiency
-      logger.info(BulkOperationMessages.BULK_PROCESSING(attributes.length, "attributes"));
-
-      // Step 1: Fetch all existing attributes to determine which need creating vs updating
-      const existingAttributesMap = new Map<string, AttributeMeta>();
-
-      // Query existing attributes by type groups to be more efficient
-      const typeGroups = new Map<string, FullAttribute[]>();
-      for (const attr of attributes) {
-        const type = attr.type;
-        if (!typeGroups.has(type)) {
-          typeGroups.set(type, []);
-        }
-        typeGroups.get(type)?.push(attr);
-      }
-
-      for (const [type, attrs] of typeGroups) {
-        const names = attrs.map((a) => a.name);
-        const existing = await service.repo.getAttributesByNames({
-          names,
-          type: type as "PRODUCT_TYPE" | "PAGE_TYPE",
-        });
-        if (existing) {
-          for (const attr of existing) {
-            existingAttributesMap.set(`${attr.type}:${attr.name}`, attr);
-          }
-        }
-      }
-
-      // Step 2: Separate attributes into create and update buckets
-      const toCreate = attributes.filter(
-        (attr) => !existingAttributesMap.has(`${attr.type}:${attr.name}`)
+    // 2. Process contentAttributes section (PAGE_TYPE)
+    if (contentAttributes.length > 0) {
+      logger.info(`Processing ${contentAttributes.length} content attributes`);
+      const { cached, failures } = await processGlobalAttributes(
+        context,
+        contentAttributes,
+        "PAGE_TYPE",
+        "content attributes"
       );
-      const toUpdate = attributes
-        .filter((attr) => existingAttributesMap.has(`${attr.type}:${attr.name}`))
-        .map((attr) => {
-          const existing = existingAttributesMap.get(`${attr.type}:${attr.name}`);
-          if (!existing) throw new Error(`Missing attribute: ${attr.name}`);
-          return { input: attr, existing };
-        });
+      context.attributeCache.populateContentAttributes(cached);
+      allFailures.push(...failures);
+      logger.debug(`Cached ${cached.length} content attributes`);
+    }
 
-      const allFailures: Array<{ entity: string; error: Error }> = [];
+    // 3. Process legacy attributes section (for backward compatibility)
+    if (legacyAttributes.length > 0) {
+      logger.warn(
+        `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
+          `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
+          `to generate the new format.`
+      );
+      logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
 
-      // Step 3: Bulk create new attributes
-      if (toCreate.length > 0) {
-        logger.info(`Creating ${toCreate.length} new attributes via bulk mutation`);
-        const createResult = await service.bootstrapAttributesBulk(toCreate);
+      // Group by type
+      const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
+      const pageType = legacyAttributes.filter((a) => a.type === "PAGE_TYPE");
 
-        if (createResult.failed.length > 0) {
-          logger.warn(`Failed to create ${createResult.failed.length} attributes`);
-          createResult.failed.forEach(({ input, errors }) => {
-            allFailures.push({
-              entity: input.name,
-              error: new Error(errors.join(", ")),
-            });
-          });
-        }
-      }
-
-      // Step 4: Bulk update existing attributes
-      if (toUpdate.length > 0) {
-        logger.info(`Updating ${toUpdate.length} existing attributes via bulk mutation`);
-        const updateResult = await service.updateAttributesBulk(toUpdate);
-
-        if (updateResult.failed.length > 0) {
-          logger.warn(`Failed to update ${updateResult.failed.length} attributes`);
-          updateResult.failed.forEach(({ input, errors }) => {
-            allFailures.push({
-              entity: input.name,
-              error: new Error(errors.join(", ")),
-            });
-          });
-        }
-      }
-
-      // Step 5: Report any failures
-      if (allFailures.length > 0) {
-        throw new StageAggregateError(
-          "Managing attributes via bulk operations",
-          allFailures,
-          attributes
-            .filter((attr) => !allFailures.some((f) => f.entity === attr.name))
-            .map((a) => a.name)
+      if (productType.length > 0) {
+        const { cached, failures } = await processGlobalAttributes(
+          context,
+          productType,
+          "PRODUCT_TYPE",
+          "legacy product attributes"
         );
+        context.attributeCache.populateProductAttributes(cached);
+        allFailures.push(...failures);
       }
+
+      if (pageType.length > 0) {
+        const { cached, failures } = await processGlobalAttributes(
+          context,
+          pageType,
+          "PAGE_TYPE",
+          "legacy content attributes"
+        );
+        context.attributeCache.populateContentAttributes(cached);
+        allFailures.push(...failures);
+      }
+    }
+
+    // Report cache stats
+    const stats = context.attributeCache.getStats();
+    logger.info(
+      `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
+    );
+
+    // Throw if there were any failures
+    if (allFailures.length > 0) {
+      throw new StageAggregateError(
+        "Managing attributes",
+        allFailures,
+        [...productAttributes, ...contentAttributes].map((a) => a.name)
+      );
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "Attributes");
+    // Check for any attribute-related changes across all attribute entity types
+    const attributeEntityTypes = ["Attributes", "Product Attributes", "Content Attributes"];
+    return context.summary.results.every((r) => !attributeEntityTypes.includes(r.entityType));
   },
 };
 
@@ -354,10 +452,13 @@ export const modelTypesStage: DeploymentStage = {
         return;
       }
 
+      // Pass attribute cache for fast content attribute resolution
+      const bootstrapOptions = { attributeCache: context.attributeCache };
+
       const results = await Promise.allSettled(
         config.modelTypes.map((modelType) =>
           context.configurator.services.pageType
-            .bootstrapPageType(modelType)
+            .bootstrapPageType(modelType, bootstrapOptions)
             .then(() => ({ name: modelType.name, success: true }))
             .catch((error) => ({
               name: modelType.name,

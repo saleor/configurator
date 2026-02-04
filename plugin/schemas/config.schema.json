@@ -227,12 +227,36 @@
         },
         "type": {
           "type": "string",
-          "enum": ["DROPDOWN", "MULTISELECT", "RICH_TEXT", "PLAIN_TEXT", "NUMERIC", "BOOLEAN", "DATE", "DATE_TIME", "SWATCH", "FILE", "REFERENCE"],
+          "enum": [
+            "DROPDOWN",
+            "MULTISELECT",
+            "RICH_TEXT",
+            "PLAIN_TEXT",
+            "NUMERIC",
+            "BOOLEAN",
+            "DATE",
+            "DATE_TIME",
+            "SWATCH",
+            "FILE",
+            "REFERENCE"
+          ],
           "description": "Attribute input type"
         },
         "inputType": {
           "type": "string",
-          "enum": ["DROPDOWN", "MULTISELECT", "FILE", "REFERENCE", "NUMERIC", "RICH_TEXT", "PLAIN_TEXT", "SWATCH", "BOOLEAN", "DATE", "DATE_TIME"]
+          "enum": [
+            "DROPDOWN",
+            "MULTISELECT",
+            "FILE",
+            "REFERENCE",
+            "NUMERIC",
+            "RICH_TEXT",
+            "PLAIN_TEXT",
+            "SWATCH",
+            "BOOLEAN",
+            "DATE",
+            "DATE_TIME"
+          ]
         },
         "valueRequired": {
           "type": "boolean",
@@ -257,11 +281,35 @@
         },
         "type": {
           "type": "string",
-          "enum": ["DROPDOWN", "MULTISELECT", "RICH_TEXT", "PLAIN_TEXT", "NUMERIC", "BOOLEAN", "DATE", "DATE_TIME", "SWATCH", "FILE", "REFERENCE"]
+          "enum": [
+            "DROPDOWN",
+            "MULTISELECT",
+            "RICH_TEXT",
+            "PLAIN_TEXT",
+            "NUMERIC",
+            "BOOLEAN",
+            "DATE",
+            "DATE_TIME",
+            "SWATCH",
+            "FILE",
+            "REFERENCE"
+          ]
         },
         "inputType": {
           "type": "string",
-          "enum": ["DROPDOWN", "MULTISELECT", "FILE", "REFERENCE", "NUMERIC", "RICH_TEXT", "PLAIN_TEXT", "SWATCH", "BOOLEAN", "DATE", "DATE_TIME"]
+          "enum": [
+            "DROPDOWN",
+            "MULTISELECT",
+            "FILE",
+            "REFERENCE",
+            "NUMERIC",
+            "RICH_TEXT",
+            "PLAIN_TEXT",
+            "SWATCH",
+            "BOOLEAN",
+            "DATE",
+            "DATE_TIME"
+          ]
         },
         "valueRequired": {
           "type": "boolean",
