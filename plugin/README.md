@@ -64,14 +64,38 @@ Both servers are optional - the plugin works fully without them using embedded k
 
 | Command | Description |
 |---------|-------------|
-| `/configurator-workflow` | Complete multi-phase workflow: discovery → setup → import → review → deploy |
-| `/configurator-init` | Initialize config.yml with correct structure (skeleton template) |
-| `/configurator-setup` | Interactive wizard for creating new store configurations |
+| `/configurator` | **Core operations** - init, validate, edit, review your config.yml |
+| `/configurator-fix` | **Debug & auto-fix** - find and fix common config issues with plain language explanations |
+| `/recipe` | **Quick start** - apply pre-built store recipes (fashion, electronics, food, etc.) |
+| `/discover` | **Website → config** - explore existing website with chrome-devtools to generate config |
 | `/configurator-model` | **Product modeling wizard** - design ProductTypes and attributes interactively |
-| `/configurator-edit` | Menu-driven modification of existing configurations |
-| `/configurator-validate` | Schema validation + best practices + common mistakes check |
-| `/configurator-review` | Launch comprehensive configuration review agent |
-| `/configurator-import` | Import products from CSV, Excel, or Shopify exports |
+| `/configurator-import` | **Data import** - import products from CSV, Excel, or Shopify exports |
+
+### Getting Started Workflows
+
+**Starting from scratch?**
+```bash
+/recipe fashion    # Apply pre-built fashion store recipe
+/recipe electronics  # Or electronics, food, subscription, etc.
+```
+
+**Have an existing website?**
+```bash
+/discover          # Explore website with chrome-devtools → generate config
+```
+
+**Need to configure from Saleor instance?**
+```bash
+/discover --introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+```
+
+**Working with existing config.yml?**
+```bash
+/configurator-fix        # Debug & auto-fix issues
+/configurator validate   # Check for issues
+/configurator edit       # Make changes
+/configurator review     # Comprehensive review
+```
 
 ### Domain Modeling
 
@@ -80,41 +104,13 @@ New to Saleor domain modeling? Use `/configurator-model` or ask questions like:
 - "How do I model my products?"
 - "What should be a product vs variant attribute?"
 - "When to use DROPDOWN vs MULTISELECT?"
-- "When to use Models vs Attributes?"
-- "How do I create custom entities like Brands?"
-- "Categories vs Collections - which should I use?"
-- "How do I build navigation Structures?"
 
 The **product-modeling** skill provides comprehensive guidance for:
-
-| Entity Type | Use For |
-|-------------|---------|
-| **ProductTypes + Attributes** | Product structure, variants, SKUs |
-| **Models (Pages)** | Custom entities: Brands, Scent Profiles, Ingredients |
-| **Categories** | Hierarchical product taxonomy (1 product = 1 category) |
-| **Collections** | Curated groups, promotions (1 product = N collections) |
-| **Structures (Menus)** | Navigation linking Categories, Collections, Models |
-
-**Key decision frameworks:**
 - Product vs variant attribute classification
 - Attribute type selection (12 types)
 - Variant matrix calculations (SKU explosion prevention)
-- When to use Models vs simple Attributes
 - Categories vs Collections decision tree
 - 10+ industry-specific patterns
-
-### Recommended Workflow
-
-For new users, start with `/configurator-workflow` which guides you through:
-
-1. **Discovery** - Analyze existing Saleor store or start fresh
-2. **Setup** - Create or import configuration
-3. **Import** - (Optional) Import product data from external sources
-4. **Review** - Validate configuration with confidence-scored findings
-5. **Deploy** - Safely deploy with dry-run preview
-6. **Verify** - Confirm deployment success
-
-Use individual commands when you need specific functionality.
 
 ## Skills
 
@@ -182,98 +178,72 @@ Requires Python with `pyyaml` and `jsonschema`:
 pip install pyyaml jsonschema
 ```
 
-## Getting Started
-
-### Initialize Structure
-
-Use `/configurator-init` to create a `config.yml` with the correct structure:
-
-```bash
-/configurator-init
-```
-
-This creates a skeleton with:
-- All required sections with placeholder values
-- Commented examples for optional sections
-- Field documentation (`[REQUIRED]` vs `[OPTIONAL]`)
-
-### Use Pre-built Recipes
-
-For complete store configurations, use `/configurator-setup` and select a recipe:
-
-| Recipe | Best For |
-|--------|----------|
-| Fashion Store | Apparel with sizes, colors, seasonal collections |
-| Electronics Store | Tech products with specs and variants |
-| Subscription Service | Recurring billing, digital products |
-
-Recipe templates: `skills/configurator-recipes/templates/`
-
 ## Quick Start
 
-### Create a New Store Configuration
+### 1. Choose Your Workflow
 
+**Option A: Quick Start with Recipe**
 ```bash
-# Start Claude Code with the plugin
-claude --plugin-dir ./plugin
-
-# In the Claude session:
-/configurator-setup
+/recipe fashion    # Apply pre-built recipe and customize
 ```
 
-Follow the wizard to create your `config.yml`.
+**Option B: Generate from Website**
+```bash
+/discover https://yoursite.com    # Explore and generate config
+```
 
-### Modify Existing Configuration
+**Option C: Start from Scratch**
+```bash
+/configurator init    # Create empty config.yml
+```
+
+### 2. Customize Your Configuration
 
 ```bash
-# If you have an existing config.yml:
-/configurator-edit
+/configurator edit    # Interactive menu for changes
 
 # Or use natural language:
-"Add a new product type for gift cards with name, price, and message attributes"
+"Add a new product type for gift cards"
 ```
 
-### Validate Before Deployment
+### 3. Validate & Review
 
 ```bash
-/configurator-validate
-
-# Or:
-"Validate my configuration and show any issues"
+/configurator validate    # Check for issues
+/configurator review      # Comprehensive review with agent
 ```
 
-### Deploy Configuration
+### 4. Deploy to Saleor
 
 ```bash
-# Natural language:
-"Deploy my configuration to Saleor"
+# Preview changes first
+npx configurator diff --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
 
-# The CLI command:
+# Deploy
 npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
 ```
 
-## Hooks
+## Best Practices
 
-The plugin includes safety and quality hooks:
+The plugin provides intelligent guidance throughout your workflow:
 
-| Hook | Event | Purpose |
-|------|-------|---------|
-| **Context Detection** | SessionStart | Detects config.yml, credentials, project type |
-| **YAML Validation** | PreToolUse (Write/Edit) | Blocks invalid YAML syntax before saving |
-| **Deploy Safety** | PreToolUse (Bash) | Requires dry-run first, warns about deletions |
-| **CLI Result Analysis** | PostToolUse (Bash) | Summarizes deploy/introspect/diff results, triggers troubleshoot on failure |
-| **Config Change Guidance** | PostToolUse (Write/Edit) | Suggests running diff after config changes |
-| **Completion Quality Gate** | Stop | Prevents premature stopping on incomplete tasks |
+**Automatic Validation**:
+- YAML syntax checking
+- Schema compliance validation
+- Reference integrity checks
+- Best practice suggestions
 
-### Completion Quality Gate
+**Agent Assistance**:
+- Proactive review after config generation
+- Automatic troubleshooting on deployment failures
+- Smart attribute classification during discovery
+- Dependency warnings during edits
 
-The Stop hook ensures Claude doesn't stop prematurely when:
-- Config modification was requested but validation wasn't run
-- Deployment failed but troubleshooting wasn't offered
-- Data import started but wasn't completed
-- Setup ran but config-review wasn't invoked
-
-This improves task completion quality without requiring user intervention.
+**Safety Features**:
+- Dry-run preview before deployment
+- Deletion warnings
+- Backup suggestions for destructive operations
+- Configuration validation gates
 
 ## Documentation
 
