@@ -1,5 +1,5 @@
 import type { FullAttribute } from "../../../modules/config/schema/attribute.schema";
-import type { DiffChange, DiffResult } from "../types";
+import type { DiffChange, DiffResult, EntityType } from "../types";
 import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 
 type AttributeEntity = FullAttribute;
@@ -9,7 +9,12 @@ export class AttributesComparator extends BaseEntityComparator<
   readonly AttributeEntity[],
   AttributeEntity
 > {
-  protected readonly entityType = "Attributes" as const;
+  protected readonly entityType: EntityType;
+
+  constructor(entityType: EntityType = "Attributes") {
+    super();
+    this.entityType = entityType;
+  }
 
   compare(local: readonly AttributeEntity[], remote: readonly AttributeEntity[]) {
     const results: DiffResult[] = [];

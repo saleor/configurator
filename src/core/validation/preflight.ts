@@ -1,3 +1,4 @@
+import { Console } from "../../cli/console";
 import type {
   CategoryInput,
   ChannelInput,
@@ -12,6 +13,7 @@ import type {
   TaxClassInput,
   WarehouseInput,
 } from "../../modules/config/schema/schema";
+import { validateNoInlineDefinitions } from "../../modules/config/validation/inline-attribute-validator";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
 type EntityArrayKey =
@@ -114,4 +116,46 @@ export function validateNoDuplicateIdentifiers(config: SaleorConfig, filePath: s
       message: `Duplicate ${i.label} '${i.identifier}' found ${i.count} times. Ensure it is unique.`,
     }))
   );
+}
+
+/**
+ * Validates that no inline attribute definitions exist in productTypes or modelTypes.
+ * Throws with clear error messages and migration guidance if violations are found.
+ */
+export function validateNoInlineAttributeDefinitions(config: SaleorConfig, filePath: string): void {
+  const errors = validateNoInlineDefinitions(config);
+  if (errors.length === 0) return;
+
+  // Display errors using cliConsole for user-friendly output
+  const cliConsole = new Console();
+
+  for (const error of errors) {
+    cliConsole.error(error.message);
+
+    // Display migration box with suggestions
+    const suggestions = error.getRecoverySuggestions();
+    cliConsole.box(["Migration Required", "", ...suggestions.map((s) => `• ${s}`)], "How to Fix");
+  }
+
+  // Throw a validation error to halt deployment
+  throw new ConfigurationValidationError(
+    "Inline attribute definitions are no longer supported",
+    filePath,
+    errors.map((e) => ({
+      path: e.entityType,
+      message: e.message,
+    }))
+  );
+}
+
+/**
+ * Run all preflight validations on the configuration.
+ * This should be called early in the deployment pipeline.
+ */
+export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
+  // Check for duplicate identifiers
+  validateNoDuplicateIdentifiers(config, filePath);
+
+  // Check for inline attribute definitions (migration validation)
+  validateNoInlineAttributeDefinitions(config, filePath);
 }

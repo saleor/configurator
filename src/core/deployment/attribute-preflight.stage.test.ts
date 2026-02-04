@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../../modules/attribute/attribute-cache";
 import { attributeChoicesPreflightStage } from "./stages";
 import type { DeploymentContext } from "./types";
 
@@ -63,6 +64,7 @@ describe("attributeChoicesPreflightStage", () => {
       } as any,
       summary: summary as any,
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
     };
   };
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AttributeCache } from "../../modules/attribute/attribute-cache";
 import type { DiffResult } from "../diff/types";
 import { categoriesStage, channelsStage, productTypesStage } from "./stages";
 import type { DeploymentContext } from "./types";
@@ -24,6 +25,7 @@ describe("Dependency-Aware Stage Skipping", () => {
         deletes: results.filter((r) => r.operation === "DELETE").length,
         results: diffResults,
       },
+      attributeCache: new AttributeCache(),
     } as DeploymentContext;
   };
 

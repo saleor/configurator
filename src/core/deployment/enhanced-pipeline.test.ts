@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../../modules/attribute/attribute-cache";
 import { EnhancedDeploymentPipeline, executeEnhancedDeployment } from "./enhanced-pipeline";
 import { StageAggregateError } from "./errors";
 import type { DeploymentContext, DeploymentStage } from "./types";
@@ -29,6 +30,7 @@ describe("EnhancedDeploymentPipeline", () => {
         results: [],
       } as any,
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
     };
   });
 
@@ -206,6 +208,7 @@ describe("executeEnhancedDeployment", () => {
         results: [],
       } as any,
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
     };
   });
 
