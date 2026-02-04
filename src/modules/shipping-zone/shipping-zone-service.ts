@@ -1,6 +1,7 @@
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
+import { delay } from "../../lib/utils/resilience";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
 import type { WarehouseOperations } from "../warehouse/repository";
@@ -433,18 +434,8 @@ export class ShippingZoneService {
           addChannels: method.channelListings.map((listing, index) => ({
             channelId: channelIds[index],
             price: listing.price?.toString(),
-            minimumOrderPrice: listing.minimumOrderPrice
-              ? {
-                  amount: listing.minimumOrderPrice,
-                  currency: listing.currency || "USD",
-                }
-              : undefined,
-            maximumOrderPrice: listing.maximumOrderPrice
-              ? {
-                  amount: listing.maximumOrderPrice,
-                  currency: listing.currency || "USD",
-                }
-              : undefined,
+            minimumOrderPrice: listing.minimumOrderPrice?.toString(),
+            maximumOrderPrice: listing.maximumOrderPrice?.toString(),
           })),
         };
         await this.repository.updateShippingMethodChannelListing(
@@ -510,24 +501,16 @@ export class ShippingZoneService {
             addChannels: desiredMethod.channelListings.map((listing, index) => ({
               channelId: channelIds[index],
               price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice
-                ? {
-                    amount: listing.minimumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-              maximumOrderPrice: listing.maximumOrderPrice
-                ? {
-                    amount: listing.maximumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
+              minimumOrderPrice: listing.minimumOrderPrice?.toString(),
+              maximumOrderPrice: listing.maximumOrderPrice?.toString(),
             })),
           };
           await this.repository.updateShippingMethodChannelListing(
             currentMethod.id,
             channelListingInput
           );
+          // Add delay between channel listing updates to prevent rate limiting
+          await delay(200);
         }
       } else {
         // Create new method
@@ -548,24 +531,16 @@ export class ShippingZoneService {
             addChannels: desiredMethod.channelListings.map((listing, index) => ({
               channelId: channelIds[index],
               price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice
-                ? {
-                    amount: listing.minimumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-              maximumOrderPrice: listing.maximumOrderPrice
-                ? {
-                    amount: listing.maximumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
+              minimumOrderPrice: listing.minimumOrderPrice?.toString(),
+              maximumOrderPrice: listing.maximumOrderPrice?.toString(),
             })),
           };
           await this.repository.updateShippingMethodChannelListing(
             createdMethod.id,
             channelListingInput
           );
+          // Add delay between channel listing updates to prevent rate limiting
+          await delay(200);
         }
       }
     }
@@ -591,12 +566,23 @@ export class ShippingZoneService {
       );
     }
 
+    // Use sequential mode with delays for more than 3 zones to prevent rate limiting
+    const useSequential = inputs.length > 3;
+
     const results = await ServiceErrorWrapper.wrapBatch(
       inputs,
       "Bootstrap shipping zones",
       (zone) => zone.name,
-      (input) => this.getOrCreateShippingZone(input)
+      (input) => this.getOrCreateShippingZone(input),
+      {
+        sequential: useSequential,
+        delayMs: useSequential ? 500 : 0,
+      }
     );
+
+    if (useSequential) {
+      logger.info(`Processed ${inputs.length} shipping zones sequentially with 500ms delay`);
+    }
 
     if (results.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} shipping zones`;

@@ -1200,7 +1200,7 @@ describe("ProductService", () => {
     });
   });
 
-  describe("CXE-1194: Bulk variant creation groups by product", () => {
+  describe("CXE-1194: Nested bulk create includes variants inline", () => {
     beforeEach(() => {
       // Setup common mocks for bulk operations
       vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
@@ -1214,7 +1214,7 @@ describe("ProductService", () => {
       });
     });
 
-    it("should call bulkCreateVariants with product ID at top level", async () => {
+    it("should include variants inline in bulkCreateProducts for NEW products", async () => {
       // Setup: Mock successful product creation
       vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
         count: 1,
@@ -1236,13 +1236,7 @@ describe("ProductService", () => {
         errors: [],
       });
 
-      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
-        productVariants: [{ id: "variant-1", name: "Variant 1", sku: "SKU-1" }],
-        results: [{ productVariant: { id: "variant-1", sku: "SKU-1" }, errors: [] }],
-        errors: [],
-      } as any);
-
-      // Execute: Bootstrap products with variants
+      // Execute: Bootstrap NEW products with variants
       await service.bootstrapProductsBulk([
         {
           name: "Test Product",
@@ -1253,20 +1247,28 @@ describe("ProductService", () => {
         },
       ]);
 
-      // Assert: Verify product ID is at top level, not in variant input
-      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledWith(
+      // Assert: Variants should be included inline in bulkCreateProducts, NOT via separate call
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledWith(
         expect.objectContaining({
-          product: "product-123", // Product ID at top level
+          products: expect.arrayContaining([
+            expect.objectContaining({
+              name: "Test Product",
+              variants: expect.arrayContaining([
+                expect.objectContaining({
+                  name: "Variant 1",
+                  sku: "SKU-1",
+                }),
+              ]),
+            }),
+          ]),
         })
       );
 
-      // Verify the variant inputs don't contain product field
-      const callArgs = vi.mocked(mockRepository.bulkCreateVariants).mock.calls[0][0];
-      expect(callArgs.variants).toBeDefined();
-      expect(callArgs.variants[0]).not.toHaveProperty("product");
+      // bulkCreateVariants should NOT be called for NEW products (variants are inline)
+      expect(mockRepository.bulkCreateVariants).not.toHaveBeenCalled();
     });
 
-    it("should group variants by product when creating for multiple products", async () => {
+    it("should include variants inline for multiple NEW products", async () => {
       // Setup: Two products created
       vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
         count: 2,
@@ -1301,12 +1303,6 @@ describe("ProductService", () => {
         errors: [],
       });
 
-      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
-        productVariants: [],
-        results: [],
-        errors: [],
-      } as any);
-
       // Execute
       await service.bootstrapProductsBulk([
         {
@@ -1325,17 +1321,17 @@ describe("ProductService", () => {
         },
       ]);
 
-      // Assert: Called once per product (not once for all variants)
-      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledTimes(2);
+      // Assert: Both products should include their variants inline
+      const callArgs = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0][0];
+      expect(callArgs.products).toHaveLength(2);
+      expect(callArgs.products[0].variants).toHaveLength(1);
+      expect(callArgs.products[1].variants).toHaveLength(1);
 
-      // Verify each call has the correct product ID
-      const calls = vi.mocked(mockRepository.bulkCreateVariants).mock.calls;
-      const productIds = calls.map((call) => call[0].product);
-      expect(productIds).toContain("product-A");
-      expect(productIds).toContain("product-B");
+      // bulkCreateVariants should NOT be called for NEW products
+      expect(mockRepository.bulkCreateVariants).not.toHaveBeenCalled();
     });
 
-    it("should include channelListings in bulk create input instead of updating separately", async () => {
+    it("should include channelListings inline in bulkCreateProducts instead of updating separately", async () => {
       // Setup: Mock channel resolution
       vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue({
         id: "channel-123",
@@ -1362,12 +1358,6 @@ describe("ProductService", () => {
         errors: [],
       });
 
-      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
-        productVariants: [{ id: "variant-1", name: "Variant 1", sku: "SKU-1" }],
-        results: [{ productVariant: { id: "variant-1", sku: "SKU-1" }, errors: [] }],
-        errors: [],
-      } as any);
-
       // Execute: Bootstrap products with variants that have channel listings
       await service.bootstrapProductsBulk([
         {
@@ -1391,27 +1381,33 @@ describe("ProductService", () => {
         },
       ]);
 
-      // Assert: Verify channelListings are included in bulk create call
-      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledWith(
+      // Assert: Verify channelListings are included inline in bulkCreateProducts
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledWith(
         expect.objectContaining({
-          product: "product-123",
-          variants: expect.arrayContaining([
+          products: expect.arrayContaining([
             expect.objectContaining({
-              sku: "SKU-1",
-              channelListings: [
-                {
-                  channelId: "channel-123",
-                  price: 19.99,
-                  costPrice: 10.0,
-                },
-              ],
+              variants: expect.arrayContaining([
+                expect.objectContaining({
+                  sku: "SKU-1",
+                  channelListings: [
+                    {
+                      channelId: "channel-123",
+                      price: 19.99,
+                      costPrice: 10.0,
+                    },
+                  ],
+                }),
+              ]),
             }),
           ]),
         })
       );
 
-      // Assert: Verify updateProductVariantChannelListings is NOT called
-      // (channel listings should be set during bulk create, not separately)
+      // bulkCreateVariants should NOT be called for NEW products
+      expect(mockRepository.bulkCreateVariants).not.toHaveBeenCalled();
+
+      // updateProductVariantChannelListings should NOT be called
+      // (channel listings are set inline during bulk create)
       expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
     });
   });
