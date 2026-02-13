@@ -1,28 +1,37 @@
 ---
 name: configurator-cli
-version: 1.0.0
-description: Provides comprehensive guidance for Saleor Configurator CLI commands and usage patterns. This skill should be invoked when the user asks about deploying configurations, introspecting stores, running diffs, or executing any CLI operations against a Saleor instance. Covers deploy, introspect, diff, and start commands with all flags and environment variables.
+version: 2.0.0
+description: "CLI commands for deploying, diffing, and introspecting Saleor stores. Use when asking about deploy, introspect, diff, dry-run, CI/CD setup, or CLI flags."
 allowed-tools: Bash, Read, Grep
 ---
 
 # Configurator CLI
 
-The Saleor Configurator CLI is a declarative "commerce as code" tool that syncs YAML configuration files with Saleor e-commerce instances.
+## Overview
+
+The Saleor Configurator CLI syncs your YAML configuration with a live Saleor instance. You define your store in `config.yml`, then use CLI commands to preview and apply changes.
+
+## When to Use
+
+- "How do I deploy my config?"
+- "How do I pull the current store configuration?"
+- "How do I preview changes before deploying?"
+- "What flags does deploy support?"
+- "How do I set up CI/CD for my store?"
+- "What do the exit codes mean?"
+- When NOT modeling products or writing YAML -- use `product-modeling` or `configurator-schema` instead
 
 ## Core Commands
 
 ### introspect
 
-Fetches the current configuration from a Saleor instance and writes it to `config.yml`.
+Pulls the current configuration from a Saleor instance into `config.yml`.
 
 ```bash
 npx configurator introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
 ```
 
-**Use cases:**
-- Initial setup: Pull existing store configuration
-- Backup: Snapshot current state before changes
-- Recovery: Restore from known-good state
+**Use cases:** initial setup, backup before changes, restore from known-good state.
 
 ### deploy
 
@@ -33,29 +42,21 @@ npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
 ```
 
 **Important flags:**
-- `--dry-run`: Preview changes without applying
-- `--fail-on-delete`: Abort if any deletions would occur
-- `--include <types>`: Only deploy specific entity types
-- `--exclude <types>`: Skip specific entity types
-- `--skip-media`: Skip media file uploads
-
-**Safety notes:**
-- Always run `diff` before `deploy` to preview changes
-- Use `--fail-on-delete` in CI/CD pipelines
-- Back up with `introspect` before major changes
+- `--dry-run` -- preview changes without applying
+- `--fail-on-delete` -- abort if any deletions would occur
+- `--include <types>` -- only deploy specific entity types
+- `--exclude <types>` -- skip specific entity types
+- `--skip-media` -- skip media file uploads
 
 ### diff
 
-Compares local `config.yml` with remote Saleor instance.
+Compares local `config.yml` with the remote Saleor instance.
 
 ```bash
 npx configurator diff --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
 ```
 
-**Output shows:**
-- `+ CREATE`: New entities to be created
-- `~ UPDATE`: Entities with modifications
-- `- DELETE`: Entities that will be removed
+**Output markers:** `+ CREATE` (new), `~ UPDATE` (modified), `- DELETE` (removed).
 
 ### start
 
@@ -65,7 +66,7 @@ Interactive setup wizard for new configurations.
 npx configurator start
 ```
 
-## Common Flags
+## Quick Reference
 
 | Flag | Commands | Description |
 |------|----------|-------------|
@@ -79,14 +80,13 @@ npx configurator start
 
 ## Environment Variables
 
-Instead of passing flags, set environment variables:
+Instead of passing flags every time, set environment variables:
 
 ```bash
 export SALEOR_API_URL="https://your-store.saleor.cloud/graphql/"
 export SALEOR_TOKEN="your-api-token"
 
-# Then run without flags:
-npx configurator deploy
+npx configurator deploy  # No flags needed
 ```
 
 Or use a `.env` file in your project root.
@@ -101,59 +101,42 @@ Or use a `.env` file in your project root.
 | 3 | Authentication error | Verify URL and token |
 | 4 | Network error | Check connectivity |
 
-## Development Mode
-
-When developing the Configurator itself:
-
-```bash
-# Run from source
-pnpm dev introspect --url=$URL --token=$TOKEN
-pnpm dev deploy --url=$URL --token=$TOKEN
-pnpm dev diff --url=$URL --token=$TOKEN
-```
-
 ## Common Workflows
 
 ### Initial Store Setup
 
 ```bash
-# 1. Create config from existing store
-npx configurator introspect --url=$URL --token=$TOKEN
-
-# 2. Edit config.yml to make changes
-
-# 3. Preview changes
-npx configurator diff --url=$URL --token=$TOKEN
-
-# 4. Deploy changes
-npx configurator deploy --url=$URL --token=$TOKEN
+npx configurator introspect --url=$URL --token=$TOKEN  # Pull current state
+# Edit config.yml
+npx configurator diff --url=$URL --token=$TOKEN         # Preview changes
+npx configurator deploy --url=$URL --token=$TOKEN       # Apply changes
 ```
 
 ### Safe CI/CD Deployment
 
 ```bash
-# Fail if any entities would be deleted
-npx configurator deploy \
-  --url=$URL \
-  --token=$TOKEN \
-  --fail-on-delete
+npx configurator deploy --url=$URL --token=$TOKEN --fail-on-delete
 ```
 
 ### Selective Deployment
 
 ```bash
 # Deploy only channels and products
-npx configurator deploy \
-  --url=$URL \
-  --token=$TOKEN \
-  --include channels,products
+npx configurator deploy --url=$URL --token=$TOKEN --include channels,products
 
 # Deploy everything except products
-npx configurator deploy \
-  --url=$URL \
-  --token=$TOKEN \
-  --exclude products
+npx configurator deploy --url=$URL --token=$TOKEN --exclude products
 ```
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Deploying without previewing first | Always run `diff` (or `deploy --dry-run`) before `deploy` |
+| Wrong URL format | URL must end with `/graphql/` (e.g., `https://store.saleor.cloud/graphql/`) |
+| Expired or invalid token | Regenerate your API token in Saleor Dashboard under Settings > Service Accounts |
+| Forgetting `--fail-on-delete` in CI | Always use `--fail-on-delete` in automated pipelines to prevent accidental deletions |
+| Not backing up before major changes | Run `introspect` first to save current state to `config.yml` |
 
 ## See Also
 

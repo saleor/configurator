@@ -1,36 +1,29 @@
 ---
 name: managing-github-ci
-description: "Configures GitHub Actions workflows and CI/CD pipelines. Manages automated releases via Changesets, PR validation, and Husky hooks. Troubleshoots CI failures. Triggers on: GitHub Actions, CI pipeline, workflow, release automation, Husky hooks, gh CLI, workflow failure."
+description: "Configures GitHub Actions workflows and CI/CD pipelines. Use when creating workflows, managing releases, troubleshooting CI failures, or configuring Husky hooks."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(gh:*)"
 ---
 
 # GitHub CI Automation
 
-## Purpose
+## Overview
 
 Guide the configuration and management of GitHub Actions workflows, release automation, and CI/CD pipelines for the Saleor Configurator project.
 
 ## When to Use
 
 - Creating or modifying GitHub Actions workflows
-- Setting up automated releases
+- Setting up automated releases via Changesets
 - Troubleshooting CI failures
-- Configuring pre-commit/pre-push hooks
-- Managing Changesets releases
+- Configuring pre-commit/pre-push hooks (Husky)
 
-## Table of Contents
+## Quick Reference
 
-- [Project CI Architecture](#project-ci-architecture)
-- [Workflow: test-on-pr.yml](#workflow-test-on-pryml)
-- [Workflow: release.yml](#workflow-releaseyml)
-- [Workflow: changeset-bot.yml](#workflow-changeset-botyml)
-- [Pre-Push Hooks (Husky)](#pre-push-hooks-husky)
-- [Changesets Configuration](#changesets-configuration)
-- [GitHub CLI Commands](#github-cli-commands)
-- [Troubleshooting CI Failures](#troubleshooting-ci-failures)
-- [Adding New Workflows](#adding-new-workflows)
-- [Secrets Management](#secrets-management)
-- [References](#references)
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `test-on-pr.yml` | PR to main | Typecheck, lint, test, build |
+| `release.yml` | Push to main | Changesets publish to npm |
+| `changeset-bot.yml` | PR opened/synced | Comment on missing changesets |
 
 ## Project CI Architecture
 
@@ -40,60 +33,22 @@ Guide the configuration and management of GitHub Actions workflows, release auto
 │   ├── test-on-pr.yml      # PR validation
 │   ├── release.yml         # Automated releases
 │   └── changeset-bot.yml   # Changeset automation
-└── ...
 
 .husky/
-├── pre-push               # Pre-push hooks
-└── ...
+├── pre-push               # Schema docs generation
 
 .changeset/
 ├── config.json            # Changeset configuration
 └── *.md                   # Pending changesets
 ```
 
-## Workflow: test-on-pr.yml
+## Workflows
 
-**Purpose**: Validate PRs before merge
+### test-on-pr.yml
 
-```yaml
-name: Test on PR
+Validates PRs before merge. Runs: typecheck, lint, test, build. Uses pnpm 9 + Node 20.
 
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Test
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
-```
+See [references/workflow-templates.md](references/workflow-templates.md) for full YAML.
 
 ### Required Checks
 
@@ -104,129 +59,36 @@ jobs:
 | Test | `pnpm test` | Vitest test suite |
 | Build | `pnpm build` | Compilation check |
 
-## Workflow: release.yml
+### release.yml
 
-**Purpose**: Automated npm releases via Changesets
+Automated npm releases via Changesets. Triggers on push to main with concurrency control.
 
-```yaml
-name: Release
-
-on:
-  push:
-    branches: [main]
-
-concurrency: ${{ github.workflow }}-${{ github.ref }}
-
-jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
-      - name: Create Release Pull Request or Publish
-        uses: changesets/action@v1
-        with:
-          publish: pnpm publish:ci-prod
-          version: pnpm changeset version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-```
+Uses `changesets/action@v1` with `pnpm publish:ci-prod`. Requires `GITHUB_TOKEN` and `NPM_TOKEN`.
 
 ### Release Flow
 
 ```
-1. Developer creates changeset → pnpm changeset
+1. Developer creates changeset -> pnpm changeset
 2. PR merged to main
 3. Changesets action runs:
-   a. If changesets exist → Creates "Version Packages" PR
-   b. If version PR merged → Publishes to npm
+   a. If changesets exist -> Creates "Version Packages" PR
+   b. If version PR merged -> Publishes to npm
 ```
 
-## Workflow: changeset-bot.yml
+### changeset-bot.yml
 
-**Purpose**: Comment on PRs about missing changesets
-
-```yaml
-name: Changeset Bot
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  bot:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Changeset Bot
-        uses: changesets/bot@v1
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+Comments on PRs about missing changesets. Uses `changesets/bot@v1`.
 
 ## Pre-Push Hooks (Husky)
 
 Located in `.husky/pre-push`:
-
-```bash
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-# Generate schema documentation before push
-pnpm generate-schema-docs
-git add docs/SCHEMA.md
-
-# Check if there are changes to commit
-if ! git diff --staged --quiet; then
-  git commit -m "docs: update schema documentation"
-fi
-```
-
-### Hook Behavior
-
-- Runs `generate-schema-docs` before every push
+- Runs `pnpm generate-schema-docs` before every push
 - Auto-commits schema documentation updates
 - Ensures docs stay in sync with schema changes
 
 ## Changesets Configuration
 
-Located in `.changeset/config.json`:
-
-```json
-{
-  "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
-  "changelog": "@changesets/cli/changelog",
-  "commit": false,
-  "fixed": [],
-  "linked": [],
-  "access": "public",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch",
-  "ignore": []
-}
-```
-
-### Changeset Types
+Located in `.changeset/config.json`. Key settings: `access: "public"`, `baseBranch: "main"`.
 
 | Type | When to Use |
 |------|-------------|
@@ -234,173 +96,59 @@ Located in `.changeset/config.json`:
 | `minor` | New features, non-breaking enhancements |
 | `major` | Breaking changes, API modifications |
 
-## GitHub CLI Commands
+## GitHub CLI
 
-### Check Workflow Status
-
-```bash
-# List recent workflow runs
-gh run list --limit 10
-
-# View specific run
-gh run view <run-id>
-
-# Watch running workflow
-gh run watch <run-id>
-```
-
-### PR Management
-
-```bash
-# Create PR
-gh pr create --title "feat: new feature" --body "Description"
-
-# List PRs
-gh pr list
-
-# View PR details
-gh pr view <pr-number>
-
-# Check PR status
-gh pr checks <pr-number>
-```
-
-### Release Management
-
-```bash
-# List releases
-gh release list
-
-# Create release (manual)
-gh release create v1.0.0 --title "v1.0.0" --notes "Release notes"
-
-# View release
-gh release view v1.0.0
-```
+Use `gh` for workflow management: `gh run list`, `gh run view <id>`, `gh run watch <id>`, `gh run rerun <id>`, `gh pr checks <number>`.
 
 ## Troubleshooting CI Failures
 
-### Common Failures
+### Reproduce Locally
 
-**Type Check Fails**:
-```bash
-# Reproduce locally
-pnpm typecheck
-# or
-npx tsc --noEmit
-```
+| Failure | Command |
+|---------|---------|
+| Type check | `pnpm typecheck` or `npx tsc --noEmit` |
+| Lint | `pnpm lint` then `pnpm check:fix` |
+| Tests | `pnpm test -- --filter=<file>` |
+| Build | `pnpm build` |
 
-**Lint Fails**:
-```bash
-# Check and auto-fix
-pnpm lint
-pnpm check:fix
-```
-
-**Tests Fail**:
-```bash
-# Run specific test
-pnpm test -- --filter=<test-file>
-
-# Run with verbose output
-pnpm test -- --reporter=verbose
-```
-
-**Build Fails**:
-```bash
-# Reproduce locally
-pnpm build
-```
-
-### Debugging Workflow
+### Debugging Steps
 
 1. Check workflow logs in GitHub Actions UI
-2. Reproduce failure locally
+2. Reproduce failure locally with commands above
 3. Fix the issue
 4. Push fix to PR
 5. Re-run failed jobs: `gh run rerun <run-id>`
 
-### Rate Limiting
+### npm Publish Rate Limiting
 
-If npm publish fails due to rate limiting:
-- Wait and retry
-- Check npm status: https://status.npmjs.org/
-
-## Adding New Workflows
-
-### Template Structure
-
-```yaml
-name: Workflow Name
-
-on:
-  # Trigger events
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  job-name:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # Add your steps here
-```
-
-### Best Practices
-
-- Always use `--frozen-lockfile` for installs
-- Cache pnpm store for faster runs
-- Use specific action versions (@v4, not @latest)
-- Set `concurrency` to prevent duplicate runs
-- Use secrets for sensitive values
+If npm publish fails: wait and retry. Check status at https://status.npmjs.org/
 
 ## Secrets Management
-
-### Required Secrets
 
 | Secret | Purpose | Where Set |
 |--------|---------|-----------|
 | `GITHUB_TOKEN` | Auto-provided | GitHub |
-| `NPM_TOKEN` | npm publishing | Repository Settings |
+| `NPM_TOKEN` | npm publishing | Repository Settings > Secrets > Actions |
 
-### Adding Secrets
+## Common Mistakes
 
-1. Go to repository Settings
-2. Navigate to Secrets and variables → Actions
-3. Click "New repository secret"
-4. Add name and value
+| Mistake | Fix |
+|---------|-----|
+| Missing `--frozen-lockfile` | Always use in CI installs |
+| Using `@latest` action versions | Pin to specific versions (`@v4`) |
+| No `concurrency` setting | Add to prevent duplicate runs |
+| Forgetting to add changeset | Run `pnpm changeset` before PR |
 
 ## References
 
 ### Skill Reference Files
-- **[Workflow Templates](references/workflow-templates.md)** - Reusable workflow patterns
+- **[Workflow Templates](references/workflow-templates.md)** - Full YAML workflow definitions and reusable patterns
 - **[Troubleshooting Guide](references/troubleshooting.md)** - Detailed debugging patterns
 
 ### Project Resources
-- `{baseDir}/.github/workflows/` - Workflow files
-- `{baseDir}/.husky/` - Git hooks
-- `{baseDir}/.changeset/` - Changeset configuration
-
-### External Documentation
-- GitHub Actions docs: https://docs.github.com/en/actions
-- Changesets docs: https://github.com/changesets/changesets
+- `.github/workflows/` - Workflow files
+- `.husky/` - Git hooks
+- `.changeset/` - Changeset configuration
 
 ## Related Skills
 

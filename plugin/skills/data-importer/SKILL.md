@@ -1,70 +1,77 @@
 ---
 name: data-importer
-version: 1.0.0
-description: Provides comprehensive guidance for transforming external product data into Saleor config.yml format. This skill should be invoked when the user needs to import products from CSV files, Excel spreadsheets, Shopify exports, or any external data source. Covers file format detection, column mapping strategies, variant grouping, and output validation.
+version: 2.0.0
+description: "Transforms external product data into Saleor config.yml format. Use when importing from CSV, Excel, Shopify exports, or any external data source."
 allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob
 ---
 
 # Data Importer
 
-Transform product data from any source into Saleor's config.yml format.
+## Overview
+
+This skill helps you convert product data from external sources (CSV files, spreadsheets, Shopify exports) into Saleor's `config.yml` format. It walks through format detection, column mapping, and validation before generating output.
+
+## When to Use
+
+- "I need to import products from a CSV"
+- "How do I convert my spreadsheet to config.yml?"
+- "I'm migrating from Shopify"
+- "I have product data in Excel"
+- "How do I bulk import products?"
+- When NOT writing config.yml from scratch -- use `configurator-schema` instead
+- When NOT designing product types -- use `product-modeling` first
 
 ## Core Workflow
 
-1. **Detect format** - CSV, Excel, JSON, or unknown
-2. **Extract columns** - Read headers and sample data
-3. **Map interactively** - User confirms field mappings
-4. **Transform** - Convert to Saleor schema
-5. **Validate** - Check for issues before output
+1. **Detect format** -- CSV, Excel, JSON, or unknown
+2. **Extract columns** -- read headers and sample data
+3. **Map interactively** -- you confirm field mappings
+4. **Transform** -- convert to Saleor schema
+5. **Validate** -- check for issues before output
 
 ## File Handling
 
 ### Excel (.xlsx)
-Excel files need conversion. Ask user to export as CSV from Excel/Sheets, or attempt:
+Excel files need conversion. Export as CSV from Excel/Sheets, or:
 ```bash
 python3 -c "import pandas as pd; pd.read_excel('$FILE').to_csv('${FILE%.xlsx}.csv', index=False)"
 ```
 
 ### CSV
-Read directly:
-```bash
-head -1 "$FILE"  # Headers
-head -5 "$FILE"  # Sample rows
-```
+Read directly to inspect headers and sample rows.
 
-## Field Mapping Strategy
+## Field Mapping
 
-**Don't assume column names.** Instead:
-1. Show user all columns with sample values
+**Don't assume column names.** The importer will:
+1. Show you all columns with sample values
 2. Ask which column maps to each Saleor field
 3. Mark unmapped columns as potential attributes
 
-### Required Saleor Fields
+### Required Fields
 
-| Field | Source Options |
-|-------|----------------|
-| `product.name` | Any "name", "title", or descriptive column |
-| `product.slug` | Generate from name, or use ID/handle column |
-| `variant.sku` | Any unique ID column (SKU, External ID, Code) |
-| `productType` | From "type" column or user-specified |
+| Saleor Field | Typical Source Columns |
+|--------------|----------------------|
+| `product.name` | "name", "title", or any descriptive column |
+| `product.slug` | Generated from name, or "handle"/"ID" column |
+| `variant.sku` | "SKU", "External ID", "Code" |
+| `productType` | "type" column or you specify it |
 
 ### Optional Fields
 
 | Field | Notes |
 |-------|-------|
-| `price` | If missing, import as catalog-only |
-| `quantity` | If missing, skip stocks |
-| `category` | From category/country/region column |
-| `description` | If present |
-| Attributes | Any unmapped columns become product attributes |
+| `price` | If missing, imports as catalog-only |
+| `quantity` | If missing, skips stock tracking |
+| `category` | From category/region column |
+| `description` | If present in source data |
+| Other columns | Become product attributes |
 
 ## Output Structure
 
 ```yaml
 productTypes:
-  - name: "[from type column or user input]"
-    isShippingRequired: [ask user]
-    productAttributes: [unmapped columns]
+  - name: "[from type column or your input]"
+    productAttributes: [unmapped columns become attributes]
 
 categories:
   - name: "[from category column]"
@@ -76,39 +83,41 @@ products:
     productType: "[reference]"
     variants:
       - sku: "[from SKU column]"
-        attributes: {[mapped attributes]}
         channelListings: [if price exists]
         stocks: [if quantity exists]
 ```
 
-## Handling Special Cases
+## Special Cases
 
-### No Price Column
-Import as catalog-only. User can add pricing later.
+- **No price column** -- imports as catalog-only; add pricing later
+- **No SKU column** -- generates from name or uses any unique ID column
+- **Unknown columns** -- presented to you as potential attributes
+- **Multiple rows with same product** -- grouped as variants of one product
 
-### No SKU Column
-Generate from name or use any unique ID column (External ID, Product Code, etc.).
+## Common Mistakes
 
-### Unknown Columns
-Present to user as potential attributes. Let them decide what each represents.
-
-### Variant Grouping
-If multiple rows share same product identifier, group as variants of one product.
-
-## Reference Files
-
-- **`reference/csv-patterns.md`** - CSV/Excel parsing techniques
-- **`reference/field-mapping.md`** - Mapping strategies for various data shapes
-- **`reference/shopify-format.md`** - Shopify-specific handling
-- **`reference/transformations.md`** - Data transformation rules
+| Mistake | Fix |
+|---------|-----|
+| Assuming column names without checking | Always inspect headers first -- column names vary wildly between sources |
+| Not handling missing SKUs | Generate SKUs from product name + variant attributes, or use a unique ID column |
+| Importing without validating first | Review the generated YAML before deploying -- check for duplicates and missing fields |
+| Duplicate products from multi-row variants | Ensure rows sharing a product name are grouped as variants, not separate products |
+| Forgetting to create product types first | Design your product types before importing -- use `product-modeling` skill |
 
 ## Validation Checklist
 
-Before generating output:
-- [ ] All products have names
-- [ ] All variants have unique SKUs
-- [ ] Product type references are valid
-- [ ] No duplicate slugs
+Before generating output, verify:
+- All products have names
+- All variants have unique SKUs
+- Product type references are valid
+- No duplicate slugs
+
+## Reference Files
+
+- **`reference/csv-patterns.md`** -- CSV/Excel parsing techniques
+- **`reference/field-mapping.md`** -- Mapping strategies for various data shapes
+- **`reference/shopify-format.md`** -- Shopify-specific handling
+- **`reference/transformations.md`** -- Data transformation rules
 
 ## See Also
 

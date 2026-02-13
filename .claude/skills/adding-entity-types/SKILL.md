@@ -1,6 +1,21 @@
+---
+name: adding-entity-types
+description: "Creates new Saleor entity types with complete implementation. Use when implementing new entities, adding modules, writing GraphQL operations, bulk mutations, deployment stages, Zod schemas for entities, or creating features that interact with Saleor API."
+allowed-tools: "Read, Grep, Glob, Write, Edit"
+---
+
 # Adding Entity Types
 
-Creates new Saleor entity types with complete implementation: GraphQL operations, Zod schemas, bulk mutations, repository/service layers, and tests. Use when implementing new entities, adding modules, or creating features that interact with Saleor API.
+## Overview
+
+Implement new Saleor entity types following a 7-step pipeline: schema, GraphQL operations, repository, bulk mutations, service, tests, and deployment stage. Each step builds on the previous, producing a complete entity module.
+
+## When to Use
+
+- Implementing a new Saleor entity (e.g., categories, products, menus)
+- Adding a new module to `src/modules/`
+- Creating features that need full CRUD with the Saleor API
+- **Not for**: Modifying existing entities (see `understanding-saleor-domain`)
 
 ## Quick Reference
 
@@ -17,302 +32,100 @@ Creates new Saleor entity types with complete implementation: GraphQL operations
 ## E2E Workflow
 
 ```
-┌─────────────────┐
-│ 1. Zod Schema   │  Define validation + infer types
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 2. GraphQL Ops  │  gql.tada queries/mutations
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 3. Repository   │  Data access + error wrapping
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 4. Bulk Mutations│  Chunking + error policies
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 5. Service      │  Business logic + orchestration
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 6. Tests        │  Unit + integration + builders
-└────────┬────────┘
-         ▼
-┌─────────────────┐
-│ 7. Pipeline     │  Add deployment stage
-└─────────────────┘
++-----------------+
+| 1. Zod Schema   |  Define validation + infer types
++--------+--------+
+         v
++-----------------+
+| 2. GraphQL Ops  |  gql.tada queries/mutations
++--------+--------+
+         v
++-----------------+
+| 3. Repository   |  Data access + error wrapping
++--------+--------+
+         v
++-----------------+
+| 4. Bulk Mutations|  Chunking + error policies
++--------+--------+
+         v
++-----------------+
+| 5. Service      |  Business logic + orchestration
++--------+--------+
+         v
++-----------------+
+| 6. Tests        |  Unit + integration + builders
++--------+--------+
+         v
++-----------------+
+| 7. Pipeline     |  Add deployment stage
++-----------------+
 ```
 
-## Step 1: Define Zod Schema
+## Step-by-Step Implementation
 
-Create config schema in `src/modules/config/schema/`:
+### Step 1: Define Zod Schema
 
-```typescript
-// entity.schema.ts
-import { z } from "zod";
+Create in `src/modules/config/schema/<entity>.schema.ts`. Key patterns:
+- Infer types with `z.infer<typeof schema>` (never manual type definitions)
+- Use branded types for slugs/names (e.g., `transform((v) => v as EntitySlug)`)
+- Use discriminated unions for variant types
 
-// Base schema with validation
-const entitySchema = z.object({
-  name: z.string().min(1).max(100),
-  slug: z.string().regex(/^[a-z0-9-]+$/),
-  isActive: z.boolean().default(true),
-});
+See [references/zod-schemas.md](references/zod-schemas.md) for detailed patterns.
 
-// Infer TypeScript type
-export type EntityInput = z.infer<typeof entitySchema>;
+### Step 2: Create GraphQL Operations
 
-// Export for config validation
-export { entitySchema };
-```
-
-**Key patterns:** [See references/zod-schemas.md](references/zod-schemas.md)
-- Discriminated unions for variant types
-- Branded types for type safety
-- Transform for data normalization
-
-## Step 2: Create GraphQL Operations
-
-Define operations in `src/modules/<entity>/operations.ts`:
-
-```typescript
-import { graphql } from "@/lib/graphql/graphql";
-
-// Query with gql.tada (auto-typed)
-export const getEntitiesQuery = graphql(`
-  query GetEntities($first: Int!) {
-    entities(first: $first) {
-      edges {
-        node {
-          id
-          name
-          slug
-        }
-      }
-    }
-  }
-`);
-
-// Mutation
-export const createEntityMutation = graphql(`
-  mutation CreateEntity($input: EntityInput!) {
-    entityCreate(input: $input) {
-      entity { id, name, slug }
-      errors { field, message, code }
-    }
-  }
-`);
-
-// Bulk mutation
-export const bulkCreateEntitiesMutation = graphql(`
-  mutation BulkCreateEntities(
-    $entities: [EntityInput!]!
-    $errorPolicy: ErrorPolicyEnum
-  ) {
-    entityBulkCreate(entities: $entities, errorPolicy: $errorPolicy) {
-      count
-      results {
-        entity { id, name, slug }
-        errors { path, message, code }
-      }
-    }
-  }
-`);
-```
-
-**Key patterns:** [See references/graphql-operations.md](references/graphql-operations.md)
+Define in `src/modules/<entity>/operations.ts`. Key patterns:
+- Import `graphql` from `@/lib/graphql/graphql` (gql.tada auto-types)
 - Use `ResultOf<typeof Query>` for type inference
-- Include error fields in mutations
-- Follow naming conventions
+- Always include `errors { field, message, code }` in mutations
+- Follow naming: `get<Entity>Query`, `create<Entity>Mutation`, `bulk<Action><Entity>Mutation`
 
-## Step 3: Implement Repository
+See [references/graphql-operations.md](references/graphql-operations.md) for detailed patterns.
 
-Create `src/modules/<entity>/repository.ts`:
+### Step 3: Implement Repository
 
-```typescript
-import type { Client } from "@urql/core";
-import { getEntitiesQuery, createEntityMutation } from "./operations";
-import { GraphQLError } from "@/lib/errors";
+Create `src/modules/<entity>/repository.ts`. Key patterns:
+- Define interface (e.g., `EntityOperations`) for testability
+- Wrap errors with `GraphQLError.fromCombinedError()`
+- Always check both `result.error` and `result.data?.mutation?.errors`
 
-export interface EntityOperations {
-  getEntities(): Promise<Entity[]>;
-  createEntity(input: EntityInput): Promise<Entity>;
-  bulkCreateEntities(inputs: EntityInput[]): Promise<BulkResult>;
-}
+See [references/repository-service.md](references/repository-service.md) for detailed patterns.
 
-export class EntityRepository implements EntityOperations {
-  constructor(private client: Client) {}
+### Step 4: Add Bulk Mutations
 
-  async getEntities(): Promise<Entity[]> {
-    const result = await this.client.query(getEntitiesQuery, { first: 100 });
+Integrate chunked processing in repository. Key patterns:
+- Use `processInChunks` from `@/lib/utils/chunked-processor`
+- Threshold: `BulkOperationThresholds.DEFAULT` (10 items)
+- Chunk size: `ChunkSizeConfig.DEFAULT_CHUNK_SIZE` (10 items/chunk)
+- Error policy: `IGNORE_FAILED` (continue processing, report all failures)
 
-    if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
-    }
+See [references/bulk-mutations.md](references/bulk-mutations.md) for detailed patterns.
 
-    return result.data?.entities?.edges?.map(e => e.node) ?? [];
-  }
+### Step 5: Create Service Layer
 
-  async createEntity(input: EntityInput): Promise<Entity> {
-    const result = await this.client.mutation(createEntityMutation, { input });
+Create `src/modules/<entity>/service.ts`. Key patterns:
+- Inject repository via constructor (interface, not concrete class)
+- Validate inputs with Zod schema before passing to repository
+- Orchestrate bulk operations and collect results
 
-    if (result.error) {
-      throw GraphQLError.fromCombinedError(result.error);
-    }
+See [references/repository-service.md](references/repository-service.md) for detailed patterns.
 
-    const data = result.data?.entityCreate;
-    if (data?.errors?.length) {
-      throw new ValidationError(data.errors);
-    }
+### Step 6: Write Tests
 
-    return data!.entity!;
-  }
-}
-```
+Create in `src/modules/<entity>/`. Key patterns:
+- Use test builders with fluent interface (`entityBuilder().withName("Test").build()`)
+- Mock repositories with `vi.fn()` for unit tests
+- Use MSW for integration tests with real GraphQL operations
+- Validate builder output with Zod schema in `build()`
 
-**Key patterns:** [See references/repository-service.md](references/repository-service.md)
+See [references/testing.md](references/testing.md) for detailed patterns.
 
-## Step 4: Add Bulk Mutations
+### Step 7: Add to Deployment Pipeline
 
-Integrate bulk operations with chunking:
-
-```typescript
-import { BulkOperationThresholds, ChunkSizeConfig } from "@/lib/utils/bulk-operation-constants";
-import { processInChunks } from "@/lib/utils/chunked-processor";
-
-async bulkCreateEntities(inputs: EntityInput[]): Promise<BulkResult> {
-  // Use chunking for large batches
-  if (inputs.length > BulkOperationThresholds.DEFAULT) {
-    return processInChunks(
-      inputs,
-      (chunk) => this.executeBulkCreate(chunk),
-      { chunkSize: ChunkSizeConfig.DEFAULT_CHUNK_SIZE }
-    );
-  }
-
-  return this.executeBulkCreate(inputs);
-}
-
-private async executeBulkCreate(inputs: EntityInput[]) {
-  const result = await this.client.mutation(bulkCreateEntitiesMutation, {
-    entities: inputs,
-    errorPolicy: "IGNORE_FAILED", // Continue on individual failures
-  });
-
-  // Collect successes and failures
-  const successful: Entity[] = [];
-  const failed: FailedItem[] = [];
-
-  result.data?.entityBulkCreate?.results?.forEach((r, i) => {
-    if (r.errors?.length) {
-      failed.push({ input: inputs[i], errors: r.errors });
-    } else if (r.entity) {
-      successful.push(r.entity);
-    }
-  });
-
-  return { successful, failed };
-}
-```
-
-**Key patterns:** [See references/bulk-mutations.md](references/bulk-mutations.md)
-- Thresholds: When to use bulk vs sequential
-- Error policies: IGNORE_FAILED, REJECT_EVERYTHING
-- Chunking: Rate limit handling
-
-## Step 5: Create Service Layer
-
-Create `src/modules/<entity>/service.ts`:
-
-```typescript
-import type { EntityOperations } from "./repository";
-import { entitySchema, type EntityInput } from "@/modules/config/schema/entity.schema";
-
-export class EntityService {
-  constructor(
-    private repository: EntityOperations,
-    private logger: Logger
-  ) {}
-
-  async createEntities(configs: EntityConfig[]): Promise<CreateResult> {
-    // Validate all inputs
-    const validated = configs.map(c => entitySchema.parse(c));
-
-    this.logger.info(`Creating ${validated.length} entities`);
-
-    // Delegate to repository
-    const result = await this.repository.bulkCreateEntities(validated);
-
-    this.logger.info(`Created ${result.successful.length}, failed ${result.failed.length}`);
-
-    return result;
-  }
-}
-```
-
-**Key patterns:** [See references/repository-service.md](references/repository-service.md)
-
-## Step 6: Write Tests
-
-Create test files in `src/modules/<entity>/`:
-
-```typescript
-// entity-service.test.ts
-import { describe, it, expect, vi } from "vitest";
-import { EntityService } from "./service";
-import { entityBuilder } from "./test-helpers";
-
-describe("EntityService", () => {
-  const mockRepository = {
-    getEntities: vi.fn(),
-    createEntity: vi.fn(),
-    bulkCreateEntities: vi.fn(),
-  };
-
-  it("creates entities with validation", async () => {
-    const service = new EntityService(mockRepository, mockLogger);
-    const input = entityBuilder().withName("Test").build();
-
-    mockRepository.bulkCreateEntities.mockResolvedValue({
-      successful: [{ id: "1", ...input }],
-      failed: [],
-    });
-
-    const result = await service.createEntities([input]);
-
-    expect(result.successful).toHaveLength(1);
-    expect(mockRepository.bulkCreateEntities).toHaveBeenCalledWith([input]);
-  });
-});
-```
-
-**Key patterns:** [See references/testing.md](references/testing.md)
-- Test builders for data generation
-- MSW for GraphQL mocking
-- Integration tests with real operations
-
-## Step 7: Add to Deployment Pipeline
-
-Add stage in `src/modules/deployment/stages/`:
-
-```typescript
-// entity-stage.ts
-export const entityStage: DeploymentStage = {
-  name: "entities",
-  order: 10, // After dependencies
-  async execute(context: DeploymentContext) {
-    const { config, services } = context;
-
-    if (!config.entities?.length) {
-      return { skipped: true };
-    }
-
-    return services.entity.createEntities(config.entities);
-  },
-};
-```
+Create stage in `src/modules/deployment/stages/<entity>-stage.ts`:
+- Set `order` after dependencies (entities this depends on)
+- Skip if no config entries: `if (!config.entities?.length) return { skipped: true }`
+- Delegate to service layer
 
 ## Validation Checkpoints
 
@@ -326,13 +139,13 @@ export const entityStage: DeploymentStage = {
 
 ## Common Mistakes
 
-| Mistake | Issue | Fix |
-|---------|-------|-----|
-| Not using branded types | Slug/Name confusion | Use `EntitySlug` or `EntityName` types |
-| Skipping bulk mutations | Poor performance | Use bulk for >1 item |
-| Missing error wrapping | Silent failures | Wrap with `GraphQLError.fromCombinedError()` |
-| Hardcoded pagination | Missing data | Use `first: 100` with pagination |
-| Not checking `errors` array | Silent mutation failures | Always check `result.data?.mutation?.errors` |
+| Mistake | Fix |
+|---------|-----|
+| Not using branded types | Use `EntitySlug` or `EntityName` types for domain safety |
+| Skipping bulk mutations | Use bulk for >1 item, always |
+| Missing error wrapping | Wrap with `GraphQLError.fromCombinedError()` |
+| Hardcoded pagination | Use `first: 100` with pagination support |
+| Not checking `errors` array | Always check `result.data?.mutation?.errors` |
 
 ## Architecture Decision Summary
 
