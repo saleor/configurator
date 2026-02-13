@@ -405,7 +405,7 @@ Follow this process to design product types:
 3. **Select types** - Use the type selection decision tree
 4. **Calculate SKU count** - Ensure variant matrix is manageable
 5. **Create ProductType** - Write the YAML configuration
-6. **Validate** - Run `/configurator-validate` to check structure
+6. **Validate** - Run `/configurator validate` to check structure
 
 ---
 

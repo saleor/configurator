@@ -227,7 +227,7 @@ After generating the ProductType:
              [Variant Attribute]: "Value"
    ```
 
-2. Suggest running `/configurator-validate` to check the configuration
+2. Suggest running `/configurator validate` to check the configuration
 
 3. Offer to help create:
    - Categories for the products

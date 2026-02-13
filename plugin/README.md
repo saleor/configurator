@@ -18,7 +18,7 @@ This Claude Code plugin enables developers to configure Saleor e-commerce stores
 
 ```bash
 # In Claude Code
-/plugin marketplace add saleor/configurator-claude-plugin
+/install-plugin saleor-configurator
 ```
 
 ### Manual Installation
@@ -131,7 +131,7 @@ Skills provide embedded knowledge that Claude uses automatically:
 |-------|---------|-------|
 | **config-review** | Analyzes config.yml for issues with confidence scoring | Blue |
 | **troubleshoot** | Diagnoses deployment failures and suggests fixes | Red |
-| **discover** | Analyzes existing stores to suggest configurations | Yellow |
+| **store-analyzer** | Analyzes existing stores to suggest configurations | Yellow |
 | **csv-importer** | Imports generic tabular data with interactive mapping | Cyan |
 | **shopify-importer** | Specialized Shopify export import with variant grouping | Green |
 
@@ -139,21 +139,21 @@ Skills provide embedded knowledge that Claude uses automatically:
 
 | Scenario | Primary Agent | Also Consider |
 |----------|---------------|---------------|
-| Before first deployment | **config-review** | discover (if has existing store) |
+| Before first deployment | **config-review** | store-analyzer (if has existing store) |
 | Deployment failed | **troubleshoot** | - |
 | Import from CSV/Excel | **csv-importer** | - |
 | Import from Shopify | **shopify-importer** | - |
-| Analyze existing Saleor store | **discover** | - |
-| After /configurator-setup | **config-review** | (proactive) |
+| Analyze existing Saleor store | **store-analyzer** | - |
+| After /recipe | **config-review** | (proactive) |
 | After /configurator-import | **config-review** | (proactive) |
 
 ### Proactive Agent Invocation
 
 Some agents are designed to be invoked automatically:
 
-- **config-review**: Automatically runs after `/configurator-setup`, `/configurator-edit`, or `/configurator-import` complete
+- **config-review**: Automatically runs after `/configurator edit`, `/recipe`, or `/configurator-import` complete
 - **troubleshoot**: Automatically runs when any CLI command fails
-- **discover**: Suggested before setup when user mentions existing store data
+- **store-analyzer**: Suggested before setup when user mentions existing store data
 
 ## Schema Validation
 
@@ -281,4 +281,4 @@ Validate the plugin structure:
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](./LICENSE) for details.
