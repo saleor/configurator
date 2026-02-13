@@ -1,5 +1,6 @@
 # User-specific settings (contains credentials)
 .claude/*.local.md
+.claude/settings.json
 
 # OS files
 .DS_Store

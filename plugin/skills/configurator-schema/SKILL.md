@@ -212,3 +212,9 @@ Level 3 (Depends on Level 2):
 
 - For complete schema documentation, see [reference/schema.md](reference/schema.md)
 - For example configurations, see [reference/examples.md](reference/examples.md)
+
+### Related Skills
+
+- **`saleor-domain`** - Entity relationships and identifier rules
+- **`configurator-cli`** - CLI commands for deploying configurations
+- **`product-modeling`** - Product type design and attribute selection

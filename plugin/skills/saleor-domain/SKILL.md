@@ -234,3 +234,9 @@ For up-to-date Saleor documentation, use Context7 MCP:
 - For entity reference, see [reference/entities.md](reference/entities.md)
 - For relationship diagrams, see [reference/relationships.md](reference/relationships.md)
 - For Storefront v26 integration, see [reference/storefront-v26.md](reference/storefront-v26.md)
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`product-modeling`** - Product type design and attribute selection
+- **`configurator-cli`** - CLI commands for deploying configurations

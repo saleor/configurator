@@ -17,7 +17,7 @@ Pre-built configuration templates for quickly setting up common e-commerce store
 | **Electronics Store** | Tech products, gadgets | Specs attributes, warranty info |
 | **Subscription Service** | Recurring products, SaaS | Subscription types, billing cycles |
 
-**Note**: For a blank starting point, use `/configurator-init` which creates a skeleton with the correct structure but no business-specific content.
+**Note**: For a blank starting point, use `/configurator init` which creates a skeleton with the correct structure but no business-specific content.
 
 ## Using Recipes
 
@@ -25,12 +25,12 @@ Pre-built configuration templates for quickly setting up common e-commerce store
 
 **For structure only** (blank slate):
 ```bash
-/configurator-init               # Creates skeleton config.yml
+/configurator init               # Creates skeleton config.yml
 ```
 
 **For pre-built store** (complete recipe):
 ```bash
-/configurator-setup              # Interactive wizard with recipe selection
+/recipe                          # Interactive wizard with recipe selection
 ```
 
 ### Manual Copy
@@ -190,7 +190,7 @@ npx configurator deploy --url=$URL --token=$TOKEN
 
 ### Option 2: Via Setup Wizard
 
-Run `/configurator-setup` and select "Use template" when prompted.
+Run `/recipe` and select "Use template" when prompted.
 
 ### Option 3: Merge with Existing
 
@@ -212,3 +212,11 @@ To create your own recipe:
 2. **Customize incrementally**: Change one thing at a time
 3. **Test often**: Deploy to staging first
 4. **Document changes**: Track what you modified from the recipe
+
+## See Also
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`product-modeling`** - Product type design and attribute selection
+- **`saleor-domain`** - Entity relationships and Saleor concepts

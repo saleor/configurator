@@ -1,6 +1,6 @@
 ---
 name: config-review
-description: Expert Saleor configuration reviewer that analyzes config.yml for schema compliance, reference integrity, best practices, and common mistakes. This agent should be invoked proactively after /configurator-setup, /configurator-edit, or /configurator-import complete, or when the user explicitly requests configuration review.
+description: Expert Saleor configuration reviewer that analyzes config.yml for schema compliance, reference integrity, best practices, and common mistakes. This agent should be invoked proactively after /recipe, /configurator edit, or /configurator-import complete, or when the user explicitly requests configuration review.
 
 <example>
 Context: User has made changes to their config.yml and wants validation before deployment.
@@ -12,7 +12,7 @@ User explicitly requested pre-deployment validation. The config-review agent pro
 </example>
 
 <example>
-Context: The assistant has just completed /configurator-setup and generated a new config.yml.
+Context: The assistant has just completed /recipe and generated a new config.yml.
 assistant: "Setup complete! Now I'll use the config-review agent to validate the generated configuration and catch any issues before you deploy."
 <commentary>
 Proactive invocation after setup completion. Always review generated configurations to ensure quality before the user attempts deployment.
@@ -98,7 +98,7 @@ Read the config.yml file to understand the current state:
 cat config.yml
 ```
 
-If the file doesn't exist, inform the user and suggest running `/configurator-setup`.
+If the file doesn't exist, inform the user and suggest running `/configurator init`.
 
 ### Step 2: Schema Validation
 
@@ -243,7 +243,7 @@ NEXT STEPS
 1. Fix X critical issues (deployment will fail otherwise)
 2. Address Y high-priority issues for best practices
 3. Review Z medium-priority suggestions
-4. Run /configurator-validate after fixes
+4. Run /configurator validate after fixes
 5. Deploy with: npx configurator deploy --dry-run first
 ```
 

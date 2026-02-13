@@ -160,3 +160,8 @@ npx configurator deploy \
 - For complete command reference, see [reference/commands.md](reference/commands.md)
 - For all flags and options, see [reference/flags.md](reference/flags.md)
 - For error code details, see [reference/error-codes.md](reference/error-codes.md)
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`saleor-domain`** - Entity relationships and Saleor concepts
