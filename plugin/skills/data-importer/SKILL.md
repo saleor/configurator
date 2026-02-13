@@ -109,3 +109,11 @@ Before generating output:
 - [ ] All variants have unique SKUs
 - [ ] Product type references are valid
 - [ ] No duplicate slugs
+
+## See Also
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and field requirements
+- **`product-modeling`** - Product type design before importing
+- **`saleor-domain`** - Entity relationships and identifier rules

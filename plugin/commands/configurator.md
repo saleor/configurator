@@ -1,7 +1,7 @@
 ---
 name: configurator
 description: Core Saleor configuration operations - initialize, validate, edit, and review your config.yml
-allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Grep, Glob, Task
+allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Grep, Glob, TaskCreate, TaskUpdate, TaskList
 argument-hint: [init|validate|edit|review] [options]
 ---
 

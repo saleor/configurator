@@ -3,7 +3,6 @@ name: configurator-model
 description: Interactive wizard for designing product types, custom entities (Models), and catalog organization by analyzing your business and guiding modeling decisions
 allowed-tools: Read, Write, Edit, AskUserQuestion, Glob, TaskCreate, TaskUpdate, TaskList
 argument-hint: [description]
-disable-model-invocation: true
 ---
 
 # Domain Modeling Wizard
@@ -470,3 +469,10 @@ Examples:
 - `examples/electronics-product-types.yml`
 - `examples/perfume-store-models.yml` - Models with REFERENCE attributes
 - `examples/navigation-structures.yml` - Menu configurations
+
+## Related Commands
+
+- `/configurator validate` - Validate generated product types
+- `/configurator-import` - Import product data using modeled types
+- `/recipe` - Apply pre-built store templates
+- `/configurator-fix` - Fix issues in configuration

@@ -1,7 +1,8 @@
 ---
 name: product-modeling
 version: 2.0.0
-description: This skill should be used when the user asks "how do I model my products?", "what attributes should I use?", "product vs variant attributes", "when to use dropdown vs multiselect", "how to structure my product types", "attribute type selection", "variant matrix design", "when to use Models vs Attributes", "how to create custom entities", "Categories vs Collections", "navigation structure", "Structures (Menus)", or needs guidance on designing their Saleor catalog. Provides decision frameworks for products, Models (Pages), Structures (Menus), Categories, and Collections.
+description: This skill should be invoked when the user asks "how do I model my products?", "what attributes should I use?", "product vs variant attributes", "when to use dropdown vs multiselect", "how to structure my product types", "attribute type selection", "variant matrix design", "when to use Models vs Attributes", "how to create custom entities", "Categories vs Collections", "navigation structure", "Structures (Menus)", or needs guidance on designing their Saleor catalog. Provides decision frameworks for products, Models (Pages), Structures (Menus), Categories, and Collections.
+allowed-tools: Read, Glob
 ---
 
 # Saleor Domain Modeling

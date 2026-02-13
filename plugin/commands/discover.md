@@ -1,7 +1,7 @@
 ---
 name: discover
-description: Generate Saleor configuration by exploring your existing website with chrome-devtools - analyze business context and translate website state to config
-allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob, Grep, Task
+description: Generate Saleor configuration by analyzing your existing website or introspecting a live Saleor instance
+allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob, Grep, TaskCreate, TaskUpdate, TaskList
 argument-hint: [url] [--introspect]
 ---
 

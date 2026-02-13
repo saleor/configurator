@@ -212,3 +212,11 @@ To create your own recipe:
 2. **Customize incrementally**: Change one thing at a time
 3. **Test often**: Deploy to staging first
 4. **Document changes**: Track what you modified from the recipe
+
+## See Also
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`product-modeling`** - Product type design and attribute selection
+- **`saleor-domain`** - Entity relationships and Saleor concepts

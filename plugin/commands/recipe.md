@@ -1,7 +1,7 @@
 ---
 name: recipe
 description: Apply pre-built Saleor store recipes with smart defaults - fashion, electronics, food, subscriptions, and more
-allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob, Task
+allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob, TaskCreate, TaskUpdate, TaskList
 argument-hint: [type] [--url=...] [--token=...] [--customize]
 ---
 
