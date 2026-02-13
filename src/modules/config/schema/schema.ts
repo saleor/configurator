@@ -5,6 +5,7 @@ import {
   referencedAttributeSchema,
   simpleAttributeSchema,
 } from "./attribute.schema";
+import { contentAttributeSchema, productAttributeSchema } from "./global-attributes.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -892,6 +893,18 @@ export const configSchema = z
       .optional()
       .describe(
         "Tax class definitions that specify tax rates per country. Tax classes can be assigned to products, product types, and shipping methods to control tax calculation"
+      ),
+    productAttributes: z
+      .array(productAttributeSchema)
+      .optional()
+      .describe(
+        "Product attributes (PRODUCT_TYPE in Saleor API) that can be referenced by productTypes. These are created before productTypes are processed."
+      ),
+    contentAttributes: z
+      .array(contentAttributeSchema)
+      .optional()
+      .describe(
+        "Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed."
       ),
     productTypes: z
       .array(productTypeSchema)

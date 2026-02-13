@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../../../modules/attribute/attribute-cache";
 import type { SaleorConfigurator } from "../../configurator";
 import { DeploymentPipeline } from "../pipeline";
 import type { DeploymentContext, DeploymentStage } from "../types";
@@ -25,6 +26,7 @@ describe("DeploymentPipeline", () => {
       },
       summary: { totalChanges: 0, creates: 0, updates: 0, deletes: 0, results: [] },
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
     };
   });
 

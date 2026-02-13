@@ -29,6 +29,8 @@ export abstract class BaseDiffFormatter {
     const order: readonly EntityType[] = [
       "Channels",
       "Attributes",
+      "Product Attributes",
+      "Content Attributes",
       "Product Types",
       "Page Types",
       "Models",

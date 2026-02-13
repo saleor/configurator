@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../../../modules/attribute/attribute-cache";
 import type { SaleorConfigurator } from "../../configurator";
 import {
   categoriesStage,
@@ -33,7 +34,7 @@ describe("Deployment Stages", () => {
       services: mockServices,
     } as unknown as SaleorConfigurator;
 
-    return {
+    const base = {
       configurator: mockConfigurator,
       args: {
         url: "test",
@@ -55,8 +56,14 @@ describe("Deployment Stages", () => {
         results: [{ entityType: "Shop Settings", entityName: "Shop", operation: "UPDATE" }],
       },
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
       ...overrides,
     };
+    // Ensure attributeCache is always present
+    return {
+      ...base,
+      attributeCache: base.attributeCache ?? new AttributeCache(),
+    } as DeploymentContext;
   };
 
   describe("validationStage", () => {
@@ -107,9 +114,10 @@ describe("Deployment Stages", () => {
 
       await productTypesStage.execute(context);
 
-      expect(context.configurator.services.productType.bootstrapProductType).toHaveBeenCalledWith({
-        name: "Test Type",
-      });
+      expect(context.configurator.services.productType.bootstrapProductType).toHaveBeenCalledWith(
+        { name: "Test Type" },
+        { attributeCache: context.attributeCache }
+      );
     });
 
     it("skips when no product type changes and no product changes", () => {

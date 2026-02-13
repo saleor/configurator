@@ -299,6 +299,8 @@ export class DiffService {
       ["shop", new ShopComparator() as EntityComparator],
       ["channels", new ChannelComparator() as EntityComparator],
       ["attributes", new AttributesComparator() as EntityComparator],
+      ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
+      ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator

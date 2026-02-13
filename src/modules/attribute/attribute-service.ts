@@ -1,5 +1,11 @@
+import {
+  AttributeNotFoundError,
+  findSimilarNames,
+  WrongAttributeTypeError,
+} from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
 import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
+import type { AttributeCache, CachedAttribute } from "./attribute-cache";
 import { AttributeValidationError } from "./errors";
 import type {
   Attribute,
@@ -291,4 +297,83 @@ export class AttributeService {
 
     return { successful, failed };
   }
+}
+
+/**
+ * Result of attribute reference validation.
+ */
+export interface AttributeValidationResult {
+  valid: boolean;
+  attribute?: CachedAttribute;
+  error?: AttributeNotFoundError | WrongAttributeTypeError;
+}
+
+/**
+ * Validates an attribute reference using the AttributeCache.
+ *
+ * Validation flow:
+ * 1. Check if attribute exists in expected section (product/content)
+ * 2. If not found, check if it exists in the wrong section
+ * 3. If not found anywhere, find similar names for suggestions
+ *
+ * @param attributeName - The name of the attribute being referenced
+ * @param expectedSection - Whether this is a product or content attribute reference
+ * @param referencingEntityType - The type of entity making the reference (productTypes/modelTypes)
+ * @param referencingEntityName - The name of the entity making the reference
+ * @param cache - The AttributeCache to validate against
+ * @returns Validation result with attribute if valid, or error if invalid
+ */
+export function validateAttributeReference(
+  attributeName: string,
+  expectedSection: "product" | "content",
+  referencingEntityType: "productTypes" | "modelTypes",
+  referencingEntityName: string,
+  cache: AttributeCache
+): AttributeValidationResult {
+  // Step 1: Check if attribute exists in expected section
+  const expectedSectionName =
+    expectedSection === "product" ? "productAttributes" : "contentAttributes";
+  const attr =
+    expectedSection === "product"
+      ? cache.getProductAttribute(attributeName)
+      : cache.getContentAttribute(attributeName);
+
+  if (attr) {
+    return { valid: true, attribute: attr };
+  }
+
+  // Step 2: Check if attribute exists in wrong section
+  const wrongSectionResult = cache.findAttributeInWrongSection(attributeName, expectedSection);
+  if (wrongSectionResult.found) {
+    const foundInSection =
+      wrongSectionResult.actualSection === "product" ? "productAttributes" : "contentAttributes";
+    return {
+      valid: false,
+      error: new WrongAttributeTypeError(
+        attributeName,
+        foundInSection as "productAttributes" | "contentAttributes",
+        expectedSectionName as "productAttributes" | "contentAttributes",
+        referencingEntityType,
+        referencingEntityName
+      ),
+    };
+  }
+
+  // Step 3: Attribute not found anywhere - find similar names
+  const allNames =
+    expectedSection === "product"
+      ? cache.getAllProductAttributeNames()
+      : cache.getAllContentAttributeNames();
+  const similarNames = findSimilarNames(attributeName, allNames);
+
+  return {
+    valid: false,
+    error: new AttributeNotFoundError(
+      attributeName,
+      expectedSectionName as "productAttributes" | "contentAttributes",
+      referencingEntityType,
+      referencingEntityName,
+      similarNames
+    ),
+  };
 }

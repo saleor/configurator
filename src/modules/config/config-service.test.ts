@@ -440,18 +440,20 @@ describe("ConfigurationService", () => {
 
       const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
       const result = await service.retrieveWithoutSaving();
-      // All attribute definitions should live under top-level attributes
-      expect(result.attributes).toBeDefined();
-      expect(result.attributes).toHaveLength(2);
+      // PRODUCT_TYPE attributes now live under productAttributes section
+      expect(result.productAttributes).toBeDefined();
+      expect(result.productAttributes).toHaveLength(2);
       // First is dropdown with values
-      expect(result.attributes?.[0]).toHaveProperty("values");
+      expect(result.productAttributes?.[0]).toHaveProperty("values");
       // Second is plain text without values
-      expect(result.attributes?.[1]).not.toHaveProperty("values");
+      expect(result.productAttributes?.[1]).not.toHaveProperty("values");
       // Product type attributes should become references
       const ptAttrs = result.productTypes?.[0]?.productAttributes as unknown[];
       expect(ptAttrs).toBeDefined();
       expect(ptAttrs?.length).toBe(2);
-      expect(ptAttrs?.every((a) => typeof (a as any).attribute === "string")).toBe(true);
+      expect(
+        ptAttrs?.every((a) => typeof (a as Record<string, unknown>).attribute === "string")
+      ).toBe(true);
     });
   });
 
