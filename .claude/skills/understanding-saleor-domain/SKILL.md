@@ -1,53 +1,41 @@
 ---
 name: understanding-saleor-domain
-description: "Explains Saleor e-commerce domain and Configurator business rules. Covers entity identification (slug vs name), deployment pipeline stages, and configuration schema. Triggers on: entity types, deployment pipeline, config schema, slug identification, categories, products, channels, YAML configuration."
+description: "Explains Saleor e-commerce domain and Configurator business rules. Use when working with entity identification (slug vs name), YAML config structure, entity relationships, deployment pipeline stages, or synchronization logic. Do NOT use for general TypeScript questions or non-Saleor e-commerce platforms."
 allowed-tools: "Read, Grep, Glob, Bash(pnpm:*), Bash(git:*), Bash(ls:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Saleor Domain Expert
 
-## Purpose
+## Overview
 
-Provide deep domain knowledge about the Saleor e-commerce platform and the Configurator's business logic for entity management, configuration, deployment, and synchronization.
+Deep domain knowledge about the Saleor e-commerce platform and the Configurator's business logic for entity management, configuration, deployment, and synchronization.
 
 ## When to Use
 
 - Implementing new entity types or features
-- Understanding entity identification patterns
+- Understanding entity identification patterns (slug vs name)
 - Working with deployment pipeline stages
 - Debugging configuration synchronization issues
 - Understanding business rules and constraints
 
-## Table of Contents
+## Quick Reference
 
-- [Core Concepts](#core-concepts)
-- [Entity Identification System](#entity-identification-system)
-  - [Slug-Based Entities](#slug-based-entities)
-  - [Name-Based Entities](#name-based-entities)
-  - [Singleton Entities](#singleton-entities)
-- [Deployment Pipeline](#deployment-pipeline)
-- [Configuration Schema](#configuration-schema)
-- [Bulk Operations](#bulk-operations)
-- [Diff & Comparison Logic](#diff--comparison-logic)
-- [Common Patterns](#common-patterns)
-- [References](#references)
+| CLI Command | Purpose |
+|-------------|---------|
+| `pnpm dev introspect` | Download remote config to local YAML |
+| `pnpm dev deploy` | Apply local YAML to remote Saleor |
+| `pnpm dev diff` | Compare local vs remote config |
+| `pnpm dev start` | Interactive first-time setup |
 
 ## Core Concepts
 
-### What is Saleor Configurator?
-
-A "commerce as code" CLI tool that enables declarative configuration management for Saleor e-commerce platforms. It allows developers to:
-
-1. **Introspect**: Download remote Saleor configuration to local YAML files
-2. **Deploy**: Apply local YAML configuration to remote Saleor instance
-3. **Diff**: Compare local and remote configurations
-4. **Start**: Interactive wizard for first-time setup
-
-### Configuration as Code Philosophy
-
-- Single source of truth for store state
-- Version-controlled configuration (YAML in git)
-- Reproducible deployments across environments
+A "commerce as code" CLI tool for declarative configuration management of Saleor e-commerce platforms:
+- Single source of truth for store state (YAML in git)
+- Version-controlled, reproducible deployments
 - Declarative over imperative management
 
 ## Entity Identification System
@@ -56,229 +44,77 @@ A "commerce as code" CLI tool that enables declarative configuration management 
 
 ### Slug-Based Entities
 
-Identified by `slug` field. Used for entities that need URL-friendly identifiers.
+Identified by `slug` field (URL-friendly identifiers):
 
-| Entity | Identifier Field | Example |
-|--------|------------------|---------|
-| Categories | `slug` | `electronics` |
-| Channels | `slug` | `default-channel` |
-| Collections | `slug` | `summer-sale` |
-| Menus | `slug` | `main-navigation` |
-| Products | `slug` | `iphone-15-pro` |
-| Warehouses | `slug` | `us-east-warehouse` |
-
-**Implementation Pattern**:
-```typescript
-// Comparison uses slug
-const isSameEntity = (local: Category, remote: Category) =>
-  local.slug === remote.slug;
-
-// Lookups use slug
-const existing = await repository.findBySlug(entity.slug);
-```
+| Entity | Example |
+|--------|---------|
+| Categories | `electronics` |
+| Channels | `default-channel` |
+| Collections | `summer-sale` |
+| Menus | `main-navigation` |
+| Products | `iphone-15-pro` |
+| Warehouses | `us-east-warehouse` |
 
 ### Name-Based Entities
 
-Identified by `name` field. Used for internal configuration entities.
+Identified by `name` field (internal configuration):
 
-| Entity | Identifier Field | Example |
-|--------|------------------|---------|
-| ProductTypes | `name` | `Physical Product` |
-| PageTypes | `name` | `Blog Post` |
-| TaxClasses | `name` | `Standard Rate` |
-| ShippingZones | `name` | `North America` |
-| Attributes | `name` | `Color` |
-
-**Implementation Pattern**:
-```typescript
-// Comparison uses name
-const isSameEntity = (local: ProductType, remote: ProductType) =>
-  local.name === remote.name;
-```
+| Entity | Example |
+|--------|---------|
+| ProductTypes | `Physical Product` |
+| PageTypes | `Blog Post` |
+| TaxClasses | `Standard Rate` |
+| ShippingZones | `North America` |
+| Attributes | `Color` |
 
 ### Singleton Entities
 
-Only one instance exists. No identifier needed.
-
-| Entity | Notes |
-|--------|-------|
-| Shop | Global store settings |
+Only one instance exists (no identifier needed): **Shop** (global store settings).
 
 ## Deployment Pipeline
 
-### Stage Order (Dependencies)
-
-Stages execute in specific order due to dependencies:
+### Stage Order (Dependencies Matter)
 
 ```
-1. Validation       → Pre-flight checks
-2. Shop Settings    → Global configuration
-3. Product Types    → Must exist before products
-4. Page Types       → Must exist before pages
-5. Attributes       → Used by product/page types
-6. Categories       → Product organization
-7. Collections      → Product groupings
-8. Warehouses       → Required for inventory
-9. Shipping Zones   → Geographic shipping rules
-10. Products        → Depends on types, categories
-11. Tax Config      → Tax rules and classes
-12. Channels        → Sales channels
-13. Menus           → Navigation (may reference products)
-14. Models          → Custom data models
+1. Validation       -> Pre-flight checks
+2. Shop Settings    -> Global configuration
+3. Product Types    -> Must exist before products
+4. Page Types       -> Must exist before pages
+5. Attributes       -> Used by product/page types
+6. Categories       -> Product organization
+7. Collections      -> Product groupings
+8. Warehouses       -> Required for inventory
+9. Shipping Zones   -> Geographic shipping rules
+10. Products        -> Depends on types, categories
+11. Tax Config      -> Tax rules and classes
+12. Channels        -> Sales channels
+13. Menus           -> Navigation (may reference products)
+14. Models          -> Custom data models
 ```
 
-### Why Order Matters
-
-**Example**: Cannot create a Product without its ProductType existing first.
-
-```yaml
-# This product depends on "Physical Product" type
-products:
-  - name: "iPhone 15"
-    slug: "iphone-15"
-    productType: "Physical Product"  # Must exist!
-```
+**Key dependency**: Cannot create a Product without its ProductType existing first.
 
 ### Stage Execution Pattern
 
-Each stage follows:
-1. **Fetch**: Get current remote state
-2. **Compare**: Diff local vs remote
-3. **Plan**: Determine creates/updates/deletes
-4. **Execute**: Apply changes with chunking
-5. **Report**: Log results and failures
+Each stage follows: Fetch remote state -> Compare local vs remote -> Plan creates/updates/deletes -> Execute with chunking -> Report results.
 
 ## Configuration Schema
 
-### Top-Level Structure
-
-```yaml
-shop:
-  # Global store settings
-
-channels:
-  # Sales channel definitions
-
-taxClasses:
-  # Tax rate classifications
-
-productTypes:
-  # Product type templates
-
-pageTypes:
-  # CMS page templates
-
-attributes:
-  # Shared attribute definitions
-
-categories:
-  # Product category hierarchy
-
-collections:
-  # Dynamic product collections
-
-warehouses:
-  # Fulfillment center definitions
-
-shippingZones:
-  # Geographic shipping configurations
-
-products:
-  # Product catalog
-
-menus:
-  # Navigation menu structures
-
-models:
-  # Custom data models
-```
-
-### Attribute Types
-
-Attributes can be of various types:
-
-| Type | Description | Example Values |
-|------|-------------|----------------|
-| `DROPDOWN` | Single select | `["Red", "Blue", "Green"]` |
-| `MULTISELECT` | Multiple select | `["Feature A", "Feature B"]` |
-| `RICH_TEXT` | HTML content | Rich text editor |
-| `PLAIN_TEXT` | Simple text | Text input |
-| `BOOLEAN` | True/false | Checkbox |
-| `DATE` | Date picker | `2024-01-15` |
-| `DATE_TIME` | Date and time | `2024-01-15T10:30:00` |
-| `NUMERIC` | Numbers | `42.5` |
-| `SWATCH` | Color/image swatch | Color picker |
-| `FILE` | File upload | Document/image |
-| `REFERENCE` | Entity reference | Links to other entities |
-
-**Reference Attributes** (Special):
-```yaml
-attributes:
-  - name: "Related Products"
-    type: REFERENCE
-    entityType: PRODUCT  # Must specify what it references
-```
+Top-level keys: `shop`, `channels`, `taxClasses`, `productTypes`, `pageTypes`, `attributes`, `categories`, `collections`, `warehouses`, `shippingZones`, `products`, `menus`, `models`. See `designing-zod-schemas` skill and `src/modules/config/schema/schema.ts` for full schema details.
 
 ## Bulk Operations
 
-### Chunking Strategy
-
-Large operations are chunked to avoid timeouts and rate limits:
-
-```typescript
-const CHUNK_SIZE = 50; // Default chunk size
-const chunks = splitIntoChunks(items, CHUNK_SIZE);
-
-for (const chunk of chunks) {
-  await processChunk(chunk);
-  // Rate limiting handled by urql retry exchange
-}
-```
-
-### Rate Limit Handling
-
-The GraphQL client handles HTTP 429 automatically:
-- Exponential backoff with jitter
-- Max 5 retries
-- Network error recovery
+Large operations are chunked (default: 50 items per chunk) to avoid timeouts. The GraphQL client handles HTTP 429 automatically with exponential backoff (max 5 retries).
 
 ## Diff & Comparison Logic
 
 ### Comparison Dimensions
 
-For each entity type, comparison checks:
-1. **Existence**: Does entity exist remotely?
-2. **Equality**: Are all relevant fields equal?
-3. **Children**: Are nested structures equal?
+For each entity type: **Existence** (does it exist remotely?), **Equality** (are fields equal?), **Children** (are nested structures equal?).
 
 ### Diff Result Types
 
-```typescript
-type DiffAction = 'create' | 'update' | 'delete' | 'unchanged';
-
-interface DiffResult<T> {
-  action: DiffAction;
-  local?: T;
-  remote?: T;
-  changes?: FieldChange[];
-}
-```
-
-### Comparator Pattern
-
-Each entity has a dedicated comparator:
-
-```typescript
-// src/core/diff/comparators/category-comparator.ts
-export const compareCategorys = (
-  local: Category[],
-  remote: Category[]
-): DiffResult<Category>[] => {
-  // Match by slug
-  // Compare relevant fields
-  // Return diff results
-};
-```
+Actions: `create`, `update`, `delete`, `unchanged`. Each entity has a dedicated comparator (e.g., `src/core/diff/comparators/category-comparator.ts`) that matches by slug or name.
 
 ## Common Patterns
 
@@ -291,27 +127,24 @@ export const compareCategorys = (
 5. Add deployment stage in pipeline
 6. Update schema documentation
 
-### Handling Entity Dependencies
+## Common Mistakes
 
-```typescript
-// Check dependency exists before creating
-const productType = await productTypeRepository.findByName(product.productType);
-if (!productType) {
-  throw new EntityDependencyError(
-    `ProductType "${product.productType}" not found`
-  );
-}
-```
+| Mistake | Fix |
+|---------|-----|
+| Wrong identification strategy | Check entity table: slug-based vs name-based |
+| Creating entity before dependency | Follow deployment pipeline order |
+| Missing chunking for bulk ops | Use `splitIntoChunks()` with default chunk size |
+| Not handling rate limits | Use urql retry exchange (built-in) |
 
 ## References
 
 For detailed information, see:
-- `{baseDir}/.claude/skills/saleor-domain-expert/references/entity-identification.md` - Complete entity identification rules
-- `{baseDir}/.claude/skills/saleor-domain-expert/references/deployment-stages.md` - Pipeline stage details
-- `{baseDir}/.claude/skills/saleor-domain-expert/references/schema-patterns.md` - YAML configuration patterns
-- `{baseDir}/docs/ENTITY_REFERENCE.md` - Full entity documentation
-- `{baseDir}/docs/ARCHITECTURE.md` - System architecture
-- `{baseDir}/src/modules/config/schema/schema.ts` - Zod schema definitions
+- `understanding-saleor-domain/references/entity-identification.md` - Complete entity identification rules
+- `understanding-saleor-domain/references/deployment-stages.md` - Pipeline stage details
+- `understanding-saleor-domain/references/schema-patterns.md` - YAML configuration patterns
+- `docs/ENTITY_REFERENCE.md` - Full entity documentation
+- `docs/ARCHITECTURE.md` - System architecture
+- `src/modules/config/schema/schema.ts` - Zod schema definitions
 
 ## Related Skills
 

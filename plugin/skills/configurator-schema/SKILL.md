@@ -1,72 +1,60 @@
 ---
 name: configurator-schema
-version: 1.0.0
-description: Provides detailed documentation of the Saleor Configurator config.yml schema and structure. This skill should be invoked when the user needs help with YAML configuration structure, entity schemas, validation rules, field requirements, or understanding the difference between slug-based and name-based entity identification. Covers all entity types including channels, products, categories, and attributes.
+version: 2.0.0
+description: "Config.yml schema, entity structure, and validation rules. Use when asking about YAML format, required fields, entity identification, or config validation errors. Do NOT use for general YAML questions unrelated to Saleor Configurator."
 allowed-tools: Read, Grep, Glob
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Configurator Schema
 
-The `config.yml` file defines your Saleor store configuration in a declarative YAML format.
+## Overview
+
+Your store configuration lives in a single `config.yml` file. Each section defines a type of entity (channels, products, categories, etc.) using a declarative YAML format that Configurator syncs with your Saleor instance.
+
+## When to Use
+
+- "What does config.yml look like?"
+- "What fields are required for a product/channel/category?"
+- "Why is my config failing validation?"
+- "What's the difference between slug-based and name-based entities?"
+- "How do I reference one entity from another?"
+- When NOT designing product types or choosing attributes -- use `product-modeling` instead
 
 ## File Structure
 
 ```yaml
 # config.yml - Top-level structure
-shop:
-  # Store-wide settings (singleton)
-
-channels:
-  # Sales channels (slug-based)
-
-productTypes:
-  # Product type definitions (name-based)
-
-attributes:
-  # Attribute definitions (name-based)
-
-categories:
-  # Category hierarchy (slug-based)
-
-collections:
-  # Product collections (slug-based)
-
-products:
-  # Product definitions (slug-based)
-
-taxClasses:
-  # Tax classifications (name-based)
-
-shippingZones:
-  # Shipping zone definitions (name-based)
-
-warehouses:
-  # Warehouse definitions (slug-based)
-
-menus:
-  # Navigation menus (slug-based)
-
-pageTypes:
-  # Page type definitions (name-based)
-
-pages:
-  # Content pages (slug-based)
+shop:           # Store-wide settings (singleton)
+channels:       # Sales channels (slug-based)
+productTypes:   # Product type definitions (name-based)
+attributes:     # Attribute definitions (name-based)
+categories:     # Category hierarchy (slug-based)
+collections:    # Product collections (slug-based)
+products:       # Product definitions (slug-based)
+taxClasses:     # Tax classifications (name-based)
+shippingZones:  # Shipping zone definitions (name-based)
+warehouses:     # Warehouse definitions (slug-based)
+menus:          # Navigation menus (slug-based)
+pageTypes:      # Page type definitions (name-based)
+pages:          # Content pages (slug-based)
 ```
 
 ## Entity Identification
 
-Entities are identified by either `slug` or `name`:
+Configurator matches your local config to remote entities using an identifier field. This is either `slug` or `name` depending on entity type:
 
 | Identifier | Entity Types |
 |------------|-------------|
 | **slug** | channels, categories, collections, products, warehouses, menus, pages |
 | **name** | productTypes, pageTypes, attributes, taxClasses, shippingZones |
 
-**Important**: The identifier field is how Configurator matches local config to remote entities. Changing a slug/name creates a new entity.
+**Important**: Changing a slug or name creates a NEW entity instead of updating the existing one.
 
-## Common Entity Patterns
+## Common Entity Examples
 
-### Channel (slug-based)
+### Channel
 
 ```yaml
 channels:
@@ -77,7 +65,7 @@ channels:
     isActive: true
 ```
 
-### Product Type (name-based)
+### Product Type
 
 ```yaml
 productTypes:
@@ -86,49 +74,15 @@ productTypes:
     productAttributes:
       - name: "Brand"
         type: DROPDOWN
-        values:
-          - name: "Nike"
-          - name: "Adidas"
     variantAttributes:
       - name: "Size"
         type: DROPDOWN
-        values:
-          - name: "S"
-          - name: "M"
-          - name: "L"
+        values: [{ name: "S" }, { name: "M" }, { name: "L" }]
       - name: "Color"
         type: SWATCH
 ```
 
-### Category (slug-based, hierarchical)
-
-```yaml
-categories:
-  - name: "Electronics"
-    slug: "electronics"
-    children:
-      - name: "Phones"
-        slug: "phones"
-      - name: "Laptops"
-        slug: "laptops"
-```
-
-### Attribute (name-based)
-
-```yaml
-attributes:
-  - name: "Color"
-    type: SWATCH
-    inputType: DROPDOWN
-    valueRequired: true
-    values:
-      - name: "Red"
-        value: "#FF0000"
-      - name: "Blue"
-        value: "#0000FF"
-```
-
-### Product (slug-based)
+### Product
 
 ```yaml
 products:
@@ -136,12 +90,6 @@ products:
     slug: "classic-t-shirt"
     productType: "T-Shirt"
     category: "clothing/t-shirts"
-    description: "A comfortable cotton t-shirt"
-    channelListings:
-      - channel: "us-store"
-        isPublished: true
-        isAvailableForPurchase: true
-        visibleInListings: true
     variants:
       - sku: "TSHIRT-S-RED"
         attributes:
@@ -152,66 +100,65 @@ products:
             price: 29.99
 ```
 
+### Category (hierarchical)
+
+```yaml
+categories:
+  - name: "Electronics"
+    slug: "electronics"
+    children:
+      - name: "Phones"
+        slug: "phones"
+```
+
 ## Attribute Types
 
-| Type | Description | Example Use |
-|------|-------------|-------------|
-| DROPDOWN | Single-select from predefined values | Size, Brand |
-| MULTISELECT | Multi-select from predefined values | Features, Tags |
-| RICH_TEXT | Formatted text content | Description |
-| PLAIN_TEXT | Simple text input | SKU prefix |
-| NUMERIC | Number values | Weight, Rating |
-| BOOLEAN | True/false toggle | Is Featured |
-| DATE | Date picker | Release Date |
-| DATE_TIME | Date and time picker | Event Time |
-| SWATCH | Color/pattern swatch | Color |
-| FILE | File upload | Manual PDF |
-| REFERENCE | Reference to another entity | Related Products |
+Saleor supports these attribute input types: DROPDOWN, MULTISELECT, SWATCH, BOOLEAN, PLAIN_TEXT, RICH_TEXT, NUMERIC, DATE, DATE_TIME, FILE, REFERENCE.
+
+For detailed guidance on choosing the right type, see the `product-modeling` skill.
 
 ## Validation Rules
 
-1. **Required fields**: Each entity type has required fields (e.g., channels need `name`, `slug`, `currencyCode`)
-
-2. **Unique identifiers**: Slugs/names must be unique within their entity type
-
-3. **Valid references**: References to other entities must exist (e.g., product's `productType` must match a defined product type name)
-
-4. **Currency codes**: Must be valid ISO 4217 codes (USD, EUR, GBP, etc.)
-
-5. **Country codes**: Must be valid ISO 3166-1 alpha-2 codes (US, DE, GB, etc.)
+1. **Required fields** -- each entity type has required fields (e.g., channels need `name`, `slug`, `currencyCode`)
+2. **Unique identifiers** -- slugs/names must be unique within their entity type
+3. **Valid references** -- cross-entity references must match (e.g., a product's `productType` must match a defined product type name)
+4. **Currency codes** -- valid ISO 4217 (USD, EUR, GBP, etc.)
+5. **Country codes** -- valid ISO 3166-1 alpha-2 (US, DE, GB, etc.)
 
 ## Entity Dependencies
 
-Entities must be defined in dependency order:
+Entities depend on each other and must exist in the right order:
 
 ```
-Level 0 (Independent):
-  shop, channels, productTypes, pageTypes, taxClasses, shippingZones
-
-Level 1 (Depends on Level 0):
-  categories, warehouses, attributes
-
-Level 2 (Depends on Level 1):
-  collections, pages
-
-Level 3 (Depends on Level 2):
-  products, menus
+Level 0 (independent):  shop, channels, productTypes, pageTypes, taxClasses, shippingZones
+Level 1 (needs L0):     categories, warehouses, attributes
+Level 2 (needs L1):     collections, pages
+Level 3 (needs L2):     products, menus
 ```
 
-**Deploy order**: Configurator automatically handles deployment order, but understanding dependencies helps when troubleshooting validation errors.
+Configurator handles deployment order automatically, but understanding dependencies helps when troubleshooting validation errors.
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Changing a slug or name to "rename" an entity | This creates a new entity. To rename, delete the old one and create new. |
+| Duplicate slugs within an entity type | Each slug must be unique. Check for copy-paste errors. |
+| Product references a nonexistent productType | The `productType` field must exactly match a `name` in your `productTypes` section. |
+| Missing required fields | Check the error message -- it tells you which field is missing. |
+| Products defined before their productType | Not a YAML order issue (Configurator handles order), but the referenced type must exist in the file. |
 
 ## Best Practices
 
-1. **Use meaningful slugs**: `womens-summer-dresses` not `cat-123`
-2. **Consistent naming**: Match display names to slugs when possible
-3. **Comment complex sections**: Use YAML comments for documentation
-4. **Version control**: Track config.yml in git
-5. **Environment-specific configs**: Use separate files for staging/production
+1. **Use meaningful slugs** -- `womens-summer-dresses` not `cat-123`
+2. **Consistent naming** -- match display names to slugs when possible
+3. **Comment complex sections** -- use YAML comments for documentation
+4. **Version control** -- track config.yml in git
 
 ## See Also
 
-- For complete schema documentation, see [reference/schema.md](reference/schema.md)
-- For example configurations, see [reference/examples.md](reference/examples.md)
+- For complete schema documentation, see [references/schema.md](references/schema.md)
+- For example configurations, see [references/examples.md](references/examples.md)
 
 ### Related Skills
 
