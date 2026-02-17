@@ -1,26 +1,48 @@
 import { writeFile } from "node:fs/promises";
 import type { DiffResult, DiffSummary } from "../diff";
-import type { DeploymentMetrics } from "./types";
+import type { DeploymentMetrics, StageResilienceMetrics } from "./types";
+
+/**
+ * Empty resilience metrics used as default when no metrics are available
+ */
+const EMPTY_RESILIENCE_METRICS: StageResilienceMetrics = {
+  rateLimitHits: 0,
+  retryAttempts: 0,
+  graphqlErrors: 0,
+  networkErrors: 0,
+};
+
+/** Summary of resilience metrics for the entire deployment */
+type ResilienceSummary = StageResilienceMetrics;
+
+/** Resilience metrics for a single stage */
+type StageResilienceReport = StageResilienceMetrics;
 
 export interface DeploymentReport {
   timestamp: string;
-  duration: {
-    totalMs: number;
-    formatted: string;
+
+  summary: {
+    status: "success" | "partial" | "failed";
+    duration: {
+      totalMs: number;
+      formatted: string;
+    };
+    changes: {
+      total: number;
+      created: number;
+      updated: number;
+      deleted: number;
+    };
+    resilience: ResilienceSummary;
   };
-  startTime: string;
-  endTime: string;
+
   stages: Array<{
     name: string;
     durationMs: number;
     durationFormatted: string;
+    resilience: StageResilienceReport;
   }>;
-  summary: {
-    totalChanges: number;
-    created: number;
-    updated: number;
-    deleted: number;
-  };
+
   changes: Array<{
     entityType: string;
     entityName: string;
@@ -31,6 +53,7 @@ export interface DeploymentReport {
       newValue: unknown;
     }>;
   }>;
+
   entityCounts: Record<
     string,
     {
@@ -39,49 +62,90 @@ export interface DeploymentReport {
       deleted: number;
     }
   >;
+
+  metadata: {
+    startTime: string;
+    endTime: string;
+  };
 }
 
+/**
+ * Generates structured deployment reports for machine consumption
+ * Includes timing, changes, resilience metrics, and entity breakdowns
+ */
 export class DeploymentReportGenerator {
   constructor(
     private readonly metrics: DeploymentMetrics,
-    private readonly summary: DiffSummary
+    private readonly diffSummary: DiffSummary,
+    private readonly status: "success" | "partial" | "failed" = "success"
   ) {}
 
+  /**
+   * Generate the complete deployment report
+   * @returns Structured deployment report
+   */
   generate(): DeploymentReport {
     return {
       timestamp: new Date().toISOString(),
-      duration: {
-        totalMs: this.metrics.duration,
-        formatted: this.formatDuration(this.metrics.duration),
-      },
-      startTime: this.metrics.startTime.toISOString(),
-      endTime: this.metrics.endTime.toISOString(),
-      stages: this.formatStages(),
       summary: {
-        totalChanges: this.summary.totalChanges,
-        created: this.summary.creates,
-        updated: this.summary.updates,
-        deleted: this.summary.deletes,
+        status: this.status,
+        duration: {
+          totalMs: this.metrics.duration,
+          formatted: this.formatDuration(this.metrics.duration),
+        },
+        changes: {
+          total: this.diffSummary.totalChanges,
+          created: this.diffSummary.creates,
+          updated: this.diffSummary.updates,
+          deleted: this.diffSummary.deletes,
+        },
+        resilience: {
+          rateLimitHits: this.metrics.totalRateLimitHits,
+          retryAttempts: this.metrics.totalRetries,
+          graphqlErrors: this.metrics.totalGraphQLErrors,
+          networkErrors: this.metrics.totalNetworkErrors,
+        },
       },
+      stages: this.formatStages(),
       changes: this.formatChanges(),
       entityCounts: this.formatEntityCounts(),
+      metadata: {
+        startTime: this.metrics.startTime.toISOString(),
+        endTime: this.metrics.endTime.toISOString(),
+      },
     };
   }
 
+  /**
+   * Save the deployment report as JSON to a file
+   * @param path - File path to save the report
+   */
   async saveToFile(path: string): Promise<void> {
     const report = this.generate();
     const json = JSON.stringify(report, null, 2);
     await writeFile(path, json, "utf-8");
   }
 
-  private formatStages(): Array<{ name: string; durationMs: number; durationFormatted: string }> {
-    const stages: Array<{ name: string; durationMs: number; durationFormatted: string }> = [];
+  private formatStages(): Array<{
+    name: string;
+    durationMs: number;
+    durationFormatted: string;
+    resilience: StageResilienceReport;
+  }> {
+    const stages: Array<{
+      name: string;
+      durationMs: number;
+      durationFormatted: string;
+      resilience: StageResilienceReport;
+    }> = [];
 
     for (const [name, duration] of this.metrics.stageDurations) {
+      const resilienceMetrics = this.metrics.stageResilience.get(name);
       stages.push({
         name,
         durationMs: duration,
         durationFormatted: this.formatDuration(duration),
+        resilience: resilienceMetrics ?? EMPTY_RESILIENCE_METRICS,
       });
     }
 
@@ -94,7 +158,7 @@ export class DeploymentReportGenerator {
     operation: "CREATE" | "UPDATE" | "DELETE";
     fields?: Array<{ field: string; oldValue: unknown; newValue: unknown }>;
   }> {
-    return this.summary.results.map((result: DiffResult) => {
+    return this.diffSummary.results.map((result: DiffResult) => {
       const change: {
         entityType: string;
         entityName: string;

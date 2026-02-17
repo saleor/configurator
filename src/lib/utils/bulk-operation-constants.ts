@@ -26,6 +26,12 @@ export const BulkOperationThresholds = {
    * Below this threshold, sequential processing is used for better error granularity
    */
   PRODUCTS: 10,
+
+  /**
+   * Number of categories above which level-based parallel processing is used
+   * Below this threshold, simple sequential processing with delays is sufficient
+   */
+  CATEGORIES: 10,
 } as const;
 
 /**
@@ -43,6 +49,12 @@ export const DelayConfig = {
    * Lower than chunk delay as models are processed one at a time
    */
   MODEL_PROCESSING_DELAY_MS: 100,
+
+  /**
+   * Delay in milliseconds between processing category tree levels
+   * Applied between levels (not items) to minimize total wait time
+   */
+  CATEGORY_LEVEL_DELAY_MS: 200,
 } as const;
 
 /**
@@ -60,6 +72,12 @@ export const ChunkSizeConfig = {
    * Product types are less prone to rate limiting
    */
   PRODUCT_TYPES_CHUNK_SIZE: 10,
+
+  /**
+   * Maximum concurrent categories to create within a level
+   * Controls parallelism for sibling categories
+   */
+  CATEGORIES_CONCURRENCY: 5,
 } as const;
 
 /**

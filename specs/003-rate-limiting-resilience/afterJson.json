@@ -1,0 +1,924 @@
+{
+  "timestamp": "2026-02-05T14:11:14.904Z",
+  "summary": {
+    "status": "success",
+    "duration": {
+      "totalMs": 150157,
+      "formatted": "2m 30s"
+    },
+    "changes": {
+      "total": 93,
+      "created": 51,
+      "updated": 2,
+      "deleted": 40
+    },
+    "resilience": {
+      "rateLimitHits": 5,
+      "retryAttempts": 5,
+      "graphqlErrors": 0,
+      "networkErrors": 0
+    }
+  },
+  "stages": [
+    {
+      "name": "Validating configuration",
+      "durationMs": 18,
+      "durationFormatted": "18ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Updating shop settings",
+      "durationMs": 551,
+      "durationFormatted": "551ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing tax classes",
+      "durationMs": 270,
+      "durationFormatted": "270ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing attributes",
+      "durationMs": 866,
+      "durationFormatted": "866ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing product types",
+      "durationMs": 4819,
+      "durationFormatted": "4.8s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing channels",
+      "durationMs": 887,
+      "durationFormatted": "887ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing page types",
+      "durationMs": 579,
+      "durationFormatted": "579ms",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing categories",
+      "durationMs": 120221,
+      "durationFormatted": "2m 0s",
+      "resilience": {
+        "rateLimitHits": 5,
+        "retryAttempts": 5,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing menus",
+      "durationMs": 8872,
+      "durationFormatted": "8.9s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing warehouses",
+      "durationMs": 1304,
+      "durationFormatted": "1.3s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing shipping zones",
+      "durationMs": 2929,
+      "durationFormatted": "2.9s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Preparing attribute choices",
+      "durationMs": 1541,
+      "durationFormatted": "1.5s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    },
+    {
+      "name": "Managing products",
+      "durationMs": 7289,
+      "durationFormatted": "7.3s",
+      "resilience": {
+        "rateLimitHits": 0,
+        "retryAttempts": 0,
+        "graphqlErrors": 0,
+        "networkErrors": 0
+      }
+    }
+  ],
+  "changes": [
+    {
+      "entityType": "Shop Settings",
+      "entityName": "Shop Settings",
+      "operation": "UPDATE",
+      "fields": [
+        {
+          "field": "defaultDigitalMaxDownloads",
+          "oldValue": null,
+          "newValue": null
+        },
+        {
+          "field": "defaultDigitalUrlValidDays",
+          "oldValue": null,
+          "newValue": null
+        },
+        {
+          "field": "allowLoginWithoutConfirmation",
+          "oldValue": false,
+          "newValue": null
+        }
+      ]
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act50-product-portfolio-aud",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act50-product-portfolio-cny",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act50-product-portfolio-eur",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act50-product-portfolio-jpy",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act50-product-portfolio-sgd",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "act-product-portfolio-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "canada-b2b",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "channel-ba",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "channel-hr",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "channel-pln",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "channel-rs",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "channel-si",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "default-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "eu",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "green-project",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "mexico-b2b",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "new-test-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "test-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "test-euro-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "uae-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "uk-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "uk-store",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "us-b2b",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "us-b2c",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Channels",
+      "entityName": "us-channel",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Tire Width",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Aspect Ratio",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Wheel Diameter",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Load Index",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Speed Rating",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Tire Season",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "XL Rating",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Brand",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Vehicle Type",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Valve Type Code",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Valve Hole Diameter",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Max Pressure",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Weight Size",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Weight Material",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Weight Type",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Patch Size",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Patch Type",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Container Size",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Chemical Purpose",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Max RPM",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Attributes",
+      "entityName": "Power Source",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Car Tire",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Season"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Vehicle Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Width"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Aspect Ratio"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Wheel Diameter"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Load Index"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Speed Rating"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "XL Rating"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Motorcycle Tire",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Season"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Width"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Aspect Ratio"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Wheel Diameter"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Load Index"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Speed Rating"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "ATV Tire",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Width"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Aspect Ratio"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Wheel Diameter"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Inner Tube",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Vehicle Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Tire Width"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Wheel Diameter"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Balancing Weight",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Vehicle Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Weight Material"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Weight Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Weight Size"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Valve",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Vehicle Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Valve Type Code"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Valve Hole Diameter"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Max Pressure"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "TPMS Sensor",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Vehicle Type"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Tire Patch",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Patch Type"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Patch Size"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Chemical Product",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Chemical Purpose"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Container Size"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Tire Tool",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Power Source"
+        },
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Max RPM"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Pressure Gauge",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Inflation Equipment",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        }
+      ]
+    },
+    {
+      "entityType": "Product Types",
+      "entityName": "Service Equipment",
+      "operation": "CREATE",
+      "fields": [
+        {
+          "field": "attributes",
+          "oldValue": null,
+          "newValue": "Brand"
+        }
+      ]
+    },
+    {
+      "entityType": "Page Types",
+      "entityName": "Info Page",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Page Types",
+      "entityName": "Legal Page",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Categories",
+      "entityName": "rengastarvikkeet",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Categories",
+      "entityName": "renkaat",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "maxxis-premitra-ice-nord-np5-plus",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "maxxis-premitra-ice-5-sp5",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "maxxis-premitra-hp5",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "nordicliner-terasliimapainot",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "m162zn-yleispaino-alu",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "tr413-tubeless-kumiventtiili",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "tr600hp-turvaventtiili",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "tech-uni-seal-ultra-paikat",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Products",
+      "entityName": "tech-fast-dry-vulkanointineste",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "main-navigation",
+      "operation": "UPDATE",
+      "fields": [
+        {
+          "field": "items",
+          "oldValue": null,
+          "newValue": "Rengastarvikkeet"
+        },
+        {
+          "field": "items",
+          "oldValue": null,
+          "newValue": "Renkaat"
+        }
+      ]
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "navbar",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "footer",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "test-bugfix-menu",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "main-nav",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "quick-links",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Menus",
+      "entityName": "companies",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "Warehouses",
+      "entityName": "harjavalta-warehouse",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Shipping Zones",
+      "entityName": "Finland",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Shipping Zones",
+      "entityName": "Nordic Countries",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "Shipping Zones",
+      "entityName": "EU Countries",
+      "operation": "CREATE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Books",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Digital Services",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Electronics",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Food & Beverages",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Groceries",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Reduced Rate - Safety Equipment",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Standard Industrial Equipment",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Tax Exempt - Resale",
+      "operation": "DELETE"
+    },
+    {
+      "entityType": "TaxClasses",
+      "entityName": "Test Product for CI Workflow",
+      "operation": "DELETE"
+    }
+  ],
+  "entityCounts": {},
+  "metadata": {
+    "startTime": "2026-02-05T14:08:44.732Z",
+    "endTime": "2026-02-05T14:11:14.889Z"
+  }
+}

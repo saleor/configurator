@@ -91,7 +91,65 @@ export interface CategoryOperations {
 }
 
 export class CategoryRepository implements CategoryOperations {
+  private allCategoriesCache: Category[] | null = null;
+  private categoryBySlugCache = new Map<string, Category>();
+
   constructor(private client: Client) {}
+
+  private invalidateCache(): void {
+    this.allCategoriesCache = null;
+    this.categoryBySlugCache.clear();
+  }
+
+  /**
+   * Add a newly created category to the cache instead of invalidating.
+   * This avoids expensive re-fetches after each create operation.
+   */
+  private addToCache(category: Category): void {
+    this.categoryBySlugCache.set(category.slug, category);
+    if (this.allCategoriesCache) {
+      this.allCategoriesCache.push(category);
+    }
+  }
+
+  /**
+   * Check if the cache has been primed with all categories.
+   * Used by the service to determine if optimized processing can be used.
+   */
+  isCachePrimed(): boolean {
+    return this.allCategoriesCache !== null;
+  }
+
+  private populateSlugCache(categories: Category[]): void {
+    for (const cat of categories) {
+      this.categoryBySlugCache.set(cat.slug, cat);
+    }
+  }
+
+  private isRateLimitError(error: { networkError?: unknown }): boolean {
+    if (!this.hasNetworkErrorStatus(error.networkError)) {
+      return false;
+    }
+    return error.networkError.status === 429;
+  }
+
+  private hasNetworkErrorStatus(networkError: unknown): networkError is { status: number } {
+    return (
+      typeof networkError === "object" &&
+      networkError !== null &&
+      "status" in networkError &&
+      typeof networkError.status === "number"
+    );
+  }
+
+  private assertCategoryReturned(
+    category: Category | null | undefined,
+    categoryName: string
+  ): asserts category is Category {
+    if (!category) {
+      throw new GraphQLError(`Failed to create category ${categoryName}: empty response`);
+    }
+  }
 
   async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
@@ -104,16 +162,11 @@ export class CategoryRepository implements CategoryOperations {
       parent: parentId,
     });
 
-    // Handle transport/GraphQL layer errors first (permission, auth, bad query)
     if (result.error) {
-      // Check for rate limiting specifically
-      if (result.error.networkError && "status" in result.error.networkError) {
-        const status = (result.error.networkError as { status: number }).status;
-        if (status === 429) {
-          throw new Error(
-            `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
-          );
-        }
+      if (this.isRateLimitError(result.error)) {
+        throw new Error(
+          `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+        );
       }
 
       throw GraphQLError.fromCombinedError(`Failed to create category ${input.name}`, result.error);
@@ -126,17 +179,16 @@ export class CategoryRepository implements CategoryOperations {
       throw GraphQLError.fromDataErrors(`Failed to create category ${input.name}`, dataErrors);
     }
 
-    if (!mutationResult?.category) {
-      // No transport error and no data errors, yet no category returned
-      // Provide a clearer fallback message
-      throw new GraphQLError(`Failed to create category ${input.name}: empty response`);
-    }
+    this.assertCategoryReturned(mutationResult?.category, input.name ?? "unknown");
 
     const createdCategory = mutationResult.category;
 
     logger.info("Category created", {
       category: createdCategory,
     });
+
+    // Add to cache incrementally instead of invalidating
+    this.addToCache(createdCategory);
 
     return createdCategory;
   }
@@ -146,44 +198,91 @@ export class CategoryRepository implements CategoryOperations {
       name,
     });
 
-    // Find exact match among search results to prevent duplicate creation
+    if (result.error) {
+      if (this.isRateLimitError(result.error)) {
+        throw new Error(
+          `Failed to get category by name ${name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+        );
+      }
+      throw GraphQLError.fromCombinedError(`Failed to get category by name ${name}`, result.error);
+    }
+
     const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
 
     if (exactMatch?.node) return exactMatch.node;
 
-    // Fallback: scan all categories if search fails (schema/version differences)
     try {
       const all = await this.getAllCategories();
       return all.find((c) => c.name === name);
-    } catch {
+    } catch (error) {
+      logger.warn("Failed to fetch all categories while looking up by name", {
+        name,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
+    const cached = this.categoryBySlugCache.get(slug);
+    if (cached) {
+      logger.debug("Category found in cache", { slug });
+      return cached;
+    }
+
+    // If cache is primed with all categories, the item definitely doesn't exist
+    // No need to make an API call - this is the key optimization
+    if (this.allCategoriesCache !== null) {
+      logger.debug("Category not found in primed cache", { slug });
+      return null;
+    }
+
     const result = await this.client.query(getCategoryBySlugQuery, {
       slug,
     });
 
     const direct = result.data?.category ?? null;
-    if (direct) return direct;
+    if (direct) {
+      this.categoryBySlugCache.set(slug, direct);
+      return direct;
+    }
 
-    // Fallback: scan all categories if direct lookup not supported on API
     try {
       const all = await this.getAllCategories();
       return all.find((c) => c.slug === slug);
-    } catch {
+    } catch (error) {
+      logger.warn("Failed to fetch all categories while looking up by slug", {
+        slug,
+        error: error instanceof Error ? error.message : String(error),
+      });
       return null;
     }
   }
 
   async getAllCategories(): Promise<Category[]> {
-    logger.debug("Fetching all categories");
+    if (this.allCategoriesCache) {
+      logger.debug("Returning cached categories", {
+        count: this.allCategoriesCache.length,
+      });
+      return this.allCategoriesCache;
+    }
+
+    logger.debug("Fetching all categories from API");
 
     const result = await this.client.query(getAllCategoriesQuery, {});
 
+    if (result.error) {
+      if (this.isRateLimitError(result.error)) {
+        throw new Error(
+          "Failed to fetch all categories: Rate limited by API (Too Many Requests). Please wait before retrying."
+        );
+      }
+      throw GraphQLError.fromCombinedError("Failed to fetch all categories", result.error);
+    }
+
     if (!result.data?.categories?.edges) {
       logger.debug("No categories found");
+      this.allCategoriesCache = [];
       return [];
     }
 
@@ -191,7 +290,10 @@ export class CategoryRepository implements CategoryOperations {
       .map((edge) => edge.node)
       .filter((node): node is Category => node !== null);
 
-    logger.debug("Retrieved categories", {
+    this.allCategoriesCache = categories;
+    this.populateSlugCache(categories);
+
+    logger.debug("Retrieved and cached categories", {
       count: categories.length,
     });
 

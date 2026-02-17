@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resilienceTracker } from "../../../lib/utils/resilience-tracker";
 import { MetricsCollector } from "../metrics";
 
 describe.skip("MetricsCollector", () => {
@@ -136,6 +137,86 @@ describe.skip("MetricsCollector", () => {
 
       const metrics2 = collector.getMetrics();
       expect(metrics2.entityCounts.size).toBe(1);
+    });
+  });
+});
+
+describe("MetricsCollector - Resilience Integration", () => {
+  let collector: MetricsCollector;
+
+  beforeEach(() => {
+    collector = new MetricsCollector();
+    resilienceTracker.reset();
+  });
+
+  afterEach(() => {
+    resilienceTracker.reset();
+  });
+
+  describe("resilience metrics integration", () => {
+    it("initializes with zero resilience totals", () => {
+      const metrics = collector.getMetrics();
+
+      expect(metrics.totalRateLimitHits).toBe(0);
+      expect(metrics.totalRetries).toBe(0);
+      expect(metrics.totalGraphQLErrors).toBe(0);
+      expect(metrics.totalNetworkErrors).toBe(0);
+      expect(metrics.stageResilience.size).toBe(0);
+    });
+
+    it("captures resilience metrics when stage ends", () => {
+      collector.startStage("test-stage");
+
+      // Simulate resilience events
+      resilienceTracker.recordRateLimit();
+      resilienceTracker.recordRetry();
+      resilienceTracker.recordRetry();
+
+      collector.endStage("test-stage");
+      const metrics = collector.getMetrics();
+
+      const stageResilience = metrics.stageResilience.get("test-stage");
+      expect(stageResilience).toBeDefined();
+      expect(stageResilience?.rateLimitHits).toBe(1);
+      expect(stageResilience?.retryAttempts).toBe(2);
+    });
+
+    it("aggregates resilience totals across multiple stages", () => {
+      collector.startStage("stage-1");
+      resilienceTracker.recordRateLimit();
+      resilienceTracker.recordRateLimit();
+      collector.endStage("stage-1");
+
+      collector.startStage("stage-2");
+      resilienceTracker.recordRateLimit();
+      resilienceTracker.recordRetry();
+      resilienceTracker.recordGraphQLError();
+      collector.endStage("stage-2");
+
+      const metrics = collector.complete();
+
+      expect(metrics.totalRateLimitHits).toBe(3);
+      expect(metrics.totalRetries).toBe(1);
+      expect(metrics.totalGraphQLErrors).toBe(1);
+      expect(metrics.totalNetworkErrors).toBe(0);
+    });
+
+    it("returns stageResilience map with all stages", () => {
+      collector.startStage("stage-1");
+      resilienceTracker.recordNetworkError();
+      collector.endStage("stage-1");
+
+      collector.startStage("stage-2");
+      collector.endStage("stage-2");
+
+      const metrics = collector.getMetrics();
+
+      expect(metrics.stageResilience.size).toBe(2);
+      expect(metrics.stageResilience.has("stage-1")).toBe(true);
+      expect(metrics.stageResilience.has("stage-2")).toBe(true);
+
+      expect(metrics.stageResilience.get("stage-1")?.networkErrors).toBe(1);
+      expect(metrics.stageResilience.get("stage-2")?.networkErrors).toBe(0);
     });
   });
 });

@@ -16,6 +16,12 @@ import { logger } from "../logger";
 
 // === Adaptive Rate Limiter ===
 
+/** Time window for tracking recent rate limits (1 minute) */
+const RATE_LIMIT_WINDOW_MS = 60_000;
+
+/** Maximum adaptive delay to prevent excessive waiting (15 seconds) */
+const MAX_ADAPTIVE_DELAY_MS = 15_000;
+
 /**
  * Tracks rate limit occurrences and calculates adaptive delays
  * to prevent overwhelming the API during high-traffic periods
@@ -23,34 +29,49 @@ import { logger } from "../logger";
 class AdaptiveRateLimiter {
   private recentRateLimits = 0;
   private lastRateLimitTime = 0;
-  private readonly windowMs = 60000; // 1 minute window
+  private retryAfterExpiresAt = 0;
 
   /**
    * Record a rate limit occurrence for adaptive delay calculation
    */
-  trackRateLimit(): void {
+  trackRateLimit(retryAfterMs?: number): void {
     const now = Date.now();
     // Reset counter if outside the window
-    if (now - this.lastRateLimitTime > this.windowMs) {
+    if (now - this.lastRateLimitTime > RATE_LIMIT_WINDOW_MS) {
       this.recentRateLimits = 0;
     }
     this.recentRateLimits++;
     this.lastRateLimitTime = now;
 
-    logger.warn("Rate limit detected", {
-      recentRateLimits: this.recentRateLimits,
-      windowMs: this.windowMs,
-    });
+    if (retryAfterMs && retryAfterMs > 0) {
+      this.retryAfterExpiresAt = now + retryAfterMs;
+      logger.info(`Rate limit with Retry-After: ${retryAfterMs}ms`, {
+        recentRateLimits: this.recentRateLimits,
+        retryAfterMs,
+      });
+    } else {
+      logger.warn("Rate limit detected", {
+        recentRateLimits: this.recentRateLimits,
+      });
+    }
   }
 
   /**
    * Calculate an adaptive delay based on recent rate limit occurrences
-   * Uses exponential backoff capped at 15 seconds
+   * Respects Retry-After header if still valid, otherwise uses exponential backoff
    */
   getAdaptiveDelay(baseDelay: number): number {
+    const now = Date.now();
+
+    // If we have a valid Retry-After value, use it as minimum delay
+    if (this.retryAfterExpiresAt > now) {
+      const remainingRetryAfter = this.retryAfterExpiresAt - now;
+      return Math.max(remainingRetryAfter, baseDelay);
+    }
+
     if (this.recentRateLimits === 0) return baseDelay;
-    // Exponential backoff: baseDelay * 2^recentRateLimits, capped at 15s
-    return Math.min(baseDelay * 2 ** this.recentRateLimits, 15000);
+    // Exponential backoff: baseDelay * 2^recentRateLimits, capped at MAX_ADAPTIVE_DELAY_MS
+    return Math.min(baseDelay * 2 ** this.recentRateLimits, MAX_ADAPTIVE_DELAY_MS);
   }
 
   /**
@@ -67,7 +88,23 @@ class AdaptiveRateLimiter {
    * Get the current number of recent rate limits (for monitoring)
    */
   getRecentRateLimitCount(): number {
+    // Reset counter if outside the window before returning
+    if (Date.now() - this.lastRateLimitTime > RATE_LIMIT_WINDOW_MS) {
+      this.recentRateLimits = 0;
+    }
     return this.recentRateLimits;
+  }
+
+  /**
+   * Check if we should wait before making another request
+   * based on a recent Retry-After header
+   */
+  shouldWait(): { wait: boolean; delayMs: number } {
+    const now = Date.now();
+    if (this.retryAfterExpiresAt > now) {
+      return { wait: true, delayMs: this.retryAfterExpiresAt - now };
+    }
+    return { wait: false, delayMs: 0 };
   }
 }
 

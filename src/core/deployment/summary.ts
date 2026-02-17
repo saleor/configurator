@@ -2,6 +2,10 @@ import { cliConsole } from "../../cli/console";
 import type { DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
 
+/**
+ * Generates and displays a human-readable summary of deployment results
+ * including timing, changes applied, and resilience statistics
+ */
 export class DeploymentSummaryReport {
   private readonly maxLineWidth = 57; // Box width (60) minus padding and borders
 
@@ -10,6 +14,9 @@ export class DeploymentSummaryReport {
     private readonly summary: DiffSummary
   ) {}
 
+  /**
+   * Display the deployment summary in a formatted box to the console
+   */
   display(): void {
     const lines = this.buildSummaryLines();
     cliConsole.box(lines, "📊 Deployment Summary");
@@ -57,6 +64,24 @@ export class DeploymentSummaryReport {
       lines.push("No changes were applied");
     }
 
+    // Resilience stats (only show if there were any events)
+    if (this.hasResilienceStats()) {
+      lines.push("");
+      lines.push("Resilience Stats:");
+      if (this.metrics.totalRateLimitHits > 0) {
+        lines.push(`• Rate Limits: ${this.metrics.totalRateLimitHits} handled`);
+      }
+      if (this.metrics.totalRetries > 0) {
+        lines.push(`• Retries: ${this.metrics.totalRetries} attempts`);
+      }
+      if (this.metrics.totalGraphQLErrors > 0) {
+        lines.push(`• GraphQL Errors: ${this.metrics.totalGraphQLErrors}`);
+      }
+      if (this.metrics.totalNetworkErrors > 0) {
+        lines.push(`• Network Errors: ${this.metrics.totalNetworkErrors}`);
+      }
+    }
+
     // Entity breakdown if available
     if (this.metrics.entityCounts.size > 0) {
       lines.push("");
@@ -75,6 +100,15 @@ export class DeploymentSummaryReport {
     }
 
     return lines;
+  }
+
+  private hasResilienceStats(): boolean {
+    return (
+      this.metrics.totalRateLimitHits > 0 ||
+      this.metrics.totalRetries > 0 ||
+      this.metrics.totalGraphQLErrors > 0 ||
+      this.metrics.totalNetworkErrors > 0
+    );
   }
 
   private formatDuration(ms: number): string {

@@ -20,7 +20,7 @@ import type {
 } from "../../modules/config/schema/schema";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 import { StageAggregateError } from "./errors";
-import type { DeploymentStage } from "./types";
+import type { DeploymentContext, DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
   name: StageNames.VALIDATION,
@@ -492,7 +492,32 @@ export const categoriesStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.category.bootstrapCategories(config.categories);
+      // Count total categories including nested subcategories
+      const countCategories = (cats: typeof config.categories): number =>
+        cats.reduce((sum, cat) => {
+          const subcats =
+            "subcategories" in cat && Array.isArray(cat.subcategories)
+              ? countCategories(cat.subcategories)
+              : 0;
+          return sum + 1 + subcats;
+        }, 0);
+
+      const totalCategories = countCategories(config.categories);
+
+      // Size-adaptive strategy: use optimized processing for larger configs
+      if (totalCategories <= BulkOperationThresholds.CATEGORIES) {
+        // Small config: use existing sequential approach for simplicity
+        logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(totalCategories, "categories"));
+        await context.configurator.services.category.bootstrapCategories(config.categories);
+      } else {
+        // Large config: use level-based parallel processing for efficiency
+        logger.info(
+          `Processing ${totalCategories} categories via optimized level-based processing`
+        );
+        await context.configurator.services.category.bootstrapCategoriesOptimized(
+          config.categories
+        );
+      }
     } catch (error) {
       throw new Error(
         `Failed to manage categories: ${error instanceof Error ? error.message : String(error)}`
@@ -576,6 +601,14 @@ export const shippingZonesStage: DeploymentStage = {
   },
 };
 
+async function primeCategoryCacheForProductProcessing(context: DeploymentContext): Promise<void> {
+  const allCategories = await context.configurator.services.category.getAllCategories();
+  if (allCategories && allCategories.length > 0) {
+    context.configurator.services.product.primeCategoryCache(allCategories);
+    logger.debug("Category cache primed", { count: allCategories.length });
+  }
+}
+
 export const attributeChoicesPreflightStage: DeploymentStage = {
   name: StageNames.ATTRIBUTE_CHOICES_PREFLIGHT,
   async execute(context) {
@@ -589,6 +622,8 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
       const changedSlugs = new Set(productChanges.map((r) => r.entityName));
       const productsToProcess = config.products.filter((p) => changedSlugs.has(p.slug));
       if (productsToProcess.length === 0) return;
+
+      await primeCategoryCacheForProductProcessing(context);
 
       // Collect attribute values per attribute name
       const valuesByAttr = new Map<string, Set<string>>();
@@ -645,6 +680,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
           refreshed as unknown as ProductAttributeMeta[]
         );
       }
+
       logger.debug("Attribute choices preflight completed", {
         attributes: refreshed?.length ?? existing.length,
       });
@@ -696,25 +732,13 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      // Size-adaptive strategy: use bulk operations for larger deployments
+      // Always use bulk mutations for efficiency and to avoid rate limiting
       const productOptions = context.args.skipMedia ? { skipMedia: true } : undefined;
-      if (productsToProcess.length <= BulkOperationThresholds.PRODUCTS) {
-        // Small config: use existing sequential approach for better error granularity
-        logger.debug(
-          BulkOperationMessages.SEQUENTIAL_PROCESSING(productsToProcess.length, "products")
-        );
-        await context.configurator.services.product.bootstrapProducts(
-          productsToProcess,
-          productOptions
-        );
-      } else {
-        // Large config: use bulk mutations for efficiency and to avoid rate limiting
-        logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
-        await context.configurator.services.product.bootstrapProductsBulk(
-          productsToProcess,
-          productOptions
-        );
-      }
+      logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
+      await context.configurator.services.product.bootstrapProductsBulk(
+        productsToProcess,
+        productOptions
+      );
     } catch (error) {
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`

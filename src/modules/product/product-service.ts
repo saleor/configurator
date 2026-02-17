@@ -63,6 +63,20 @@ export class ProductService {
   }
 
   /**
+   * Pre-populate category cache to avoid individual API calls during product processing.
+   * This fetches all categories once and caches them by slug.
+   */
+  primeCategoryCache(categories: Array<{ id: string; slug: string; name?: string | null }>) {
+    for (const category of categories) {
+      const key = (category.slug || "").toLowerCase();
+      if (key) {
+        this.categoryIdCache.set(key, category.id);
+      }
+    }
+    logger.debug(`Category cache primed with ${categories.length} categories`);
+  }
+
+  /**
    * Wraps a plain text description in EditorJS JSON format.
    * If the description is already valid JSON, it passes through unchanged.
    * If it looks like JSON but is invalid, logs a warning and wraps as plain text.
