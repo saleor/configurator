@@ -1,7 +1,8 @@
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import type { AttributeCache } from "../attribute/attribute-cache";
 import type { AttributeService } from "../attribute/attribute-service";
-import { isReferencedAttribute } from "../attribute/attribute-service";
+import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
 import type { Attribute } from "../attribute/repository";
 import {
   type AttributeInput,
@@ -15,6 +16,12 @@ import {
   ProductTypeUpdateError,
 } from "./errors";
 import type { AttributeAssignmentInput, ProductType, ProductTypeOperations } from "./repository";
+
+/** Options for product type bootstrap operations */
+export interface BootstrapProductTypeOptions {
+  /** Optional attribute cache for fast reference resolution */
+  attributeCache?: AttributeCache;
+}
 
 /** Type guard to check if an attribute has variantSelection enabled */
 function hasVariantSelection(
@@ -135,7 +142,11 @@ export class ProductTypeService {
     );
   }
 
-  async updateProductType(productType: ProductType, input: ProductTypeInput) {
+  async updateProductType(
+    productType: ProductType,
+    input: ProductTypeInput,
+    options?: BootstrapProductTypeOptions
+  ) {
     return ServiceErrorWrapper.wrapServiceCall(
       "update product type",
       "product type",
@@ -151,14 +162,16 @@ export class ProductTypeService {
           await this.upsertAndAssignAttributes(
             productType,
             input.productAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
-            "PRODUCT"
+            "PRODUCT",
+            options?.attributeCache
           );
 
         const { createdAttributes: createdVariantAttrs, updatedAttributes: updatedVariantAttrs } =
           await this.upsertAndAssignAttributes(
             productType,
             input.variantAttributes?.map((a) => ({ ...a, type: "PRODUCT_TYPE" })) ?? [],
-            "VARIANT"
+            "VARIANT",
+            options?.attributeCache
           );
 
         logger.debug("Product type update completed", {
@@ -173,9 +186,14 @@ export class ProductTypeService {
     );
   }
 
+  /**
+   * Resolves attributes using cache-first strategy with API fallback.
+   * Uses AttributeCache if provided, falls back to API query for attributes not in cache.
+   */
   private async getExistingAttributesToAssign(
     productType: ProductType,
-    inputAttributes: AttributeInput[]
+    inputAttributes: AttributeInput[],
+    attributeCache?: AttributeCache
   ): Promise<AttributeAssignmentInput[]> {
     const referencedAttrNames = getReferencedAttributeNames(inputAttributes);
 
@@ -183,24 +201,69 @@ export class ProductTypeService {
       return [];
     }
 
-    // Fetch referenced attribute metadata for validation and assignment
-    const resolvedAttributes = await this.attributeService.repo.getAttributesByNames({
-      names: referencedAttrNames,
-      type: "PRODUCT_TYPE",
-    });
+    // Cache-first resolution: check cache, then fallback to API for misses
+    const resolvedAttributes: Attribute[] = [];
+    const cacheHits: string[] = [];
+    const cacheMisses: string[] = [];
 
-    // Fail-fast: validate resolution succeeded before doing any more work
-    if (!resolvedAttributes) {
-      logger.error("Failed to resolve referenced attributes", {
+    // Step 1: Try to resolve from cache if available
+    if (attributeCache) {
+      for (const name of referencedAttrNames) {
+        const cached = attributeCache.getProductAttribute(name);
+        if (cached) {
+          // Create a minimal Attribute object from cached data
+          resolvedAttributes.push({
+            id: cached.id,
+            name: cached.name,
+            type: "PRODUCT_TYPE" as const,
+            inputType: cached.inputType as Attribute["inputType"],
+            entityType: null,
+            choices: null,
+          });
+          cacheHits.push(name);
+        } else {
+          cacheMisses.push(name);
+        }
+      }
+
+      if (cacheHits.length > 0) {
+        logger.debug("Resolved attributes from cache", {
+          productTypeName: productType.name,
+          cacheHits: cacheHits.length,
+          cacheMisses: cacheMisses.length,
+        });
+      }
+    } else {
+      // No cache provided, all names are cache misses
+      cacheMisses.push(...referencedAttrNames);
+    }
+
+    // Calculate already-assigned attributes early (needed for validation)
+    const existingAttributeNames = new Set(
+      [
+        ...(productType.productAttributes?.map((a) => a.name) ?? []),
+        ...(productType.variantAttributes?.map((a) => a.name) ?? []),
+      ].filter((name): name is string => name !== null)
+    );
+
+    // Filter cache misses to only those that aren't already assigned
+    const unassignedCacheMisses = cacheMisses.filter((name) => !existingAttributeNames.has(name));
+
+    // Step 2: Fallback to API for cache misses that need to be assigned
+    if (unassignedCacheMisses.length > 0) {
+      logger.debug("Resolving attributes via API (cache miss or no cache)", {
         productTypeName: productType.name,
-        attributeNames: referencedAttrNames,
+        attributeNames: unassignedCacheMisses,
       });
-      throw new ProductTypeAttributeValidationError(
-        `Failed to resolve referenced attributes for product type "${productType.name}". ` +
-          `This may indicate a network issue or that the attributes do not exist: ${referencedAttrNames.join(", ")}`,
-        productType.name ?? "unknown",
-        referencedAttrNames.join(", ")
-      );
+
+      const apiResolved = await this.attributeService.repo.getAttributesByNames({
+        names: unassignedCacheMisses,
+        type: "PRODUCT_TYPE",
+      });
+
+      if (apiResolved) {
+        resolvedAttributes.push(...apiResolved);
+      }
     }
 
     // Build lookup maps from resolved data
@@ -210,6 +273,42 @@ export class ProductTypeService {
         .map((attr) => [attr.name, attr] as const)
     );
 
+    // Fail-fast: validate that all unassigned referenced attributes were resolved
+    const unresolvedNames = referencedAttrNames.filter(
+      (name) => !existingAttributeNames.has(name) && !attributesByName.has(name)
+    );
+    if (unresolvedNames.length > 0) {
+      logger.error("Failed to resolve referenced attributes", {
+        productTypeName: productType.name,
+        attributeNames: unresolvedNames,
+      });
+
+      // If cache is available, use validateAttributeReference for detailed error messages
+      if (attributeCache) {
+        for (const name of unresolvedNames) {
+          const result = validateAttributeReference(
+            name,
+            "product",
+            "productTypes",
+            productType.name ?? "unknown",
+            attributeCache
+          );
+          if (!result.valid && result.error) {
+            // Throw the first detailed error found
+            throw result.error;
+          }
+        }
+      }
+
+      // Fallback to generic error if no cache or no specific error generated
+      throw new ProductTypeAttributeValidationError(
+        `Failed to resolve referenced attributes for product type "${productType.name}". ` +
+          `This may indicate a network issue or that the attributes do not exist: ${unresolvedNames.join(", ")}`,
+        productType.name ?? "unknown",
+        unresolvedNames.join(", ")
+      );
+    }
+
     // Build variantSelection map and validate input types (fail-fast)
     const variantSelectionByName = buildVariantSelectionMap(inputAttributes, isReferencedAttribute);
     validateVariantSelectionInputTypes(
@@ -218,15 +317,7 @@ export class ProductTypeService {
       productType.name ?? "unknown"
     );
 
-    // Filter out already-assigned attributes
-    const existingAttributeNames = new Set(
-      [
-        ...(productType.productAttributes?.map((a) => a.name) ?? []),
-        ...(productType.variantAttributes?.map((a) => a.name) ?? []),
-      ].filter((name): name is string => name !== null)
-    );
-
-    // Return attribute assignments with variantSelection
+    // Return attribute assignments with variantSelection (only unassigned attributes)
     return resolvedAttributes
       .filter((attr) => attr.name && !existingAttributeNames.has(attr.name))
       .map((attr) => ({
@@ -238,7 +329,8 @@ export class ProductTypeService {
   private async upsertAndAssignAttributes(
     productType: ProductType,
     inputAttributes: AttributeInput[],
-    type: "PRODUCT" | "VARIANT"
+    type: "PRODUCT" | "VARIANT",
+    attributeCache?: AttributeCache
   ) {
     const updatedAttributes = await this.updateAttributes(productType, inputAttributes);
 
@@ -246,7 +338,8 @@ export class ProductTypeService {
 
     const existingAttributesToAssign = await this.getExistingAttributesToAssign(
       productType,
-      inputAttributes
+      inputAttributes,
+      attributeCache
     );
 
     logger.debug("Existing attributes to assign", {
@@ -443,10 +536,11 @@ export class ProductTypeService {
     return newAttributes;
   }
 
-  async bootstrapProductType(input: ProductTypeInput) {
+  async bootstrapProductType(input: ProductTypeInput, options?: BootstrapProductTypeOptions) {
     logger.debug("Bootstrapping product type", {
       name: input.name,
       isShippingRequired: input.isShippingRequired,
+      hasCacheProvided: Boolean(options?.attributeCache),
     });
 
     // Validate REFERENCE attributes have entityType
@@ -490,6 +584,6 @@ export class ProductTypeService {
       isShippingRequired: input.isShippingRequired,
     });
 
-    return this.updateProductType(productType, input);
+    return this.updateProductType(productType, input, options);
   }
 }

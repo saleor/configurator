@@ -19,7 +19,9 @@ export type EntityType =
   | "Warehouses"
   | "TaxClasses"
   | "Shipping Zones"
-  | "Attributes";
+  | "Attributes"
+  | "Product Attributes"
+  | "Content Attributes";
 
 /**
  * Represents a single field change in a diff operation

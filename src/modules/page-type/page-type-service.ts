@@ -1,10 +1,17 @@
 import { logger } from "../../lib/logger";
+import type { AttributeCache } from "../attribute/attribute-cache";
 import type { AttributeService } from "../attribute/attribute-service";
-import { isReferencedAttribute } from "../attribute/attribute-service";
+import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import { PageTypeAttributeError, PageTypeAttributeValidationError } from "./errors";
 import type { PageTypeOperations } from "./repository";
+
+/** Options for page type bootstrap operations */
+export interface BootstrapPageTypeOptions {
+  /** Optional attribute cache for fast reference resolution */
+  attributeCache?: AttributeCache;
+}
 
 export class PageTypeService {
   constructor(
@@ -53,9 +60,102 @@ export class PageTypeService {
     return filteredIds;
   }
 
-  async bootstrapPageType(input: PageTypeInput) {
+  /**
+   * Resolves referenced attributes using cache-first strategy with API fallback.
+   * Returns attribute IDs for attributes that need to be assigned.
+   */
+  private async resolveReferencedAttributesWithCache(
+    inputAttributes: Array<{ attribute: string } | SimpleAttribute>,
+    existingAttributeNames: string[],
+    attributeCache?: AttributeCache
+  ): Promise<string[]> {
+    // Filter out attributes that are referenced by name
+    const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
+
+    if (referencedAttributes.length === 0) {
+      return [];
+    }
+
+    const referencedAttrNames = referencedAttributes.map((a) => a.attribute);
+
+    // Filter out attributes that are already assigned
+    const unassignedNames = referencedAttrNames.filter(
+      (name) => !existingAttributeNames.includes(name)
+    );
+
+    if (unassignedNames.length === 0) {
+      logger.debug("All referenced content attributes are already assigned");
+      return [];
+    }
+
+    const resolvedIds: string[] = [];
+    const cacheHits: string[] = [];
+    const cacheMisses: string[] = [];
+
+    // Step 1: Try to resolve from cache if available
+    if (attributeCache) {
+      for (const name of unassignedNames) {
+        const cached = attributeCache.getContentAttribute(name);
+        if (cached) {
+          resolvedIds.push(cached.id);
+          cacheHits.push(name);
+        } else {
+          cacheMisses.push(name);
+        }
+      }
+
+      if (cacheHits.length > 0) {
+        logger.debug("Resolved content attributes from cache", {
+          cacheHits: cacheHits.length,
+          cacheMisses: cacheMisses.length,
+        });
+      }
+    } else {
+      // No cache provided, all names are cache misses
+      cacheMisses.push(...unassignedNames);
+    }
+
+    // Step 2: Fallback to API for cache misses
+    if (cacheMisses.length > 0) {
+      logger.debug("Resolving content attributes via API (cache miss)", {
+        attributeNames: cacheMisses,
+      });
+
+      const apiResolved = await this.attributeService.repo.getAttributesByNames({
+        names: cacheMisses,
+        type: "PAGE_TYPE",
+      });
+
+      if (apiResolved) {
+        const resolvedNames = new Set(apiResolved.map((attr) => attr.name).filter(Boolean));
+        resolvedIds.push(...apiResolved.map((attr) => attr.id));
+
+        // Check for any unresolved cache misses and validate with detailed errors
+        const unresolvedNames = cacheMisses.filter((name) => !resolvedNames.has(name));
+        if (unresolvedNames.length > 0 && attributeCache) {
+          for (const name of unresolvedNames) {
+            const result = validateAttributeReference(
+              name,
+              "content",
+              "modelTypes",
+              inputAttributes.length > 0 ? "current model type" : "unknown",
+              attributeCache
+            );
+            if (!result.valid && result.error) {
+              throw result.error;
+            }
+          }
+        }
+      }
+    }
+
+    return resolvedIds;
+  }
+
+  async bootstrapPageType(input: PageTypeInput, options?: BootstrapPageTypeOptions) {
     logger.debug("Bootstrapping page type", {
       name: input.name,
+      hasCacheProvided: Boolean(options?.attributeCache),
     });
 
     const pageType = await this.getOrCreate(input.name);
@@ -113,17 +213,17 @@ export class PageTypeService {
         );
       }
 
-      // Resolve referenced attributes
+      // Resolve referenced attributes (cache-first with API fallback)
       const existingAttributeNames =
         pageType.attributes
           ?.map((attr) => attr.name)
           .filter((name): name is string => name !== null) ?? [];
       let referencedAttributeIds: string[];
       try {
-        referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
+        referencedAttributeIds = await this.resolveReferencedAttributesWithCache(
           updateInput.attributes,
-          "PAGE_TYPE",
-          existingAttributeNames
+          existingAttributeNames,
+          options?.attributeCache
         );
       } catch (error) {
         throw new PageTypeAttributeError(

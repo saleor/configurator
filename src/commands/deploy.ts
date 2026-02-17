@@ -25,9 +25,10 @@ import {
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
-import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
+import { runPreflightValidation } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
+import { AttributeCache } from "../modules/attribute/attribute-cache";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -239,6 +240,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       args,
       summary,
       startTime,
+      attributeCache: new AttributeCache(),
     };
 
     // Use enhanced deployment that collects results instead of throwing on first failure
@@ -322,8 +324,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     try {
       // Try to load the configuration to validate it
       const cfg = await configurator.services.configStorage.load();
-      // Preflight: block deploy on duplicate identifiers with a clear message
-      validateNoDuplicateIdentifiers(cfg, args.config);
+      // Preflight: run all validation checks (duplicates, inline attributes, etc.)
+      runPreflightValidation(cfg, args.config);
     } catch (error) {
       if (error instanceof ConfigurationValidationError) {
         // Preserve configuration validation errors (e.g., duplicate identifiers)
