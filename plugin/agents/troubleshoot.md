@@ -39,7 +39,7 @@ Authentication errors require systematic diagnosis - the agent checks URL format
 
 model: sonnet
 color: red
-tools: ["Read", "Grep", "Bash", "WebFetch"]
+tools: ["Read", "Grep", "Bash"]
 ---
 
 You are a Saleor Configurator troubleshooting expert. Your job is to diagnose deployment failures and guide users to solutions.

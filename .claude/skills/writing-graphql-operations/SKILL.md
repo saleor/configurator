@@ -1,14 +1,18 @@
 ---
 name: writing-graphql-operations
-description: "Creates GraphQL queries and mutations using gql.tada and urql. Implements repository pattern with type-safe operations and error handling. Triggers on: GraphQL query, GraphQL mutation, gql.tada, urql client, Saleor API, fragments, repository pattern, fetch-schema, MSW mocks."
+description: "Creates GraphQL queries and mutations using gql.tada and urql. Use when writing operations, implementing repositories, updating schema, or testing GraphQL code."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # GraphQL Operations Developer
 
-## Purpose
+## Overview
 
-Guide the creation and maintenance of GraphQL operations following project conventions for type safety, organization, error handling, and testing.
+Guide the creation and maintenance of GraphQL operations following project conventions for type safety, organization, error handling, and testing with gql.tada and urql.
 
 ## When to Use
 
@@ -16,29 +20,16 @@ Guide the creation and maintenance of GraphQL operations following project conve
 - Integrating with Saleor API endpoints
 - Updating schema after Saleor changes
 - Working with urql client configuration
-- Creating mocks for testing
+- Creating MSW mocks for testing
 
-## Table of Contents
-
-- [Project GraphQL Stack](#project-graphql-stack)
-- [File Organization](#file-organization)
-- [Creating Operations with gql.tada](#creating-operations-with-gqltada)
-- [Repository Pattern](#repository-pattern)
-- [Error Handling](#error-handling)
-- [Schema Management](#schema-management)
-- [Testing GraphQL Operations](#testing-graphql-operations)
-- [Client Configuration](#client-configuration)
-- [Best Practices](#best-practices)
-- [References](#references)
-
-## Project GraphQL Stack
+## Quick Reference
 
 | Tool | Purpose |
 |------|---------|
-| **urql** | GraphQL client with caching |
 | **gql.tada** | Type-safe GraphQL with TypeScript inference |
-| **@urql/exchange-auth** | Authentication handling |
-| **@urql/exchange-retry** | Rate limiting and retry logic |
+| **urql** | GraphQL client with caching |
+| **@urql/exchange-auth** | Authentication (Bearer token) |
+| **@urql/exchange-retry** | Rate limit retry (429, max 5 attempts) |
 
 ## File Organization
 
@@ -46,360 +37,109 @@ Guide the creation and maintenance of GraphQL operations following project conve
 src/lib/graphql/
 ├── client.ts              # urql client configuration
 ├── operations/            # GraphQL operation definitions
-│   ├── products.ts
-│   ├── categories.ts
-│   └── ...
 ├── fragments/             # Reusable GraphQL fragments
-│   └── ...
-├── __mocks__/            # Test mocks
-│   └── ...
-└── schema.graphql        # Saleor schema (generated)
+├── __mocks__/             # MSW test mocks
+└── schema.graphql         # Saleor schema (generated)
 
 src/modules/<entity>/
 ├── repository.ts          # Uses GraphQL operations
 └── ...
 ```
 
-## Creating Operations with gql.tada
+## Creating Operations
 
-### Basic Query
+Use `gql.tada` for all operations. Types are inferred from schema automatically:
 
 ```typescript
 import { graphql } from 'gql.tada';
 
-// gql.tada infers types from schema automatically
 export const GetCategoriesQuery = graphql(`
   query GetCategories($first: Int!) {
     categories(first: $first) {
       edges {
-        node {
-          id
-          name
-          slug
-          description
-          parent {
-            id
-            slug
-          }
-        }
+        node { id, name, slug, description }
       }
     }
   }
 `);
 
-// Type is inferred automatically
+// Type inferred automatically
 type GetCategoriesResult = ResultOf<typeof GetCategoriesQuery>;
 ```
 
-### Query with Variables
-
-```typescript
-export const GetCategoryBySlugQuery = graphql(`
-  query GetCategoryBySlug($slug: String!) {
-    category(slug: $slug) {
-      id
-      name
-      slug
-      description
-      level
-      parent {
-        id
-        slug
-      }
-      children(first: 100) {
-        edges {
-          node {
-            id
-            name
-            slug
-          }
-        }
-      }
-    }
-  }
-`);
-```
-
-### Mutation
-
-```typescript
-export const CreateCategoryMutation = graphql(`
-  mutation CreateCategory($input: CategoryInput!) {
-    categoryCreate(input: $input) {
-      category {
-        id
-        name
-        slug
-      }
-      errors {
-        field
-        message
-        code
-      }
-    }
-  }
-`);
-```
-
-### Using Fragments
-
-```typescript
-// Define reusable fragment
-export const CategoryFieldsFragment = graphql(`
-  fragment CategoryFields on Category {
-    id
-    name
-    slug
-    description
-    level
-  }
-`);
-
-// Use in query
-export const GetCategoriesWithFragmentQuery = graphql(`
-  query GetCategoriesWithFragment($first: Int!) {
-    categories(first: $first) {
-      edges {
-        node {
-          ...CategoryFields
-        }
-      }
-    }
-  }
-`, [CategoryFieldsFragment]);
-```
+For shared fields, extract fragments and pass as second argument to `graphql()`.
 
 ## Repository Pattern
 
-### Standard Repository Structure
+Each entity has a repository class that encapsulates GraphQL operations and maps responses to domain models:
 
 ```typescript
-// src/modules/category/repository.ts
-import { Client } from '@urql/core';
-import { graphql } from 'gql.tada';
-import { GraphQLError } from '@/lib/errors';
-
-const GetCategoriesQuery = graphql(`...`);
-const CreateCategoryMutation = graphql(`...`);
-
 export class CategoryRepository {
   constructor(private readonly client: Client) {}
 
   async findAll(): Promise<Category[]> {
     const result = await this.client.query(GetCategoriesQuery, { first: 100 });
-
     if (result.error) {
       throw GraphQLError.fromCombinedError(result.error, 'GetCategories');
     }
-
     return this.mapCategories(result.data?.categories);
   }
 
   async create(input: CategoryInput): Promise<Category> {
     const result = await this.client.mutation(CreateCategoryMutation, { input });
-
     if (result.error) {
       throw GraphQLError.fromCombinedError(result.error, 'CreateCategory');
     }
-
     if (result.data?.categoryCreate?.errors?.length) {
-      throw new GraphQLError(
-        'Category creation failed',
-        result.data.categoryCreate.errors
-      );
+      throw new GraphQLError('Category creation failed', result.data.categoryCreate.errors);
     }
-
     return this.mapCategory(result.data?.categoryCreate?.category);
-  }
-
-  // Map GraphQL response to domain model
-  private mapCategory(gqlCategory: GqlCategory | null): Category {
-    if (!gqlCategory) {
-      throw new EntityNotFoundError('Category not found');
-    }
-    return {
-      id: gqlCategory.id,
-      name: gqlCategory.name,
-      slug: gqlCategory.slug,
-      description: gqlCategory.description ?? undefined,
-    };
   }
 }
 ```
+
+**Key pattern**: Always map GraphQL responses to domain models in the repository. Never expose GraphQL types to services.
 
 ## Error Handling
 
-### Wrapping GraphQL Errors
+Two error types to always check:
 
-```typescript
-import { CombinedError } from '@urql/core';
-import { GraphQLError } from '@/lib/errors';
+1. **Network/GraphQL errors** (`result.error`): Wrap with `GraphQLError.fromCombinedError(error, 'OperationName', { context })`
+2. **Mutation validation errors** (`result.data?.mutation?.errors`): Check array length, throw with field details
 
-// In repository methods
-if (result.error) {
-  throw GraphQLError.fromCombinedError(
-    result.error,
-    'OperationName',
-    { entitySlug: input.slug }  // Additional context
-  );
-}
-
-// Handle mutation-specific errors
-if (result.data?.mutationName?.errors?.length) {
-  const errors = result.data.mutationName.errors;
-  throw new GraphQLError(
-    `Operation failed: ${errors.map(e => e.message).join(', ')}`,
-    errors
-  );
-}
-```
-
-### Common Error Scenarios
-
-| Error Type | Cause | Handling |
-|------------|-------|----------|
-| `CombinedError` | Network/GraphQL errors | `GraphQLError.fromCombinedError()` |
-| `errors` array | Mutation validation errors | Check `result.data?.mutation?.errors` |
-| Rate limit (429) | Too many requests | Automatic retry via exchange |
-| Auth error | Invalid/expired token | Re-authenticate |
+See [references/error-handling.md](references/error-handling.md) for complete error patterns, classification, and MSW error mocking.
 
 ## Schema Management
 
-### Updating Schema
-
 ```bash
-# Fetch latest schema from Saleor instance
-pnpm fetch-schema
-
-# This updates:
-# - src/lib/graphql/schema.graphql
-# - graphql-env.d.ts (type definitions)
+pnpm fetch-schema  # Updates schema.graphql and graphql-env.d.ts
 ```
 
-### When to Update Schema
+Update schema when: new Saleor features needed, after Saleor version upgrade, or when encountering schema drift errors. Always commit schema changes with the feature implementation.
 
-- New Saleor features needed
-- After Saleor version upgrade
-- When encountering schema drift errors
-- Commit schema changes with feature implementation
+## Testing
 
-## Testing GraphQL Operations
-
-### Mock Setup with MSW
-
-```typescript
-// src/lib/graphql/__mocks__/category-mocks.ts
-import { graphql, HttpResponse } from 'msw';
-
-export const categoryHandlers = [
-  graphql.query('GetCategories', () => {
-    return HttpResponse.json({
-      data: {
-        categories: {
-          edges: [
-            {
-              node: {
-                id: 'cat-1',
-                name: 'Electronics',
-                slug: 'electronics',
-              },
-            },
-          ],
-        },
-      },
-    });
-  }),
-
-  graphql.mutation('CreateCategory', ({ variables }) => {
-    return HttpResponse.json({
-      data: {
-        categoryCreate: {
-          category: {
-            id: 'new-cat',
-            name: variables.input.name,
-            slug: variables.input.slug,
-          },
-          errors: [],
-        },
-      },
-    });
-  }),
-];
-```
-
-### Repository Test Pattern
-
-```typescript
-describe('CategoryRepository', () => {
-  const server = setupServer(...categoryHandlers);
-
-  beforeAll(() => server.listen());
-  afterEach(() => server.resetHandlers());
-  afterAll(() => server.close());
-
-  it('should fetch all categories', async () => {
-    const repository = new CategoryRepository(testClient);
-    const categories = await repository.findAll();
-
-    expect(categories).toHaveLength(1);
-    expect(categories[0].slug).toBe('electronics');
-  });
-});
-```
+Mock GraphQL operations with MSW using `graphql.query()` and `graphql.mutation()` handlers. See `analyzing-test-coverage` skill for full MSW setup patterns.
 
 ## Client Configuration
 
-### urql Client Setup
-
-```typescript
-// src/lib/graphql/client.ts
-import { Client, cacheExchange, fetchExchange } from '@urql/core';
-import { authExchange } from '@urql/exchange-auth';
-import { retryExchange } from '@urql/exchange-retry';
-
-export const createClient = (url: string, token: string) => {
-  return new Client({
-    url,
-    exchanges: [
-      cacheExchange,
-      authExchange(async utils => ({
-        addAuthToOperation(operation) {
-          return utils.appendHeaders(operation, {
-            Authorization: `Bearer ${token}`,
-          });
-        },
-      })),
-      retryExchange({
-        initialDelayMs: 1000,
-        maxDelayMs: 15000,
-        maxNumberAttempts: 5,
-        retryIf: error => {
-          // Retry on rate limits and network errors
-          return error?.response?.status === 429 || !error?.response;
-        },
-      }),
-      fetchExchange,
-    ],
-  });
-};
-```
+The urql client is configured in `src/lib/graphql/client.ts` with: `cacheExchange`, `authExchange` (Bearer token), `retryExchange` (1s-15s backoff, 5 attempts, retries on 429 and network errors), and `fetchExchange`.
 
 ## Best Practices
 
-### Do's
-
-- Use `gql.tada` for all operations (type inference)
+**Do**:
+- Use `gql.tada` for all operations (automatic type inference)
 - Keep operations close to their domain modules
-- Map GraphQL responses to domain models
+- Map GraphQL responses to domain models in repository
 - Include operation name in error context
 - Update mocks when schema changes
+- Extract shared fields to fragments
 
-### Don'ts
-
-- Don't use raw string queries (no type safety)
-- Don't expose GraphQL types directly to services
-- Don't skip error handling for any operation
-- Don't hardcode pagination limits (use constants)
+**Don't**:
+- Use raw string queries (no type safety)
+- Expose GraphQL types directly to services
+- Skip error handling for any operation
+- Hardcode pagination limits (use constants)
 
 ## Validation Checkpoints
 
@@ -412,36 +152,56 @@ export const createClient = (url: string, token: string) => {
 
 ## Common Mistakes
 
-| Mistake | Issue | Fix |
-|---------|-------|-----|
-| Not checking `errors` array | Silent failures | Always check `result.data?.mutation?.errors` |
-| Exposing GraphQL types | Coupling | Map to domain types in repository |
-| Missing error context | Hard to debug | Include operation name in errors |
-| Stale schema | Type errors | Run `pnpm fetch-schema` after Saleor updates |
-| Not using fragments | Code duplication | Extract shared fields to fragments |
+| Mistake | Fix |
+|---------|-----|
+| Not checking `errors` array | Always check `result.data?.mutation?.errors` |
+| Exposing GraphQL types | Map to domain types in repository |
+| Missing error context | Include operation name in errors |
+| Stale schema | Run `pnpm fetch-schema` after Saleor updates |
+| Not using fragments | Extract shared fields to fragments |
 
 ## External Documentation
 
 For up-to-date library docs, use Context7 MCP:
-- urql: `mcp__context7__get-library-docs` with `/urql-graphql/urql`
-- gql.tada: Use `mcp__context7__resolve-library-id` with "gql.tada"
+- urql: `resolve-library-id` with `/urql-graphql/urql`
+- gql.tada: `resolve-library-id` with "gql.tada"
 
 ## References
 
 ### Skill Reference Files
-- **[Error Handling](references/error-handling.md)** - Error types, wrapping, and recovery patterns
+- **[Error Handling](references/error-handling.md)** - Error types, wrapping, classification, and MSW error mocking
 - **[Fragment Patterns](references/fragment-patterns.md)** - Fragment composition and type inference
 
 ### Project Resources
-- `{baseDir}/src/lib/graphql/client.ts` - Client configuration
-- `{baseDir}/src/lib/graphql/operations/` - Existing operations
-- `{baseDir}/docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards
+- `src/lib/graphql/client.ts` - Client configuration
+- `src/lib/graphql/operations/` - Existing operations
+- `docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards
 
 ## Related Skills
 
 - **Complete entity workflow**: See `adding-entity-types` for full implementation including bulk mutations
 - **Bulk operations**: See `adding-entity-types/references/bulk-mutations.md` for chunking patterns
 - **Testing GraphQL**: See `analyzing-test-coverage` for MSW setup
+
+## Troubleshooting
+
+### Common Error Scenarios
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `CombinedError: [Network]` | API unreachable or URL malformed | Verify `--url` ends with `/graphql/` and instance is running |
+| `CombinedError: [GraphQL]` | Invalid query or variables | Run `pnpm fetch-schema` and check operation against schema |
+| `result.data?.mutation?.errors` non-empty | Saleor validation rejection | Read `field` and `message` from errors array for specifics |
+| `TypeError: Cannot read property of undefined` | Missing null check on response | Always check `result.data` before accessing nested properties |
+| HTTP 429 (rate limited) | Too many requests | Built-in retry exchange handles this; increase delay if persistent |
+
+### Debugging Steps
+
+1. **Check schema freshness**: `pnpm fetch-schema` — ensures local schema matches remote
+2. **Isolate the operation**: Test the query/mutation in Saleor's GraphQL Playground first
+3. **Add error context**: Include operation name in all error wrapping calls
+4. **Check MSW handlers**: Ensure test mocks match updated operation signatures
+5. **Verify type inference**: Hover over `ResultOf<typeof Query>` in IDE to confirm types
 
 ## Quick Reference Rule
 

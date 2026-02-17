@@ -1,12 +1,16 @@
 ---
 name: creating-changesets
-description: "Creates changesets for semantic versioning and automates release notes. Determines correct version bump type (patch/minor/major) and generates well-documented changelog entries. Triggers on: add changeset, create changeset, version bump, prepare release, CHANGELOG, breaking change, pnpm changeset."
+description: "Creates changesets for semantic versioning. Use when adding changesets, preparing releases, determining version bumps (patch/minor/major), generating changelog entries, or documenting breaking changes."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(git:*), Bash(npx changeset:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Changeset & Release Manager
 
-## Purpose
+## Overview
 
 Automate the creation of changesets following project conventions, ensuring proper version bumps and well-documented release notes.
 
@@ -16,16 +20,6 @@ Automate the creation of changesets following project conventions, ensuring prop
 - Before creating a PR
 - When preparing a release
 - To document breaking changes
-
-## Table of Contents
-
-- [What is a Changeset?](#what-is-a-changeset)
-- [Changeset Types](#changeset-types)
-- [Decision Guide](#decision-guide)
-- [Creating a Changeset](#creating-a-changeset)
-- [Release Workflow](#release-workflow)
-- [Checking Status](#checking-status)
-- [References](#references)
 
 ## What is a Changeset?
 

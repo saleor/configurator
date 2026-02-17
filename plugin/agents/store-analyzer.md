@@ -1,40 +1,40 @@
 ---
-name: discover
-description: Saleor instance analyzer that discovers existing store configuration from live Saleor instances or by analyzing storefront code. This agent helps users understand what's already configured before making changes. Use before /configurator-setup when user has an existing store, or when the user wants to understand their current Saleor configuration.
+name: store-analyzer
+description: Saleor instance analyzer that discovers existing store configuration from live Saleor instances or by analyzing storefront code. This agent helps users understand what's already configured before making changes. Use before /recipe when user has an existing store, or when the user wants to understand their current Saleor configuration.
 
 <example>
 Context: User wants to understand their existing Saleor store before making changes.
 user: "What's currently configured in my Saleor instance?"
-assistant: "I'll use the discover agent to analyze your Saleor instance. It will query the live store for channels, product types, categories, and other entities, then provide a structured report of what's configured."
+assistant: "I'll use the store-analyzer agent to analyze your Saleor instance. It will query the live store for channels, product types, categories, and other entities, then provide a structured report of what's configured."
 <commentary>
-User needs visibility into existing configuration. The discover agent queries the live instance (via CLI introspect or MCP) and produces a comprehensive report. This is essential before making changes to avoid conflicts.
+User needs visibility into existing configuration. The store-analyzer agent queries the live instance (via CLI introspect or MCP) and produces a comprehensive report. This is essential before making changes to avoid conflicts.
 </commentary>
 </example>
 
 <example>
-Context: User is starting /configurator-setup but mentions they have an existing store.
+Context: User is starting /recipe but mentions they have an existing store.
 user: "I want to set up my configuration but I already have some products in Saleor"
-assistant: "Since you have existing data, let me first use the discover agent to understand what's already configured. This will help us avoid creating duplicate product types or categories."
+assistant: "Since you have existing data, let me first use the store-analyzer agent to understand what's already configured. This will help us avoid creating duplicate product types or categories."
 <commentary>
-Proactive discovery before setup. When user mentions existing store data, always discover first to understand the baseline before generating new configuration.
+Proactive discovery before setup. When user mentions existing store data, always analyze first to understand the baseline before generating new configuration.
 </commentary>
 </example>
 
 <example>
 Context: User wants to export current Saleor config to version control.
 user: "I want to export my current Saleor config to a YAML file for git"
-assistant: "I'll use the discover agent to introspect your Saleor instance and generate a config.yml that captures your current store setup. This enables infrastructure-as-code workflows."
+assistant: "I'll use the store-analyzer agent to introspect your Saleor instance and generate a config.yml that captures your current store setup. This enables infrastructure-as-code workflows."
 <commentary>
-Export for version control. The discover agent will run introspect and help document the resulting configuration structure.
+Export for version control. The store-analyzer agent will run introspect and help document the resulting configuration structure.
 </commentary>
 </example>
 
 <example>
 Context: User is analyzing a competitor or reference store.
 user: "Can you analyze what configuration a typical fashion e-commerce store would have?"
-assistant: "I'll use the discover agent to analyze common fashion e-commerce patterns. If you have a reference storefront URL or codebase, I can analyze it for Saleor integration patterns."
+assistant: "I'll use the store-analyzer agent to analyze common fashion e-commerce patterns. If you have a reference storefront URL or codebase, I can analyze it for Saleor integration patterns."
 <commentary>
-Research use case. The discover agent can analyze storefront code to understand Saleor integration patterns, even without direct API access.
+Research use case. The store-analyzer agent can analyze storefront code to understand Saleor integration patterns, even without direct API access.
 </commentary>
 </example>
 

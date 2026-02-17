@@ -1,236 +1,120 @@
 ---
 name: saleor-domain
-version: 1.0.0
-description: Provides comprehensive Saleor e-commerce domain knowledge including entity types, relationships, identifier rules, and GraphQL patterns. This skill should be invoked when the user needs to understand Saleor concepts, entity relationships, the difference between product-level and variant-level attributes, or how channels, warehouses, and shipping zones interact. Essential for understanding how Configurator maps to Saleor's data model.
+version: 2.0.0
+description: "Saleor e-commerce entity types, relationships, and identifier rules. Use when asking about how entities relate, slug vs name identification, channels, or what Configurator manages."
 allowed-tools: Read, WebFetch
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Saleor Domain Knowledge
 
-Saleor is a headless e-commerce platform built with Python/Django and GraphQL. This skill provides essential domain knowledge for configuring Saleor stores.
+## Overview
+
+Saleor is a headless e-commerce platform with a GraphQL API. This skill covers the core entities you'll work with in Configurator -- what they are, how they relate, and the rules that govern them.
+
+## When to Use
+
+- "What entities does Saleor have?"
+- "How do channels, products, and variants relate?"
+- "What's the difference between slug and name identifiers?"
+- "What does Configurator manage vs. what's runtime only?"
+- "What's a ProductType? What's a Channel?"
+- When NOT designing product types -- use `product-modeling` instead
+- When NOT writing YAML config -- use `configurator-schema` instead
 
 ## Core Entities
 
 ### Channel
-
-Channels represent sales channels (storefronts, marketplaces, regions). Each channel has its own:
-- Currency
-- Default country
-- Product visibility and pricing
-- Checkout and order settings
-
-```yaml
-channels:
-  - name: "US Store"
-    slug: "us-store"
-    currencyCode: USD
-    defaultCountry: US
-```
+Sales channels represent storefronts, marketplaces, or regions. Each has its own currency, country, product visibility, and pricing.
 
 ### Product Type
+Defines the structure for a group of products: which attributes are shared (product-level) and which create variants (variant-level), plus shipping and tax settings.
 
-Defines the structure of a product category with:
-- Product-level attributes (shared across variants)
-- Variant-level attributes (differ per variant)
-- Shipping requirements
-- Tax class
-
-```yaml
-productTypes:
-  - name: "T-Shirt"
-    isShippingRequired: true
-    productAttributes:
-      - name: "Brand"
-    variantAttributes:
-      - name: "Size"
-      - name: "Color"
-```
-
-### Product & Variant
-
-Products are the items you sell. Each product:
-- Belongs to one product type
-- Can be in multiple categories
-- Has one or more variants (SKUs)
-
-Variants represent purchasable items with:
-- Unique SKU
-- Specific attribute values
-- Channel-specific pricing
-- Inventory tracking
+### Product and Variant
+Products are the items you sell. Each belongs to one product type and one category. Variants are the purchasable SKUs -- each with a unique SKU, specific attribute values, channel-specific pricing, and inventory tracking.
 
 ### Attribute
-
-Attributes define product/variant characteristics:
-
-| Attribute Level | Description | Example |
-|----------------|-------------|---------|
-| **Product** | Same for all variants | Brand, Material |
-| **Variant** | Differs per variant | Size, Color |
+Typed fields attached to product types. Product-level attributes (Brand, Material) are shared across variants. Variant-level attributes (Size, Color) create separate SKUs.
 
 ### Category
-
-Hierarchical product organization:
-- Tree structure with parent/child relationships
-- Products belong to leaf categories
-- Used for navigation and filtering
+Hierarchical product organization (tree structure). Each product belongs to one category. Used for navigation and filtering.
 
 ### Collection
-
-Curated product groupings:
-- Can span multiple categories
-- Manual or rule-based membership
-- Used for promotions, featured sections
+Curated product groupings that can span categories. A product can belong to many collections. Used for promotions and merchandising.
 
 ### Warehouse
-
-Physical or virtual inventory locations:
-- Stock tracking per warehouse
-- Shipping zone associations
-- Click & collect support
+Inventory locations with stock tracking per variant. Associated with shipping zones.
 
 ### Shipping Zone
-
-Geographic shipping regions:
-- Country-based targeting
-- Multiple shipping methods per zone
-- Rate calculation rules
+Geographic shipping regions with country-based targeting and multiple shipping methods.
 
 ## Entity Relationships
 
 ```
 Channel ─────────────────────────────────────────────┐
-    │                                                │
     ├── Product Listings (visibility, pricing)       │
     ├── Variant Listings (price, availability)       │
     └── Checkout/Order settings                      │
                                                      │
 ProductType ─────────────────────────────────────────┤
-    │                                                │
     ├── productAttributes ──► Attribute              │
     ├── variantAttributes ──► Attribute              │
     └── taxClass ──► TaxClass                        │
                                                      │
 Product ─────────────────────────────────────────────┤
-    │                                                │
     ├── productType ──► ProductType                  │
     ├── category ──► Category                        │
     ├── collections ──► Collection[]                 │
     └── variants ──► ProductVariant[]                │
-                     │                               │
                      ├── warehouse ──► Warehouse     │
                      └── channelListings ────────────┘
 
-Category (tree structure)
-    └── children ──► Category[]
-
-ShippingZone
-    └── warehouses ──► Warehouse[]
+Category (tree) └── children ──► Category[]
+ShippingZone    └── warehouses ──► Warehouse[]
 ```
 
 ## Identifier Rules
 
-Understanding which field identifies each entity:
+Each entity is identified by either its `slug` or `name`. This is how Configurator matches your local config to remote entities.
 
 | Entity | Identifier | Mutable? |
 |--------|------------|----------|
-| Channel | `slug` | No - creates new |
-| Category | `slug` | No - creates new |
-| Collection | `slug` | No - creates new |
-| Product | `slug` | No - creates new |
-| Warehouse | `slug` | No - creates new |
-| Menu | `slug` | No - creates new |
-| Page | `slug` | No - creates new |
-| ProductType | `name` | No - creates new |
-| PageType | `name` | No - creates new |
-| Attribute | `name` | No - creates new |
-| TaxClass | `name` | No - creates new |
-| ShippingZone | `name` | No - creates new |
+| Channel, Category, Collection, Product, Warehouse, Menu, Page | `slug` | No -- creates new |
+| ProductType, PageType, Attribute, TaxClass, ShippingZone | `name` | No -- creates new |
 
-**Important**: Changing an identifier creates a new entity and may orphan the old one.
-
-## GraphQL API
-
-Saleor uses GraphQL for all operations:
-
-### Common Query Patterns
-
-```graphql
-# Fetch products with variants
-query {
-  products(first: 10, channel: "us-store") {
-    edges {
-      node {
-        name
-        slug
-        variants {
-          sku
-          pricing {
-            price { gross { amount } }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-### Mutation Patterns
-
-```graphql
-# Create a product
-mutation {
-  productCreate(input: {
-    name: "New Product"
-    slug: "new-product"
-    productType: "product-type-id"
-  }) {
-    product { id }
-    errors { field message }
-  }
-}
-```
+**Important**: Changing an identifier creates a new entity and may orphan the old one. If you need to "rename" something, delete the old entity and create a new one.
 
 ## Configuration vs Runtime
 
-| Aspect | Configurator Handles | Runtime Only |
-|--------|---------------------|--------------|
-| Product structure | ✓ | |
-| Product pricing | ✓ | |
-| Categories | ✓ | |
-| Attributes | ✓ | |
-| Channels | ✓ | |
-| Warehouses | ✓ | |
-| Orders | | ✓ |
-| Customers | | ✓ |
-| Checkouts | | ✓ |
-| Payments | | ✓ |
+Configurator manages your store's structure. Some things are runtime-only:
 
-## Saleor MCP Integration
+| Configurator Manages | Runtime Only |
+|---------------------|--------------|
+| Product structure and pricing | Orders |
+| Categories and collections | Customers |
+| Attributes and channels | Checkouts |
+| Warehouses and shipping zones | Payments |
+| Tax classes | Webhooks |
 
-When Saleor MCP is available, you can query live store data:
+## Common Mistakes
 
-```bash
-# Check if Saleor MCP is configured
-# Look for SALEOR_API_URL and SALEOR_TOKEN environment variables
-```
-
-Use Saleor MCP for:
-- Validating configuration against live data
-- Discovering existing entity IDs
-- Checking deployment results
-
-## Context7 for Documentation
-
-For up-to-date Saleor documentation, use Context7 MCP:
-
-```bash
-# Fetch latest Saleor docs
-# Context7 sources: docs.saleor.io, saleor/saleor repo
-```
+| Mistake | Fix |
+|---------|-----|
+| Confusing slug-based vs name-based entities | Check the Identifier Rules table -- some use `slug`, others use `name` |
+| Changing an identifier to "rename" | This creates a duplicate. Delete old + create new instead. |
+| Creating products before their product type exists | Product types must be defined first. Configurator handles deploy order, but the type must be in your config. |
+| Not understanding channel scope | Products aren't visible until they have a channel listing. Each channel has independent pricing. |
+| Mixing up Categories (taxonomy) vs Collections (curation) | Categories = hierarchical, 1 per product, for navigation. Collections = flat, many per product, for merchandising. |
 
 ## See Also
 
-- For entity reference, see [reference/entities.md](reference/entities.md)
-- For relationship diagrams, see [reference/relationships.md](reference/relationships.md)
-- For Storefront v26 integration, see [reference/storefront-v26.md](reference/storefront-v26.md)
+- For entity reference, see [references/entities.md](references/entities.md)
+- For relationship diagrams, see [references/relationships.md](references/relationships.md)
+- For Storefront v26 integration, see [references/storefront-v26.md](references/storefront-v26.md)
+
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`product-modeling`** - Product type design and attribute selection
+- **`configurator-cli`** - CLI commands for deploying configurations
