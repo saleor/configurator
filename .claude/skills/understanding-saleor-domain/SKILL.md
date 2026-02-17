@@ -1,7 +1,11 @@
 ---
 name: understanding-saleor-domain
-description: "Explains Saleor e-commerce domain and Configurator business rules. Use when working with entity identification, deployment pipeline, config schema, or synchronization."
+description: "Explains Saleor e-commerce domain and Configurator business rules. Use when working with entity identification (slug vs name), YAML config structure, entity relationships, deployment pipeline stages, or synchronization logic. Do NOT use for general TypeScript questions or non-Saleor e-commerce platforms."
 allowed-tools: "Read, Grep, Glob, Bash(pnpm:*), Bash(git:*), Bash(ls:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Saleor Domain Expert

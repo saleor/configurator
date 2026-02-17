@@ -2,6 +2,10 @@
 name: implementing-cli-patterns
 description: "Implements CLI UX with output formatting, progress indicators, and prompts. Use when working on CLI output, chalk styling, ora spinners, inquirer prompts, progress bars, reporters, error formatting, or exit codes."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # CLI User Experience Patterns

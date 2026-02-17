@@ -2,6 +2,10 @@
 name: adding-entity-types
 description: "Creates new Saleor entity types with complete implementation. Use when implementing new entities, adding modules, writing GraphQL operations, bulk mutations, deployment stages, Zod schemas for entities, or creating features that interact with Saleor API."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Adding Entity Types
@@ -156,6 +160,39 @@ Create stage in `src/modules/deployment/stages/<entity>-stage.ts`:
 | Bulk threshold | 10 items | Balance granularity vs performance |
 | Error policy | IGNORE_FAILED | Continue processing, report all failures |
 | Chunking | 10 items/chunk | Rate limit compliance |
+
+## Troubleshooting
+
+### Schema Won't Compile
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Type 'string' is not assignable` | Missing branded type transform | Add `.transform((v) => v as EntitySlug)` |
+| Circular type reference | Schema imports forming cycle | Extract shared primitives to `primitives.ts` |
+| `z.infer` returns `any` | Schema not exported correctly | Check exports in `index.ts` |
+
+### GraphQL Errors
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Cannot query field` | Schema drift | Run `pnpm fetch-schema` to update local schema |
+| `Variable not provided` | Missing required variable | Check operation variables match gql.tada types |
+| `Permission denied` | Token lacks scope | Verify token has required permissions in Saleor Dashboard |
+
+### Deployment Stage Failures
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Stage skipped unexpectedly | Config section empty or misspelled | Check top-level key name in `config.yml` |
+| Dependency entity missing | Stage order incorrect | Verify `order` is after dependency stages |
+| Bulk operation partial failure | Some items invalid | Check `IGNORE_FAILED` error policy output for details |
+
+### Rollback
+
+If a deployment stage fails mid-execution:
+1. Run `pnpm dev introspect` to capture the current (partially modified) state
+2. Compare with git history to identify what changed
+3. Manually fix or re-deploy with corrected config
 
 ## Related Skills
 

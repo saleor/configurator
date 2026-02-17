@@ -3,6 +3,8 @@ name: configurator-recipes
 version: 2.0.0
 description: "Pre-built store configuration templates for common business types. Use when asking about store templates, example configs, fashion/electronics/subscription setup, or starting points."
 allowed-tools: Read, Write
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Configurator Recipes

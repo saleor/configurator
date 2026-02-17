@@ -1,8 +1,10 @@
 ---
 name: configurator-schema
 version: 2.0.0
-description: "Config.yml schema, entity structure, and validation rules. Use when asking about YAML format, required fields, entity identification, or config validation errors."
+description: "Config.yml schema, entity structure, and validation rules. Use when asking about YAML format, required fields, entity identification, or config validation errors. Do NOT use for general YAML questions unrelated to Saleor Configurator."
 allowed-tools: Read, Grep, Glob
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Configurator Schema
@@ -155,8 +157,8 @@ Configurator handles deployment order automatically, but understanding dependenc
 
 ## See Also
 
-- For complete schema documentation, see [reference/schema.md](reference/schema.md)
-- For example configurations, see [reference/examples.md](reference/examples.md)
+- For complete schema documentation, see [references/schema.md](references/schema.md)
+- For example configurations, see [references/examples.md](references/examples.md)
 
 ### Related Skills
 

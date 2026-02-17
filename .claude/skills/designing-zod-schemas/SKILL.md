@@ -2,6 +2,10 @@
 name: designing-zod-schemas
 description: "Designs Zod schemas following Zod-first development. Use when creating validation schemas, branded types, discriminated unions, transforms, refinements, or inferring TypeScript types with z.infer."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Zod Schema Designer

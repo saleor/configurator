@@ -2,6 +2,10 @@
 name: validating-pre-commit
 description: "Runs quality gate checks before commit or push. Use when preparing to commit, reproducing CI failures locally, or validating changes pass all checks."
 allowed-tools: "Read, Bash(pnpm:*), Bash(npx:*), Bash(rm:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Pre-Commit Quality Gate

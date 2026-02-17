@@ -3,6 +3,8 @@ name: data-importer
 version: 2.0.0
 description: "Transforms external product data into Saleor config.yml format. Use when importing from CSV, Excel, Shopify exports, or any external data source."
 allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Data Importer
@@ -114,10 +116,10 @@ Before generating output, verify:
 
 ## Reference Files
 
-- **`reference/csv-patterns.md`** -- CSV/Excel parsing techniques
-- **`reference/field-mapping.md`** -- Mapping strategies for various data shapes
-- **`reference/shopify-format.md`** -- Shopify-specific handling
-- **`reference/transformations.md`** -- Data transformation rules
+- **`references/csv-patterns.md`** -- CSV/Excel parsing techniques
+- **`references/field-mapping.md`** -- Mapping strategies for various data shapes
+- **`references/shopify-format.md`** -- Shopify-specific handling
+- **`references/transformations.md`** -- Data transformation rules
 
 ## See Also
 

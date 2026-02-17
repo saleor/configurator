@@ -3,6 +3,8 @@ name: saleor-domain
 version: 2.0.0
 description: "Saleor e-commerce entity types, relationships, and identifier rules. Use when asking about how entities relate, slug vs name identification, channels, or what Configurator manages."
 allowed-tools: Read, WebFetch
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Saleor Domain Knowledge
@@ -107,9 +109,9 @@ Configurator manages your store's structure. Some things are runtime-only:
 
 ## See Also
 
-- For entity reference, see [reference/entities.md](reference/entities.md)
-- For relationship diagrams, see [reference/relationships.md](reference/relationships.md)
-- For Storefront v26 integration, see [reference/storefront-v26.md](reference/storefront-v26.md)
+- For entity reference, see [references/entities.md](references/entities.md)
+- For relationship diagrams, see [references/relationships.md](references/relationships.md)
+- For Storefront v26 integration, see [references/storefront-v26.md](references/storefront-v26.md)
 
 ### Related Skills
 

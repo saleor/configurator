@@ -1,7 +1,11 @@
 ---
 name: reviewing-typescript-code
-description: "Reviews TypeScript code for project-specific quality patterns. Use when writing entities, services, repositories, comparators, formatters, bootstrap methods, deployment stages, diff support, or reviewing PRs with functional patterns."
+description: "Reviews TypeScript code for project-specific quality patterns. Use when writing entities, services, repositories, comparators, formatters, bootstrap methods, deployment stages, diff support, or reviewing PRs with functional patterns. Do NOT use for general TypeScript tutorials or non-Configurator projects."
 allowed-tools: "Read, Grep, Glob"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # TypeScript Code Quality Patterns

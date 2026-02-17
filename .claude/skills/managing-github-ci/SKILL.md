@@ -1,7 +1,11 @@
 ---
 name: managing-github-ci
-description: "Configures GitHub Actions workflows and CI/CD pipelines. Use when creating workflows, managing releases, troubleshooting CI failures, or configuring Husky hooks."
+description: "Configures GitHub Actions workflows and CI/CD pipelines. Use when creating workflow YAML, managing npm releases, troubleshooting CI failures, configuring Husky hooks, or setting up release automation. Do NOT use for local development commands or application code."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(gh:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # GitHub CI Automation

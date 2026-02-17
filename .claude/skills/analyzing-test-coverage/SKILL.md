@@ -1,7 +1,11 @@
 ---
 name: analyzing-test-coverage
-description: "Creates and analyzes tests using Vitest and MSW patterns. Use when writing tests, analyzing coverage gaps, setting up mocks, or debugging test failures."
+description: "Creates and analyzes tests using Vitest and MSW patterns. Use when writing unit tests, integration tests, analyzing coverage gaps, setting up MSW handlers, vi.fn mocks, test builders, or debugging test failures. Do NOT use for non-test TypeScript code."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(pnpm test:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Testing Strategy Analyst

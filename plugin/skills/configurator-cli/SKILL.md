@@ -3,6 +3,8 @@ name: configurator-cli
 version: 2.0.0
 description: "CLI commands for deploying, diffing, and introspecting Saleor stores. Use when asking about deploy, introspect, diff, dry-run, CI/CD setup, or CLI flags."
 allowed-tools: Bash, Read, Grep
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Configurator CLI
@@ -140,9 +142,9 @@ npx configurator deploy --url=$URL --token=$TOKEN --exclude products
 
 ## See Also
 
-- For complete command reference, see [reference/commands.md](reference/commands.md)
-- For all flags and options, see [reference/flags.md](reference/flags.md)
-- For error code details, see [reference/error-codes.md](reference/error-codes.md)
+- For complete command reference, see [references/commands.md](references/commands.md)
+- For all flags and options, see [references/flags.md](references/flags.md)
+- For error code details, see [references/error-codes.md](references/error-codes.md)
 
 ### Related Skills
 

@@ -2,6 +2,10 @@
 name: writing-graphql-operations
 description: "Creates GraphQL queries and mutations using gql.tada and urql. Use when writing operations, implementing repositories, updating schema, or testing GraphQL code."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # GraphQL Operations Developer
@@ -178,6 +182,26 @@ For up-to-date library docs, use Context7 MCP:
 - **Complete entity workflow**: See `adding-entity-types` for full implementation including bulk mutations
 - **Bulk operations**: See `adding-entity-types/references/bulk-mutations.md` for chunking patterns
 - **Testing GraphQL**: See `analyzing-test-coverage` for MSW setup
+
+## Troubleshooting
+
+### Common Error Scenarios
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `CombinedError: [Network]` | API unreachable or URL malformed | Verify `--url` ends with `/graphql/` and instance is running |
+| `CombinedError: [GraphQL]` | Invalid query or variables | Run `pnpm fetch-schema` and check operation against schema |
+| `result.data?.mutation?.errors` non-empty | Saleor validation rejection | Read `field` and `message` from errors array for specifics |
+| `TypeError: Cannot read property of undefined` | Missing null check on response | Always check `result.data` before accessing nested properties |
+| HTTP 429 (rate limited) | Too many requests | Built-in retry exchange handles this; increase delay if persistent |
+
+### Debugging Steps
+
+1. **Check schema freshness**: `pnpm fetch-schema` — ensures local schema matches remote
+2. **Isolate the operation**: Test the query/mutation in Saleor's GraphQL Playground first
+3. **Add error context**: Include operation name in all error wrapping calls
+4. **Check MSW handlers**: Ensure test mocks match updated operation signatures
+5. **Verify type inference**: Hover over `ResultOf<typeof Query>` in IDE to confirm types
 
 ## Quick Reference Rule
 

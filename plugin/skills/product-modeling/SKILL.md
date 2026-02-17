@@ -3,6 +3,8 @@ name: product-modeling
 version: 2.0.0
 description: "Product type design, attribute selection, and variant planning for Saleor. Use when asking about product vs variant attributes, how to structure product types, attribute types, variant matrices, or catalog organization."
 allowed-tools: Read, Glob
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Saleor Domain Modeling
@@ -108,7 +110,7 @@ Is it a CHOICE from predefined options?
                     └── NO → PLAIN_TEXT
 ```
 
-For the complete attribute type reference, see [reference/attribute-types-deep-dive.md](reference/attribute-types-deep-dive.md).
+For the complete attribute type reference, see [references/attribute-types-deep-dive.md](references/attribute-types-deep-dive.md).
 
 ## Variant Matrix Planning
 
@@ -144,7 +146,7 @@ Quick reference for common store types:
 | **Food & Beverage** | Origin, Roast, Flavor, Certifications | Size, Grind | 12/product |
 | **Digital Products** | Publisher, Platform, Features | License Type, Duration | 9/product |
 
-For complete YAML examples of each pattern, see [reference/industry-patterns.md](reference/industry-patterns.md).
+For complete YAML examples of each pattern, see [references/industry-patterns.md](references/industry-patterns.md).
 
 ## Categories vs Collections
 
@@ -168,7 +170,7 @@ Keep category trees to 3 levels deep. If you need a 4th level, consider using Co
 
 **Structures** (Menus) assemble Categories, Collections, Models, and URLs into navigation hierarchies.
 
-For complete guidance and examples, see [reference/models-and-structures.md](reference/models-and-structures.md).
+For complete guidance and examples, see [references/models-and-structures.md](references/models-and-structures.md).
 
 ## Workflow: Designing a New Product Type
 
@@ -193,9 +195,9 @@ For complete guidance and examples, see [reference/models-and-structures.md](ref
 
 ### Reference Files
 
-- **[reference/attribute-types-deep-dive.md](reference/attribute-types-deep-dive.md)** -- complete attribute type reference
-- **[reference/industry-patterns.md](reference/industry-patterns.md)** -- detailed YAML for 5+ industries
-- **[reference/models-and-structures.md](reference/models-and-structures.md)** -- Models and Structures guide
+- **[references/attribute-types-deep-dive.md](references/attribute-types-deep-dive.md)** -- complete attribute type reference
+- **[references/industry-patterns.md](references/industry-patterns.md)** -- detailed YAML for 5+ industries
+- **[references/models-and-structures.md](references/models-and-structures.md)** -- Models and Structures guide
 
 ### Examples
 
