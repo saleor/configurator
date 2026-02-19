@@ -37,6 +37,73 @@ describe("AttributeService", () => {
       // Then
       expect(mockOperations.createAttribute).toHaveBeenCalled();
     });
+
+    it("should create single reference attribute with entity type", async () => {
+      // Given
+      const attributeInput = {
+        name: "Main Category",
+        inputType: "SINGLE_REFERENCE" as const,
+        entityType: "PRODUCT_VARIANT" as const,
+        type: "PRODUCT_TYPE" as const,
+      };
+
+      const createdAttribute: Attribute = {
+        id: "attr-new",
+        name: "Main Category",
+        type: "PRODUCT_TYPE",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT_VARIANT",
+        choices: null,
+      };
+
+      const mockOperations = {
+        createAttribute: vi.fn().mockResolvedValue(createdAttribute),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      // When
+      const result = await service.bootstrapAttributes({
+        attributeInputs: [attributeInput],
+      });
+
+      // Then
+      expect(mockOperations.createAttribute).toHaveBeenCalledWith({
+        name: "Main Category",
+        slug: "main-category",
+        type: "PRODUCT_TYPE",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT_VARIANT",
+      });
+      expect(result).toEqual([createdAttribute]);
+    });
+
+    it("should throw error when single reference attribute missing entity type", async () => {
+      // Given - Invalid input without entityType
+      const invalidInput = {
+        name: "Invalid Reference",
+        inputType: "SINGLE_REFERENCE" as const,
+        type: "PRODUCT_TYPE" as const,
+      } as any;
+
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      // When & Then
+      await expect(
+        service.bootstrapAttributes({
+          attributeInputs: [invalidInput],
+        })
+      ).rejects.toThrow("Entity type is required for reference attribute Invalid Reference");
+      expect(mockOperations.createAttribute).not.toHaveBeenCalled();
+    });
   });
 
   describe("resolveReferencedAttributes", () => {
@@ -347,6 +414,40 @@ describe("AttributeService", () => {
         getAttributesByNames: vi.fn(),
         bulkCreateAttributes: vi.fn(),
         bulkUpdateAttributes: vi.fn(),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      // When
+      const result = await service.updateAttribute(attributeInput, existingAttribute);
+
+      // Then
+      expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
+      expect(result).toBe(existingAttribute);
+    });
+
+    it("should handle single reference attributes without updates", async () => {
+      // Given
+      const existingAttribute: Attribute = {
+        id: "attr-1",
+        name: "Featured Product",
+        type: "PRODUCT_TYPE",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT",
+        choices: null,
+      };
+
+      const attributeInput = {
+        name: "Featured Product",
+        inputType: "SINGLE_REFERENCE" as const,
+        entityType: "PRODUCT" as const,
+        type: "PRODUCT_TYPE" as const,
+      };
+
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
       };
 
       const service = new AttributeService(mockOperations);

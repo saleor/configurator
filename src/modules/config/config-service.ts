@@ -165,8 +165,8 @@ export class ConfigurationService {
     );
   }
 
-  private isReferenceAttribute(inputType: string | null): inputType is "REFERENCE" {
-    return inputType === "REFERENCE";
+  private isReferenceAttribute(inputType: string | null): inputType is "REFERENCE" | "SINGLE_REFERENCE" {
+    return inputType === "REFERENCE" || inputType === "SINGLE_REFERENCE";
   }
 
   private mapAttribute(
@@ -198,7 +198,7 @@ export class ConfigurationService {
     if (this.isReferenceAttribute(attribute.inputType)) {
       return {
         name: attribute.name,
-        inputType: "REFERENCE" as const,
+        inputType: attribute.inputType,
         entityType: attribute.entityType || "PRODUCT",
         type: attributeType,
       };
@@ -293,6 +293,15 @@ export class ConfigurationService {
         return {
           name: node.name,
           inputType: "REFERENCE",
+          type,
+          entityType:
+            (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
+        } as FullAttribute;
+      }
+      if (inputType === "SINGLE_REFERENCE") {
+        return {
+          name: node.name,
+          inputType: "SINGLE_REFERENCE",
           type,
           entityType:
             (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
