@@ -1,5 +1,185 @@
 # saleor-configurator
 
+## 1.2.0
+
+### Minor Changes
+
+- 9b7d9e4: Add Claude Code plugin for AI-powered Saleor configuration
+
+  This plugin enables developers to configure Saleor e-commerce stores using natural language
+  conversations with Claude. Features include:
+
+  **Commands (8 total):**
+
+  - `/configurator-workflow` - Complete multi-phase workflow
+  - `/configurator-setup` - Interactive store configuration wizard
+  - `/configurator-model` - Product modeling wizard with decision frameworks
+  - `/configurator-edit` - Menu-driven configuration editing
+  - `/configurator-validate` - Schema validation and best practices check
+  - `/configurator-review` - Launch config review agent
+  - `/configurator-import` - Import from CSV, Excel, or Shopify
+  - `/configurator-init` - Initialize config.yml skeleton
+
+  **Agents (5 total):**
+
+  - `config-review` - Analyzes config.yml with confidence scoring
+  - `troubleshoot` - Diagnoses deployment failures
+  - `discover` - Analyzes existing stores
+  - `csv-importer` - Imports tabular data with field mapping
+  - `shopify-importer` - Specialized Shopify export import
+
+  **Skills (6 total):**
+
+  - `product-modeling` - Complete domain modeling with decision frameworks
+  - `configurator-cli` - CLI commands and flags reference
+  - `configurator-schema` - Config.yml structure guide
+  - `configurator-recipes` - Pre-built store templates
+  - `data-importer` - Import workflows and transformations
+  - `saleor-domain` - Entity relationships and GraphQL
+
+  **Hooks:**
+
+  - YAML validation before writes
+  - Deployment safety checks (dry-run requirement)
+  - CLI result analysis and error handling
+  - Task completion quality gate
+
+  **Additional features:**
+
+  - MCP server integration (Context7, Saleor)
+  - JSON Schema for config.yml validation
+  - User settings template for credentials
+
+- 3dcb52d: Refactor Claude Code plugin to v2.1.0 with streamlined commands and intelligent debugging
+
+  **Commands consolidated from 8 to 6 focused commands:**
+
+  - `/configurator` - Core operations (init, validate, edit, review) in a single entry point
+  - `/configurator-fix` - New intelligent debugging with auto-fix and plain language explanations
+  - `/recipe` - Quick start with pre-built store recipes (fashion, electronics, food, subscription)
+  - `/discover` - Generate config from existing website via chrome-devtools or Saleor introspection
+  - `/configurator-model` - Interactive product modeling wizard (unchanged)
+  - `/configurator-import` - Data import from CSV, Excel, or Shopify (unchanged)
+
+  **Removed commands:** `/configurator-workflow`, `/configurator-setup`, `/configurator-init`, `/configurator-edit`, `/configurator-validate`, `/configurator-review`
+
+  **Agent changes:**
+
+  - Renamed `discover` agent to `store-analyzer` for clarity
+  - Updated agent descriptions and cross-references
+
+  **Skill improvements:**
+
+  - Added cross-references between related skills
+  - Improved frontmatter descriptions for better discoverability
+
+  **Other changes:**
+
+  - Removed hooks system (hooks.json, session-context.sh) in favor of simpler approach
+  - Added CHANGELOG.md and LICENSE
+  - Updated README with new command structure and getting-started workflows
+
+- 11cef9e: Add recipes: pre-built configuration templates for common e-commerce patterns
+
+  New `configurator recipe` command with subcommands:
+
+  - `configurator recipe list [--category <category>]` - Browse available recipes
+  - `configurator recipe show <name>` - Preview a recipe's configuration and metadata
+  - `configurator recipe apply <name> --url <url> --token <token>` - Apply a recipe to your Saleor instance
+  - `configurator recipe export <name> [--output <path>]` - Export a recipe for local customization
+
+  Built-in recipes included:
+
+  - **multi-region** - Configure channels for US, EU, and UK markets with regional warehouses
+  - **digital-products** - Product types for digital goods (ebooks, software, subscriptions)
+  - **click-and-collect** - Warehouse pickup points with local collection shipping
+  - **custom-shipping** - Shipping zones with tiered rates for US, EU, and worldwide
+
+  All commands support `--json` flag for CI/CD automation and scripting.
+
+- 2f97fff: Move deployment reports to managed `.configurator/reports/` directory with auto-pruning
+
+  - Reports now saved to `.configurator/reports/` instead of the project root
+  - Auto-prunes to keep only the last 5 reports in the managed directory
+  - `--report-path` escape hatch preserved for custom paths (no pruning applied)
+  - Cleans up deploy command: removes inline comments, fixes type safety, extracts helper methods
+
+- 25646e5: Add `--skip-media` flag to `diff` and `deploy` commands
+
+  This feature allows users to exclude media fields from comparison and deployment operations when syncing across environments with different media URLs.
+
+  ### New Features:
+
+  - **`--skip-media` flag**: Available on both `diff` and `deploy` commands
+  - **Media comparison skipping**: When enabled, media differences are not reported in diff results
+  - **Media sync skipping**: When enabled, existing media on target environment is preserved during deployment
+  - **CLI feedback**: Clear status messages indicate when media handling is being skipped
+
+  ### Usage:
+
+  ```bash
+  # Show diff excluding media differences
+  saleor-configurator diff --skip-media
+
+  # Deploy without modifying target media
+  saleor-configurator deploy --skip-media
+  ```
+
+  ### Technical Improvements:
+
+  - Unified `ComparatorOptions` type using `Pick<DiffOptions, 'skipMedia'>`
+  - Removed duplicate `Products` entry from EntityType union
+  - Removed redundant `skipMedia` field from `DeploymentContext` (access via `args.skipMedia`)
+  - Updated all entity comparators with consistent options signature
+  - Added unit tests for skipMedia behavior in ProductComparator
+
+- 5e828ca: Add variant selector attribute configuration to product types
+
+  Users can now specify which variant attributes should be used for variant selection in storefronts (e.g., Size, Color dropdowns) via the `variantSelection` property.
+
+  **New Features:**
+
+  - `variantSelection: true` on variant attributes in YAML config
+  - Introspect outputs `variantSelection` for enabled attributes (omits when false for cleaner YAML)
+  - Diff shows variant selection changes
+  - Validation ensures only supported input types (`DROPDOWN`, `BOOLEAN`, `SWATCH`, `NUMERIC`) can use variant selection
+  - Works with both inline and referenced attributes
+
+  **Example:**
+
+  ```yaml
+  productTypes:
+    - name: T-Shirt
+      variantAttributes:
+        - name: Size
+          inputType: DROPDOWN
+          variantSelection: true
+          values:
+            - name: Small
+            - name: Medium
+            - name: Large
+        - name: Color
+          inputType: SWATCH
+          variantSelection: true
+  ```
+
+### Patch Changes
+
+- ae25834: docs: add comprehensive domain modeling documentation
+
+  - Add Domain Modeling section to README with core entities, attributes, and examples
+  - Expand example.yml with taxClasses, collections, pageTypes, models, and menus
+  - Add Domain Modeling Errors section to TROUBLESHOOTING.md
+  - Add Attribute System section to ENTITY_REFERENCE.md with all attribute types
+
+- 336a577: Set up plugin distribution for Claude Code marketplace and directory submission
+
+  - Enrich root `.claude-plugin/marketplace.json` with `$schema`, `metadata` (version, homepage), plugin `category`, and `keywords` for marketplace discovery
+  - Fix README install instructions: replace deprecated `/install-plugin` with current `/plugin marketplace add` and `/plugin install` syntax
+  - Add "From Official Directory" install section for post-approval directory installs
+
+- 6e080db: Improve skill file quality: enrich trigger keywords in descriptions, standardize description format to "Use when..." style, and fix version bump on product-modeling plugin skill
+
 ## 1.1.0
 
 ### Minor Changes
