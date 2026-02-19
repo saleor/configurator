@@ -1,15 +1,23 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "saleor-configurator",
   "owner": {
     "name": "Saleor",
     "email": "hello@saleor.io"
   },
-  "description": "Official Saleor Configurator plugin for AI-powered e-commerce configuration",
+  "metadata": {
+    "description": "AI-powered Saleor e-commerce configuration through natural language",
+    "version": "2.1.0",
+    "homepage": "https://docs.saleor.io/configurator"
+  },
   "plugins": [
     {
       "name": "saleor-configurator",
+      "source": "./plugin",
       "description": "AI-powered Saleor e-commerce configuration through natural language",
-      "source": "./plugin"
+      "version": "2.1.0",
+      "category": "development",
+      "keywords": ["saleor", "e-commerce", "configurator", "yaml", "graphql", "commerce-as-code"]
     }
   ]
 }
