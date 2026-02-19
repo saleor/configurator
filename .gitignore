@@ -3,6 +3,7 @@ node_modules
 config.yml
 .biome
 deployment-report-*.json
+.configurator/
 /CLAUDE.md
 dist
 FEATURE-ROADMAP.md

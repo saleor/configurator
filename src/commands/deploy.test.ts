@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
-// Import cliConsole so we can mock it
 import { cliConsole } from "../cli/console";
 import * as configuratorModule from "../core/configurator";
 import * as deploymentModule from "../core/deployment";
@@ -8,7 +7,15 @@ import { ConfigurationValidationError } from "../core/errors/configuration-error
 import { logger } from "../lib/logger";
 import { deployHandler } from "./deploy";
 
-// Mock modules
+vi.mock("../core/deployment/report-storage", () => ({
+  resolveReportPath: vi.fn(
+    async (customPath?: string) => customPath ?? ".configurator/reports/deployment-report-mock.json"
+  ),
+  isInManagedDirectory: vi.fn(() => false),
+  pruneOldReports: vi.fn(async () => []),
+  getReportsDirectory: vi.fn(() => ".configurator/reports"),
+}));
+
 vi.mock("../cli/console");
 vi.mock("../cli/command", () => ({
   baseCommandArgsSchema: {
@@ -40,6 +47,87 @@ vi.mock("../core/diff/formatters", () => ({
   })),
 }));
 
+function createMockDiffService() {
+  return {
+    diffForDeployWithFormatting: vi.fn().mockResolvedValue({
+      summary: {
+        totalChanges: 1,
+        creates: 1,
+        updates: 0,
+        deletes: 0,
+        results: [],
+      },
+      output: "",
+    }),
+  };
+}
+
+function createMockConfigurator(
+  diffService: Record<string, ReturnType<typeof vi.fn>>,
+  overrides?: { diff?: ReturnType<typeof vi.fn> }
+) {
+  return {
+    services: {
+      diffService,
+      configStorage: {
+        load: vi.fn().mockResolvedValue({}),
+      },
+      configuration: {
+        retrieveWithoutSaving: vi.fn().mockResolvedValue({}),
+      },
+    },
+    diff:
+      overrides?.diff ??
+      vi.fn().mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [],
+        },
+        output: "",
+      }),
+  };
+}
+
+function createConfiguratorWithError(
+  diffService: Record<string, ReturnType<typeof vi.fn>>,
+  error: Error
+) {
+  return createMockConfigurator(diffService, {
+    diff: vi.fn().mockRejectedValue(error),
+  });
+}
+
+function createDefaultArgs(overrides?: Partial<Parameters<typeof deployHandler>[0]>) {
+  return {
+    url: "https://test.saleor.cloud",
+    token: "test-token",
+    config: "config.yml",
+    ci: true,
+    quiet: false,
+    verbose: false,
+    json: false,
+    plan: false,
+    failOnDelete: false,
+    skipMedia: false,
+    ...overrides,
+  };
+}
+
+function setupProgressMocks() {
+  if (!vi.mocked(cliConsole).progress) {
+    vi.mocked(cliConsole).progress = {} as typeof cliConsole.progress;
+  }
+  vi.mocked(cliConsole).progress.start = vi.fn();
+  vi.mocked(cliConsole).progress.update = vi.fn();
+  vi.mocked(cliConsole).progress.succeed = vi.fn();
+  vi.mocked(cliConsole).progress.fail = vi.fn();
+  vi.mocked(cliConsole).progress.info = vi.fn();
+  vi.mocked(cliConsole).progress.warn = vi.fn();
+}
+
 describe("Deploy Command", () => {
   let mockCreateConfigurator: ReturnType<typeof vi.fn>;
   let mockExit: MockInstance<(code?: string | number | null) => never>;
@@ -51,32 +139,15 @@ describe("Deploy Command", () => {
   let mockDiffService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
-    // Mock process.exit
     mockExit = vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null) => {
       throw new Error(`process.exit(${code})`);
     }) as never);
 
-    // Mock logger to suppress output
     vi.spyOn(logger, "error").mockImplementation(() => undefined);
-
-    // Mock console methods
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    // Mock diff service
-    mockDiffService = {
-      diffForDeployWithFormatting: vi.fn().mockResolvedValue({
-        summary: {
-          totalChanges: 1,
-          creates: 1,
-          updates: 0,
-          deletes: 0,
-          results: [],
-        },
-        output: "",
-      }),
-    };
+    mockDiffService = createMockDiffService();
 
-    // Mock deployment pipeline
     mockDeploymentPipeline = {
       addStage: vi.fn(),
       execute: vi.fn().mockResolvedValue({
@@ -96,32 +167,29 @@ describe("Deploy Command", () => {
         >
     );
 
-    // Setup executeEnhancedDeployment mock
     const { executeEnhancedDeployment } = await import("../core/deployment/enhanced-pipeline");
     mockExecuteEnhancedDeployment = vi.mocked(executeEnhancedDeployment);
-    mockExecuteEnhancedDeployment.mockImplementation(async () => {
-      const result = {
-        metrics: {
-          startTime: new Date(),
-          endTime: new Date(),
-          duration: 100,
-          stageDurations: new Map(),
-          stageMetrics: [],
-          operationCounts: { created: 1, updated: 0, deleted: 0 },
-          errors: [],
-        },
-        result: {
-          overallStatus: "success" as const,
-          stages: [],
-          totalOperations: 1,
-          successfulOperations: 1,
-          failedOperations: 0,
-        },
-        shouldExit: true,
-        exitCode: 0,
-      };
-      return result;
-    });
+    mockExecuteEnhancedDeployment.mockImplementation(async () => ({
+      metrics: {
+        startTime: new Date(),
+        endTime: new Date(),
+        duration: 100,
+        stageDurations: new Map(),
+        stageMetrics: [],
+        operationCounts: { created: 1, updated: 0, deleted: 0 },
+        errors: [],
+      },
+      result: {
+        overallStatus: "success" as const,
+        stages: [],
+        totalOperations: 1,
+        successfulOperations: 1,
+        failedOperations: 0,
+      },
+      shouldExit: true,
+      exitCode: 0,
+    }));
+
     vi.spyOn(deploymentModule, "getAllStages").mockReturnValue([]);
     vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(
       () =>
@@ -136,45 +204,11 @@ describe("Deploy Command", () => {
         }) as unknown as InstanceType<typeof deploymentModule.DeploymentReportGenerator>
     );
 
-    // Mock configurator with all required methods
-    const mockConfigurator = {
-      services: {
-        diffService: mockDiffService,
-        configStorage: {
-          load: vi.fn().mockResolvedValue({}),
-        },
-        configuration: {
-          retrieveWithoutSaving: vi.fn().mockResolvedValue({}),
-        },
-      },
-      diff: vi.fn().mockResolvedValue({
-        summary: {
-          totalChanges: 1,
-          creates: 1,
-          updates: 0,
-          deletes: 0,
-          results: [],
-        },
-        output: "",
-      }),
-    };
-
-    mockCreateConfigurator = vi.fn().mockReturnValue(mockConfigurator);
+    mockCreateConfigurator = vi.fn().mockReturnValue(createMockConfigurator(mockDiffService));
 
     vi.spyOn(configuratorModule, "createConfigurator").mockImplementation(mockCreateConfigurator);
 
-    // confirmAction is already mocked at module level
-
-    // Mock the progress methods that are used in the diff() method
-    if (!vi.mocked(cliConsole).progress) {
-      vi.mocked(cliConsole).progress = {} as typeof cliConsole.progress;
-    }
-    vi.mocked(cliConsole).progress.start = vi.fn();
-    vi.mocked(cliConsole).progress.update = vi.fn();
-    vi.mocked(cliConsole).progress.succeed = vi.fn();
-    vi.mocked(cliConsole).progress.fail = vi.fn();
-    vi.mocked(cliConsole).progress.info = vi.fn();
-    vi.mocked(cliConsole).progress.warn = vi.fn();
+    setupProgressMocks();
   });
 
   afterEach(() => {
@@ -183,70 +217,22 @@ describe("Deploy Command", () => {
 
   describe("Error handling", () => {
     it("should handle network errors with exit code 3", async () => {
-      const networkError = new Error("fetch failed");
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("fetch failed"))
+      );
 
-      // Mock the configurator's diff method to throw network error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(networkError),
-      };
-
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
-
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(3)");
       expect(mockExit).toHaveBeenCalledWith(3);
     });
 
     it("should handle authentication errors with exit code 2", async () => {
-      const authError = new Error("unauthorized");
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("unauthorized"))
+      );
 
-      // Mock the configurator's diff method to throw auth error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(authError),
-      };
-
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "invalid-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(2)");
-
+      await expect(deployHandler(createDefaultArgs({ token: "invalid-token" }))).rejects.toThrow(
+        "process.exit(2)"
+      );
       expect(mockExit).toHaveBeenCalledWith(2);
     });
 
@@ -260,34 +246,11 @@ describe("Deploy Command", () => {
         ]
       );
 
-      // Mock the configurator's diff method to throw validation error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(validationError),
-      };
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, validationError)
+      );
 
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
-
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(4)");
       expect(mockExit).toHaveBeenCalledWith(4);
     });
 
@@ -297,223 +260,85 @@ describe("Deploy Command", () => {
         timeout: 30000,
       });
 
-      // Mock the configurator's diff method to throw deployment error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(deploymentError),
-      };
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, deploymentError)
+      );
 
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
-
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(3)");
       expect(mockExit).toHaveBeenCalledWith(3);
     });
 
     it("should show verbose error details when verbose flag is set", async () => {
-      const networkError = new Error("econnrefused");
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("econnrefused"))
+      );
 
-      // Mock the configurator's diff method to throw network error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(networkError),
-      };
-
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: true,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(3)");
-
+      await expect(deployHandler(createDefaultArgs({ verbose: true }))).rejects.toThrow(
+        "process.exit(3)"
+      );
       expect(mockExit).toHaveBeenCalledWith(3);
     });
 
     it("should handle unexpected errors with exit code 1", async () => {
-      const unexpectedError = new Error("Unexpected internal error");
-      mockExecuteEnhancedDeployment.mockRejectedValue(unexpectedError);
+      mockExecuteEnhancedDeployment.mockRejectedValue(new Error("Unexpected internal error"));
 
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(1)");
-
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(1)");
       expect(mockExit).toHaveBeenCalledWith(1);
     });
 
     it("should handle errors during diff analysis", async () => {
-      const diffError = new Error("Invalid configuration structure");
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("Invalid configuration structure"))
+      );
 
-      // Mock the configurator's diff method to throw error
-      const mockConfiguratorWithError = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockRejectedValue(diffError),
-      };
-
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorWithError);
-
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(4)");
-
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(4)");
       expect(mockExit).toHaveBeenCalledWith(4);
     });
   });
 
   describe("Successful deployment", () => {
     it("should exit gracefully when no changes detected", async () => {
-      // Mock no changes scenario
-      const mockConfiguratorNoChanges = {
-        services: {
-          diffService: mockDiffService,
-          configStorage: {
-            load: vi.fn().mockResolvedValue({}),
-          },
-          configuration: {
-            retrieveWithoutSaving: vi.fn().mockResolvedValue({}),
-          },
-        },
-        diff: vi.fn().mockResolvedValue({
-          summary: {
-            totalChanges: 0,
-            creates: 0,
-            updates: 0,
-            deletes: 0,
-            results: [],
-          },
-          output: "",
-        }),
-      };
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 0,
+              creates: 0,
+              updates: 0,
+              deletes: 0,
+              results: [],
+            },
+            output: "",
+          }),
+        })
+      );
 
-      mockCreateConfigurator.mockReturnValue(mockConfiguratorNoChanges);
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      // Now exits with EXIT_CODES.SUCCESS when no changes
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
-
-      expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
+      expect(mockCreateConfigurator).toHaveBeenCalledWith(createDefaultArgs());
       expect(mockDeploymentPipeline.execute).not.toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     it("should complete deployment successfully", async () => {
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
+      const args = createDefaultArgs();
 
-      // The deployment will succeed with exit code 0
       await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
 
-      // Verify that the deployment pipeline was executed
       expect(mockCreateConfigurator).toHaveBeenCalledWith(args);
       expect(mockExecuteEnhancedDeployment).toHaveBeenCalled();
-      // And that exit(0) was called for successful deployment
       expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     it("should skip confirmation in CI mode", async () => {
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
-
-      // In CI mode, confirmAction should not be called because args.ci is true
       const { confirmAction } = await import("../cli/command");
       expect(confirmAction).not.toHaveBeenCalled();
       expect(mockExecuteEnhancedDeployment).toHaveBeenCalled();
     });
 
-    it("should save deployment report", async () => {
+    it("should save deployment report with custom path", async () => {
       const mockReportGenerator = {
         saveToFile: vi.fn(),
       };
@@ -525,21 +350,9 @@ describe("Deploy Command", () => {
           >
       );
 
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: true,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        reportPath: "custom-report.json",
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
+      await expect(
+        deployHandler(createDefaultArgs({ reportPath: "custom-report.json" }))
+      ).rejects.toThrow("process.exit(0)");
 
       expect(mockReportGenerator.saveToFile).toHaveBeenCalledWith("custom-report.json");
     });
@@ -547,24 +360,12 @@ describe("Deploy Command", () => {
 
   describe("User confirmation", () => {
     it("should exit gracefully when user cancels", async () => {
-      // Mock confirmAction to return false for this specific test
       const { confirmAction } = await import("../cli/command");
       vi.mocked(confirmAction).mockResolvedValueOnce(false);
 
-      const args = {
-        url: "https://test.saleor.cloud",
-        token: "test-token",
-        config: "config.yml",
-        ci: false,
-        quiet: false,
-        verbose: false,
-        json: false,
-        plan: false,
-        failOnDelete: false,
-        skipMedia: false,
-      };
-
-      await expect(deployHandler(args)).rejects.toThrow("process.exit(0)");
+      await expect(deployHandler(createDefaultArgs({ ci: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
 
       expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
