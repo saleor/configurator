@@ -5,8 +5,7 @@
 The project uses gql.tada for type-safe GraphQL operations with automatic TypeScript inference.
 
 ```typescript
-import { graphql } from "@/lib/graphql/graphql";
-import type { ResultOf, VariablesOf } from "gql.tada";
+import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 ```
 
 ## Query Patterns

@@ -68,6 +68,34 @@ Project-specific code quality checklist for the Saleor Configurator codebase. Co
 - [ ] Zod errors: `ZodValidationError.fromZodError()`
 - [ ] Error messages are actionable with recovery suggestions
 - [ ] Error includes relevant context
+- [ ] Service calls wrapped with `ServiceErrorWrapper.wrapServiceCall()` for consistent logging and error classification
+- [ ] Batch operations use `ServiceErrorWrapper.wrapBatch()` for partial success tracking
+
+### ServiceErrorWrapper Pattern
+
+From `src/lib/utils/error-wrapper.ts`:
+
+```typescript
+import { ServiceErrorWrapper } from '@/lib/utils/error-wrapper';
+
+// Individual operation: wraps with logging + error classification
+const result = await ServiceErrorWrapper.wrapServiceCall(
+  'create category',     // operation name (for logging)
+  'Categories',          // entity type
+  category.slug,         // entity identifier (optional)
+  () => repo.create(category),
+  CategoryError          // optional: custom error class to wrap into
+);
+
+// Batch operation: processes items with partial success tracking
+const { successes, failures } = await ServiceErrorWrapper.wrapBatch(
+  items,
+  'create categories',
+  (item) => item.slug,           // identifier extractor
+  (item) => repo.create(item),   // process function
+  { sequential: true, delayMs: 100 } // optional: sequential with delay
+);
+```
 
 ## Review Output Format
 

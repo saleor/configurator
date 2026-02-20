@@ -33,18 +33,24 @@ Guide the creation and maintenance of GraphQL operations following project conve
 
 ## File Organization
 
+GraphQL operations are **module-local**, not centralized:
+
 ```
 src/lib/graphql/
 ├── client.ts              # urql client configuration
-├── operations/            # GraphQL operation definitions
-├── fragments/             # Reusable GraphQL fragments
-├── __mocks__/             # MSW test mocks
-└── schema.graphql         # Saleor schema (generated)
+├── graphql-types.ts       # gql.tada type definitions
+├── graphql-env.d.ts       # Generated schema types
+├── fetch-schema.ts        # Schema fetching utility
+└── index.ts               # Re-exports
 
 src/modules/<entity>/
-├── repository.ts          # Uses GraphQL operations
-└── ...
+├── operations.ts          # GraphQL queries and mutations for this entity
+├── repository.ts          # Uses operations, maps to domain models
+├── service.ts             # Business logic
+└── *.test.ts              # Tests
 ```
+
+**Key pattern**: Each module defines its own GraphQL operations in `operations.ts`. There are no centralized `operations/` or `fragments/` directories.
 
 ## Creating Operations
 
@@ -174,7 +180,9 @@ For up-to-date library docs, use Context7 MCP:
 
 ### Project Resources
 - `src/lib/graphql/client.ts` - Client configuration
-- `src/lib/graphql/operations/` - Existing operations
+- `src/lib/graphql/graphql-types.ts` - gql.tada type definitions
+- `src/lib/graphql/graphql-env.d.ts` - Generated schema types
+- `src/modules/<entity>/operations.ts` - Module-local operations (e.g., `src/modules/category/operations.ts`)
 - `docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards
 
 ## Related Skills

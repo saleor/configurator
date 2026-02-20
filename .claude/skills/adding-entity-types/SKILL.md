@@ -12,7 +12,7 @@ compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 
 ## Overview
 
-Implement new Saleor entity types following a 7-step pipeline: schema, GraphQL operations, repository, bulk mutations, service, tests, and deployment stage. Each step builds on the previous, producing a complete entity module.
+Implement new Saleor entity types following an 8-step pipeline: schema, GraphQL operations, repository, bulk mutations, service, tests, deployment stage, and diff comparator. Each step builds on the previous, producing a complete entity module.
 
 ## When to Use
 
@@ -32,6 +32,7 @@ Implement new Saleor entity types following a 7-step pipeline: schema, GraphQL o
 | 5. Service | Business logic | `src/modules/<entity>/service.ts` |
 | 6. Tests | Vitest + MSW | `src/modules/<entity>/*.test.ts` |
 | 7. Pipeline | Deployment stage | `src/modules/deployment/stages/` |
+| 8. Comparator | Diff support | `src/core/diff/comparators/<entity>-comparator.ts` |
 
 ## E2E Workflow
 
@@ -62,6 +63,10 @@ Implement new Saleor entity types following a 7-step pipeline: schema, GraphQL o
          v
 +-----------------+
 | 7. Pipeline     |  Add deployment stage
++--------+--------+
+         v
++-----------------+
+| 8. Comparator   |  Add diff support
 +-----------------+
 ```
 
@@ -79,7 +84,7 @@ See [references/zod-schemas.md](references/zod-schemas.md) for detailed patterns
 ### Step 2: Create GraphQL Operations
 
 Define in `src/modules/<entity>/operations.ts`. Key patterns:
-- Import `graphql` from `@/lib/graphql/graphql` (gql.tada auto-types)
+- Import `graphql` from `gql.tada` (auto-types from schema)
 - Use `ResultOf<typeof Query>` for type inference
 - Always include `errors { field, message, code }` in mutations
 - Follow naming: `get<Entity>Query`, `create<Entity>Mutation`, `bulk<Action><Entity>Mutation`
@@ -130,6 +135,16 @@ Create stage in `src/modules/deployment/stages/<entity>-stage.ts`:
 - Set `order` after dependencies (entities this depends on)
 - Skip if no config entries: `if (!config.entities?.length) return { skipped: true }`
 - Delegate to service layer
+
+### Step 8: Add Diff Comparator
+
+Create `src/core/diff/comparators/<entity>-comparator.ts`:
+- Extend `BaseEntityComparator` from `src/core/diff/comparators/base-comparator.ts`
+- Implement `entityType`, `getEntityName()` (slug or name), and `compareEntityFields()` (field-by-field comparison)
+- Register in `DiffService.createComparators()` in `src/core/diff/service.ts`
+- Add tests in `src/core/diff/comparators/<entity>-comparator.test.ts`
+
+See `diff-engine-development` skill for comprehensive patterns and examples.
 
 ## Validation Checkpoints
 
@@ -201,3 +216,4 @@ If a deployment stage fails mid-execution:
 - **Zod patterns**: See `designing-zod-schemas`
 - **GraphQL details**: See `writing-graphql-operations`
 - **Code quality**: See `reviewing-typescript-code`
+- **Diff engine**: See `diff-engine-development` for comparator patterns (Step 8)

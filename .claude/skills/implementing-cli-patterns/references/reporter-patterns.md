@@ -17,13 +17,13 @@ export interface DeploymentResult {
 }
 
 export const reportDeploymentResults = (results: DeploymentResult[]): void => {
-  console.log('');
+  cliConsole.text('');
   console.important('Deployment Summary');
-  console.log('-'.repeat(60));
+  cliConsole.text('-'.repeat(60));
 
   const headers = ['Entity', 'Created', 'Updated', 'Deleted', 'Failed', 'Time'];
-  console.log(formatTableRow(headers));
-  console.log('-'.repeat(60));
+  cliConsole.text(formatTableRow(headers));
+  cliConsole.text('-'.repeat(60));
 
   for (const result of results) {
     const row = [
@@ -34,10 +34,10 @@ export const reportDeploymentResults = (results: DeploymentResult[]): void => {
       result.failed > 0 ? chalk.red(String(result.failed)) : '0',
       `${result.duration}ms`,
     ];
-    console.log(formatTableRow(row));
+    cliConsole.text(formatTableRow(row));
   }
 
-  console.log('-'.repeat(60));
+  cliConsole.text('-'.repeat(60));
 
   const totals = results.reduce(
     (acc, r) => ({
@@ -64,21 +64,21 @@ export const reportDiff = (diffs: DiffResult[]): void => {
   for (const diff of diffs) {
     switch (diff.action) {
       case 'create':
-        console.log(chalk.green(`+ ${diff.entity}: ${diff.identifier}`));
+        cliConsole.text(chalk.green(`+ ${diff.entity}: ${diff.identifier}`));
         break;
       case 'update':
-        console.log(chalk.blue(`~ ${diff.entity}: ${diff.identifier}`));
+        cliConsole.text(chalk.blue(`~ ${diff.entity}: ${diff.identifier}`));
         for (const change of diff.changes) {
-          console.log(chalk.gray(`  ${change.field}: ${change.from} -> ${change.to}`));
+          cliConsole.text(chalk.gray(`  ${change.field}: ${change.from} -> ${change.to}`));
         }
         break;
       case 'delete':
-        console.log(chalk.red(`- ${diff.entity}: ${diff.identifier}`));
+        cliConsole.text(chalk.red(`- ${diff.entity}: ${diff.identifier}`));
         break;
     }
   }
 
-  console.log('');
+  cliConsole.text('');
   console.info(`Total: ${diffs.filter(d => d.action === 'create').length} to create, ` +
     `${diffs.filter(d => d.action === 'update').length} to update, ` +
     `${diffs.filter(d => d.action === 'delete').length} to delete`);
@@ -91,16 +91,16 @@ export const reportDiff = (diffs: DiffResult[]): void => {
 export const reportDuplicates = (duplicates: DuplicateIssue[]): void => {
   if (duplicates.length === 0) return;
 
-  console.log('');
+  cliConsole.text('');
   console.warning('Duplicate identifiers detected:');
-  console.log('');
+  cliConsole.text('');
 
   for (const dup of duplicates) {
-    console.log(chalk.yellow(`  ${dup.entityType}: "${dup.identifier}"`));
-    console.log(chalk.gray(`    Found at: ${dup.locations.join(', ')}`));
+    cliConsole.text(chalk.yellow(`  ${dup.entityType}: "${dup.identifier}"`));
+    cliConsole.text(chalk.gray(`    Found at: ${dup.locations.join(', ')}`));
   }
 
-  console.log('');
+  cliConsole.text('');
   console.hint('Fix duplicates before deploying to avoid conflicts');
 };
 ```

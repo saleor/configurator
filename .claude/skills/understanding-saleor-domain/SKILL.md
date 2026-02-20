@@ -75,24 +75,28 @@ Only one instance exists (no identifier needed): **Shop** (global store settings
 
 ### Stage Order (Dependencies Matter)
 
+From `src/core/deployment/stages.ts` → `getAllStages()`:
+
 ```
-1. Validation       -> Pre-flight checks
-2. Shop Settings    -> Global configuration
-3. Product Types    -> Must exist before products
-4. Page Types       -> Must exist before pages
-5. Attributes       -> Used by product/page types
-6. Categories       -> Product organization
-7. Collections      -> Product groupings
-8. Warehouses       -> Required for inventory
-9. Shipping Zones   -> Geographic shipping rules
-10. Products        -> Depends on types, categories
-11. Tax Config      -> Tax rules and classes
-12. Channels        -> Sales channels
-13. Menus           -> Navigation (may reference products)
-14. Models          -> Custom data models
+ 1. Validation               -> Pre-flight checks
+ 2. Shop Settings            -> Global configuration
+ 3. Tax Classes              -> Referenced by other entities
+ 4. Attributes               -> Used by product/page types
+ 5. Product Types            -> Must exist before products
+ 6. Channels                 -> Sales channels
+ 7. Page Types               -> Must exist before pages
+ 8. Model Types              -> Templates for custom models
+ 9. Categories               -> Product organization
+10. Collections              -> Product groupings (after categories)
+11. Menus                    -> Navigation (references categories, collections)
+12. Models                   -> Custom data models (after model types)
+13. Warehouses               -> Fulfillment locations
+14. Shipping Zones           -> Geographic shipping rules
+15. Attribute Choices Preflight -> Prepares attribute choices
+16. Products                 -> Depends on types, categories, attributes
 ```
 
-**Key dependency**: Cannot create a Product without its ProductType existing first.
+**Key dependencies**: Tax classes deploy early as they can be referenced by other entities. Products deploy last as they depend on types, categories, and attributes.
 
 ### Stage Execution Pattern
 
@@ -104,7 +108,7 @@ Top-level keys: `shop`, `channels`, `taxClasses`, `productTypes`, `pageTypes`, `
 
 ## Bulk Operations
 
-Large operations are chunked (default: 50 items per chunk) to avoid timeouts. The GraphQL client handles HTTP 429 automatically with exponential backoff (max 5 retries).
+Large operations are chunked (default: 10 items per chunk, via `ChunkSizeConfig.DEFAULT_CHUNK_SIZE`) to avoid timeouts. The GraphQL client handles HTTP 429 automatically with exponential backoff (max 3 retries, via `RetryConfig.MAX_ATTEMPTS`).
 
 ## Diff & Comparison Logic
 
@@ -151,6 +155,7 @@ For detailed information, see:
 - **Implementing entities**: See `adding-entity-types` for complete implementation workflow
 - **Config schemas**: See `designing-zod-schemas` for schema patterns
 - **GraphQL operations**: See `writing-graphql-operations` for Saleor API integration
+- **Diff engine**: See `diff-engine-development` for comparator and formatter patterns
 
 ## Quick Reference Rules
 

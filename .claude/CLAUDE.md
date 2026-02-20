@@ -35,6 +35,7 @@ Skills provide domain-specific guidance. When your task matches a skill's domain
 | Entities | `adding-entity-types` | Implementing new Saleor entity support |
 | Domain | `understanding-saleor-domain` | Working with entity rules, config schema |
 | Schemas | `designing-zod-schemas` | Creating validation schemas |
+| Diff Engine | `diff-engine-development` | Comparators, formatters, diff service |
 | Validation | `validating-pre-commit` | Preparing to commit or push |
 | Releases | `creating-changesets` | Preparing version bumps, changelogs |
 | CI/CD | `managing-github-ci` | Working on GitHub Actions workflows |

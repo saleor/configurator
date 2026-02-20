@@ -36,22 +36,110 @@ Implement consistent, user-friendly CLI interactions using the project's console
 
 Located in `src/cli/console.ts`. Always use this instead of raw `console.log`:
 
-| Method | Color | Prefix | Use For |
-|--------|-------|--------|---------|
-| `error()` | Red | x | Error messages |
-| `success()` | Green | check | Success confirmations |
-| `warning()` | Yellow | warn | Warnings, degraded results |
-| `hint()` | Cyan | bulb | Actionable suggestions |
-| `important()` | Bold | - | Key information |
-| `info()` | Blue | i | Informational messages |
-| `code()` | Gray bg | - | Code/command snippets |
+### Output Methods (respect quiet mode)
 
-Import: `import { console } from '@/cli/console';`
+| Method | Color | Use For |
+|--------|-------|---------|
+| `hint(msg)` | Gray | Actionable suggestions |
+| `info(msg)` | White | Informational messages |
+| `warn(msg)` | Yellow | Warnings, degraded results |
+| `success(msg)` | Green | Success confirmations |
+| `header(msg)` | Bold white | Section headers |
+| `subtitle(msg)` | Bold (no color) | Subsection headers |
+| `text(msg)` | Plain (no color) | Unformatted output |
+| `muted(msg)` | Gray | Less important info |
+| `cancelled(msg)` | Red | Cancelled operations |
+| `code(msg)` | Cyan | Code/command snippets |
+| `important(msg)` | Bold | Key information |
+| `field(name, val)` | Bold label + normal value | Key-value display |
+| `separator(char?, len?)` | Gray | Decorative line (default `─` × 50) |
+| `box(lines[], title?)` | Gray borders | Boxed content with optional title |
+
+### Always-Output Methods (ignore quiet mode)
+
+| Method | Color | Use For |
+|--------|-------|---------|
+| `error(error)` | Red | Error messages (accepts `Error \| string`) |
+| `status(msg)` | Plain (no color) | Status messages that must always display |
+
+### Inline Formatters (return string, don't log)
+
+| Method | Color | Use For |
+|--------|-------|---------|
+| `path(p)` | Yellow | File/URL paths |
+| `value(v)` | Cyan | Highlighted values |
+| `type(t)` | White | Type names |
+| `icon(name)` | Emoji | Icons: `error`, `warning`, `info`, `success`, `fix` |
+| `prompt(msg)` | Cyan → stdout | Interactive prompt text (writes to stdout) |
+
+Import: `import { cliConsole } from '@/cli/console';`
+
+## Output Layers: When to Use What
+
+The codebase has two output systems. Using the wrong one is a common mistake.
+
+| Layer | Tool | Purpose | Visibility |
+|-------|------|---------|------------|
+| **User output** | `cliConsole.*` | Messages the user needs to see | Always (terminal) |
+| **Internal logging** | `logger.*` | Debug/diagnostic info for developers | Only with `LOG_LEVEL=debug` |
+| **Progress** | `cliConsole.progress.*` | Spinners and bulk operation tracking | Terminal only (suppressed in CI) |
+
+### Decision Guide
+
+| Scenario | Use | Why |
+|----------|-----|-----|
+| Operation succeeded | `cliConsole.success()` | User needs confirmation |
+| Operation failed (user can fix) | `cliConsole.error()` | User needs to take action |
+| Unexpected error (debugging) | `logger.error()` + `cliConsole.error()` | User sees friendly msg, logs get details |
+| Config validation failed | `cliConsole.warn()` or `cliConsole.error()` | User needs to fix config |
+| Operation started/completed | `logger.debug()` | Internal metrics, not user-relevant |
+| Rate limit hit, retrying | `logger.info()` | Internal; retry exchange handles automatically |
+| GraphQL response received | `logger.debug()` | Too noisy for users |
+| Deployment stage starting | `logger.info()` | Internal tracking |
+| Deployment stage result | `cliConsole.success/warn` via reporter | User sees summary |
+
+### Anti-Patterns
+
+| Anti-Pattern | Fix |
+|-------------|-----|
+| `console.log()` anywhere | Use `cliConsole` methods |
+| `cliConsole.info()` for debug details | Use `logger.debug()` |
+| `logger.error()` without `cliConsole.error()` | User doesn't see the error |
+| `cliConsole.success()` for every small step | Noisy; use spinner updates instead |
+
+### CI Mode
+
+`isCiOutputMode()` from `src/lib/ci-mode.ts` returns `true` for `--json`, `--github-comment`, `--githubComment` flags.
+
+When CI mode is active:
+- Progress reporters become `SilentProgressReporter` (all methods are no-ops)
+- Logger is suppressed to `fatal` level
+- `cliConsole.error()` and `cliConsole.status()` always output (ignore quiet mode)
+- All other `cliConsole` methods respect quiet mode setting
 
 ## Progress Indicators
 
-- **Single operations**: Use `ora` spinner with `.start()`, `.succeed()`, `.fail()`
-- **Bulk operations**: Use `BulkOperationProgress` from `src/cli/progress.ts` for progress bars with success/failure tracking
+- **Single operations**: Use `cliConsole.progress` (`ProgressReporter` interface) with `.start()`, `.update()`, `.succeed()`, `.fail()`, `.info()`, `.warn()`
+- **Bulk operations**: Use `BulkOperationProgress` from `src/cli/progress.ts`
+
+### BulkOperationProgress API
+
+```typescript
+import { BulkOperationProgress } from '@/cli/progress';
+
+const progress = new BulkOperationProgress(
+  total,              // Total number of items
+  'Creating products', // Operation label
+  cliConsole.progress  // ProgressReporter instance
+);
+
+progress.start();                       // Shows "Creating products (0/50)"
+progress.increment('iPhone 15');        // Shows "Creating products (1/50): iPhone 15"
+progress.addFailure('Bad Item', error); // Records failure (doesn't stop)
+progress.complete();                    // Shows success or failure summary
+progress.hasFailures();                 // Check if any failures occurred
+progress.getFailures();                 // Get failure details
+```
 
 ## Interactive Prompts
 
@@ -103,6 +191,47 @@ export const ExitCodes = {
 
 Always use named exit codes, never raw numbers.
 
+## Command Development
+
+Commands use `CommandConfig` from `src/cli/command.ts` with Zod schemas for automatic CLI option generation.
+
+### CommandConfig Pattern
+
+```typescript
+import { createCommand, baseCommandArgsSchema } from '@/cli/command';
+
+const myCommandSchema = baseCommandArgsSchema.extend({
+  dryRun: z.boolean().default(false).describe('Preview changes without applying'),
+  format: z.enum(['table', 'json']).default('table').describe('Output format'),
+});
+
+export const myCommand = createCommand({
+  name: 'my-command',
+  description: 'Does something useful',
+  schema: myCommandSchema,
+  requiresInteractive: true, // Prompts for --url/--token if missing
+  examples: ['pnpm dev my-command --url https://... --token ...'],
+  handler: async (args) => {
+    // args is fully typed from z.infer<typeof myCommandSchema>
+  },
+});
+```
+
+**How it works**: `createCommand()` iterates the Zod schema shape and generates Commander.js `--options` automatically. Boolean fields become flags, strings become `--key <value>`. If `requiresInteractive: true` and `--url`/`--token` are missing, the user gets interactive prompts.
+
+### Subcommand Pattern
+
+For commands with subcommands (e.g., `config get`, `config set`), use Commander.js `Command` directly:
+
+```typescript
+const parentCommand = new Command().name('config').description('Manage configuration');
+parentCommand.addCommand(createCommand({ ... }));
+```
+
+### Base Command Args
+
+All commands extend `baseCommandArgsSchema` which provides: `--url` (Saleor URL, auto-appends `/graphql/`), `--token` (API token), `--config` (config file, default `config.yml`), `--quiet` (suppress output).
+
 ## Best Practices
 
 - Use `src/cli/console.ts` for all output (never raw `console.log`)
@@ -125,9 +254,12 @@ Always use named exit codes, never raw numbers.
 
 ## References
 
-- `{baseDir}/src/cli/console.ts` - Console module
-- `{baseDir}/src/cli/progress.ts` - Progress tracking
-- `{baseDir}/src/cli/reporters/` - Reporter implementations
+- `src/cli/console.ts` - Console module (18 methods)
+- `src/cli/progress.ts` - Progress tracking (ProgressReporter, BulkOperationProgress)
+- `src/cli/command.ts` - Command creation with Zod schema auto-generation
+- `src/cli/reporters/` - Reporter implementations
+- `src/lib/ci-mode.ts` - CI output mode detection
+- `src/lib/logger.ts` - Internal structured logging (tslog)
 - [references/reporter-patterns.md](references/reporter-patterns.md) - Full reporter code
 - [references/prompt-patterns.md](references/prompt-patterns.md) - Full prompt examples
 
@@ -135,6 +267,7 @@ Always use named exit codes, never raw numbers.
 
 - **Complete entity workflow**: See `adding-entity-types` for CLI integration patterns
 - **Error handling**: See `reviewing-typescript-code` for error message standards
+- **Diff output formatting**: See `diff-engine-development` for diff formatters and output
 
 ## Quick Reference Rule
 

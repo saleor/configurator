@@ -81,14 +81,14 @@ For detailed patterns and examples, see:
 
 ```
 src/modules/config/schema/
-├── schema.ts           # Main configuration schema
-├── primitives.ts       # Reusable primitive schemas
-├── entities/           # Entity-specific schemas
-│   ├── category.ts
-│   ├── product.ts
-│   └── ...
-└── index.ts            # Schema exports
+├── schema.ts              # Main configuration schema (all entity schemas)
+├── attribute.schema.ts    # Attribute-specific schemas
+├── helpers.schema.ts      # Reusable schema helpers
+├── schema.test.ts         # Schema validation tests
+└── *.test.ts              # Per-entity schema tests
 ```
+
+Note: Schemas are flat in this directory — no `entities/` subdirectory. Entity schemas are either in `schema.ts` (most entities) or in dedicated `*.schema.ts` files (complex entities like attributes).
 
 ## Validation Checkpoints
 

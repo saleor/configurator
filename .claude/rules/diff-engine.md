@@ -8,7 +8,7 @@ alwaysApply: false
 
 ## Before You Start
 
-Before modifying the diff engine, invoke `understanding-saleor-domain` or `adding-entity-types` skills for comprehensive patterns.
+Before modifying the diff engine, invoke the `diff-engine-development` skill for comprehensive comparator and formatter patterns. Also see `understanding-saleor-domain` or `adding-entity-types` for domain context.
 
 ## Comparator Architecture
 
@@ -114,4 +114,4 @@ After modifying diff engine:
 - [ ] Formatters updated if needed
 - [ ] Tests cover new scenarios
 
-**Required Skills**: `understanding-saleor-domain`, `adding-entity-types` (invoke before implementation)
+**Required Skills**: `diff-engine-development` (primary), `understanding-saleor-domain`, `adding-entity-types` (invoke before implementation)

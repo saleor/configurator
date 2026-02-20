@@ -86,6 +86,36 @@ See `references/patterns.md` for examples. Common patterns:
 - `vi.mocked()` for typed access
 - `vi.mock()` for module mocking
 
+### Project Test Helpers
+
+The `src/test-helpers/` directory provides shared utilities:
+
+| Helper | Purpose | Key API |
+|--------|---------|---------|
+| `GraphQLMockServer` | Mock GraphQL endpoints | `mockOperation()`, `mockMutation()`, `mockAuthError()`, `mockNetworkError()` |
+| `ConfigFileBuilder` | Build YAML config fixtures | Fluent builder: `.withShop()`, `.withChannel()`, `.withProductType()`, `.toYaml()` |
+| `CliRunner` | Execute CLI commands in tests | `.run(args)`, `.deploy(options)` |
+| `config-fixtures.ts` | Predefined configs | `createMinimalConfig()`, `createStandardConfig()`, `createComplexConfig()` |
+
+**GraphQLMockServer example**:
+```typescript
+const server = new GraphQLMockServer({ baseUrl: 'http://localhost' });
+server.mockOperation('GetCategories', { data: { categories: { edges: [] } } });
+server.mockMutation('CreateCategory', { data: { categoryCreate: { errors: [] } } });
+// Cleanup in afterEach
+server.cleanup();
+```
+
+**ConfigFileBuilder example**:
+```typescript
+const config = new ConfigFileBuilder()
+  .withShop({ defaultMailSenderName: 'Test' })
+  .withChannel({ name: 'US', slug: 'us', currencyCode: 'USD', defaultCountry: 'US' })
+  .withProductType({ name: 'Simple', isShippingRequired: true });
+const yaml = config.toYaml();
+config.saveToFile(tempDir, 'config.yml');
+```
+
 ## Running Tests
 
 ```bash
