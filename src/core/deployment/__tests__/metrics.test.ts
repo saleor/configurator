@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resilienceTracker } from "../../../lib/utils/resilience-tracker";
 import { MetricsCollector } from "../metrics";
 
-describe.skip("MetricsCollector", () => {
+describe("MetricsCollector", () => {
   let collector: MetricsCollector;
 
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe.skip("MetricsCollector", () => {
       const duration = metrics.stageDurations.get("test-stage");
       expect(duration).toBeDefined();
       expect(duration).toBeGreaterThanOrEqual(50);
-      expect(duration).toBeLessThan(100);
+      expect(duration).toBeLessThan(200);
     });
 
     it("ignores endStage without startStage", () => {

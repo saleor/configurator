@@ -1,3 +1,4 @@
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import type { Attribute, ProductOperations } from "./repository";
 
@@ -190,7 +191,7 @@ class DropdownAttributeHandler extends AttributeHandler {
       logger.warn(
         `Choice "${valueName}" not found for attribute "${context.attributeName}", will use value-based resolution`
       );
-      return { value: valueName } as { id?: string; value?: string };
+      return { value: valueName };
     });
 
     // MULTISELECT => multiselect list, otherwise use dropdown/swatch single
@@ -243,10 +244,7 @@ class ReferenceAttributeHandler extends AttributeHandler {
     valueName: string,
     context: AttributeHandlerContext
   ): Promise<string | null> {
-    // Branch resolution by attribute entity type when available
-    const entityType = (
-      context.attribute as unknown as { entityType?: "PRODUCT" | "PRODUCT_VARIANT" | "PAGE" }
-    )?.entityType;
+    const entityType = context.attribute.entityType;
 
     try {
       if (entityType === "PRODUCT") {
@@ -307,7 +305,7 @@ export class AttributeResolver {
 
   async resolveAttributes(
     attributes: Record<string, string | string[]> = {}
-  ): Promise<AttributeValueInputPayload[]> {
+  ): Promise<AttributeValueInput[]> {
     logger.debug("Resolving attribute values", { attributes });
 
     const resolvedAttributes: AttributeValueInputPayload[] = [];
@@ -367,7 +365,7 @@ export class AttributeResolver {
   private async fetchAttribute(attributeName: string): Promise<Attribute | null> {
     // Use cache accessor if provided
     const cached = this.refs?.getAttributeByNameFromCache?.(attributeName);
-    if (cached) return cached as Attribute;
+    if (cached) return cached;
 
     const attribute = await this.repository.getAttributeByName(attributeName);
 

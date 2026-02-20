@@ -25,7 +25,7 @@ import {
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
-import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
+import { isEntitySection, validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 
@@ -78,8 +78,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       .map((v) => {
         const match = v.message.match(duplicateRegex);
         if (!match) return null;
+        if (!isEntitySection(v.path)) return null;
         return {
-          section: v.path as unknown as DuplicateIssue["section"],
+          section: v.path,
           label: match[1],
           identifier: match[2],
           count: Number(match[3]) || 2,
@@ -148,15 +149,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       return "";
     }
 
-    // TODO: bring it back once we actually support destructive operations
-    // const lines = ["\n⚠️  DESTRUCTIVE OPERATIONS DETECTED!"];
-    // if (deleteResults.length > 0) {
-    //   lines.push("The following items will be PERMANENTLY DELETED:");
-    //   for (const result of deleteResults) {
-    //     lines.push(`• ${result.entityType}: "${result.entityName}"`);
-    //   }
-    // }
-
     const lines = [];
 
     if (attributeValueRemovals.length > 0) {
@@ -188,7 +180,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       return await confirmAction(
         "Are you sure you want to continue? This action cannot be undone."
-        // "These items will be permanently deleted from your Saleor instance.",
       );
     }
 
@@ -276,8 +267,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         }
         this.console.text("");
       }
-    } catch {
-      // Best-effort: ignore if config load fails after deploy
+    } catch (error) {
+      logger.warn("Post-deploy cleanup analysis skipped: config load failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Check if there are items that should have been deleted

@@ -32,6 +32,12 @@ export const BulkOperationThresholds = {
    * Below this threshold, simple sequential processing with delays is sufficient
    */
   CATEGORIES: 10,
+
+  /**
+   * Number of shipping zones above which sequential processing with delays is used
+   * instead of parallel processing to prevent rate limiting
+   */
+  SHIPPING_ZONES_SEQUENTIAL: 3,
 } as const;
 
 /**
@@ -190,7 +196,7 @@ export const EntityTypes = {
   ATTRIBUTES: "Attributes",
   CHANNELS: "Channels",
   PAGE_TYPES: "Page Types",
-  MODEL_TYPES: "Models",
+  MODEL_TYPES: "Model Types",
   COLLECTIONS: "Collections",
   MENUS: "Menus",
   MODELS: "Models",

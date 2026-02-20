@@ -1,4 +1,6 @@
 import { logger } from "../../lib/logger";
+import { resetConcurrency } from "../../lib/utils/resilience";
+import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import { StageAggregateError } from "./errors";
 import { MetricsCollector } from "./metrics";
 import { ProgressIndicator } from "./progress";
@@ -145,15 +147,14 @@ export async function executeEnhancedDeployment(
   shouldExit: boolean;
   exitCode: number;
 }> {
-  const pipeline = new EnhancedDeploymentPipeline();
+  resetConcurrency();
+  resilienceTracker.reset();
 
-  // Add all stages to pipeline
+  const pipeline = new EnhancedDeploymentPipeline();
   stages.forEach((stage) => pipeline.addStage(stage));
 
-  // Execute pipeline and collect results
   const { metrics, result } = await pipeline.execute(context);
 
-  // Determine exit behavior based on results
   const formatter = new DeploymentResultFormatter();
   const exitCode = formatter.getExitCode(result.overallStatus);
   const shouldExit = result.overallStatus === "failed";

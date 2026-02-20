@@ -2,6 +2,7 @@ import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
+import { isRateLimitError } from "../../lib/utils/error-classification";
 
 const createCategoryMutation = graphql(`
   mutation CreateCategory($input: CategoryInput!, $parent: ID) {
@@ -96,11 +97,6 @@ export class CategoryRepository implements CategoryOperations {
 
   constructor(private client: Client) {}
 
-  private invalidateCache(): void {
-    this.allCategoriesCache = null;
-    this.categoryBySlugCache.clear();
-  }
-
   /**
    * Add a newly created category to the cache instead of invalidating.
    * This avoids expensive re-fetches after each create operation.
@@ -112,34 +108,10 @@ export class CategoryRepository implements CategoryOperations {
     }
   }
 
-  /**
-   * Check if the cache has been primed with all categories.
-   * Used by the service to determine if optimized processing can be used.
-   */
-  isCachePrimed(): boolean {
-    return this.allCategoriesCache !== null;
-  }
-
   private populateSlugCache(categories: Category[]): void {
     for (const cat of categories) {
       this.categoryBySlugCache.set(cat.slug, cat);
     }
-  }
-
-  private isRateLimitError(error: { networkError?: unknown }): boolean {
-    if (!this.hasNetworkErrorStatus(error.networkError)) {
-      return false;
-    }
-    return error.networkError.status === 429;
-  }
-
-  private hasNetworkErrorStatus(networkError: unknown): networkError is { status: number } {
-    return (
-      typeof networkError === "object" &&
-      networkError !== null &&
-      "status" in networkError &&
-      typeof networkError.status === "number"
-    );
   }
 
   private assertCategoryReturned(
@@ -163,7 +135,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (result.error) {
-      if (this.isRateLimitError(result.error)) {
+      if (isRateLimitError(result.error)) {
         throw new Error(
           `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
         );
@@ -199,7 +171,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (result.error) {
-      if (this.isRateLimitError(result.error)) {
+      if (isRateLimitError(result.error)) {
         throw new Error(
           `Failed to get category by name ${name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
         );
@@ -215,6 +187,10 @@ export class CategoryRepository implements CategoryOperations {
       const all = await this.getAllCategories();
       return all.find((c) => c.name === name);
     } catch (error) {
+      // Never swallow rate limit errors - they must propagate for resilience
+      if (isRateLimitError(error)) {
+        throw error;
+      }
       logger.warn("Failed to fetch all categories while looking up by name", {
         name,
         error: error instanceof Error ? error.message : String(error),
@@ -241,6 +217,15 @@ export class CategoryRepository implements CategoryOperations {
       slug,
     });
 
+    if (result.error) {
+      if (isRateLimitError(result.error)) {
+        throw new Error(
+          `Failed to get category by slug ${slug}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+        );
+      }
+      throw GraphQLError.fromCombinedError(`Failed to get category by slug ${slug}`, result.error);
+    }
+
     const direct = result.data?.category ?? null;
     if (direct) {
       this.categoryBySlugCache.set(slug, direct);
@@ -251,6 +236,10 @@ export class CategoryRepository implements CategoryOperations {
       const all = await this.getAllCategories();
       return all.find((c) => c.slug === slug);
     } catch (error) {
+      // Never swallow rate limit errors - they must propagate for resilience
+      if (isRateLimitError(error)) {
+        throw error;
+      }
       logger.warn("Failed to fetch all categories while looking up by slug", {
         slug,
         error: error instanceof Error ? error.message : String(error),
@@ -272,7 +261,7 @@ export class CategoryRepository implements CategoryOperations {
     const result = await this.client.query(getAllCategoriesQuery, {});
 
     if (result.error) {
-      if (this.isRateLimitError(result.error)) {
+      if (isRateLimitError(result.error)) {
         throw new Error(
           "Failed to fetch all categories: Rate limited by API (Too Many Requests). Please wait before retrying."
         );

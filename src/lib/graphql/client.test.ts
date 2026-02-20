@@ -1,4 +1,12 @@
 import { describe, expect, it } from "vitest";
+import {
+  hasExtensionCode,
+  hasGraphQLRateLimitError,
+  hasNetworkError,
+  hasResponseWithStatus,
+  isNetworkErrorMessage,
+  isObject,
+} from "../utils/error-classification";
 
 /**
  * Tests for GraphQL client type guards and error classification
@@ -8,81 +16,6 @@ import { describe, expect, it } from "vitest";
  * - Network error detection
  * - Retry-After header extraction
  */
-
-// Re-create the type guards locally for testing since they are not exported
-// This tests the logic without modifying the module's public API
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function hasExtensionCode(obj: unknown, code: string): boolean {
-  if (!isObject(obj)) return false;
-  if (!("extensions" in obj) || !isObject(obj.extensions)) return false;
-  return obj.extensions.code === code;
-}
-
-interface ErrorWithResponse {
-  response: {
-    status?: number;
-    headers?: {
-      get?: (name: string) => string | null;
-    };
-  };
-}
-
-function hasResponseWithStatus(error: unknown): error is ErrorWithResponse {
-  if (!isObject(error)) return false;
-  if (!("response" in error)) return false;
-  const response = error.response;
-  if (!isObject(response)) return false;
-  if (!("status" in response)) return false;
-  return typeof response.status === "number";
-}
-
-interface ErrorWithNetworkError {
-  networkError: unknown;
-}
-
-function hasNetworkError(error: unknown): error is ErrorWithNetworkError {
-  return isObject(error) && "networkError" in error;
-}
-
-interface ErrorWithGraphQLErrors {
-  graphQLErrors: Array<{
-    message?: string;
-    extensions?: { code?: string };
-  }>;
-}
-
-function hasGraphQLRateLimitError(error: unknown): error is ErrorWithGraphQLErrors {
-  if (!isObject(error)) return false;
-  if (!("graphQLErrors" in error)) return false;
-  const graphQLErrors = error.graphQLErrors;
-  if (!Array.isArray(graphQLErrors)) return false;
-
-  return graphQLErrors.some((e: unknown) => {
-    if (!isObject(e)) return false;
-    const message = "message" in e && typeof e.message === "string" ? e.message : "";
-    const hasRateLimitMessage = message.toLowerCase().includes("too many requests");
-    const hasRateLimitCode = hasExtensionCode(e, "TOO_MANY_REQUESTS");
-    return hasRateLimitMessage || hasRateLimitCode;
-  });
-}
-
-const NETWORK_ERROR_PATTERNS = [
-  "network",
-  "ECONNREFUSED",
-  "ETIMEDOUT",
-  "ENOTFOUND",
-  "ECONNRESET",
-  "fetch failed",
-] as const;
-
-function isNetworkErrorMessage(message: string): boolean {
-  const lowerMessage = message.toLowerCase();
-  return NETWORK_ERROR_PATTERNS.some((pattern) => lowerMessage.includes(pattern.toLowerCase()));
-}
 
 describe("GraphQL Client Type Guards", () => {
   describe("isObject", () => {

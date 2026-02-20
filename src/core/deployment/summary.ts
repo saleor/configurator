@@ -1,6 +1,7 @@
 import { cliConsole } from "../../cli/console";
 import type { DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
+import { formatDuration } from "./utils";
 
 /**
  * Generates and displays a human-readable summary of deployment results
@@ -33,7 +34,7 @@ export class DeploymentSummaryReport {
     const lines: string[] = [];
 
     // Timing information
-    lines.push(`Duration: ${this.formatDuration(this.metrics.duration)}`);
+    lines.push(`Duration: ${formatDuration(this.metrics.duration)}`);
     lines.push(`Started: ${this.metrics.startTime.toLocaleTimeString()}`);
     lines.push(`Completed: ${this.metrics.endTime.toLocaleTimeString()}`);
     lines.push("");
@@ -42,7 +43,7 @@ export class DeploymentSummaryReport {
     if (this.metrics.stageDurations.size > 0) {
       lines.push("Stage Timing:");
       for (const [stage, duration] of this.metrics.stageDurations) {
-        const line = `• ${stage}: ${this.formatDuration(duration)}`;
+        const line = `• ${stage}: ${formatDuration(duration)}`;
         lines.push(this.truncateLine(line));
       }
       lines.push("");
@@ -109,18 +110,5 @@ export class DeploymentSummaryReport {
       this.metrics.totalGraphQLErrors > 0 ||
       this.metrics.totalNetworkErrors > 0
     );
-  }
-
-  private formatDuration(ms: number): string {
-    const seconds = ms / 1000;
-    if (seconds < 1) {
-      return `${ms}ms`;
-    } else if (seconds < 60) {
-      return `${seconds.toFixed(1)}s`;
-    } else {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
-    }
   }
 }

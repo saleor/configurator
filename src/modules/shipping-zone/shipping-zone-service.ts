@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { BulkOperationThresholds } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import { delay } from "../../lib/utils/resilience";
@@ -413,6 +414,31 @@ export class ShippingZoneService {
     return this.createShippingZone(input);
   }
 
+  /**
+   * Resolves and applies channel listings to a shipping method.
+   */
+  private async applyShippingMethodChannelListings(
+    methodId: string,
+    channelListings: ShippingMethodInput["channelListings"]
+  ): Promise<void> {
+    if (!channelListings || !Array.isArray(channelListings) || channelListings.length === 0) {
+      return;
+    }
+
+    const channelIds = await this.resolveChannelSlugsToIds(
+      channelListings.map((listing) => listing.channel)
+    );
+    const channelListingInput = {
+      addChannels: channelListings.map((listing, index) => ({
+        channelId: channelIds[index],
+        price: listing.price?.toString(),
+        minimumOrderPrice: listing.minimumOrderPrice?.toString(),
+        maximumOrderPrice: listing.maximumOrderPrice?.toString(),
+      })),
+    };
+    await this.repository.updateShippingMethodChannelListing(methodId, channelListingInput);
+  }
+
   private async createShippingMethods(
     shippingZoneId: string,
     methods: ShippingMethodInput[]
@@ -420,29 +446,15 @@ export class ShippingZoneService {
     for (const method of methods) {
       const createInput = this.mapShippingMethodToCreateInput(method, shippingZoneId);
       const createdMethod = await this.repository.createShippingMethod(createInput);
+      await this.applyShippingMethodChannelListings(createdMethod.id, method.channelListings);
+    }
+  }
 
-      // Update channel listings if provided
-      if (
-        method.channelListings &&
-        Array.isArray(method.channelListings) &&
-        method.channelListings.length > 0
-      ) {
-        const channelIds = await this.resolveChannelSlugsToIds(
-          method.channelListings.map((listing) => listing.channel)
-        );
-        const channelListingInput = {
-          addChannels: method.channelListings.map((listing, index) => ({
-            channelId: channelIds[index],
-            price: listing.price?.toString(),
-            minimumOrderPrice: listing.minimumOrderPrice?.toString(),
-            maximumOrderPrice: listing.maximumOrderPrice?.toString(),
-          })),
-        };
-        await this.repository.updateShippingMethodChannelListing(
-          createdMethod.id,
-          channelListingInput
-        );
-      }
+  private async delayAfterChannelListingUpdate(
+    channelListings: ShippingMethodInput["channelListings"]
+  ): Promise<void> {
+    if (channelListings && Array.isArray(channelListings) && channelListings.length > 0) {
+      await delay(200);
     }
   }
 
@@ -478,6 +490,7 @@ export class ShippingZoneService {
     for (const desiredMethod of validDesiredMethods) {
       this.validateShippingMethodInput(desiredMethod);
       const currentMethod = currentMethodsMap.get(desiredMethod.name);
+      let methodId: string;
 
       if (currentMethod) {
         // Update existing method
@@ -487,62 +500,17 @@ export class ShippingZoneService {
         });
         const updateInput = this.mapShippingMethodToCreateInput(desiredMethod, shippingZoneId);
         await this.repository.updateShippingMethod(currentMethod.id, updateInput);
-
-        // Update channel listings if provided
-        if (
-          desiredMethod.channelListings &&
-          Array.isArray(desiredMethod.channelListings) &&
-          desiredMethod.channelListings.length > 0
-        ) {
-          const channelIds = await this.resolveChannelSlugsToIds(
-            desiredMethod.channelListings.map((listing) => listing.channel)
-          );
-          const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing, index) => ({
-              channelId: channelIds[index],
-              price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice?.toString(),
-              maximumOrderPrice: listing.maximumOrderPrice?.toString(),
-            })),
-          };
-          await this.repository.updateShippingMethodChannelListing(
-            currentMethod.id,
-            channelListingInput
-          );
-          // Add delay between channel listing updates to prevent rate limiting
-          await delay(200);
-        }
+        methodId = currentMethod.id;
       } else {
         // Create new method
         logger.debug("Creating shipping method", { name: desiredMethod.name });
         const createInput = this.mapShippingMethodToCreateInput(desiredMethod, shippingZoneId);
         const createdMethod = await this.repository.createShippingMethod(createInput);
-
-        // Update channel listings if provided
-        if (
-          desiredMethod.channelListings &&
-          Array.isArray(desiredMethod.channelListings) &&
-          desiredMethod.channelListings.length > 0
-        ) {
-          const channelIds = await this.resolveChannelSlugsToIds(
-            desiredMethod.channelListings.map((listing) => listing.channel)
-          );
-          const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing, index) => ({
-              channelId: channelIds[index],
-              price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice?.toString(),
-              maximumOrderPrice: listing.maximumOrderPrice?.toString(),
-            })),
-          };
-          await this.repository.updateShippingMethodChannelListing(
-            createdMethod.id,
-            channelListingInput
-          );
-          // Add delay between channel listing updates to prevent rate limiting
-          await delay(200);
-        }
+        methodId = createdMethod.id;
       }
+
+      await this.applyShippingMethodChannelListings(methodId, desiredMethod.channelListings);
+      await this.delayAfterChannelListingUpdate(desiredMethod.channelListings);
     }
   }
 
@@ -567,7 +535,7 @@ export class ShippingZoneService {
     }
 
     // Use sequential mode with delays for more than 3 zones to prevent rate limiting
-    const useSequential = inputs.length > 3;
+    const useSequential = inputs.length > BulkOperationThresholds.SHIPPING_ZONES_SEQUENTIAL;
 
     const results = await ServiceErrorWrapper.wrapBatch(
       inputs,

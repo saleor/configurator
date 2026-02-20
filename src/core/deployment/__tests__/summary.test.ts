@@ -10,7 +10,7 @@ vi.mock("../../../cli/console", () => ({
   },
 }));
 
-describe.skip("DeploymentSummaryReport", () => {
+describe("DeploymentSummaryReport", () => {
   let mockMetrics: DeploymentMetrics;
   let mockSummary: DiffSummary;
 
@@ -118,7 +118,7 @@ describe.skip("DeploymentSummaryReport", () => {
       report.display();
 
       const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
-      expect(lines).toContain("Duration: 1m 5s");
+      expect(lines).toContain("Duration: 1m 6s");
     });
 
     it("formats millisecond durations", () => {

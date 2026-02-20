@@ -1093,8 +1093,11 @@ export class ProductRepository implements ProductOperations {
         if (!category) {
           // Final fallback: query all categories-like via product repository not available; rely on category service elsewhere
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        logger.warn("Failed to look up category by slug via search fallback", {
+          slug,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 

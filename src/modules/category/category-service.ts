@@ -23,6 +23,7 @@ export class CategoryService {
     );
   }
 
+  /** Fetches all categories from the Saleor API. */
   async getAllCategories() {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch all categories",
@@ -33,6 +34,7 @@ export class CategoryService {
     );
   }
 
+  /** Fetches a category by its slug, falling back to a full category list scan. */
   async getCategoryBySlug(slug: string) {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch category by slug",
@@ -60,12 +62,9 @@ export class CategoryService {
         const existingBySlug = await this.repository.getCategoryBySlug(categoryInput.slug);
         if (existingBySlug) return existingBySlug;
 
+        // Slug lookup returned null; search by name as fallback
         const all = await this.repository.getAllCategories();
-        return (
-          all.find((c) => c.slug === categoryInput.slug) ||
-          all.find((c) => c.name === categoryInput.name) ||
-          null
-        );
+        return all.find((c) => c.name === categoryInput.name) || null;
       },
       CategoryError
     );
@@ -101,6 +100,7 @@ export class CategoryService {
     );
   }
 
+  /** Bootstraps a list of categories, creating any that don't exist yet. */
   async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories", { count: categories.length });
 

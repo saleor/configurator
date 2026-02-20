@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import type { DiffResult, DiffSummary } from "../diff";
 import type { DeploymentMetrics, StageResilienceMetrics } from "./types";
+import { formatDuration } from "./utils";
 
 /**
  * Empty resilience metrics used as default when no metrics are available
@@ -12,60 +13,56 @@ const EMPTY_RESILIENCE_METRICS: StageResilienceMetrics = {
   networkErrors: 0,
 };
 
-/** Summary of resilience metrics for the entire deployment */
-type ResilienceSummary = StageResilienceMetrics;
-
-/** Resilience metrics for a single stage */
-type StageResilienceReport = StageResilienceMetrics;
-
 export interface DeploymentReport {
-  timestamp: string;
+  readonly timestamp: string;
 
-  summary: {
-    status: "success" | "partial" | "failed";
-    duration: {
-      totalMs: number;
-      formatted: string;
+  readonly summary: {
+    readonly status: "success" | "partial" | "failed";
+    readonly duration: {
+      readonly totalMs: number;
+      readonly formatted: string;
     };
-    changes: {
-      total: number;
-      created: number;
-      updated: number;
-      deleted: number;
+    readonly changes: {
+      readonly total: number;
+      readonly created: number;
+      readonly updated: number;
+      readonly deleted: number;
     };
-    resilience: ResilienceSummary;
+    readonly resilience: StageResilienceMetrics;
   };
 
-  stages: Array<{
-    name: string;
-    durationMs: number;
-    durationFormatted: string;
-    resilience: StageResilienceReport;
+  readonly stages: ReadonlyArray<{
+    readonly name: string;
+    readonly durationMs: number;
+    readonly durationFormatted: string;
+    readonly resilience: StageResilienceMetrics;
   }>;
 
-  changes: Array<{
-    entityType: string;
-    entityName: string;
-    operation: "CREATE" | "UPDATE" | "DELETE";
-    fields?: Array<{
-      field: string;
-      oldValue: unknown;
-      newValue: unknown;
+  readonly changes: ReadonlyArray<{
+    readonly entityType: string;
+    readonly entityName: string;
+    readonly operation: "CREATE" | "UPDATE" | "DELETE";
+    readonly fields?: ReadonlyArray<{
+      readonly field: string;
+      readonly oldValue: unknown;
+      readonly newValue: unknown;
     }>;
   }>;
 
-  entityCounts: Record<
-    string,
-    {
-      created: number;
-      updated: number;
-      deleted: number;
-    }
+  readonly entityCounts: Readonly<
+    Record<
+      string,
+      {
+        readonly created: number;
+        readonly updated: number;
+        readonly deleted: number;
+      }
+    >
   >;
 
-  metadata: {
-    startTime: string;
-    endTime: string;
+  readonly metadata: {
+    readonly startTime: string;
+    readonly endTime: string;
   };
 }
 
@@ -91,7 +88,7 @@ export class DeploymentReportGenerator {
         status: this.status,
         duration: {
           totalMs: this.metrics.duration,
-          formatted: this.formatDuration(this.metrics.duration),
+          formatted: formatDuration(this.metrics.duration),
         },
         changes: {
           total: this.diffSummary.totalChanges,
@@ -126,30 +123,13 @@ export class DeploymentReportGenerator {
     await writeFile(path, json, "utf-8");
   }
 
-  private formatStages(): Array<{
-    name: string;
-    durationMs: number;
-    durationFormatted: string;
-    resilience: StageResilienceReport;
-  }> {
-    const stages: Array<{
-      name: string;
-      durationMs: number;
-      durationFormatted: string;
-      resilience: StageResilienceReport;
-    }> = [];
-
-    for (const [name, duration] of this.metrics.stageDurations) {
-      const resilienceMetrics = this.metrics.stageResilience.get(name);
-      stages.push({
-        name,
-        durationMs: duration,
-        durationFormatted: this.formatDuration(duration),
-        resilience: resilienceMetrics ?? EMPTY_RESILIENCE_METRICS,
-      });
-    }
-
-    return stages;
+  private formatStages() {
+    return Array.from(this.metrics.stageDurations, ([name, duration]) => ({
+      name,
+      durationMs: duration,
+      durationFormatted: formatDuration(duration),
+      resilience: this.metrics.stageResilience.get(name) ?? EMPTY_RESILIENCE_METRICS,
+    }));
   }
 
   private formatChanges(): Array<{
@@ -199,18 +179,5 @@ export class DeploymentReportGenerator {
     }
 
     return counts;
-  }
-
-  private formatDuration(ms: number): string {
-    const seconds = ms / 1000;
-    if (seconds < 1) {
-      return `${ms}ms`;
-    } else if (seconds < 60) {
-      return `${seconds.toFixed(1)}s`;
-    } else {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
-    }
   }
 }
