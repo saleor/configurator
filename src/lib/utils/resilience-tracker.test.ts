@@ -88,6 +88,30 @@ describe("ResilienceTracker", () => {
 
       expect(resilienceTracker.getAllStageMetrics().size).toBe(0);
     });
+
+    it("tracks operation-level metrics when operation keys are provided", () => {
+      resilienceTracker.startStageContext("test");
+      resilienceTracker.recordRateLimit("query products");
+      resilienceTracker.recordRetry("query products");
+      resilienceTracker.recordNetworkError("query channels");
+
+      const metrics = resilienceTracker.endStageContext();
+
+      expect(metrics?.operations).toEqual({
+        "query channels": {
+          rateLimitHits: 0,
+          retryAttempts: 0,
+          graphqlErrors: 0,
+          networkErrors: 1,
+        },
+        "query products": {
+          rateLimitHits: 1,
+          retryAttempts: 1,
+          graphqlErrors: 0,
+          networkErrors: 0,
+        },
+      });
+    });
   });
 
   describe("multiple stages", () => {

@@ -162,15 +162,16 @@ describe("MetricsCollector - Resilience Integration", () => {
       expect(metrics.totalGraphQLErrors).toBe(0);
       expect(metrics.totalNetworkErrors).toBe(0);
       expect(metrics.stageResilience.size).toBe(0);
+      expect(metrics.operationResilience?.size ?? 0).toBe(0);
     });
 
     it("captures resilience metrics when stage ends", () => {
       collector.startStage("test-stage");
 
       // Simulate resilience events
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.recordRetry();
-      resilienceTracker.recordRetry();
+      resilienceTracker.recordRateLimit("query products");
+      resilienceTracker.recordRetry("query products");
+      resilienceTracker.recordRetry("query products");
 
       collector.endStage("test-stage");
       const metrics = collector.getMetrics();
@@ -179,6 +180,12 @@ describe("MetricsCollector - Resilience Integration", () => {
       expect(stageResilience).toBeDefined();
       expect(stageResilience?.rateLimitHits).toBe(1);
       expect(stageResilience?.retryAttempts).toBe(2);
+      expect(stageResilience?.operations?.["query products"]).toEqual({
+        rateLimitHits: 1,
+        retryAttempts: 2,
+        graphqlErrors: 0,
+        networkErrors: 0,
+      });
     });
 
     it("aggregates resilience totals across multiple stages", () => {
@@ -217,6 +224,32 @@ describe("MetricsCollector - Resilience Integration", () => {
 
       expect(metrics.stageResilience.get("stage-1")?.networkErrors).toBe(1);
       expect(metrics.stageResilience.get("stage-2")?.networkErrors).toBe(0);
+    });
+
+    it("aggregates operation-level resilience across stages", () => {
+      collector.startStage("stage-1");
+      resilienceTracker.recordRateLimit("query products");
+      resilienceTracker.recordRetry("query products");
+      collector.endStage("stage-1");
+
+      collector.startStage("stage-2");
+      resilienceTracker.recordRetry("query products");
+      resilienceTracker.recordRateLimit("query channels");
+      collector.endStage("stage-2");
+
+      const metrics = collector.complete();
+      expect(metrics.operationResilience?.get("query products")).toEqual({
+        rateLimitHits: 1,
+        retryAttempts: 2,
+        graphqlErrors: 0,
+        networkErrors: 0,
+      });
+      expect(metrics.operationResilience?.get("query channels")).toEqual({
+        rateLimitHits: 1,
+        retryAttempts: 0,
+        graphqlErrors: 0,
+        networkErrors: 0,
+      });
     });
   });
 });

@@ -3,7 +3,6 @@ import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import { rateLimiter } from "../../lib/utils/resilience";
 import type { WarehouseInput } from "../config/schema/schema";
 import { WarehouseOperationError, WarehouseValidationError } from "./errors";
 import type {
@@ -241,7 +240,7 @@ export class WarehouseService {
       },
       {
         chunkSize: 10,
-        delayMs: rateLimiter.getAdaptiveDelay(DelayConfig.DEFAULT_CHUNK_DELAY_MS),
+        delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
         entityType: "warehouses",
       }
     );

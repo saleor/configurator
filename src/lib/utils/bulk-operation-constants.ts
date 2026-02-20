@@ -93,12 +93,12 @@ export const RetryConfig = {
   /**
    * Initial delay in milliseconds before the first retry attempt
    */
-  INITIAL_DELAY_MS: 1000,
+  INITIAL_DELAY_MS: 750,
 
   /**
    * Maximum delay in milliseconds between retry attempts
    */
-  MAX_DELAY_MS: 15000,
+  MAX_DELAY_MS: 8000,
 
   /**
    * Maximum number of retry attempts before giving up

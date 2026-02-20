@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import type { DiffResult, DiffSummary } from "../diff";
 import type { DeploymentMetrics, StageResilienceMetrics } from "./types";
-import { formatDuration } from "./utils";
+import { formatDuration, getTopOperationResilienceHotspots, type OperationResilienceHotspot } from "./utils";
 
 /**
  * Empty resilience metrics used as default when no metrics are available
@@ -29,6 +29,7 @@ export interface DeploymentReport {
       readonly deleted: number;
     };
     readonly resilience: StageResilienceMetrics;
+    readonly topOperationHotspots: readonly OperationResilienceHotspot[];
   };
 
   readonly stages: ReadonlyArray<{
@@ -102,6 +103,7 @@ export class DeploymentReportGenerator {
           graphqlErrors: this.metrics.totalGraphQLErrors,
           networkErrors: this.metrics.totalNetworkErrors,
         },
+        topOperationHotspots: this.formatTopOperationHotspots(),
       },
       stages: this.formatStages(),
       changes: this.formatChanges(),
@@ -179,5 +181,9 @@ export class DeploymentReportGenerator {
     }
 
     return counts;
+  }
+
+  private formatTopOperationHotspots(): readonly OperationResilienceHotspot[] {
+    return getTopOperationResilienceHotspots(this.metrics.operationResilience, 10);
   }
 }

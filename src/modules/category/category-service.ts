@@ -1,7 +1,5 @@
 import { logger } from "../../lib/logger";
-import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
-import { delay, rateLimiter } from "../../lib/utils/resilience";
 import type { CategoryInput } from "../config/schema/schema";
 import { CategoryCreationError, CategoryError } from "./errors";
 import type {
@@ -114,7 +112,7 @@ export class CategoryService {
       (category) => this.bootstrapCategory(category),
       {
         sequential: true,
-        delayMs: rateLimiter.getAdaptiveDelay(100),
+        delayMs: 100,
       }
     );
 
@@ -172,7 +170,7 @@ export class CategoryService {
         },
         {
           sequential: true, // Sequential within level to avoid rate limits
-          delayMs: rateLimiter.getAdaptiveDelay(50), // Small delay between items
+          delayMs: 50, // Small fixed delay between items
         }
       );
 
@@ -191,14 +189,6 @@ export class CategoryService {
       }
 
       allCreated.push(...results.successes.map((s) => s.result));
-
-      // Delay between levels (not items) to minimize total wait time
-      const nextLevel = level + 1;
-      if (levels.has(nextLevel)) {
-        const adaptiveDelay = rateLimiter.getAdaptiveDelay(DelayConfig.CATEGORY_LEVEL_DELAY_MS);
-        logger.debug(`Waiting ${adaptiveDelay}ms before level ${nextLevel}`);
-        await delay(adaptiveDelay);
-      }
     }
 
     logger.info("Optimized category bootstrap complete", {
@@ -288,7 +278,7 @@ export class CategoryService {
             (subcategory) => this.bootstrapCategory(subcategory, category.id),
             {
               sequential: true,
-              delayMs: rateLimiter.getAdaptiveDelay(100),
+              delayMs: 100,
             }
           );
 

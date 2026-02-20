@@ -31,8 +31,8 @@ describe("AdaptiveRateLimiter", () => {
       expect(rateLimiter.parseRetryAfter("")).toBeNull();
     });
 
-    it("truncates decimals via parseInt behavior", () => {
-      expect(rateLimiter.parseRetryAfter("5.5")).toBe(5000);
+    it("parses decimal seconds from shared Retry-After parser", () => {
+      expect(rateLimiter.parseRetryAfter("5.5")).toBe(5500);
     });
   });
 

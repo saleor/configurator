@@ -35,6 +35,7 @@ describe("DeploymentSummaryReport", () => {
       totalRetries: 0,
       totalGraphQLErrors: 0,
       totalNetworkErrors: 0,
+      operationResilience: new Map(),
     };
 
     mockSummary = {
@@ -185,6 +186,7 @@ describe("DeploymentSummaryReport - Resilience Display", () => {
       totalRetries: 0,
       totalGraphQLErrors: 0,
       totalNetworkErrors: 0,
+      operationResilience: new Map(),
     };
 
     mockSummary = {
@@ -270,6 +272,32 @@ describe("DeploymentSummaryReport - Resilience Display", () => {
     expect(lines).toContain("• Retries: 12 attempts");
     expect(lines).toContain("• GraphQL Errors: 3");
     expect(lines).toContain("• Network Errors: 1");
+  });
+
+  it("displays top throttle operation hotspots", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalRateLimitHits: 3,
+      totalRetries: 4,
+      operationResilience: new Map([
+        [
+          "query products",
+          { rateLimitHits: 2, retryAttempts: 3, graphqlErrors: 0, networkErrors: 0 },
+        ],
+        [
+          "query categories",
+          { rateLimitHits: 1, retryAttempts: 1, graphqlErrors: 0, networkErrors: 0 },
+        ],
+      ]),
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Top Throttle Hotspots:");
+    expect(lines).toContain("• query products: 2 rate limits, 3 retries");
+    expect(lines).toContain("• query categories: 1 rate limits, 1 retries");
   });
 
   it("does not display resilience section when no events occurred", () => {

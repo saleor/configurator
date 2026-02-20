@@ -1,6 +1,15 @@
-import { Client, fetchExchange } from "@urql/core";
+import { Client, fetchExchange, type Operation } from "@urql/core";
 import { authExchange } from "@urql/exchange-auth";
 import { retryExchange } from "@urql/exchange-retry";
+import {
+  GraphQLGovernor,
+  getGraphQLGovernorConfigFromEnv,
+  type GraphQLGovernorStats,
+} from "./governor";
+import {
+  isRetryableTransportStatus,
+  shouldRetryOperation,
+} from "./retry-policy";
 import { logger } from "../logger";
 import { RetryConfig } from "../utils/bulk-operation-constants";
 import {
@@ -8,22 +17,89 @@ import {
   hasExtensionCode,
   hasGraphQLRateLimitError,
   hasNetworkError,
+  parseRetryAfter,
   hasResponseWithStatus,
 } from "../utils/error-classification";
-import { rateLimiter } from "../utils/resilience";
 import { resilienceTracker } from "../utils/resilience-tracker";
 
-function handleRateLimitEvent(error?: unknown): void {
-  const retryAfterMs = error ? extractRetryAfterMs(error) : null;
-  rateLimiter.trackRateLimit(retryAfterMs);
-  resilienceTracker.recordRateLimit();
-  resilienceTracker.recordRetry();
+function getOperationDetails(operation: Operation): {
+  operationKind: string;
+  operationName: string;
+  retryOperationName: string | null;
+  operationKey: string;
+} {
+  const operationDefinition = operation.query.definitions.find(
+    (definition) => definition.kind === "OperationDefinition"
+  );
+  const fallbackOperationName =
+    operationDefinition && "name" in operationDefinition && operationDefinition.name
+      ? operationDefinition.name.value
+      : null;
+  const retryOperationName = operation.context.operationName || fallbackOperationName;
+  const operationKind = operation.kind;
+  const operationName = retryOperationName || "anonymous";
+  return {
+    operationKind,
+    operationName,
+    retryOperationName,
+    operationKey: `${operationKind} ${operationName}`,
+  };
+}
+
+function logRetryEvent(
+  message: string,
+  details: {
+    operationKind: string;
+    operationName: string;
+    status?: number;
+    retryAfterMs?: number | null;
+    governorStats: GraphQLGovernorStats;
+    error?: unknown;
+  }
+): void {
+  logger.warn(message, {
+    operationKind: details.operationKind,
+    operationName: details.operationName,
+    status: details.status,
+    retryAfterMs: details.retryAfterMs,
+    queued: details.governorStats.queued,
+    running: details.governorStats.running,
+    cooldownMs: details.governorStats.cooldownMs,
+    error:
+      details.error instanceof Error
+        ? details.error.message
+        : details.error
+          ? String(details.error)
+          : undefined,
+  });
 }
 
 export const createClient = (token: string, url: string) => {
+  const governor = new GraphQLGovernor(getGraphQLGovernorConfigFromEnv());
+
   return new Client({
     url,
     requestPolicy: "network-only",
+    fetch: (input, init) =>
+      governor.schedule(async () => {
+        const response = await globalThis.fetch(input, init);
+        if (response.status === 429) {
+          const retryAfterMs = parseRetryAfter(
+            response.headers.get("Retry-After") || response.headers.get("retry-after")
+          );
+          governor.registerRateLimit(retryAfterMs);
+
+          const governorStats = governor.getStats();
+          logger.warn("HTTP 429 received from GraphQL transport", {
+            status: response.status,
+            retryAfterMs,
+            queued: governorStats.queued,
+            running: governorStats.running,
+            cooldownMs: governorStats.cooldownMs,
+          });
+        }
+        return response;
+      }),
     exchanges: [
       authExchange(async (utils) => {
         return {
@@ -45,29 +121,65 @@ export const createClient = (token: string, url: string) => {
         randomDelay: RetryConfig.USE_RANDOM_DELAY,
         maxNumberAttempts: RetryConfig.MAX_ATTEMPTS,
         retryIf: (error, operation) => {
-          const operationLabel = `${operation.kind}${operation.context.operationName ? ` (${operation.context.operationName})` : ""}`;
+          const unknownError: unknown = error;
+          const { operationKind, operationName, retryOperationName, operationKey } =
+            getOperationDetails(operation);
 
-          if (hasResponseWithStatus(error) && error.response.status === 429) {
-            handleRateLimitEvent(error);
-            logger.warn(`Rate limited on ${operationLabel}, retrying...`);
-            return true;
+          if (!shouldRetryOperation(operationKind, retryOperationName)) {
+            return false;
           }
 
-          if (hasNetworkError(error) && error.networkError) {
-            resilienceTracker.recordNetworkError();
-            resilienceTracker.recordRetry();
-            logger.warn(`Network error on ${operationLabel}, retrying...`, {
-              error:
-                error.networkError instanceof Error
-                  ? error.networkError.message
-                  : String(error.networkError),
+          if (hasResponseWithStatus(unknownError)) {
+            const status = unknownError.response.status;
+            if (isRetryableTransportStatus(status)) {
+              if (status === 429) {
+                const retryAfterMs = extractRetryAfterMs(unknownError);
+                governor.registerRateLimit(retryAfterMs);
+                resilienceTracker.recordRateLimit(operationKey);
+                resilienceTracker.recordRetry(operationKey);
+                logRetryEvent("Rate limited GraphQL operation, retrying", {
+                  operationKind,
+                  operationName,
+                  status,
+                  retryAfterMs,
+                  governorStats: governor.getStats(),
+                });
+              } else {
+                resilienceTracker.recordRetry(operationKey);
+                logRetryEvent("Retryable transport error, retrying", {
+                  operationKind,
+                  operationName,
+                  status,
+                  governorStats: governor.getStats(),
+                });
+              }
+
+              return true;
+            }
+          }
+
+          if (hasGraphQLRateLimitError(unknownError)) {
+            governor.registerRateLimit(null);
+            resilienceTracker.recordRateLimit(operationKey);
+            resilienceTracker.recordRetry(operationKey);
+            logRetryEvent("GraphQL rate-limit error, retrying", {
+              operationKind,
+              operationName,
+              retryAfterMs: null,
+              governorStats: governor.getStats(),
             });
             return true;
           }
 
-          if (hasGraphQLRateLimitError(error)) {
-            handleRateLimitEvent(error);
-            logger.warn(`GraphQL rate limit error on ${operationLabel}, retrying...`);
+          if (hasNetworkError(unknownError) && unknownError.networkError) {
+            resilienceTracker.recordNetworkError(operationKey);
+            resilienceTracker.recordRetry(operationKey);
+            logRetryEvent("Network error on GraphQL operation, retrying", {
+              operationKind,
+              operationName,
+              governorStats: governor.getStats(),
+              error: unknownError.networkError,
+            });
             return true;
           }
 

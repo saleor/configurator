@@ -1,5 +1,10 @@
 import { resilienceTracker } from "../../lib/utils/resilience-tracker";
-import type { DeploymentMetrics, EntityCount, StageResilienceMetrics } from "./types";
+import type {
+  DeploymentMetrics,
+  EntityCount,
+  OperationResilienceMetrics,
+  StageResilienceMetrics,
+} from "./types";
 
 /**
  * Collects metrics during deployment including stage durations,
@@ -86,6 +91,34 @@ export class MetricsCollector {
     return { totalRateLimitHits, totalRetries, totalGraphQLErrors, totalNetworkErrors };
   }
 
+  private aggregateOperationResilience(): ReadonlyMap<string, OperationResilienceMetrics> {
+    const aggregated = new Map<string, OperationResilienceMetrics>();
+
+    for (const stageMetrics of this.stageResilience.values()) {
+      if (!stageMetrics.operations) {
+        continue;
+      }
+
+      for (const [operation, metrics] of Object.entries(stageMetrics.operations)) {
+        const current = aggregated.get(operation) ?? {
+          rateLimitHits: 0,
+          retryAttempts: 0,
+          graphqlErrors: 0,
+          networkErrors: 0,
+        };
+
+        aggregated.set(operation, {
+          rateLimitHits: current.rateLimitHits + metrics.rateLimitHits,
+          retryAttempts: current.retryAttempts + metrics.retryAttempts,
+          graphqlErrors: current.graphqlErrors + metrics.graphqlErrors,
+          networkErrors: current.networkErrors + metrics.networkErrors,
+        });
+      }
+    }
+
+    return aggregated;
+  }
+
   /**
    * Mark the deployment as complete and return final metrics
    * @returns Complete deployment metrics
@@ -101,6 +134,7 @@ export class MetricsCollector {
       stageDurations: new Map(this.stageDurations),
       entityCounts: new Map(this.entityCounts),
       stageResilience: new Map(this.stageResilience),
+      operationResilience: this.aggregateOperationResilience(),
       ...totals,
     };
   }
@@ -120,6 +154,7 @@ export class MetricsCollector {
       stageDurations: new Map(this.stageDurations),
       entityCounts: new Map(this.entityCounts),
       stageResilience: new Map(this.stageResilience),
+      operationResilience: this.aggregateOperationResilience(),
       ...totals,
     };
   }

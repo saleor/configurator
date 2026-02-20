@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createClient } from "./client";
+import { GraphQLGovernor } from "./governor";
 import {
   hasExtensionCode,
   hasGraphQLRateLimitError,
@@ -7,6 +9,7 @@ import {
   isNetworkErrorMessage,
   isObject,
 } from "../utils/error-classification";
+import { RetryConfig } from "../utils/bulk-operation-constants";
 
 /**
  * Tests for GraphQL client type guards and error classification
@@ -231,5 +234,136 @@ describe("Error Classification Integration", () => {
     for (const message of networkMessages) {
       expect(isNetworkErrorMessage(message)).toBe(true);
     }
+  });
+});
+
+describe("GraphQL Client Governor Integration", () => {
+  const originalGovernorEnabled = process.env.GRAPHQL_GOVERNOR_ENABLED;
+  const retryConfig = RetryConfig as unknown as {
+    INITIAL_DELAY_MS: number;
+    MAX_DELAY_MS: number;
+    USE_RANDOM_DELAY: boolean;
+  };
+  const originalRetryConfig = {
+    initialDelayMs: retryConfig.INITIAL_DELAY_MS,
+    maxDelayMs: retryConfig.MAX_DELAY_MS,
+    useRandomDelay: retryConfig.USE_RANDOM_DELAY,
+  };
+
+  beforeEach(() => {
+    process.env.GRAPHQL_GOVERNOR_ENABLED = "false";
+    retryConfig.INITIAL_DELAY_MS = 5;
+    retryConfig.MAX_DELAY_MS = 50;
+    retryConfig.USE_RANDOM_DELAY = false;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    if (originalGovernorEnabled === undefined) {
+      Reflect.deleteProperty(process.env, "GRAPHQL_GOVERNOR_ENABLED");
+    } else {
+      process.env.GRAPHQL_GOVERNOR_ENABLED = originalGovernorEnabled;
+    }
+    retryConfig.INITIAL_DELAY_MS = originalRetryConfig.initialDelayMs;
+    retryConfig.MAX_DELAY_MS = originalRetryConfig.maxDelayMs;
+    retryConfig.USE_RANDOM_DELAY = originalRetryConfig.useRandomDelay;
+  });
+
+  it("routes transport fetch through governor.schedule", async () => {
+    const scheduleSpy = vi.spyOn(GraphQLGovernor.prototype, "schedule");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: { __typename: "Query" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClient("token", "https://example.com/graphql");
+    await client.query("query HealthQuery { __typename }", {}).toPromise();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(scheduleSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers cooldown from HTTP 429 Retry-After header", async () => {
+    const registerSpy = vi.spyOn(GraphQLGovernor.prototype, "registerRateLimit");
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      new Response(JSON.stringify({ errors: [{ message: "Too Many Requests" }] }), {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": "2",
+        },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClient("token", "https://example.com/graphql");
+    await client.mutation("mutation ProductCreate { __typename }", {}).toPromise();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(registerSpy).toHaveBeenCalledWith(2000);
+  });
+
+  it("retries query on 429 and keeps retry path under governor control", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ errors: [{ message: "Too Many Requests" }] }), {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": "1",
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: { __typename: "Query" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const scheduleSpy = vi.spyOn(GraphQLGovernor.prototype, "schedule");
+    const client = createClient("token", "https://example.com/graphql");
+    const result = await client.query("query ProductsQuery { __typename }", {}).toPromise();
+
+    expect(result.error).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(scheduleSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("registers fallback cooldown when GraphQL TOO_MANY_REQUESTS is returned", async () => {
+    const registerSpy = vi.spyOn(GraphQLGovernor.prototype, "registerRateLimit");
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            errors: [{ message: "Too many requests", extensions: { code: "TOO_MANY_REQUESTS" } }],
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ data: { __typename: "Query" } }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createClient("token", "https://example.com/graphql");
+    const result = await client.query("query ShopQuery { __typename }", {}).toPromise();
+
+    expect(result.error).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(registerSpy).toHaveBeenCalledWith(null);
   });
 });

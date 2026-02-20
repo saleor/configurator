@@ -1,7 +1,7 @@
 import { cliConsole } from "../../cli/console";
 import type { DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
-import { formatDuration } from "./utils";
+import { formatDuration, getTopOperationResilienceHotspots } from "./utils";
 
 /**
  * Generates and displays a human-readable summary of deployment results
@@ -80,6 +80,25 @@ export class DeploymentSummaryReport {
       }
       if (this.metrics.totalNetworkErrors > 0) {
         lines.push(`• Network Errors: ${this.metrics.totalNetworkErrors}`);
+      }
+
+      const topHotspots = getTopOperationResilienceHotspots(this.metrics.operationResilience, 3);
+      if (topHotspots.length > 0) {
+        lines.push("Top Throttle Hotspots:");
+        for (const hotspot of topHotspots) {
+          const details = [];
+          if (hotspot.rateLimitHits > 0) {
+            details.push(`${hotspot.rateLimitHits} rate limits`);
+          }
+          if (hotspot.retryAttempts > 0) {
+            details.push(`${hotspot.retryAttempts} retries`);
+          }
+
+          if (details.length > 0) {
+            const line = `• ${hotspot.operation}: ${details.join(", ")}`;
+            lines.push(this.truncateLine(line));
+          }
+        }
       }
     }
 

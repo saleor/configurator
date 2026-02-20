@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { extractRetryAfterMs, isRateLimitError, parseRetryAfter } from "./error-classification";
 
 describe("parseRetryAfter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("returns null for null/undefined/empty", () => {
     expect(parseRetryAfter(null)).toBeNull();
     expect(parseRetryAfter(undefined)).toBeNull();
@@ -14,9 +18,31 @@ describe("parseRetryAfter", () => {
     expect(parseRetryAfter("0")).toBe(0);
   });
 
-  it("returns null for non-numeric strings", () => {
+  it("parses decimal seconds", () => {
+    expect(parseRetryAfter("1.5")).toBe(1500);
+  });
+
+  it("parses HTTP-date values", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-02-20T10:00:00.000Z");
+    vi.setSystemTime(now);
+
+    expect(parseRetryAfter("Fri, 20 Feb 2026 10:00:03 GMT")).toBe(3000);
+    expect(parseRetryAfter("Fri, 20 Feb 2026 09:59:59 GMT")).toBe(0);
+  });
+
+  it("returns null for invalid values", () => {
     expect(parseRetryAfter("abc")).toBeNull();
-    expect(parseRetryAfter("Wed, 21 Oct 2015 07:28:00 GMT")).toBeNull();
+    expect(parseRetryAfter("not-a-date")).toBeNull();
+  });
+
+  it("clamps Retry-After to 300000ms", () => {
+    expect(parseRetryAfter("999999")).toBe(300_000);
+
+    vi.useFakeTimers();
+    const now = new Date("2026-02-20T10:00:00.000Z");
+    vi.setSystemTime(now);
+    expect(parseRetryAfter("Fri, 20 Feb 2026 10:30:01 GMT")).toBe(300_000);
   });
 });
 

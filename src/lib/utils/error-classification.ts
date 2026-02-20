@@ -1,10 +1,18 @@
 export interface ErrorWithResponse {
   response: {
-    status?: number;
+    status: number;
     headers?: {
       get?: (name: string) => string | null;
     };
   };
+}
+
+const MAX_RETRY_AFTER_MS = 300_000;
+
+function clampRetryAfter(ms: number): number {
+  if (ms < 0) return 0;
+  if (ms > MAX_RETRY_AFTER_MS) return MAX_RETRY_AFTER_MS;
+  return ms;
 }
 
 export interface ErrorWithNetworkError {
@@ -74,8 +82,21 @@ export function hasGraphQLRateLimitError(error: unknown): error is ErrorWithGrap
 
 export function parseRetryAfter(header: string | null | undefined): number | null {
   if (!header) return null;
-  const seconds = Number.parseInt(header, 10);
-  return Number.isNaN(seconds) ? null : seconds * 1000;
+
+  const trimmed = header.trim();
+  if (!trimmed) return null;
+
+  const numericSeconds = Number(trimmed);
+  if (Number.isFinite(numericSeconds)) {
+    return clampRetryAfter(Math.round(numericSeconds * 1000));
+  }
+
+  const dateMs = Date.parse(trimmed);
+  if (Number.isNaN(dateMs)) {
+    return null;
+  }
+
+  return clampRetryAfter(dateMs - Date.now());
 }
 
 export function extractRetryAfterMs(error: unknown): number | null {

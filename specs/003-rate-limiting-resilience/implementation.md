@@ -248,7 +248,7 @@ pnpm check:fix && pnpm build && pnpm test && pnpm check:ci
 
 ```bash
 --url=https://store-rzalldyg.saleor.cloud/graphql/
---token=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+--token=<REDACTED_TOKEN>
 
 rm -rf config.yml
 pnpm dev introspect [credentials]

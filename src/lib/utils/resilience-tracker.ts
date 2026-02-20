@@ -1,26 +1,50 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { StageResilienceMetrics } from "../../core/deployment/types";
+import type {
+  OperationResilienceMetrics,
+  StageResilienceMetrics,
+} from "../../core/deployment/types";
 import { logger } from "../logger";
 
 export type { StageResilienceMetrics };
 
-type MutableStageResilienceMetrics = {
-  -readonly [K in keyof StageResilienceMetrics]: StageResilienceMetrics[K];
-};
+type MetricName = "rateLimitHits" | "retryAttempts" | "graphqlErrors" | "networkErrors";
+
+interface MutableResilienceMetrics {
+  rateLimitHits: number;
+  retryAttempts: number;
+  graphqlErrors: number;
+  networkErrors: number;
+}
 
 interface StageContext {
   stageName: string;
-  metrics: MutableStageResilienceMetrics;
+  metrics: MutableResilienceMetrics;
+  operationMetrics: Map<string, MutableResilienceMetrics>;
   active: boolean;
 }
 
-function createEmptyMetrics(): MutableStageResilienceMetrics {
+function createEmptyMetrics(): MutableResilienceMetrics {
   return {
     rateLimitHits: 0,
     retryAttempts: 0,
     graphqlErrors: 0,
     networkErrors: 0,
   };
+}
+
+function freezeOperationMetrics(
+  metrics: Map<string, MutableResilienceMetrics>
+): Readonly<Record<string, OperationResilienceMetrics>> | undefined {
+  if (metrics.size === 0) {
+    return undefined;
+  }
+
+  const entries = Array.from(metrics.entries()).map(([operation, values]) => [
+    operation,
+    { ...values },
+  ]);
+
+  return Object.fromEntries(entries);
 }
 
 class ResilienceTracker {
@@ -36,6 +60,7 @@ class ResilienceTracker {
     const context: StageContext = {
       stageName,
       metrics: createEmptyMetrics(),
+      operationMetrics: new Map(),
       active: true,
     };
     this.storage.enterWith(context);
@@ -45,7 +70,10 @@ class ResilienceTracker {
     const context = this.storage.getStore();
     if (!context || !context.active) return undefined;
 
-    const frozenMetrics: StageResilienceMetrics = { ...context.metrics };
+    const operations = freezeOperationMetrics(context.operationMetrics);
+    const frozenMetrics: StageResilienceMetrics = operations
+      ? { ...context.metrics, operations }
+      : { ...context.metrics };
     this.allStageMetrics.set(context.stageName, frozenMetrics);
 
     context.active = false;
@@ -58,40 +86,35 @@ class ResilienceTracker {
     return context?.active ? context : undefined;
   }
 
-  recordRateLimit(): void {
+  private recordMetric(metricName: MetricName, operationKey?: string): void {
     const context = this.getActiveContext();
     if (context) {
-      context.metrics.rateLimitHits++;
+      context.metrics[metricName]++;
+
+      if (operationKey) {
+        const existing = context.operationMetrics.get(operationKey) ?? createEmptyMetrics();
+        existing[metricName]++;
+        context.operationMetrics.set(operationKey, existing);
+      }
     } else {
-      logger.debug("Rate limit recorded outside stage context");
+      logger.debug(`${metricName} recorded outside stage context`);
     }
   }
 
-  recordRetry(): void {
-    const context = this.getActiveContext();
-    if (context) {
-      context.metrics.retryAttempts++;
-    } else {
-      logger.debug("Retry recorded outside stage context");
-    }
+  recordRateLimit(operationKey?: string): void {
+    this.recordMetric("rateLimitHits", operationKey);
   }
 
-  recordGraphQLError(): void {
-    const context = this.getActiveContext();
-    if (context) {
-      context.metrics.graphqlErrors++;
-    } else {
-      logger.debug("GraphQL error recorded outside stage context");
-    }
+  recordRetry(operationKey?: string): void {
+    this.recordMetric("retryAttempts", operationKey);
   }
 
-  recordNetworkError(): void {
-    const context = this.getActiveContext();
-    if (context) {
-      context.metrics.networkErrors++;
-    } else {
-      logger.debug("Network error recorded outside stage context");
-    }
+  recordGraphQLError(operationKey?: string): void {
+    this.recordMetric("graphqlErrors", operationKey);
+  }
+
+  recordNetworkError(operationKey?: string): void {
+    this.recordMetric("networkErrors", operationKey);
   }
 
   getStageMetrics(stageName: string): StageResilienceMetrics | undefined {

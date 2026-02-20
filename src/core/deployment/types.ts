@@ -19,11 +19,19 @@ export interface DeploymentStage {
 /**
  * Resilience metrics tracked per deployment stage
  */
+export interface OperationResilienceMetrics {
+  readonly rateLimitHits: number;
+  readonly retryAttempts: number;
+  readonly graphqlErrors: number;
+  readonly networkErrors: number;
+}
+
 export interface StageResilienceMetrics {
   readonly rateLimitHits: number;
   readonly retryAttempts: number;
   readonly graphqlErrors: number;
   readonly networkErrors: number;
+  readonly operations?: Readonly<Record<string, OperationResilienceMetrics>>;
 }
 
 export interface DeploymentMetrics {
@@ -37,6 +45,7 @@ export interface DeploymentMetrics {
   readonly totalRetries: number;
   readonly totalGraphQLErrors: number;
   readonly totalNetworkErrors: number;
+  readonly operationResilience?: ReadonlyMap<string, OperationResilienceMetrics>;
 }
 
 export interface EntityCount {
