@@ -62,8 +62,8 @@ const getCategoryBySlugQuery = graphql(`
 `);
 
 const getAllCategoriesQuery = graphql(`
-  query GetAllCategories {
-    categories(first: 100) {
+  query GetAllCategories($after: String) {
+    categories(first: 100, after: $after) {
       edges {
         node {
           id
@@ -75,6 +75,10 @@ const getAllCategoriesQuery = graphql(`
             slug
           }
         }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
@@ -93,6 +97,7 @@ export interface CategoryOperations {
 
 export class CategoryRepository implements CategoryOperations {
   private allCategoriesCache: Category[] | null = null;
+  private allCategoriesCacheComplete = false;
   private categoryBySlugCache = new Map<string, Category>();
 
   constructor(private client: Client) {}
@@ -208,7 +213,7 @@ export class CategoryRepository implements CategoryOperations {
 
     // If cache is primed with all categories, the item definitely doesn't exist
     // No need to make an API call - this is the key optimization
-    if (this.allCategoriesCache !== null) {
+    if (this.allCategoriesCacheComplete) {
       logger.debug("Category not found in primed cache", { slug });
       return null;
     }
@@ -249,37 +254,50 @@ export class CategoryRepository implements CategoryOperations {
   }
 
   async getAllCategories(): Promise<Category[]> {
-    if (this.allCategoriesCache) {
+    if (this.allCategoriesCache && this.allCategoriesCacheComplete) {
       logger.debug("Returning cached categories", {
         count: this.allCategoriesCache.length,
       });
       return this.allCategoriesCache;
     }
 
-    logger.debug("Fetching all categories from API");
+    logger.debug("Fetching all categories from API (paginated)");
 
-    const result = await this.client.query(getAllCategoriesQuery, {});
+    const categories: Category[] = [];
+    let after: string | null = null;
 
-    if (result.error) {
-      if (isRateLimitError(result.error)) {
-        throw new Error(
-          "Failed to fetch all categories: Rate limited by API (Too Many Requests). Please wait before retrying."
-        );
+    while (true) {
+      const result: Awaited<ReturnType<Client["query"]>> = await this.client.query(
+        getAllCategoriesQuery,
+        { after }
+      );
+
+      if (result.error) {
+        if (isRateLimitError(result.error)) {
+          throw new Error(
+            "Failed to fetch all categories: Rate limited by API (Too Many Requests). Please wait before retrying."
+          );
+        }
+        throw GraphQLError.fromCombinedError("Failed to fetch all categories", result.error);
       }
-      throw GraphQLError.fromCombinedError("Failed to fetch all categories", result.error);
-    }
 
-    if (!result.data?.categories?.edges) {
-      logger.debug("No categories found");
-      this.allCategoriesCache = [];
-      return [];
-    }
+      const data = result.data as ResultOf<typeof getAllCategoriesQuery> | undefined;
+      const edges = data?.categories?.edges ?? [];
+      const pageCategories = edges
+        .map((edge) => edge.node)
+        .filter((node): node is Category => node !== null);
 
-    const categories = result.data.categories.edges
-      .map((edge) => edge.node)
-      .filter((node): node is Category => node !== null);
+      categories.push(...pageCategories);
+
+      const pageInfo = data?.categories?.pageInfo;
+      if (!pageInfo?.hasNextPage || !pageInfo.endCursor) {
+        break;
+      }
+      after = pageInfo.endCursor;
+    }
 
     this.allCategoriesCache = categories;
+    this.allCategoriesCacheComplete = true;
     this.populateSlugCache(categories);
 
     logger.debug("Retrieved and cached categories", {
