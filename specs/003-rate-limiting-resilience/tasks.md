@@ -12,7 +12,7 @@
 
 ## Phase 1: Dependencies
 
-- [ ] T001 Install `pnpm add p-retry p-limit opossum && pnpm add -D @types/opossum`
+- [x] T001 Install `pnpm add p-retry p-limit opossum && pnpm add -D @types/opossum`
 
 ---
 
@@ -33,14 +33,14 @@
 
 **Blocks**: Phase 4, Phase 5
 
-- [ ] T008 Create `src/lib/utils/resilience.ts` with:
+- [x] T008 Create `src/lib/utils/resilience.ts` with:
   - AdaptiveRateLimiter class (track 429s, calculate delays, parse Retry-After)
   - withRetry<T> wrapper (p-retry, 5 retries, 1-30s backoff, jitter)
   - createCircuitBreaker (opossum, 50% threshold, 30s reset)
   - withConcurrencyLimit (p-limit, max 10 concurrent)
   - adjustConcurrency helper
 
-- [ ] T009 Update `src/lib/graphql/client.ts`:
+- [x] T009 Update `src/lib/graphql/client.ts`:
   - Add executeWithResilience<T> wrapper combining all patterns
   - Export for use in repositories
 

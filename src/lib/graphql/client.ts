@@ -1,13 +1,3 @@
-/**
- * GraphQL Client Module
- *
- * Provides a configured GraphQL client with:
- * - Bearer token authentication
- * - Automatic retry on rate limiting (HTTP 429) and network errors
- * - Adaptive rate limiting and concurrency control
- * - Resilience tracking for deployment metrics
- */
-
 import { Client, fetchExchange } from "@urql/core";
 import { authExchange } from "@urql/exchange-auth";
 import { retryExchange } from "@urql/exchange-retry";
@@ -20,35 +10,16 @@ import {
   hasNetworkError,
   hasResponseWithStatus,
 } from "../utils/error-classification";
-import { adjustConcurrency, rateLimiter } from "../utils/resilience";
+import { rateLimiter } from "../utils/resilience";
 import { resilienceTracker } from "../utils/resilience-tracker";
 
-/**
- * Handle a rate limit event by tracking metrics and adjusting concurrency
- * @param error - Optional error that may contain Retry-After header
- */
 function handleRateLimitEvent(error?: unknown): void {
-  const retryAfterMs = error ? extractRetryAfterMs(error) : undefined;
+  const retryAfterMs = error ? extractRetryAfterMs(error) : null;
   rateLimiter.trackRateLimit(retryAfterMs);
   resilienceTracker.recordRateLimit();
   resilienceTracker.recordRetry();
-  adjustConcurrency(true);
 }
 
-/**
- * Creates a configured GraphQL client with authentication and resilience features
- *
- * Features:
- * - Bearer token authentication
- * - Automatic retry on rate limiting (HTTP 429)
- * - Automatic retry on network errors (ECONNREFUSED, ETIMEDOUT, etc.)
- * - Exponential backoff with random jitter
- * - Resilience tracking for deployment metrics
- *
- * @param token - Bearer token for API authentication
- * @param url - GraphQL endpoint URL
- * @returns Configured URQL GraphQL client
- */
 export const createClient = (token: string, url: string) => {
   return new Client({
     url,
@@ -76,7 +47,7 @@ export const createClient = (token: string, url: string) => {
         retryIf: (error, operation) => {
           const operationLabel = `${operation.kind}${operation.context.operationName ? ` (${operation.context.operationName})` : ""}`;
 
-          if (hasResponseWithStatus(error) && error.response?.status === 429) {
+          if (hasResponseWithStatus(error) && error.response.status === 429) {
             handleRateLimitEvent(error);
             logger.warn(`Rate limited on ${operationLabel}, retrying...`);
             return true;

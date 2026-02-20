@@ -21,20 +21,20 @@ describe("parseRetryAfter", () => {
 });
 
 describe("extractRetryAfterMs", () => {
-  it("returns undefined for non-object errors", () => {
-    expect(extractRetryAfterMs(null)).toBeUndefined();
-    expect(extractRetryAfterMs("error")).toBeUndefined();
-    expect(extractRetryAfterMs(42)).toBeUndefined();
+  it("returns null for non-object errors", () => {
+    expect(extractRetryAfterMs(null)).toBeNull();
+    expect(extractRetryAfterMs("error")).toBeNull();
+    expect(extractRetryAfterMs(42)).toBeNull();
   });
 
-  it("returns undefined when error has no response", () => {
-    expect(extractRetryAfterMs({})).toBeUndefined();
-    expect(extractRetryAfterMs(new Error("oops"))).toBeUndefined();
+  it("returns null when error has no response", () => {
+    expect(extractRetryAfterMs({})).toBeNull();
+    expect(extractRetryAfterMs(new Error("oops"))).toBeNull();
   });
 
-  it("returns undefined when response has no headers.get", () => {
-    expect(extractRetryAfterMs({ response: { status: 429 } })).toBeUndefined();
-    expect(extractRetryAfterMs({ response: { status: 429, headers: {} } })).toBeUndefined();
+  it("returns null when response has no headers.get", () => {
+    expect(extractRetryAfterMs({ response: { status: 429 } })).toBeNull();
+    expect(extractRetryAfterMs({ response: { status: 429, headers: {} } })).toBeNull();
   });
 
   it("extracts Retry-After from response headers", () => {
@@ -61,7 +61,7 @@ describe("extractRetryAfterMs", () => {
     expect(extractRetryAfterMs(error)).toBe(5000);
   });
 
-  it("returns undefined when Retry-After header is invalid", () => {
+  it("returns null when Retry-After header is invalid", () => {
     const error = {
       response: {
         status: 429,
@@ -70,7 +70,7 @@ describe("extractRetryAfterMs", () => {
         },
       },
     };
-    expect(extractRetryAfterMs(error)).toBeUndefined();
+    expect(extractRetryAfterMs(error)).toBeNull();
   });
 });
 

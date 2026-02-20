@@ -1,8 +1,8 @@
 import { logger } from "../../lib/logger";
-import { BulkOperationThresholds } from "../../lib/utils/bulk-operation-constants";
+import { BulkOperationThresholds, DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import { delay } from "../../lib/utils/resilience";
+import { delay, rateLimiter } from "../../lib/utils/resilience";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
 import type { WarehouseOperations } from "../warehouse/repository";
@@ -544,12 +544,14 @@ export class ShippingZoneService {
       (input) => this.getOrCreateShippingZone(input),
       {
         sequential: useSequential,
-        delayMs: useSequential ? 500 : 0,
+        delayMs: useSequential
+          ? rateLimiter.getAdaptiveDelay(DelayConfig.DEFAULT_CHUNK_DELAY_MS)
+          : 0,
       }
     );
 
     if (useSequential) {
-      logger.info(`Processed ${inputs.length} shipping zones sequentially with 500ms delay`);
+      logger.info(`Processed ${inputs.length} shipping zones sequentially with adaptive delay`);
     }
 
     if (results.failures.length > 0) {

@@ -7,7 +7,6 @@ import type { CategoryOperations } from "./repository";
 vi.mock("../../lib/utils/resilience", () => ({
   rateLimiter: { getAdaptiveDelay: vi.fn().mockReturnValue(0) },
   delay: vi.fn().mockResolvedValue(undefined),
-  withConcurrencyLimit: vi.fn().mockImplementation((fn) => fn()),
 }));
 
 // Mock category repository

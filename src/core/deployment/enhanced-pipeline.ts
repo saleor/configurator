@@ -1,5 +1,4 @@
 import { logger } from "../../lib/logger";
-import { resetConcurrency } from "../../lib/utils/resilience";
 import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import { StageAggregateError } from "./errors";
 import { MetricsCollector } from "./metrics";
@@ -147,7 +146,6 @@ export async function executeEnhancedDeployment(
   shouldExit: boolean;
   exitCode: number;
 }> {
-  resetConcurrency();
   resilienceTracker.reset();
 
   const pipeline = new EnhancedDeploymentPipeline();

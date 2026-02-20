@@ -1,25 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-/**
- * Tests for AdaptiveRateLimiter Retry-After functionality
- *
- * These tests verify:
- * - Retry-After header parsing
- * - Adaptive delay calculation with Retry-After
- * - shouldWait method behavior
- * - Rate limit window management
- */
-
-// Since AdaptiveRateLimiter is not exported, we test the exported rateLimiter instance
-// We import it fresh in each test via dynamic import to ensure clean state
-
 describe("AdaptiveRateLimiter", () => {
-  // Use dynamic import to get a fresh module for each test
   let rateLimiter: Awaited<typeof import("./resilience")>["rateLimiter"];
 
   beforeEach(async () => {
     vi.useFakeTimers();
-    // Reset module to get fresh rateLimiter state
     vi.resetModules();
     const module = await import("./resilience");
     rateLimiter = module.rateLimiter;
@@ -46,8 +31,7 @@ describe("AdaptiveRateLimiter", () => {
       expect(rateLimiter.parseRetryAfter("")).toBeNull();
     });
 
-    it("handles integer parsing (ignores decimals)", () => {
-      // parseInt behavior: parses until non-digit
+    it("truncates decimals via parseInt behavior", () => {
       expect(rateLimiter.parseRetryAfter("5.5")).toBe(5000);
     });
   });
@@ -61,14 +45,12 @@ describe("AdaptiveRateLimiter", () => {
       expect(rateLimiter.getRecentRateLimitCount()).toBe(2);
     });
 
-    it("resets count after window expires", () => {
+    it("resets count after 60s window expires", () => {
       rateLimiter.trackRateLimit();
       expect(rateLimiter.getRecentRateLimitCount()).toBe(1);
 
-      // Advance time past the window (60 seconds)
       vi.advanceTimersByTime(61_000);
 
-      // Count should reset on next getRecentRateLimitCount call
       expect(rateLimiter.getRecentRateLimitCount()).toBe(0);
     });
 
@@ -86,65 +68,54 @@ describe("AdaptiveRateLimiter", () => {
       expect(rateLimiter.getAdaptiveDelay(1000)).toBe(1000);
     });
 
-    it("returns exponential backoff after rate limits", () => {
+    it("returns exponential backoff based on rate limit count", () => {
       rateLimiter.trackRateLimit();
-      // 1000 * 2^1 = 2000
       expect(rateLimiter.getAdaptiveDelay(1000)).toBe(2000);
 
       rateLimiter.trackRateLimit();
-      // 1000 * 2^2 = 4000
       expect(rateLimiter.getAdaptiveDelay(1000)).toBe(4000);
 
       rateLimiter.trackRateLimit();
-      // 1000 * 2^3 = 8000
       expect(rateLimiter.getAdaptiveDelay(1000)).toBe(8000);
     });
 
-    it("caps delay at MAX_ADAPTIVE_DELAY_MS (15000)", () => {
-      // Track many rate limits to exceed cap
+    it("caps delay at 15000ms", () => {
       for (let i = 0; i < 10; i++) {
         rateLimiter.trackRateLimit();
       }
-      // Should be capped at 15000
       expect(rateLimiter.getAdaptiveDelay(1000)).toBe(15000);
     });
 
     it("returns remaining Retry-After time when still valid", () => {
       rateLimiter.trackRateLimit(10000);
       const delay = rateLimiter.getAdaptiveDelay(1000);
-      // Should use Retry-After (10000ms) instead of base (1000ms)
       expect(delay).toBeGreaterThan(1000);
       expect(delay).toBeLessThanOrEqual(10000);
     });
 
-    it("respects Retry-After over base delay", () => {
+    it("uses Retry-After when it exceeds base delay", () => {
       rateLimiter.trackRateLimit(5000);
-      // Even though base is 1000, Retry-After should win
       const delay = rateLimiter.getAdaptiveDelay(1000);
-      expect(delay).toBeGreaterThanOrEqual(4990); // Allow small timing variance
+      expect(delay).toBeGreaterThanOrEqual(4990);
     });
 
     it("falls back to exponential backoff after Retry-After expires", async () => {
-      rateLimiter.trackRateLimit(100); // 100ms Retry-After
-
-      // Advance past Retry-After
+      rateLimiter.trackRateLimit(100);
       vi.advanceTimersByTime(150);
 
-      // Should now use exponential backoff (1 rate limit recorded)
       const delay = rateLimiter.getAdaptiveDelay(1000);
-      // Should be 1000 * 2^1 = 2000 (exponential backoff)
       expect(delay).toBe(2000);
     });
   });
 
   describe("shouldWait", () => {
-    it("returns { wait: false, delayMs: 0 } when no Retry-After is active", () => {
+    it("returns wait=false when no Retry-After is active", () => {
       const result = rateLimiter.shouldWait();
       expect(result.wait).toBe(false);
       expect(result.delayMs).toBe(0);
     });
 
-    it("returns { wait: true, delayMs: remaining } when Retry-After is active", () => {
+    it("returns wait=true with remaining delay when Retry-After is active", () => {
       rateLimiter.trackRateLimit(5000);
       const result = rateLimiter.shouldWait();
       expect(result.wait).toBe(true);
@@ -152,10 +123,8 @@ describe("AdaptiveRateLimiter", () => {
       expect(result.delayMs).toBeGreaterThan(0);
     });
 
-    it("returns { wait: false } after Retry-After expires", () => {
+    it("returns wait=false after Retry-After expires", () => {
       rateLimiter.trackRateLimit(100);
-
-      // Advance past Retry-After
       vi.advanceTimersByTime(150);
 
       const result = rateLimiter.shouldWait();
@@ -178,24 +147,21 @@ describe("AdaptiveRateLimiter", () => {
   });
 
   describe("rate limit window behavior", () => {
-    it("maintains count within window", () => {
+    it("maintains count within 60s window", () => {
       rateLimiter.trackRateLimit();
-      vi.advanceTimersByTime(30_000); // 30 seconds
+      vi.advanceTimersByTime(30_000);
       rateLimiter.trackRateLimit();
 
-      // Should have 2 rate limits (within 60s window)
       expect(rateLimiter.getRecentRateLimitCount()).toBe(2);
     });
 
-    it("resets count when new rate limit after window", () => {
+    it("resets count when new rate limit arrives after window", () => {
       rateLimiter.trackRateLimit();
       rateLimiter.trackRateLimit();
       expect(rateLimiter.getRecentRateLimitCount()).toBe(2);
 
-      // Advance past window
       vi.advanceTimersByTime(61_000);
 
-      // Next trackRateLimit should reset and start fresh
       rateLimiter.trackRateLimit();
       expect(rateLimiter.getRecentRateLimitCount()).toBe(1);
     });
