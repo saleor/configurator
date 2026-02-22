@@ -15,9 +15,9 @@ Before implementing TypeScript changes, invoke the `reviewing-typescript-code` s
 
 | Category | Lines | Action |
 |----------|-------|--------|
-| Ideal | 10-50 | Standard |
-| Acceptable | 50-100 | Complex logic only |
-| Refactor | >100 | Break down |
+| Ideal | 10-30 | Standard |
+| Acceptable | 30-50 | Justified complexity only |
+| Refactor | >50 | Must break down |
 
 ### Type Safety Checklist
 
@@ -60,6 +60,20 @@ const CONFIG = {
 } as const satisfies ConfigShape;
 // CONFIG.MAX_ITEMS is `10`, not just `number`
 ```
+
+## Object Calisthenics (Condensed)
+
+- Max 3 levels of nesting — use guard clauses (early returns)
+- No `else` after `return` — use early returns
+- No `forEach` — use `map`/`filter`/`for...of`
+- No parameter reassignment — treat params as immutable
+- One responsibility per function
+
+## Zod Schema SSOT
+
+- All domain/config types MUST be `z.infer<typeof Schema>`
+- Never define parallel interfaces for data that has a schema
+- Service contract interfaces are fine (they define behavior, not data shape)
 
 ## Functional Style
 

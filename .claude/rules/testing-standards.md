@@ -122,6 +122,12 @@ export class CategoryBuilder {
 }
 ```
 
+## Test Quality
+
+- 1-5 assertions per test, each verifying one behavior
+- No structural type definitions in test files (import from domain schemas)
+- Test data builders must use Zod validation in `build()`
+
 ## Test Checklist
 
 Before completing tests:

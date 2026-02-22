@@ -22,7 +22,12 @@
       "complexity": {
         "noBannedTypes": "error",
         "noUselessTypeConstraint": "error",
-        "useOptionalChain": "error"
+        "useOptionalChain": "error",
+        "noForEach": "warn",
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": { "maxAllowedComplexity": 15 }
+        }
       },
       "correctness": {
         "noUnusedVariables": "error",
@@ -35,7 +40,8 @@
         "useTemplate": "error",
         "useConsistentArrayType": "error",
         "useConst": "error",
-        "useShorthandFunctionType": "error"
+        "useShorthandFunctionType": "error",
+        "noParameterAssign": "error"
       },
       "suspicious": {
         "noExplicitAny": "error",
@@ -43,7 +49,8 @@
         "noAssignInExpressions": "error",
         "noAsyncPromiseExecutor": "error",
         "noMisleadingCharacterClass": "error",
-        "noUnsafeDeclarationMerging": "error"
+        "noUnsafeDeclarationMerging": "error",
+        "noShadowRestrictedNames": "error"
       },
       "performance": {
         "noAccumulatingSpread": "warn",

@@ -36,6 +36,7 @@ Skills provide domain-specific guidance. When your task matches a skill's domain
 | Domain | `understanding-saleor-domain` | Working with entity rules, config schema |
 | Schemas | `designing-zod-schemas` | Creating validation schemas |
 | Diff Engine | `diff-engine-development` | Comparators, formatters, diff service |
+| Design Quality | `analyzing-design-quality` | Reviewing code design, before PRs, code health checks |
 | Validation | `validating-pre-commit` | Preparing to commit or push |
 | Releases | `creating-changesets` | Preparing version bumps, changelogs |
 | CI/CD | `managing-github-ci` | Working on GitHub Actions workflows |
@@ -43,9 +44,10 @@ Skills provide domain-specific guidance. When your task matches a skill's domain
 ## Code Quality Standards
 
 ### Function Design
-- Ideal: 10-50 lines
-- Maximum: ~100 lines for complex logic
+- Ideal: 10-30 lines
+- Maximum: ~50 lines for justified complexity
 - Single responsibility per function
+- Max 3 nesting levels
 
 ### Type Safety
 - No `any` except in test mocks (Biome enforced)
@@ -107,6 +109,7 @@ Path-targeted rules in `.claude/rules/` provide contextual guidance when editing
 | `cli-development.md` | CLI and command files |
 | `config-schema.md` | Config and schema files |
 | `diff-engine.md` | Diff comparators and formatters |
+| `typescript-strictness.md` | TypeScript strictness patterns |
 | `deployment-safety.md` | Always (quality gates) |
 
 ## Principles
