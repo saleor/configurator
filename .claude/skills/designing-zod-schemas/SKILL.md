@@ -1,12 +1,16 @@
 ---
 name: designing-zod-schemas
-description: "Designs Zod schemas following Zod-first development. Creates validation schemas, branded types, discriminated unions, and transforms. Infers TypeScript types from schemas. Triggers on: Zod schema, z.object, z.infer, validation, branded types, discriminated union, safeParse, refinement."
+description: "Designs Zod schemas following Zod-first development. Use when creating validation schemas, branded types, discriminated unions, transforms, refinements, or inferring TypeScript types with z.infer."
 allowed-tools: "Read, Grep, Glob, Write, Edit"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Zod Schema Designer
 
-## Purpose
+## Overview
 
 Guide the design and implementation of Zod schemas following the project's Zod-first development approach, where schemas are defined before implementing business logic.
 
@@ -17,14 +21,6 @@ Guide the design and implementation of Zod schemas following the project's Zod-f
 - Designing configuration schemas
 - Implementing type-safe transformations
 - Creating test data builders
-
-## Table of Contents
-
-- [Core Principles](#core-principles)
-- [Quick Reference](#quick-reference)
-- [Schema Patterns](#schema-patterns)
-- [Project Schema Location](#project-schema-location)
-- [References](#references)
 
 ## Core Principles
 
@@ -48,46 +44,29 @@ Guide the design and implementation of Zod schemas following the project's Zod-f
 
 ## Quick Reference
 
-### Common Schema Shapes
+### Project Schema Conventions
 
 ```typescript
 import { z } from 'zod';
 
-// String with constraints
-const NameSchema = z.string().min(1).max(100).trim();
-
-// Slug pattern
+// Slug-based entity (Categories, Products, Channels, etc.)
 const SlugSchema = z.string().regex(/^[a-z0-9-]+$/);
 
-// Number with range
-const PriceSchema = z.number().min(0).multipleOf(0.01);
+// Name-based entity (ProductTypes, Attributes, TaxClasses, etc.)
+const NameSchema = z.string().min(1).max(100).trim();
 
-// Object schema
+// Branded types for domain safety
+const EntitySlugSchema = SlugSchema.transform((v) => v as EntitySlug);
+
+// Standard entity shape
 const EntitySchema = z.object({
   name: z.string().min(1),
   slug: z.string().regex(/^[a-z0-9-]+$/),
   description: z.string().optional(),
 });
 
-// Array with validation
-const TagsSchema = z.array(z.string()).min(1).max(10);
-
-// Type inference
+// Always infer types from schemas
 type Entity = z.infer<typeof EntitySchema>;
-```
-
-### Safe Parsing
-
-```typescript
-const result = schema.safeParse(data);
-
-if (!result.success) {
-  // Handle errors
-  console.error(result.error.issues);
-} else {
-  // Use validated data
-  const validData = result.data;
-}
 ```
 
 ## Schema Patterns

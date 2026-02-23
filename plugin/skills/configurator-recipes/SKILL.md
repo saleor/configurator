@@ -1,214 +1,108 @@
 ---
 name: configurator-recipes
-version: 1.0.0
-description: Provides pre-built Saleor configuration templates for common e-commerce store types including fashion retail, electronics, and subscription services. This skill should be invoked when the user wants to start with a template, needs a complete store setup example, or is looking for best-practice configurations. Templates include channels, product types, categories, and attributes tailored to each business model.
+version: 2.0.0
+description: "Pre-built store configuration templates for common business types. Use when asking about store templates, example configs, fashion/electronics/subscription setup, or starting points."
 allowed-tools: Read, Write
+license: MIT
+compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
 ---
 
 # Configurator Recipes
 
-Pre-built configuration templates for quickly setting up common e-commerce store types.
+## Overview
+
+Recipes are ready-to-use `config.yml` templates for common store types. Pick one that matches your business, customize it, and deploy. They save you from building your store configuration from scratch.
+
+## When to Use
+
+- "How do I set up a fashion store?"
+- "Is there a template for electronics?"
+- "Can I see an example config.yml?"
+- "What's a good starting point for my store?"
+- "How do I set up a subscription service?"
+- When NOT looking for CLI commands -- use `configurator-cli` instead
+- When NOT designing custom product types -- use `product-modeling` instead
 
 ## Available Recipes
 
-| Recipe | Best For | Includes |
-|--------|----------|----------|
-| **Fashion Store** | Apparel, shoes, accessories | Size/color variants, seasonal collections |
-| **Electronics Store** | Tech products, gadgets | Specs attributes, warranty info |
-| **Subscription Service** | Recurring products, SaaS | Subscription types, billing cycles |
+| Recipe | Best For | Key Features |
+|--------|----------|--------------|
+| **Fashion Store** | Apparel, shoes, accessories | Size/color variants, seasonal collections, multi-currency |
+| **Electronics Store** | Tech products, gadgets | Specs attributes, storage/RAM variants, warranty info |
+| **Subscription Service** | Recurring products, SaaS | Plan tiers, billing cycles, add-on services |
 
-**Note**: For a blank starting point, use `/configurator-init` which creates a skeleton with the correct structure but no business-specific content.
+For a blank starting point (correct structure, no business content), use `/configurator init`.
 
-## Using Recipes
-
-### Quick Start
-
-**For structure only** (blank slate):
-```bash
-/configurator-init               # Creates skeleton config.yml
-```
-
-**For pre-built store** (complete recipe):
-```bash
-/configurator-setup              # Interactive wizard with recipe selection
-```
-
-### Manual Copy
-
-1. Choose a recipe that matches your business
-2. Copy the template to your project
-3. Customize for your specific needs
-4. Deploy to Saleor
-
-### Customization Tips
-
-- Rename channels to match your brand
-- Adjust categories for your product catalog
-- Modify attributes for your specific products
-- Update currency and country codes
-
-## Recipe: Fashion Store
-
-A complete configuration for apparel and fashion retail.
-
-### What's Included
-
-**Channels**:
-- US Store (USD)
-- EU Store (EUR)
-
-**Product Types**:
-- T-Shirt (Size, Color variants)
-- Pants (Waist, Length, Color variants)
-- Dress (Size, Color variants)
-- Shoes (Size, Color variants)
-- Accessory (Color, Material variants)
-
-**Categories**:
-```
-Clothing
-├── Men's
-│   ├── T-Shirts
-│   ├── Pants
-│   └── Shoes
-├── Women's
-│   ├── Dresses
-│   ├── Tops
-│   └── Shoes
-└── Accessories
-    ├── Bags
-    └── Jewelry
-```
-
-**Collections**:
-- New Arrivals
-- Best Sellers
-- Sale Items
-- Seasonal Collection
-
-**Attributes**:
-- Size (XS, S, M, L, XL, XXL)
-- Color (with swatches)
-- Material
-- Brand
-- Care Instructions
-
-See [templates/fashion-store.yml](templates/fashion-store.yml) for the complete configuration.
-
-## Recipe: Electronics Store
-
-A complete configuration for electronics and tech retail.
-
-### What's Included
-
-**Channels**:
-- Main Store (USD)
-
-**Product Types**:
-- Smartphone (Storage, Color variants)
-- Laptop (RAM, Storage, Color variants)
-- Tablet (Storage, Color variants)
-- Accessory (Color variants)
-- Software (License type variants)
-
-**Categories**:
-```
-Electronics
-├── Phones
-│   ├── Smartphones
-│   └── Accessories
-├── Computers
-│   ├── Laptops
-│   ├── Desktops
-│   └── Accessories
-├── Audio
-│   ├── Headphones
-│   └── Speakers
-└── Software
-    ├── Apps
-    └── Games
-```
-
-**Attributes**:
-- Brand
-- Storage (64GB, 128GB, 256GB, 512GB, 1TB)
-- RAM (8GB, 16GB, 32GB, 64GB)
-- Screen Size
-- Color
-- Warranty Period
-
-See [templates/electronics-store.yml](templates/electronics-store.yml) for the complete configuration.
-
-## Recipe: Subscription Service
-
-A complete configuration for subscription-based products.
-
-### What's Included
-
-**Channels**:
-- Subscription Portal (USD)
-
-**Product Types**:
-- Monthly Subscription (Plan tier variants)
-- Annual Subscription (Plan tier variants)
-- One-Time Purchase (no variants)
-- Add-On Service (no variants)
-
-**Categories**:
-```
-Subscriptions
-├── Plans
-│   ├── Basic
-│   ├── Professional
-│   └── Enterprise
-└── Add-Ons
-    ├── Storage
-    ├── Support
-    └── Features
-```
-
-**Attributes**:
-- Plan Tier (Basic, Pro, Enterprise)
-- Billing Cycle (Monthly, Annual)
-- Features Included
-- User Limit
-- Storage Limit
-
-See [templates/subscription-service.yml](templates/subscription-service.yml) for the complete configuration.
-
-## Applying a Recipe
-
-### Option 1: Direct Copy
+## Quick Start
 
 ```bash
-# Copy recipe to your project
+# Option 1: Interactive wizard
+/recipe
+
+# Option 2: Copy a template directly
 cp plugin/skills/configurator-recipes/templates/fashion-store.yml config.yml
 
-# Customize and deploy
+# Option 3: Customize and deploy
 npx configurator deploy --url=$URL --token=$TOKEN
 ```
 
-### Option 2: Via Setup Wizard
+## Recipe Details: Fashion Store
 
-Run `/configurator-setup` and select "Use template" when prompted.
+A complete configuration for apparel and fashion retail with two channels (US/EU), five product types, a full category tree, and curated collections.
 
-### Option 3: Merge with Existing
+**Channels**: US Store (USD), EU Store (EUR)
 
-Use the recipe as a reference and manually add components to your existing config.yml.
+**Product Types**: T-Shirt, Pants, Dress, Shoes, Accessory -- each with appropriate size/color/material variants.
 
-## Creating Custom Recipes
+**Categories**:
+```
+Clothing → Men's (T-Shirts, Pants, Shoes) / Women's (Dresses, Tops, Shoes) / Accessories (Bags, Jewelry)
+```
 
-To create your own recipe:
+**Collections**: New Arrivals, Best Sellers, Sale Items, Seasonal Collection
 
-1. Start with a working config.yml
+**Attributes**: Size (XS-XXL), Color (swatches), Material, Brand, Care Instructions
+
+See [templates/fashion-store.yml](templates/fashion-store.yml) for the complete configuration.
+
+## Other Recipes
+
+**Electronics Store** -- Single channel (USD), product types for Smartphones, Laptops, Tablets, Accessories, and Software. Attributes include Brand, Storage, RAM, Screen Size, and Warranty. See [templates/electronics-store.yml](templates/electronics-store.yml).
+
+**Subscription Service** -- Subscription portal channel, product types for Monthly/Annual subscriptions, One-Time Purchases, and Add-Ons. Attributes include Plan Tier, Billing Cycle, User Limit, and Storage Limit. See [templates/subscription-service.yml](templates/subscription-service.yml).
+
+## Customization Tips
+
+After copying a recipe:
+
+1. **Rename channels** to match your brand and regions
+2. **Adjust currency and country codes** for your markets
+3. **Modify categories** for your actual product catalog
+4. **Add or remove product types** you don't need
+5. **Test on staging first** before deploying to production
+
+## Common Mistakes
+
+| Mistake | Fix |
+|---------|-----|
+| Using a recipe without customizing identifiers | Update all slugs and names to match your brand before deploying |
+| Not adjusting currency/country codes | Change `currencyCode` and `defaultCountry` to your actual markets |
+| Deploying a recipe straight to production | Always test on a staging instance first |
+| Keeping entity types you don't need | Remove unused product types, categories, etc. to keep your config clean |
+| Forgetting to update channel references | Products reference channels by slug -- make sure they match after renaming |
+
+## Creating Your Own Recipe
+
+1. Start with a working `config.yml`
 2. Generalize names and values
-3. Add comments explaining each section
+3. Add YAML comments explaining each section
 4. Test deployment to a fresh Saleor instance
-5. Document customization points
+5. Document what users should customize
 
-## Recipe Best Practices
+## See Also
 
-1. **Start small**: Don't use all features immediately
-2. **Customize incrementally**: Change one thing at a time
-3. **Test often**: Deploy to staging first
-4. **Document changes**: Track what you modified from the recipe
+### Related Skills
+
+- **`configurator-schema`** - Config.yml structure and validation rules
+- **`product-modeling`** - Product type design and attribute selection
+- **`saleor-domain`** - Entity relationships and Saleor concepts

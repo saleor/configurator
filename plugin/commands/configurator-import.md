@@ -9,6 +9,19 @@ argument-hint: <file-path> [--source shopify]
 
 Import external product data into Saleor's config.yml format.
 
+## Usage
+
+```bash
+# Import from CSV file
+/configurator-import products.csv
+
+# Import from Shopify export
+/configurator-import shopify-export.csv --source shopify
+
+# Interactive (will prompt for file path)
+/configurator-import
+```
+
 ## Process
 
 ### 1. Check File
@@ -59,11 +72,26 @@ After import:
 ✓ Imported [N] products
 
 Next:
-1. /configurator-review - Review configuration
-2. /configurator-validate - Validate schema
+1. /configurator review - Review configuration
+2. /configurator validate - Validate schema
 3. npx configurator diff --url=$URL --token=$TOKEN
 ```
+
+## Error Handling
+
+- **File not found**: Prompt user for correct path, check working directory
+- **Unsupported format**: List supported formats (CSV, XLSX), suggest conversion
+- **Empty file**: Inform user, suggest checking the export source
+- **Malformed CSV**: Show problematic rows, offer to skip or abort
+- **No mappable columns**: Show detected columns, guide manual mapping
 
 ## Skills
 
 Reference `data-importer` skill for transformation patterns.
+
+## Related Commands
+
+- `/configurator validate` - Validate imported configuration
+- `/configurator review` - Review imported data quality
+- `/configurator-fix` - Fix issues found after import
+- `/configurator-model` - Design product types before importing

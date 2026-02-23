@@ -1,32 +1,26 @@
 ---
 name: analyzing-test-coverage
-description: "Creates and analyzes tests using Vitest and MSW patterns. Generates test builders, mocks repositories, and configures integration tests. Triggers on: write tests, test coverage, Vitest, MSW mock, vi.fn, vi.mock, unit test, integration test, test builder, mock setup, test failure."
+description: "Creates and analyzes tests using Vitest and MSW patterns. Use when writing unit tests, integration tests, analyzing coverage gaps, setting up MSW handlers, vi.fn mocks, test builders, or debugging test failures. Do NOT use for non-test TypeScript code."
 allowed-tools: "Read, Grep, Glob, Write, Edit, Bash(pnpm test:*)"
+metadata:
+  author: Ollie Shop
+  version: 1.0.0
+compatibility: "Claude Code with Node.js >=20, pnpm, TypeScript 5.5+"
 ---
 
 # Testing Strategy Analyst
 
-## Purpose
+## Overview
 
 Guide the creation of comprehensive tests following project patterns for unit tests, integration tests, and E2E tests using Vitest, MSW, and project-specific test helpers.
 
 ## When to Use
 
-- Writing new tests
+- Writing new tests for entities or services
 - Analyzing test coverage gaps
-- Setting up mocks for testing
-- Organizing test files
+- Setting up mocks (MSW handlers, vi.fn)
+- Organizing test files in the module structure
 - Debugging test failures
-
-## Table of Contents
-
-- [Testing Stack](#testing-stack)
-- [Test Organization](#test-organization)
-- [Quick Pattern Reference](#quick-pattern-reference)
-- [Running Tests](#running-tests)
-- [Test Quality Checklist](#test-quality-checklist)
-- [Common Pitfalls](#common-pitfalls)
-- [References](#references)
 
 ## Testing Stack
 
@@ -95,20 +89,11 @@ See `references/patterns.md` for examples. Common patterns:
 ## Running Tests
 
 ```bash
-# Run all tests
-pnpm test
-
-# Run specific test file
-pnpm test -- --filter=category-service
-
-# Run tests matching pattern
-pnpm test -- --grep="should create category"
-
-# Watch mode
-pnpm test -- --watch
-
-# With coverage
-pnpm test -- --coverage
+pnpm test                                    # All tests
+pnpm test -- --filter=category-service       # Specific file
+pnpm test -- --grep="should create category" # Pattern match
+pnpm test -- --watch                         # Watch mode
+pnpm test -- --coverage                      # With coverage
 ```
 
 See `references/commands-reference.md` for advanced options and coverage configuration.
@@ -116,7 +101,6 @@ See `references/commands-reference.md` for advanced options and coverage configu
 ## Test Quality Checklist
 
 ### For Every Test
-
 - [ ] Follows Arrange-Act-Assert pattern
 - [ ] Has descriptive test name
 - [ ] Tests one thing per test
@@ -125,7 +109,6 @@ See `references/commands-reference.md` for advanced options and coverage configu
 - [ ] Cleans up after itself (beforeEach/afterEach)
 
 ### For Test Suites
-
 - [ ] Covers all public methods
 - [ ] Covers error scenarios
 - [ ] Covers edge cases
@@ -141,34 +124,15 @@ See `references/commands-reference.md` for advanced options and coverage configu
 | Coverage adequate | Key paths covered | `pnpm test --coverage` |
 | Mocks typed | No `any` in mocks | `npx tsc --noEmit` |
 
-## Common Pitfalls
+## Common Mistakes
 
-**Not Resetting Mocks**:
-```typescript
-beforeEach(() => {
-  vi.clearAllMocks(); // Always reset!
-});
-```
-
-**Testing Implementation Details**:
-```typescript
-// BAD - tests internal structure
-expect(service.internalMap.size).toBe(1);
-
-// GOOD - tests behavior
-expect(await service.findBySlug('test')).toBeDefined();
-```
-
-**Flaky Async Tests**:
-```typescript
-// BAD - race condition
-const result = service.process();
-expect(result).toBe(expected);
-
-// GOOD - await properly
-const result = await service.process();
-expect(result).toBe(expected);
-```
+| Mistake | Fix |
+|---------|-----|
+| Not resetting mocks | Add `vi.clearAllMocks()` in `beforeEach` |
+| Testing implementation details | Test behavior (public API output), not internal state |
+| Flaky async tests | Always `await` async operations before asserting |
+| Using `any` in mocks | Use `vi.mocked()` for typed mock access |
+| Missing error case tests | Add tests for rejection, validation failure, empty input |
 
 ## References
 

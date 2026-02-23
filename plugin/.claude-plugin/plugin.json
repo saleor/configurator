@@ -1,7 +1,7 @@
 {
   "name": "saleor-configurator",
-  "version": "1.0.0",
-  "description": "AI-powered Saleor e-commerce configuration through natural language",
+  "version": "2.1.0",
+  "description": "AI-powered Saleor e-commerce configuration with streamlined commands and intelligent discovery",
   "author": {
     "name": "Saleor",
     "email": "hello@saleor.io",

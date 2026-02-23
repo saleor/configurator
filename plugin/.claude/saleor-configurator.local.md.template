@@ -36,10 +36,10 @@ Add any project-specific notes or configuration reminders here.
 
 ```bash
 # Validate configuration
-/configurator-validate
+/configurator validate
 
 # Review before deployment
-/configurator-review
+/configurator review
 
 # Deploy to Saleor
 npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
