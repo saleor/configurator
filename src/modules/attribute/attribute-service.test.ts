@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
-import { AttributeService } from "./attribute-service";
+import {
+  AttributeNotFoundError,
+  WrongAttributeTypeError,
+} from "../../lib/errors/validation-errors";
+import { AttributeCache } from "./attribute-cache";
+import type { CachedAttribute } from "./attribute-cache";
+import { AttributeService, validateAttributeReference } from "./attribute-service";
 import type { Attribute, AttributeBulkCreateResult, AttributeBulkUpdateResult } from "./repository";
 
 describe("AttributeService", () => {
@@ -710,4 +716,185 @@ describe("AttributeService", () => {
       });
     });
   });
+
+  describe("validateAttributeReference", () => {
+    function createCache(
+      productAttrs: CachedAttribute[] = [],
+      contentAttrs: CachedAttribute[] = []
+    ): AttributeCache {
+      const cache = new AttributeCache();
+      cache.populateProductAttributes(productAttrs);
+      cache.populateContentAttributes(contentAttrs);
+      return cache;
+    }
+
+    const productAttr: CachedAttribute = {
+      id: "attr-prod-1",
+      name: "Color",
+      slug: "color",
+      inputType: "DROPDOWN",
+    };
+
+    const contentAttr: CachedAttribute = {
+      id: "attr-content-1",
+      name: "SEO Title",
+      slug: "seo-title",
+      inputType: "PLAIN_TEXT",
+    };
+
+    it("should return valid when attribute exists in expected product section", () => {
+      const cache = createCache([productAttr]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.attribute).toEqual(productAttr);
+      }
+    });
+
+    it("should return valid when attribute exists in expected content section", () => {
+      const cache = createCache([], [contentAttr]);
+
+      const result = validateAttributeReference(
+        "SEO Title",
+        "content",
+        "modelTypes",
+        "Blog Post",
+        cache
+      );
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.attribute).toEqual(contentAttr);
+      }
+    });
+
+    it("should return WrongAttributeTypeError when attribute exists in content but looked in product", () => {
+      const cache = createCache([], [contentAttr]);
+
+      const result = validateAttributeReference(
+        "SEO Title",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeInstanceOf(WrongAttributeTypeError);
+        const error = result.error as WrongAttributeTypeError;
+        expect(error.attributeName).toBe("SEO Title");
+        expect(error.foundInSection).toBe("contentAttributes");
+        expect(error.expectedSection).toBe("productAttributes");
+        expect(error.referencingEntityType).toBe("productTypes");
+        expect(error.referencingEntityName).toBe("T-Shirt");
+      }
+    });
+
+    it("should return WrongAttributeTypeError when attribute exists in product but looked in content", () => {
+      const cache = createCache([productAttr]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "content",
+        "modelTypes",
+        "Blog Post",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeInstanceOf(WrongAttributeTypeError);
+        const error = result.error as WrongAttributeTypeError;
+        expect(error.attributeName).toBe("Color");
+        expect(error.foundInSection).toBe("productAttributes");
+        expect(error.expectedSection).toBe("contentAttributes");
+        expect(error.referencingEntityType).toBe("modelTypes");
+        expect(error.referencingEntityName).toBe("Blog Post");
+      }
+    });
+
+    it("should return AttributeNotFoundError when attribute does not exist anywhere", () => {
+      const cache = createCache();
+
+      const result = validateAttributeReference(
+        "NonExistent",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeInstanceOf(AttributeNotFoundError);
+        const error = result.error as AttributeNotFoundError;
+        expect(error.attributeName).toBe("NonExistent");
+        expect(error.expectedSection).toBe("productAttributes");
+        expect(error.referencingEntityType).toBe("productTypes");
+        expect(error.referencingEntityName).toBe("T-Shirt");
+      }
+    });
+
+    it("should return AttributeNotFoundError with similar name suggestions via Levenshtein distance", () => {
+      const cache = createCache([
+        productAttr,
+        { id: "attr-prod-2", name: "Colour", slug: "colour", inputType: "DROPDOWN" },
+        { id: "attr-prod-3", name: "Size", slug: "size", inputType: "DROPDOWN" },
+      ]);
+
+      const result = validateAttributeReference(
+        "Colr",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeInstanceOf(AttributeNotFoundError);
+        const error = result.error as AttributeNotFoundError;
+        expect(error.attributeName).toBe("Colr");
+        expect(error.similarNames).toBeDefined();
+        expect(error.similarNames!.length).toBeGreaterThan(0);
+        // "Color" (distance 1) and "Colour" (distance 2) should both be suggested
+        expect(error.similarNames).toContain("Color");
+        expect(error.similarNames).toContain("Colour");
+        // "Size" (distance 4) should NOT be suggested (max distance is 3)
+        expect(error.similarNames).not.toContain("Size");
+      }
+    });
+
+    it("should return AttributeNotFoundError with empty suggestions when no similar names exist", () => {
+      const cache = createCache([
+        { id: "attr-prod-1", name: "XXXXXXXXXX", slug: "xxxxxxxxxx", inputType: "NUMERIC" },
+      ]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toBeInstanceOf(AttributeNotFoundError);
+        const error = result.error as AttributeNotFoundError;
+        expect(error.attributeName).toBe("Color");
+        expect(error.similarNames).toEqual([]);
+      }
+    });
+  });
+
 });

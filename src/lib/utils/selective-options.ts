@@ -16,6 +16,8 @@ export const AVAILABLE_SECTIONS = [
   "models",
   "products",
   "attributes",
+  "productAttributes",
+  "contentAttributes",
   "warehouses",
   "shippingZones",
   "taxClasses",

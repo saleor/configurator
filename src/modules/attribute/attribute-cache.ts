@@ -12,18 +12,30 @@
  * - Provides clear error messages for wrong-type references
  */
 
+/** Known Saleor attribute input types */
+export type AttributeInputType =
+  | "DROPDOWN"
+  | "MULTISELECT"
+  | "SWATCH"
+  | "REFERENCE"
+  | "PLAIN_TEXT"
+  | "NUMERIC"
+  | "DATE"
+  | "BOOLEAN"
+  | "RICH_TEXT"
+  | "DATE_TIME"
+  | "FILE";
+
 export interface CachedAttribute {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
-  readonly inputType: string;
+  readonly inputType: AttributeInputType;
 }
 
-export interface WrongSectionResult {
-  found: boolean;
-  actualSection?: "product" | "content";
-  attribute?: CachedAttribute;
-}
+export type WrongSectionResult =
+  | { found: true; actualSection: "product" | "content"; attribute: CachedAttribute }
+  | { found: false };
 
 export interface CacheStats {
   productAttributeCount: number;

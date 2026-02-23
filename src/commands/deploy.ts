@@ -247,7 +247,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         }
         this.console.text("");
       }
-    } catch {}
+    } catch (error) {
+      logger.warn("Failed to generate cleanup suggestions", { error });
+    }
   }
 
   private displayPendingDeletionWarnings(summary: DiffSummary): void {
@@ -279,7 +281,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           if (pruned.length > 0) {
             this.console.muted(`Pruned ${pruned.length} old report(s)`);
           }
-        } catch {}
+        } catch (error) {
+          logger.warn("Failed to prune old reports", { error });
+        }
       }
     } catch (error) {
       this.console.warn(

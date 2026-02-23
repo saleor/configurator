@@ -67,7 +67,8 @@ export class PageTypeService {
   private async resolveReferencedAttributesWithCache(
     inputAttributes: Array<{ attribute: string } | SimpleAttribute>,
     existingAttributeNames: string[],
-    attributeCache?: AttributeCache
+    attributeCache?: AttributeCache,
+    entityName?: string
   ): Promise<string[]> {
     // Filter out attributes that are referenced by name
     const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
@@ -132,20 +133,32 @@ export class PageTypeService {
 
         // Check for any unresolved cache misses and validate with detailed errors
         const unresolvedNames = cacheMisses.filter((name) => !resolvedNames.has(name));
-        if (unresolvedNames.length > 0 && attributeCache) {
-          for (const name of unresolvedNames) {
-            const result = validateAttributeReference(
-              name,
-              "content",
-              "modelTypes",
-              inputAttributes.length > 0 ? "current model type" : "unknown",
-              attributeCache
-            );
-            if (!result.valid && result.error) {
-              throw result.error;
+        if (unresolvedNames.length > 0) {
+          if (attributeCache) {
+            for (const name of unresolvedNames) {
+              const result = validateAttributeReference(
+                name,
+                "content",
+                "modelTypes",
+                entityName ?? "unknown",
+                attributeCache
+              );
+              if (!result.valid) {
+                throw result.error;
+              }
             }
+          } else {
+            logger.warn("Could not resolve content attributes via API", {
+              unresolvedNames,
+              entityName: entityName ?? "unknown",
+            });
           }
         }
+      } else {
+        logger.warn("API returned no results for content attribute resolution", {
+          attributeNames: cacheMisses,
+          entityName: entityName ?? "unknown",
+        });
       }
     }
 
@@ -223,7 +236,8 @@ export class PageTypeService {
         referencedAttributeIds = await this.resolveReferencedAttributesWithCache(
           updateInput.attributes,
           existingAttributeNames,
-          options?.attributeCache
+          options?.attributeCache,
+          input.name
         );
       } catch (error) {
         throw new PageTypeAttributeError(

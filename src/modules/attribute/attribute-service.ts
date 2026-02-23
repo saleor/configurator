@@ -302,11 +302,9 @@ export class AttributeService {
 /**
  * Result of attribute reference validation.
  */
-export interface AttributeValidationResult {
-  valid: boolean;
-  attribute?: CachedAttribute;
-  error?: AttributeNotFoundError | WrongAttributeTypeError;
-}
+export type AttributeValidationResult =
+  | { valid: true; attribute: CachedAttribute }
+  | { valid: false; error: AttributeNotFoundError | WrongAttributeTypeError };
 
 /**
  * Validates an attribute reference using the AttributeCache.

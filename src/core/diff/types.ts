@@ -104,6 +104,8 @@ export type ConfigurationSection =
   | "models"
   | "products"
   | "attributes"
+  | "productAttributes"
+  | "contentAttributes"
   | "warehouses"
   | "shippingZones"
   | "taxClasses";

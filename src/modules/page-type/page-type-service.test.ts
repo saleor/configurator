@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../attribute/attribute-cache";
 import { AttributeService } from "../attribute/attribute-service";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { PageTypeAttributeValidationError } from "./errors";
 import { PageTypeService } from "./page-type-service";
+
+vi.mock("../../lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 describe("PageTypeService", () => {
   describe("is idempotent", () => {
@@ -252,4 +262,163 @@ describe("PageTypeService", () => {
       ).resolves.not.toThrow();
     });
   });
+
+  describe("cache-first attribute resolution", () => {
+    it("should use cache for content attribute resolution when cache is provided", async () => {
+      // Given: a page type with no existing attributes
+      const existingPageType = {
+        id: "page-type-1",
+        name: "Blog Post",
+        attributes: [],
+      };
+
+      const mockPageTypeOperations = {
+        getPageTypeByName: vi.fn().mockResolvedValue(existingPageType),
+        createPageType: vi.fn(),
+        getPageType: vi.fn().mockResolvedValue(existingPageType),
+        assignAttributes: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
+        updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+
+      // Populate cache with content attributes
+      const cache = new AttributeCache();
+      cache.populateContentAttributes([
+        { id: "cached-attr-1", name: "SEO Title", slug: "seo-title", inputType: "PLAIN_TEXT" },
+      ]);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "SEO Title" }, // Reference to cached attribute
+      ];
+
+      // When
+      await service.bootstrapPageType(
+        { name: "Blog Post", attributes: inputAttributes },
+        { attributeCache: cache }
+      );
+
+      // Then: should NOT call getAttributesByNames because it was resolved from cache
+      expect(mockAttributeOperations.getAttributesByNames).not.toHaveBeenCalled();
+
+      // And: should assign the cached attribute ID
+      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith(
+        "page-type-1",
+        ["cached-attr-1"]
+      );
+    });
+
+    it("should fall back to API when attribute is not in cache", async () => {
+      // Given: a page type with no existing attributes
+      const existingPageType = {
+        id: "page-type-2",
+        name: "Article",
+        attributes: [],
+      };
+
+      const mockPageTypeOperations = {
+        getPageTypeByName: vi.fn().mockResolvedValue(existingPageType),
+        createPageType: vi.fn(),
+        getPageType: vi.fn().mockResolvedValue(existingPageType),
+        assignAttributes: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue([
+          { id: "api-attr-1", name: "Author", type: "PAGE_TYPE", inputType: "PLAIN_TEXT" },
+        ]),
+        updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+
+      // Populate cache WITHOUT the referenced attribute
+      const cache = new AttributeCache();
+      cache.populateContentAttributes([
+        { id: "other-attr", name: "Other Attribute", slug: "other", inputType: "DROPDOWN" },
+      ]);
+
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "Author" }, // Not in cache - should fall back to API
+      ];
+
+      // When
+      await service.bootstrapPageType(
+        { name: "Article", attributes: inputAttributes },
+        { attributeCache: cache }
+      );
+
+      // Then: should call getAttributesByNames for the cache miss
+      expect(mockAttributeOperations.getAttributesByNames).toHaveBeenCalledWith({
+        names: ["Author"],
+        type: "PAGE_TYPE",
+      });
+
+      // And: should assign the API-resolved attribute ID
+      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith(
+        "page-type-2",
+        ["api-attr-1"]
+      );
+    });
+
+    it("should log warning when API returns null for attribute resolution", async () => {
+      const { logger } = await import("../../lib/logger");
+
+      // Given: a page type with no existing attributes
+      const existingPageType = {
+        id: "page-type-3",
+        name: "Landing Page",
+        attributes: [],
+      };
+
+      const mockPageTypeOperations = {
+        getPageTypeByName: vi.fn().mockResolvedValue(existingPageType),
+        createPageType: vi.fn(),
+        getPageType: vi.fn().mockResolvedValue(existingPageType),
+        assignAttributes: vi.fn(),
+      };
+
+      const mockAttributeOperations = {
+        createAttribute: vi.fn(),
+        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        updateAttribute: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const attributeService = new AttributeService(mockAttributeOperations);
+      const service = new PageTypeService(mockPageTypeOperations, attributeService);
+
+      // No cache provided - forces API fallback which returns null
+      const inputAttributes: AttributeInput[] = [
+        { attribute: "Missing Attribute" },
+      ];
+
+      // When
+      await service.bootstrapPageType(
+        { name: "Landing Page", attributes: inputAttributes },
+      );
+
+      // Then: should log a warning about null API result
+      expect(logger.warn).toHaveBeenCalledWith(
+        "API returned no results for content attribute resolution",
+        expect.objectContaining({
+          attributeNames: ["Missing Attribute"],
+        })
+      );
+    });
+  });
+
 });

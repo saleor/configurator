@@ -18,7 +18,9 @@ export function isAttributeReference(attr: unknown): attr is { attribute: string
  * Type guard to check if an attribute definition is inline (has inputType, not a reference).
  * Inline definitions have 'inputType' and 'name' fields directly.
  */
-export function isInlineAttributeDefinition(attr: unknown): boolean {
+export function isInlineAttributeDefinition(
+  attr: unknown
+): attr is { name: string; inputType: string } {
   return (
     typeof attr === "object" &&
     attr !== null &&
@@ -32,7 +34,7 @@ export function isInlineAttributeDefinition(attr: unknown): boolean {
  * Extract inline attribute names from a list of attribute definitions.
  */
 export function extractInlineAttributeNames(attrs: unknown[]): string[] {
-  return attrs.filter(isInlineAttributeDefinition).map((attr) => (attr as { name: string }).name);
+  return attrs.filter(isInlineAttributeDefinition).map((attr) => attr.name);
 }
 
 /**

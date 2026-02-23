@@ -51,11 +51,16 @@ export class ConfigurationService {
   async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
+    const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
     // Split attributes into productAttributes and contentAttributes sections
     try {
       const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
-      config.productAttributes = productAttributes;
-      config.contentAttributes = contentAttributes;
+      if (shouldIncludeSection("productAttributes", options)) {
+        config.productAttributes = productAttributes;
+      }
+      if (shouldIncludeSection("contentAttributes", options)) {
+        config.contentAttributes = contentAttributes;
+      }
       // Ensure attributes appear before productTypes in YAML ordering
       this.reorderConfigKeys(config as SaleorConfig);
     } catch (error) {
@@ -79,10 +84,27 @@ export class ConfigurationService {
   async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
-    const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
-    config.productAttributes = productAttributes;
-    config.contentAttributes = contentAttributes;
-    this.reorderConfigKeys(config as SaleorConfig);
+    const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
+    try {
+      const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
+      if (shouldIncludeSection("productAttributes", options)) {
+        config.productAttributes = productAttributes;
+      }
+      if (shouldIncludeSection("contentAttributes", options)) {
+        config.contentAttributes = contentAttributes;
+      }
+      this.reorderConfigKeys(config as SaleorConfig);
+    } catch (error) {
+      if (error instanceof UnsupportedInputTypeError) {
+        logger.error(
+          "Failed to extract global attributes due to unsupported input type. " +
+            "Attributes will be inlined in product/page types instead: %s",
+          error.message
+        );
+      } else {
+        throw error;
+      }
+    }
     return config;
   }
 

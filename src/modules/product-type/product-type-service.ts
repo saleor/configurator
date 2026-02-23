@@ -263,6 +263,11 @@ export class ProductTypeService {
 
       if (apiResolved) {
         resolvedAttributes.push(...apiResolved);
+      } else {
+        logger.warn("API returned no results for product attribute resolution", {
+          attributeNames: unassignedCacheMisses,
+          productTypeName: productType.name,
+        });
       }
     }
 
@@ -293,8 +298,7 @@ export class ProductTypeService {
             productType.name ?? "unknown",
             attributeCache
           );
-          if (!result.valid && result.error) {
-            // Throw the first detailed error found
+          if (!result.valid) {
             throw result.error;
           }
         }

@@ -1,10 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../attribute/attribute-cache";
 import { AttributeService } from "../attribute/attribute-service";
 import type { AttributeOperations } from "../attribute/repository";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { ProductTypeAttributeValidationError } from "./errors";
 import { ProductTypeService } from "./product-type-service";
 import type { ProductType, ProductTypeOperations } from "./repository";
+
+vi.mock("../../lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 /** Create mock product type operations with default implementations */
 const createMockProductTypeOperations = (
@@ -1517,4 +1527,169 @@ describe("ProductTypeService", () => {
       });
     });
   });
+
+  describe("cache-first attribute resolution", () => {
+    it("should use cache for product attribute resolution when cache is provided", async () => {
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Apparel",
+        kind: "NORMAL",
+        hasVariants: true,
+        isShippingRequired: false,
+        taxClass: null,
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service, mockAttributeOperations, mockProductTypeOperations } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
+        }
+      );
+
+      // Populate cache with product attributes
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        { id: "cached-color-id", name: "Color", slug: "color", inputType: "DROPDOWN" },
+      ]);
+
+      // When: bootstrap with a referenced attribute that exists in cache
+      await service.bootstrapProductType(
+        {
+          name: "Apparel",
+          productAttributes: [{ attribute: "Color" }],
+          variantAttributes: [],
+        },
+        { attributeCache: cache }
+      );
+
+      // Then: should NOT call getAttributesByNames for the cached attribute
+      // The mock returns [] by default; if cache is used, the API call for "Color"
+      // reference resolution should be skipped entirely
+      const getAttrCalls = mockAttributeOperations.getAttributesByNames.mock.calls;
+      const referenceResolutionCalls = getAttrCalls.filter(
+        (call: unknown[]) => {
+          const arg = call[0] as { names: string[]; type: string };
+          return arg.names.includes("Color") && arg.type === "PRODUCT_TYPE";
+        }
+      );
+      expect(referenceResolutionCalls).toHaveLength(0);
+
+      // And: should assign the cached attribute
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productTypeId: "1",
+          attributes: expect.arrayContaining([
+            expect.objectContaining({ id: "cached-color-id" }),
+          ]),
+          type: "PRODUCT",
+        })
+      );
+    });
+
+    it("should fall back to API when attribute is not in cache", async () => {
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "2",
+        name: "Electronics",
+        kind: "NORMAL",
+        hasVariants: true,
+        isShippingRequired: true,
+        taxClass: null,
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service, mockAttributeOperations } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          getAttributesByNames: vi.fn().mockResolvedValue([
+            {
+              id: "api-brand-id",
+              name: "Brand",
+              type: "PRODUCT_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: null,
+            },
+          ]),
+        }
+      );
+
+      // Populate cache WITHOUT the referenced attribute
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        { id: "other-attr", name: "Other", slug: "other", inputType: "PLAIN_TEXT" },
+      ]);
+
+      // When: bootstrap with a referenced attribute NOT in cache
+      await service.bootstrapProductType(
+        {
+          name: "Electronics",
+          productAttributes: [{ attribute: "Brand" }],
+          variantAttributes: [],
+        },
+        { attributeCache: cache }
+      );
+
+      // Then: should call getAttributesByNames for the cache miss
+      expect(mockAttributeOperations.getAttributesByNames).toHaveBeenCalledWith(
+        expect.objectContaining({
+          names: ["Brand"],
+          type: "PRODUCT_TYPE",
+        })
+      );
+    });
+
+    it("should log warning when API returns null for attribute resolution", async () => {
+      const { logger } = await import("../../lib/logger");
+
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "3",
+        name: "Books",
+        kind: "NORMAL",
+        hasVariants: true,
+        isShippingRequired: false,
+        taxClass: null,
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          // API returns null to simulate no results
+          getAttributesByNames: vi.fn().mockResolvedValue(null),
+        }
+      );
+
+      // No cache provided - all references are cache misses, API returns null
+      // When/Then: should throw because unresolved attributes cause a validation error
+      await expect(
+        service.bootstrapProductType({
+          name: "Books",
+          productAttributes: [{ attribute: "Missing Attribute" }],
+          variantAttributes: [],
+        })
+      ).rejects.toThrow();
+
+      // And: should have logged a warning about null API result
+      expect(logger.warn).toHaveBeenCalledWith(
+        "API returned no results for product attribute resolution",
+        expect.objectContaining({
+          attributeNames: ["Missing Attribute"],
+        })
+      );
+    });
+  });
+
 });

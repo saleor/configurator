@@ -7,12 +7,15 @@ import {
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
-import type { CachedAttribute } from "../../modules/attribute/attribute-cache";
+import type { AttributeInputType, CachedAttribute } from "../../modules/attribute/attribute-cache";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
 } from "../../modules/attribute/repository";
-import type { FullAttribute } from "../../modules/config/schema/attribute.schema";
+import {
+  type FullAttribute,
+  fullAttributeSchema,
+} from "../../modules/config/schema/attribute.schema";
 import type {
   ContentAttribute,
   ProductAttribute,
@@ -135,7 +138,7 @@ function toFullAttribute(
   attr: ProductAttribute | ContentAttribute,
   type: "PRODUCT_TYPE" | "PAGE_TYPE"
 ): FullAttribute {
-  return { ...attr, type } as FullAttribute;
+  return fullAttributeSchema.parse({ ...attr, type });
 }
 
 /**
@@ -186,8 +189,8 @@ async function processGlobalAttributes(
             id: result.id,
             name: result.name,
             slug: result.name.toLowerCase().replace(/ /g, "-"),
-            inputType: result.inputType ?? attr.inputType,
-          } as CachedAttribute;
+            inputType: (result.inputType ?? attr.inputType) as AttributeInputType,
+          } satisfies CachedAttribute;
         }
         return null;
       })
@@ -235,12 +238,12 @@ async function processGlobalAttributes(
     // Fetch all attributes to cache
     const allFetched = await service.repo.getAttributesByNames({ names, type });
     for (const attr of allFetched ?? []) {
-      if (attr.id && attr.name && !failures.some((f) => f.entity === attr.name)) {
+      if (attr.id && attr.name && attr.inputType && !failures.some((f) => f.entity === attr.name)) {
         cached.push({
           id: attr.id,
           name: attr.name,
           slug: attr.name.toLowerCase().replace(/ /g, "-"),
-          inputType: attr.inputType ?? "",
+          inputType: attr.inputType as AttributeInputType,
         });
       }
     }
@@ -334,7 +337,7 @@ export const attributesStage: DeploymentStage = {
       throw new StageAggregateError(
         "Managing attributes",
         allFailures,
-        [...productAttributes, ...contentAttributes].map((a) => a.name)
+        [...productAttributes, ...contentAttributes, ...legacyAttributes].map((a) => a.name)
       );
     }
   },
@@ -398,10 +401,13 @@ export const pageTypesStage: DeploymentStage = {
         return;
       }
 
+      // Pass attribute cache for fast content attribute resolution
+      const bootstrapOptions = { attributeCache: context.attributeCache };
+
       const results = await Promise.allSettled(
         config.pageTypes.map((pageType) =>
           context.configurator.services.pageType
-            .bootstrapPageType(pageType)
+            .bootstrapPageType(pageType, bootstrapOptions)
             .then(() => ({ name: pageType.name, success: true }))
             .catch((error) => ({
               name: pageType.name,

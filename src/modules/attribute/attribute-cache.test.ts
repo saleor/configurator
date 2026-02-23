@@ -97,24 +97,26 @@ describe("AttributeCache", () => {
       const result = cache.findAttributeInWrongSection("Author", "product");
 
       expect(result.found).toBe(true);
-      expect(result.actualSection).toBe("content");
-      expect(result.attribute?.name).toBe("Author");
+      if (result.found) {
+        expect(result.actualSection).toBe("content");
+        expect(result.attribute.name).toBe("Author");
+      }
     });
 
     it("should find product attribute when looking for content attribute", () => {
       const result = cache.findAttributeInWrongSection("Publisher", "content");
 
       expect(result.found).toBe(true);
-      expect(result.actualSection).toBe("product");
-      expect(result.attribute?.name).toBe("Publisher");
+      if (result.found) {
+        expect(result.actualSection).toBe("product");
+        expect(result.attribute.name).toBe("Publisher");
+      }
     });
 
     it("should return found=false when attribute does not exist in either section", () => {
       const result = cache.findAttributeInWrongSection("NonExistent", "product");
 
       expect(result.found).toBe(false);
-      expect(result.actualSection).toBeUndefined();
-      expect(result.attribute).toBeUndefined();
     });
 
     it("should return found=false when attribute is in correct section", () => {

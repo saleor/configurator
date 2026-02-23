@@ -1,4 +1,3 @@
-import { Console } from "../../cli/console";
 import type {
   CategoryInput,
   ChannelInput,
@@ -126,25 +125,14 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
   const errors = validateNoInlineDefinitions(config);
   if (errors.length === 0) return;
 
-  // Display errors using cliConsole for user-friendly output
-  const cliConsole = new Console();
-
-  for (const error of errors) {
-    cliConsole.error(error.message);
-
-    // Display migration box with suggestions
-    const suggestions = error.getRecoverySuggestions();
-    cliConsole.box(["Migration Required", "", ...suggestions.map((s) => `• ${s}`)], "How to Fix");
-  }
-
-  // Throw a validation error to halt deployment
+  // Throw a validation error to halt deployment — let the caller handle presentation
   throw new ConfigurationValidationError(
     "Inline attribute definitions are no longer supported",
     filePath,
-    errors.map((e) => ({
-      path: e.entityType,
-      message: e.message,
-    }))
+    errors.flatMap((e) => [
+      { path: e.entityType, message: e.message },
+      ...e.getRecoverySuggestions().map((s) => ({ path: e.entityType, message: `Fix: ${s}` })),
+    ])
   );
 }
 
