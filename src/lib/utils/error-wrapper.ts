@@ -137,13 +137,25 @@ export async function wrapBatch<T, R>(
   const successes: Array<{ item: T; result: R }> = [];
   const failures: Array<{ item: T; error: Error }> = [];
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (result.status === "fulfilled") {
       if (result.value.success) {
         successes.push({ item: result.value.item, result: result.value.result });
       } else {
         failures.push({ item: result.value.item, error: result.value.error });
       }
+    } else {
+      // Should not normally happen due to inner try-catch, but handle defensively
+      const item = items[i];
+      logger.error(`Unexpected rejection in ${operation} batch`, {
+        identifier: getIdentifier(item),
+        reason: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+      failures.push({
+        item,
+        error: result.reason instanceof Error ? result.reason : new Error(String(result.reason)),
+      });
     }
   }
 

@@ -1,15 +1,6 @@
 import { Client, fetchExchange, type Operation } from "@urql/core";
 import { authExchange } from "@urql/exchange-auth";
 import { retryExchange } from "@urql/exchange-retry";
-import {
-  GraphQLGovernor,
-  getGraphQLGovernorConfigFromEnv,
-  type GraphQLGovernorStats,
-} from "./governor";
-import {
-  isRetryableTransportStatus,
-  shouldRetryOperation,
-} from "./retry-policy";
 import { logger } from "../logger";
 import { RetryConfig } from "../utils/bulk-operation-constants";
 import {
@@ -17,10 +8,16 @@ import {
   hasExtensionCode,
   hasGraphQLRateLimitError,
   hasNetworkError,
-  parseRetryAfter,
   hasResponseWithStatus,
+  parseRetryAfter,
 } from "../utils/error-classification";
 import { resilienceTracker } from "../utils/resilience-tracker";
+import {
+  GraphQLGovernor,
+  type GraphQLGovernorStats,
+  getGraphQLGovernorConfigFromEnv,
+} from "./governor";
+import { isRetryableTransportStatus, shouldRetryOperation } from "./retry-policy";
 
 function getOperationDetails(operation: Operation): {
   operationKind: string;

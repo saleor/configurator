@@ -6,24 +6,47 @@ const DEFAULT_INTERVAL_CAP = 20;
 const DEFAULT_INTERVAL_MS = 1000;
 const DEFAULT_FALLBACK_COOLDOWN_MS = 3000;
 
-function parseBoolean(value: string | undefined, defaultValue: boolean): boolean {
+function parseBoolean(value: string | undefined, defaultValue: boolean, envName?: string): boolean {
   if (value === undefined) return defaultValue;
   const normalized = value.trim().toLowerCase();
   if (normalized === "1" || normalized === "true" || normalized === "yes") return true;
   if (normalized === "0" || normalized === "false" || normalized === "no") return false;
+  if (envName) {
+    logger.warn(`Invalid boolean value "${value}" for ${envName}, using default ${defaultValue}`);
+  }
   return defaultValue;
 }
 
-function parsePositiveInteger(value: string | undefined, defaultValue: number): number {
+function parsePositiveInteger(
+  value: string | undefined,
+  defaultValue: number,
+  envName?: string
+): number {
   if (value === undefined) return defaultValue;
   const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultValue;
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  if (envName) {
+    logger.warn(
+      `Invalid positive integer "${value}" for ${envName}, using default ${defaultValue}`
+    );
+  }
+  return defaultValue;
 }
 
-function parseNonNegativeInteger(value: string | undefined, defaultValue: number): number {
+function parseNonNegativeInteger(
+  value: string | undefined,
+  defaultValue: number,
+  envName?: string
+): number {
   if (value === undefined) return defaultValue;
   const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : defaultValue;
+  if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  if (envName) {
+    logger.warn(
+      `Invalid non-negative integer "${value}" for ${envName}, using default ${defaultValue}`
+    );
+  }
+  return defaultValue;
 }
 
 export interface GraphQLGovernorConfig {
@@ -44,13 +67,26 @@ export function getGraphQLGovernorConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): GraphQLGovernorConfig {
   return {
-    enabled: parseBoolean(env.GRAPHQL_GOVERNOR_ENABLED, true),
-    maxConcurrent: parsePositiveInteger(env.GRAPHQL_MAX_CONCURRENCY, DEFAULT_MAX_CONCURRENCY),
-    intervalCap: parsePositiveInteger(env.GRAPHQL_INTERVAL_CAP, DEFAULT_INTERVAL_CAP),
-    intervalMs: parsePositiveInteger(env.GRAPHQL_INTERVAL_MS, DEFAULT_INTERVAL_MS),
+    enabled: parseBoolean(env.GRAPHQL_GOVERNOR_ENABLED, true, "GRAPHQL_GOVERNOR_ENABLED"),
+    maxConcurrent: parsePositiveInteger(
+      env.GRAPHQL_MAX_CONCURRENCY,
+      DEFAULT_MAX_CONCURRENCY,
+      "GRAPHQL_MAX_CONCURRENCY"
+    ),
+    intervalCap: parsePositiveInteger(
+      env.GRAPHQL_INTERVAL_CAP,
+      DEFAULT_INTERVAL_CAP,
+      "GRAPHQL_INTERVAL_CAP"
+    ),
+    intervalMs: parsePositiveInteger(
+      env.GRAPHQL_INTERVAL_MS,
+      DEFAULT_INTERVAL_MS,
+      "GRAPHQL_INTERVAL_MS"
+    ),
     fallbackCooldownMs: parseNonNegativeInteger(
       env.GRAPHQL_FALLBACK_COOLDOWN_MS,
-      DEFAULT_FALLBACK_COOLDOWN_MS
+      DEFAULT_FALLBACK_COOLDOWN_MS,
+      "GRAPHQL_FALLBACK_COOLDOWN_MS"
     ),
   };
 }
@@ -146,11 +182,28 @@ export class GraphQLGovernor {
   }
 
   private async waitForCooldown(): Promise<void> {
+    const MAX_TOTAL_WAIT_MS = 600_000; // 10 minutes absolute maximum
+    const startedAt = Date.now();
+
     while (true) {
       const remainingMs = this.getCooldownRemainingMs();
       if (remainingMs <= 0) {
         return;
       }
+
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > MAX_TOTAL_WAIT_MS) {
+        logger.error(
+          `Governor cooldown exceeded maximum wait time of ${MAX_TOTAL_WAIT_MS}ms, proceeding`,
+          { elapsed, remainingCooldownMs: remainingMs }
+        );
+        return;
+      }
+
+      logger.debug(`Waiting ${remainingMs}ms for governor cooldown`, {
+        elapsed,
+        remainingMs,
+      });
       await sleep(remainingMs);
     }
   }

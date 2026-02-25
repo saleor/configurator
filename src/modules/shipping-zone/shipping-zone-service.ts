@@ -1,5 +1,6 @@
 import { logger } from "../../lib/logger";
 import { BulkOperationThresholds, DelayConfig } from "../../lib/utils/bulk-operation-constants";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import { delay } from "../../lib/utils/resilience";
@@ -289,6 +290,9 @@ export class ShippingZoneService {
               warehouseCount: warehouseIds.length,
             });
           } catch (e) {
+            if (isTransientError(e)) {
+              throw e;
+            }
             logger.warn("Failed to pre-assign warehouses to channel", {
               channelId: chId,
               error: e instanceof Error ? e.message : String(e),
@@ -356,6 +360,9 @@ export class ShippingZoneService {
               }
             );
           } catch (e) {
+            if (isTransientError(e)) {
+              throw e;
+            }
             logger.warn("Failed to pre-assign warehouses to channel (update)", {
               channelId: chId,
               error: e instanceof Error ? e.message : String(e),
@@ -432,8 +439,14 @@ export class ShippingZoneService {
       addChannels: channelListings.map((listing, index) => ({
         channelId: channelIds[index],
         price: listing.price?.toString(),
-        minimumOrderPrice: listing.minimumOrderPrice?.toString(),
-        maximumOrderPrice: listing.maximumOrderPrice?.toString(),
+        minimumOrderPrice:
+          listing.minimumOrderPrice != null && listing.minimumOrderPrice > 0
+            ? listing.minimumOrderPrice.toString()
+            : undefined,
+        maximumOrderPrice:
+          listing.maximumOrderPrice != null && listing.maximumOrderPrice > 0
+            ? listing.maximumOrderPrice.toString()
+            : undefined,
       })),
     };
     await this.repository.updateShippingMethodChannelListing(methodId, channelListingInput);
@@ -447,6 +460,7 @@ export class ShippingZoneService {
       const createInput = this.mapShippingMethodToCreateInput(method, shippingZoneId);
       const createdMethod = await this.repository.createShippingMethod(createInput);
       await this.applyShippingMethodChannelListings(createdMethod.id, method.channelListings);
+      await this.delayAfterChannelListingUpdate(method.channelListings);
     }
   }
 

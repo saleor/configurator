@@ -1,5 +1,6 @@
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import type { Attribute, ProductOperations } from "./repository";
 
 type ReferenceResolvers = {
@@ -264,6 +265,9 @@ class ReferenceAttributeHandler extends AttributeHandler {
         if (referencedProduct) return referencedProduct.id;
       }
     } catch (e) {
+      if (isTransientError(e)) {
+        throw e;
+      }
       logger.warn(
         `Failed to resolve reference for attribute "${context.attributeName}" value "${valueName}": ${e instanceof Error ? e.message : String(e)}`
       );
@@ -357,6 +361,9 @@ export class AttributeResolver {
       const payload = await handler.handle(attributeValue, context);
       return payload;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       this.logError(attributeName, attributeValue, error);
       return null;
     }

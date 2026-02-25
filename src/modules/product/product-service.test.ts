@@ -1443,9 +1443,30 @@ describe("ProductService", () => {
       } as any);
     });
 
-    it("should not fail bulk bootstrap when updated product channel listing sync fails", async () => {
+    it("should propagate transient errors from updated product channel listing sync", async () => {
       vi.mocked(mockRepository.updateProductChannelListings).mockRejectedValue(
         new Error("429 Too Many Requests")
+      );
+
+      await expect(
+        service.bootstrapProductsBulk([
+          {
+            name: "Existing Product",
+            slug: "existing-product",
+            productType: "Book",
+            category: "fiction",
+            variants: [],
+            channelListings: [
+              { channel: "default-channel", isPublished: true, visibleInListings: true },
+            ],
+          },
+        ])
+      ).rejects.toThrow("429 Too Many Requests");
+    });
+
+    it("should swallow non-transient errors from updated product channel listing sync", async () => {
+      vi.mocked(mockRepository.updateProductChannelListings).mockRejectedValue(
+        new Error("GraphQL validation failed")
       );
 
       await expect(

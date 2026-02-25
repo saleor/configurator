@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createClient } from "./client";
-import { GraphQLGovernor } from "./governor";
+import { RetryConfig } from "../utils/bulk-operation-constants";
 import {
   hasExtensionCode,
   hasGraphQLRateLimitError,
@@ -9,7 +8,8 @@ import {
   isNetworkErrorMessage,
   isObject,
 } from "../utils/error-classification";
-import { RetryConfig } from "../utils/bulk-operation-constants";
+import { createClient } from "./client";
+import { GraphQLGovernor } from "./governor";
 
 /**
  * Tests for GraphQL client type guards and error classification

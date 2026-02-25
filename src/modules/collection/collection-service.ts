@@ -5,6 +5,7 @@ import type {
 import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
 import type { ProductService } from "../product/product-service";
@@ -263,6 +264,9 @@ export class CollectionService {
             logger.warn(`Product with slug "${slug}" not found, skipping`);
           }
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           logger.warn(`Failed to resolve product slug "${slug}": ${error}`);
         }
       }
@@ -287,6 +291,9 @@ export class CollectionService {
             productIds.push(product.id);
           }
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           logger.warn(`Failed to resolve product slug "${slug}" for removal: ${error}`);
         }
       }
@@ -325,6 +332,9 @@ export class CollectionService {
           logger.warn(`Channel with slug "${listing.channelSlug}" not found, skipping`);
         }
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         logger.warn(`Failed to resolve channel slug "${listing.channelSlug}": ${error}`);
       }
     }

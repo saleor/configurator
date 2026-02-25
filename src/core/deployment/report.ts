@@ -1,7 +1,11 @@
 import { writeFile } from "node:fs/promises";
 import type { DiffResult, DiffSummary } from "../diff";
 import type { DeploymentMetrics, StageResilienceMetrics } from "./types";
-import { formatDuration, getTopOperationResilienceHotspots, type OperationResilienceHotspot } from "./utils";
+import {
+  formatDuration,
+  getTopOperationResilienceHotspots,
+  type OperationResilienceHotspot,
+} from "./utils";
 
 /**
  * Empty resilience metrics used as default when no metrics are available

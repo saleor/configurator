@@ -1,6 +1,6 @@
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import { isRateLimitError } from "../../lib/utils/error-classification";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
@@ -118,24 +118,6 @@ export class ProductService {
         },
       ],
       version: "2.24.3",
-    });
-  }
-
-  /**
-   * Pre-warm caches with bulk data to reduce individual queries
-   */
-  async preCacheProducts(slugs: string[]): Promise<void> {
-    if (slugs.length === 0) return;
-
-    // Fetch all products in bulk
-    const products = await this.repository.getProductsBySlugs(slugs);
-
-    // Cache them for future use
-    products.forEach((product) => {
-      if (product?.slug) {
-        // You could store these in a local cache if needed
-        // For now, this just ensures they're fetched efficiently
-      }
     });
   }
 
@@ -502,16 +484,12 @@ export class ProductService {
       });
 
       // Update existing product (note: productType cannot be changed after creation)
-      // Build minimal input - only include fields that are not empty to avoid GraphQL errors
       const updateProductInput: ProductUpdateInput = {
         name: productInput.name,
         slug: slug,
         category: categoryId,
-        attributes: [],
+        attributes,
       };
-
-      // Always include attributes array (tests expect this field)
-      updateProductInput.attributes = attributes;
 
       // Wrap description as EditorJS JSON if provided
       updateProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
@@ -555,17 +533,13 @@ export class ProductService {
     logger.debug("Creating new product", { name: productInput.name, slug: slug });
 
     // Create new product
-    // Build minimal input - only include fields that are not empty to avoid GraphQL errors
     const createProductInput: ProductCreateInput = {
       name: productInput.name,
       slug: slug,
       productType: productTypeId,
       category: categoryId,
-      attributes: [],
+      attributes,
     };
-
-    // Always include attributes array (tests expect this field)
-    createProductInput.attributes = attributes;
 
     // Wrap description as EditorJS JSON if provided
     createProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
@@ -602,6 +576,9 @@ export class ProductService {
       try {
         let variant: ProductVariant;
 
+        // Resolve variant attributes once (used by both create and update)
+        const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
+
         // Check if variant with this SKU already exists
         const existingVariant = await ServiceErrorWrapper.wrapServiceCall(
           "lookup product variant by SKU",
@@ -617,10 +594,6 @@ export class ProductService {
             sku: variantInput.sku,
           });
 
-          // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
-
-          // Update existing variant (note: can't change product association during update)
           variant = await ServiceErrorWrapper.wrapServiceCall(
             "update product variant",
             "product variant",
@@ -632,7 +605,6 @@ export class ProductService {
                 trackInventory: true,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
-                // TODO: Handle channelListings in separate commit
               }),
             ProductError
           );
@@ -645,10 +617,6 @@ export class ProductService {
         } else {
           logger.debug("Creating new variant", { sku: variantInput.sku });
 
-          // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
-
-          // Create new variant
           variant = await ServiceErrorWrapper.wrapServiceCall(
             "create product variant",
             "product variant",
@@ -661,7 +629,6 @@ export class ProductService {
                 trackInventory: true,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
-                // TODO: Handle channelListings in separate commit
               }),
             ProductError
           );
@@ -734,8 +701,11 @@ export class ProductService {
             channelCount: productInput.channelListings.length,
           });
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           logger.warn(
-            "Failed to update product channel listings (non-fatal graceful degradation, will retry on next deploy)",
+            "Failed to update product channel listings (non-fatal, will retry on next deploy)",
             {
               productId: product.id,
               productName: productInput.name,
@@ -776,8 +746,11 @@ export class ProductService {
               channelCount: variantInput.channelListings.length,
             });
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn(
-              "Failed to update variant channel listings (non-fatal graceful degradation, will retry on next deploy)",
+              "Failed to update variant channel listings (non-fatal, will retry on next deploy)",
               {
                 variantId: variant.id,
                 variantSku: variantInput.sku,
@@ -886,97 +859,40 @@ export class ProductService {
     return { productTypes, categories, channels };
   }
 
-  /**
-   * Pre-resolves a set of product type references to warm the cache
-   * Follows Single Responsibility Principle - only handles product type pre-caching
-   *
-   * @param productTypes - Set of product type names to resolve
-   */
-  private async preCacheProductTypes(productTypes: Set<string>): Promise<void> {
-    if (productTypes.size === 0) return;
+  private async preCacheReferences(
+    items: Set<string>,
+    entityType: string,
+    resolver: (item: string) => Promise<unknown>
+  ): Promise<void> {
+    if (items.size === 0) return;
 
-    logger.debug(`Pre-resolving ${productTypes.size} product types`);
+    logger.debug(`Pre-resolving ${items.size} ${entityType}`);
 
-    for (const productType of productTypes) {
+    for (const item of items) {
       try {
-        await this.resolveProductTypeReference(productType);
+        await resolver(item);
       } catch (error) {
-        if (isRateLimitError(error)) {
+        if (isTransientError(error)) {
           throw error;
         }
-        logger.warn(`Failed to pre-cache product type: ${productType}`, {
+        logger.warn(`Failed to pre-cache ${entityType}: ${item}`, {
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
   }
 
-  /**
-   * Pre-resolves a set of category references to warm the cache
-   * Follows Single Responsibility Principle - only handles category pre-caching
-   *
-   * @param categories - Set of category slugs to resolve
-   */
-  private async preCacheCategories(categories: Set<string>): Promise<void> {
-    if (categories.size === 0) return;
-
-    logger.debug(`Pre-resolving ${categories.size} categories`);
-
-    for (const category of categories) {
-      try {
-        await this.resolveCategoryReference(category);
-      } catch (error) {
-        if (isRateLimitError(error)) {
-          throw error;
-        }
-        logger.warn(`Failed to pre-cache category: ${category}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  }
-
-  /**
-   * Pre-resolves a set of channel references to warm the cache
-   * Follows Single Responsibility Principle - only handles channel pre-caching
-   *
-   * @param channels - Set of channel slugs to resolve
-   */
-  private async preCacheChannels(channels: Set<string>): Promise<void> {
-    if (channels.size === 0) return;
-
-    logger.debug(`Pre-resolving ${channels.size} channels`);
-
-    for (const channel of channels) {
-      try {
-        await this.resolveChannelReference(channel);
-      } catch (error) {
-        if (isRateLimitError(error)) {
-          throw error;
-        }
-        logger.warn(`Failed to pre-cache channel: ${channel}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  }
-
-  /**
-   * Pre-caches all references used by products to avoid rate limiting
-   * Coordinates the pre-caching of product types, categories, and channels
-   *
-   * @param products - Array of product inputs to extract references from
-   */
   private async preCacheProductReferences(products: ProductInput[]): Promise<void> {
     logger.debug("Pre-caching references to avoid rate limiting");
 
     const { productTypes, categories, channels } = this.extractUniqueReferences(products);
 
-    // Pre-resolve all references in parallel for better performance
     await Promise.all([
-      this.preCacheProductTypes(productTypes),
-      this.preCacheCategories(categories),
-      this.preCacheChannels(channels),
+      this.preCacheReferences(productTypes, "product types", (pt) =>
+        this.resolveProductTypeReference(pt)
+      ),
+      this.preCacheReferences(categories, "categories", (c) => this.resolveCategoryReference(c)),
+      this.preCacheReferences(channels, "channels", (c) => this.resolveChannelReference(c)),
     ]);
 
     logger.debug("Reference pre-caching completed", {
@@ -1248,6 +1164,9 @@ export class ProductService {
               updateChannels: channelInputs,
             });
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn(
               `Failed to update channel listings for product ${productInput.name} (non-fatal, will retry on next deploy)`,
               { error }
@@ -1317,17 +1236,24 @@ export class ProductService {
     }
 
     for (const [productId, variants] of variantsByProduct) {
-      const variantsToCreate: Array<{ productInput: ProductInput; variantInput: ProductVariantInput }> =
-        [];
+      const variantsToCreate: Array<{
+        productInput: ProductInput;
+        variantInput: ProductVariantInput;
+      }> = [];
 
       for (const variant of variants) {
         try {
-          const existingVariant = await this.repository.getProductVariantBySku(variant.variantInput.sku);
+          const existingVariant = await this.repository.getProductVariantBySku(
+            variant.variantInput.sku
+          );
           if (existingVariant) {
             const updateInput = await this.resolveVariantForUpdate(variant.variantInput);
             await this.repository.updateProductVariant(existingVariant.id, updateInput);
 
-            if (variant.variantInput.channelListings && variant.variantInput.channelListings.length > 0) {
+            if (
+              variant.variantInput.channelListings &&
+              variant.variantInput.channelListings.length > 0
+            ) {
               const channelListingInput = await this.resolveVariantChannelListings(
                 variant.variantInput.channelListings
               );
@@ -1411,6 +1337,9 @@ export class ProductService {
           try {
             await this.syncProductMedia(product, productInput.media);
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn(
               `Failed to sync media for product ${productInput.name} (non-fatal, will retry on next deploy)`,
               { error }
@@ -1430,9 +1359,9 @@ export class ProductService {
     return Promise.all(
       channelListings.map(async (listing) => ({
         channelId: await this.resolveChannelReference(listing.channel),
-        isPublished: listing.isPublished ?? true,
+        isPublished: listing.isPublished,
         publishedAt: listing.publishedAt,
-        visibleInListings: listing.visibleInListings ?? true,
+        visibleInListings: listing.visibleInListings,
         isAvailableForPurchase: listing.isAvailableForPurchase,
         availableForPurchaseAt: listing.availableForPurchaseAt,
       }))

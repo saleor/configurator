@@ -28,7 +28,10 @@ export function formatDuration(ms: number): string {
   }
 }
 
-function toHotspot(operation: string, metrics: OperationResilienceMetrics): OperationResilienceHotspot {
+function toHotspot(
+  operation: string,
+  metrics: OperationResilienceMetrics
+): OperationResilienceHotspot {
   const totalEvents =
     metrics.rateLimitHits + metrics.retryAttempts + metrics.graphqlErrors + metrics.networkErrors;
   const throttleEvents = metrics.rateLimitHits + metrics.retryAttempts;
@@ -56,7 +59,9 @@ export function getTopOperationResilienceHotspots(
     return [];
   }
 
-  return Array.from(operationResilience.entries(), ([operation, metrics]) => toHotspot(operation, metrics))
+  return Array.from(operationResilience.entries(), ([operation, metrics]) =>
+    toHotspot(operation, metrics)
+  )
     .filter((hotspot) => hotspot.throttleEvents > 0)
     .sort((a, b) => {
       if (b.throttleEvents !== a.throttleEvents) {

@@ -108,19 +108,40 @@ export function extractRetryAfterMs(error: unknown): number | null {
 }
 
 export function isRateLimitError(error: unknown): boolean {
+  // Check structured properties first (most reliable)
+  if (hasResponseWithStatus(error) && error.response.status === 429) {
+    return true;
+  }
+
+  if (hasGraphQLRateLimitError(error)) {
+    return true;
+  }
+
+  // Fallback to message matching (less reliable, avoid matching bare "429")
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     return (
-      message.includes("429") ||
       message.includes("rate limit") ||
       message.includes("too many requests") ||
       message.includes("throttl")
     );
   }
 
-  if (hasResponseWithStatus(error)) {
-    return error.response.status === 429;
+  return false;
+}
+
+export function isNetworkError(error: unknown): boolean {
+  if (hasNetworkError(error)) {
+    return true;
+  }
+
+  if (error instanceof Error) {
+    return isNetworkErrorMessage(error.message);
   }
 
   return false;
+}
+
+export function isTransientError(error: unknown): boolean {
+  return isRateLimitError(error) || isNetworkError(error);
 }

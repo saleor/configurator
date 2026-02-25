@@ -17,8 +17,10 @@ export function isIdempotentMutation(operationName: string | null | undefined): 
   return IDEMPOTENT_MUTATION_KEYWORDS.some((keyword) => operationName.includes(keyword));
 }
 
+export type GraphQLOperationKind = "query" | "mutation" | "subscription";
+
 export function shouldRetryOperation(
-  operationKind: string | undefined,
+  operationKind: GraphQLOperationKind | string | undefined,
   operationName: string | null | undefined
 ): boolean {
   if (operationKind === "query") {
@@ -31,4 +33,3 @@ export function shouldRetryOperation(
 
   return false;
 }
-

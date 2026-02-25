@@ -3,12 +3,6 @@ import type { CategoryInput } from "../config/schema/schema";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
 
-// Mock resilience utilities
-vi.mock("../../lib/utils/resilience", () => ({
-  rateLimiter: { getAdaptiveDelay: vi.fn().mockReturnValue(0) },
-  delay: vi.fn().mockResolvedValue(undefined),
-}));
-
 // Mock category repository
 const mockRepository: CategoryOperations = {
   createCategory: vi.fn(),

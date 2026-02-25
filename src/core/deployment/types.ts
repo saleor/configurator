@@ -26,11 +26,7 @@ export interface OperationResilienceMetrics {
   readonly networkErrors: number;
 }
 
-export interface StageResilienceMetrics {
-  readonly rateLimitHits: number;
-  readonly retryAttempts: number;
-  readonly graphqlErrors: number;
-  readonly networkErrors: number;
+export interface StageResilienceMetrics extends OperationResilienceMetrics {
   readonly operations?: Readonly<Record<string, OperationResilienceMetrics>>;
 }
 

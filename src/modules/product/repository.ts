@@ -1026,9 +1026,8 @@ export class ProductRepository implements ProductOperations {
       }
 
       const products =
-        result.data?.products?.edges
-          ?.map((edge) => edge.node)
-          .filter((node) => node !== null) ?? [];
+        result.data?.products?.edges?.map((edge) => edge.node).filter((node) => node !== null) ??
+        [];
 
       for (const product of products) {
         productsBySlug.set(product.slug, product as Product);

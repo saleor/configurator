@@ -7,14 +7,14 @@ import { logger } from "../logger";
 
 export type { StageResilienceMetrics };
 
-type MetricName = "rateLimitHits" | "retryAttempts" | "graphqlErrors" | "networkErrors";
-
 interface MutableResilienceMetrics {
   rateLimitHits: number;
   retryAttempts: number;
   graphqlErrors: number;
   networkErrors: number;
 }
+
+type MetricName = keyof MutableResilienceMetrics;
 
 interface StageContext {
   stageName: string;

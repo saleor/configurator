@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { extractRetryAfterMs, isRateLimitError, parseRetryAfter } from "./error-classification";
+import {
+  extractRetryAfterMs,
+  isNetworkError,
+  isRateLimitError,
+  isTransientError,
+  parseRetryAfter,
+} from "./error-classification";
 
 describe("parseRetryAfter", () => {
   afterEach(() => {
@@ -101,8 +107,16 @@ describe("extractRetryAfterMs", () => {
 });
 
 describe("isRateLimitError", () => {
-  it("detects Error with 429 in message", () => {
-    expect(isRateLimitError(new Error("HTTP 429"))).toBe(true);
+  it("detects HTTP 429 response object (structured check)", () => {
+    expect(isRateLimitError({ response: { status: 429 } })).toBe(true);
+  });
+
+  it("detects GraphQL rate limit error", () => {
+    expect(
+      isRateLimitError({
+        graphQLErrors: [{ extensions: { code: "TOO_MANY_REQUESTS" } }],
+      })
+    ).toBe(true);
   });
 
   it("detects Error with 'rate limit' in message", () => {
@@ -117,13 +131,14 @@ describe("isRateLimitError", () => {
     expect(isRateLimitError(new Error("Request throttled"))).toBe(true);
   });
 
+  it("does NOT match bare '429' in message (avoids false positives)", () => {
+    expect(isRateLimitError(new Error("Processed 429 items"))).toBe(false);
+    expect(isRateLimitError(new Error("Entity ID: 429"))).toBe(false);
+  });
+
   it("returns false for unrelated errors", () => {
     expect(isRateLimitError(new Error("Not found"))).toBe(false);
     expect(isRateLimitError(new Error("Internal server error"))).toBe(false);
-  });
-
-  it("detects HTTP 429 response object", () => {
-    expect(isRateLimitError({ response: { status: 429 } })).toBe(true);
   });
 
   it("returns false for non-429 response object", () => {
@@ -136,5 +151,38 @@ describe("isRateLimitError", () => {
     expect(isRateLimitError(undefined)).toBe(false);
     expect(isRateLimitError("string")).toBe(false);
     expect(isRateLimitError(123)).toBe(false);
+  });
+});
+
+describe("isNetworkError", () => {
+  it("detects error with networkError property", () => {
+    expect(isNetworkError({ networkError: new Error("fetch failed") })).toBe(true);
+  });
+
+  it("detects Error with network error patterns in message", () => {
+    expect(isNetworkError(new Error("fetch failed"))).toBe(true);
+    expect(isNetworkError(new Error("ECONNREFUSED"))).toBe(true);
+    expect(isNetworkError(new Error("ETIMEDOUT"))).toBe(true);
+    expect(isNetworkError(new Error("ENOTFOUND"))).toBe(true);
+    expect(isNetworkError(new Error("ECONNRESET"))).toBe(true);
+  });
+
+  it("returns false for non-network errors", () => {
+    expect(isNetworkError(new Error("Not found"))).toBe(false);
+    expect(isNetworkError(null)).toBe(false);
+  });
+});
+
+describe("isTransientError", () => {
+  it("returns true for rate limit errors", () => {
+    expect(isTransientError({ response: { status: 429 } })).toBe(true);
+  });
+
+  it("returns true for network errors", () => {
+    expect(isTransientError(new Error("ECONNREFUSED"))).toBe(true);
+  });
+
+  it("returns false for domain errors", () => {
+    expect(isTransientError(new Error("Entity not found"))).toBe(false);
   });
 });
