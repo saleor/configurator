@@ -61,6 +61,23 @@ export const DelayConfig = {
    * Applied between levels (not items) to minimize total wait time
    */
   CATEGORY_LEVEL_DELAY_MS: 200,
+
+  /**
+   * Delay in milliseconds between individual category items within a level
+   * Small delay to avoid rate limits during sequential category processing
+   */
+  CATEGORY_ITEM_DELAY_MS: 50,
+
+  /**
+   * Delay in milliseconds between sequential category bootstrap operations
+   */
+  CATEGORY_SEQUENTIAL_DELAY_MS: 100,
+
+  /**
+   * Delay in milliseconds after shipping method channel listing updates
+   * Prevents rate limiting when updating multiple shipping methods
+   */
+  SHIPPING_CHANNEL_LISTING_DELAY_MS: 200,
 } as const;
 
 /**

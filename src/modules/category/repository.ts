@@ -2,7 +2,7 @@ import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
-import { isRateLimitError } from "../../lib/utils/error-classification";
+import { isRateLimitError, isTransientError } from "../../lib/utils/error-classification";
 
 const createCategoryMutation = graphql(`
   mutation CreateCategory($input: CategoryInput!, $parent: ID) {
@@ -192,8 +192,7 @@ export class CategoryRepository implements CategoryOperations {
       const all = await this.getAllCategories();
       return all.find((c) => c.name === name);
     } catch (error) {
-      // Never swallow rate limit errors - they must propagate for resilience
-      if (isRateLimitError(error)) {
+      if (isTransientError(error)) {
         throw error;
       }
       logger.warn("Failed to fetch all categories while looking up by name", {
@@ -241,8 +240,7 @@ export class CategoryRepository implements CategoryOperations {
       const all = await this.getAllCategories();
       return all.find((c) => c.slug === slug);
     } catch (error) {
-      // Never swallow rate limit errors - they must propagate for resilience
-      if (isRateLimitError(error)) {
+      if (isTransientError(error)) {
         throw error;
       }
       logger.warn("Failed to fetch all categories while looking up by slug", {

@@ -704,15 +704,12 @@ export class ProductService {
           if (isTransientError(error)) {
             throw error;
           }
-          logger.warn(
-            "Failed to update product channel listings (non-fatal, will retry on next deploy)",
-            {
-              productId: product.id,
-              productName: productInput.name,
-              channelCount: productInput.channelListings.length,
-              error: error instanceof Error ? error.message : "Unknown error",
-            }
-          );
+          logger.warn("Failed to update product channel listings (non-fatal)", {
+            productId: product.id,
+            productName: productInput.name,
+            channelCount: productInput.channelListings.length,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
         }
       }
 
@@ -875,9 +872,12 @@ export class ProductService {
         if (isTransientError(error)) {
           throw error;
         }
-        logger.warn(`Failed to pre-cache ${entityType}: ${item}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        logger.warn(
+          `Failed to pre-cache ${entityType}: ${item} (will fall back to live resolution, increasing rate-limit exposure)`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
       }
     }
   }
@@ -1110,6 +1110,9 @@ export class ProductService {
         const updated = await this.repository.updateProduct(existing.id, updateInput);
         updatedProducts.push(updated);
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         allFailures.push({
           entity: input.name,
           error: error instanceof Error ? error : new Error(String(error)),
@@ -1150,7 +1153,7 @@ export class ProductService {
     productInputs: ProductInput[],
     updatedProducts: Product[]
   ): Promise<void> {
-    await Promise.all(
+    const results = await Promise.allSettled(
       productInputs.map(async (productInput) => {
         const product = updatedProducts.find((p) => p.slug === productInput.slug);
         if (!product) return;
@@ -1167,14 +1170,20 @@ export class ProductService {
             if (isTransientError(error)) {
               throw error;
             }
-            logger.warn(
-              `Failed to update channel listings for product ${productInput.name} (non-fatal, will retry on next deploy)`,
-              { error }
-            );
+            logger.warn(`Failed to update channel listings for product ${productInput.name}`, {
+              error,
+            });
           }
         }
       })
     );
+
+    const transientFailure = results.find(
+      (r) => r.status === "rejected" && isTransientError(r.reason)
+    );
+    if (transientFailure && transientFailure.status === "rejected") {
+      throw transientFailure.reason;
+    }
   }
 
   /**
@@ -1328,7 +1337,7 @@ export class ProductService {
     productInputs: ProductInput[],
     updatedProducts: Product[]
   ): Promise<void> {
-    await Promise.all(
+    const results = await Promise.allSettled(
       productInputs.map(async (productInput) => {
         const product = updatedProducts.find((p) => p.slug === productInput.slug);
         if (!product) return;
@@ -1340,14 +1349,18 @@ export class ProductService {
             if (isTransientError(error)) {
               throw error;
             }
-            logger.warn(
-              `Failed to sync media for product ${productInput.name} (non-fatal, will retry on next deploy)`,
-              { error }
-            );
+            logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
           }
         }
       })
     );
+
+    const transientFailure = results.find(
+      (r) => r.status === "rejected" && isTransientError(r.reason)
+    );
+    if (transientFailure && transientFailure.status === "rejected") {
+      throw transientFailure.reason;
+    }
   }
 
   /**

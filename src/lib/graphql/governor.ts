@@ -193,11 +193,9 @@ export class GraphQLGovernor {
 
       const elapsed = Date.now() - startedAt;
       if (elapsed > MAX_TOTAL_WAIT_MS) {
-        logger.error(
-          `Governor cooldown exceeded maximum wait time of ${MAX_TOTAL_WAIT_MS}ms, proceeding`,
-          { elapsed, remainingCooldownMs: remainingMs }
+        throw new Error(
+          `Governor cooldown exceeded maximum wait time of ${MAX_TOTAL_WAIT_MS}ms (elapsed: ${elapsed}ms, remaining cooldown: ${remainingMs}ms). API is persistently rate-limiting requests.`
         );
-        return;
       }
 
       logger.debug(`Waiting ${remainingMs}ms for governor cooldown`, {

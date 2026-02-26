@@ -97,7 +97,7 @@ class ResilienceTracker {
         context.operationMetrics.set(operationKey, existing);
       }
     } else {
-      logger.debug(`${metricName} recorded outside stage context`);
+      logger.warn(`${metricName} recorded outside stage context`);
     }
   }
 

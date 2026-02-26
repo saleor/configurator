@@ -85,6 +85,7 @@ export const createClient = (token: string, url: string) => {
             response.headers.get("Retry-After") || response.headers.get("retry-after")
           );
           governor.registerRateLimit(retryAfterMs);
+          resilienceTracker.recordRateLimit();
 
           const governorStats = governor.getStats();
           logger.warn("HTTP 429 received from GraphQL transport", {

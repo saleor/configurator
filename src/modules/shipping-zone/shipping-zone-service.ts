@@ -391,6 +391,14 @@ export class ShippingZoneService {
       });
       return shippingZone;
     } catch (error) {
+      // Re-throw validation errors without wrapping (consistent with createShippingZone)
+      if (
+        error instanceof ShippingZoneValidationError ||
+        error instanceof ShippingMethodValidationError
+      ) {
+        throw error;
+      }
+
       logger.error("Failed to update shipping zone", {
         error: error instanceof Error ? error.message : "Unknown error",
         id,
@@ -468,7 +476,7 @@ export class ShippingZoneService {
     channelListings: ShippingMethodInput["channelListings"]
   ): Promise<void> {
     if (channelListings && Array.isArray(channelListings) && channelListings.length > 0) {
-      await delay(200);
+      await delay(DelayConfig.SHIPPING_CHANNEL_LISTING_DELAY_MS);
     }
   }
 

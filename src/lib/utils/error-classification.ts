@@ -131,7 +131,7 @@ export function isRateLimitError(error: unknown): boolean {
 }
 
 export function isNetworkError(error: unknown): boolean {
-  if (hasNetworkError(error)) {
+  if (hasNetworkError(error) && error.networkError) {
     return true;
   }
 

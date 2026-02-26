@@ -1,6 +1,7 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
 function slugify(value: string): string {
@@ -1104,6 +1105,9 @@ export class ProductRepository implements ProductOperations {
           // Final fallback: query all categories-like via product repository not available; rely on category service elsewhere
         }
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         logger.warn("Failed to look up category by slug via search fallback", {
           slug,
           error: error instanceof Error ? error.message : String(error),
@@ -1467,11 +1471,13 @@ export class ProductRepository implements ProductOperations {
           try {
             await this.deleteProductMedia(media.id);
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn("Failed to delete existing media, continuing", {
               mediaId: media.id,
               error: error instanceof Error ? error.message : String(error),
             });
-            // Continue with other deletions even if one fails
           }
         }
       }
@@ -1491,13 +1497,14 @@ export class ProductRepository implements ProductOperations {
             await this.setProductMediaSourceUrlMetadata(createdMediaItem.id, mediaInput.mediaUrl);
             createdMedia.push(createdMediaItem);
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.error("Failed to create new media", {
               productId,
               mediaUrl: mediaInput.mediaUrl,
               error: error instanceof Error ? error.message : String(error),
             });
-            // If creation fails, we should still continue with remaining media
-            // The partial success is better than complete failure
           }
         }
       }

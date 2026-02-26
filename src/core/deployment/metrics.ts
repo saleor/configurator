@@ -1,3 +1,4 @@
+import { logger } from "../../lib/logger";
 import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import type {
   DeploymentMetrics,
@@ -33,7 +34,10 @@ export class MetricsCollector {
    */
   endStage(name: string): void {
     const startTime = this.stageStartTimes.get(name);
-    if (!startTime) return;
+    if (!startTime) {
+      logger.warn(`endStage called for "${name}" without a matching startStage`);
+      return;
+    }
 
     const duration = Date.now() - startTime;
     this.stageDurations.set(name, duration);
