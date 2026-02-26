@@ -1,12 +1,8 @@
 #!/usr/bin/env tsx
-/**
- * Generates the recipe manifest (manifest.json) from recipe YAML files.
- * Run this during build to create the recipe index.
- */
 
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { parseRecipeYaml } from "../src/modules/recipe/recipe-loader";
+import { parseRecipeYaml } from "../src/modules/recipe/recipe-repository";
 import {
   type RecipeManifest,
   type RecipeManifestEntry,
@@ -26,7 +22,6 @@ function generateManifest(): void {
   if (files.length === 0) {
     console.log("No recipe files found. Creating empty manifest.");
     const emptyManifest: RecipeManifest = {
-      version: "1.0.0",
       generatedAt: new Date().toISOString(),
       recipes: [],
     };
@@ -55,7 +50,6 @@ function generateManifest(): void {
 
       const metadata = metadataResult.data;
 
-      // Verify name matches filename
       const expectedName = path.basename(file, path.extname(file));
       if (metadata.name !== expectedName) {
         console.error(`  ❌ Metadata name "${metadata.name}" does not match filename "${file}"`);
@@ -67,7 +61,6 @@ function generateManifest(): void {
         description: metadata.description,
         category: metadata.category,
         file,
-        version: metadata.version,
         saleorVersion: metadata.saleorVersion,
         entitySummary: metadata.entitySummary,
       });
@@ -81,7 +74,6 @@ function generateManifest(): void {
   }
 
   const manifest: RecipeManifest = {
-    version: "1.0.0",
     generatedAt: new Date().toISOString(),
     recipes,
   };

@@ -1,7 +1,8 @@
 import { logger } from "../../lib/logger";
+import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
-import { CategoryCreationError, CategoryError } from "./errors";
+import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
 import type {
   Category,
   CategoryOperations,
@@ -28,7 +29,7 @@ export class CategoryService {
       "categories",
       undefined,
       () => this.repository.getAllCategories(),
-      CategoryError
+      CategoryFetchError
     );
   }
 
@@ -47,7 +48,7 @@ export class CategoryService {
         const categories = await this.repository.getAllCategories();
         return categories.find((c) => c.slug === slug) || null;
       },
-      CategoryError
+      CategoryFetchError
     );
   }
 
@@ -64,7 +65,7 @@ export class CategoryService {
         const all = await this.repository.getAllCategories();
         return all.find((c) => c.name === categoryInput.name) || null;
       },
-      CategoryError
+      CategoryFetchError
     );
   }
 
@@ -112,7 +113,7 @@ export class CategoryService {
       (category) => this.bootstrapCategory(category),
       {
         sequential: true,
-        delayMs: 100,
+        delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
       }
     );
 
@@ -135,8 +136,7 @@ export class CategoryService {
 
   /**
    * Optimized bootstrap for larger category trees.
-   * Groups categories by tree level and processes siblings concurrently.
-   * Level-based processing ensures parents exist before children are created.
+   * Groups by tree level and processes sequentially with rate-limit delays.
    */
   async bootstrapCategoriesOptimized(categories: CategoryInput[]): Promise<Category[]> {
     logger.debug("Bootstrapping categories (optimized)", { count: categories.length });
@@ -169,8 +169,8 @@ export class CategoryService {
           return category;
         },
         {
-          sequential: true, // Sequential within level to avoid rate limits
-          delayMs: 50, // Small fixed delay between items
+          sequential: true,
+          delayMs: DelayConfig.CATEGORY_ITEM_DELAY_MS,
         }
       );
 
@@ -292,7 +292,7 @@ export class CategoryService {
 
         return category;
       },
-      CategoryError
+      CategoryFetchError
     );
   }
 }

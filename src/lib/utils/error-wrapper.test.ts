@@ -30,7 +30,7 @@ const mockedLogger = logger as unknown as {
 class TestServiceError extends Error {
   constructor(
     message: string,
-    public entityIdentifier?: unknown
+    public entityIdentifier?: string
   ) {
     super(message);
     this.name = "TestServiceError";

@@ -2,7 +2,7 @@ import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { ChannelCreateInput, ChannelInput, ChannelUpdateInput } from "../config/schema/schema";
-import { ChannelCreationError, ChannelError, ChannelUpdateError } from "./errors";
+import { ChannelCreationError, ChannelError, ChannelFetchError, ChannelUpdateError } from "./errors";
 import type { ChannelOperations } from "./repository";
 
 export class ChannelService {
@@ -34,7 +34,7 @@ export class ChannelService {
         if (existingChannel?.id) this.channelIdCache.set(slug, existingChannel.id);
         return existingChannel;
       },
-      ChannelError
+      ChannelFetchError
     );
   }
 
