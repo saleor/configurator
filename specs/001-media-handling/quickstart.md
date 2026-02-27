@@ -321,15 +321,14 @@ pnpm check:ci
 ## E2E Testing
 
 ```bash
-# Test environment
-URL="https://store-rzalldyg.saleor.cloud/graphql/"
-TOKEN="YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs"
+# Credentials from .env.local (see .env.example)
+source .env.local
 
 # Test diff with skip-media
-pnpm dev diff --url $URL --token $TOKEN --skip-media
+pnpm dev diff --url $SALEOR_URL --token $SALEOR_TOKEN --skip-media
 
 # Test deploy with skip-media (dry-run)
-pnpm dev deploy --url $URL --token $TOKEN --skip-media --plan
+pnpm dev deploy --url $SALEOR_URL --token $SALEOR_TOKEN --skip-media --plan --ci
 ```
 
 ---

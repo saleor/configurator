@@ -12,7 +12,7 @@ Comprehensive troubleshooting procedures for the Saleor Configurator with system
 pnpm check && pnpm build && pnpm test && npx tsc --noEmit
 
 # API connectivity test
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --dry-run
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --dry-run
 ```
 
 **GraphQL Diagnostics:**
@@ -137,7 +137,7 @@ Performance Issues
 pnpm check && pnpm build && pnpm test && npx tsc --noEmit
 
 # API connectivity test
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --dry-run
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --dry-run
 ```
 
 ### GraphQL Specific Diagnostics

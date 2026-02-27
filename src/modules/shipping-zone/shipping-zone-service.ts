@@ -399,6 +399,10 @@ export class ShippingZoneService {
         throw error;
       }
 
+      if (isTransientError(error)) {
+        throw error;
+      }
+
       logger.error("Failed to update shipping zone", {
         error: error instanceof Error ? error.message : "Unknown error",
         id,

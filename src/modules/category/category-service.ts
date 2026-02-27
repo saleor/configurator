@@ -145,7 +145,6 @@ export class CategoryService {
     await this.repository.getAllCategories();
     logger.debug("Category cache primed for optimized processing");
 
-    // Flatten tree into levels for concurrent processing
     const levels = this.flattenByLevel(categories);
     const categoryIdBySlug = new Map<string, string>();
     const allCreated: Category[] = [];
@@ -153,7 +152,6 @@ export class CategoryService {
     for (const [level, items] of levels) {
       logger.debug(`Processing category level ${level}`, { count: items.length });
 
-      // Process items sequentially within each level to avoid overwhelming the API
       const results = await ServiceErrorWrapper.wrapBatch(
         items,
         `Bootstrap categories (level ${level})`,
@@ -278,7 +276,7 @@ export class CategoryService {
             (subcategory) => this.bootstrapCategory(subcategory, category.id),
             {
               sequential: true,
-              delayMs: 100,
+              delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
             }
           );
 

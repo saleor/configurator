@@ -247,12 +247,12 @@ pnpm check:fix && pnpm build && pnpm test && pnpm check:ci
 ## E2E Test
 
 ```bash
---url=https://store-rzalldyg.saleor.cloud/graphql/
---token=<REDACTED_TOKEN>
+# Credentials from .env.local (see .env.example)
+source .env.local
 
 rm -rf config.yml
-pnpm dev introspect [credentials]
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 # Add 30+ products with variants/media
-pnpm dev deploy [credentials]  # No 429s
-pnpm dev deploy [credentials]  # Idempotent
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # No 429s
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Idempotent
 ```

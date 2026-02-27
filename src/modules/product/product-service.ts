@@ -1277,6 +1277,9 @@ export class ProductService {
 
           variantsToCreate.push(variant);
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           allFailures.push({
             entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
             error: error instanceof Error ? error : new Error(String(error)),
@@ -1319,6 +1322,9 @@ export class ProductService {
           });
         }
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         logger.error(`Failed to bulk create variants for product ${productId}`, { error });
         variantsToCreate.forEach((v) => {
           allFailures.push({

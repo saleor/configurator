@@ -182,14 +182,14 @@ const input = {
 
 ### E2E Validation
 ```bash
---url=https://store-rzalldyg.saleor.cloud/graphql/
---token=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Credentials from .env.local (see .env.example)
+source .env.local
 
 rm -rf config.yml
-pnpm dev introspect [credentials]
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 # Modify config to have 30+ products with variants/media
-pnpm dev deploy [credentials]  # Should complete without 429s
-pnpm dev deploy [credentials]  # Idempotent - no changes
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Should complete without 429s
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Idempotent - no changes
 ```
 
 ---

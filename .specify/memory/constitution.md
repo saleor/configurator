@@ -156,7 +156,7 @@ Breaking any part breaks the product.
 
 **Enforcement**:
 - Changes to modules/*, core/*, or commands/* MUST pass E2E validation
-- Use test environment: `https://store-rzalldyg.saleor.cloud/graphql/`
+- Use test environment from `.env.local` (see `.env.example` for template)
 - Document E2E test results in PR description
 
 ### VII. Type-Safe Schema-First Design

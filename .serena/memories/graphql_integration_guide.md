@@ -95,7 +95,7 @@ Authorization: Bearer <saleor-token>
 
 **Example Token:**
 ```
-YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Stored in .env.local (see .env.example), never committed
 ```
 
 **Security Notes:**
