@@ -264,9 +264,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           if (pruned.length > 0) {
             this.console.muted(`Pruned ${pruned.length} old report(s)`);
           }
-        } catch {
-          // Best-effort pruning
-        }
+        } catch {}
       }
     } catch (error) {
       this.console.warn(
