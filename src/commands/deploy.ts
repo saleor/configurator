@@ -264,7 +264,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           if (pruned.length > 0) {
             this.console.muted(`Pruned ${pruned.length} old report(s)`);
           }
-        } catch {}
+        } catch (pruneError) {
+          logger.debug("Failed to prune old reports", {
+            error: pruneError instanceof Error ? pruneError.message : String(pruneError),
+          });
+        }
       }
     } catch (error) {
       this.console.warn(
