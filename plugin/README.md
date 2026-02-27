@@ -14,11 +14,21 @@ This Claude Code plugin enables developers to configure Saleor e-commerce stores
 
 ## Installation
 
-### From Claude Marketplace (Recommended)
+### From Marketplace (Recommended)
 
 ```bash
-# In Claude Code
-/install-plugin saleor-configurator
+# In Claude Code, add the marketplace first
+/plugin marketplace add saleor/configurator
+
+# Then install the plugin
+/plugin install saleor-configurator@saleor-configurator
+```
+
+### From Official Directory
+
+```bash
+# Once approved in the official directory
+/plugin install saleor-configurator@claude-plugin-directory
 ```
 
 ### Manual Installation

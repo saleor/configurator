@@ -17,6 +17,12 @@ import {
   toDeploymentError,
   ValidationDeploymentError,
 } from "../core/deployment/errors";
+import {
+  getReportsDirectory,
+  isInManagedDirectory,
+  pruneOldReports,
+  resolveReportPath,
+} from "../core/deployment/report-storage";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { createJsonFormatter, DeployDiffFormatter } from "../core/diff/formatters";
@@ -29,6 +35,20 @@ import { isEntitySection, validateNoDuplicateIdentifiers } from "../core/validat
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 
+const VALID_ENTITY_SECTIONS = new Set<string>([
+  "channels",
+  "warehouses",
+  "shippingZones",
+  "productTypes",
+  "pageTypes",
+  "categories",
+  "products",
+  "collections",
+  "menus",
+  "models",
+  "taxClasses",
+]);
+
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
     .boolean()
@@ -38,16 +58,12 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .string()
     .optional()
     .describe(
-      "Path to save deployment report (defaults to deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
+      "Path to save deployment report (defaults to .configurator/reports/deployment-report-YYYY-MM-DD_HH-MM-SS.json)"
     ),
   verbose: z.boolean().optional().default(false).describe("Show detailed error information"),
-  /** Output deployment results in JSON format for CI/CD integration */
   json: z.boolean().default(false).describe("Output deployment results in JSON format"),
-  /** Show deployment plan without executing (dry-run) */
   plan: z.boolean().default(false).describe("Show deployment plan without executing"),
-  /** Exit with error code if any deletions detected */
   failOnDelete: z.boolean().default(false).describe("Exit with error if deletions detected"),
-  /** Skip media fields during deployment (preserves target media) */
   skipMedia: z
     .boolean()
     .default(false)
@@ -56,21 +72,13 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
 
-function generateDefaultReportPath(): string {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/:/g, "-") // Replace colons for Windows compatibility
-    .replace(/\..+/, "") // Remove milliseconds
-    .replace("T", "_"); // Replace T with underscore for readability
-  return `deployment-report-${timestamp}.json`;
+function isEntitySection(value: string): value is DuplicateIssue["section"] {
+  return VALID_ENTITY_SECTIONS.has(value);
 }
 
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
-  /**
-   * Parses duplicate issues from validation error messages
-   */
   private parseDuplicateIssues(error: ConfigurationValidationError): DuplicateIssue[] {
     const duplicateRegex = /Duplicate\s+(.+?)\s+'(.+?)'\s+found\s+(\d+)\s+times/i;
 
@@ -83,7 +91,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           section: v.path,
           label: match[1],
           identifier: match[2],
-          count: Number(match[3]) || 2,
+          count: Number(match[3]),
         };
       })
       .filter((issue): issue is DuplicateIssue => issue !== null);
@@ -92,7 +100,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
     logger.error("Deployment failed", { error });
 
-    // Handle ConfigurationValidationError specially for backwards compatibility
     if (error instanceof ConfigurationValidationError) {
       const dupes = this.parseDuplicateIssues(error);
 
@@ -102,7 +109,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         process.exit(EXIT_CODES.VALIDATION);
       }
 
-      // Fallback generic validation formatting
       const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
       const deploymentError = new ValidationDeploymentError(
         "Configuration validation failed",
@@ -117,13 +123,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       process.exit(deploymentError.getExitCode());
     }
 
-    // Convert to DeploymentError for consistent handling
     const deploymentError = toDeploymentError(error, "deployment");
-
-    // Display user-friendly error message
     this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
-
-    // Exit with appropriate code
     process.exit(deploymentError.getExitCode());
   }
 
@@ -138,26 +139,25 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   private formatDestructiveOperationsWarning(summary: DiffSummary): string {
-    const deleteResults = summary.results.filter((result) => result.operation === "DELETE");
     const attributeValueRemovals = summary.results.filter(
       (r) =>
         r.operation === "UPDATE" &&
         r.changes?.some((c) => c.field.includes("values") && c.currentValue && !c.desiredValue)
     );
 
-    if (deleteResults.length === 0 && attributeValueRemovals.length === 0) {
+    if (attributeValueRemovals.length === 0) {
       return "";
     }
 
-    const lines = [];
+    const lines: string[] = [];
 
     if (attributeValueRemovals.length > 0) {
       lines.push("\nAttribute values will be removed (if not in use):");
       for (const result of attributeValueRemovals) {
-        const removals =
-          result.changes?.filter(
-            (c) => c.field.includes("values") && c.currentValue && !c.desiredValue
-          ) || [];
+        if (!result.changes) continue;
+        const removals = result.changes.filter(
+          (c) => c.field.includes("values") && c.currentValue && !c.desiredValue
+        );
         if (removals.length > 0) {
           lines.push(`• ${result.entityName}: ${removals.map((r) => r.currentValue).join(", ")}`);
         }
@@ -215,33 +215,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return lines.join("\n");
   }
 
-  private async executeDeployment(
-    args: DeployCommandArgs,
-    summary: DiffSummary
-  ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
-    const configurator = createConfigurator(args);
-    const startTime = new Date();
-
-    this.console.muted("🚀 Deploying configuration to Saleor...");
-    this.console.text(""); // Add spacing for progress indicators
-
-    const context: DeploymentContext = {
-      configurator,
-      args,
-      summary,
-      startTime,
-    };
-
-    // Use enhanced deployment that collects results instead of throwing on first failure
-    const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
-
-    this.console.text(""); // Add spacing before summary
-
-    // Format and display deployment result
-    const formatter = new DeploymentResultFormatter();
-    const formattedResult = formatter.format(result);
-
-    // Display result with appropriate console method based on status
+  private displayDeploymentResult(
+    result: { overallStatus: "success" | "partial" | "failed" },
+    formattedResult: string
+  ): void {
     switch (result.overallStatus) {
       case "success":
         this.console.success(formattedResult);
@@ -253,10 +230,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         this.console.error(formattedResult);
         break;
     }
+  }
 
-    this.console.text("");
-
-    // Post-deploy cleanup suggestions (analysis-only service -> console)
+  private async displayCleanupSuggestions(
+    context: DeploymentContext,
+    summary: DiffSummary
+  ): Promise<void> {
     try {
       const cfg = await context.configurator.services.configStorage.load();
       const suggestions = analyzeDeploymentCleanup(cfg, summary);
@@ -272,8 +251,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
 
-    // Check if there are items that should have been deleted
+  private displayPendingDeletionWarnings(summary: DiffSummary): void {
     const pendingDeletes = summary.results.filter((r) => r.operation === "DELETE");
     if (pendingDeletes.length > 0) {
       this.console.warn("\n⚠️  Note: Some items marked for deletion may not have been removed:");
@@ -282,25 +262,71 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       this.console.warn("\n  Running deploy again will show remaining differences.");
       this.console.text("");
     }
+  }
 
-    // Display deployment summary
+  private async saveAndPruneReport(
+    args: DeployCommandArgs,
+    metrics: DeploymentMetrics,
+    summary: DiffSummary
+  ): Promise<void> {
+    try {
+      const reportGenerator = new DeploymentReportGenerator(metrics, summary);
+      const reportPath = await resolveReportPath(args.reportPath);
+      await reportGenerator.saveToFile(reportPath);
+      this.console.text("");
+      this.console.success(`Deployment report saved to: ${reportPath}`);
+
+      if (isInManagedDirectory(reportPath)) {
+        try {
+          const pruned = await pruneOldReports(getReportsDirectory());
+          if (pruned.length > 0) {
+            this.console.muted(`Pruned ${pruned.length} old report(s)`);
+          }
+        } catch {
+          // Best-effort pruning
+        }
+      }
+    } catch (error) {
+      this.console.warn(
+        `Failed to save deployment report: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  private async executeDeployment(
+    args: DeployCommandArgs,
+    summary: DiffSummary
+  ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
+    const configurator = createConfigurator(args);
+    const startTime = new Date();
+
+    this.console.muted("🚀 Deploying configuration to Saleor...");
+    this.console.text("");
+
+    const context: DeploymentContext = {
+      configurator,
+      args,
+      summary,
+      startTime,
+    };
+
+    const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
+
+    this.console.text("");
+
+    const formatter = new DeploymentResultFormatter();
+    const formattedResult = formatter.format(result);
+    this.displayDeploymentResult(result, formattedResult);
+
+    this.console.text("");
+
+    await this.displayCleanupSuggestions(context, summary);
+    this.displayPendingDeletionWarnings(summary);
+
     const summaryReport = new DeploymentSummaryReport(metrics, summary);
     summaryReport.display();
 
-    // Generate and save report (always save with default filename if not specified)
-    try {
-      const reportGenerator = new DeploymentReportGenerator(metrics, summary);
-      const reportPath = args.reportPath || generateDefaultReportPath();
-      await reportGenerator.saveToFile(reportPath);
-      this.console.text("");
-      this.console.success(`📄 Deployment report saved to: ${reportPath}`);
-    } catch (error) {
-      this.console.warn(
-        `⚠️  Failed to save deployment report: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
+    await this.saveAndPruneReport(args, metrics, summary);
 
     return {
       metrics,
@@ -313,16 +339,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     const configurator = createConfigurator(args);
 
     try {
-      // Try to load the configuration to validate it
       const cfg = await configurator.services.configStorage.load();
-      // Preflight: block deploy on duplicate identifiers with a clear message
       validateNoDuplicateIdentifiers(cfg, args.config);
     } catch (error) {
       if (error instanceof ConfigurationValidationError) {
-        // Preserve configuration validation errors (e.g., duplicate identifiers)
         throw error;
       }
-      // Re-throw with proper error type
       if (error instanceof Error) {
         throw new ConfigurationLoadError(`Failed to load local configuration: ${error.message}`);
       }
@@ -376,9 +398,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
   }
 
-  /**
-   * Handles the case when no changes are detected
-   */
   private handleNoChanges(summary: DiffSummary, args: DeployCommandArgs): never {
     if (args.json) {
       console.log(this.formatJsonOutput(summary, args));
@@ -388,9 +407,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     process.exit(EXIT_CODES.SUCCESS);
   }
 
-  /**
-   * Handles plan (dry-run) mode output
-   */
   private handlePlanMode(diffAnalysis: { summary: DiffSummary }, args: DeployCommandArgs): never {
     if (args.json) {
       console.log(this.formatJsonOutput(diffAnalysis.summary, args));
@@ -401,18 +417,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     process.exit(diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS);
   }
 
-  /**
-   * Displays the deployment preview with formatted diff
-   */
   private displayDeploymentPreview(summary: DiffSummary): void {
     this.console.status(`\n${this.formatDeploymentPreview(summary)}`);
     const deployFormatter = new DeployDiffFormatter();
     this.console.status(`\n${deployFormatter.format(summary)}`);
   }
 
-  /**
-   * Logs deployment completion metrics
-   */
   private logDeploymentCompletion(
     summary: DiffSummary,
     result: { exitCode: number; hasPartialSuccess: boolean }
@@ -474,7 +484,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   async execute(args: DeployCommandArgs): Promise<void> {
-    // Skip decorative output for JSON mode
     this.console.setOptions({ quiet: args.quiet || args.json });
 
     if (!args.json) {
@@ -484,7 +493,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           "📷 Media handling: Skipped (--skip-media flag) - existing media will be preserved"
         );
       } else {
-        // Warn about potential cross-environment media issues
         this.console.muted(
           "💡 Tip: Use --skip-media when deploying across environments to preserve target media"
         );
@@ -492,7 +500,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
 
     await this.performDeploymentFlow(args);
-    // performDeploymentFlow handles all exit scenarios
   }
 }
 
@@ -512,7 +519,7 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
     `${COMMAND_NAME} deploy --config custom-config.yml --ci`,
     `${COMMAND_NAME} deploy --report-path custom-report.json`,
     `${COMMAND_NAME} deploy --quiet`,
-    `${COMMAND_NAME} deploy # Saves report as deployment-report-YYYY-MM-DD_HH-MM-SS.json`,
+    `${COMMAND_NAME} deploy # Saves report to .configurator/reports/`,
     `${COMMAND_NAME} deploy --plan # Dry-run: show what would be deployed`,
     `${COMMAND_NAME} deploy --json # Output deployment results as JSON`,
     `${COMMAND_NAME} deploy --fail-on-delete --ci # Block deployment if deletions detected`,
