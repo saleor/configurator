@@ -1,10 +1,12 @@
 import Bottleneck from "bottleneck";
 import { logger } from "../logger";
+import { delay } from "../utils/resilience";
 
 const DEFAULT_MAX_CONCURRENCY = 4;
 const DEFAULT_INTERVAL_CAP = 20;
 const DEFAULT_INTERVAL_MS = 1000;
 const DEFAULT_FALLBACK_COOLDOWN_MS = 3000;
+const MAX_COOLDOWN_WAIT_MS = 600_000; // 10 minutes absolute maximum
 
 function parseBoolean(value: string | undefined, defaultValue: boolean, envName?: string): boolean {
   if (value === undefined) return defaultValue;
@@ -89,10 +91,6 @@ export function getGraphQLGovernorConfigFromEnv(
       "GRAPHQL_FALLBACK_COOLDOWN_MS"
     ),
   };
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class GraphQLGovernor {
@@ -182,7 +180,6 @@ export class GraphQLGovernor {
   }
 
   private async waitForCooldown(): Promise<void> {
-    const MAX_TOTAL_WAIT_MS = 600_000; // 10 minutes absolute maximum
     const startedAt = Date.now();
 
     while (true) {
@@ -192,9 +189,9 @@ export class GraphQLGovernor {
       }
 
       const elapsed = Date.now() - startedAt;
-      if (elapsed > MAX_TOTAL_WAIT_MS) {
+      if (elapsed > MAX_COOLDOWN_WAIT_MS) {
         throw new Error(
-          `Governor cooldown exceeded maximum wait time of ${MAX_TOTAL_WAIT_MS}ms (elapsed: ${elapsed}ms, remaining cooldown: ${remainingMs}ms). API is persistently rate-limiting requests.`
+          `Governor cooldown exceeded maximum wait time of ${MAX_COOLDOWN_WAIT_MS}ms (elapsed: ${elapsed}ms, remaining cooldown: ${remainingMs}ms). API is persistently rate-limiting requests.`
         );
       }
 
@@ -202,7 +199,7 @@ export class GraphQLGovernor {
         elapsed,
         remainingMs,
       });
-      await sleep(remainingMs);
+      await delay(remainingMs);
     }
   }
 }

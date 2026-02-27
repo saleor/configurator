@@ -1,4 +1,4 @@
-export const RETRYABLE_TRANSPORT_STATUSES = new Set([429, 502, 503, 504]);
+export const RETRYABLE_TRANSPORT_STATUSES: ReadonlySet<number> = new Set([429, 502, 503, 504]);
 
 const IDEMPOTENT_MUTATION_KEYWORDS = [
   "Update",

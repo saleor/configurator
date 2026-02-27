@@ -2,7 +2,7 @@ import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
-import { isRateLimitError, isTransientError } from "../../lib/utils/error-classification";
+import { isRateLimitError } from "../../lib/utils/error-classification";
 
 const createCategoryMutation = graphql(`
   mutation CreateCategory($input: CategoryInput!, $parent: ID) {
@@ -119,6 +119,14 @@ export class CategoryRepository implements CategoryOperations {
     }
   }
 
+  private throwIfRateLimited(error: unknown, operation: string): void {
+    if (isRateLimitError(error)) {
+      throw new Error(
+        `${operation}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+      );
+    }
+  }
+
   private assertCategoryReturned(
     category: Category | null | undefined,
     categoryName: string
@@ -140,12 +148,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (result.error) {
-      if (isRateLimitError(result.error)) {
-        throw new Error(
-          `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
-        );
-      }
-
+      this.throwIfRateLimited(result.error, `Failed to create category ${input.name}`);
       throw GraphQLError.fromCombinedError(`Failed to create category ${input.name}`, result.error);
     }
 
@@ -176,11 +179,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (result.error) {
-      if (isRateLimitError(result.error)) {
-        throw new Error(
-          `Failed to get category by name ${name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
-        );
-      }
+      this.throwIfRateLimited(result.error, `Failed to get category by name ${name}`);
       throw GraphQLError.fromCombinedError(`Failed to get category by name ${name}`, result.error);
     }
 
@@ -188,19 +187,8 @@ export class CategoryRepository implements CategoryOperations {
 
     if (exactMatch?.node) return exactMatch.node;
 
-    try {
-      const all = await this.getAllCategories();
-      return all.find((c) => c.name === name);
-    } catch (error) {
-      if (isTransientError(error)) {
-        throw error;
-      }
-      logger.warn("Failed to fetch all categories while looking up by name", {
-        name,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
+    const all = await this.getAllCategories();
+    return all.find((c) => c.name === name);
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
@@ -222,11 +210,7 @@ export class CategoryRepository implements CategoryOperations {
     });
 
     if (result.error) {
-      if (isRateLimitError(result.error)) {
-        throw new Error(
-          `Failed to get category by slug ${slug}: Rate limited by API (Too Many Requests). Please wait before retrying.`
-        );
-      }
+      this.throwIfRateLimited(result.error, `Failed to get category by slug ${slug}`);
       throw GraphQLError.fromCombinedError(`Failed to get category by slug ${slug}`, result.error);
     }
 
@@ -236,19 +220,8 @@ export class CategoryRepository implements CategoryOperations {
       return direct;
     }
 
-    try {
-      const all = await this.getAllCategories();
-      return all.find((c) => c.slug === slug);
-    } catch (error) {
-      if (isTransientError(error)) {
-        throw error;
-      }
-      logger.warn("Failed to fetch all categories while looking up by slug", {
-        slug,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return null;
-    }
+    const all = await this.getAllCategories();
+    return all.find((c) => c.slug === slug);
   }
 
   async getAllCategories(): Promise<Category[]> {
@@ -271,11 +244,7 @@ export class CategoryRepository implements CategoryOperations {
       );
 
       if (result.error) {
-        if (isRateLimitError(result.error)) {
-          throw new Error(
-            "Failed to fetch all categories: Rate limited by API (Too Many Requests). Please wait before retrying."
-          );
-        }
+        this.throwIfRateLimited(result.error, "Failed to fetch all categories");
         throw GraphQLError.fromCombinedError("Failed to fetch all categories", result.error);
       }
 

@@ -7,13 +7,13 @@ describe("ResilienceTracker", () => {
   });
 
   describe("stage context management", () => {
-    it("starts and ends a stage context", () => {
-      resilienceTracker.startStageContext("test-stage");
-      expect(resilienceTracker.isInStageContext()).toBe(true);
-      expect(resilienceTracker.getCurrentStageName()).toBe("test-stage");
+    it("runs a function within a stage context and returns metrics", async () => {
+      const { result, metrics } = await resilienceTracker.runInStageContext(
+        "test-stage",
+        async () => "done"
+      );
 
-      const metrics = resilienceTracker.endStageContext();
-      expect(metrics).toBeDefined();
+      expect(result).toBe("done");
       expect(metrics).toEqual({
         rateLimitHits: 0,
         retryAttempts: 0,
@@ -22,15 +22,17 @@ describe("ResilienceTracker", () => {
       });
     });
 
-    it("returns undefined when ending without a context", () => {
-      const metrics = resilienceTracker.endStageContext();
-      expect(metrics).toBeUndefined();
+    it("provides stage context during callback execution", async () => {
+      await resilienceTracker.runInStageContext("test-stage", async () => {
+        expect(resilienceTracker.isInStageContext()).toBe(true);
+        expect(resilienceTracker.getCurrentStageName()).toBe("test-stage");
+      });
     });
 
-    it("stores metrics for retrieval after context ends", () => {
-      resilienceTracker.startStageContext("stage-1");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.endStageContext();
+    it("stores metrics for retrieval after context ends", async () => {
+      await resilienceTracker.runInStageContext("stage-1", async () => {
+        resilienceTracker.recordRateLimit();
+      });
 
       const storedMetrics = resilienceTracker.getStageMetrics("stage-1");
       expect(storedMetrics).toEqual({
@@ -40,43 +42,51 @@ describe("ResilienceTracker", () => {
         networkErrors: 0,
       });
     });
+
+    it("propagates errors from the callback", async () => {
+      await expect(
+        resilienceTracker.runInStageContext("failing-stage", async () => {
+          throw new Error("stage failed");
+        })
+      ).rejects.toThrow("stage failed");
+    });
   });
 
   describe("recording metrics", () => {
-    it("records rate limit hits", () => {
-      resilienceTracker.startStageContext("test");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.recordRateLimit();
-      const metrics = resilienceTracker.endStageContext();
+    it("records rate limit hits", async () => {
+      const { metrics } = await resilienceTracker.runInStageContext("test", async () => {
+        resilienceTracker.recordRateLimit();
+        resilienceTracker.recordRateLimit();
+      });
 
-      expect(metrics?.rateLimitHits).toBe(2);
+      expect(metrics.rateLimitHits).toBe(2);
     });
 
-    it("records retry attempts", () => {
-      resilienceTracker.startStageContext("test");
-      resilienceTracker.recordRetry();
-      resilienceTracker.recordRetry();
-      resilienceTracker.recordRetry();
-      const metrics = resilienceTracker.endStageContext();
+    it("records retry attempts", async () => {
+      const { metrics } = await resilienceTracker.runInStageContext("test", async () => {
+        resilienceTracker.recordRetry();
+        resilienceTracker.recordRetry();
+        resilienceTracker.recordRetry();
+      });
 
-      expect(metrics?.retryAttempts).toBe(3);
+      expect(metrics.retryAttempts).toBe(3);
     });
 
-    it("records GraphQL errors", () => {
-      resilienceTracker.startStageContext("test");
-      resilienceTracker.recordGraphQLError();
-      const metrics = resilienceTracker.endStageContext();
+    it("records GraphQL errors", async () => {
+      const { metrics } = await resilienceTracker.runInStageContext("test", async () => {
+        resilienceTracker.recordGraphQLError();
+      });
 
-      expect(metrics?.graphqlErrors).toBe(1);
+      expect(metrics.graphqlErrors).toBe(1);
     });
 
-    it("records network errors", () => {
-      resilienceTracker.startStageContext("test");
-      resilienceTracker.recordNetworkError();
-      resilienceTracker.recordNetworkError();
-      const metrics = resilienceTracker.endStageContext();
+    it("records network errors", async () => {
+      const { metrics } = await resilienceTracker.runInStageContext("test", async () => {
+        resilienceTracker.recordNetworkError();
+        resilienceTracker.recordNetworkError();
+      });
 
-      expect(metrics?.networkErrors).toBe(2);
+      expect(metrics.networkErrors).toBe(2);
     });
 
     it("does not record events when outside a context", () => {
@@ -89,15 +99,14 @@ describe("ResilienceTracker", () => {
       expect(resilienceTracker.getAllStageMetrics().size).toBe(0);
     });
 
-    it("tracks operation-level metrics when operation keys are provided", () => {
-      resilienceTracker.startStageContext("test");
-      resilienceTracker.recordRateLimit("query products");
-      resilienceTracker.recordRetry("query products");
-      resilienceTracker.recordNetworkError("query channels");
+    it("tracks operation-level metrics when operation keys are provided", async () => {
+      const { metrics } = await resilienceTracker.runInStageContext("test", async () => {
+        resilienceTracker.recordRateLimit("query products");
+        resilienceTracker.recordRetry("query products");
+        resilienceTracker.recordNetworkError("query channels");
+      });
 
-      const metrics = resilienceTracker.endStageContext();
-
-      expect(metrics?.operations).toEqual({
+      expect(metrics.operations).toEqual({
         "query channels": {
           rateLimitHits: 0,
           retryAttempts: 0,
@@ -115,15 +124,15 @@ describe("ResilienceTracker", () => {
   });
 
   describe("multiple stages", () => {
-    it("tracks metrics for multiple stages independently", () => {
-      resilienceTracker.startStageContext("stage-1");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.endStageContext();
+    it("tracks metrics for multiple stages independently", async () => {
+      await resilienceTracker.runInStageContext("stage-1", async () => {
+        resilienceTracker.recordRateLimit();
+        resilienceTracker.recordRateLimit();
+      });
 
-      resilienceTracker.startStageContext("stage-2");
-      resilienceTracker.recordRetry();
-      resilienceTracker.endStageContext();
+      await resilienceTracker.runInStageContext("stage-2", async () => {
+        resilienceTracker.recordRetry();
+      });
 
       const stage1Metrics = resilienceTracker.getStageMetrics("stage-1");
       const stage2Metrics = resilienceTracker.getStageMetrics("stage-2");
@@ -143,12 +152,9 @@ describe("ResilienceTracker", () => {
       });
     });
 
-    it("getAllStageMetrics returns all tracked stages", () => {
-      resilienceTracker.startStageContext("stage-1");
-      resilienceTracker.endStageContext();
-
-      resilienceTracker.startStageContext("stage-2");
-      resilienceTracker.endStageContext();
+    it("getAllStageMetrics returns all tracked stages", async () => {
+      await resilienceTracker.runInStageContext("stage-1", async () => {});
+      await resilienceTracker.runInStageContext("stage-2", async () => {});
 
       const allMetrics = resilienceTracker.getAllStageMetrics();
       expect(allMetrics.size).toBe(2);
@@ -158,10 +164,10 @@ describe("ResilienceTracker", () => {
   });
 
   describe("reset", () => {
-    it("clears all stored metrics", () => {
-      resilienceTracker.startStageContext("stage-1");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.endStageContext();
+    it("clears all stored metrics", async () => {
+      await resilienceTracker.runInStageContext("stage-1", async () => {
+        resilienceTracker.recordRateLimit();
+      });
 
       expect(resilienceTracker.getAllStageMetrics().size).toBe(1);
 
@@ -177,10 +183,15 @@ describe("ResilienceTracker", () => {
       expect(resilienceTracker.isInStageContext()).toBe(false);
     });
 
-    it("returns true when in a context", () => {
-      resilienceTracker.startStageContext("test");
-      expect(resilienceTracker.isInStageContext()).toBe(true);
-      resilienceTracker.endStageContext();
+    it("returns true when in a context", async () => {
+      await resilienceTracker.runInStageContext("test", async () => {
+        expect(resilienceTracker.isInStageContext()).toBe(true);
+      });
+    });
+
+    it("returns false after context ends", async () => {
+      await resilienceTracker.runInStageContext("test", async () => {});
+      expect(resilienceTracker.isInStageContext()).toBe(false);
     });
   });
 
@@ -189,10 +200,10 @@ describe("ResilienceTracker", () => {
       expect(resilienceTracker.getCurrentStageName()).toBeUndefined();
     });
 
-    it("returns the current stage name", () => {
-      resilienceTracker.startStageContext("my-stage");
-      expect(resilienceTracker.getCurrentStageName()).toBe("my-stage");
-      resilienceTracker.endStageContext();
+    it("returns the current stage name", async () => {
+      await resilienceTracker.runInStageContext("my-stage", async () => {
+        expect(resilienceTracker.getCurrentStageName()).toBe("my-stage");
+      });
     });
   });
 });

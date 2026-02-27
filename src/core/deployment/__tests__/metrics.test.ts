@@ -11,12 +11,11 @@ describe("MetricsCollector", () => {
 
   describe("stage timing", () => {
     it("tracks stage duration", async () => {
-      collector.startStage("test-stage");
+      await collector.runStage("test-stage", async () => {
+        // Simulate some work
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
 
-      // Simulate some work
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      collector.endStage("test-stage");
       const metrics = collector.getMetrics();
 
       expect(metrics.stageDurations.has("test-stage")).toBe(true);
@@ -26,24 +25,30 @@ describe("MetricsCollector", () => {
       expect(duration).toBeLessThan(200);
     });
 
-    it("ignores endStage without startStage", () => {
-      collector.endStage("unknown-stage");
-      const metrics = collector.getMetrics();
-
-      expect(metrics.stageDurations.has("unknown-stage")).toBe(false);
-    });
-
-    it("tracks multiple stages", () => {
-      collector.startStage("stage-1");
-      collector.endStage("stage-1");
-
-      collector.startStage("stage-2");
-      collector.endStage("stage-2");
+    it("tracks multiple stages", async () => {
+      await collector.runStage("stage-1", async () => {});
+      await collector.runStage("stage-2", async () => {});
 
       const metrics = collector.getMetrics();
       expect(metrics.stageDurations.size).toBe(2);
       expect(metrics.stageDurations.has("stage-1")).toBe(true);
       expect(metrics.stageDurations.has("stage-2")).toBe(true);
+    });
+
+    it("returns the stage callback result", async () => {
+      const result = await collector.runStage("test-stage", async () => "hello");
+      expect(result).toBe("hello");
+    });
+
+    it("records duration even when stage throws", async () => {
+      await expect(
+        collector.runStage("failing-stage", async () => {
+          throw new Error("boom");
+        })
+      ).rejects.toThrow("boom");
+
+      const metrics = collector.getMetrics();
+      expect(metrics.stageDurations.has("failing-stage")).toBe(true);
     });
   });
 
@@ -88,12 +93,10 @@ describe("MetricsCollector", () => {
   describe("completion", () => {
     it("sets end time when completed", async () => {
       const startTime = new Date();
-      collector.startStage("test");
-
-      // Ensure some time passes
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      collector.endStage("test");
+      await collector.runStage("test", async () => {
+        // Ensure some time passes
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
 
       const metrics = collector.complete();
 
@@ -115,7 +118,6 @@ describe("MetricsCollector", () => {
 
   describe("getMetrics", () => {
     it("returns current metrics without completing", () => {
-      collector.startStage("ongoing");
       collector.recordEntity("Test", "create");
 
       const metrics = collector.getMetrics();
@@ -123,7 +125,6 @@ describe("MetricsCollector", () => {
       expect(metrics.startTime).toBeInstanceOf(Date);
       expect(metrics.endTime).toBeInstanceOf(Date);
       expect(metrics.entityCounts.size).toBe(1);
-      expect(metrics.stageDurations.size).toBe(0); // Stage not ended yet
     });
 
     it("returns immutable copies of maps", () => {
@@ -131,7 +132,6 @@ describe("MetricsCollector", () => {
       const metrics1 = collector.getMetrics();
 
       // Try to modify the returned map (should not affect internal state)
-      // This test ensures that the returned map is readonly
       const mutableMap = new Map(metrics1.entityCounts);
       mutableMap.clear();
 
@@ -162,18 +162,17 @@ describe("MetricsCollector - Resilience Integration", () => {
       expect(metrics.totalGraphQLErrors).toBe(0);
       expect(metrics.totalNetworkErrors).toBe(0);
       expect(metrics.stageResilience.size).toBe(0);
-      expect(metrics.operationResilience?.size ?? 0).toBe(0);
+      expect(metrics.operationResilience.size).toBe(0);
     });
 
-    it("captures resilience metrics when stage ends", () => {
-      collector.startStage("test-stage");
+    it("captures resilience metrics when stage completes", async () => {
+      await collector.runStage("test-stage", async () => {
+        // Simulate resilience events within the stage context
+        resilienceTracker.recordRateLimit("query products");
+        resilienceTracker.recordRetry("query products");
+        resilienceTracker.recordRetry("query products");
+      });
 
-      // Simulate resilience events
-      resilienceTracker.recordRateLimit("query products");
-      resilienceTracker.recordRetry("query products");
-      resilienceTracker.recordRetry("query products");
-
-      collector.endStage("test-stage");
       const metrics = collector.getMetrics();
 
       const stageResilience = metrics.stageResilience.get("test-stage");
@@ -188,17 +187,17 @@ describe("MetricsCollector - Resilience Integration", () => {
       });
     });
 
-    it("aggregates resilience totals across multiple stages", () => {
-      collector.startStage("stage-1");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.recordRateLimit();
-      collector.endStage("stage-1");
+    it("aggregates resilience totals across multiple stages", async () => {
+      await collector.runStage("stage-1", async () => {
+        resilienceTracker.recordRateLimit();
+        resilienceTracker.recordRateLimit();
+      });
 
-      collector.startStage("stage-2");
-      resilienceTracker.recordRateLimit();
-      resilienceTracker.recordRetry();
-      resilienceTracker.recordGraphQLError();
-      collector.endStage("stage-2");
+      await collector.runStage("stage-2", async () => {
+        resilienceTracker.recordRateLimit();
+        resilienceTracker.recordRetry();
+        resilienceTracker.recordGraphQLError();
+      });
 
       const metrics = collector.complete();
 
@@ -208,13 +207,12 @@ describe("MetricsCollector - Resilience Integration", () => {
       expect(metrics.totalNetworkErrors).toBe(0);
     });
 
-    it("returns stageResilience map with all stages", () => {
-      collector.startStage("stage-1");
-      resilienceTracker.recordNetworkError();
-      collector.endStage("stage-1");
+    it("returns stageResilience map with all stages", async () => {
+      await collector.runStage("stage-1", async () => {
+        resilienceTracker.recordNetworkError();
+      });
 
-      collector.startStage("stage-2");
-      collector.endStage("stage-2");
+      await collector.runStage("stage-2", async () => {});
 
       const metrics = collector.getMetrics();
 
@@ -226,25 +224,25 @@ describe("MetricsCollector - Resilience Integration", () => {
       expect(metrics.stageResilience.get("stage-2")?.networkErrors).toBe(0);
     });
 
-    it("aggregates operation-level resilience across stages", () => {
-      collector.startStage("stage-1");
-      resilienceTracker.recordRateLimit("query products");
-      resilienceTracker.recordRetry("query products");
-      collector.endStage("stage-1");
+    it("aggregates operation-level resilience across stages", async () => {
+      await collector.runStage("stage-1", async () => {
+        resilienceTracker.recordRateLimit("query products");
+        resilienceTracker.recordRetry("query products");
+      });
 
-      collector.startStage("stage-2");
-      resilienceTracker.recordRetry("query products");
-      resilienceTracker.recordRateLimit("query channels");
-      collector.endStage("stage-2");
+      await collector.runStage("stage-2", async () => {
+        resilienceTracker.recordRetry("query products");
+        resilienceTracker.recordRateLimit("query channels");
+      });
 
       const metrics = collector.complete();
-      expect(metrics.operationResilience?.get("query products")).toEqual({
+      expect(metrics.operationResilience.get("query products")).toEqual({
         rateLimitHits: 1,
         retryAttempts: 2,
         graphqlErrors: 0,
         networkErrors: 0,
       });
-      expect(metrics.operationResilience?.get("query channels")).toEqual({
+      expect(metrics.operationResilience.get("query channels")).toEqual({
         rateLimitHits: 1,
         retryAttempts: 0,
         graphqlErrors: 0,

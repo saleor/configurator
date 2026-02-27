@@ -210,7 +210,8 @@ describe("CategoryService - Optimized Processing", () => {
         { name: "B", slug: "b" },
       ];
 
-      const levels = categoryService.flattenByLevel(categories);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const levels = (categoryService as any).flattenByLevel(categories);
 
       expect(levels.size).toBe(1);
       expect(levels.get(0)).toHaveLength(2);
@@ -235,7 +236,8 @@ describe("CategoryService - Optimized Processing", () => {
         },
       ];
 
-      const levels = categoryService.flattenByLevel(categories);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const levels = (categoryService as any).flattenByLevel(categories);
 
       expect(levels.size).toBe(3);
 
@@ -278,7 +280,8 @@ describe("CategoryService - Optimized Processing", () => {
         },
       ];
 
-      const levels = categoryService.flattenByLevel(categories);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const levels = (categoryService as any).flattenByLevel(categories);
 
       expect(levels.size).toBe(3);
 

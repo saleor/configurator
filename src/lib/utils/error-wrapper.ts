@@ -49,13 +49,17 @@ export async function wrapServiceCall<T>(
       const message = `Failed to ${operation} for ${context}: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      throw new ErrorClass(message, entityIdentifier);
+      const wrapped = new ErrorClass(message, entityIdentifier);
+      if (error instanceof Error) {
+        wrapped.cause = error;
+      }
+      throw wrapped;
     }
 
     const message = `Failed to ${operation} for ${context}: ${
       error instanceof Error ? error.message : String(error)
     }`;
-    throw new Error(message);
+    throw new Error(message, { cause: error instanceof Error ? error : undefined });
   }
 }
 
@@ -85,24 +89,25 @@ export async function wrapBatch<T, R>(
       if (i > 0 && delayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-      const result = await Promise.allSettled([
-        (async () => {
-          try {
-            const result = await processFn(item);
-            return { item, success: true as const, result };
-          } catch (error) {
-            if (isTransientError(error)) {
-              throw error;
-            }
-            return {
-              item,
-              success: false as const,
-              error: error instanceof Error ? error : new Error(String(error)),
-            };
-          }
-        })(),
-      ]);
-      results.push(result[0]);
+      try {
+        const result = await processFn(item);
+        results.push({
+          status: "fulfilled" as const,
+          value: { item, success: true as const, result },
+        });
+      } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
+        results.push({
+          status: "fulfilled" as const,
+          value: {
+            item,
+            success: false as const,
+            error: error instanceof Error ? error : new Error(String(error)),
+          },
+        });
+      }
     }
   } else {
     results = await Promise.allSettled(
@@ -136,6 +141,10 @@ export async function wrapBatch<T, R>(
         failures.push({ item: result.value.item, error: result.value.error });
       }
     } else {
+      // Transient errors (rate-limit, network) must propagate for retry, not be collected as failures
+      if (isTransientError(result.reason)) {
+        throw result.reason;
+      }
       const item = items[i];
       logger.error(`Unexpected rejection in ${operation} batch`, {
         identifier: getIdentifier(item),

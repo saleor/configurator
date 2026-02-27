@@ -62,14 +62,12 @@ export class EnhancedDeploymentPipeline {
   ): Promise<void> {
     const startTime = new Date();
     const stopSpinner = this.progress.startSpinner(stage.name);
-    this.metrics.startStage(stage.name);
 
     try {
-      await stage.execute(context);
+      await this.metrics.runStage(stage.name, () => stage.execute(context));
 
       // Stage completed successfully
       const endTime = new Date();
-      this.metrics.endStage(stage.name);
       stopSpinner();
 
       const duration = this.metrics.getMetrics().stageDurations.get(stage.name);
@@ -89,7 +87,6 @@ export class EnhancedDeploymentPipeline {
     } catch (error) {
       // Stage failed - collect information and continue
       const endTime = new Date();
-      this.metrics.endStage(stage.name);
       stopSpinner();
 
       const isPartialFailure = this.isPartialFailure(error);

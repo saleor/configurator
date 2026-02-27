@@ -365,7 +365,7 @@ export class AttributeResolver {
         throw error;
       }
       this.logError(attributeName, attributeValue, error);
-      return null;
+      throw error;
     }
   }
 

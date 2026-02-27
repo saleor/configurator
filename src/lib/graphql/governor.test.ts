@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { GraphQLGovernor, type GraphQLGovernorConfig } from "./governor";
+import {
+  GraphQLGovernor,
+  type GraphQLGovernorConfig,
+  getGraphQLGovernorConfigFromEnv,
+} from "./governor";
 
 function createConfig(overrides: Partial<GraphQLGovernorConfig> = {}): GraphQLGovernorConfig {
   return {
@@ -136,5 +140,91 @@ describe("GraphQLGovernor", () => {
     } finally {
       await governor.stop();
     }
+  });
+
+  it("passes through when disabled", async () => {
+    const governor = new GraphQLGovernor(createConfig({ enabled: false }));
+
+    const result = await governor.schedule(async () => "pass-through");
+    expect(result).toBe("pass-through");
+
+    // Cooldown should be a no-op when disabled
+    governor.registerRateLimit(5000);
+    expect(governor.getCooldownRemainingMs()).toBe(0);
+
+    const fastResult = await governor.schedule(async () => "still-fast");
+    expect(fastResult).toBe("still-fast");
+
+    await governor.stop();
+  });
+});
+
+describe("getGraphQLGovernorConfigFromEnv", () => {
+  it("returns default config when no env vars are set", () => {
+    const config = getGraphQLGovernorConfigFromEnv({});
+
+    expect(config.enabled).toBe(true);
+    expect(config.maxConcurrent).toBe(4);
+    expect(config.intervalCap).toBe(20);
+    expect(config.intervalMs).toBe(1000);
+    expect(config.fallbackCooldownMs).toBe(3000);
+  });
+
+  it("parses boolean env vars correctly", () => {
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "false" }).enabled).toBe(
+      false
+    );
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "0" }).enabled).toBe(false);
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "no" }).enabled).toBe(false);
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "true" }).enabled).toBe(
+      true
+    );
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "1" }).enabled).toBe(true);
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_GOVERNOR_ENABLED: "yes" }).enabled).toBe(true);
+  });
+
+  it("falls back to default for invalid boolean values", () => {
+    const config = getGraphQLGovernorConfigFromEnv({
+      GRAPHQL_GOVERNOR_ENABLED: "maybe",
+    });
+    expect(config.enabled).toBe(true); // default
+  });
+
+  it("parses positive integer env vars correctly", () => {
+    const config = getGraphQLGovernorConfigFromEnv({
+      GRAPHQL_MAX_CONCURRENCY: "8",
+      GRAPHQL_INTERVAL_CAP: "50",
+      GRAPHQL_INTERVAL_MS: "2000",
+    });
+
+    expect(config.maxConcurrent).toBe(8);
+    expect(config.intervalCap).toBe(50);
+    expect(config.intervalMs).toBe(2000);
+  });
+
+  it("rejects zero and negative for positive integer params", () => {
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MAX_CONCURRENCY: "0" }).maxConcurrent).toBe(4); // fallback to default
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MAX_CONCURRENCY: "-1" }).maxConcurrent).toBe(
+      4
+    ); // fallback to default
+  });
+
+  it("accepts zero for non-negative integer params", () => {
+    expect(
+      getGraphQLGovernorConfigFromEnv({ GRAPHQL_FALLBACK_COOLDOWN_MS: "0" }).fallbackCooldownMs
+    ).toBe(0);
+  });
+
+  it("falls back to default for non-numeric values", () => {
+    const config = getGraphQLGovernorConfigFromEnv({
+      GRAPHQL_MAX_CONCURRENCY: "abc",
+      GRAPHQL_INTERVAL_CAP: "",
+      GRAPHQL_INTERVAL_MS: "3.5",
+    });
+
+    expect(config.maxConcurrent).toBe(4); // default
+    expect(config.intervalCap).toBe(20); // default
+    // parseInt("3.5") = 3, which is > 0, so it's accepted
+    expect(config.intervalMs).toBe(3);
   });
 });

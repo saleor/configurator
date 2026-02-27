@@ -47,38 +47,43 @@ function freezeOperationMetrics(
   return Object.fromEntries(entries);
 }
 
+function freezeContext(context: StageContext): StageResilienceMetrics {
+  const operations = freezeOperationMetrics(context.operationMetrics);
+  return operations ? { ...context.metrics, operations } : { ...context.metrics };
+}
+
 class ResilienceTracker {
   private readonly storage = new AsyncLocalStorage<StageContext>();
   private readonly allStageMetrics = new Map<string, StageResilienceMetrics>();
 
-  startStageContext(stageName: string): void {
-    const existing = this.storage.getStore();
-    if (existing?.active) {
-      this.endStageContext();
-    }
-
+  /**
+   * Run a function within an isolated stage context using storage.run().
+   * This scopes the context to the callback's async tree, preventing
+   * metric attribution leaks across stage boundaries.
+   */
+  async runInStageContext<T>(
+    stageName: string,
+    fn: () => Promise<T>
+  ): Promise<{ result: T; metrics: StageResilienceMetrics }> {
     const context: StageContext = {
       stageName,
       metrics: createEmptyMetrics(),
       operationMetrics: new Map(),
       active: true,
     };
-    this.storage.enterWith(context);
-  }
 
-  endStageContext(): StageResilienceMetrics | undefined {
-    const context = this.storage.getStore();
-    if (!context || !context.active) return undefined;
+    const result = await this.storage.run(context, async () => {
+      try {
+        return await fn();
+      } finally {
+        context.active = false;
+      }
+    });
 
-    const operations = freezeOperationMetrics(context.operationMetrics);
-    const frozenMetrics: StageResilienceMetrics = operations
-      ? { ...context.metrics, operations }
-      : { ...context.metrics };
-    this.allStageMetrics.set(context.stageName, frozenMetrics);
+    const frozenMetrics = freezeContext(context);
+    this.allStageMetrics.set(stageName, frozenMetrics);
 
-    context.active = false;
-
-    return frozenMetrics;
+    return { result, metrics: frozenMetrics };
   }
 
   private getActiveContext(): StageContext | undefined {

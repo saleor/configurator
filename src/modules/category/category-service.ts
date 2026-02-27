@@ -201,7 +201,7 @@ export class CategoryService {
    * Flatten nested category tree into a map of level -> categories at that level.
    * Each item includes the parent slug for lookup during creation.
    */
-  flattenByLevel(
+  private flattenByLevel(
     categories: CategoryInput[]
   ): Map<number, Array<{ input: CategoryInput; parentSlug?: string }>> {
     const levels = new Map<number, Array<{ input: CategoryInput; parentSlug?: string }>>();
@@ -290,7 +290,7 @@ export class CategoryService {
 
         return category;
       },
-      CategoryFetchError
+      CategoryCreationError
     );
   }
 }

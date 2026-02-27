@@ -1,11 +1,7 @@
 import type { OperationResilienceMetrics } from "./types";
 
-export interface OperationResilienceHotspot {
+export interface OperationResilienceHotspot extends OperationResilienceMetrics {
   readonly operation: string;
-  readonly rateLimitHits: number;
-  readonly retryAttempts: number;
-  readonly graphqlErrors: number;
-  readonly networkErrors: number;
   readonly totalEvents: number;
   readonly throttleEvents: number;
 }
@@ -37,11 +33,8 @@ function toHotspot(
   const throttleEvents = metrics.rateLimitHits + metrics.retryAttempts;
 
   return {
+    ...metrics,
     operation,
-    rateLimitHits: metrics.rateLimitHits,
-    retryAttempts: metrics.retryAttempts,
-    graphqlErrors: metrics.graphqlErrors,
-    networkErrors: metrics.networkErrors,
     totalEvents,
     throttleEvents,
   };

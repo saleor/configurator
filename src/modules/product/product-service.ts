@@ -504,9 +504,15 @@ export class ProductService {
           ProductError
         );
       } catch (e) {
+        if (isTransientError(e)) {
+          throw e;
+        }
         const msg = e instanceof Error ? e.message : String(e);
         // Fallback: retry without description if server rejects description JSON
-        if (updateProductInput.description && /description|json|string/i.test(msg)) {
+        if (
+          updateProductInput.description &&
+          /description.*invalid|invalid.*description|description.*json/i.test(msg)
+        ) {
           logger.warn("Retrying product update without description due to error", { msg });
           const retryInput: ProductUpdateInput = { ...updateProductInput, description: undefined };
           product = await ServiceErrorWrapper.wrapServiceCall(

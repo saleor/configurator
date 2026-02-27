@@ -54,6 +54,9 @@ export class CollectionService {
 
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "fetch",
         slug,
@@ -116,6 +119,9 @@ export class CollectionService {
       });
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "create",
         input.slug,
@@ -154,6 +160,9 @@ export class CollectionService {
       });
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "update",
         input.slug,
@@ -355,6 +364,9 @@ export class CollectionService {
       logger.debug(`Fetched ${collections.length} collections`);
       return collections;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "fetch",
         "all",

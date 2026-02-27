@@ -7,7 +7,7 @@ export class CategoryError extends BaseError {
 }
 
 export class CategoryFetchError extends BaseError {
-  constructor(message: string, _slug?: string) {
+  constructor(message: string) {
     super(message, "CATEGORY_FETCH_ERROR");
   }
 }
@@ -19,13 +19,13 @@ export class CategoryNotFoundError extends BaseError {
 }
 
 export class CategoryCreationError extends BaseError {
-  constructor(message: string, _categoryName?: string) {
+  constructor(message: string) {
     super(message, "CATEGORY_CREATION_ERROR");
   }
 }
 
 export class CategoryUpdateError extends BaseError {
-  constructor(message: string, _categoryId?: string) {
+  constructor(message: string) {
     super(message, "CATEGORY_UPDATE_ERROR");
   }
 }

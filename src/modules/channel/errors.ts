@@ -7,7 +7,7 @@ export class ChannelError extends BaseError {
 }
 
 export class ChannelFetchError extends ChannelError {
-  constructor(message: string, _slug?: string) {
+  constructor(message: string) {
     super(message);
   }
 }
@@ -19,13 +19,13 @@ export class ChannelNotFoundError extends ChannelError {
 }
 
 export class ChannelCreationError extends ChannelError {
-  constructor(message: string, _channelSlug?: string) {
+  constructor(message: string) {
     super(message);
   }
 }
 
 export class ChannelUpdateError extends ChannelError {
-  constructor(message: string, _channelId?: string) {
+  constructor(message: string) {
     super(message);
   }
 }

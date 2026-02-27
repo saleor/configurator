@@ -7,6 +7,7 @@ import {
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import { isTransientError } from "../../lib/utils/error-classification";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
@@ -48,6 +49,9 @@ export const shopSettingsStage: DeploymentStage = {
 
       await context.configurator.services.shop.updateSettings(config.shop);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to update shop settings: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -95,6 +99,9 @@ export const productTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing product types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage product type")) {
         throw error;
       }
@@ -274,6 +281,9 @@ export const channelsStage: DeploymentStage = {
         await context.configurator.services.tax.updateChannelTaxConfiguration(existing.id, taxCfg);
       }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage channels: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -305,11 +315,16 @@ export const pageTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(pageType)
             .then(() => ({ name: pageType.name, success: true }))
-            .catch((error) => ({
-              name: pageType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
+            .catch((error) => {
+              if (isTransientError(error)) {
+                throw error;
+              }
+              return {
+                name: pageType.name,
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+              };
+            })
         )
       );
 
@@ -331,6 +346,12 @@ export const pageTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing page types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      if (isTransientError(error)) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage page type")) {
         throw error;
       }
@@ -359,11 +380,16 @@ export const modelTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(modelType)
             .then(() => ({ name: modelType.name, success: true }))
-            .catch((error) => ({
-              name: modelType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
+            .catch((error) => {
+              if (isTransientError(error)) {
+                throw error;
+              }
+              return {
+                name: modelType.name,
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+              };
+            })
         )
       );
 
@@ -385,6 +411,12 @@ export const modelTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing model types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      if (isTransientError(error)) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage model type")) {
         throw error;
       }
@@ -410,6 +442,9 @@ export const collectionsStage: DeploymentStage = {
 
       await context.configurator.services.collection.bootstrapCollections(config.collections);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage collections: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -432,6 +467,9 @@ export const menusStage: DeploymentStage = {
 
       await context.configurator.services.menu.bootstrapMenus(config.menus);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage menus: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -472,6 +510,9 @@ export const modelsStage: DeploymentStage = {
         );
       }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage models: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -519,6 +560,9 @@ export const categoriesStage: DeploymentStage = {
         );
       }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage categories: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -547,6 +591,9 @@ export const warehousesStage: DeploymentStage = {
 
       await context.configurator.services.warehouse.bootstrapWarehouses(config.warehouses);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage warehouses: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -569,6 +616,9 @@ export const taxClassesStage: DeploymentStage = {
 
       await context.configurator.services.tax.bootstrapTaxClasses(config.taxClasses);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage tax classes: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -591,6 +641,9 @@ export const shippingZonesStage: DeploymentStage = {
 
       await context.configurator.services.shippingZone.bootstrapShippingZones(config.shippingZones);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage shipping zones: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -685,6 +738,9 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         attributes: refreshed?.length ?? existing.length,
       });
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to prepare attribute choices: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -740,6 +796,9 @@ export const productsStage: DeploymentStage = {
         productOptions
       );
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`
       );

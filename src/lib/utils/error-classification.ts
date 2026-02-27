@@ -1,8 +1,8 @@
 export interface ErrorWithResponse {
-  response: {
-    status: number;
-    headers?: {
-      get?: (name: string) => string | null;
+  readonly response: {
+    readonly status: number;
+    readonly headers?: {
+      readonly get?: (name: string) => string | null;
     };
   };
 }
@@ -16,16 +16,16 @@ function clampRetryAfter(ms: number): number {
 }
 
 export interface ErrorWithNetworkError {
-  networkError: unknown;
+  readonly networkError: unknown;
 }
 
 export interface GraphQLErrorItem {
-  message?: string;
-  extensions?: { code?: string };
+  readonly message?: string;
+  readonly extensions?: { readonly code?: string };
 }
 
 export interface ErrorWithGraphQLErrors {
-  graphQLErrors: GraphQLErrorItem[];
+  readonly graphQLErrors: readonly GraphQLErrorItem[];
 }
 
 export function isObject(value: unknown): value is Record<string, unknown> {

@@ -41,7 +41,7 @@ export interface DeploymentMetrics {
   readonly totalRetries: number;
   readonly totalGraphQLErrors: number;
   readonly totalNetworkErrors: number;
-  readonly operationResilience?: ReadonlyMap<string, OperationResilienceMetrics>;
+  readonly operationResilience: ReadonlyMap<string, OperationResilienceMetrics>;
 }
 
 export interface EntityCount {

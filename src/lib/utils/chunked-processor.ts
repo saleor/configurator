@@ -1,5 +1,6 @@
 import { logger } from "../logger";
 import { BulkOperationMessages, ChunkSizeConfig, DelayConfig } from "./bulk-operation-constants";
+import { isTransientError } from "./error-classification";
 
 /**
  * Options for chunked processing
@@ -225,6 +226,9 @@ class ChunkedOperationProcessor<T, R> {
       successes.push(...chunkSuccesses);
       this.logChunkSuccess(chunkNumber, totalChunks, chunk.length);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       const errorObj = this.normalizeError(error);
       const chunkFailures = this.resultMapper.mapToFailures(chunk, errorObj);
       failures.push(...chunkFailures);

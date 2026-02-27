@@ -1,4 +1,3 @@
-import { logger } from "../../lib/logger";
 import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import type {
   DeploymentMetrics,
@@ -15,37 +14,24 @@ export class MetricsCollector {
   private readonly startTime = new Date();
   private endTime?: Date;
   private readonly stageDurations = new Map<string, number>();
-  private readonly stageStartTimes = new Map<string, number>();
   private readonly entityCounts = new Map<string, EntityCount>();
   private readonly stageResilience = new Map<string, StageResilienceMetrics>();
 
   /**
-   * Mark the start of a deployment stage
-   * @param name - The name of the stage
+   * Execute a stage within an isolated resilience context.
+   * Uses storage.run() to scope metrics to this stage's async tree,
+   * preventing metric attribution leaks across stage boundaries.
    */
-  startStage(name: string): void {
-    this.stageStartTimes.set(name, Date.now());
-    resilienceTracker.startStageContext(name);
-  }
+  async runStage<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    const startTime = Date.now();
 
-  /**
-   * Mark the end of a deployment stage and capture its metrics
-   * @param name - The name of the stage
-   */
-  endStage(name: string): void {
-    const startTime = this.stageStartTimes.get(name);
-    if (!startTime) {
-      logger.warn(`endStage called for "${name}" without a matching startStage`);
-      return;
-    }
-
-    const duration = Date.now() - startTime;
-    this.stageDurations.set(name, duration);
-    this.stageStartTimes.delete(name);
-
-    const resilienceMetrics = resilienceTracker.endStageContext();
-    if (resilienceMetrics) {
-      this.stageResilience.set(name, resilienceMetrics);
+    try {
+      const { result, metrics } = await resilienceTracker.runInStageContext(name, fn);
+      this.stageResilience.set(name, metrics);
+      return result;
+    } finally {
+      const duration = Date.now() - startTime;
+      this.stageDurations.set(name, duration);
     }
   }
 
@@ -129,18 +115,7 @@ export class MetricsCollector {
    */
   complete(): DeploymentMetrics {
     this.endTime = new Date();
-    const totals = this.aggregateResilienceTotals();
-
-    return {
-      duration: this.endTime.getTime() - this.startTime.getTime(),
-      startTime: this.startTime,
-      endTime: this.endTime,
-      stageDurations: new Map(this.stageDurations),
-      entityCounts: new Map(this.entityCounts),
-      stageResilience: new Map(this.stageResilience),
-      operationResilience: this.aggregateOperationResilience(),
-      ...totals,
-    };
+    return this.getMetrics();
   }
 
   /**

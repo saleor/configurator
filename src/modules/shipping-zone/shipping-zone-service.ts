@@ -92,22 +92,6 @@ export class ShippingZoneService {
     return this.warehouseIdCache;
   }
 
-  private async resolveWarehouseSlugToId(slug: string): Promise<string> {
-    logger.debug("Resolving warehouse slug to ID", { slug });
-    const warehouseMap = await this.getWarehouseIdMap();
-    const id = warehouseMap.get(slug);
-
-    if (!id) {
-      throw new ShippingZoneValidationError(
-        `Warehouse with slug '${slug}' not found`,
-        "warehouses"
-      );
-    }
-
-    logger.debug("Resolved warehouse slug to ID", { slug, id });
-    return id;
-  }
-
   private async resolveWarehouseSlugsToIds(slugs: string[]): Promise<string[]> {
     if (!slugs || slugs.length === 0) {
       return [];
@@ -126,19 +110,6 @@ export class ShippingZoneService {
       }
       return id;
     });
-  }
-
-  private async resolveChannelSlugToId(slug: string): Promise<string> {
-    logger.debug("Resolving channel slug to ID", { slug });
-    const channelMap = await this.getChannelIdMap();
-    const id = channelMap.get(slug);
-
-    if (!id) {
-      throw new ShippingZoneValidationError(`Channel with slug '${slug}' not found`, "channels");
-    }
-
-    logger.debug("Resolved channel slug to ID", { slug, id });
-    return id;
   }
 
   private async getChannelIdMap(): Promise<Map<string, string>> {
@@ -260,6 +231,38 @@ export class ShippingZoneService {
     return object.filterUndefinedValues(baseInput);
   }
 
+  private async ensureWarehousesAssignedToChannels(input: ShippingZoneInput): Promise<void> {
+    if (
+      !input.warehouses ||
+      input.warehouses.length === 0 ||
+      !input.channels ||
+      input.channels.length === 0
+    ) {
+      return;
+    }
+
+    const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
+    const channelIds = await this.resolveChannelSlugsToIds(input.channels);
+
+    for (const chId of channelIds) {
+      try {
+        await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
+        logger.debug("Assigned warehouses to channel for shipping zone preconditions", {
+          channelId: chId,
+          warehouseCount: warehouseIds.length,
+        });
+      } catch (e) {
+        if (isTransientError(e)) {
+          throw e;
+        }
+        logger.warn("Failed to pre-assign warehouses to channel", {
+          channelId: chId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
   async createShippingZone(input: ShippingZoneInput): Promise<ShippingZone> {
     logger.debug("Creating new shipping zone", { name: input.name });
     this.validateShippingZoneInput(input);
@@ -272,34 +275,7 @@ export class ShippingZoneService {
     }
 
     try {
-      // Ensure warehouses are assigned to the zone's channels before creating the zone
-      if (
-        input.warehouses &&
-        input.warehouses.length > 0 &&
-        input.channels &&
-        input.channels.length > 0
-      ) {
-        const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
-        const channelIds = await this.resolveChannelSlugsToIds(input.channels);
-
-        for (const chId of channelIds) {
-          try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
-            logger.debug("Assigned warehouses to channel for shipping zone preconditions", {
-              channelId: chId,
-              warehouseCount: warehouseIds.length,
-            });
-          } catch (e) {
-            if (isTransientError(e)) {
-              throw e;
-            }
-            logger.warn("Failed to pre-assign warehouses to channel", {
-              channelId: chId,
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-      }
+      await this.ensureWarehousesAssignedToChannels(input);
 
       const createInput = await this.mapInputToCreateInput(input);
       const shippingZone = await this.repository.createShippingZone(createInput);
@@ -323,6 +299,10 @@ export class ShippingZoneService {
         throw error;
       }
 
+      if (isTransientError(error)) {
+        throw error;
+      }
+
       logger.error("Failed to create shipping zone", {
         error: error instanceof Error ? error.message : "Unknown error",
         name: input.name,
@@ -339,37 +319,7 @@ export class ShippingZoneService {
     logger.debug("Updating shipping zone", { id, name: input.name });
 
     try {
-      // Ensure warehouses are assigned to the zone's channels before updating the zone
-      if (
-        input.warehouses &&
-        input.warehouses.length > 0 &&
-        input.channels &&
-        input.channels.length > 0
-      ) {
-        const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
-        const channelIds = await this.resolveChannelSlugsToIds(input.channels);
-
-        for (const chId of channelIds) {
-          try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
-            logger.debug(
-              "Assigned warehouses to channel for shipping zone preconditions (update)",
-              {
-                channelId: chId,
-                warehouseCount: warehouseIds.length,
-              }
-            );
-          } catch (e) {
-            if (isTransientError(e)) {
-              throw e;
-            }
-            logger.warn("Failed to pre-assign warehouses to channel (update)", {
-              channelId: chId,
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-      }
+      await this.ensureWarehousesAssignedToChannels(input);
 
       // Get current shipping zone to calculate warehouse/channel changes
       const currentZone = await this.repository.getShippingZone(id);
