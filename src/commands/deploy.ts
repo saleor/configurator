@@ -101,12 +101,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         },
         error
       );
-      this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+      this.console.error(deploymentError.getUserMessage(args.verbose));
       process.exit(deploymentError.getExitCode());
     }
 
     const deploymentError = toDeploymentError(error, "deployment");
-    this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+    this.console.error(deploymentError.getUserMessage(args.verbose));
     process.exit(deploymentError.getExitCode());
   }
 
