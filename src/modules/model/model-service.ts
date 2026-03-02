@@ -2,7 +2,7 @@ import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import type { AttributeService } from "../attribute/attribute-service";
+import type { IAttributeCache } from "../attribute/attribute-cache";
 import type { PageTypeService } from "../page-type/page-type-service";
 import { ModelOperationError, ModelTypeError, ModelValidationError } from "./errors";
 import { ModelAttributeResolver } from "./model-attribute-resolver";
@@ -22,7 +22,7 @@ export class ModelService {
   constructor(
     private repository: ModelOperations,
     private pageTypeService: PageTypeService,
-    private attributeService: AttributeService
+    private attributeCache: IAttributeCache,
   ) {}
 
   private async getExistingModel(slug: string): Promise<Page | null> {
@@ -112,7 +112,7 @@ export class ModelService {
 
     // Resolve attributes if provided
     if (input.attributes && Object.keys(input.attributes).length > 0) {
-      const attrResolver = new ModelAttributeResolver(this.attributeService.repo);
+      const attrResolver = new ModelAttributeResolver(this.attributeCache);
       const attributeValues = await attrResolver.resolveAttributes(input.attributes);
       return { ...baseInput, attributes: attributeValues };
     }
@@ -316,7 +316,7 @@ export class ModelService {
     }
 
     // Resolve using typed payloads via ModelAttributeResolver
-    const attrResolver = new ModelAttributeResolver(this.attributeService.repo);
+    const attrResolver = new ModelAttributeResolver(this.attributeCache);
     const attributeValues: AttributeValueInput[] = await attrResolver.resolveAttributes(attributes);
 
     if (attributeValues.length > 0) {

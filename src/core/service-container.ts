@@ -1,5 +1,6 @@
 import type { Client } from "@urql/core";
 import { logger } from "../lib/logger";
+import { AttributeCache } from "../modules/attribute/attribute-cache";
 import { AttributeService } from "../modules/attribute/attribute-service";
 import { AttributeRepository } from "../modules/attribute/repository";
 import { CategoryService } from "../modules/category/category-service";
@@ -95,7 +96,8 @@ export class ServiceComposer {
 
     // Create services that MenuService depends on
     const categoryService = new CategoryService(repositories.category);
-    const modelService = new ModelService(repositories.model, pageTypeService, attributeService);
+    const attributeCache = new AttributeCache();
+    const modelService = new ModelService(repositories.model, pageTypeService, attributeCache);
     const collectionService = new CollectionService(
       repositories.collection,
       productService,

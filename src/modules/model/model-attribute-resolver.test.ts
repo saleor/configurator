@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AttributeCache, type CachedAttribute } from "../attribute/attribute-cache";
+import { AttributeCache } from "../attribute/attribute-cache";
 import { ModelAttributeResolver } from "./model-attribute-resolver";
 
 describe("ModelAttributeResolver", () => {
