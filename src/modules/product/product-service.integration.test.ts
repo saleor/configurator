@@ -23,7 +23,6 @@ const mockRepository: ProductOperations = {
   getCategoryByName: vi.fn(),
   getCategoryBySlug: vi.fn(),
   getCategoryByPath: vi.fn(),
-  getAttributeByName: vi.fn(),
   getChannelBySlug: vi.fn(),
   updateProductChannelListings: vi.fn(),
   updateProductVariantChannelListings: vi.fn(),
