@@ -15,7 +15,6 @@ import type {
   AttributeUpdateInput,
 } from "./repository";
 
-// Type guard to check if an attribute input is a reference
 export function isReferencedAttribute(input: AttributeInput): input is { attribute: string } {
   return "attribute" in input && !("name" in input);
 }
@@ -61,12 +60,9 @@ const createAttributeUpdateInput = (
     name: input.name,
   };
 
-  // For attributes with values (dropdown, multiselect, swatch), compare and update values
   if ("values" in input && input.values) {
     const existingValues = existingAttribute.choices?.edges?.map((edge) => edge.node.name) || [];
     const newValues = input.values.map((v) => v.name);
-
-    // Find values to add
     const valuesToAdd = newValues.filter((value) => !existingValues.includes(value));
 
     if (valuesToAdd.length > 0) {
@@ -79,6 +75,63 @@ const createAttributeUpdateInput = (
 
   return base;
 };
+
+type BulkResultEntry = {
+  attribute: (Attribute & Record<string, unknown>) | null;
+  errors: ReadonlyArray<{ path?: string | null; message: string | null }> | null;
+};
+
+type BulkResultErrors = readonly { path?: string | null; message: string | null }[];
+
+type BulkFailure = { input: { name: string }; errors: string[] };
+
+function processBulkMutationResults(
+  results: readonly BulkResultEntry[] | null | undefined,
+  globalErrors: BulkResultErrors | null | undefined,
+  resolveInput: (index: number, attribute: Attribute | null) => FullAttribute | undefined,
+  operationLabel: string
+): { successful: Attribute[]; failed: BulkFailure[] } {
+  const successful: Attribute[] = [];
+  const failed: BulkFailure[] = [];
+
+  if (results) {
+    results.forEach(({ attribute, errors }, index) => {
+      if (errors && errors.length > 0) {
+        const failedInput = resolveInput(index, attribute);
+        if (failedInput) {
+          failed.push({
+            input: failedInput,
+            errors: errors.map((e) => `${e.path || ""}: ${e.message || ""}`),
+          });
+          logger.warn(`Failed to ${operationLabel} attribute: ${failedInput.name}`, { errors });
+        }
+      } else if (attribute) {
+        successful.push(attribute);
+      } else {
+        const input = resolveInput(index, null);
+        if (input) {
+          failed.push({
+            input,
+            errors: [`Attribute ${operationLabel} returned no result and no error`],
+          });
+          logger.warn(`Bulk ${operationLabel} returned empty result for attribute: ${input.name}`);
+        }
+      }
+    });
+  }
+
+  if (globalErrors && globalErrors.length > 0) {
+    logger.warn(`Global errors during bulk attribute ${operationLabel}`, { errors: globalErrors });
+    for (const err of globalErrors) {
+      failed.push({
+        input: { name: "(global bulk error)" },
+        errors: [`Global error: ${err.path || ""}: ${err.message || ""}`],
+      });
+    }
+  }
+
+  return { successful, failed };
+}
 
 export class AttributeService {
   constructor(private repository: AttributeOperations) {}
@@ -99,7 +152,6 @@ export class AttributeService {
     attributeType: "PRODUCT_TYPE" | "PAGE_TYPE",
     existingAttributeNames: string[] = []
   ): Promise<string[]> {
-    // Filter out attributes that are referenced by slug
     const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
 
     if (referencedAttributes.length === 0) {
@@ -111,12 +163,10 @@ export class AttributeService {
       type: attributeType,
     });
 
-    // Get the names of referenced attributes
     const referencedAttributeNames = referencedAttributes.map((a) => a.attribute);
-
-    // Filter out attributes that are already assigned
+    const existingSet = new Set(existingAttributeNames);
     const unassignedAttributeNames = referencedAttributeNames.filter(
-      (name) => !existingAttributeNames.includes(name)
+      (name) => !existingSet.has(name)
     );
 
     if (unassignedAttributeNames.length === 0) {
@@ -124,7 +174,6 @@ export class AttributeService {
       return [];
     }
 
-    // Fetch the referenced attributes from the database
     const existingAttributes = await this.repository.getAttributesByNames({
       names: unassignedAttributeNames,
       type: attributeType,
@@ -173,9 +222,8 @@ export class AttributeService {
 
     const updateInput = createAttributeUpdateInput(attributeInput, existingAttribute);
 
-    // Only update if there are actual changes
-    if (Object.keys(updateInput).length > 1) {
-      // More than just the name
+    const hasChanges = Object.keys(updateInput).length > 1;
+    if (hasChanges) {
       return this.repository.updateAttribute(existingAttribute.id, updateInput);
     }
 
@@ -192,64 +240,27 @@ export class AttributeService {
    */
   async bootstrapAttributesBulk(attributes: FullAttribute[]): Promise<{
     successful: Attribute[];
-    failed: Array<{ input: FullAttribute; errors: string[] }>;
+    failed: BulkFailure[];
   }> {
     logger.info(`Creating ${attributes.length} attributes via bulk mutation`);
 
-    // Convert all attributes to create input format
     const inputs = attributes.map(createAttributeInput);
-
-    // Call bulk create with IGNORE_FAILED policy to allow partial success
     const result = await this.repository.bulkCreateAttributes({
       attributes: inputs,
       errorPolicy: "IGNORE_FAILED",
     });
 
-    const successful: Attribute[] = [];
-    const failed: Array<{ input: FullAttribute; errors: string[] }> = [];
-
-    // Process results — use attribute name from result to match back to input
-    // instead of relying on positional index alignment
-    if (result.results) {
-      result.results.forEach(({ attribute, errors }, index) => {
-        if (errors && errors.length > 0) {
-          // Try to find the original input by name from the result, fall back to index
-          const failedInput =
-            (attribute?.name ? attributes.find((a) => a.name === attribute.name) : undefined) ??
-            attributes[index];
-          if (failedInput) {
-            failed.push({
-              input: failedInput,
-              errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
-            });
-            logger.warn(`Failed to create attribute: ${failedInput.name}`, { errors });
-          }
-        } else if (attribute) {
-          successful.push(attribute);
-        } else {
-          // No error and no attribute — unexpected empty result
-          const input = attributes[index];
-          if (input) {
-            failed.push({
-              input,
-              errors: ["Attribute creation returned no result and no error"],
-            });
-            logger.warn(`Bulk create returned empty result for attribute: ${input.name}`);
-          }
+    const { successful, failed } = processBulkMutationResults(
+      result.results,
+      result.errors,
+      (index, attribute) => {
+        if (attribute?.name) {
+          return attributes.find((a) => a.name === attribute.name) ?? attributes[index];
         }
-      });
-    }
-
-    // Surface global errors as failures
-    if (result.errors && result.errors.length > 0) {
-      logger.warn("Global errors during bulk attribute creation", { errors: result.errors });
-      for (const err of result.errors) {
-        failed.push({
-          input: attributes[0] ?? ({ name: "unknown" } as FullAttribute),
-          errors: [`Global error: ${err.path || ""}: ${err.message}`],
-        });
-      }
-    }
+        return attributes[index];
+      },
+      "create"
+    );
 
     logger.info(`Bulk create complete: ${successful.length} successful, ${failed.length} failed`);
 
@@ -265,19 +276,17 @@ export class AttributeService {
     updates: Array<{ input: FullAttribute; existing: Attribute }>
   ): Promise<{
     successful: Attribute[];
-    failed: Array<{ input: FullAttribute; errors: string[] }>;
+    failed: BulkFailure[];
   }> {
     logger.info(`Updating ${updates.length} attributes via bulk mutation`);
 
-    // Convert all attributes to update input format
     const updateInputs = updates.map(({ input, existing }) => ({
       id: existing.id,
       fields: createAttributeUpdateInput(input, existing),
     }));
 
-    // Filter out updates where there are no actual changes
     const actualUpdates = updateInputs.filter(
-      (update) => Object.keys(update.fields).length > 1 // More than just the name
+      (update) => Object.keys(update.fields).length > 1
     );
 
     if (actualUpdates.length === 0) {
@@ -285,47 +294,24 @@ export class AttributeService {
       return { successful: updates.map((u) => u.existing), failed: [] };
     }
 
-    // Call bulk update with IGNORE_FAILED policy
     const result = await this.repository.bulkUpdateAttributes({
       attributes: actualUpdates,
       errorPolicy: "IGNORE_FAILED",
     });
 
-    const successful: Attribute[] = [];
-    const failed: Array<{ input: FullAttribute; errors: string[] }> = [];
-
-    // Process results
-    if (result.results) {
-      result.results.forEach(({ attribute, errors }, index) => {
+    const idToIndex = new Map(updateInputs.map((u, i) => [u.id, i]));
+    const { successful, failed } = processBulkMutationResults(
+      result.results,
+      result.errors,
+      (index) => {
         const actualUpdate = actualUpdates[index];
-        const originalIndex = actualUpdate
-          ? updateInputs.findIndex((u) => u.id === actualUpdate.id)
-          : -1;
-        const originalInput = originalIndex >= 0 ? updates[originalIndex]?.input : undefined;
-
-        if (errors && errors.length > 0) {
-          const inputName = originalInput?.name ?? `index-${index}`;
-          failed.push({
-            input: originalInput ?? ({ name: inputName } as FullAttribute),
-            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
-          });
-          logger.warn(`Failed to update attribute: ${inputName}`, { errors });
-        } else if (attribute) {
-          successful.push(attribute);
-        }
-      });
-    }
-
-    // Surface global errors as failures
-    if (result.errors && result.errors.length > 0) {
-      logger.warn("Global errors during bulk attribute update", { errors: result.errors });
-      for (const err of result.errors) {
-        failed.push({
-          input: updates[0]?.input ?? ({ name: "unknown" } as FullAttribute),
-          errors: [`Global error: ${err.path || ""}: ${err.message}`],
-        });
-      }
-    }
+        if (!actualUpdate) return undefined;
+        const originalIndex = idToIndex.get(actualUpdate.id);
+        if (originalIndex === undefined) return undefined;
+        return updates[originalIndex]?.input;
+      },
+      "update"
+    );
 
     logger.info(`Bulk update complete: ${successful.length} successful, ${failed.length} failed`);
 
@@ -348,7 +334,6 @@ export async function resolveAttributeNamesWithCache(
   const resolvedIds: string[] = [];
   const cacheMisses: string[] = [];
 
-  // Step 1: Try cache
   if (attributeCache) {
     for (const name of names) {
       const cached =
@@ -365,7 +350,6 @@ export async function resolveAttributeNamesWithCache(
     cacheMisses.push(...names);
   }
 
-  // Step 2: API fallback for cache misses
   if (cacheMisses.length > 0) {
     const apiType = section === "product" ? "PRODUCT_TYPE" : "PAGE_TYPE";
     const apiResolved = await repository.getAttributesByNames({
@@ -409,6 +393,12 @@ export type AttributeValidationResult =
  * @param cache - The AttributeCache to validate against
  * @returns Validation result with attribute if valid, or error if invalid
  */
+type AttributeSectionLabel = "productAttributes" | "contentAttributes";
+
+function toSectionLabel(section: "product" | "content"): AttributeSectionLabel {
+  return section === "product" ? "productAttributes" : "contentAttributes";
+}
+
 export function validateAttributeReference(
   attributeName: string,
   expectedSection: "product" | "content",
@@ -416,9 +406,7 @@ export function validateAttributeReference(
   referencingEntityName: string,
   cache: AttributeCache
 ): AttributeValidationResult {
-  // Step 1: Check if attribute exists in expected section
-  const expectedSectionName =
-    expectedSection === "product" ? "productAttributes" : "contentAttributes";
+  const expectedSectionLabel = toSectionLabel(expectedSection);
   const attr =
     expectedSection === "product"
       ? cache.getProductAttribute(attributeName)
@@ -428,24 +416,21 @@ export function validateAttributeReference(
     return { valid: true, attribute: attr };
   }
 
-  // Step 2: Check if attribute exists in wrong section
   const wrongSectionResult = cache.findAttributeInWrongSection(attributeName, expectedSection);
   if (wrongSectionResult.found) {
-    const foundInSection =
-      wrongSectionResult.actualSection === "product" ? "productAttributes" : "contentAttributes";
+    const foundInSectionLabel = toSectionLabel(wrongSectionResult.actualSection);
     return {
       valid: false,
       error: new WrongAttributeTypeError(
         attributeName,
-        foundInSection as "productAttributes" | "contentAttributes",
-        expectedSectionName as "productAttributes" | "contentAttributes",
+        foundInSectionLabel,
+        expectedSectionLabel,
         referencingEntityType,
         referencingEntityName
       ),
     };
   }
 
-  // Step 3: Attribute not found anywhere - find similar names
   const allNames =
     expectedSection === "product"
       ? cache.getAllProductAttributeNames()
@@ -456,7 +441,7 @@ export function validateAttributeReference(
     valid: false,
     error: new AttributeNotFoundError(
       attributeName,
-      expectedSectionName as "productAttributes" | "contentAttributes",
+      expectedSectionLabel,
       referencingEntityType,
       referencingEntityName,
       similarNames

@@ -1,3 +1,4 @@
+import { logger } from "../../lib/logger";
 import type {
   ContentAttribute,
   ProductAttribute,
@@ -95,24 +96,14 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<PageTypeInput>("pageTypes", config.pageTypes, (t) => t.name, "page type name");
   checkDuplicates<CategoryInput>("categories", config.categories, (c) => c.slug, "category slug");
   checkDuplicates<ProductInput>("products", config.products, (p) => p.slug, "product slug");
-  checkDuplicates<MenuInput>(
-    "menus",
-    config.menus,
-    (m) => m.slug,
-    "menu slug"
-  );
+  checkDuplicates<MenuInput>("menus", config.menus, (m) => m.slug, "menu slug");
   checkDuplicates<CollectionInput>(
     "collections",
     config.collections,
     (c) => c.slug,
     "collection slug"
   );
-  checkDuplicates<ModelInput>(
-    "models",
-    config.models,
-    (m) => m.slug,
-    "model slug"
-  );
+  checkDuplicates<ModelInput>("models", config.models, (m) => m.slug, "model slug");
   checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
   checkDuplicates<ProductAttribute>(
     "productAttributes",
@@ -191,8 +182,7 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
   const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
   const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
 
-  if (productAttrNames.size === 0 && contentAttrNames.size === 0) return;
-
+  // Collect all attribute references from entity types
   const errors: Array<{ path: string; message: string }> = [];
 
   for (const pt of config.productTypes ?? []) {
@@ -240,58 +230,42 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
  * Collects all validation errors before throwing to give the user a complete picture.
  */
 export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
+  logger.debug("Running preflight validation", { filePath });
+
+  const validators = [
+    validateNoDuplicateIdentifiers,
+    validateNoCrossSectionDuplicates,
+    validateNoInlineAttributeDefinitions,
+    validateAttributeReferences,
+  ];
+
   const errors: ConfigurationValidationError[] = [];
 
-  try {
-    validateNoDuplicateIdentifiers(config, filePath);
-  } catch (error) {
-    if (error instanceof ConfigurationValidationError) {
-      errors.push(error);
-    } else {
-      throw error;
+  for (const validate of validators) {
+    try {
+      validate(config, filePath);
+    } catch (error) {
+      if (error instanceof ConfigurationValidationError) {
+        errors.push(error);
+      } else {
+        throw error;
+      }
     }
   }
 
-  try {
-    validateNoCrossSectionDuplicates(config, filePath);
-  } catch (error) {
-    if (error instanceof ConfigurationValidationError) {
-      errors.push(error);
-    } else {
-      throw error;
-    }
-  }
-
-  try {
-    validateNoInlineAttributeDefinitions(config, filePath);
-  } catch (error) {
-    if (error instanceof ConfigurationValidationError) {
-      errors.push(error);
-    } else {
-      throw error;
-    }
-  }
-
-  try {
-    validateAttributeReferences(config, filePath);
-  } catch (error) {
-    if (error instanceof ConfigurationValidationError) {
-      errors.push(error);
-    } else {
-      throw error;
-    }
+  if (errors.length === 0) {
+    logger.debug("Preflight validation passed");
+    return;
   }
 
   if (errors.length === 1) {
     throw errors[0];
   }
 
-  if (errors.length > 1) {
-    const allValidationErrors = errors.flatMap((e) => e.validationErrors);
-    throw new ConfigurationValidationError(
-      `Multiple validation errors found (${errors.length} checks failed)`,
-      filePath,
-      allValidationErrors
-    );
-  }
+  const allValidationErrors = errors.flatMap((e) => e.validationErrors);
+  throw new ConfigurationValidationError(
+    `Multiple validation errors found (${errors.length} checks failed)`,
+    filePath,
+    allValidationErrors
+  );
 }

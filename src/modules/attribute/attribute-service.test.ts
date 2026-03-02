@@ -865,7 +865,7 @@ describe("AttributeService", () => {
         const error = result.error as AttributeNotFoundError;
         expect(error.attributeName).toBe("Colr");
         expect(error.similarNames).toBeDefined();
-        expect(error.similarNames!.length).toBeGreaterThan(0);
+        expect(error.similarNames?.length).toBeGreaterThan(0);
         // "Color" (distance 1) and "Colour" (distance 2) should both be suggested
         expect(error.similarNames).toContain("Color");
         expect(error.similarNames).toContain("Colour");

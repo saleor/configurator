@@ -247,7 +247,7 @@ export class AttributeRepository implements AttributeOperations {
       );
     }
 
-    logger.info("Attribute updated", {
+    logger.debug("Attribute updated", {
       name: result.data.attributeUpdate.attribute.name,
       id,
     });

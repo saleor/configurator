@@ -325,6 +325,11 @@ export class ConfigurationService {
       }
     }
 
+    logger.debug("Global attributes mapped", {
+      productAttributeCount: productAttributes.length,
+      contentAttributeCount: contentAttributes.length,
+    });
+
     return { productAttributes, contentAttributes };
   }
 

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { AttributeCache } from "../../../modules/attribute/attribute-cache";
 import type { SaleorConfigurator } from "../../configurator";
+import { StageAggregateError } from "../errors";
 import {
+  attributesStage,
   categoriesStage,
   channelsStage,
   getAllStages,
@@ -274,6 +276,167 @@ describe("Deployment Stages", () => {
       expect(stages[13].name).toBe("Managing shipping zones");
       expect(stages[14].name).toBe("Preparing attribute choices");
       expect(stages[15].name).toBe("Managing products");
+    });
+  });
+
+  describe("attributesStage", () => {
+    const createAttributeContext = (
+      configOverrides: Record<string, unknown> = {},
+      summaryOverrides: Partial<DeploymentContext["summary"]> = {}
+    ): DeploymentContext => {
+      const mockAttributeService = {
+        repo: {
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
+        },
+        bootstrapAttributes: vi.fn().mockImplementation(({ attributeInputs }) =>
+          attributeInputs.map((a: { name: string }) => ({
+            id: `id-${a.name}`,
+            name: a.name,
+            type: "PRODUCT_TYPE" as const,
+            entityType: null,
+            inputType: "DROPDOWN" as const,
+            choices: null,
+          }))
+        ),
+        updateAttribute: vi.fn().mockResolvedValue(undefined),
+        bootstrapAttributesBulk: vi.fn().mockResolvedValue({ successful: [], failed: [] }),
+        updateAttributesBulk: vi.fn().mockResolvedValue({ successful: [], failed: [] }),
+      };
+
+      const mockConfigStorage = {
+        load: vi.fn().mockResolvedValue({
+          productAttributes: [],
+          contentAttributes: [],
+          ...configOverrides,
+        }),
+      };
+
+      const mockConfigurator = {
+        services: {
+          configStorage: mockConfigStorage,
+          attribute: mockAttributeService,
+        },
+      } as unknown as SaleorConfigurator;
+
+      return {
+        configurator: mockConfigurator,
+        args: {
+          url: "test",
+          token: "test",
+          config: "test.yml",
+          quiet: false,
+          ci: false,
+          verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
+          skipMedia: false,
+        },
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [{ entityType: "Attributes", entityName: "Color", operation: "CREATE" }],
+          ...summaryOverrides,
+        },
+        startTime: new Date(),
+        attributeCache: new AttributeCache(),
+      } as DeploymentContext;
+    };
+
+    it("processes productAttributes and contentAttributes, populating cache", async () => {
+      const context = createAttributeContext({
+        productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }] }],
+        contentAttributes: [{ name: "Author", inputType: "PLAIN_TEXT" }],
+      });
+
+      await attributesStage.execute(context);
+
+      const stats = context.attributeCache.getStats();
+      expect(stats.productAttributeCount).toBe(1);
+      expect(stats.contentAttributeCount).toBe(1);
+    });
+
+    it("handles empty config with no errors", async () => {
+      const context = createAttributeContext({
+        productAttributes: [],
+        contentAttributes: [],
+      });
+
+      await attributesStage.execute(context);
+
+      const stats = context.attributeCache.getStats();
+      expect(stats.totalCount).toBe(0);
+    });
+
+    it("populates cache even on partial failures (Task 1.4)", async () => {
+      const context = createAttributeContext({
+        productAttributes: [
+          { name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }] },
+          { name: "Size", inputType: "DROPDOWN", values: [{ name: "S" }] },
+        ],
+      });
+
+      // Make bootstrapAttributes succeed for first, fail for second
+      const attrService = context.configurator.services.attribute;
+      let callCount = 0;
+      vi.mocked(attrService.bootstrapAttributes).mockImplementation(async () => {
+        callCount++;
+        if (callCount === 2) {
+          throw new Error("API error for Size");
+        }
+        return [
+          {
+            id: "id-Color",
+            name: "Color",
+            type: "PRODUCT_TYPE" as const,
+            entityType: null,
+            inputType: "DROPDOWN" as const,
+            choices: null,
+          },
+        ];
+      });
+
+      await expect(attributesStage.execute(context)).rejects.toThrow(StageAggregateError);
+
+      // Cache should still have the successful attribute
+      const stats = context.attributeCache.getStats();
+      expect(stats.productAttributeCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it("throws StageAggregateError when all attributes fail", async () => {
+      const context = createAttributeContext({
+        productAttributes: [{ name: "Bad", inputType: "DROPDOWN", values: [{ name: "X" }] }],
+      });
+
+      vi.mocked(context.configurator.services.attribute.bootstrapAttributes).mockRejectedValue(
+        new Error("Total failure")
+      );
+
+      await expect(attributesStage.execute(context)).rejects.toThrow(StageAggregateError);
+    });
+
+    it("skip returns true when no attribute entity types in summary", () => {
+      const context = createAttributeContext(
+        {},
+        {
+          results: [{ entityType: "Products", entityName: "shoe", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(true);
+    });
+
+    it("skip returns false when attribute entity types in summary", () => {
+      const context = createAttributeContext(
+        {},
+        {
+          results: [{ entityType: "Attributes", entityName: "Color", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(false);
     });
   });
 });

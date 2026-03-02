@@ -76,9 +76,8 @@ export class PageTypeService {
     if (referencedAttributes.length === 0) return [];
 
     const referencedAttrNames = referencedAttributes.map((a) => a.attribute);
-    const unassignedNames = referencedAttrNames.filter(
-      (name) => !existingAttributeNames.includes(name)
-    );
+    const existingSet = new Set(existingAttributeNames);
+    const unassignedNames = referencedAttrNames.filter((name) => !existingSet.has(name));
     if (unassignedNames.length === 0) {
       logger.debug("All referenced content attributes are already assigned");
       return [];
@@ -179,7 +178,11 @@ export class PageTypeService {
         const toCreate = inlineInputs.filter((a) => !existingMap.has(a.name));
         const reused = inlineInputs
           .filter((a) => existingMap.has(a.name))
-          .map((a) => existingMap.get(a.name)!);
+          .map((a) => {
+            const existing = existingMap.get(a.name);
+            if (!existing) throw new Error(`Expected attribute "${a.name}" in existing map`);
+            return existing;
+          });
 
         let created: { id: string }[] = [];
         if (toCreate.length > 0) {

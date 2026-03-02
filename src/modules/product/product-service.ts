@@ -19,30 +19,26 @@ import type {
   ProductVariantWithChannelListings,
 } from "./repository";
 
+export type ProductServiceRefs = {
+  getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
+  getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+  getAttributeByNameFromCache?: (name: string) => Attribute | null;
+  getProductTypeIdByName?: (name: string) => Promise<string | null>;
+  getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
+};
+
 export class ProductService {
   private attributeResolver: AttributeResolver;
 
   constructor(
     private repository: ProductOperations,
-    refs?: {
-      getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-      getChannelIdBySlug?: (slug: string) => Promise<string | null>;
-      getAttributeByNameFromCache?: (name: string) => Attribute | null;
-      getProductTypeIdByName?: (name: string) => Promise<string | null>;
-      getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
-    }
+    refs?: ProductServiceRefs
   ) {
     this.attributeResolver = new AttributeResolver(repository, refs);
     this.refs = refs;
   }
 
-  private refs?: {
-    getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-    getChannelIdBySlug?: (slug: string) => Promise<string | null>;
-    getAttributeByNameFromCache?: (name: string) => Attribute | null;
-    getProductTypeIdByName?: (name: string) => Promise<string | null>;
-    getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
-  };
+  private refs?: ProductServiceRefs;
 
   // Deployment-scoped caches
   private attributeCache: Map<string, Attribute> = new Map(); // key: name lower
@@ -480,7 +476,6 @@ export class ProductService {
       logger.debug("Found existing product, updating", {
         id: existingProduct.id,
         name: existingProduct.name,
-        // slug: existingProduct.slug,
       });
 
       // Update existing product (note: productType cannot be changed after creation)

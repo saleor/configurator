@@ -1,3 +1,4 @@
+import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
 import {
   BulkOperationMessages,
@@ -29,6 +30,17 @@ import type {
 } from "../../modules/config/schema/schema";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 import { StageAggregateError } from "./errors";
+
+function toProductAttributeMeta(attr: AttributeMeta): ProductAttributeMeta {
+  return {
+    id: attr.id,
+    name: attr.name,
+    entityType: attr.entityType,
+    inputType: attr.inputType,
+    choices: attr.choices,
+  };
+}
+
 import type { DeploymentContext, DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
@@ -156,24 +168,15 @@ function toAttributeInputType(value: string | null | undefined): AttributeInputT
   return undefined;
 }
 
-/**
- * Process a batch of attributes (create/update) and return CachedAttribute results.
- * Returns the successfully processed attributes for caching.
- */
-async function processGlobalAttributes(
-  context: DeploymentContext,
+type AttributeFailure = { entity: string; error: Error };
+
+function validateAttributeInputs(
   attributes: Array<ProductAttribute | ContentAttribute>,
-  type: "PRODUCT_TYPE" | "PAGE_TYPE",
-  sectionName: string
-): Promise<{ cached: CachedAttribute[]; failures: Array<{ entity: string; error: Error }> }> {
-  if (attributes.length === 0) {
-    return { cached: [], failures: [] };
-  }
-
-  const service = context.configurator.services.attribute;
-  const failures: Array<{ entity: string; error: Error }> = [];
-
+  type: "PRODUCT_TYPE" | "PAGE_TYPE"
+): { fullAttributes: FullAttribute[]; failures: AttributeFailure[] } {
   const fullAttributes: FullAttribute[] = [];
+  const failures: AttributeFailure[] = [];
+
   for (const attr of attributes) {
     const result = fullAttributeSchema.safeParse({ ...attr, type });
     if (!result.success) {
@@ -187,7 +190,161 @@ async function processGlobalAttributes(
       fullAttributes.push(result.data);
     }
   }
+
+  return { fullAttributes, failures };
+}
+
+async function processAttributesSequentially(
+  context: DeploymentContext,
+  fullAttributes: FullAttribute[],
+  existingMap: Map<string, AttributeMeta>,
+  sectionName: string
+): Promise<{ cached: CachedAttribute[]; failures: AttributeFailure[] }> {
+  const service = context.configurator.services.attribute;
   const cached: CachedAttribute[] = [];
+  const failures: AttributeFailure[] = [];
+
+  logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(fullAttributes.length, sectionName));
+
+  const results = await Promise.allSettled(
+    fullAttributes.map(async (attr) => {
+      const existingAttr = existingMap.get(attr.name);
+      let result: AttributeMeta | undefined;
+
+      if (existingAttr) {
+        await service.updateAttribute(attr, existingAttr);
+        result = existingAttr;
+      } else {
+        const created = await service.bootstrapAttributes({ attributeInputs: [attr] });
+        result = created[0];
+      }
+
+      if (result?.id && result?.name) {
+        const resolvedInputType =
+          toAttributeInputType(result.inputType) ?? toAttributeInputType(attr.inputType);
+        return {
+          id: result.id,
+          name: result.name,
+          slug: toSlug(result.name),
+          inputType: resolvedInputType ?? attr.inputType,
+        } satisfies CachedAttribute;
+      }
+      return null;
+    })
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    const attr = fullAttributes[i];
+    const r = results[i];
+    if (r.status === "fulfilled" && r.value) {
+      cached.push(r.value);
+    } else if (r.status === "fulfilled" && r.value === null) {
+      failures.push({
+        entity: attr.name,
+        error: new Error(
+          `Attribute "${attr.name}" was processed but could not be verified (no ID returned from API)`
+        ),
+      });
+    } else if (r.status === "rejected") {
+      failures.push({
+        entity: attr.name,
+        error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)),
+      });
+    }
+  }
+
+  return { cached, failures };
+}
+
+async function processAttributesBulk(
+  context: DeploymentContext,
+  fullAttributes: FullAttribute[],
+  existingMap: Map<string, AttributeMeta>,
+  sectionName: string,
+  names: string[],
+  type: "PRODUCT_TYPE" | "PAGE_TYPE"
+): Promise<{ cached: CachedAttribute[]; failures: AttributeFailure[] }> {
+  const service = context.configurator.services.attribute;
+  const cached: CachedAttribute[] = [];
+  const failures: AttributeFailure[] = [];
+
+  logger.info(BulkOperationMessages.BULK_PROCESSING(fullAttributes.length, sectionName));
+
+  const toCreate = fullAttributes.filter((attr) => !existingMap.has(attr.name));
+  const toUpdate = fullAttributes
+    .filter((attr) => existingMap.has(attr.name))
+    .map((attr) => {
+      const existing = existingMap.get(attr.name);
+      if (!existing) throw new Error(`Expected attribute ${attr.name} in existing map`);
+      return { input: attr, existing };
+    });
+
+  if (toCreate.length > 0) {
+    logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
+    try {
+      const createResult = await service.bootstrapAttributesBulk(toCreate);
+      createResult.failed.forEach(({ input, errors }) => {
+        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+      });
+    } catch (error) {
+      failures.push({
+        entity: `bulk create (${toCreate.length} ${sectionName})`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  }
+
+  if (toUpdate.length > 0) {
+    logger.info(`Updating ${toUpdate.length} existing ${sectionName} via bulk mutation`);
+    try {
+      const updateResult = await service.updateAttributesBulk(toUpdate);
+      updateResult.failed.forEach(({ input, errors }) => {
+        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+      });
+    } catch (error) {
+      failures.push({
+        entity: `bulk update (${toUpdate.length} ${sectionName})`,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  }
+
+  const allFetched = await service.repo.getAttributesByNames({ names, type });
+  const failedNames = new Set(failures.map((f) => f.entity));
+  for (const attr of allFetched) {
+    if (attr.id && attr.name && attr.inputType && !failedNames.has(attr.name)) {
+      cached.push({
+        id: attr.id,
+        name: attr.name,
+        slug: toSlug(attr.name),
+        inputType: toAttributeInputType(attr.inputType) ?? attr.inputType,
+      });
+    }
+  }
+
+  return { cached, failures };
+}
+
+/**
+ * Process a batch of attributes (create/update) and return CachedAttribute results.
+ * Returns the successfully processed attributes for caching.
+ */
+async function processGlobalAttributes(
+  context: DeploymentContext,
+  attributes: Array<ProductAttribute | ContentAttribute>,
+  type: "PRODUCT_TYPE" | "PAGE_TYPE",
+  sectionName: string
+): Promise<{ cached: CachedAttribute[]; failures: AttributeFailure[] }> {
+  if (attributes.length === 0) {
+    return { cached: [], failures: [] };
+  }
+
+  const service = context.configurator.services.attribute;
+  const { fullAttributes, failures: validationFailures } = validateAttributeInputs(
+    attributes,
+    type
+  );
+
   const names = attributes.map((a) => a.name);
   const existing = await service.repo.getAttributesByNames({ names, type });
   const existingMap = new Map(
@@ -196,113 +353,12 @@ async function processGlobalAttributes(
       .map((a) => [a.name, a])
   );
 
-  if (fullAttributes.length <= BulkOperationThresholds.ATTRIBUTES) {
-    logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(fullAttributes.length, sectionName));
+  const { cached, failures: processingFailures } =
+    fullAttributes.length <= BulkOperationThresholds.ATTRIBUTES
+      ? await processAttributesSequentially(context, fullAttributes, existingMap, sectionName)
+      : await processAttributesBulk(context, fullAttributes, existingMap, sectionName, names, type);
 
-    const results = await Promise.allSettled(
-      fullAttributes.map(async (attr) => {
-        const existingAttr = existingMap.get(attr.name);
-        let result: AttributeMeta | undefined;
-
-        if (existingAttr) {
-          await service.updateAttribute(attr, existingAttr);
-          result = existingAttr;
-        } else {
-          await service.bootstrapAttributes({ attributeInputs: [attr] });
-          const fetched = await service.repo.getAttributesByNames({ names: [attr.name], type });
-          result = fetched[0];
-        }
-
-        if (result?.id && result?.name) {
-          return {
-            id: result.id,
-            name: result.name,
-            slug: toSlug(result.name),
-            inputType:
-              toAttributeInputType(result.inputType) ??
-              toAttributeInputType(attr.inputType) ??
-              attr.inputType,
-          } satisfies CachedAttribute;
-        }
-        return null;
-      })
-    );
-
-    for (let i = 0; i < results.length; i++) {
-      const r = results[i];
-      if (r.status === "fulfilled" && r.value) {
-        cached.push(r.value);
-      } else if (r.status === "fulfilled" && r.value === null) {
-        const attrName = fullAttributes[i]?.name ?? "unknown";
-        failures.push({
-          entity: attrName,
-          error: new Error(
-            `Attribute "${attrName}" was processed but could not be verified (no ID returned from API)`
-          ),
-        });
-      } else if (r.status === "rejected") {
-        failures.push({
-          entity: fullAttributes[i]?.name ?? "attribute",
-          error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)),
-        });
-      }
-    }
-  } else {
-    logger.info(BulkOperationMessages.BULK_PROCESSING(fullAttributes.length, sectionName));
-
-    const toCreate = fullAttributes.filter((attr) => !existingMap.has(attr.name));
-    const toUpdate = fullAttributes
-      .filter((attr) => existingMap.has(attr.name))
-      .map((attr) => {
-        const existing = existingMap.get(attr.name);
-        if (!existing) throw new Error(`Expected attribute ${attr.name} in existing map`);
-        return { input: attr, existing };
-      });
-
-    if (toCreate.length > 0) {
-      logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
-      try {
-        const createResult = await service.bootstrapAttributesBulk(toCreate);
-        createResult.failed.forEach(({ input, errors }) => {
-          failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
-        });
-      } catch (error) {
-        failures.push({
-          entity: `bulk create (${toCreate.length} ${sectionName})`,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-      }
-    }
-
-    if (toUpdate.length > 0) {
-      logger.info(`Updating ${toUpdate.length} existing ${sectionName} via bulk mutation`);
-      try {
-        const updateResult = await service.updateAttributesBulk(toUpdate);
-        updateResult.failed.forEach(({ input, errors }) => {
-          failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
-        });
-      } catch (error) {
-        failures.push({
-          entity: `bulk update (${toUpdate.length} ${sectionName})`,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-      }
-    }
-
-    const allFetched = await service.repo.getAttributesByNames({ names, type });
-    for (const attr of allFetched) {
-      if (attr.id && attr.name && attr.inputType && !failures.some((f) => f.entity === attr.name)) {
-        cached.push({
-          id: attr.id,
-          name: attr.name,
-          slug: toSlug(attr.name),
-          inputType: toAttributeInputType(attr.inputType) ?? attr.inputType,
-        });
-      }
-    }
-  }
-
-  return { cached, failures };
+  return { cached, failures: [...validationFailures, ...processingFailures] };
 }
 
 export const attributesStage: DeploymentStage = {
@@ -345,11 +401,12 @@ export const attributesStage: DeploymentStage = {
       }
 
       if (legacyAttributes.length > 0) {
-        logger.warn(
+        const deprecationMsg =
           `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
-            `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
-            `to generate the new format.`
-        );
+          `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
+          `to generate the new format.`;
+        logger.warn(deprecationMsg);
+        cliConsole.warn(deprecationMsg);
         logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
 
         const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
@@ -378,17 +435,17 @@ export const attributesStage: DeploymentStage = {
         }
       }
 
-      if (allFailures.length === 0) {
-        context.attributeCache.populateProductAttributes(productCached);
-        context.attributeCache.populateContentAttributes(contentCached);
+      context.attributeCache.populateProductAttributes(productCached);
+      context.attributeCache.populateContentAttributes(contentCached);
 
-        const stats = context.attributeCache.getStats();
-        logger.info(
-          `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
-        );
-      } else {
+      const stats = context.attributeCache.getStats();
+      logger.info(
+        `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
+      );
+
+      if (allFailures.length > 0) {
         logger.warn(
-          `Attribute cache not populated due to ${allFailures.length} failure(s) — deployment will halt`
+          `${allFailures.length} attribute(s) failed but ${productCached.length + contentCached.length} cached successfully`
         );
         throw new StageAggregateError(
           "Managing attributes",
@@ -460,6 +517,52 @@ export const channelsStage: DeploymentStage = {
   },
 };
 
+async function bootstrapEntityTypeStage(
+  context: DeploymentContext,
+  items: Array<{ name: string }>,
+  bootstrapOptions: {
+    attributeCache: typeof context.attributeCache;
+    referencingEntityType?: "pageTypes" | "modelTypes";
+  },
+  stageLabel: string
+): Promise<void> {
+  const results = await Promise.allSettled(
+    items.map((item) =>
+      context.configurator.services.pageType
+        .bootstrapPageType(item, bootstrapOptions)
+        .then(() => ({ name: item.name, success: true as const }))
+        .catch((error) => {
+          if (isTransientError(error)) {
+            throw error;
+          }
+          return {
+            name: item.name,
+            success: false as const,
+            error: error instanceof Error ? error : new Error(String(error)),
+          };
+        })
+    )
+  );
+
+  const successes = results
+    .filter(
+      (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
+        r.status === "fulfilled" && r.value.success === true
+    )
+    .map((r) => r.value.name);
+
+  const failures = results
+    .filter(
+      (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
+        r.status === "fulfilled" && r.value.success === false
+    )
+    .map((r) => ({ entity: r.value.name, error: r.value.error }));
+
+  if (failures.length > 0) {
+    throw new StageAggregateError(stageLabel, failures, successes);
+  }
+}
+
 export const pageTypesStage: DeploymentStage = {
   name: StageNames.PAGE_TYPES,
   async execute(context) {
@@ -470,43 +573,12 @@ export const pageTypesStage: DeploymentStage = {
         return;
       }
 
-      const bootstrapOptions = { attributeCache: context.attributeCache };
-
-      const results = await Promise.allSettled(
-        config.pageTypes.map((pageType) =>
-          context.configurator.services.pageType
-            .bootstrapPageType(pageType, bootstrapOptions)
-            .then(() => ({ name: pageType.name, success: true }))
-            .catch((error) => {
-              if (isTransientError(error)) {
-                throw error;
-              }
-              return {
-                name: pageType.name,
-                success: false,
-                error: error instanceof Error ? error : new Error(String(error)),
-              };
-            })
-        )
+      await bootstrapEntityTypeStage(
+        context,
+        config.pageTypes,
+        { attributeCache: context.attributeCache },
+        "Managing page types"
       );
-
-      const successes = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
-            r.status === "fulfilled" && r.value.success === true
-        )
-        .map((r) => r.value.name);
-
-      const failures = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
-            r.status === "fulfilled" && r.value.success === false
-        )
-        .map((r) => ({ entity: r.value.name, error: r.value.error }));
-
-      if (failures.length > 0) {
-        throw new StageAggregateError("Managing page types", failures, successes);
-      }
     } catch (error) {
       if (error instanceof StageAggregateError) {
         throw error;
@@ -534,46 +606,12 @@ export const modelTypesStage: DeploymentStage = {
         return;
       }
 
-      const bootstrapOptions = {
-        attributeCache: context.attributeCache,
-        referencingEntityType: "modelTypes" as const,
-      };
-
-      const results = await Promise.allSettled(
-        config.modelTypes.map((modelType) =>
-          context.configurator.services.pageType
-            .bootstrapPageType(modelType, bootstrapOptions)
-            .then(() => ({ name: modelType.name, success: true }))
-            .catch((error) => {
-              if (isTransientError(error)) {
-                throw error;
-              }
-              return {
-                name: modelType.name,
-                success: false,
-                error: error instanceof Error ? error : new Error(String(error)),
-              };
-            })
-        )
+      await bootstrapEntityTypeStage(
+        context,
+        config.modelTypes,
+        { attributeCache: context.attributeCache, referencingEntityType: "modelTypes" },
+        "Managing model types"
       );
-
-      const successes = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: true }> =>
-            r.status === "fulfilled" && r.value.success === true
-        )
-        .map((r) => r.value.name);
-
-      const failures = results
-        .filter(
-          (r): r is PromiseFulfilledResult<{ name: string; success: false; error: Error }> =>
-            r.status === "fulfilled" && r.value.success === false
-        )
-        .map((r) => ({ entity: r.value.name, error: r.value.error }));
-
-      if (failures.length > 0) {
-        throw new StageAggregateError("Managing model types", failures, successes);
-      }
     } catch (error) {
       if (error instanceof StageAggregateError) {
         throw error;
@@ -884,7 +922,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
       });
       if (refreshed.length > 0) {
         context.configurator.services.product.primeAttributeCache(
-          refreshed as unknown as ProductAttributeMeta[]
+          refreshed.map(toProductAttributeMeta)
         );
       }
 
