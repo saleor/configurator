@@ -37,8 +37,10 @@ const ENTITY_SECTIONS = [
 
 type EntityArrayKey = (typeof ENTITY_SECTIONS)[number];
 
+const ENTITY_SECTION_SET: ReadonlySet<string> = new Set(ENTITY_SECTIONS);
+
 export function isEntitySection(value: string): value is EntityArrayKey {
-  return (ENTITY_SECTIONS as readonly string[]).includes(value);
+  return ENTITY_SECTION_SET.has(value);
 }
 
 export interface DuplicateIssue {

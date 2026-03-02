@@ -131,7 +131,7 @@ export const productTypesStage: DeploymentStage = {
   },
 };
 
-const VALID_INPUT_TYPES = new Set<AttributeInputType>([
+const VALID_INPUT_TYPES: ReadonlySet<string> = new Set([
   "DROPDOWN",
   "MULTISELECT",
   "SWATCH",
@@ -146,7 +146,7 @@ const VALID_INPUT_TYPES = new Set<AttributeInputType>([
 ]);
 
 function isAttributeInputType(value: string): value is AttributeInputType {
-  return VALID_INPUT_TYPES.has(value as AttributeInputType);
+  return VALID_INPUT_TYPES.has(value);
 }
 
 function toAttributeInputType(value: string | null | undefined): AttributeInputType | undefined {
@@ -411,9 +411,13 @@ export const attributesStage: DeploymentStage = {
   },
 };
 
+function isChannelUpdate(channel: ChannelInput): channel is ChannelUpdateInput {
+  return "taxConfiguration" in channel;
+}
+
 function getChannelTaxConfig(channel: ChannelInput): TaxConfigurationInput | undefined {
-  if ("taxConfiguration" in channel) {
-    return (channel as ChannelUpdateInput).taxConfiguration;
+  if (isChannelUpdate(channel)) {
+    return channel.taxConfiguration;
   }
   return undefined;
 }
@@ -857,7 +861,9 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         if (!desired || desired.size === 0) continue;
 
         const existingChoices = new Set(
-          (attr.choices?.edges || []).map((e) => String(e?.node?.name ?? "").toLowerCase())
+          (attr.choices?.edges ?? [])
+            .filter((e): e is typeof e & { node: { name: string } } => Boolean(e?.node?.name))
+            .map((e) => e.node.name.toLowerCase())
         );
         const missing = Array.from(desired).filter((v) => !existingChoices.has(v.toLowerCase()));
         if (missing.length > 0) {
