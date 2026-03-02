@@ -31,16 +31,25 @@ import type {
   ChannelUpdateInput,
   TaxConfigurationInput,
 } from "../../modules/config/schema/schema";
-import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
+import type { ResolverAttribute } from "../../modules/attribute/attribute-cache";
 import { StageAggregateError } from "./errors";
 
-function toProductAttributeMeta(attr: AttributeMeta): ProductAttributeMeta {
+function hasChoiceFields(
+  edge: { node: { id: string; name: string | null; value: string | null } }
+): edge is { node: { id: string; name: string; value: string } } {
+  return edge.node.name !== null && edge.node.value !== null;
+}
+
+function toResolverAttribute(attr: AttributeMeta): ResolverAttribute | null {
+  if (!attr.name || !attr.inputType) return null;
   return {
     id: attr.id,
     name: attr.name,
     entityType: attr.entityType,
     inputType: attr.inputType,
-    choices: attr.choices,
+    choices: attr.choices
+      ? { edges: attr.choices.edges.filter(hasChoiceFields).map((e) => ({ node: e.node })) }
+      : null,
   };
 }
 
@@ -962,9 +971,12 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         type: "PRODUCT_TYPE",
       });
       if (refreshed.length > 0) {
-        context.configurator.services.product.primeAttributeCache(
-          refreshed.map(toProductAttributeMeta)
-        );
+        const resolverAttrs = refreshed
+          .map(toResolverAttribute)
+          .filter((a): a is ResolverAttribute => a !== null);
+        if (resolverAttrs.length > 0) {
+          context.configurator.services.product.primeAttributeCache(resolverAttrs);
+        }
       }
 
       logger.debug("Attribute choices preflight completed", {

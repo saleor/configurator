@@ -1,12 +1,12 @@
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { isTransientError } from "../../lib/utils/error-classification";
-import type { Attribute, ProductOperations } from "./repository";
+import type { ResolverAttribute } from "../attribute/attribute-cache";
+import type { ProductOperations } from "./repository";
 
 type ReferenceResolvers = {
   getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-  // Optional attribute cache accessor (shared attribute shape across repos)
-  getAttributeByNameFromCache?: (name: string) => Attribute | null;
+  getAttributeByNameFromCache?: (name: string) => ResolverAttribute | null;
 };
 
 // Constants
@@ -40,7 +40,7 @@ type AttributeValueInputPayload =
   | { id: string; file: string };
 
 interface AttributeHandlerContext {
-  attribute: Attribute;
+  attribute: ResolverAttribute;
   attributeName: string;
   repository: ProductOperations;
   refs?: ReferenceResolvers;
@@ -211,7 +211,7 @@ class DropdownAttributeHandler extends AttributeHandler {
     return { id: context.attribute.id, dropdown: resolved[0] };
   }
 
-  private findChoice(valueName: string, attribute: Attribute) {
+  private findChoice(valueName: string, attribute: ResolverAttribute) {
     return attribute.choices?.edges?.find(
       (edge) => edge.node.name === valueName || edge.node.value === valueName
     );
@@ -334,15 +334,10 @@ export class AttributeResolver {
     attributeValue: string | string[]
   ): Promise<AttributeValueInputPayload | null> {
     try {
-      // Fetch attribute metadata
-      const attribute = await this.fetchAttribute(attributeName);
-      if (!attribute) return null;
+      // Fetch attribute metadata from cache (throws if not found)
+      const attribute = this.fetchAttribute(attributeName);
 
       // Find appropriate handler
-      if (!attribute.inputType) {
-        logger.warn(`Attribute "${attributeName}" has no input type`);
-        return null;
-      }
 
       const handler = this.findHandler(attribute.inputType);
       if (!handler) {
@@ -369,19 +364,14 @@ export class AttributeResolver {
     }
   }
 
-  private async fetchAttribute(attributeName: string): Promise<Attribute | null> {
-    // Use cache accessor if provided
+  private fetchAttribute(attributeName: string): ResolverAttribute {
     const cached = this.refs?.getAttributeByNameFromCache?.(attributeName);
     if (cached) return cached;
 
-    const attribute = await this.repository.getAttributeByName(attributeName);
-
-    if (!attribute) {
-      logger.warn(`Attribute "${attributeName}" not found, skipping`);
-      return null;
-    }
-
-    return attribute;
+    throw new Error(
+      `Attribute "${attributeName}" not found in attribute cache. ` +
+        `Ensure the attribute is defined in productAttributes or contentAttributes config.`
+    );
   }
 
   private findHandler(inputType: string): AttributeHandler | null {

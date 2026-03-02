@@ -125,23 +125,11 @@ describe("ProductService Integration", () => {
         name: "Fiction",
       });
 
-      // Mock attributes
-      vi.mocked(mockRepository.getAttributeByName)
-        .mockResolvedValueOnce({
-          id: "attr-1",
-          name: "author",
-          inputType: "PLAIN_TEXT",
-          entityType: null,
-          choices: null,
-        })
-        .mockResolvedValueOnce({
-          id: "attr-2",
-          name: "isbn",
-          inputType: "PLAIN_TEXT",
-          entityType: null,
-          choices: null,
-        })
-        .mockResolvedValueOnce({
+      // Prime attribute cache
+      service.primeAttributeCache([
+        { id: "attr-1", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-2", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        {
           id: "attr-3",
           name: "format",
           inputType: "DROPDOWN",
@@ -152,7 +140,8 @@ describe("ProductService Integration", () => {
               { node: { id: "choice-2", name: "Paperback", value: "paperback" } },
             ],
           },
-        });
+        },
+      ]);
 
       // Mock channels
       vi.mocked(mockRepository.getChannelBySlug)
@@ -298,6 +287,24 @@ describe("ProductService Integration", () => {
         name: "Fiction",
       });
 
+      // Prime attribute cache for the product's attributes
+      service.primeAttributeCache([
+        { id: "attr-1", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-2", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        {
+          id: "attr-3",
+          name: "format",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: {
+            edges: [
+              { node: { id: "choice-1", name: "Hardcover", value: "hardcover" } },
+              { node: { id: "choice-2", name: "Paperback", value: "paperback" } },
+            ],
+          },
+        },
+      ]);
+
       // Mock product creation
       const mockProduct = {
         id: "prod-1",
@@ -369,9 +376,9 @@ describe("ProductService Integration", () => {
         name: "Electronics",
       });
 
-      // Mock dropdown attributes
-      vi.mocked(mockRepository.getAttributeByName)
-        .mockResolvedValueOnce({
+      // Prime attribute cache for dropdown and plain text attributes
+      service.primeAttributeCache([
+        {
           id: "attr-color",
           name: "color",
           inputType: "DROPDOWN",
@@ -382,8 +389,8 @@ describe("ProductService Integration", () => {
               { node: { id: "blue-id", name: "Blue", value: "blue" } },
             ],
           },
-        })
-        .mockResolvedValueOnce({
+        },
+        {
           id: "attr-size",
           name: "size",
           inputType: "DROPDOWN",
@@ -395,14 +402,9 @@ describe("ProductService Integration", () => {
               { node: { id: "large-id", name: "Large", value: "large" } },
             ],
           },
-        })
-        .mockResolvedValueOnce({
-          id: "attr-material",
-          name: "material",
-          inputType: "PLAIN_TEXT",
-          entityType: null,
-          choices: null,
-        });
+        },
+        { id: "attr-material", name: "material", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      ]);
 
       const mockProduct = {
         id: "prod-1",
@@ -587,14 +589,10 @@ describe("ProductService Integration", () => {
         name: "Accessories",
       });
 
-      // Mock reference attribute
-      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
-        id: "attr-ref",
-        name: "related-product",
-        inputType: "REFERENCE",
-        entityType: "PRODUCT",
-        choices: null,
-      });
+      // Prime attribute cache with reference attribute
+      service.primeAttributeCache([
+        { id: "attr-ref", name: "related-product", inputType: "REFERENCE", entityType: "PRODUCT", choices: null },
+      ]);
 
       const mockProduct = {
         id: "prod-1",
@@ -700,22 +698,14 @@ describe("ProductService Integration", () => {
         name: "Programming",
       });
 
-      // Mock attributes for both product and variant attributes
-      vi.mocked(mockRepository.getAttributeByName).mockImplementation(async (name) => {
-        const attributes = {
-          author: { id: "attr-author", name: "author", inputType: "PLAIN_TEXT", choices: null },
-          isbn: { id: "attr-isbn", name: "isbn", inputType: "PLAIN_TEXT", choices: null },
-          publisher: {
-            id: "attr-publisher",
-            name: "publisher",
-            inputType: "PLAIN_TEXT",
-            choices: null,
-          },
-          format: { id: "attr-format", name: "format", inputType: "PLAIN_TEXT", choices: null },
-          pages: { id: "attr-pages", name: "pages", inputType: "PLAIN_TEXT", choices: null },
-        };
-        return (attributes as any)[name] || null;
-      });
+      // Prime attribute cache for both product and variant attributes
+      service.primeAttributeCache([
+        { id: "attr-author", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-isbn", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-publisher", name: "publisher", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-format", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-pages", name: "pages", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      ]);
 
       // Mock channel
       vi.mocked(mockRepository.getChannelBySlug).mockResolvedValue({

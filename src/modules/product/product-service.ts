@@ -7,8 +7,8 @@ import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../co
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
 import { extractSourceUrlFromMetadata } from "./media-metadata";
+import type { ResolverAttribute } from "../attribute/attribute-cache";
 import type {
-  Attribute,
   Product,
   ProductCreateInput,
   ProductMedia,
@@ -22,7 +22,7 @@ import type {
 export type ProductServiceRefs = {
   getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
   getChannelIdBySlug?: (slug: string) => Promise<string | null>;
-  getAttributeByNameFromCache?: (name: string) => Attribute | null;
+  getAttributeByNameFromCache?: (name: string) => ResolverAttribute | null;
   getProductTypeIdByName?: (name: string) => Promise<string | null>;
   getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
 };
@@ -41,16 +41,16 @@ export class ProductService {
   private refs?: ProductServiceRefs;
 
   // Deployment-scoped caches
-  private attributeCache: Map<string, Attribute> = new Map(); // key: name lower
+  private attributeCache: Map<string, ResolverAttribute> = new Map(); // key: name lower
   private productTypeIdCache: Map<string, string> = new Map(); // key: name lower
   private categoryIdCache: Map<string, string> = new Map(); // key: slug lower
 
-  setAttributeCacheAccessor(getter: (name: string) => Attribute | null) {
+  setAttributeCacheAccessor(getter: (name: string) => ResolverAttribute | null) {
     this.refs = { ...(this.refs || {}), getAttributeByNameFromCache: getter };
     this.attributeResolver.setRefs(this.refs);
   }
 
-  primeAttributeCache(attributes: Attribute[]) {
+  primeAttributeCache(attributes: ResolverAttribute[]) {
     for (const attr of attributes) {
       const key = (attr.name || "").toLowerCase();
       if (key) this.attributeCache.set(key, attr);

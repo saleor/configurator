@@ -257,13 +257,9 @@ describe("ProductService", () => {
 
     it("should create new variants when SKUs don't exist", async () => {
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
-      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
-        id: "attr-1",
-        name: "format",
-        inputType: "PLAIN_TEXT",
-        entityType: null,
-        choices: null,
-      });
+      service.primeAttributeCache([
+        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      ]);
       vi.mocked(mockRepository.createProductVariant)
         .mockResolvedValueOnce({
           id: "var-1",
@@ -312,13 +308,9 @@ describe("ProductService", () => {
         weight: { value: 1.0 },
         channelListings: [],
       });
-      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
-        id: "attr-1",
-        name: "format",
-        inputType: "PLAIN_TEXT",
-        entityType: null,
-        choices: null,
-      });
+      service.primeAttributeCache([
+        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      ]);
       vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
         id: "existing-var-1",
         name: "Updated Hardcover",
@@ -361,13 +353,9 @@ describe("ProductService", () => {
         })
         .mockResolvedValueOnce(null); // New variant
 
-      vi.mocked(mockRepository.getAttributeByName).mockResolvedValue({
-        id: "attr-1",
-        name: "format",
-        inputType: "PLAIN_TEXT",
-        entityType: null,
-        choices: null,
-      });
+      service.primeAttributeCache([
+        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      ]);
 
       vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
         id: "existing-var-1",
