@@ -1669,5 +1669,45 @@ describe("ProductTypeService", () => {
         })
       ).rejects.toThrow(/Failed to resolve referenced attributes/);
     });
+
+    it("should throw wrong-section error when content attribute is referenced from product type", async () => {
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "4",
+        name: "Furniture",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          // API also returns nothing for PRODUCT_TYPE lookup
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
+        }
+      );
+
+      // Populate cache with "Author" in content section only (not product section)
+      const cache = new AttributeCache();
+      cache.populateContentAttributes([
+        { id: "content-author-id", name: "Author", slug: "author", inputType: "PLAIN_TEXT" },
+      ]);
+
+      // When/Then: referencing a content attribute from a product type should throw a
+      // detailed wrong-section error via validateAttributeReference
+      await expect(
+        service.bootstrapProductType(
+          {
+            name: "Furniture",
+            isShippingRequired: true,
+            productAttributes: [{ attribute: "Author" }],
+            variantAttributes: [],
+          },
+          { attributeCache: cache }
+        )
+      ).rejects.toThrow(/content attribute, not a product attribute/);
+    });
   });
 });

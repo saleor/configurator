@@ -10,7 +10,11 @@ import {
 import { processInChunks } from "../../lib/utils/chunked-processor";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { toSlug } from "../../lib/utils/string";
-import type { AttributeInputType, CachedAttribute } from "../../modules/attribute/attribute-cache";
+import {
+  ATTRIBUTE_INPUT_TYPES,
+  type AttributeInputType,
+  type CachedAttribute,
+} from "../../modules/attribute/attribute-cache";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
@@ -143,19 +147,7 @@ export const productTypesStage: DeploymentStage = {
   },
 };
 
-const VALID_INPUT_TYPES: ReadonlySet<string> = new Set([
-  "DROPDOWN",
-  "MULTISELECT",
-  "SWATCH",
-  "REFERENCE",
-  "PLAIN_TEXT",
-  "NUMERIC",
-  "DATE",
-  "BOOLEAN",
-  "RICH_TEXT",
-  "DATE_TIME",
-  "FILE",
-]);
+const VALID_INPUT_TYPES: ReadonlySet<string> = new Set(ATTRIBUTE_INPUT_TYPES);
 
 function isAttributeInputType(value: string): value is AttributeInputType {
   return VALID_INPUT_TYPES.has(value);
@@ -287,10 +279,10 @@ async function processAttributesBulk(
         failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
       });
     } catch (error) {
-      failures.push({
-        entity: `bulk create (${toCreate.length} ${sectionName})`,
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
+      const bulkError = error instanceof Error ? error : new Error(String(error));
+      for (const attr of toCreate) {
+        failures.push({ entity: attr.name, error: bulkError });
+      }
     }
   }
 
@@ -302,10 +294,10 @@ async function processAttributesBulk(
         failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
       });
     } catch (error) {
-      failures.push({
-        entity: `bulk update (${toUpdate.length} ${sectionName})`,
-        error: error instanceof Error ? error : new Error(String(error)),
-      });
+      const bulkError = error instanceof Error ? error : new Error(String(error));
+      for (const { input } of toUpdate) {
+        failures.push({ entity: input.name, error: bulkError });
+      }
     }
   }
 
@@ -325,10 +317,6 @@ async function processAttributesBulk(
   return { cached, failures };
 }
 
-/**
- * Process a batch of attributes (create/update) and return CachedAttribute results.
- * Returns the successfully processed attributes for caching.
- */
 async function processGlobalAttributes(
   context: DeploymentContext,
   attributes: Array<ProductAttribute | ContentAttribute>,

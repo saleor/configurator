@@ -285,9 +285,7 @@ export class AttributeService {
       fields: createAttributeUpdateInput(input, existing),
     }));
 
-    const actualUpdates = updateInputs.filter(
-      (update) => Object.keys(update.fields).length > 1
-    );
+    const actualUpdates = updateInputs.filter((update) => Object.keys(update.fields).length > 1);
 
     if (actualUpdates.length === 0) {
       logger.info("No attributes require updates");

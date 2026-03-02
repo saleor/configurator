@@ -12,19 +12,22 @@
  * - Provides clear error messages for wrong-type references
  */
 
-/** Known Saleor attribute input types */
-export type AttributeInputType =
-  | "DROPDOWN"
-  | "MULTISELECT"
-  | "SWATCH"
-  | "REFERENCE"
-  | "PLAIN_TEXT"
-  | "NUMERIC"
-  | "DATE"
-  | "BOOLEAN"
-  | "RICH_TEXT"
-  | "DATE_TIME"
-  | "FILE";
+/** Known Saleor attribute input types — single source of truth */
+export const ATTRIBUTE_INPUT_TYPES = [
+  "DROPDOWN",
+  "MULTISELECT",
+  "SWATCH",
+  "REFERENCE",
+  "PLAIN_TEXT",
+  "NUMERIC",
+  "DATE",
+  "BOOLEAN",
+  "RICH_TEXT",
+  "DATE_TIME",
+  "FILE",
+] as const;
+
+export type AttributeInputType = (typeof ATTRIBUTE_INPUT_TYPES)[number];
 
 export interface CachedAttribute {
   readonly id: string;

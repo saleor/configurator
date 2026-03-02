@@ -3,11 +3,17 @@ import type { ParsedSelectiveOptions } from "../../core/diff/types";
 import { logger } from "../../lib/logger";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
-import type { ContentAttribute, ProductAttribute } from "./schema/global-attributes.schema";
+import {
+  type ContentAttribute,
+  contentAttributeSchema,
+  type ProductAttribute,
+  productAttributeSchema,
+} from "./schema/global-attributes.schema";
 import type {
   CategoryInput,
   CategoryUpdateInput,
@@ -288,29 +294,40 @@ export class ConfigurationService {
       const node = edge?.node;
       if (!node?.name || !node?.inputType) continue;
 
-      const validTypes = ["PRODUCT_TYPE", "PAGE_TYPE"] as const;
-      const rawType = node.type as string;
-      if (!validTypes.includes(rawType as (typeof validTypes)[number])) {
+      const rawType: unknown = node.type;
+      if (!isSaleorAttributeType(rawType)) {
         logger.warn(
-          `Attribute "${node.name}" has unexpected type "${rawType}", defaulting to PRODUCT_TYPE`
+          `Attribute "${node.name}" has unexpected type "${String(rawType)}", defaulting to PRODUCT_TYPE`
         );
       }
-      const type = validTypes.includes(rawType as (typeof validTypes)[number])
-        ? (rawType as "PRODUCT_TYPE" | "PAGE_TYPE")
-        : "PRODUCT_TYPE";
+      const type: SaleorAttributeType = isSaleorAttributeType(rawType) ? rawType : "PRODUCT_TYPE";
 
       try {
-        const fullAttr = this.mapAttribute(node as RawAttribute, type);
+        const fullAttr = this.mapAttribute(toRawAttribute(node), type);
         const { type: _, ...attrWithoutType } = fullAttr;
 
         if (type === "PRODUCT_TYPE" && !seenProductNames.has(node.name)) {
           seenProductNames.add(node.name);
-          productAttributes.push(attrWithoutType as ProductAttribute);
+          const parsed = productAttributeSchema.safeParse(attrWithoutType);
+          if (parsed.success) {
+            productAttributes.push(parsed.data);
+          } else {
+            logger.warn(
+              `Skipping malformed product attribute "${node.name}": ${parsed.error.issues.map((i) => i.message).join(", ")}`
+            );
+          }
         } else if (type === "PRODUCT_TYPE" && seenProductNames.has(node.name)) {
           logger.warn(`Skipping duplicate product attribute "${node.name}" during introspect`);
         } else if (type === "PAGE_TYPE" && !seenContentNames.has(node.name)) {
           seenContentNames.add(node.name);
-          contentAttributes.push(attrWithoutType as ContentAttribute);
+          const parsed = contentAttributeSchema.safeParse(attrWithoutType);
+          if (parsed.success) {
+            contentAttributes.push(parsed.data);
+          } else {
+            logger.warn(
+              `Skipping malformed content attribute "${node.name}": ${parsed.error.issues.map((i) => i.message).join(", ")}`
+            );
+          }
         } else if (type === "PAGE_TYPE" && seenContentNames.has(node.name)) {
           logger.warn(`Skipping duplicate content attribute "${node.name}" during introspect`);
         }
@@ -338,7 +355,7 @@ export class ConfigurationService {
     return (
       rawPageTypes?.edges?.map((edge: PageTypeEdge) => ({
         name: edge.node.name,
-        slug: edge.node.name.toLowerCase().replace(/\s+/g, "-"),
+        slug: toSlug(edge.node.name),
         attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
       })) ?? []
     );
@@ -562,41 +579,31 @@ export class ConfigurationService {
   }
 
   private normalizeAttributeReferences(config: SaleorConfig): SaleorConfig {
-    const productTypesWithFullAttrs = config.productTypes as
-      | Array<{
-          name: string;
-          isShippingRequired?: boolean;
-          productAttributes?: FullAttribute[];
-          variantAttributes?: FullAttribute[];
-        }>
-      | undefined;
-
-    const pageTypesWithFullAttrs = config.pageTypes as
-      | Array<{
-          name: string;
-          attributes?: FullAttribute[];
-        }>
-      | undefined;
-
     return {
       ...config,
-      productTypes: productTypesWithFullAttrs?.map((productType) => ({
+      productTypes: config.productTypes?.map((productType) => ({
         ...productType,
         isShippingRequired: productType.isShippingRequired ?? false,
         productAttributes: this.convertAllToReferences(productType.productAttributes || []),
         variantAttributes: this.convertAllToReferences(productType.variantAttributes || []),
       })),
-      pageTypes: pageTypesWithFullAttrs?.map((pageType) => ({
-        ...pageType,
-        attributes: this.convertAllToReferences(pageType.attributes || []),
-      })),
+      pageTypes: config.pageTypes?.map((pageType) => {
+        if (!("attributes" in pageType)) return pageType;
+        return {
+          ...pageType,
+          attributes: this.convertAllToReferences(pageType.attributes),
+        };
+      }),
     };
   }
 
-  private convertAllToReferences(attributes: FullAttribute[]): AttributeInput[] {
+  private convertAllToReferences(attributes: AttributeInput[]): AttributeInput[] {
     return attributes.map((attr) => {
+      if ("attribute" in attr) {
+        return attr;
+      }
       const ref: AttributeInput = { attribute: attr.name };
-      if ("variantSelection" in attr && attr.variantSelection === true) {
+      if (attr.variantSelection === true) {
         return { ...ref, variantSelection: true };
       }
       return ref;
@@ -943,3 +950,25 @@ type RawAttribute = NonNullable<
 >[number] & {
   entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
 };
+
+type SaleorAttributeType = "PRODUCT_TYPE" | "PAGE_TYPE";
+
+function isSaleorAttributeType(value: unknown): value is SaleorAttributeType {
+  return value === "PRODUCT_TYPE" || value === "PAGE_TYPE";
+}
+
+function toRawAttribute(node: {
+  name?: string | null;
+  slug?: string | null;
+  inputType?: string | null;
+  entityType?: string | null;
+  choices?: { edges: Array<{ node: { name: string | null | undefined } }> } | null;
+}): RawAttribute {
+  return {
+    name: node.name ?? null,
+    slug: node.slug ?? null,
+    inputType: node.inputType ?? null,
+    entityType: (node.entityType as RawAttribute["entityType"]) ?? undefined,
+    choices: node.choices ?? null,
+  } as RawAttribute;
+}

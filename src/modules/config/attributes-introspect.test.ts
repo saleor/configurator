@@ -254,6 +254,140 @@ describe("ConfigurationService – attributes introspection", () => {
     expect(idxAttr).toBeLessThan(idxPT);
   });
 
+  it("introspected pageType attribute references are consistent with contentAttributes", async () => {
+    const raw = {
+      shop: {},
+      channels: [],
+      productTypes: {
+        edges: [
+          {
+            node: {
+              id: "pt1",
+              name: "T-Shirt",
+              isShippingRequired: true,
+              productAttributes: [
+                {
+                  id: "a1",
+                  name: "Brand",
+                  slug: "brand",
+                  inputType: "PLAIN_TEXT",
+                  entityType: null,
+                  choices: { edges: [] },
+                },
+              ],
+              assignedVariantAttributes: [],
+            },
+          },
+        ],
+      },
+      pageTypes: {
+        edges: [
+          {
+            node: {
+              id: "pgt1",
+              name: "Blog Post",
+              attributes: [
+                {
+                  id: "a2",
+                  name: "Author",
+                  slug: "author",
+                  inputType: "PLAIN_TEXT",
+                  entityType: null,
+                  choices: { edges: [] },
+                },
+                {
+                  id: "a3",
+                  name: "Tags",
+                  slug: "tags",
+                  inputType: "MULTISELECT",
+                  entityType: null,
+                  choices: { edges: [{ node: { name: "Tech" } }, { node: { name: "News" } }] },
+                },
+              ],
+            },
+          },
+        ],
+      },
+      categories: { edges: [] },
+      warehouses: { edges: [] },
+      shippingZones: { edges: [] },
+      taxClasses: { edges: [] },
+      collections: { edges: [] },
+      menus: { edges: [] },
+      pages: { edges: [] },
+      products: { edges: [] },
+      attributes: {
+        edges: [
+          {
+            node: {
+              id: "a1",
+              name: "Brand",
+              slug: "brand",
+              type: "PRODUCT_TYPE",
+              inputType: "PLAIN_TEXT",
+              entityType: null,
+              choices: { edges: [] },
+            },
+          },
+          {
+            node: {
+              id: "a2",
+              name: "Author",
+              slug: "author",
+              type: "PAGE_TYPE",
+              inputType: "PLAIN_TEXT",
+              entityType: null,
+              choices: { edges: [] },
+            },
+          },
+          {
+            node: {
+              id: "a3",
+              name: "Tags",
+              slug: "tags",
+              type: "PAGE_TYPE",
+              inputType: "MULTISELECT",
+              entityType: null,
+              choices: { edges: [{ node: { name: "Tech" } }, { node: { name: "News" } }] },
+            },
+          },
+        ],
+      },
+    } as unknown as RawSaleorConfig;
+
+    const svc = makeService(raw);
+    const cfg = await svc.retrieveWithoutSaving();
+
+    // contentAttributes should contain all attributes referenced by pageTypes
+    const contentAttrNames = new Set(cfg.contentAttributes?.map((a) => a.name) ?? []);
+
+    // pageTypes attributes are normalized to references { attribute: "Name" }
+    for (const pt of cfg.pageTypes ?? []) {
+      if (!("attributes" in pt)) continue;
+      for (const attr of pt.attributes) {
+        if ("attribute" in attr) {
+          expect(
+            contentAttrNames.has(attr.attribute),
+            `pageType "${pt.name}" references attribute "${attr.attribute}" not in contentAttributes`
+          ).toBe(true);
+        }
+      }
+    }
+
+    // Same for productAttributes ↔ productTypes
+    const productAttrNames = new Set(cfg.productAttributes?.map((a) => a.name) ?? []);
+    for (const pt of cfg.productTypes ?? []) {
+      for (const attr of pt.productAttributes ?? []) {
+        if ("attribute" in attr) {
+          expect(
+            productAttrNames.has(attr.attribute),
+            `productType "${pt.name}" references product attribute "${attr.attribute}" not in productAttributes`
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
   it("splits mixed attributes into correct sections", async () => {
     const raw = {
       shop: {},
