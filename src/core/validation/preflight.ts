@@ -96,8 +96,8 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<MenuInput>(
     "menus",
     config.menus,
-    (m) => (m as { slug?: string; name?: string }).slug ?? (m as { name?: string }).name,
-    "menu identifier"
+    (m) => m.slug,
+    "menu slug"
   );
   checkDuplicates<CollectionInput>(
     "collections",
@@ -108,8 +108,8 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<ModelInput>(
     "models",
     config.models,
-    (m) => (m as { slug?: string; name?: string }).slug ?? (m as { name?: string }).name,
-    "model identifier"
+    (m) => m.slug,
+    "model slug"
   );
   checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
   checkDuplicates<ProductAttribute>(

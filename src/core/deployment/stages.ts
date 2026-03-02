@@ -831,10 +831,11 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
       for (const p of productsToProcess) {
         if (!p.attributes) continue;
         for (const [name, raw] of Object.entries(p.attributes)) {
-          if (!valuesByAttr.has(name)) {
-            valuesByAttr.set(name, new Set<string>());
+          let set = valuesByAttr.get(name);
+          if (!set) {
+            set = new Set<string>();
+            valuesByAttr.set(name, set);
           }
-          const set = valuesByAttr.get(name)!;
           if (Array.isArray(raw)) raw.forEach((v) => set.add(String(v).trim()));
           else if (raw !== undefined && raw !== null) set.add(String(raw).trim());
         }
