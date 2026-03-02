@@ -12,7 +12,7 @@ const createAttributeMutation = graphql(`
         type
         inputType
         entityType
-        choices(first: 250) {
+        choices(first: 100) {
           edges {
             node {
               id
@@ -39,7 +39,7 @@ const updateAttributeMutation = graphql(`
         type
         inputType
         entityType
-        choices(first: 250) {
+        choices(first: 100) {
           edges {
             node {
               id
@@ -75,7 +75,7 @@ const attributeBulkCreateMutation = graphql(`
           type
           inputType
           entityType
-          choices(first: 250) {
+          choices(first: 100) {
             edges {
               node {
                 id
@@ -118,7 +118,7 @@ const attributeBulkUpdateMutation = graphql(`
           type
           inputType
           entityType
-          choices(first: 250) {
+          choices(first: 100) {
             edges {
               node {
                 id
@@ -182,7 +182,7 @@ const getAttributesByNamesQuery = graphql(`
           type
           inputType
           entityType
-          choices(first: 250) {
+          choices(first: 100) {
             edges {
               node {
                 id

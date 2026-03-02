@@ -417,7 +417,18 @@ describe("Deployment Stages", () => {
       await expect(attributesStage.execute(context)).rejects.toThrow(StageAggregateError);
     });
 
-    it("skip returns true when no attribute entity types in summary", () => {
+    it("skip returns true when no attribute or downstream entity types in summary", () => {
+      const context = createAttributeContext(
+        {},
+        {
+          results: [{ entityType: "Channels", entityName: "default", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(true);
+    });
+
+    it("skip returns false when Products in summary (transitive dependency)", () => {
       const context = createAttributeContext(
         {},
         {
@@ -425,7 +436,29 @@ describe("Deployment Stages", () => {
         }
       );
 
-      expect(attributesStage.skip?.(context)).toBe(true);
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("skip returns false when Models in summary (transitive dependency)", () => {
+      const context = createAttributeContext(
+        {},
+        {
+          results: [{ entityType: "Models", entityName: "blog-post", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("skip returns false when Product Types in summary (direct dependency)", () => {
+      const context = createAttributeContext(
+        {},
+        {
+          results: [{ entityType: "Product Types", entityName: "Book", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(false);
     });
 
     it("skip returns false when attribute entity types in summary", () => {
@@ -437,6 +470,42 @@ describe("Deployment Stages", () => {
       );
 
       expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("populates cache when only Products changes exist (no attribute changes)", async () => {
+      const context = createAttributeContext(
+        {
+          productAttributes: [{ name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }] }],
+        },
+        {
+          results: [{ entityType: "Products", entityName: "shoe", operation: "CREATE" }],
+        }
+      );
+
+      // Verify the stage would NOT be skipped
+      expect(attributesStage.skip?.(context)).toBe(false);
+
+      // Execute and verify the cache is actually populated
+      await attributesStage.execute(context);
+      const stats = context.attributeCache.getStats();
+      expect(stats.productAttributeCount).toBe(1);
+    });
+
+    it("populates cache when only Models changes exist (no attribute changes)", async () => {
+      const context = createAttributeContext(
+        {
+          contentAttributes: [{ name: "Author", inputType: "PLAIN_TEXT" }],
+        },
+        {
+          results: [{ entityType: "Models", entityName: "blog-post", operation: "CREATE" }],
+        }
+      );
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+
+      await attributesStage.execute(context);
+      const stats = context.attributeCache.getStats();
+      expect(stats.contentAttributeCount).toBe(1);
     });
   });
 });

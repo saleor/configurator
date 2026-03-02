@@ -482,7 +482,13 @@ export const attributesStage: DeploymentStage = {
       return false;
     }
 
-    const downstreamEntityTypes = ["Product Types", "Page Types", "Model Types"];
+    const downstreamEntityTypes = [
+      "Product Types",
+      "Page Types",
+      "Model Types",
+      "Products",
+      "Models",
+    ];
     const hasDownstreamChanges = context.summary.results.some((r) =>
       downstreamEntityTypes.includes(r.entityType)
     );

@@ -3,13 +3,18 @@ import { describe, expect, it } from "vitest";
 import { AttributeRepository } from "./repository";
 
 type MockQueryHandler = (operationName: string, variables: Record<string, unknown>) => unknown;
+type DocumentCapturingMockClient = Client & { capturedDocuments: TypedDocumentNode[] };
 
 function createMockClient(handlers: {
   query?: MockQueryHandler;
   mutation?: MockQueryHandler;
-}): Client {
+}): DocumentCapturingMockClient {
+  const capturedDocuments: TypedDocumentNode[] = [];
+
   return {
+    capturedDocuments,
     query: async (document: TypedDocumentNode, variables: Record<string, unknown>) => {
+      capturedDocuments.push(document);
       const opDef = document.definitions.find(
         (d: { kind: string }) => d.kind === "OperationDefinition"
       ) as { name?: { value: string } } | undefined;
@@ -17,6 +22,7 @@ function createMockClient(handlers: {
       return handlers.query?.(name, variables) ?? { data: {} };
     },
     mutation: async (document: TypedDocumentNode, variables: Record<string, unknown>) => {
+      capturedDocuments.push(document);
       const opDef = document.definitions.find(
         (d: { kind: string }) => d.kind === "OperationDefinition"
       ) as { name?: { value: string } } | undefined;
@@ -26,7 +32,7 @@ function createMockClient(handlers: {
     subscribe: () => {
       throw new Error("Not implemented");
     },
-  } as unknown as Client;
+  } as unknown as DocumentCapturingMockClient;
 }
 
 function makeAttributeNode(id: string, name: string) {
@@ -248,6 +254,106 @@ describe("AttributeRepository", () => {
       await expect(
         repo.getAttributesByNames({ names: ["Brand"], type: "PRODUCT_TYPE" })
       ).rejects.toThrow(/Network error while fetching attributes by names/);
+    });
+  });
+
+  describe("choices(first) limit compliance", () => {
+    // Saleor enforces max first: 100 on the choices connection.
+    // Exceeding it causes "Requesting N records exceeds the first limit of 100" errors.
+    // These tests verify the actual GraphQL documents sent to the client at runtime.
+
+    type ASTNode = {
+      kind: string;
+      name?: { value: string };
+      arguments?: Array<{
+        name: { value: string };
+        value: { kind: string; value: string };
+      }>;
+      selectionSet?: { selections: ASTNode[] };
+      definitions?: ASTNode[];
+    };
+
+    function findChoicesFirstValues(node: ASTNode): number[] {
+      const values: number[] = [];
+      if (node.kind === "Field" && node.name?.value === "choices") {
+        const firstArg = node.arguments?.find((a) => a.name.value === "first");
+        if (firstArg?.value.kind === "IntValue") {
+          values.push(parseInt(firstArg.value.value, 10));
+        }
+      }
+      if (node.selectionSet) {
+        for (const child of node.selectionSet.selections) {
+          values.push(...findChoicesFirstValues(child));
+        }
+      }
+      if (node.definitions) {
+        for (const def of node.definitions) {
+          values.push(...findChoicesFirstValues(def));
+        }
+      }
+      return values;
+    }
+
+    it("getAttributesByNames query requests choices(first: 100)", async () => {
+      const client = createMockClient({
+        query: () => makePage([makeAttributeNode("attr-1", "Brand")], false, null),
+      });
+
+      const repo = new AttributeRepository(client);
+      await repo.getAttributesByNames({ names: ["Brand"], type: "PRODUCT_TYPE" });
+
+      expect(client.capturedDocuments).toHaveLength(1);
+      const limits = findChoicesFirstValues(client.capturedDocuments[0] as unknown as ASTNode);
+      expect(limits.length).toBeGreaterThan(0);
+      for (const limit of limits) {
+        expect(limit).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it("createAttribute mutation requests choices(first: 100)", async () => {
+      const client = createMockClient({
+        mutation: () => ({
+          data: {
+            attributeCreate: {
+              attribute: makeAttributeNode("attr-1", "Brand"),
+              errors: [],
+            },
+          },
+        }),
+      });
+
+      const repo = new AttributeRepository(client);
+      await repo.createAttribute({ name: "Brand", type: "PRODUCT_TYPE" });
+
+      expect(client.capturedDocuments).toHaveLength(1);
+      const limits = findChoicesFirstValues(client.capturedDocuments[0] as unknown as ASTNode);
+      expect(limits.length).toBeGreaterThan(0);
+      for (const limit of limits) {
+        expect(limit).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it("updateAttribute mutation requests choices(first: 100)", async () => {
+      const client = createMockClient({
+        mutation: () => ({
+          data: {
+            attributeUpdate: {
+              attribute: makeAttributeNode("attr-1", "Brand"),
+              errors: [],
+            },
+          },
+        }),
+      });
+
+      const repo = new AttributeRepository(client);
+      await repo.updateAttribute("attr-1", { name: "Brand" });
+
+      expect(client.capturedDocuments).toHaveLength(1);
+      const limits = findChoicesFirstValues(client.capturedDocuments[0] as unknown as ASTNode);
+      expect(limits.length).toBeGreaterThan(0);
+      for (const limit of limits) {
+        expect(limit).toBeLessThanOrEqual(100);
+      }
     });
   });
 });
