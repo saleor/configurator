@@ -19,7 +19,6 @@ export type EntityType =
   | "Warehouses"
   | "TaxClasses"
   | "Shipping Zones"
-  | "Attributes"
   | "Product Attributes"
   | "Content Attributes";
 
@@ -103,7 +102,6 @@ export type ConfigurationSection =
   | "menus"
   | "models"
   | "products"
-  | "attributes"
   | "productAttributes"
   | "contentAttributes"
   | "warehouses"

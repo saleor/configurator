@@ -1,4 +1,3 @@
-import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
 import {
   BulkOperationMessages,
@@ -356,7 +355,6 @@ export const attributesStage: DeploymentStage = {
       const config = await context.configurator.services.configStorage.load();
       const productAttributes = config.productAttributes ?? [];
       const contentAttributes = config.contentAttributes ?? [];
-      const legacyAttributes = config.attributes ?? [];
 
       const allFailures: Array<{ entity: string; error: Error }> = [];
       const productCached: CachedAttribute[] = [];
@@ -388,41 +386,6 @@ export const attributesStage: DeploymentStage = {
         logger.debug(`Processed ${cached.length} content attributes`);
       }
 
-      if (legacyAttributes.length > 0) {
-        const deprecationMsg =
-          `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
-          `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
-          `to generate the new format.`;
-        logger.warn(deprecationMsg);
-        cliConsole.warn(deprecationMsg);
-        logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
-
-        const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
-        const pageType = legacyAttributes.filter((a) => a.type === "PAGE_TYPE");
-
-        if (productType.length > 0) {
-          const { cached, failures } = await processGlobalAttributes(
-            context,
-            productType,
-            "PRODUCT_TYPE",
-            "legacy product attributes"
-          );
-          productCached.push(...cached);
-          allFailures.push(...failures);
-        }
-
-        if (pageType.length > 0) {
-          const { cached, failures } = await processGlobalAttributes(
-            context,
-            pageType,
-            "PAGE_TYPE",
-            "legacy content attributes"
-          );
-          contentCached.push(...cached);
-          allFailures.push(...failures);
-        }
-      }
-
       context.attributeCache.populateProductAttributes(productCached);
       context.attributeCache.populateContentAttributes(contentCached);
 
@@ -438,7 +401,7 @@ export const attributesStage: DeploymentStage = {
         throw new StageAggregateError(
           "Managing attributes",
           allFailures,
-          [...productAttributes, ...contentAttributes, ...legacyAttributes].map((a) => a.name)
+          [...productAttributes, ...contentAttributes].map((a) => a.name)
         );
       }
     } catch (error) {
@@ -451,7 +414,7 @@ export const attributesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    const attributeEntityTypes = ["Attributes", "Product Attributes", "Content Attributes"];
+    const attributeEntityTypes = ["Product Attributes", "Content Attributes"];
     return context.summary.results.every((r) => !attributeEntityTypes.includes(r.entityType));
   },
 };

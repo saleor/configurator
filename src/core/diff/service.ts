@@ -298,7 +298,6 @@ export class DiffService {
     return new Map([
       ["shop", new ShopComparator() as EntityComparator],
       ["channels", new ChannelComparator() as EntityComparator],
-      ["attributes", new AttributesComparator() as EntityComparator],
       ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
       ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
@@ -383,7 +382,6 @@ export class DiffService {
     // Entity array comparisons
     const entityTypes = [
       "channels",
-      "attributes",
       "productAttributes",
       "contentAttributes",
       "productTypes",
@@ -401,15 +399,6 @@ export class DiffService {
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
-        // Skip legacy "attributes" comparison when new global sections exist
-        if (
-          entityType === "attributes" &&
-          ((localConfig.productAttributes?.length ?? 0) > 0 ||
-            (localConfig.contentAttributes?.length ?? 0) > 0)
-        ) {
-          continue;
-        }
-
         comparisons.push(
           this.performComparison(
             entityType,
@@ -453,7 +442,6 @@ export class DiffService {
     // Entity array comparisons
     const entityTypeMappings: Record<string, ConfigurationSection> = {
       channels: "channels",
-      attributes: "attributes",
       productAttributes: "productAttributes",
       contentAttributes: "contentAttributes",
       productTypes: "productTypes",

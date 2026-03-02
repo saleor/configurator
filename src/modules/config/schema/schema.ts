@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   attributeInputSchema,
-  fullAttributeSchema,
   referencedAttributeSchema,
   simpleAttributeSchema,
 } from "./attribute.schema";
@@ -953,12 +952,6 @@ export const configSchema = z
       .optional()
       .describe(
         "Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs"
-      ),
-    attributes: z
-      .array(fullAttributeSchema)
-      .optional()
-      .describe(
-        "Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment"
       ),
   })
   .describe(

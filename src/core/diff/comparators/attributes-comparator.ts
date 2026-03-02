@@ -11,7 +11,7 @@ export class AttributesComparator extends BaseEntityComparator<
 > {
   protected readonly entityType: EntityType;
 
-  constructor(entityType: EntityType = "Attributes") {
+  constructor(entityType: EntityType = "Product Attributes") {
     super();
     this.entityType = entityType;
   }

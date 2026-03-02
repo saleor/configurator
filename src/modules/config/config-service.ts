@@ -105,7 +105,6 @@ export class ConfigurationService {
     push("products");
     push("models");
     push("menus");
-    push("attributes");
 
     for (const key of Object.keys(configRecord)) {
       if (!(key in orderedRecord)) {

@@ -120,10 +120,10 @@ describe("AttributesComparator with product and content attributes", () => {
     });
   });
 
-  describe("Default Attributes Comparator (backward compatibility)", () => {
+  describe("Default Attributes Comparator", () => {
     const comparator = new AttributesComparator();
 
-    it("uses 'Attributes' as default entity type", () => {
+    it("uses 'Product Attributes' as default entity type", () => {
       const local: FullAttribute[] = [
         { name: "Test", inputType: "PLAIN_TEXT", type: "PRODUCT_TYPE" },
       ];
@@ -131,7 +131,7 @@ describe("AttributesComparator with product and content attributes", () => {
       const results = comparator.compare(local, remote);
 
       expect(results.length).toBe(1);
-      expect(results[0].entityType).toBe("Attributes");
+      expect(results[0].entityType).toBe("Product Attributes");
     });
   });
 });

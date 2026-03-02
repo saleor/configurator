@@ -337,7 +337,7 @@ describe("Deployment Stages", () => {
           creates: 1,
           updates: 0,
           deletes: 0,
-          results: [{ entityType: "Attributes", entityName: "Color", operation: "CREATE" }],
+          results: [{ entityType: "Product Attributes", entityName: "Color", operation: "CREATE" }],
           ...summaryOverrides,
         },
         startTime: new Date(),
@@ -432,7 +432,7 @@ describe("Deployment Stages", () => {
       const context = createAttributeContext(
         {},
         {
-          results: [{ entityType: "Attributes", entityName: "Color", operation: "CREATE" }],
+          results: [{ entityType: "Product Attributes", entityName: "Color", operation: "CREATE" }],
         }
       );
 
