@@ -66,7 +66,7 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     for (const item of arr) {
       const id = getId(item);
       if (!id) continue;
-      const count = seen.get(id) || 0;
+      const count = seen.get(id) ?? 0;
       seen.set(id, count + 1);
     }
     for (const [id, count] of seen) {
@@ -93,11 +93,10 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<PageTypeInput>("pageTypes", config.pageTypes, (t) => t.name, "page type name");
   checkDuplicates<CategoryInput>("categories", config.categories, (c) => c.slug, "category slug");
   checkDuplicates<ProductInput>("products", config.products, (p) => p.slug, "product slug");
-  // Optional others
   checkDuplicates<MenuInput>(
     "menus",
     config.menus,
-    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
+    (m) => (m as { slug?: string; name?: string }).slug ?? (m as { name?: string }).name,
     "menu identifier"
   );
   checkDuplicates<CollectionInput>(
@@ -109,7 +108,7 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<ModelInput>(
     "models",
     config.models,
-    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
+    (m) => (m as { slug?: string; name?: string }).slug ?? (m as { name?: string }).name,
     "model identifier"
   );
   checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
@@ -150,7 +149,6 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
   const errors = validateNoInlineDefinitions(config);
   if (errors.length === 0) return;
 
-  // Throw a validation error to halt deployment — let the caller handle presentation
   throw new ConfigurationValidationError(
     "Inline attribute definitions are no longer supported",
     filePath,
@@ -191,12 +189,10 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
   const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
   const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
 
-  // Skip validation if no global sections are defined (legacy mode)
   if (productAttrNames.size === 0 && contentAttrNames.size === 0) return;
 
   const errors: Array<{ path: string; message: string }> = [];
 
-  // Check productTypes -> productAttributes
   for (const pt of config.productTypes ?? []) {
     for (const ref of [...(pt.productAttributes ?? []), ...(pt.variantAttributes ?? [])]) {
       if ("attribute" in ref && !productAttrNames.has(ref.attribute)) {
@@ -208,7 +204,6 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
     }
   }
 
-  // Check pageTypes -> contentAttributes
   for (const pt of config.pageTypes ?? []) {
     if ("attributes" in pt) {
       for (const ref of pt.attributes ?? []) {
@@ -222,7 +217,6 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
     }
   }
 
-  // Check modelTypes -> contentAttributes
   for (const mt of config.modelTypes ?? []) {
     for (const ref of mt.attributes ?? []) {
       if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
@@ -246,7 +240,6 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
 export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
   const errors: ConfigurationValidationError[] = [];
 
-  // Check for duplicate identifiers (including within-section attribute duplicates)
   try {
     validateNoDuplicateIdentifiers(config, filePath);
   } catch (error) {
@@ -257,7 +250,6 @@ export function runPreflightValidation(config: SaleorConfig, filePath: string): 
     }
   }
 
-  // Check for cross-section attribute duplicates
   try {
     validateNoCrossSectionDuplicates(config, filePath);
   } catch (error) {
@@ -268,7 +260,6 @@ export function runPreflightValidation(config: SaleorConfig, filePath: string): 
     }
   }
 
-  // Check for inline attribute definitions (migration validation)
   try {
     validateNoInlineAttributeDefinitions(config, filePath);
   } catch (error) {
@@ -279,7 +270,6 @@ export function runPreflightValidation(config: SaleorConfig, filePath: string): 
     }
   }
 
-  // Check that all attribute references point to existing global attributes
   try {
     validateAttributeReferences(config, filePath);
   } catch (error) {

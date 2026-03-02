@@ -25,7 +25,6 @@ import type {
 import type {
   ChannelInput,
   ChannelUpdateInput,
-  SaleorConfig,
   TaxConfigurationInput,
 } from "../../modules/config/schema/schema";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
@@ -36,7 +35,6 @@ export const validationStage: DeploymentStage = {
   name: StageNames.VALIDATION,
   async execute(context) {
     try {
-      // Load the configuration to validate it
       await context.configurator.services.configStorage.load();
     } catch (error) {
       throw new Error(
@@ -81,13 +79,11 @@ export const productTypesStage: DeploymentStage = {
         return;
       }
 
-      // Pass attribute cache to ProductTypeService for fast reference resolution
       const bootstrapOptions = { attributeCache: context.attributeCache };
 
       const { successes: processedSuccesses, failures: processedFailures } = await processInChunks(
         config.productTypes,
         async (chunk) => {
-          // Process each product type in the chunk
           return Promise.all(
             chunk.map((productType) =>
               context.configurator.services.productType.bootstrapProductType(
@@ -126,9 +122,6 @@ export const productTypesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    // Product Types stage should run if:
-    // 1. Product Types have changes, OR
-    // 2. Products have changes (since products depend on product types)
     const hasProductTypeChanges = context.summary.results.some(
       (r) => r.entityType === "Product Types"
     );
@@ -152,9 +145,13 @@ const VALID_INPUT_TYPES = new Set<AttributeInputType>([
   "FILE",
 ]);
 
+function isAttributeInputType(value: string): value is AttributeInputType {
+  return VALID_INPUT_TYPES.has(value as AttributeInputType);
+}
+
 function toAttributeInputType(value: string | null | undefined): AttributeInputType | undefined {
-  if (value && VALID_INPUT_TYPES.has(value as AttributeInputType)) {
-    return value as AttributeInputType;
+  if (value && isAttributeInputType(value)) {
+    return value;
   }
   return undefined;
 }
@@ -191,8 +188,6 @@ async function processGlobalAttributes(
     }
   }
   const cached: CachedAttribute[] = [];
-
-  // Fetch existing attributes
   const names = attributes.map((a) => a.name);
   const existing = await service.repo.getAttributesByNames({ names, type });
   const existingMap = new Map(
@@ -202,7 +197,6 @@ async function processGlobalAttributes(
   );
 
   if (fullAttributes.length <= BulkOperationThresholds.ATTRIBUTES) {
-    // Sequential processing for small configs
     logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(fullAttributes.length, sectionName));
 
     const results = await Promise.allSettled(
@@ -215,7 +209,6 @@ async function processGlobalAttributes(
           result = existingAttr;
         } else {
           await service.bootstrapAttributes({ attributeInputs: [attr] });
-          // Fetch the created attribute to get its ID
           const fetched = await service.repo.getAttributesByNames({ names: [attr.name], type });
           result = fetched[0];
         }
@@ -255,7 +248,6 @@ async function processGlobalAttributes(
       }
     }
   } else {
-    // Bulk processing for large configs
     logger.info(BulkOperationMessages.BULK_PROCESSING(fullAttributes.length, sectionName));
 
     const toCreate = fullAttributes.filter((attr) => !existingMap.has(attr.name));
@@ -297,7 +289,6 @@ async function processGlobalAttributes(
       }
     }
 
-    // Fetch all attributes to cache
     const allFetched = await service.repo.getAttributesByNames({ names, type });
     for (const attr of allFetched) {
       if (attr.id && attr.name && attr.inputType && !failures.some((f) => f.entity === attr.name)) {
@@ -318,7 +309,7 @@ export const attributesStage: DeploymentStage = {
   name: StageNames.ATTRIBUTES,
   async execute(context) {
     try {
-      const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
+      const config = await context.configurator.services.configStorage.load();
       const productAttributes = config.productAttributes ?? [];
       const contentAttributes = config.contentAttributes ?? [];
       const legacyAttributes = config.attributes ?? [];
@@ -327,7 +318,6 @@ export const attributesStage: DeploymentStage = {
       const productCached: CachedAttribute[] = [];
       const contentCached: CachedAttribute[] = [];
 
-      // 1. Process productAttributes section (PRODUCT_TYPE)
       if (productAttributes.length > 0) {
         logger.info(`Processing ${productAttributes.length} product attributes`);
         const { cached, failures } = await processGlobalAttributes(
@@ -341,7 +331,6 @@ export const attributesStage: DeploymentStage = {
         logger.debug(`Processed ${cached.length} product attributes`);
       }
 
-      // 2. Process contentAttributes section (PAGE_TYPE)
       if (contentAttributes.length > 0) {
         logger.info(`Processing ${contentAttributes.length} content attributes`);
         const { cached, failures } = await processGlobalAttributes(
@@ -355,7 +344,6 @@ export const attributesStage: DeploymentStage = {
         logger.debug(`Processed ${cached.length} content attributes`);
       }
 
-      // 3. Process legacy attributes section (for backward compatibility)
       if (legacyAttributes.length > 0) {
         logger.warn(
           `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
@@ -364,7 +352,6 @@ export const attributesStage: DeploymentStage = {
         );
         logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
 
-        // Group by type
         const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
         const pageType = legacyAttributes.filter((a) => a.type === "PAGE_TYPE");
 
@@ -391,7 +378,6 @@ export const attributesStage: DeploymentStage = {
         }
       }
 
-      // Only populate cache if there were no failures to ensure coherence.
       if (allFailures.length === 0) {
         context.attributeCache.populateProductAttributes(productCached);
         context.attributeCache.populateContentAttributes(contentCached);
@@ -420,11 +406,17 @@ export const attributesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    // Check for any attribute-related changes across all attribute entity types
     const attributeEntityTypes = ["Attributes", "Product Attributes", "Content Attributes"];
     return context.summary.results.every((r) => !attributeEntityTypes.includes(r.entityType));
   },
 };
+
+function getChannelTaxConfig(channel: ChannelInput): TaxConfigurationInput | undefined {
+  if ("taxConfiguration" in channel) {
+    return (channel as ChannelUpdateInput).taxConfiguration;
+  }
+  return undefined;
+}
 
 export const channelsStage: DeploymentStage = {
   name: StageNames.CHANNELS,
@@ -438,16 +430,11 @@ export const channelsStage: DeploymentStage = {
 
       await context.configurator.services.channel.bootstrapChannels(config.channels);
 
-      // Sync per-channel tax configuration if provided in config
-      for (const ch of config.channels) {
-        const channel = ch as ChannelInput;
-        const taxCfg: TaxConfigurationInput | undefined =
-          ("taxConfiguration" in (channel as ChannelUpdateInput) &&
-            (channel as ChannelUpdateInput).taxConfiguration) ||
-          undefined;
+      for (const channel of config.channels) {
+        const taxCfg = getChannelTaxConfig(channel);
         if (!taxCfg) continue;
 
-        const existing = await context.configurator.services.channel.getChannelBySlug(ch.slug);
+        const existing = await context.configurator.services.channel.getChannelBySlug(channel.slug);
         if (!existing?.id) continue;
 
         await context.configurator.services.tax.updateChannelTaxConfiguration(existing.id, taxCfg);
@@ -462,9 +449,6 @@ export const channelsStage: DeploymentStage = {
     }
   },
   skip(context) {
-    // Channels stage should run if:
-    // 1. Channels have changes, OR
-    // 2. Products have changes (since products may have channel listings)
     const hasChannelChanges = context.summary.results.some((r) => r.entityType === "Channels");
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
 
@@ -482,7 +466,6 @@ export const pageTypesStage: DeploymentStage = {
         return;
       }
 
-      // Pass attribute cache for fast content attribute resolution
       const bootstrapOptions = { attributeCache: context.attributeCache };
 
       const results = await Promise.allSettled(
@@ -547,7 +530,6 @@ export const modelTypesStage: DeploymentStage = {
         return;
       }
 
-      // Pass attribute cache for fast content attribute resolution
       const bootstrapOptions = {
         attributeCache: context.attributeCache,
         referencingEntityType: "modelTypes" as const,
@@ -601,7 +583,6 @@ export const modelTypesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    // modelTypes uses PageTypeComparator which produces entityType "Page Types"
     return context.summary.results.every(
       (r) => r.entityType !== "Models" && r.entityType !== "Page Types"
     );
@@ -668,13 +649,10 @@ export const modelsStage: DeploymentStage = {
         return;
       }
 
-      // Size-adaptive strategy to avoid rate limiting
       if (config.models.length <= BulkOperationThresholds.MODELS) {
-        // Small config: use parallel processing (existing behavior)
         logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models"));
         await context.configurator.services.model.bootstrapModels(config.models);
       } else {
-        // Larger config: use sequential processing with delays to avoid rate limiting
         logger.info(
           BulkOperationMessages.SEQUENTIAL_WITH_DELAY(
             config.models.length,
@@ -711,7 +689,6 @@ export const categoriesStage: DeploymentStage = {
         return;
       }
 
-      // Count total categories including nested subcategories
       const countCategories = (cats: typeof config.categories): number =>
         cats.reduce((sum, cat) => {
           const subcats =
@@ -723,13 +700,10 @@ export const categoriesStage: DeploymentStage = {
 
       const totalCategories = countCategories(config.categories);
 
-      // Size-adaptive strategy: use optimized processing for larger configs
       if (totalCategories <= BulkOperationThresholds.CATEGORIES) {
-        // Small config: use existing sequential approach for simplicity
         logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(totalCategories, "categories"));
         await context.configurator.services.category.bootstrapCategories(config.categories);
       } else {
-        // Large config: use level-based parallel processing for efficiency
         logger.info(
           `Processing ${totalCategories} categories via optimized level-based processing`
         );
@@ -747,9 +721,6 @@ export const categoriesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    // Categories stage should run if:
-    // 1. Categories have changes, OR
-    // 2. Products have changes (since products depend on categories)
     const hasCategoryChanges = context.summary.results.some((r) => r.entityType === "Categories");
     const hasProductChanges = context.summary.results.some((r) => r.entityType === "Products");
 
@@ -856,15 +827,16 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
 
       await primeCategoryCacheForProductProcessing(context);
 
-      // Collect attribute values per attribute name
       const valuesByAttr = new Map<string, Set<string>>();
       for (const p of productsToProcess) {
-        const attrs = p.attributes || {};
-        for (const [name, raw] of Object.entries(attrs)) {
-          const set = valuesByAttr.get(name) || new Set<string>();
+        if (!p.attributes) continue;
+        for (const [name, raw] of Object.entries(p.attributes)) {
+          if (!valuesByAttr.has(name)) {
+            valuesByAttr.set(name, new Set<string>());
+          }
+          const set = valuesByAttr.get(name)!;
           if (Array.isArray(raw)) raw.forEach((v) => set.add(String(v).trim()));
           else if (raw !== undefined && raw !== null) set.add(String(raw).trim());
-          valuesByAttr.set(name, set);
         }
       }
       if (valuesByAttr.size === 0) return;
@@ -876,13 +848,11 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
       });
       if (existing.length === 0) return;
 
-      // For each attribute, add missing choices if any
       const choiceInputTypes = new Set(["DROPDOWN", "MULTISELECT", "SWATCH"]);
-      for (const attr of existing as AttributeMeta[]) {
-        // Only process attributes that support predefined choices
-        if (!choiceInputTypes.has(String(attr.inputType))) continue;
+      for (const attr of existing) {
+        if (!attr.name || !choiceInputTypes.has(String(attr.inputType))) continue;
 
-        const desired = valuesByAttr.get(attr.name || "");
+        const desired = valuesByAttr.get(attr.name);
         if (!desired || desired.size === 0) continue;
 
         const existingChoices = new Set(
@@ -901,7 +871,6 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         }
       }
 
-      // Re-fetch updated attribute metadata for cache priming
       const refreshed = await context.configurator.services.attribute.repo.getAttributesByNames({
         names,
         type: "PRODUCT_TYPE",
@@ -939,7 +908,6 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      // Get only the products that need to be changed based on diff results
       const productChanges = context.summary.results.filter((r) => r.entityType === "Products");
 
       if (productChanges.length === 0) {
@@ -947,10 +915,7 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      // Extract product slugs that need to be processed
       const changedProductSlugs = new Set(productChanges.map((change) => change.entityName));
-
-      // Filter config to only process changed products
       const productsToProcess = config.products.filter((product) =>
         changedProductSlugs.has(product.slug)
       );
@@ -966,7 +931,6 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      // Always use bulk mutations for efficiency and to avoid rate limiting
       const productOptions = context.args.skipMedia ? { skipMedia: true } : undefined;
       logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
       await context.configurator.services.product.bootstrapProductsBulk(
@@ -991,16 +955,16 @@ export function getAllStages(): DeploymentStage[] {
   return [
     validationStage,
     shopSettingsStage,
-    taxClassesStage, // Deploy tax classes early as they can be referenced by other entities
+    taxClassesStage,
     attributesStage,
     productTypesStage,
     channelsStage,
     pageTypesStage,
-    modelTypesStage, // Deploy model types for models
+    modelTypesStage,
     categoriesStage,
-    collectionsStage, // Deploy collections after categories (they may reference products)
-    menusStage, // Deploy menus after categories and collections (they may reference them)
-    modelsStage, // Deploy models after model types
+    collectionsStage,
+    menusStage,
+    modelsStage,
     warehousesStage,
     shippingZonesStage,
     attributeChoicesPreflightStage,
