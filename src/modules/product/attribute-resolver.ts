@@ -1,4 +1,6 @@
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import type { Attribute, ProductOperations } from "./repository";
 
 type ReferenceResolvers = {
@@ -190,7 +192,7 @@ class DropdownAttributeHandler extends AttributeHandler {
       logger.warn(
         `Choice "${valueName}" not found for attribute "${context.attributeName}", will use value-based resolution`
       );
-      return { value: valueName } as { id?: string; value?: string };
+      return { value: valueName };
     });
 
     // MULTISELECT => multiselect list, otherwise use dropdown/swatch single
@@ -243,10 +245,7 @@ class ReferenceAttributeHandler extends AttributeHandler {
     valueName: string,
     context: AttributeHandlerContext
   ): Promise<string | null> {
-    // Branch resolution by attribute entity type when available
-    const entityType = (
-      context.attribute as unknown as { entityType?: "PRODUCT" | "PRODUCT_VARIANT" | "PAGE" }
-    )?.entityType;
+    const entityType = context.attribute.entityType;
 
     try {
       if (entityType === "PRODUCT") {
@@ -266,6 +265,9 @@ class ReferenceAttributeHandler extends AttributeHandler {
         if (referencedProduct) return referencedProduct.id;
       }
     } catch (e) {
+      if (isTransientError(e)) {
+        throw e;
+      }
       logger.warn(
         `Failed to resolve reference for attribute "${context.attributeName}" value "${valueName}": ${e instanceof Error ? e.message : String(e)}`
       );
@@ -307,7 +309,7 @@ export class AttributeResolver {
 
   async resolveAttributes(
     attributes: Record<string, string | string[]> = {}
-  ): Promise<AttributeValueInputPayload[]> {
+  ): Promise<AttributeValueInput[]> {
     logger.debug("Resolving attribute values", { attributes });
 
     const resolvedAttributes: AttributeValueInputPayload[] = [];
@@ -359,15 +361,18 @@ export class AttributeResolver {
       const payload = await handler.handle(attributeValue, context);
       return payload;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       this.logError(attributeName, attributeValue, error);
-      return null;
+      throw error;
     }
   }
 
   private async fetchAttribute(attributeName: string): Promise<Attribute | null> {
     // Use cache accessor if provided
     const cached = this.refs?.getAttributeByNameFromCache?.(attributeName);
-    if (cached) return cached as Attribute;
+    if (cached) return cached;
 
     const attribute = await this.repository.getAttributeByName(attributeName);
 

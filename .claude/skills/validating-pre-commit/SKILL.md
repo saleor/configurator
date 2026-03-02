@@ -82,21 +82,20 @@ Runs the same checks CI will run (linting without auto-fix, format checking, Typ
 **When to Run**: Before pushing changes that affect core CLI functionality (commands, services, repositories).
 
 ```bash
-# Test credentials
---url=https://store-rzalldyg.saleor.cloud/graphql/
---token=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Credentials from .env.local (see .env.example for template)
+# source .env.local
 
 # 1. Clean slate
 rm -rf config.yml
 
 # 2. Fresh introspection
-pnpm dev introspect --url=<URL> --token=<TOKEN>
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 
 # 3. Deploy changes
-pnpm dev deploy --url=<URL> --token=<TOKEN>
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 
 # 4. Test idempotency (deploy again - should have no changes)
-pnpm dev deploy --url=<URL> --token=<TOKEN>
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 
 # 5. Clean and re-introspect
 rm config.yml

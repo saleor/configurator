@@ -55,7 +55,7 @@ Saleor uses JSON Web Tokens (JWT) signed with RS256 algorithm.
 
 **Example Token:**
 ```
-YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Stored in .env.local (see .env.example), never committed
 ```
 
 **Security:**

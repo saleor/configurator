@@ -2,6 +2,7 @@ import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
 import { logger } from "../../lib/logger";
+import { isRateLimitError } from "../../lib/utils/error-classification";
 
 const createCategoryMutation = graphql(`
   mutation CreateCategory($input: CategoryInput!, $parent: ID) {
@@ -61,8 +62,8 @@ const getCategoryBySlugQuery = graphql(`
 `);
 
 const getAllCategoriesQuery = graphql(`
-  query GetAllCategories {
-    categories(first: 100) {
+  query GetAllCategories($after: String) {
+    categories(first: 100, after: $after) {
       edges {
         node {
           id
@@ -74,6 +75,10 @@ const getAllCategoriesQuery = graphql(`
             slug
           }
         }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
   }
@@ -91,7 +96,45 @@ export interface CategoryOperations {
 }
 
 export class CategoryRepository implements CategoryOperations {
+  private allCategoriesCache: Category[] | null = null;
+  private allCategoriesCacheComplete = false;
+  private categoryBySlugCache = new Map<string, Category>();
+
   constructor(private client: Client) {}
+
+  /**
+   * Add a newly created category to the cache instead of invalidating.
+   * This avoids expensive re-fetches after each create operation.
+   */
+  private addToCache(category: Category): void {
+    this.categoryBySlugCache.set(category.slug, category);
+    if (this.allCategoriesCache) {
+      this.allCategoriesCache.push(category);
+    }
+  }
+
+  private populateSlugCache(categories: Category[]): void {
+    for (const cat of categories) {
+      this.categoryBySlugCache.set(cat.slug, cat);
+    }
+  }
+
+  private throwIfRateLimited(error: unknown, operation: string): void {
+    if (isRateLimitError(error)) {
+      throw new Error(
+        `${operation}: Rate limited by API (Too Many Requests). Please wait before retrying.`
+      );
+    }
+  }
+
+  private assertCategoryReturned(
+    category: Category | null | undefined,
+    categoryName: string
+  ): asserts category is Category {
+    if (!category) {
+      throw new GraphQLError(`Failed to create category ${categoryName}: empty response`);
+    }
+  }
 
   async createCategory(input: CategoryInput, parentId?: string): Promise<Category> {
     logger.debug("Creating category", {
@@ -104,18 +147,8 @@ export class CategoryRepository implements CategoryOperations {
       parent: parentId,
     });
 
-    // Handle transport/GraphQL layer errors first (permission, auth, bad query)
     if (result.error) {
-      // Check for rate limiting specifically
-      if (result.error.networkError && "status" in result.error.networkError) {
-        const status = (result.error.networkError as { status: number }).status;
-        if (status === 429) {
-          throw new Error(
-            `Failed to create category ${input.name}: Rate limited by API (Too Many Requests). Please wait before retrying.`
-          );
-        }
-      }
-
+      this.throwIfRateLimited(result.error, `Failed to create category ${input.name}`);
       throw GraphQLError.fromCombinedError(`Failed to create category ${input.name}`, result.error);
     }
 
@@ -126,17 +159,16 @@ export class CategoryRepository implements CategoryOperations {
       throw GraphQLError.fromDataErrors(`Failed to create category ${input.name}`, dataErrors);
     }
 
-    if (!mutationResult?.category) {
-      // No transport error and no data errors, yet no category returned
-      // Provide a clearer fallback message
-      throw new GraphQLError(`Failed to create category ${input.name}: empty response`);
-    }
+    this.assertCategoryReturned(mutationResult?.category, input.name ?? "unknown");
 
     const createdCategory = mutationResult.category;
 
     logger.info("Category created", {
       category: createdCategory,
     });
+
+    // Add to cache incrementally instead of invalidating
+    this.addToCache(createdCategory);
 
     return createdCategory;
   }
@@ -146,52 +178,96 @@ export class CategoryRepository implements CategoryOperations {
       name,
     });
 
-    // Find exact match among search results to prevent duplicate creation
+    if (result.error) {
+      this.throwIfRateLimited(result.error, `Failed to get category by name ${name}`);
+      throw GraphQLError.fromCombinedError(`Failed to get category by name ${name}`, result.error);
+    }
+
     const exactMatch = result.data?.categories?.edges?.find((edge) => edge.node?.name === name);
 
     if (exactMatch?.node) return exactMatch.node;
 
-    // Fallback: scan all categories if search fails (schema/version differences)
-    try {
-      const all = await this.getAllCategories();
-      return all.find((c) => c.name === name);
-    } catch {
-      return null;
-    }
+    const all = await this.getAllCategories();
+    return all.find((c) => c.name === name);
   }
 
   async getCategoryBySlug(slug: string): Promise<Category | null | undefined> {
+    const cached = this.categoryBySlugCache.get(slug);
+    if (cached) {
+      logger.debug("Category found in cache", { slug });
+      return cached;
+    }
+
+    // If cache is primed with all categories, the item definitely doesn't exist
+    // No need to make an API call - this is the key optimization
+    if (this.allCategoriesCacheComplete) {
+      logger.debug("Category not found in primed cache", { slug });
+      return null;
+    }
+
     const result = await this.client.query(getCategoryBySlugQuery, {
       slug,
     });
 
-    const direct = result.data?.category ?? null;
-    if (direct) return direct;
-
-    // Fallback: scan all categories if direct lookup not supported on API
-    try {
-      const all = await this.getAllCategories();
-      return all.find((c) => c.slug === slug);
-    } catch {
-      return null;
+    if (result.error) {
+      this.throwIfRateLimited(result.error, `Failed to get category by slug ${slug}`);
+      throw GraphQLError.fromCombinedError(`Failed to get category by slug ${slug}`, result.error);
     }
+
+    const direct = result.data?.category ?? null;
+    if (direct) {
+      this.categoryBySlugCache.set(slug, direct);
+      return direct;
+    }
+
+    const all = await this.getAllCategories();
+    return all.find((c) => c.slug === slug);
   }
 
   async getAllCategories(): Promise<Category[]> {
-    logger.debug("Fetching all categories");
-
-    const result = await this.client.query(getAllCategoriesQuery, {});
-
-    if (!result.data?.categories?.edges) {
-      logger.debug("No categories found");
-      return [];
+    if (this.allCategoriesCache && this.allCategoriesCacheComplete) {
+      logger.debug("Returning cached categories", {
+        count: this.allCategoriesCache.length,
+      });
+      return this.allCategoriesCache;
     }
 
-    const categories = result.data.categories.edges
-      .map((edge) => edge.node)
-      .filter((node): node is Category => node !== null);
+    logger.debug("Fetching all categories from API (paginated)");
 
-    logger.debug("Retrieved categories", {
+    const categories: Category[] = [];
+    let after: string | null = null;
+
+    while (true) {
+      const result: Awaited<ReturnType<Client["query"]>> = await this.client.query(
+        getAllCategoriesQuery,
+        { after }
+      );
+
+      if (result.error) {
+        this.throwIfRateLimited(result.error, "Failed to fetch all categories");
+        throw GraphQLError.fromCombinedError("Failed to fetch all categories", result.error);
+      }
+
+      const data = result.data as ResultOf<typeof getAllCategoriesQuery> | undefined;
+      const edges = data?.categories?.edges ?? [];
+      const pageCategories = edges
+        .map((edge) => edge.node)
+        .filter((node): node is Category => node !== null);
+
+      categories.push(...pageCategories);
+
+      const pageInfo = data?.categories?.pageInfo;
+      if (!pageInfo?.hasNextPage || !pageInfo.endCursor) {
+        break;
+      }
+      after = pageInfo.endCursor;
+    }
+
+    this.allCategoriesCache = categories;
+    this.allCategoriesCacheComplete = true;
+    this.populateSlugCache(categories);
+
+    logger.debug("Retrieved and cached categories", {
       count: categories.length,
     });
 

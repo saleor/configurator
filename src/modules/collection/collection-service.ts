@@ -3,7 +3,9 @@ import type {
   PublishableChannelListingInput,
 } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
+import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
 import type { ProductService } from "../product/product-service";
@@ -52,6 +54,9 @@ export class CollectionService {
 
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "fetch",
         slug,
@@ -114,6 +119,9 @@ export class CollectionService {
       });
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "create",
         input.slug,
@@ -152,6 +160,9 @@ export class CollectionService {
       });
       return collection;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "update",
         input.slug,
@@ -205,7 +216,7 @@ export class CollectionService {
       },
       {
         chunkSize: 10,
-        delayMs: 500,
+        delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
         entityType: "collections",
       }
     );
@@ -262,6 +273,9 @@ export class CollectionService {
             logger.warn(`Product with slug "${slug}" not found, skipping`);
           }
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           logger.warn(`Failed to resolve product slug "${slug}": ${error}`);
         }
       }
@@ -286,6 +300,9 @@ export class CollectionService {
             productIds.push(product.id);
           }
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           logger.warn(`Failed to resolve product slug "${slug}" for removal: ${error}`);
         }
       }
@@ -324,6 +341,9 @@ export class CollectionService {
           logger.warn(`Channel with slug "${listing.channelSlug}" not found, skipping`);
         }
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         logger.warn(`Failed to resolve channel slug "${listing.channelSlug}": ${error}`);
       }
     }
@@ -344,6 +364,9 @@ export class CollectionService {
       logger.debug(`Fetched ${collections.length} collections`);
       return collections;
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new CollectionOperationError(
         "fetch",
         "all",

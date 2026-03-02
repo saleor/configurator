@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import { StageAggregateError } from "./errors";
 import { MetricsCollector } from "./metrics";
 import { ProgressIndicator } from "./progress";
@@ -61,14 +62,12 @@ export class EnhancedDeploymentPipeline {
   ): Promise<void> {
     const startTime = new Date();
     const stopSpinner = this.progress.startSpinner(stage.name);
-    this.metrics.startStage(stage.name);
 
     try {
-      await stage.execute(context);
+      await this.metrics.runStage(stage.name, () => stage.execute(context));
 
       // Stage completed successfully
       const endTime = new Date();
-      this.metrics.endStage(stage.name);
       stopSpinner();
 
       const duration = this.metrics.getMetrics().stageDurations.get(stage.name);
@@ -88,7 +87,6 @@ export class EnhancedDeploymentPipeline {
     } catch (error) {
       // Stage failed - collect information and continue
       const endTime = new Date();
-      this.metrics.endStage(stage.name);
       stopSpinner();
 
       const isPartialFailure = this.isPartialFailure(error);
@@ -145,15 +143,13 @@ export async function executeEnhancedDeployment(
   shouldExit: boolean;
   exitCode: number;
 }> {
-  const pipeline = new EnhancedDeploymentPipeline();
+  resilienceTracker.reset();
 
-  // Add all stages to pipeline
+  const pipeline = new EnhancedDeploymentPipeline();
   stages.forEach((stage) => pipeline.addStage(stage));
 
-  // Execute pipeline and collect results
   const { metrics, result } = await pipeline.execute(context);
 
-  // Determine exit behavior based on results
   const formatter = new DeploymentResultFormatter();
   const exitCode = formatter.getExitCode(result.overallStatus);
   const shouldExit = result.overallStatus === "failed";

@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
@@ -239,7 +240,7 @@ export class WarehouseService {
       },
       {
         chunkSize: 10,
-        delayMs: 500,
+        delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
         entityType: "warehouses",
       }
     );

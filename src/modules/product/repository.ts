@@ -1,6 +1,7 @@
 import type { Client } from "@urql/core";
 import { graphql, type ResultOf, type VariablesOf } from "gql.tada";
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 
 function slugify(value: string): string {
@@ -18,6 +19,8 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 50);
 }
+
+const BULK_SLUG_QUERY_LIMIT = 100;
 
 const createProductMutation = graphql(`
   mutation CreateProduct($input: ProductCreateInput!) {
@@ -1010,21 +1013,29 @@ export class ProductRepository implements ProductOperations {
       return [];
     }
 
-    const result = await this.client.query(getProductsBySlugsBulkQuery, {
-      slugs,
-    });
+    const uniqueSlugs = [...new Set(slugs)];
+    const productsBySlug = new Map<string, Product>();
 
-    if (result.error) {
-      throw new Error(`Failed to fetch products by slugs: ${result.error.message}`);
+    for (let i = 0; i < uniqueSlugs.length; i += BULK_SLUG_QUERY_LIMIT) {
+      const chunk = uniqueSlugs.slice(i, i + BULK_SLUG_QUERY_LIMIT);
+      const result = await this.client.query(getProductsBySlugsBulkQuery, {
+        slugs: chunk,
+      });
+
+      if (result.error) {
+        throw new Error(`Failed to fetch products by slugs: ${result.error.message}`);
+      }
+
+      const products =
+        result.data?.products?.edges?.map((edge) => edge.node).filter((node) => node !== null) ??
+        [];
+
+      for (const product of products) {
+        productsBySlug.set(product.slug, product as Product);
+      }
     }
 
-    if (!result.data?.products?.edges) {
-      return [];
-    }
-
-    return result.data.products.edges
-      .map((edge) => edge.node)
-      .filter((node) => node !== null) as Product[];
+    return [...productsBySlug.values()];
   }
 
   async getProductTypeByName(name: string): Promise<{ id: string; name: string } | null> {
@@ -1093,8 +1104,14 @@ export class ProductRepository implements ProductOperations {
         if (!category) {
           // Final fallback: query all categories-like via product repository not available; rely on category service elsewhere
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
+        logger.warn("Failed to look up category by slug via search fallback", {
+          slug,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
 
@@ -1454,11 +1471,13 @@ export class ProductRepository implements ProductOperations {
           try {
             await this.deleteProductMedia(media.id);
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn("Failed to delete existing media, continuing", {
               mediaId: media.id,
               error: error instanceof Error ? error.message : String(error),
             });
-            // Continue with other deletions even if one fails
           }
         }
       }
@@ -1478,13 +1497,14 @@ export class ProductRepository implements ProductOperations {
             await this.setProductMediaSourceUrlMetadata(createdMediaItem.id, mediaInput.mediaUrl);
             createdMedia.push(createdMediaItem);
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.error("Failed to create new media", {
               productId,
               mediaUrl: mediaInput.mediaUrl,
               error: error instanceof Error ? error.message : String(error),
             });
-            // If creation fails, we should still continue with remaining media
-            // The partial success is better than complete failure
           }
         }
       }

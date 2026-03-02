@@ -1,4 +1,7 @@
 .env
+.env.local
+.env.*
+!.env.example
 node_modules
 config.yml
 .biome

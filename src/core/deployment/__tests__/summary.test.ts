@@ -10,7 +10,7 @@ vi.mock("../../../cli/console", () => ({
   },
 }));
 
-describe.skip("DeploymentSummaryReport", () => {
+describe("DeploymentSummaryReport", () => {
   let mockMetrics: DeploymentMetrics;
   let mockSummary: DiffSummary;
 
@@ -30,6 +30,12 @@ describe.skip("DeploymentSummaryReport", () => {
         ["Product", { created: 5, updated: 2, deleted: 0 }],
         ["Category", { created: 0, updated: 1, deleted: 1 }],
       ]),
+      stageResilience: new Map(),
+      totalRateLimitHits: 0,
+      totalRetries: 0,
+      totalGraphQLErrors: 0,
+      totalNetworkErrors: 0,
+      operationResilience: new Map(),
     };
 
     mockSummary = {
@@ -113,7 +119,7 @@ describe.skip("DeploymentSummaryReport", () => {
       report.display();
 
       const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
-      expect(lines).toContain("Duration: 1m 5s");
+      expect(lines).toContain("Duration: 1m 6s");
     });
 
     it("formats millisecond durations", () => {
@@ -158,5 +164,147 @@ describe.skip("DeploymentSummaryReport", () => {
       expect(lines).not.toContain("updated");
       expect(lines).not.toContain("deleted");
     });
+  });
+});
+
+describe("DeploymentSummaryReport - Resilience Display", () => {
+  let mockMetrics: DeploymentMetrics;
+  let mockSummary: DiffSummary;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    const now = new Date("2024-01-01T10:00:00Z");
+    mockMetrics = {
+      duration: 5000,
+      startTime: now,
+      endTime: new Date(now.getTime() + 5000),
+      stageDurations: new Map(),
+      entityCounts: new Map(),
+      stageResilience: new Map(),
+      totalRateLimitHits: 0,
+      totalRetries: 0,
+      totalGraphQLErrors: 0,
+      totalNetworkErrors: 0,
+      operationResilience: new Map(),
+    };
+
+    mockSummary = {
+      totalChanges: 1,
+      creates: 1,
+      updates: 0,
+      deletes: 0,
+      results: [],
+    };
+  });
+
+  it("displays resilience stats when rate limits occurred", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalRateLimitHits: 5,
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Resilience Stats:");
+    expect(lines).toContain("• Rate Limits: 5 handled");
+  });
+
+  it("displays resilience stats when retries occurred", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalRetries: 12,
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Resilience Stats:");
+    expect(lines).toContain("• Retries: 12 attempts");
+  });
+
+  it("displays resilience stats when GraphQL errors occurred", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalGraphQLErrors: 3,
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Resilience Stats:");
+    expect(lines).toContain("• GraphQL Errors: 3");
+  });
+
+  it("displays resilience stats when network errors occurred", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalNetworkErrors: 2,
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Resilience Stats:");
+    expect(lines).toContain("• Network Errors: 2");
+  });
+
+  it("displays all resilience stats when multiple types occurred", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalRateLimitHits: 5,
+      totalRetries: 12,
+      totalGraphQLErrors: 3,
+      totalNetworkErrors: 1,
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Resilience Stats:");
+    expect(lines).toContain("• Rate Limits: 5 handled");
+    expect(lines).toContain("• Retries: 12 attempts");
+    expect(lines).toContain("• GraphQL Errors: 3");
+    expect(lines).toContain("• Network Errors: 1");
+  });
+
+  it("displays top throttle operation hotspots", () => {
+    const metrics: DeploymentMetrics = {
+      ...mockMetrics,
+      totalRateLimitHits: 3,
+      totalRetries: 4,
+      operationResilience: new Map([
+        [
+          "query products",
+          { rateLimitHits: 2, retryAttempts: 3, graphqlErrors: 0, networkErrors: 0 },
+        ],
+        [
+          "query categories",
+          { rateLimitHits: 1, retryAttempts: 1, graphqlErrors: 0, networkErrors: 0 },
+        ],
+      ]),
+    };
+
+    const report = new DeploymentSummaryReport(metrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).toContain("Top Throttle Hotspots:");
+    expect(lines).toContain("• query products: 2 rate limits, 3 retries");
+    expect(lines).toContain("• query categories: 1 rate limits, 1 retries");
+  });
+
+  it("does not display resilience section when no events occurred", () => {
+    const report = new DeploymentSummaryReport(mockMetrics, mockSummary);
+    report.display();
+
+    const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
+    expect(lines).not.toContain("Resilience Stats:");
   });
 });

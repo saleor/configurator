@@ -32,12 +32,10 @@ export class DeploymentPipeline {
 
   private async executeStage(stage: DeploymentStage, context: DeploymentContext): Promise<void> {
     const stopSpinner = this.progress.startSpinner(stage.name);
-    this.metrics.startStage(stage.name);
 
     try {
-      await stage.execute(context);
+      await this.metrics.runStage(stage.name, () => stage.execute(context));
 
-      this.metrics.endStage(stage.name);
       stopSpinner();
 
       const duration = this.metrics.getMetrics().stageDurations.get(stage.name);

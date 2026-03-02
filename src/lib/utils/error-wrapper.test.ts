@@ -31,7 +31,7 @@ const mockedLogger = logger as unknown as {
 class TestServiceError extends Error {
   constructor(
     message: string,
-    public entityIdentifier?: unknown
+    public entityIdentifier?: string
   ) {
     super(message);
     this.name = "TestServiceError";
@@ -311,6 +311,75 @@ describe("ServiceErrorWrapper", () => {
 
         expect(mockedGraphQLError.fromCombinedError).not.toHaveBeenCalled();
       });
+
+      it("should propagate rate-limit errors without wrapping", async () => {
+        const rateLimitError = new Error("Too many requests");
+        const mockFn = vi.fn().mockRejectedValue(rateLimitError);
+
+        await expect(
+          ServiceErrorWrapper.wrapServiceCall(
+            "create",
+            "Product",
+            "product-id",
+            mockFn,
+            TestServiceError
+          )
+        ).rejects.toThrow(rateLimitError);
+
+        // Should be the exact same error object, not wrapped
+        await ServiceErrorWrapper.wrapServiceCall(
+          "create",
+          "Product",
+          "product-id",
+          mockFn,
+          TestServiceError
+        ).catch((error) => {
+          expect(error).toBe(rateLimitError);
+        });
+      });
+
+      it("should propagate ECONNREFUSED errors without wrapping", async () => {
+        const networkError = new Error("connect ECONNREFUSED 127.0.0.1:8000");
+        const mockFn = vi.fn().mockRejectedValue(networkError);
+
+        await expect(
+          ServiceErrorWrapper.wrapServiceCall("fetch", "Category", "cat-1", mockFn)
+        ).rejects.toThrow(networkError);
+      });
+
+      it("should propagate ETIMEDOUT errors without wrapping", async () => {
+        const timeoutError = new Error("ETIMEDOUT: Request timeout");
+        const mockFn = vi.fn().mockRejectedValue(timeoutError);
+
+        await expect(
+          ServiceErrorWrapper.wrapServiceCall(
+            "update",
+            "Product",
+            "product-id",
+            mockFn,
+            TestServiceError
+          )
+        ).rejects.toThrow(timeoutError);
+      });
+
+      it("should preserve cause chain on wrapped errors", async () => {
+        const originalError = new Error("Database connection failed");
+        const mockFn = vi.fn().mockRejectedValue(originalError);
+
+        try {
+          await ServiceErrorWrapper.wrapServiceCall(
+            "create",
+            "Product",
+            "product-id",
+            mockFn,
+            TestServiceError
+          );
+          expect.fail("Should have thrown");
+        } catch (error) {
+          expect(error).toBeInstanceOf(TestServiceError);
+          expect((error as TestServiceError).cause).toBe(originalError);
+        }
+      });
     });
   });
 
@@ -528,35 +597,52 @@ describe("ServiceErrorWrapper", () => {
         });
       });
 
-      it("should handle network errors during batch processing", async () => {
+      it("should propagate transient network errors for retry instead of collecting them (parallel)", async () => {
         const networkError = new Error("ECONNREFUSED: Connection refused");
-        const timeoutError = new Error("ETIMEDOUT: Request timeout");
 
         const processFn = vi
           .fn()
           .mockResolvedValueOnce({ success: true })
           .mockRejectedValueOnce(networkError)
-          .mockRejectedValueOnce(timeoutError)
+          .mockResolvedValueOnce({ success: true })
           .mockResolvedValueOnce({ success: true });
 
-        const result = await ServiceErrorWrapper.wrapBatch(
-          products,
-          "sync to remote",
-          (product) => product.slug || product.name,
-          processFn
-        );
+        // Transient errors (ECONNREFUSED, ETIMEDOUT) now propagate for retry
+        await expect(
+          ServiceErrorWrapper.wrapBatch(
+            products,
+            "sync to remote",
+            (product) => product.slug || product.name,
+            processFn
+          )
+        ).rejects.toThrow("ECONNREFUSED: Connection refused");
+      });
 
-        expect(result.successes).toHaveLength(2);
-        expect(result.failures).toHaveLength(2);
+      it("should propagate transient network errors for retry (sequential path)", async () => {
+        const networkError = new Error("ETIMEDOUT: Request timeout");
+        const items = [{ name: "A" }, { name: "B" }, { name: "C" }];
 
-        expect(result.failures[0].error).toBe(networkError);
-        expect(result.failures[1].error).toBe(timeoutError);
+        const processFn = vi.fn().mockResolvedValueOnce("ok").mockRejectedValueOnce(networkError);
 
-        expect(mockedLogger.warn).toHaveBeenCalledWith("sync to remote completed with 2 failures", {
-          successCount: 2,
-          failureCount: 2,
-          failedItems: ["laptop-pro", "Book Guide"], // Uses name when slug is empty
-        });
+        await expect(
+          ServiceErrorWrapper.wrapBatch(items, "sequential sync", (item) => item.name, processFn, {
+            sequential: true,
+          })
+        ).rejects.toThrow("ETIMEDOUT: Request timeout");
+
+        // Should have stopped processing after the transient error
+        expect(processFn).toHaveBeenCalledTimes(2);
+      });
+
+      it("should propagate rate-limit errors for retry (parallel path)", async () => {
+        const rateLimitError = new Error("Too many requests");
+        const items = [{ name: "A" }, { name: "B" }];
+
+        const processFn = vi.fn().mockRejectedValueOnce(rateLimitError).mockResolvedValueOnce("ok");
+
+        await expect(
+          ServiceErrorWrapper.wrapBatch(items, "rate-limited sync", (item) => item.name, processFn)
+        ).rejects.toThrow("Too many requests");
       });
     });
   });

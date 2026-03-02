@@ -19,20 +19,27 @@ import type {
 import { validateNoInlineDefinitions } from "../../modules/config/validation/inline-attribute-validator";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
-type EntityArrayKey =
-  | "channels"
-  | "warehouses"
-  | "shippingZones"
-  | "productTypes"
-  | "pageTypes"
-  | "categories"
-  | "products"
-  | "collections"
-  | "menus"
-  | "models"
-  | "taxClasses"
-  | "productAttributes"
-  | "contentAttributes";
+const ENTITY_SECTIONS = [
+  "channels",
+  "warehouses",
+  "shippingZones",
+  "productTypes",
+  "pageTypes",
+  "categories",
+  "products",
+  "collections",
+  "menus",
+  "models",
+  "taxClasses",
+  "productAttributes",
+  "contentAttributes",
+] as const;
+
+type EntityArrayKey = (typeof ENTITY_SECTIONS)[number];
+
+export function isEntitySection(value: string): value is EntityArrayKey {
+  return (ENTITY_SECTIONS as readonly string[]).includes(value);
+}
 
 export interface DuplicateIssue {
   section: EntityArrayKey;

@@ -373,24 +373,16 @@ describe("Error Handling Integration", () => {
       }
     });
 
-    it("should provide helpful recovery suggestions for network errors", async () => {
+    it("should propagate transient network errors for retry instead of collecting them", async () => {
       const productsWithNetworkErrors: Product[] = [
         { name: "NetworkError", slug: "network-error", productType: "Clothing" },
       ];
 
-      try {
-        await orchestrator.deployProducts(productsWithNetworkErrors);
-        expect.fail("Should have thrown StageAggregateError");
-      } catch (error) {
-        const stageError = error as StageAggregateError;
-        const userMessage = stageError.getUserMessage();
-
-        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
-        expect(userMessage).toContain(
-          "→ Check: Verify the SALEOR_API_URL environment variable is correct"
-        );
-        expect(userMessage).toContain("→ Run: curl -I $SALEOR_API_URL/graphql/");
-      }
+      // Transient errors (ECONNREFUSED) now propagate for retry instead of being
+      // collected as soft failures in StageAggregateError
+      await expect(orchestrator.deployProducts(productsWithNetworkErrors)).rejects.toThrow(
+        "connect ECONNREFUSED 127.0.0.1:8000"
+      );
     });
 
     it("should handle GraphQL errors properly", async () => {
@@ -418,6 +410,8 @@ describe("Error Handling Integration", () => {
 
   describe("Complex Multi-Entity Scenarios", () => {
     it("should handle mixed error types with comprehensive recovery suggestions", async () => {
+      // Note: NetworkError (ECONNREFUSED) is excluded because transient errors
+      // now propagate for retry instead of being collected as soft failures
       const mixedErrorProducts: Product[] = [
         { name: "Success 1", slug: "success-1", productType: "Clothing" },
         { name: "Success 2", slug: "success-2", productType: "Electronics" },
@@ -430,7 +424,6 @@ describe("Error Handling Integration", () => {
           category: "NonexistentCategory",
         },
         { name: "PermissionError", slug: "perm-error", productType: "Clothing" },
-        { name: "NetworkError", slug: "net-error", productType: "Clothing" },
       ];
 
       try {
@@ -441,7 +434,7 @@ describe("Error Handling Integration", () => {
         const userMessage = stageError.getUserMessage();
 
         // Verify header shows correct counts
-        expect(userMessage).toContain("❌ Creating Products - 5 of 7 failed");
+        expect(userMessage).toContain("❌ Creating Products - 4 of 6 failed");
 
         // Verify successes are listed
         expect(userMessage).toContain("✅ Successful:");
@@ -471,10 +464,6 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain(
           "→ Fix: Check your Saleor API token has the required permissions"
         );
-
-        // Network error
-        expect(userMessage).toContain("• NetworkError");
-        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
 
         // General suggestions
         expect(userMessage).toContain("General suggestions:");
@@ -549,6 +538,8 @@ describe("Error Handling Integration", () => {
   describe("Real-World Deployment Scenario", () => {
     it("should demonstrate complete error handling flow for e-commerce catalog setup", async () => {
       // Simulate a realistic e-commerce catalog deployment with multiple error types
+      // Note: NetworkError (ECONNREFUSED) is excluded because transient errors
+      // now propagate for retry instead of being collected as soft failures
       const realisticProductCatalog: Product[] = [
         // Successful products
         { name: "Basic T-Shirt", slug: "basic-tshirt", productType: "Clothing" },
@@ -573,8 +564,7 @@ describe("Error Handling Integration", () => {
           attributes: { color: "missing-attribute" },
         },
 
-        // System errors
-        { name: "NetworkError", slug: "network-fail", productType: "Clothing" },
+        // System errors (non-transient only)
         { name: "PermissionError", slug: "perm-fail", productType: "Clothing" },
         { name: "GraphQLError", slug: "graphql-fail", productType: "Clothing" },
       ];
@@ -587,15 +577,12 @@ describe("Error Handling Integration", () => {
 
         const stageError = error as StageAggregateError;
         expect(stageError.successes).toHaveLength(2);
-        expect(stageError.failures).toHaveLength(8);
+        expect(stageError.failures).toHaveLength(7);
 
         const userMessage = stageError.getUserMessage();
-        console.log("=== EXAMPLE ERROR MESSAGE OUTPUT ===");
-        console.log(userMessage);
-        console.log("=== END ERROR MESSAGE ===");
 
         // Verify comprehensive error message structure
-        expect(userMessage).toContain("❌ Creating Products - 8 of 10 failed");
+        expect(userMessage).toContain("❌ Creating Products - 7 of 9 failed");
 
         // Verify successes section
         expect(userMessage).toContain("✅ Successful:");
@@ -618,8 +605,7 @@ describe("Error Handling Integration", () => {
           "→ Fix: Create the attribute 'color' first or reference an existing one"
         );
 
-        // System error suggestions
-        expect(userMessage).toContain("→ Fix: Check your Saleor API URL and network connection");
+        // System error suggestions (non-transient only)
         expect(userMessage).toContain(
           "→ Fix: Check your Saleor API token has the required permissions"
         );
@@ -634,17 +620,16 @@ describe("Error Handling Integration", () => {
 
         // Verify logging was called appropriately
         expect(mockedLogger.warn).toHaveBeenCalledWith(
-          "deploy products completed with 8 failures",
+          "deploy products completed with 7 failures",
           {
             successCount: 2,
-            failureCount: 8,
+            failureCount: 7,
             failedItems: expect.arrayContaining([
               "Invalid Product 1",
               "Duplicate Slug Product",
               "Missing ProductType Product",
               "Missing Category Product",
               "Missing Attribute Product",
-              "NetworkError",
               "PermissionError",
               "GraphQLError",
             ]),

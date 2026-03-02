@@ -1,26 +1,39 @@
 import { logger } from "../../lib/logger";
+import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
-import { CategoryCreationError, CategoryError } from "./errors";
+import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
 import type {
   Category,
   CategoryOperations,
   CategoryInput as RepositoryCategoryInput,
 } from "./repository";
 
+type CategoryInputWithSubcategories = CategoryInput & { subcategories: CategoryInput[] };
+
 export class CategoryService {
   constructor(private repository: CategoryOperations) {}
 
+  private hasSubcategories(input: CategoryInput): input is CategoryInputWithSubcategories {
+    return (
+      "subcategories" in input &&
+      Array.isArray(input.subcategories) &&
+      input.subcategories.length > 0
+    );
+  }
+
+  /** Fetches all categories from the Saleor API. */
   async getAllCategories() {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch all categories",
       "categories",
       undefined,
       () => this.repository.getAllCategories(),
-      CategoryError
+      CategoryFetchError
     );
   }
 
+  /** Fetches a category by its slug, falling back to a full category list scan. */
   async getCategoryBySlug(slug: string) {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch category by slug",
@@ -35,7 +48,7 @@ export class CategoryService {
         const categories = await this.repository.getAllCategories();
         return categories.find((c) => c.slug === slug) || null;
       },
-      CategoryError
+      CategoryFetchError
     );
   }
 
@@ -48,18 +61,11 @@ export class CategoryService {
         const existingBySlug = await this.repository.getCategoryBySlug(categoryInput.slug);
         if (existingBySlug) return existingBySlug;
 
-        const byName = await this.repository.getCategoryByName(categoryInput.name);
-        if (byName) return byName;
-
-        // Final fallback: scan all categories (handles API differences)
-        const all = (await this.repository.getAllCategories()) ?? [];
-        return (
-          all.find((c) => c.slug === categoryInput.slug) ||
-          all.find((c) => c.name === categoryInput.name) ||
-          null
-        );
+        // Slug lookup returned null; search by name as fallback
+        const all = await this.repository.getAllCategories();
+        return all.find((c) => c.name === categoryInput.name) || null;
       },
-      CategoryError
+      CategoryFetchError
     );
   }
 
@@ -74,8 +80,6 @@ export class CategoryService {
           parentId,
         });
 
-        // Extract only the basic category fields for repository call
-        // (subcategories are handled by recursive bootstrapping)
         const categoryInput: RepositoryCategoryInput = {
           name: input.name,
           slug: input.slug,
@@ -95,8 +99,12 @@ export class CategoryService {
     );
   }
 
+  /** Bootstraps a list of categories, creating any that don't exist yet. */
   async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories", { count: categories.length });
+
+    await this.repository.getAllCategories();
+    logger.debug("Category cache primed");
 
     const results = await ServiceErrorWrapper.wrapBatch(
       categories,
@@ -105,7 +113,7 @@ export class CategoryService {
       (category) => this.bootstrapCategory(category),
       {
         sequential: true,
-        delayMs: 100, // Add 100ms delay between category operations to avoid rate limiting
+        delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
       }
     );
 
@@ -124,6 +132,96 @@ export class CategoryService {
     }
 
     return results.successes.map((s) => s.result);
+  }
+
+  /**
+   * Optimized bootstrap for larger category trees.
+   * Groups by tree level and processes sequentially with rate-limit delays.
+   */
+  async bootstrapCategoriesOptimized(categories: CategoryInput[]): Promise<Category[]> {
+    logger.debug("Bootstrapping categories (optimized)", { count: categories.length });
+
+    // Prime cache once at the start
+    await this.repository.getAllCategories();
+    logger.debug("Category cache primed for optimized processing");
+
+    const levels = this.flattenByLevel(categories);
+    const categoryIdBySlug = new Map<string, string>();
+    const allCreated: Category[] = [];
+
+    for (const [level, items] of levels) {
+      logger.debug(`Processing category level ${level}`, { count: items.length });
+
+      const results = await ServiceErrorWrapper.wrapBatch(
+        items,
+        `Bootstrap categories (level ${level})`,
+        (item) => item.input.name,
+        async (item) => {
+          // Look up parent ID from our tracking map
+          const parentId = item.parentSlug ? categoryIdBySlug.get(item.parentSlug) : undefined;
+
+          const category = await this.getOrCreateCategory(item.input, parentId);
+
+          // Track for child lookups
+          categoryIdBySlug.set(item.input.slug, category.id);
+          return category;
+        },
+        {
+          sequential: true,
+          delayMs: DelayConfig.CATEGORY_ITEM_DELAY_MS,
+        }
+      );
+
+      if (results.failures.length > 0) {
+        const errorMessage = `Failed to bootstrap ${results.failures.length} categories at level ${level}`;
+        logger.error(errorMessage, {
+          failures: results.failures.map((f) => ({
+            category: f.item.input.name,
+            error: f.error.message,
+          })),
+        });
+        throw new CategoryError(
+          errorMessage,
+          results.failures.map((f) => `${f.item.input.name}: ${f.error.message}`)
+        );
+      }
+
+      allCreated.push(...results.successes.map((s) => s.result));
+    }
+
+    logger.info("Optimized category bootstrap complete", {
+      totalCreated: allCreated.length,
+      levels: levels.size,
+    });
+
+    return allCreated;
+  }
+
+  /**
+   * Flatten nested category tree into a map of level -> categories at that level.
+   * Each item includes the parent slug for lookup during creation.
+   */
+  private flattenByLevel(
+    categories: CategoryInput[]
+  ): Map<number, Array<{ input: CategoryInput; parentSlug?: string }>> {
+    const levels = new Map<number, Array<{ input: CategoryInput; parentSlug?: string }>>();
+
+    const traverse = (cats: CategoryInput[], level: number, parentSlug?: string): void => {
+      if (!levels.has(level)) {
+        levels.set(level, []);
+      }
+
+      for (const cat of cats) {
+        levels.get(level)?.push({ input: cat, parentSlug });
+
+        if (this.hasSubcategories(cat)) {
+          traverse(cat.subcategories, level + 1, cat.slug);
+        }
+      }
+    };
+
+    traverse(categories, 0);
+    return levels;
   }
 
   private async getOrCreateCategory(
@@ -159,21 +257,18 @@ export class CategoryService {
       async () => {
         logger.debug("Bootstrapping category", { name: categoryInput.name, parentId });
 
-        // Create or get the category with parent if specified
         const category = await this.getOrCreateCategory(categoryInput, parentId);
 
         logger.debug("Category bootstrapped", {
           category,
         });
 
-        // Handle union type - check if this is an update input with subcategories
-        if ("subcategories" in categoryInput && categoryInput.subcategories) {
+        if (this.hasSubcategories(categoryInput)) {
           logger.debug("Processing subcategories", {
             count: categoryInput.subcategories.length,
             parentCategory: categoryInput.name,
           });
 
-          // Recursively bootstrap each subcategory with this category as parent
           const subcategoryResults = await ServiceErrorWrapper.wrapBatch(
             categoryInput.subcategories,
             "Bootstrap subcategories",
@@ -181,7 +276,7 @@ export class CategoryService {
             (subcategory) => this.bootstrapCategory(subcategory, category.id),
             {
               sequential: true,
-              delayMs: 100, // Add delay to avoid rate limiting
+              delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
             }
           );
 
@@ -195,7 +290,7 @@ export class CategoryService {
 
         return category;
       },
-      CategoryError
+      CategoryCreationError
     );
   }
 }

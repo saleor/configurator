@@ -31,24 +31,10 @@ import {
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
-import { runPreflightValidation } from "../core/validation/preflight";
+import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { AttributeCache } from "../modules/attribute/attribute-cache";
-
-const VALID_ENTITY_SECTIONS = new Set<string>([
-  "channels",
-  "warehouses",
-  "shippingZones",
-  "productTypes",
-  "pageTypes",
-  "categories",
-  "products",
-  "collections",
-  "menus",
-  "models",
-  "taxClasses",
-]);
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -72,10 +58,6 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
-
-function isEntitySection(value: string): value is DuplicateIssue["section"] {
-  return VALID_ENTITY_SECTIONS.has(value);
-}
 
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
@@ -281,8 +263,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           if (pruned.length > 0) {
             this.console.muted(`Pruned ${pruned.length} old report(s)`);
           }
-        } catch (error) {
-          logger.warn("Failed to prune old reports", { error });
+        } catch (pruneError) {
+          logger.debug("Failed to prune old reports", {
+            error: pruneError instanceof Error ? pruneError.message : String(pruneError),
+          });
         }
       }
     } catch (error) {
