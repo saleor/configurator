@@ -1,4 +1,8 @@
 import type {
+  ContentAttribute,
+  ProductAttribute,
+} from "../../modules/config/schema/global-attributes.schema";
+import type {
   CategoryInput,
   ChannelInput,
   CollectionInput,
@@ -26,7 +30,9 @@ type EntityArrayKey =
   | "collections"
   | "menus"
   | "models"
-  | "taxClasses";
+  | "taxClasses"
+  | "productAttributes"
+  | "contentAttributes";
 
 export interface DuplicateIssue {
   section: EntityArrayKey;
@@ -100,6 +106,18 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     "model identifier"
   );
   checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
+  checkDuplicates<ProductAttribute>(
+    "productAttributes",
+    config.productAttributes,
+    (a) => a.name,
+    "product attribute name"
+  );
+  checkDuplicates<ContentAttribute>(
+    "contentAttributes",
+    config.contentAttributes,
+    (a) => a.name,
+    "content attribute name"
+  );
 
   return issues;
 }
@@ -137,13 +155,144 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
 }
 
 /**
+ * Validates that no attribute name appears in both productAttributes and contentAttributes.
+ * Each attribute must exist in only one section.
+ */
+export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath: string): void {
+  const productNames = new Set((config.productAttributes ?? []).map((a) => a.name));
+  const crossDupes = (config.contentAttributes ?? [])
+    .filter((a) => productNames.has(a.name))
+    .map((a) => a.name);
+
+  if (crossDupes.length > 0) {
+    throw new ConfigurationValidationError(
+      "Attribute names must be unique across productAttributes and contentAttributes",
+      filePath,
+      crossDupes.map((name) => ({
+        path: "productAttributes/contentAttributes",
+        message: `"${name}" appears in both productAttributes and contentAttributes. Each attribute must exist in only one section.`,
+      }))
+    );
+  }
+}
+
+/**
+ * Validates that all attribute references in productTypes, pageTypes, and modelTypes
+ * point to attributes that exist in the corresponding global section.
+ */
+export function validateAttributeReferences(config: SaleorConfig, filePath: string): void {
+  const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
+  const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
+
+  // Skip validation if no global sections are defined (legacy mode)
+  if (productAttrNames.size === 0 && contentAttrNames.size === 0) return;
+
+  const errors: Array<{ path: string; message: string }> = [];
+
+  // Check productTypes -> productAttributes
+  for (const pt of config.productTypes ?? []) {
+    for (const ref of [...(pt.productAttributes ?? []), ...(pt.variantAttributes ?? [])]) {
+      if ("attribute" in ref && !productAttrNames.has(ref.attribute)) {
+        errors.push({
+          path: `productTypes.${pt.name}`,
+          message: `References attribute "${ref.attribute}" which does not exist in productAttributes`,
+        });
+      }
+    }
+  }
+
+  // Check pageTypes -> contentAttributes
+  for (const pt of config.pageTypes ?? []) {
+    if ("attributes" in pt) {
+      for (const ref of pt.attributes ?? []) {
+        if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
+          errors.push({
+            path: `pageTypes.${pt.name}`,
+            message: `References attribute "${ref.attribute}" which does not exist in contentAttributes`,
+          });
+        }
+      }
+    }
+  }
+
+  // Check modelTypes -> contentAttributes
+  for (const mt of config.modelTypes ?? []) {
+    for (const ref of mt.attributes ?? []) {
+      if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
+        errors.push({
+          path: `modelTypes.${mt.name}`,
+          message: `References attribute "${ref.attribute}" which does not exist in contentAttributes`,
+        });
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new ConfigurationValidationError("Unresolved attribute references", filePath, errors);
+  }
+}
+
+/**
  * Run all preflight validations on the configuration.
- * This should be called early in the deployment pipeline.
+ * Collects all validation errors before throwing to give the user a complete picture.
  */
 export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
-  // Check for duplicate identifiers
-  validateNoDuplicateIdentifiers(config, filePath);
+  const errors: ConfigurationValidationError[] = [];
+
+  // Check for duplicate identifiers (including within-section attribute duplicates)
+  try {
+    validateNoDuplicateIdentifiers(config, filePath);
+  } catch (error) {
+    if (error instanceof ConfigurationValidationError) {
+      errors.push(error);
+    } else {
+      throw error;
+    }
+  }
+
+  // Check for cross-section attribute duplicates
+  try {
+    validateNoCrossSectionDuplicates(config, filePath);
+  } catch (error) {
+    if (error instanceof ConfigurationValidationError) {
+      errors.push(error);
+    } else {
+      throw error;
+    }
+  }
 
   // Check for inline attribute definitions (migration validation)
-  validateNoInlineAttributeDefinitions(config, filePath);
+  try {
+    validateNoInlineAttributeDefinitions(config, filePath);
+  } catch (error) {
+    if (error instanceof ConfigurationValidationError) {
+      errors.push(error);
+    } else {
+      throw error;
+    }
+  }
+
+  // Check that all attribute references point to existing global attributes
+  try {
+    validateAttributeReferences(config, filePath);
+  } catch (error) {
+    if (error instanceof ConfigurationValidationError) {
+      errors.push(error);
+    } else {
+      throw error;
+    }
+  }
+
+  if (errors.length === 1) {
+    throw errors[0];
+  }
+
+  if (errors.length > 1) {
+    const allValidationErrors = errors.flatMap((e) => e.validationErrors);
+    throw new ConfigurationValidationError(
+      `Multiple validation errors found (${errors.length} checks failed)`,
+      filePath,
+      allValidationErrors
+    );
+  }
 }

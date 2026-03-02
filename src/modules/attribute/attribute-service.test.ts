@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
 import {
   AttributeNotFoundError,
   WrongAttributeTypeError,
 } from "../../lib/errors/validation-errors";
-import { AttributeCache } from "./attribute-cache";
+import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
 import type { CachedAttribute } from "./attribute-cache";
+import { AttributeCache } from "./attribute-cache";
 import { AttributeService, validateAttributeReference } from "./attribute-service";
 import type { Attribute, AttributeBulkCreateResult, AttributeBulkUpdateResult } from "./repository";
 
@@ -896,5 +896,4 @@ describe("AttributeService", () => {
       }
     });
   });
-
 });

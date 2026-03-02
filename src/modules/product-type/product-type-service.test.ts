@@ -787,8 +787,8 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn(),
         updateAttribute: vi.fn(),
-        // Return null to simulate resolution failure (network error, etc.)
-        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        // Return empty array to simulate no matching attributes found
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
         bulkCreateAttributes: vi.fn(),
         bulkUpdateAttributes: vi.fn(),
       };
@@ -836,8 +836,8 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(colorAttribute),
         updateAttribute: vi.fn(),
-        // Return null, but since there are no referenced attrs, it should be fine
-        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        // Return empty array, but since there are no referenced attrs, it should be fine
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
         bulkCreateAttributes: vi.fn(),
         bulkUpdateAttributes: vi.fn(),
       };
@@ -1534,10 +1534,6 @@ describe("ProductTypeService", () => {
       const existingProductType: ProductType = {
         id: "1",
         name: "Apparel",
-        kind: "NORMAL",
-        hasVariants: true,
-        isShippingRequired: false,
-        taxClass: null,
         productAttributes: [],
         variantAttributes: [],
       };
@@ -1561,6 +1557,7 @@ describe("ProductTypeService", () => {
       await service.bootstrapProductType(
         {
           name: "Apparel",
+          isShippingRequired: false,
           productAttributes: [{ attribute: "Color" }],
           variantAttributes: [],
         },
@@ -1570,22 +1567,20 @@ describe("ProductTypeService", () => {
       // Then: should NOT call getAttributesByNames for the cached attribute
       // The mock returns [] by default; if cache is used, the API call for "Color"
       // reference resolution should be skipped entirely
-      const getAttrCalls = mockAttributeOperations.getAttributesByNames.mock.calls;
-      const referenceResolutionCalls = getAttrCalls.filter(
-        (call: unknown[]) => {
-          const arg = call[0] as { names: string[]; type: string };
-          return arg.names.includes("Color") && arg.type === "PRODUCT_TYPE";
-        }
-      );
+      const getAttrCalls = (
+        mockAttributeOperations.getAttributesByNames as ReturnType<typeof vi.fn>
+      ).mock.calls;
+      const referenceResolutionCalls = getAttrCalls.filter((call: unknown[]) => {
+        const arg = call[0] as { names: string[]; type: string };
+        return arg.names.includes("Color") && arg.type === "PRODUCT_TYPE";
+      });
       expect(referenceResolutionCalls).toHaveLength(0);
 
       // And: should assign the cached attribute
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith(
         expect.objectContaining({
           productTypeId: "1",
-          attributes: expect.arrayContaining([
-            expect.objectContaining({ id: "cached-color-id" }),
-          ]),
+          attributes: expect.arrayContaining([expect.objectContaining({ id: "cached-color-id" })]),
           type: "PRODUCT",
         })
       );
@@ -1596,10 +1591,6 @@ describe("ProductTypeService", () => {
       const existingProductType: ProductType = {
         id: "2",
         name: "Electronics",
-        kind: "NORMAL",
-        hasVariants: true,
-        isShippingRequired: true,
-        taxClass: null,
         productAttributes: [],
         variantAttributes: [],
       };
@@ -1632,6 +1623,7 @@ describe("ProductTypeService", () => {
       await service.bootstrapProductType(
         {
           name: "Electronics",
+          isShippingRequired: true,
           productAttributes: [{ attribute: "Brand" }],
           variantAttributes: [],
         },
@@ -1647,17 +1639,11 @@ describe("ProductTypeService", () => {
       );
     });
 
-    it("should log warning when API returns null for attribute resolution", async () => {
-      const { logger } = await import("../../lib/logger");
-
+    it("should throw validation error when API returns empty results for referenced attributes", async () => {
       // Given: an existing product type with no assigned attributes
       const existingProductType: ProductType = {
         id: "3",
         name: "Books",
-        kind: "NORMAL",
-        hasVariants: true,
-        isShippingRequired: false,
-        taxClass: null,
         productAttributes: [],
         variantAttributes: [],
       };
@@ -1667,29 +1653,21 @@ describe("ProductTypeService", () => {
           getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
         },
         {
-          // API returns null to simulate no results
-          getAttributesByNames: vi.fn().mockResolvedValue(null),
+          // API returns empty array — no matching attributes found
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
         }
       );
 
-      // No cache provided - all references are cache misses, API returns null
+      // No cache provided - all references are cache misses, API returns empty
       // When/Then: should throw because unresolved attributes cause a validation error
       await expect(
         service.bootstrapProductType({
           name: "Books",
+          isShippingRequired: false,
           productAttributes: [{ attribute: "Missing Attribute" }],
           variantAttributes: [],
         })
-      ).rejects.toThrow();
-
-      // And: should have logged a warning about null API result
-      expect(logger.warn).toHaveBeenCalledWith(
-        "API returned no results for product attribute resolution",
-        expect.objectContaining({
-          attributeNames: ["Missing Attribute"],
-        })
-      );
+      ).rejects.toThrow(/Failed to resolve referenced attributes/);
     });
   });
-
 });

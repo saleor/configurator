@@ -4,6 +4,7 @@ import {
   WrongAttributeTypeError,
 } from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
+import { toSlug } from "../../lib/utils/string";
 import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
 import type { AttributeCache, CachedAttribute } from "./attribute-cache";
 import { AttributeValidationError } from "./errors";
@@ -23,7 +24,7 @@ export const createAttributeInput = (input: FullAttribute): AttributeCreateInput
   const base = {
     name: input.name,
     type: input.type,
-    slug: input.name.toLowerCase().replace(/ /g, "-"),
+    slug: toSlug(input.name),
     inputType: input.inputType,
   };
 
@@ -129,7 +130,7 @@ export class AttributeService {
       type: attributeType,
     });
 
-    if (!existingAttributes || existingAttributes.length === 0) {
+    if (existingAttributes.length === 0) {
       logger.warn("No referenced attributes found", {
         names: unassignedAttributeNames,
         type: attributeType,
@@ -207,24 +208,47 @@ export class AttributeService {
     const successful: Attribute[] = [];
     const failed: Array<{ input: FullAttribute; errors: string[] }> = [];
 
-    // Process results
+    // Process results — use attribute name from result to match back to input
+    // instead of relying on positional index alignment
     if (result.results) {
       result.results.forEach(({ attribute, errors }, index) => {
         if (errors && errors.length > 0) {
-          failed.push({
-            input: attributes[index],
-            errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
-          });
-          logger.warn(`Failed to create attribute: ${attributes[index].name}`, { errors });
+          // Try to find the original input by name from the result, fall back to index
+          const failedInput =
+            (attribute?.name ? attributes.find((a) => a.name === attribute.name) : undefined) ??
+            attributes[index];
+          if (failedInput) {
+            failed.push({
+              input: failedInput,
+              errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
+            });
+            logger.warn(`Failed to create attribute: ${failedInput.name}`, { errors });
+          }
         } else if (attribute) {
           successful.push(attribute);
+        } else {
+          // No error and no attribute — unexpected empty result
+          const input = attributes[index];
+          if (input) {
+            failed.push({
+              input,
+              errors: ["Attribute creation returned no result and no error"],
+            });
+            logger.warn(`Bulk create returned empty result for attribute: ${input.name}`);
+          }
         }
       });
     }
 
-    // Log global errors if any
+    // Surface global errors as failures
     if (result.errors && result.errors.length > 0) {
       logger.warn("Global errors during bulk attribute creation", { errors: result.errors });
+      for (const err of result.errors) {
+        failed.push({
+          input: attributes[0] ?? ({ name: "unknown" } as FullAttribute),
+          errors: [`Global error: ${err.path || ""}: ${err.message}`],
+        });
+      }
     }
 
     logger.info(`Bulk create complete: ${successful.length} successful, ${failed.length} failed`);
@@ -273,30 +297,94 @@ export class AttributeService {
     // Process results
     if (result.results) {
       result.results.forEach(({ attribute, errors }, index) => {
-        const originalIndex = updateInputs.findIndex((u) => u.id === actualUpdates[index].id);
+        const actualUpdate = actualUpdates[index];
+        const originalIndex = actualUpdate
+          ? updateInputs.findIndex((u) => u.id === actualUpdate.id)
+          : -1;
+        const originalInput = originalIndex >= 0 ? updates[originalIndex]?.input : undefined;
+
         if (errors && errors.length > 0) {
+          const inputName = originalInput?.name ?? `index-${index}`;
           failed.push({
-            input: updates[originalIndex].input,
+            input: originalInput ?? ({ name: inputName } as FullAttribute),
             errors: errors.map((e) => `${e.path || ""}: ${e.message}`),
           });
-          logger.warn(`Failed to update attribute: ${updates[originalIndex].input.name}`, {
-            errors,
-          });
+          logger.warn(`Failed to update attribute: ${inputName}`, { errors });
         } else if (attribute) {
           successful.push(attribute);
         }
       });
     }
 
-    // Log global errors if any
+    // Surface global errors as failures
     if (result.errors && result.errors.length > 0) {
       logger.warn("Global errors during bulk attribute update", { errors: result.errors });
+      for (const err of result.errors) {
+        failed.push({
+          input: updates[0]?.input ?? ({ name: "unknown" } as FullAttribute),
+          errors: [`Global error: ${err.path || ""}: ${err.message}`],
+        });
+      }
     }
 
     logger.info(`Bulk update complete: ${successful.length} successful, ${failed.length} failed`);
 
     return { successful, failed };
   }
+}
+
+/**
+ * Shared cache-first resolution for referenced attribute names.
+ * Returns { resolvedIds, unresolvedNames } — callers decide how to handle unresolved.
+ */
+export async function resolveAttributeNamesWithCache(
+  names: string[],
+  section: "product" | "content",
+  attributeCache: AttributeCache | undefined,
+  repository: AttributeOperations
+): Promise<{ resolvedIds: string[]; unresolvedNames: string[] }> {
+  if (names.length === 0) return { resolvedIds: [], unresolvedNames: [] };
+
+  const resolvedIds: string[] = [];
+  const cacheMisses: string[] = [];
+
+  // Step 1: Try cache
+  if (attributeCache) {
+    for (const name of names) {
+      const cached =
+        section === "product"
+          ? attributeCache.getProductAttribute(name)
+          : attributeCache.getContentAttribute(name);
+      if (cached) {
+        resolvedIds.push(cached.id);
+      } else {
+        cacheMisses.push(name);
+      }
+    }
+  } else {
+    cacheMisses.push(...names);
+  }
+
+  // Step 2: API fallback for cache misses
+  if (cacheMisses.length > 0) {
+    const apiType = section === "product" ? "PRODUCT_TYPE" : "PAGE_TYPE";
+    const apiResolved = await repository.getAttributesByNames({
+      names: cacheMisses,
+      type: apiType,
+    });
+
+    const resolvedNameSet = new Set<string>();
+    for (const attr of apiResolved) {
+      if (attr.name) {
+        resolvedIds.push(attr.id);
+        resolvedNameSet.add(attr.name);
+      }
+    }
+    const stillUnresolved = cacheMisses.filter((n) => !resolvedNameSet.has(n));
+    return { resolvedIds, unresolvedNames: stillUnresolved };
+  }
+
+  return { resolvedIds, unresolvedNames: [] };
 }
 
 /**
@@ -324,7 +412,7 @@ export type AttributeValidationResult =
 export function validateAttributeReference(
   attributeName: string,
   expectedSection: "product" | "content",
-  referencingEntityType: "productTypes" | "modelTypes",
+  referencingEntityType: "productTypes" | "pageTypes" | "modelTypes",
   referencingEntityName: string,
   cache: AttributeCache
 ): AttributeValidationResult {

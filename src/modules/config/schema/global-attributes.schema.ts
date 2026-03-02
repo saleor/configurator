@@ -6,89 +6,53 @@ const attributeValueSchema = z.object({
 });
 
 // ============================================================================
-// PRODUCT ATTRIBUTE SCHEMAS (PRODUCT_TYPE in Saleor API)
+// SHARED GLOBAL ATTRIBUTE SCHEMA
+// Both productAttributes and contentAttributes share the same structure.
+// The section they appear in determines their Saleor API type
+// (PRODUCT_TYPE vs PAGE_TYPE).
 // ============================================================================
 
-const baseProductAttributeSchema = z.object({
+const baseGlobalAttributeSchema = z.object({
   name: z.string().min(1, "Attribute name is required"),
 });
 
-const dropdownProductAttributeSchema = baseProductAttributeSchema.extend({
+const dropdownGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("DROPDOWN"),
   values: z.array(attributeValueSchema).min(1, "Dropdown attributes must have at least one value"),
 });
 
-const multiselectProductAttributeSchema = baseProductAttributeSchema.extend({
+const multiselectGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("MULTISELECT"),
   values: z
     .array(attributeValueSchema)
     .min(1, "Multiselect attributes must have at least one value"),
 });
 
-const swatchProductAttributeSchema = baseProductAttributeSchema.extend({
+const swatchGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("SWATCH"),
   values: z.array(attributeValueSchema).min(1, "Swatch attributes must have at least one value"),
 });
 
-const referenceProductAttributeSchema = baseProductAttributeSchema.extend({
+const referenceGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
   entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
-const simpleProductAttributeSchema = baseProductAttributeSchema.extend({
+const simpleGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
 });
 
-export const productAttributeSchema = z.discriminatedUnion("inputType", [
-  dropdownProductAttributeSchema,
-  multiselectProductAttributeSchema,
-  swatchProductAttributeSchema,
-  referenceProductAttributeSchema,
-  simpleProductAttributeSchema,
+const globalAttributeSchema = z.discriminatedUnion("inputType", [
+  dropdownGlobalAttributeSchema,
+  multiselectGlobalAttributeSchema,
+  swatchGlobalAttributeSchema,
+  referenceGlobalAttributeSchema,
+  simpleGlobalAttributeSchema,
 ]);
+
+// Product and content attributes share the same schema — the section determines the type
+export const productAttributeSchema = globalAttributeSchema;
+export const contentAttributeSchema = globalAttributeSchema;
 
 export type ProductAttribute = z.infer<typeof productAttributeSchema>;
-
-// ============================================================================
-// CONTENT ATTRIBUTE SCHEMAS (PAGE_TYPE in Saleor API)
-// ============================================================================
-
-const baseContentAttributeSchema = z.object({
-  name: z.string().min(1, "Attribute name is required"),
-});
-
-const dropdownContentAttributeSchema = baseContentAttributeSchema.extend({
-  inputType: z.literal("DROPDOWN"),
-  values: z.array(attributeValueSchema).min(1, "Dropdown attributes must have at least one value"),
-});
-
-const multiselectContentAttributeSchema = baseContentAttributeSchema.extend({
-  inputType: z.literal("MULTISELECT"),
-  values: z
-    .array(attributeValueSchema)
-    .min(1, "Multiselect attributes must have at least one value"),
-});
-
-const swatchContentAttributeSchema = baseContentAttributeSchema.extend({
-  inputType: z.literal("SWATCH"),
-  values: z.array(attributeValueSchema).min(1, "Swatch attributes must have at least one value"),
-});
-
-const referenceContentAttributeSchema = baseContentAttributeSchema.extend({
-  inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
-});
-
-const simpleContentAttributeSchema = baseContentAttributeSchema.extend({
-  inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
-});
-
-export const contentAttributeSchema = z.discriminatedUnion("inputType", [
-  dropdownContentAttributeSchema,
-  multiselectContentAttributeSchema,
-  swatchContentAttributeSchema,
-  referenceContentAttributeSchema,
-  simpleContentAttributeSchema,
-]);
-
 export type ContentAttribute = z.infer<typeof contentAttributeSchema>;

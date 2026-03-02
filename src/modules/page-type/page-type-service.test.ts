@@ -310,10 +310,9 @@ describe("PageTypeService", () => {
       expect(mockAttributeOperations.getAttributesByNames).not.toHaveBeenCalled();
 
       // And: should assign the cached attribute ID
-      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith(
-        "page-type-1",
-        ["cached-attr-1"]
-      );
+      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith("page-type-1", [
+        "cached-attr-1",
+      ]);
     });
 
     it("should fall back to API when attribute is not in cache", async () => {
@@ -333,9 +332,11 @@ describe("PageTypeService", () => {
 
       const mockAttributeOperations = {
         createAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([
-          { id: "api-attr-1", name: "Author", type: "PAGE_TYPE", inputType: "PLAIN_TEXT" },
-        ]),
+        getAttributesByNames: vi
+          .fn()
+          .mockResolvedValue([
+            { id: "api-attr-1", name: "Author", type: "PAGE_TYPE", inputType: "PLAIN_TEXT" },
+          ]),
         updateAttribute: vi.fn(),
         bulkCreateAttributes: vi.fn(),
         bulkUpdateAttributes: vi.fn(),
@@ -367,15 +368,12 @@ describe("PageTypeService", () => {
       });
 
       // And: should assign the API-resolved attribute ID
-      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith(
-        "page-type-2",
-        ["api-attr-1"]
-      );
+      expect(mockPageTypeOperations.assignAttributes).toHaveBeenCalledWith("page-type-2", [
+        "api-attr-1",
+      ]);
     });
 
-    it("should log warning when API returns null for attribute resolution", async () => {
-      const { logger } = await import("../../lib/logger");
-
+    it("should throw when API returns null for attribute resolution", async () => {
       // Given: a page type with no existing attributes
       const existingPageType = {
         id: "page-type-3",
@@ -402,23 +400,12 @@ describe("PageTypeService", () => {
       const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       // No cache provided - forces API fallback which returns null
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Missing Attribute" },
-      ];
+      const inputAttributes: AttributeInput[] = [{ attribute: "Missing Attribute" }];
 
-      // When
-      await service.bootstrapPageType(
-        { name: "Landing Page", attributes: inputAttributes },
-      );
-
-      // Then: should log a warning about null API result
-      expect(logger.warn).toHaveBeenCalledWith(
-        "API returned no results for content attribute resolution",
-        expect.objectContaining({
-          attributeNames: ["Missing Attribute"],
-        })
-      );
+      // When/Then: should throw instead of silently logging
+      await expect(
+        service.bootstrapPageType({ name: "Landing Page", attributes: inputAttributes })
+      ).rejects.toThrow("Failed to resolve referenced attributes for page type");
     });
   });
-
 });

@@ -7,6 +7,7 @@ import {
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import { toSlug } from "../../lib/utils/string";
 import type { AttributeInputType, CachedAttribute } from "../../modules/attribute/attribute-cache";
 import type {
   Attribute as AttributeMeta,
@@ -109,7 +110,7 @@ export const productTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing product types", failures, successes);
       }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Failed to manage product type")) {
+      if (error instanceof StageAggregateError) {
         throw error;
       }
       throw new Error(
@@ -130,15 +131,25 @@ export const productTypesStage: DeploymentStage = {
   },
 };
 
-/**
- * Helper function to convert global attribute (ProductAttribute or ContentAttribute)
- * to FullAttribute format by adding the type field.
- */
-function toFullAttribute(
-  attr: ProductAttribute | ContentAttribute,
-  type: "PRODUCT_TYPE" | "PAGE_TYPE"
-): FullAttribute {
-  return fullAttributeSchema.parse({ ...attr, type });
+const VALID_INPUT_TYPES = new Set<AttributeInputType>([
+  "DROPDOWN",
+  "MULTISELECT",
+  "SWATCH",
+  "REFERENCE",
+  "PLAIN_TEXT",
+  "NUMERIC",
+  "DATE",
+  "BOOLEAN",
+  "RICH_TEXT",
+  "DATE_TIME",
+  "FILE",
+]);
+
+function toAttributeInputType(value: string | null | undefined): AttributeInputType | undefined {
+  if (value && VALID_INPUT_TYPES.has(value as AttributeInputType)) {
+    return value as AttributeInputType;
+  }
+  return undefined;
 }
 
 /**
@@ -156,14 +167,32 @@ async function processGlobalAttributes(
   }
 
   const service = context.configurator.services.attribute;
-  const fullAttributes = attributes.map((attr) => toFullAttribute(attr, type));
   const failures: Array<{ entity: string; error: Error }> = [];
+
+  const fullAttributes: FullAttribute[] = [];
+  for (const attr of attributes) {
+    const result = fullAttributeSchema.safeParse({ ...attr, type });
+    if (!result.success) {
+      failures.push({
+        entity: attr.name,
+        error: new Error(
+          `Invalid attribute "${attr.name}": ${result.error.issues.map((i) => i.message).join(", ")}`
+        ),
+      });
+    } else {
+      fullAttributes.push(result.data);
+    }
+  }
   const cached: CachedAttribute[] = [];
 
   // Fetch existing attributes
   const names = attributes.map((a) => a.name);
   const existing = await service.repo.getAttributesByNames({ names, type });
-  const existingMap = new Map(existing?.filter((a) => a.name).map((a) => [a.name, a]) ?? []);
+  const existingMap = new Map(
+    existing
+      .filter((a): a is typeof a & { name: string } => typeof a.name === "string")
+      .map((a) => [a.name, a])
+  );
 
   if (fullAttributes.length <= BulkOperationThresholds.ATTRIBUTES) {
     // Sequential processing for small configs
@@ -181,27 +210,39 @@ async function processGlobalAttributes(
           await service.bootstrapAttributes({ attributeInputs: [attr] });
           // Fetch the created attribute to get its ID
           const fetched = await service.repo.getAttributesByNames({ names: [attr.name], type });
-          result = fetched?.[0];
+          result = fetched[0];
         }
 
         if (result?.id && result?.name) {
           return {
             id: result.id,
             name: result.name,
-            slug: result.name.toLowerCase().replace(/ /g, "-"),
-            inputType: (result.inputType ?? attr.inputType) as AttributeInputType,
+            slug: toSlug(result.name),
+            inputType:
+              toAttributeInputType(result.inputType) ??
+              toAttributeInputType(attr.inputType) ??
+              attr.inputType,
           } satisfies CachedAttribute;
         }
         return null;
       })
     );
 
-    for (const r of results) {
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
       if (r.status === "fulfilled" && r.value) {
         cached.push(r.value);
+      } else if (r.status === "fulfilled" && r.value === null) {
+        const attrName = fullAttributes[i]?.name ?? "unknown";
+        failures.push({
+          entity: attrName,
+          error: new Error(
+            `Attribute "${attrName}" was processed but could not be verified (no ID returned from API)`
+          ),
+        });
       } else if (r.status === "rejected") {
         failures.push({
-          entity: "attribute",
+          entity: fullAttributes[i]?.name ?? "attribute",
           error: r.reason instanceof Error ? r.reason : new Error(String(r.reason)),
         });
       }
@@ -221,29 +262,43 @@ async function processGlobalAttributes(
 
     if (toCreate.length > 0) {
       logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
-      const createResult = await service.bootstrapAttributesBulk(toCreate);
-      createResult.failed.forEach(({ input, errors }) => {
-        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
-      });
+      try {
+        const createResult = await service.bootstrapAttributesBulk(toCreate);
+        createResult.failed.forEach(({ input, errors }) => {
+          failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+        });
+      } catch (error) {
+        failures.push({
+          entity: `bulk create (${toCreate.length} ${sectionName})`,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
     }
 
     if (toUpdate.length > 0) {
       logger.info(`Updating ${toUpdate.length} existing ${sectionName} via bulk mutation`);
-      const updateResult = await service.updateAttributesBulk(toUpdate);
-      updateResult.failed.forEach(({ input, errors }) => {
-        failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
-      });
+      try {
+        const updateResult = await service.updateAttributesBulk(toUpdate);
+        updateResult.failed.forEach(({ input, errors }) => {
+          failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
+        });
+      } catch (error) {
+        failures.push({
+          entity: `bulk update (${toUpdate.length} ${sectionName})`,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
     }
 
     // Fetch all attributes to cache
     const allFetched = await service.repo.getAttributesByNames({ names, type });
-    for (const attr of allFetched ?? []) {
+    for (const attr of allFetched) {
       if (attr.id && attr.name && attr.inputType && !failures.some((f) => f.entity === attr.name)) {
         cached.push({
           id: attr.id,
           name: attr.name,
-          slug: attr.name.toLowerCase().replace(/ /g, "-"),
-          inputType: attr.inputType as AttributeInputType,
+          slug: toSlug(attr.name),
+          inputType: toAttributeInputType(attr.inputType) ?? attr.inputType,
         });
       }
     }
@@ -255,89 +310,105 @@ async function processGlobalAttributes(
 export const attributesStage: DeploymentStage = {
   name: StageNames.ATTRIBUTES,
   async execute(context) {
-    const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
-    const productAttributes = config.productAttributes ?? [];
-    const contentAttributes = config.contentAttributes ?? [];
-    const legacyAttributes = config.attributes ?? [];
+    try {
+      const config = (await context.configurator.services.configStorage.load()) as SaleorConfig;
+      const productAttributes = config.productAttributes ?? [];
+      const contentAttributes = config.contentAttributes ?? [];
+      const legacyAttributes = config.attributes ?? [];
 
-    const allFailures: Array<{ entity: string; error: Error }> = [];
+      const allFailures: Array<{ entity: string; error: Error }> = [];
+      const productCached: CachedAttribute[] = [];
+      const contentCached: CachedAttribute[] = [];
 
-    // 1. Process productAttributes section (PRODUCT_TYPE)
-    if (productAttributes.length > 0) {
-      logger.info(`Processing ${productAttributes.length} product attributes`);
-      const { cached, failures } = await processGlobalAttributes(
-        context,
-        productAttributes,
-        "PRODUCT_TYPE",
-        "product attributes"
-      );
-      context.attributeCache.populateProductAttributes(cached);
-      allFailures.push(...failures);
-      logger.debug(`Cached ${cached.length} product attributes`);
-    }
-
-    // 2. Process contentAttributes section (PAGE_TYPE)
-    if (contentAttributes.length > 0) {
-      logger.info(`Processing ${contentAttributes.length} content attributes`);
-      const { cached, failures } = await processGlobalAttributes(
-        context,
-        contentAttributes,
-        "PAGE_TYPE",
-        "content attributes"
-      );
-      context.attributeCache.populateContentAttributes(cached);
-      allFailures.push(...failures);
-      logger.debug(`Cached ${cached.length} content attributes`);
-    }
-
-    // 3. Process legacy attributes section (for backward compatibility)
-    if (legacyAttributes.length > 0) {
-      logger.warn(
-        `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
-          `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
-          `to generate the new format.`
-      );
-      logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
-
-      // Group by type
-      const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
-      const pageType = legacyAttributes.filter((a) => a.type === "PAGE_TYPE");
-
-      if (productType.length > 0) {
+      // 1. Process productAttributes section (PRODUCT_TYPE)
+      if (productAttributes.length > 0) {
+        logger.info(`Processing ${productAttributes.length} product attributes`);
         const { cached, failures } = await processGlobalAttributes(
           context,
-          productType,
+          productAttributes,
           "PRODUCT_TYPE",
-          "legacy product attributes"
+          "product attributes"
         );
-        context.attributeCache.populateProductAttributes(cached);
+        productCached.push(...cached);
         allFailures.push(...failures);
+        logger.debug(`Processed ${cached.length} product attributes`);
       }
 
-      if (pageType.length > 0) {
+      // 2. Process contentAttributes section (PAGE_TYPE)
+      if (contentAttributes.length > 0) {
+        logger.info(`Processing ${contentAttributes.length} content attributes`);
         const { cached, failures } = await processGlobalAttributes(
           context,
-          pageType,
+          contentAttributes,
           "PAGE_TYPE",
-          "legacy content attributes"
+          "content attributes"
         );
-        context.attributeCache.populateContentAttributes(cached);
+        contentCached.push(...cached);
         allFailures.push(...failures);
+        logger.debug(`Processed ${cached.length} content attributes`);
       }
-    }
 
-    // Report cache stats
-    const stats = context.attributeCache.getStats();
-    logger.info(
-      `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
-    );
+      // 3. Process legacy attributes section (for backward compatibility)
+      if (legacyAttributes.length > 0) {
+        logger.warn(
+          `DEPRECATED: The 'attributes' section is deprecated. Use 'productAttributes' for PRODUCT_TYPE ` +
+            `attributes and 'contentAttributes' for PAGE_TYPE attributes. Run 'saleor-configurator introspect' ` +
+            `to generate the new format.`
+        );
+        logger.info(`Processing ${legacyAttributes.length} legacy unassigned attributes`);
 
-    // Throw if there were any failures
-    if (allFailures.length > 0) {
-      throw new StageAggregateError(
-        "Managing attributes",
-        allFailures,
-        [...productAttributes, ...contentAttributes, ...legacyAttributes].map((a) => a.name)
+        // Group by type
+        const productType = legacyAttributes.filter((a) => a.type === "PRODUCT_TYPE");
+        const pageType = legacyAttributes.filter((a) => a.type === "PAGE_TYPE");
+
+        if (productType.length > 0) {
+          const { cached, failures } = await processGlobalAttributes(
+            context,
+            productType,
+            "PRODUCT_TYPE",
+            "legacy product attributes"
+          );
+          productCached.push(...cached);
+          allFailures.push(...failures);
+        }
+
+        if (pageType.length > 0) {
+          const { cached, failures } = await processGlobalAttributes(
+            context,
+            pageType,
+            "PAGE_TYPE",
+            "legacy content attributes"
+          );
+          contentCached.push(...cached);
+          allFailures.push(...failures);
+        }
+      }
+
+      // Only populate cache if there were no failures to ensure coherence.
+      if (allFailures.length === 0) {
+        context.attributeCache.populateProductAttributes(productCached);
+        context.attributeCache.populateContentAttributes(contentCached);
+
+        const stats = context.attributeCache.getStats();
+        logger.info(
+          `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
+        );
+      } else {
+        logger.warn(
+          `Attribute cache not populated due to ${allFailures.length} failure(s) — deployment will halt`
+        );
+        throw new StageAggregateError(
+          "Managing attributes",
+          allFailures,
+          [...productAttributes, ...contentAttributes, ...legacyAttributes].map((a) => a.name)
+        );
+      }
+    } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      throw new Error(
+        `Failed to manage attributes: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   },
@@ -435,7 +506,7 @@ export const pageTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing page types", failures, successes);
       }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Failed to manage page type")) {
+      if (error instanceof StageAggregateError) {
         throw error;
       }
       throw new Error(
@@ -459,7 +530,10 @@ export const modelTypesStage: DeploymentStage = {
       }
 
       // Pass attribute cache for fast content attribute resolution
-      const bootstrapOptions = { attributeCache: context.attributeCache };
+      const bootstrapOptions = {
+        attributeCache: context.attributeCache,
+        referencingEntityType: "modelTypes" as const,
+      };
 
       const results = await Promise.allSettled(
         config.modelTypes.map((modelType) =>
@@ -492,7 +566,7 @@ export const modelTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing model types", failures, successes);
       }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("Failed to manage model type")) {
+      if (error instanceof StageAggregateError) {
         throw error;
       }
       throw new Error(
@@ -501,7 +575,10 @@ export const modelTypesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    return context.summary.results.every((r) => r.entityType !== "Models");
+    // modelTypes uses PageTypeComparator which produces entityType "Page Types"
+    return context.summary.results.every(
+      (r) => r.entityType !== "Models" && r.entityType !== "Page Types"
+    );
   },
 };
 
@@ -715,7 +792,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         names,
         type: "PRODUCT_TYPE",
       });
-      if (!existing || existing.length === 0) return;
+      if (existing.length === 0) return;
 
       // For each attribute, add missing choices if any
       const choiceInputTypes = new Set(["DROPDOWN", "MULTISELECT", "SWATCH"]);
@@ -747,13 +824,13 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         names,
         type: "PRODUCT_TYPE",
       });
-      if (refreshed && refreshed.length > 0) {
+      if (refreshed.length > 0) {
         context.configurator.services.product.primeAttributeCache(
           refreshed as unknown as ProductAttributeMeta[]
         );
       }
       logger.debug("Attribute choices preflight completed", {
-        attributes: refreshed?.length ?? existing.length,
+        attributes: refreshed.length,
       });
     } catch (error) {
       throw new Error(

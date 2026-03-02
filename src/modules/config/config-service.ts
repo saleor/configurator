@@ -49,74 +49,41 @@ export class ConfigurationService {
   ) {}
 
   async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
-    const rawConfig = await this.repository.fetchConfig();
-    const config = this.mapConfig(rawConfig, selectiveOptions);
-    const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
-    // Split attributes into productAttributes and contentAttributes sections
-    try {
-      const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
-      if (shouldIncludeSection("productAttributes", options)) {
-        config.productAttributes = productAttributes;
-      }
-      if (shouldIncludeSection("contentAttributes", options)) {
-        config.contentAttributes = contentAttributes;
-      }
-      // Ensure attributes appear before productTypes in YAML ordering
-      this.reorderConfigKeys(config as SaleorConfig);
-    } catch (error) {
-      // Only catch expected errors from attribute mapping (e.g., malformed data)
-      // Unexpected errors (network, permissions) should propagate
-      if (error instanceof UnsupportedInputTypeError) {
-        logger.error(
-          "Failed to extract global attributes due to unsupported input type. " +
-            "Attributes will be inlined in product/page types instead: %s",
-          error.message
-        );
-        // Continue without global attributes - they'll be inline in types
-      } else {
-        throw error;
-      }
-    }
+    const config = await this.buildConfig(selectiveOptions);
     await this.storage.save(config);
     return config;
   }
 
   async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
+    return this.buildConfig(selectiveOptions);
+  }
+
+  private async buildConfig(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     const config = this.mapConfig(rawConfig, selectiveOptions);
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
-    try {
-      const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
-      if (shouldIncludeSection("productAttributes", options)) {
-        config.productAttributes = productAttributes;
-      }
-      if (shouldIncludeSection("contentAttributes", options)) {
-        config.contentAttributes = contentAttributes;
-      }
-      this.reorderConfigKeys(config as SaleorConfig);
-    } catch (error) {
-      if (error instanceof UnsupportedInputTypeError) {
-        logger.error(
-          "Failed to extract global attributes due to unsupported input type. " +
-            "Attributes will be inlined in product/page types instead: %s",
-          error.message
-        );
-      } else {
-        throw error;
-      }
+
+    const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
+    if (shouldIncludeSection("productAttributes", options)) {
+      config.productAttributes = productAttributes;
     }
+    if (shouldIncludeSection("contentAttributes", options)) {
+      config.contentAttributes = contentAttributes;
+    }
+    this.reorderConfigKeys(config as SaleorConfig);
+
     return config;
   }
 
-  /**
-   * Mutates config to order keys: global attribute sections first, then core sections.
-   */
   private reorderConfigKeys(config: SaleorConfig): void {
     const ordered: Partial<SaleorConfig> = {};
+    const orderedRecord = ordered as Record<string, unknown>;
+    const configRecord = config as Record<string, unknown>;
+
     const push = (k: keyof SaleorConfig) => {
-      if (config[k] !== undefined) (ordered as Record<string, unknown>)[k] = config[k];
+      if (config[k] !== undefined) orderedRecord[k] = config[k];
     };
-    // Desired order: global attributes appear before productTypes/modelTypes
+
     push("shop");
     push("channels");
     push("warehouses");
@@ -132,11 +99,15 @@ export class ConfigurationService {
     push("products");
     push("models");
     push("menus");
-    // Legacy attributes section (for backward compatibility during migration)
     push("attributes");
 
-    // Clear and assign back in order
-    for (const key of Object.keys(config)) delete (config as Record<string, unknown>)[key];
+    for (const key of Object.keys(configRecord)) {
+      if (!(key in orderedRecord)) {
+        orderedRecord[key] = configRecord[key];
+      }
+    }
+
+    for (const key of Object.keys(configRecord)) delete configRecord[key];
     Object.assign(config, ordered);
   }
 
@@ -297,70 +268,19 @@ export class ConfigurationService {
     });
   }
 
-  private mapAllAttributes(raw: RawSaleorConfig): FullAttribute[] {
-    type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
-    const edges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
-    if (!edges || edges.length === 0) return [];
-
-    const toFullAttribute = (node: {
-      name?: string | null;
-      type?: string | null;
-      inputType?: string | null;
-      entityType?: string | null;
-      choices?: { edges?: Array<{ node?: { name?: string | null } | null } | null> } | null;
-    }): FullAttribute | null => {
-      if (!node?.name || !node?.inputType) return null;
-      const inputType = node.inputType as FullAttribute["inputType"];
-      const type = (node.type as FullAttribute["type"]) || "PRODUCT_TYPE";
-      if (inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH") {
-        const values = (node.choices?.edges || [])
-          .map((e) => e?.node?.name)
-          .filter((n): n is string => !!n)
-          .map((name) => ({ name }));
-        return { name: node.name, inputType, type, values } as FullAttribute;
-      }
-      if (inputType === "REFERENCE") {
-        return {
-          name: node.name,
-          inputType: "REFERENCE",
-          type,
-          entityType:
-            (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT",
-        } as FullAttribute;
-      }
-      return { name: node.name, inputType, type } as FullAttribute;
-    };
-
-    const all = edges
-      .map((e) => e?.node)
-      .filter((n): n is NonNullable<AttributeEdge["node"]> => !!n)
-      .map(toFullAttribute)
-      .filter((a): a is FullAttribute => !!a);
-
-    return all;
-  }
-
-  /**
-   * Maps raw attributes into separate productAttributes and contentAttributes sections.
-   * - Splits by type: PRODUCT_TYPE → productAttributes, PAGE_TYPE → contentAttributes
-   * - Deduplicates by name (first occurrence wins)
-   * - Omits the `type` field from output (section implies type)
-   */
   private mapGlobalAttributeSections(raw: RawSaleorConfig): {
     productAttributes: ProductAttribute[];
     contentAttributes: ContentAttribute[];
   } {
     type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
-    const edges: AttributeEdge[] = (raw.attributes?.edges as AttributeEdge[]) || [];
+    const edges: AttributeEdge[] = raw.attributes?.edges ?? [];
 
-    if (!edges || edges.length === 0) {
+    if (edges.length === 0) {
       return { productAttributes: [], contentAttributes: [] };
     }
 
-    // Track seen names for deduplication
     const seenProductNames = new Set<string>();
     const seenContentNames = new Set<string>();
-
     const productAttributes: ProductAttribute[] = [];
     const contentAttributes: ContentAttribute[] = [];
 
@@ -368,39 +288,40 @@ export class ConfigurationService {
       const node = edge?.node;
       if (!node?.name || !node?.inputType) continue;
 
-      const name = node.name;
-      const inputType = node.inputType;
-      const type = node.type || "PRODUCT_TYPE";
-
-      // Build the attribute without the `type` field
-      let attr: ProductAttribute | ContentAttribute;
-
-      if (inputType === "DROPDOWN" || inputType === "MULTISELECT" || inputType === "SWATCH") {
-        type ChoiceEdge = { node?: { name?: string | null } | null } | null;
-        const values = ((node.choices?.edges || []) as ChoiceEdge[])
-          .map((e: ChoiceEdge) => e?.node?.name)
-          .filter((n): n is string => !!n)
-          .map((valueName: string) => ({ name: valueName }));
-        attr = { name, inputType, values } as ProductAttribute | ContentAttribute;
-      } else if (inputType === "REFERENCE") {
-        const entityType =
-          (node.entityType as "PAGE" | "PRODUCT" | "PRODUCT_VARIANT" | null) ?? "PRODUCT";
-        attr = { name, inputType: "REFERENCE", entityType } as ProductAttribute | ContentAttribute;
-      } else {
-        attr = { name, inputType } as ProductAttribute | ContentAttribute;
+      const validTypes = ["PRODUCT_TYPE", "PAGE_TYPE"] as const;
+      const rawType = node.type as string;
+      if (!validTypes.includes(rawType as (typeof validTypes)[number])) {
+        logger.warn(
+          `Attribute "${node.name}" has unexpected type "${rawType}", defaulting to PRODUCT_TYPE`
+        );
       }
+      const type = validTypes.includes(rawType as (typeof validTypes)[number])
+        ? (rawType as "PRODUCT_TYPE" | "PAGE_TYPE")
+        : "PRODUCT_TYPE";
 
-      // Split by type and deduplicate
-      if (type === "PRODUCT_TYPE") {
-        if (!seenProductNames.has(name)) {
-          seenProductNames.add(name);
-          productAttributes.push(attr as ProductAttribute);
+      try {
+        const fullAttr = this.mapAttribute(node as RawAttribute, type);
+        const { type: _, ...attrWithoutType } = fullAttr;
+
+        if (type === "PRODUCT_TYPE" && !seenProductNames.has(node.name)) {
+          seenProductNames.add(node.name);
+          productAttributes.push(attrWithoutType as ProductAttribute);
+        } else if (type === "PRODUCT_TYPE" && seenProductNames.has(node.name)) {
+          logger.warn(`Skipping duplicate product attribute "${node.name}" during introspect`);
+        } else if (type === "PAGE_TYPE" && !seenContentNames.has(node.name)) {
+          seenContentNames.add(node.name);
+          contentAttributes.push(attrWithoutType as ContentAttribute);
+        } else if (type === "PAGE_TYPE" && seenContentNames.has(node.name)) {
+          logger.warn(`Skipping duplicate content attribute "${node.name}" during introspect`);
         }
-      } else if (type === "PAGE_TYPE") {
-        if (!seenContentNames.has(name)) {
-          seenContentNames.add(name);
-          contentAttributes.push(attr as ContentAttribute);
+      } catch (error) {
+        if (error instanceof UnsupportedInputTypeError) {
+          logger.warn(
+            `Skipping attribute "${node.name}" with unsupported input type "${node.inputType}": ${error.message}`
+          );
+          continue;
         }
+        throw error;
       }
     }
 
@@ -635,59 +556,23 @@ export class ConfigurationService {
       }));
   }
 
-  /**
-   * Normalizes attribute references by converting shared attributes to reference syntax
-   * This prevents duplicate attribute definition errors during deployment
-   */
   private normalizeAttributeReferences(config: SaleorConfig): SaleorConfig {
-    // Since we just created the config from raw data, all attributes are FullAttributes at this point
-    // We need to cast them properly to work with them
-    const productTypesWithFullAttrs = config.productTypes as Array<{
-      name: string;
-      isShippingRequired?: boolean;
-      productAttributes?: FullAttribute[];
-      variantAttributes?: FullAttribute[];
-    }>;
+    const productTypesWithFullAttrs = config.productTypes as
+      | Array<{
+          name: string;
+          isShippingRequired?: boolean;
+          productAttributes?: FullAttribute[];
+          variantAttributes?: FullAttribute[];
+        }>
+      | undefined;
 
-    const pageTypesWithFullAttrs = config.pageTypes as Array<{
-      name: string;
-      attributes?: FullAttribute[];
-    }>;
+    const pageTypesWithFullAttrs = config.pageTypes as
+      | Array<{
+          name: string;
+          attributes?: FullAttribute[];
+        }>
+      | undefined;
 
-    // Collect all attributes across product types and page types
-    const attributeUsage = new Map<string, { attribute: FullAttribute; locations: string[] }>();
-
-    // Track attributes from product types
-    productTypesWithFullAttrs?.forEach((productType) => {
-      [...(productType.productAttributes || []), ...(productType.variantAttributes || [])].forEach(
-        (attr) => {
-          const location = `productType:${productType.name}`;
-          if (!attributeUsage.has(attr.name)) {
-            attributeUsage.set(attr.name, { attribute: attr, locations: [] });
-          }
-          const usage = attributeUsage.get(attr.name);
-          if (usage) {
-            usage.locations.push(location);
-          }
-        }
-      );
-    });
-
-    // Track attributes from page types
-    pageTypesWithFullAttrs?.forEach((pageType) => {
-      (pageType.attributes || []).forEach((attr) => {
-        const location = `pageType:${pageType.name}`;
-        if (!attributeUsage.has(attr.name)) {
-          attributeUsage.set(attr.name, { attribute: attr, locations: [] });
-        }
-        const usage = attributeUsage.get(attr.name);
-        if (usage) {
-          usage.locations.push(location);
-        }
-      });
-    });
-
-    // Convert all attribute definitions in product/page types to references
     return {
       ...config,
       productTypes: productTypesWithFullAttrs?.map((productType) => ({
@@ -706,7 +591,6 @@ export class ConfigurationService {
   private convertAllToReferences(attributes: FullAttribute[]): AttributeInput[] {
     return attributes.map((attr) => {
       const ref: AttributeInput = { attribute: attr.name };
-      // Preserve variantSelection when true (only applies to variant attributes)
       if ("variantSelection" in attr && attr.variantSelection === true) {
         return { ...ref, variantSelection: true };
       }

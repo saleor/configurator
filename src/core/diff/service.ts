@@ -382,6 +382,8 @@ export class DiffService {
     const entityTypes = [
       "channels",
       "attributes",
+      "productAttributes",
+      "contentAttributes",
       "productTypes",
       "pageTypes",
       "modelTypes",
@@ -397,6 +399,15 @@ export class DiffService {
 
     for (const entityType of entityTypes) {
       if (this.comparators.has(entityType)) {
+        // Skip legacy "attributes" comparison when new global sections exist
+        if (
+          entityType === "attributes" &&
+          ((localConfig.productAttributes?.length ?? 0) > 0 ||
+            (localConfig.contentAttributes?.length ?? 0) > 0)
+        ) {
+          continue;
+        }
+
         comparisons.push(
           this.performComparison(
             entityType,
@@ -441,6 +452,8 @@ export class DiffService {
     const entityTypeMappings: Record<string, ConfigurationSection> = {
       channels: "channels",
       attributes: "attributes",
+      productAttributes: "productAttributes",
+      contentAttributes: "contentAttributes",
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       modelTypes: "modelTypes",

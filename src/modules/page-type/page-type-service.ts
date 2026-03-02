@@ -1,7 +1,15 @@
+import {
+  AttributeNotFoundError,
+  WrongAttributeTypeError,
+} from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
 import type { AttributeCache } from "../attribute/attribute-cache";
 import type { AttributeService } from "../attribute/attribute-service";
-import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
+import {
+  isReferencedAttribute,
+  resolveAttributeNamesWithCache,
+  validateAttributeReference,
+} from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import { PageTypeAttributeError, PageTypeAttributeValidationError } from "./errors";
@@ -11,6 +19,8 @@ import type { PageTypeOperations } from "./repository";
 export interface BootstrapPageTypeOptions {
   /** Optional attribute cache for fast reference resolution */
   attributeCache?: AttributeCache;
+  /** The entity type label for error messages (e.g., "pageTypes" or "modelTypes") */
+  referencingEntityType?: "pageTypes" | "modelTypes";
 }
 
 export class PageTypeService {
@@ -39,25 +49,16 @@ export class PageTypeService {
     return this.repository.createPageType({ name });
   }
 
-  private async filterOutAssignedAttributes(pageTypeId: string, attributeIds: string[]) {
-    logger.debug("Checking for assigned attributes", {
-      pageTypeId,
-      attributeIds,
-    });
-    const pageType = await this.repository.getPageType(pageTypeId);
+  private filterOutAssignedAttributes(
+    pageType: { attributes?: Array<{ id: string }> | null },
+    attributeIds: string[]
+  ): string[] {
     if (!pageType?.attributes?.length) {
-      logger.debug("No existing attributes found for page type", {
-        pageTypeId,
-      });
       return attributeIds;
     }
 
-    const assignedAttributeIds = new Set(
-      pageType.attributes.map((attr: { id: string }) => attr.id)
-    );
-    const filteredIds = attributeIds.filter((id) => !assignedAttributeIds.has(id));
-
-    return filteredIds;
+    const assignedIds = new Set(pageType.attributes.map((a) => a.id));
+    return attributeIds.filter((id) => !assignedIds.has(id));
   }
 
   /**
@@ -68,97 +69,50 @@ export class PageTypeService {
     inputAttributes: Array<{ attribute: string } | SimpleAttribute>,
     existingAttributeNames: string[],
     attributeCache?: AttributeCache,
-    entityName?: string
+    entityName?: string,
+    referencingEntityType: "pageTypes" | "modelTypes" = "pageTypes"
   ): Promise<string[]> {
-    // Filter out attributes that are referenced by name
     const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
-
-    if (referencedAttributes.length === 0) {
-      return [];
-    }
+    if (referencedAttributes.length === 0) return [];
 
     const referencedAttrNames = referencedAttributes.map((a) => a.attribute);
-
-    // Filter out attributes that are already assigned
     const unassignedNames = referencedAttrNames.filter(
       (name) => !existingAttributeNames.includes(name)
     );
-
     if (unassignedNames.length === 0) {
       logger.debug("All referenced content attributes are already assigned");
       return [];
     }
 
-    const resolvedIds: string[] = [];
-    const cacheHits: string[] = [];
-    const cacheMisses: string[] = [];
+    // Use shared cache-first resolution
+    const { resolvedIds, unresolvedNames } = await resolveAttributeNamesWithCache(
+      unassignedNames,
+      "content",
+      attributeCache,
+      this.attributeService.repo
+    );
 
-    // Step 1: Try to resolve from cache if available
-    if (attributeCache) {
-      for (const name of unassignedNames) {
-        const cached = attributeCache.getContentAttribute(name);
-        if (cached) {
-          resolvedIds.push(cached.id);
-          cacheHits.push(name);
-        } else {
-          cacheMisses.push(name);
-        }
-      }
-
-      if (cacheHits.length > 0) {
-        logger.debug("Resolved content attributes from cache", {
-          cacheHits: cacheHits.length,
-          cacheMisses: cacheMisses.length,
-        });
-      }
-    } else {
-      // No cache provided, all names are cache misses
-      cacheMisses.push(...unassignedNames);
-    }
-
-    // Step 2: Fallback to API for cache misses
-    if (cacheMisses.length > 0) {
-      logger.debug("Resolving content attributes via API (cache miss)", {
-        attributeNames: cacheMisses,
-      });
-
-      const apiResolved = await this.attributeService.repo.getAttributesByNames({
-        names: cacheMisses,
-        type: "PAGE_TYPE",
-      });
-
-      if (apiResolved) {
-        const resolvedNames = new Set(apiResolved.map((attr) => attr.name).filter(Boolean));
-        resolvedIds.push(...apiResolved.map((attr) => attr.id));
-
-        // Check for any unresolved cache misses and validate with detailed errors
-        const unresolvedNames = cacheMisses.filter((name) => !resolvedNames.has(name));
-        if (unresolvedNames.length > 0) {
-          if (attributeCache) {
-            for (const name of unresolvedNames) {
-              const result = validateAttributeReference(
-                name,
-                "content",
-                "modelTypes",
-                entityName ?? "unknown",
-                attributeCache
-              );
-              if (!result.valid) {
-                throw result.error;
-              }
-            }
-          } else {
-            logger.warn("Could not resolve content attributes via API", {
-              unresolvedNames,
-              entityName: entityName ?? "unknown",
-            });
+    // Handle unresolved names
+    if (unresolvedNames.length > 0) {
+      if (attributeCache) {
+        for (const name of unresolvedNames) {
+          const result = validateAttributeReference(
+            name,
+            "content",
+            referencingEntityType,
+            entityName ?? "unknown",
+            attributeCache
+          );
+          if (!result.valid) {
+            throw result.error;
           }
         }
       } else {
-        logger.warn("API returned no results for content attribute resolution", {
-          attributeNames: cacheMisses,
-          entityName: entityName ?? "unknown",
-        });
+        throw new PageTypeAttributeValidationError(
+          `Could not resolve content attributes: ${unresolvedNames.join(", ")}`,
+          entityName ?? "unknown",
+          unresolvedNames.join(", ")
+        );
       }
     }
 
@@ -207,23 +161,61 @@ export class PageTypeService {
         attributesToCreate,
       });
 
-      // Create new attributes
+      // Check which inline attributes already exist globally before creating
+      const inlineInputs = attributesToCreate.filter((a) => "name" in a);
       let attributes: { id: string }[];
-      try {
-        attributes = await this.attributeService.bootstrapAttributes({
-          attributeInputs: attributesToCreate
-            .filter((a) => "name" in a) // Only create new attributes, not referenced ones
-            .map((a) => ({
-              ...a,
-              type: "PAGE_TYPE" as const,
-            })),
+
+      if (inlineInputs.length > 0) {
+        const existingGlobal = await this.attributeService.repo.getAttributesByNames({
+          names: inlineInputs.map((a) => a.name),
+          type: "PAGE_TYPE",
         });
-      } catch (error) {
-        throw new PageTypeAttributeError(
-          `Failed to create attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
-          input.name,
-          "attribute_creation"
+        const existingMap = new Map(
+          existingGlobal
+            .filter((a): a is typeof a & { name: string } => typeof a.name === "string")
+            .map((a) => [a.name, a] as const)
         );
+
+        const toCreate = inlineInputs.filter((a) => !existingMap.has(a.name));
+        const reused = inlineInputs
+          .filter((a) => existingMap.has(a.name))
+          .map((a) => existingMap.get(a.name)!);
+
+        let created: { id: string }[] = [];
+        if (toCreate.length > 0) {
+          try {
+            created = await this.attributeService.bootstrapAttributes({
+              attributeInputs: toCreate.map((a) => ({
+                ...a,
+                type: "PAGE_TYPE" as const,
+              })),
+            });
+          } catch (error) {
+            if (
+              error instanceof AttributeNotFoundError ||
+              error instanceof WrongAttributeTypeError
+            ) {
+              throw error;
+            }
+            throw new PageTypeAttributeError(
+              `Failed to create attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
+              input.name,
+              "attribute_creation"
+            );
+          }
+        }
+
+        if (reused.length > 0) {
+          logger.debug("Reusing existing global content attributes", {
+            pageType: input.name,
+            reusedCount: reused.length,
+            reusedNames: inlineInputs.filter((a) => existingMap.has(a.name)).map((a) => a.name),
+          });
+        }
+
+        attributes = [...reused, ...created];
+      } else {
+        attributes = [];
       }
 
       // Resolve referenced attributes (cache-first with API fallback)
@@ -237,9 +229,13 @@ export class PageTypeService {
           updateInput.attributes,
           existingAttributeNames,
           options?.attributeCache,
-          input.name
+          input.name,
+          options?.referencingEntityType ?? "pageTypes"
         );
       } catch (error) {
+        if (error instanceof AttributeNotFoundError || error instanceof WrongAttributeTypeError) {
+          throw error;
+        }
         throw new PageTypeAttributeError(
           `Failed to resolve referenced attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
           input.name,
@@ -251,10 +247,7 @@ export class PageTypeService {
       const allAttributeIds = [...attributes.map((attr) => attr.id), ...referencedAttributeIds];
 
       // Filter out already assigned attributes
-      const attributesToAssign = await this.filterOutAssignedAttributes(
-        pageType.id,
-        allAttributeIds
-      );
+      const attributesToAssign = this.filterOutAssignedAttributes(pageType, allAttributeIds);
 
       if (attributesToAssign.length > 0) {
         logger.debug("Assigning attributes to page type", {

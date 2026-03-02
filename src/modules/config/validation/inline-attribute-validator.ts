@@ -57,6 +57,16 @@ export function validateNoInlineDefinitions(config: SaleorConfig): InlineAttribu
     }
   }
 
+  // Check pageTypes
+  for (const pt of config.pageTypes ?? []) {
+    const attrs = "attributes" in pt ? pt.attributes : undefined;
+    const inlineAttrs = extractInlineAttributeNames(attrs ?? []);
+
+    if (inlineAttrs.length > 0) {
+      errors.push(new InlineAttributeError("pageTypes", pt.name, inlineAttrs, "contentAttributes"));
+    }
+  }
+
   // Check modelTypes
   for (const mt of config.modelTypes ?? []) {
     const inlineAttrs = extractInlineAttributeNames(mt.attributes ?? []);

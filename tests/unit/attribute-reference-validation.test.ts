@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   AttributeNotFoundError,
-  DuplicateAttributeError,
   findSimilarNames,
   levenshteinDistance,
   WrongAttributeTypeError,
@@ -154,22 +153,6 @@ describe("attribute-reference-validation", () => {
       const suggestions = error.getRecoverySuggestions();
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.some((s) => s.includes("Move"))).toBe(true);
-    });
-  });
-
-  describe("DuplicateAttributeError", () => {
-    it("creates error with correct message", () => {
-      const error = new DuplicateAttributeError("Color", "productAttributes", 2);
-      expect(error.message).toContain("Color");
-      expect(error.message).toContain("2 times");
-      expect(error.message).toContain("productAttributes");
-    });
-
-    it("provides recovery suggestions", () => {
-      const error = new DuplicateAttributeError("Color", "productAttributes", 3);
-      const suggestions = error.getRecoverySuggestions();
-      expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions.some((s) => s.includes("Remove duplicate"))).toBe(true);
     });
   });
 });

@@ -261,14 +261,7 @@ export class ProductTypeService {
         type: "PRODUCT_TYPE",
       });
 
-      if (apiResolved) {
-        resolvedAttributes.push(...apiResolved);
-      } else {
-        logger.warn("API returned no results for product attribute resolution", {
-          attributeNames: unassignedCacheMisses,
-          productTypeName: productType.name,
-        });
-      }
+      resolvedAttributes.push(...apiResolved);
     }
 
     // Build lookup maps from resolved data
@@ -458,9 +451,10 @@ export class ProductTypeService {
     productType: ProductType,
     inputAttributes: AttributeInput[]
   ): Promise<Attribute[]> {
-    const existingAttributeNames = new Set(
-      productType.productAttributes?.map((attr) => attr.name) ?? []
-    );
+    const existingAttributeNames = new Set([
+      ...(productType.productAttributes?.map((attr) => attr.name) ?? []),
+      ...(productType.variantAttributes?.map((attr) => attr.name) ?? []),
+    ]);
 
     const attributesToUpdate = inputAttributes.filter(
       (a): a is SimpleAttribute => !isReferencedAttribute(a) && existingAttributeNames.has(a.name)
@@ -476,10 +470,6 @@ export class ProductTypeService {
       names: attributesToUpdate.map((a) => a.name),
       type: "PRODUCT_TYPE",
     });
-
-    if (!existingAttributes) {
-      return [];
-    }
 
     const updatedAttributes: Attribute[] = [];
     for (const inputAttr of attributesToUpdate) {
@@ -509,24 +499,34 @@ export class ProductTypeService {
       (a): a is SimpleAttribute => !isReferencedAttribute(a) && !existingAttributeNames.has(a.name)
     );
 
+    if (attributesToProcess.length === 0) {
+      return [];
+    }
+
+    // Single batch query instead of N individual queries
+    const allNames = attributesToProcess.map((a) => a.name);
+    const existingGlobal = await this.attributeService.repo.getAttributesByNames({
+      names: allNames,
+      type: "PRODUCT_TYPE",
+    });
+    const existingMap = new Map(
+      existingGlobal
+        .filter((a): a is typeof a & { name: string } => typeof a.name === "string")
+        .map((a) => [a.name, a] as const)
+    );
+
     const newAttributes: Attribute[] = [];
 
     for (const attributeInput of attributesToProcess) {
-      // Check if the attribute already exists globally
-      const existingAttributes = await this.attributeService.repo.getAttributesByNames({
-        names: [attributeInput.name],
-        type: "PRODUCT_TYPE",
-      });
-
-      if (existingAttributes && existingAttributes.length > 0) {
+      const existing = existingMap.get(attributeInput.name);
+      if (existing) {
         // Reuse existing global attribute from previous deployment or another product type
-        const existingAttribute = existingAttributes[0];
         logger.debug("Reusing existing global attribute", {
           attributeName: attributeInput.name,
-          attributeId: existingAttribute.id,
+          attributeId: existing.id,
           productTypeName: productType.name,
         });
-        newAttributes.push(existingAttribute);
+        newAttributes.push(existing);
         continue;
       }
 
@@ -534,7 +534,14 @@ export class ProductTypeService {
       const createdAttributes = await this.attributeService.bootstrapAttributes({
         attributeInputs: [{ ...attributeInput, type: "PRODUCT_TYPE" }],
       });
-      newAttributes.push(createdAttributes[0]);
+      if (createdAttributes[0]) {
+        newAttributes.push(createdAttributes[0]);
+      } else {
+        logger.warn("Attribute creation returned empty result", {
+          attributeName: attributeInput.name,
+          productTypeName: productType.name,
+        });
+      }
     }
 
     return newAttributes;

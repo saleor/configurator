@@ -12,7 +12,7 @@ const createAttributeMutation = graphql(`
         type
         inputType
         entityType
-        choices(first: 100) {
+        choices(first: 250) {
           edges {
             node {
               name
@@ -37,7 +37,7 @@ const updateAttributeMutation = graphql(`
         type
         inputType
         entityType
-        choices(first: 100) {
+        choices(first: 250) {
           edges {
             node {
               name
@@ -71,7 +71,7 @@ const attributeBulkCreateMutation = graphql(`
           type
           inputType
           entityType
-          choices(first: 100) {
+          choices(first: 250) {
             edges {
               node {
                 id
@@ -114,7 +114,7 @@ const attributeBulkUpdateMutation = graphql(`
           type
           inputType
           entityType
-          choices(first: 100) {
+          choices(first: 250) {
             edges {
               node {
                 id
@@ -163,7 +163,7 @@ export type AttributeBulkUpdateResult = NonNullable<
 const getAttributesByNamesQuery = graphql(`
   query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum) {
     attributes(
-      first: 100
+      first: 500
       where: { name: { oneOf: $names }, type: { eq: $type } }
     ) {
       edges {
@@ -173,7 +173,7 @@ const getAttributesByNamesQuery = graphql(`
           type
           inputType
           entityType
-          choices(first: 100) {
+          choices(first: 250) {
             edges {
               node {
                 id
@@ -193,7 +193,7 @@ export type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQ
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
   updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
-  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[] | null | undefined>;
+  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[]>;
   bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult>;
   bulkUpdateAttributes(input: AttributeBulkUpdateInput): Promise<AttributeBulkUpdateResult>;
 }
@@ -255,13 +255,32 @@ export class AttributeRepository implements AttributeOperations {
     return result.data.attributeUpdate.attribute as Attribute;
   }
 
-  async getAttributesByNames(input: GetAttributesByNamesInput) {
+  async getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[]> {
     const result = await this.client.query(getAttributesByNamesQuery, {
       names: input.names,
       type: input.type,
     });
 
-    return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
+    if (result.error) {
+      if (result.error.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          `Failed to fetch attributes by names: ${input.names.join(", ")}`
+        );
+      }
+
+      throw new GraphQLError(
+        `Network error while fetching attributes by names: ${result.error.message}`
+      );
+    }
+
+    const attrs = result.data?.attributes?.edges?.map((edge) => edge.node as Attribute) ?? [];
+    if (attrs.length >= 500) {
+      logger.warn(
+        `Attribute query returned ${attrs.length} results — results may be truncated. Consider paginating.`
+      );
+    }
+    return attrs;
   }
 
   async bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult> {
