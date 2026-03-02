@@ -1,9 +1,6 @@
+import { COMMAND_NAME } from "../../meta";
 import { BaseError } from "./shared";
 
-/**
- * Error thrown when a productType or modelType contains inline attribute definitions
- * instead of references to global productAttributes/contentAttributes sections.
- */
 export class InlineAttributeError extends BaseError {
   constructor(
     public readonly entityType: "productTypes" | "pageTypes" | "modelTypes",
@@ -21,17 +18,13 @@ export class InlineAttributeError extends BaseError {
 
   override getRecoverySuggestions(): string[] {
     return [
-      `Run 'saleor-configurator introspect' to generate YAML in the correct format`,
+      `Run '${COMMAND_NAME} introspect' to generate YAML in the correct format`,
       `Move attribute definitions to the '${this.expectedSection}' section`,
       `Use '{ attribute: "Name" }' references in ${this.entityType}`,
     ];
   }
 }
 
-/**
- * Error thrown when an attribute reference cannot be resolved because
- * the attribute doesn't exist in the expected section.
- */
 export class AttributeNotFoundError extends BaseError {
   constructor(
     public readonly attributeName: string,
@@ -58,16 +51,13 @@ export class AttributeNotFoundError extends BaseError {
     suggestions.push(
       `Add "${this.attributeName}" to the ${this.expectedSection} section`,
       `Check for typos in the attribute name`,
-      `Run 'saleor-configurator introspect' to see existing attributes`
+      `Run '${COMMAND_NAME} introspect' to see existing attributes`
     );
 
     return suggestions;
   }
 }
 
-/**
- * Error thrown when an attribute exists but in the wrong section.
- */
 export class WrongAttributeTypeError extends BaseError {
   constructor(
     public readonly attributeName: string,
@@ -95,5 +85,4 @@ export class WrongAttributeTypeError extends BaseError {
   }
 }
 
-// Re-export from canonical location for backward compatibility
 export { findSimilarNames, levenshteinDistance } from "../utils/string";

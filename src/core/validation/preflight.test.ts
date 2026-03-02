@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
+import { ConfigurationValidationError } from "../errors/configuration-errors";
 import {
   runPreflightValidation,
   scanForDuplicateIdentifiers,
@@ -159,6 +160,75 @@ describe("validateAttributeReferences", () => {
     expect(() => validateAttributeReferences(cfg, "config.yml")).toThrow(
       /Unresolved attribute references/
     );
+  });
+
+  it("suggests similar attribute name when reference has a typo", () => {
+    const cfg = {
+      productAttributes: [
+        { name: "Publisher", inputType: "PLAIN_TEXT" },
+        { name: "Genre", inputType: "DROPDOWN" },
+      ],
+      productTypes: [
+        {
+          name: "Books",
+          productAttributes: [{ attribute: "Publsher" }],
+          variantAttributes: [],
+        },
+      ],
+    } as unknown as SaleorConfig;
+
+    try {
+      validateAttributeReferences(cfg, "config.yml");
+      expect.unreachable("Should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConfigurationValidationError);
+      const validationError = error as ConfigurationValidationError;
+      const messages = validationError.validationErrors.map((e) => e.message);
+      expect(messages.some((m) => m.includes('Did you mean "Publisher"?'))).toBe(true);
+    }
+  });
+
+  it("does not suggest when no similar names exist", () => {
+    const cfg = {
+      productAttributes: [{ name: "Color", inputType: "DROPDOWN" }],
+      productTypes: [
+        {
+          name: "Apparel",
+          productAttributes: [{ attribute: "zzz_unknown_zzz" }],
+          variantAttributes: [],
+        },
+      ],
+    } as unknown as SaleorConfig;
+
+    try {
+      validateAttributeReferences(cfg, "config.yml");
+      expect.unreachable("Should have thrown");
+    } catch (error) {
+      const validationError = error as ConfigurationValidationError;
+      const messages = validationError.validationErrors.map((e) => e.message);
+      expect(messages.some((m) => m.includes("Did you mean"))).toBe(false);
+    }
+  });
+
+  it("suggests similar content attribute name for pageType typos", () => {
+    const cfg = {
+      contentAttributes: [{ name: "Author", inputType: "PLAIN_TEXT" }],
+      pageTypes: [
+        {
+          name: "Blog",
+          attributes: [{ attribute: "Authr" }],
+        },
+      ],
+    } as unknown as SaleorConfig;
+
+    try {
+      validateAttributeReferences(cfg, "config.yml");
+      expect.unreachable("Should have thrown");
+    } catch (error) {
+      const validationError = error as ConfigurationValidationError;
+      const messages = validationError.validationErrors.map((e) => e.message);
+      expect(messages.some((m) => m.includes('Did you mean "Author"?'))).toBe(true);
+    }
   });
 });
 

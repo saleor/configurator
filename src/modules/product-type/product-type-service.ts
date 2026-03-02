@@ -201,17 +201,14 @@ export class ProductTypeService {
       return [];
     }
 
-    // Cache-first resolution: check cache, then fallback to API for misses
     const resolvedAttributes: Attribute[] = [];
-    const cacheHits: string[] = [];
+    let cacheHitCount = 0;
     const cacheMisses: string[] = [];
 
-    // Step 1: Try to resolve from cache if available
     if (attributeCache) {
       for (const name of referencedAttrNames) {
         const cached = attributeCache.getProductAttribute(name);
         if (cached) {
-          // Create a minimal Attribute object from cached data
           resolvedAttributes.push({
             id: cached.id,
             name: cached.name,
@@ -220,25 +217,23 @@ export class ProductTypeService {
             entityType: null,
             choices: null,
           });
-          cacheHits.push(name);
+          cacheHitCount++;
         } else {
           cacheMisses.push(name);
         }
       }
 
-      if (cacheHits.length > 0) {
+      if (cacheHitCount > 0) {
         logger.debug("Resolved attributes from cache", {
           productTypeName: productType.name,
-          cacheHits: cacheHits.length,
+          cacheHits: cacheHitCount,
           cacheMisses: cacheMisses.length,
         });
       }
     } else {
-      // No cache provided, all names are cache misses
       cacheMisses.push(...referencedAttrNames);
     }
 
-    // Calculate already-assigned attributes early (needed for validation)
     const existingAttributeNames = new Set(
       [
         ...(productType.productAttributes?.map((a) => a.name) ?? []),
@@ -246,10 +241,8 @@ export class ProductTypeService {
       ].filter((name): name is string => name !== null)
     );
 
-    // Filter cache misses to only those that aren't already assigned
     const unassignedCacheMisses = cacheMisses.filter((name) => !existingAttributeNames.has(name));
 
-    // Step 2: Fallback to API for cache misses that need to be assigned
     if (unassignedCacheMisses.length > 0) {
       logger.debug("Resolving attributes via API (cache miss or no cache)", {
         productTypeName: productType.name,
@@ -264,7 +257,6 @@ export class ProductTypeService {
       resolvedAttributes.push(...apiResolved);
     }
 
-    // Build lookup maps from resolved data
     const attributesByName = new Map(
       resolvedAttributes
         .filter((attr): attr is Attribute & { name: string } => Boolean(attr.name))

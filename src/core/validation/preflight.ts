@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { findSimilarNames } from "../../lib/utils/string";
 import type {
   ContentAttribute,
   ProductAttribute,
@@ -51,10 +52,6 @@ export interface DuplicateIssue {
   label: string;
 }
 
-/**
- * Preflight validation scanning for duplicate identifiers across key entities.
- * Throws a ConfigurationValidationError with a friendly list if duplicates are found.
- */
 export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssue[] {
   const issues: DuplicateIssue[] = [];
 
@@ -134,10 +131,6 @@ export function validateNoDuplicateIdentifiers(config: SaleorConfig, filePath: s
   );
 }
 
-/**
- * Validates that no inline attribute definitions exist in productTypes or modelTypes.
- * Throws with clear error messages and migration guidance if violations are found.
- */
 export function validateNoInlineAttributeDefinitions(config: SaleorConfig, filePath: string): void {
   const errors = validateNoInlineDefinitions(config);
   if (errors.length === 0) return;
@@ -152,10 +145,6 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
   );
 }
 
-/**
- * Validates that no attribute name appears in both productAttributes and contentAttributes.
- * Each attribute must exist in only one section.
- */
 export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath: string): void {
   const productNames = new Set((config.productAttributes ?? []).map((a) => a.name));
   const crossDupes = (config.contentAttributes ?? [])
@@ -174,15 +163,23 @@ export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath:
   }
 }
 
-/**
- * Validates that all attribute references in productTypes, pageTypes, and modelTypes
- * point to attributes that exist in the corresponding global section.
- */
+function buildUnresolvedMessage(
+  refName: string,
+  sectionLabel: string,
+  availableNames: ReadonlySet<string>
+): string {
+  const base = `References attribute "${refName}" which does not exist in ${sectionLabel}`;
+  const similar = findSimilarNames(refName, [...availableNames]);
+  if (similar.length > 0) {
+    return `${base}. Did you mean "${similar[0]}"?`;
+  }
+  return base;
+}
+
 export function validateAttributeReferences(config: SaleorConfig, filePath: string): void {
   const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
   const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
 
-  // Collect all attribute references from entity types
   const errors: Array<{ path: string; message: string }> = [];
 
   for (const pt of config.productTypes ?? []) {
@@ -190,7 +187,7 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
       if ("attribute" in ref && !productAttrNames.has(ref.attribute)) {
         errors.push({
           path: `productTypes.${pt.name}`,
-          message: `References attribute "${ref.attribute}" which does not exist in productAttributes`,
+          message: buildUnresolvedMessage(ref.attribute, "productAttributes", productAttrNames),
         });
       }
     }
@@ -202,7 +199,7 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
         if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
           errors.push({
             path: `pageTypes.${pt.name}`,
-            message: `References attribute "${ref.attribute}" which does not exist in contentAttributes`,
+            message: buildUnresolvedMessage(ref.attribute, "contentAttributes", contentAttrNames),
           });
         }
       }
@@ -214,7 +211,7 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
       if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
         errors.push({
           path: `modelTypes.${mt.name}`,
-          message: `References attribute "${ref.attribute}" which does not exist in contentAttributes`,
+          message: buildUnresolvedMessage(ref.attribute, "contentAttributes", contentAttrNames),
         });
       }
     }
@@ -225,10 +222,6 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
   }
 }
 
-/**
- * Run all preflight validations on the configuration.
- * Collects all validation errors before throwing to give the user a complete picture.
- */
 export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
   logger.debug("Running preflight validation", { filePath });
 

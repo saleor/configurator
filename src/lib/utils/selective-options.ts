@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { ConfigurationSection, ParsedSelectiveOptions } from "../../core/diff/types";
 
-// Re-export types for backwards compatibility
 export type { ConfigurationSection } from "../../core/diff/types";
 
 export const AVAILABLE_SECTIONS = [
@@ -15,7 +14,6 @@ export const AVAILABLE_SECTIONS = [
   "menus",
   "models",
   "products",
-  "attributes",
   "productAttributes",
   "contentAttributes",
   "warehouses",
@@ -37,7 +35,6 @@ export const selectiveOptionsSchema = z.object({
 
 export type SelectiveOptions = z.infer<typeof selectiveOptionsSchema>;
 
-// Extended schema for backward compatibility with 'only' parameter
 export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
   z.object({
     only: z.string().optional(),
@@ -48,8 +45,6 @@ export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
 
 export type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
 
-// Remove local interface definition since we import it from types
-
 const parseSectionString = (sectionString: string): string[] => {
   return sectionString
     .split(",")
@@ -57,10 +52,12 @@ const parseSectionString = (sectionString: string): string[] => {
     .filter(Boolean);
 };
 
+const SECTION_SET: ReadonlySet<string> = new Set(AVAILABLE_SECTIONS);
+
+const isConfigurationSection = (s: string): s is ConfigurationSection => SECTION_SET.has(s);
+
 const filterValidSections = (sections: string[]): ConfigurationSection[] => {
-  return sections.filter((s) =>
-    AVAILABLE_SECTIONS.includes(s as ConfigurationSection)
-  ) as ConfigurationSection[];
+  return sections.filter(isConfigurationSection);
 };
 
 const validateSections = (
@@ -69,9 +66,7 @@ const validateSections = (
   _validSections: ConfigurationSection[],
   optionName: string
 ): void => {
-  const invalidSections = sections.filter(
-    (s) => !AVAILABLE_SECTIONS.includes(s as ConfigurationSection)
-  );
+  const invalidSections = sections.filter((s) => !isConfigurationSection(s));
   if (invalidSections.length > 0) {
     throw new Error(
       `Invalid sections specified in ${optionName}: ${invalidSections.join(
@@ -106,10 +101,8 @@ const parseExcludeSections = (exclude?: string): ConfigurationSection[] => {
 export const parseSelectiveOptions = (
   options: SelectiveOptionsWithOnly
 ): ParsedSelectiveOptions => {
-  // Validate the options with zod schema
   const validatedOptions = selectiveOptionsWithOnlySchema.parse(options);
 
-  // Type-safe access to properties
   const only = "only" in validatedOptions ? validatedOptions.only : undefined;
   const include = "include" in validatedOptions ? validatedOptions.include : undefined;
   const exclude = validatedOptions.exclude;
@@ -133,13 +126,10 @@ export const shouldIncludeSection = (
 ): boolean => {
   const { includeSections, excludeSections } = options;
 
-  // If includeSections is not empty, only include sections that are explicitly included
-  // (exclude filter is ignored when include filter is active)
   if (includeSections.length > 0) {
     return includeSections.includes(section);
   }
 
-  // If includeSections is empty, include all sections except those explicitly excluded
   if (isExcludedByExcludeFilter(section, excludeSections)) {
     return false;
   }

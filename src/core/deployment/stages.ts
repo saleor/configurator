@@ -270,6 +270,8 @@ async function processAttributesBulk(
       return { input: attr, existing };
     });
 
+  const successfulAttrs: Array<{ id: string; name: string; inputType: string }> = [];
+
   if (toCreate.length > 0) {
     logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
     try {
@@ -277,6 +279,11 @@ async function processAttributesBulk(
       createResult.failed.forEach(({ input, errors }) => {
         failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
       });
+      for (const attr of createResult.successful) {
+        if (attr.id && attr.name && attr.inputType) {
+          successfulAttrs.push({ id: attr.id, name: attr.name, inputType: attr.inputType });
+        }
+      }
     } catch (error) {
       const bulkError = error instanceof Error ? error : new Error(String(error));
       for (const attr of toCreate) {
@@ -292,6 +299,11 @@ async function processAttributesBulk(
       updateResult.failed.forEach(({ input, errors }) => {
         failures.push({ entity: input.name, error: new Error(errors.join(", ")) });
       });
+      for (const attr of updateResult.successful) {
+        if (attr.id && attr.name && attr.inputType) {
+          successfulAttrs.push({ id: attr.id, name: attr.name, inputType: attr.inputType });
+        }
+      }
     } catch (error) {
       const bulkError = error instanceof Error ? error : new Error(String(error));
       for (const { input } of toUpdate) {
@@ -300,16 +312,34 @@ async function processAttributesBulk(
     }
   }
 
-  const allFetched = await service.repo.getAttributesByNames({ names, type });
-  const failedNames = new Set(failures.map((f) => f.entity));
-  for (const attr of allFetched) {
-    if (attr.id && attr.name && attr.inputType && !failedNames.has(attr.name)) {
+  const cachedNames = new Set(successfulAttrs.map((a) => a.name));
+  for (const attr of successfulAttrs) {
+    const parsedInputType = toAttributeInputType(attr.inputType);
+    if (parsedInputType) {
       cached.push({
         id: attr.id,
         name: attr.name,
         slug: toSlug(attr.name),
-        inputType: toAttributeInputType(attr.inputType) ?? attr.inputType,
+        inputType: parsedInputType,
       });
+    }
+  }
+
+  const failedNames = new Set(failures.map((f) => f.entity));
+  const missingNames = names.filter((n) => !cachedNames.has(n) && !failedNames.has(n));
+  if (missingNames.length > 0) {
+    logger.debug(`Fetching ${missingNames.length} attributes not returned by mutations`);
+    const fetched = await service.repo.getAttributesByNames({ names: missingNames, type });
+    for (const attr of fetched) {
+      const parsedInputType = toAttributeInputType(attr.inputType);
+      if (attr.id && attr.name && parsedInputType) {
+        cached.push({
+          id: attr.id,
+          name: attr.name,
+          slug: toSlug(attr.name),
+          inputType: parsedInputType,
+        });
+      }
     }
   }
 
@@ -415,7 +445,27 @@ export const attributesStage: DeploymentStage = {
   },
   skip(context) {
     const attributeEntityTypes = ["Product Attributes", "Content Attributes"];
-    return context.summary.results.every((r) => !attributeEntityTypes.includes(r.entityType));
+    const hasAttributeChanges = context.summary.results.some((r) =>
+      attributeEntityTypes.includes(r.entityType)
+    );
+
+    if (hasAttributeChanges) {
+      return false;
+    }
+
+    const downstreamEntityTypes = ["Product Types", "Page Types", "Model Types"];
+    const hasDownstreamChanges = context.summary.results.some((r) =>
+      downstreamEntityTypes.includes(r.entityType)
+    );
+
+    if (hasDownstreamChanges) {
+      logger.debug(
+        "Attributes stage: no attribute diff changes, but running anyway to populate cache for downstream stages"
+      );
+      return false;
+    }
+
+    return true;
   },
 };
 

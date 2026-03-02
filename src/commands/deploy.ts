@@ -92,17 +92,33 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         process.exit(EXIT_CODES.VALIDATION);
       }
 
-      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
+      const suggestions = error.validationErrors
+        .filter((err) => err.message.startsWith("Fix: "))
+        .map((err) => err.message.slice(5));
+
+      const nonSuggestionErrors = error.validationErrors.filter(
+        (err) => !err.message.startsWith("Fix: ")
+      );
+
+      const validationErrors = nonSuggestionErrors.map((err) => `${err.path}: ${err.message}`);
       const deploymentError = new ValidationDeploymentError(
         "Configuration validation failed",
         validationErrors,
         {
           file: error.filePath,
-          errorCount: error.validationErrors.length,
+          errorCount: nonSuggestionErrors.length,
         },
         error
       );
       this.console.error(deploymentError.getUserMessage(args.verbose));
+
+      if (suggestions.length > 0) {
+        this.console.text("");
+        for (const suggestion of suggestions) {
+          this.console.hint(`  💡 ${suggestion}`);
+        }
+      }
+
       process.exit(deploymentError.getExitCode());
     }
 
