@@ -15,7 +15,9 @@ const createAttributeMutation = graphql(`
         choices(first: 250) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
@@ -40,7 +42,9 @@ const updateAttributeMutation = graphql(`
         choices(first: 250) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
