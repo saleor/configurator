@@ -715,6 +715,8 @@ export const modelsStage: DeploymentStage = {
   name: StageNames.MODELS,
   async execute(context) {
     try {
+      context.configurator.services.model.setAttributeCache(context.attributeCache);
+
       const config = await context.configurator.services.configStorage.load();
       if (!config.models?.length) {
         logger.debug("No models to manage");

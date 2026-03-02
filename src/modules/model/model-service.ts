@@ -25,6 +25,10 @@ export class ModelService {
     private attributeCache: IAttributeCache,
   ) {}
 
+  setAttributeCache(cache: IAttributeCache) {
+    this.attributeCache = cache;
+  }
+
   private async getExistingModel(slug: string): Promise<Page | null> {
     return ServiceErrorWrapper.wrapServiceCall("fetch model", "model", slug, async () => {
       logger.debug("Looking up existing model/page", { slug });
