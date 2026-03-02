@@ -5,21 +5,24 @@ import {
 import { logger } from "../../lib/logger";
 import type { AttributeCache } from "../attribute/attribute-cache";
 import type { AttributeService } from "../attribute/attribute-service";
-import {
-  isReferencedAttribute,
-  resolveAttributeNamesWithCache,
-  validateAttributeReference,
-} from "../attribute/attribute-service";
+import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import { PageTypeAttributeError, PageTypeAttributeValidationError } from "./errors";
 import type { PageTypeOperations } from "./repository";
 
-/** Options for page type bootstrap operations */
+function isPageTypeUpdateInput(input: PageTypeInput): input is PageTypeUpdateInput {
+  return "attributes" in input;
+}
+
+function isSimpleAttribute(
+  attr: SimpleAttribute | { attribute: string }
+): attr is SimpleAttribute {
+  return "name" in attr;
+}
+
 export interface BootstrapPageTypeOptions {
-  /** Optional attribute cache for fast reference resolution */
   attributeCache?: AttributeCache;
-  /** The entity type label for error messages (e.g., "pageTypes" or "modelTypes") */
   referencingEntityType?: "pageTypes" | "modelTypes";
 }
 
@@ -61,57 +64,46 @@ export class PageTypeService {
     return attributeIds.filter((id) => !assignedIds.has(id));
   }
 
-  /**
-   * Resolves referenced attributes using cache-first strategy with API fallback.
-   * Returns attribute IDs for attributes that need to be assigned.
-   */
-  private async resolveReferencedAttributesWithCache(
+  private resolveReferencedAttributesFromCache(
     inputAttributes: Array<{ attribute: string } | SimpleAttribute>,
     existingAttributeNames: string[],
-    attributeCache?: AttributeCache,
-    entityName?: string,
+    attributeCache: AttributeCache | undefined,
+    entityName: string,
     referencingEntityType: "pageTypes" | "modelTypes" = "pageTypes"
-  ): Promise<string[]> {
+  ): string[] {
     const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
     if (referencedAttributes.length === 0) return [];
 
     const referencedAttrNames = referencedAttributes.map((a) => a.attribute);
     const existingSet = new Set(existingAttributeNames);
-    const unassignedNames = referencedAttrNames.filter((name) => !existingSet.has(name));
-    if (unassignedNames.length === 0) {
+    const namesToResolve = referencedAttrNames.filter((name) => !existingSet.has(name));
+    if (namesToResolve.length === 0) {
       logger.debug("All referenced content attributes are already assigned");
       return [];
     }
 
-    // Use shared cache-first resolution
-    const { resolvedIds, unresolvedNames } = await resolveAttributeNamesWithCache(
-      unassignedNames,
-      "content",
-      attributeCache,
-      this.attributeService.repo
-    );
+    if (!attributeCache) {
+      throw new PageTypeAttributeValidationError(
+        `Cannot resolve attribute references for ${referencingEntityType} "${entityName}" without attribute cache. ` +
+          `Ensure the attributes stage completed successfully.`,
+        entityName,
+        namesToResolve.join(", ")
+      );
+    }
 
-    // Handle unresolved names
-    if (unresolvedNames.length > 0) {
-      if (attributeCache) {
-        for (const name of unresolvedNames) {
-          const result = validateAttributeReference(
-            name,
-            "content",
-            referencingEntityType,
-            entityName ?? "unknown",
-            attributeCache
-          );
-          if (!result.valid) {
-            throw result.error;
-          }
-        }
+    const resolvedIds: string[] = [];
+    for (const name of namesToResolve) {
+      const result = validateAttributeReference(
+        name,
+        "content",
+        referencingEntityType,
+        entityName,
+        attributeCache
+      );
+      if (result.valid) {
+        resolvedIds.push(result.attribute.id);
       } else {
-        throw new PageTypeAttributeValidationError(
-          `Could not resolve content attributes: ${unresolvedNames.join(", ")}`,
-          entityName ?? "unknown",
-          unresolvedNames.join(", ")
-        );
+        throw result.error;
       }
     }
 
@@ -126,14 +118,12 @@ export class PageTypeService {
 
     const pageType = await this.getOrCreate(input.name);
 
-    // Check if this is an update input (has attributes)
-    if ("attributes" in input) {
-      const updateInput = input as PageTypeUpdateInput;
+    if (isPageTypeUpdateInput(input)) {
+      const updateInput = input;
       logger.debug("Processing page type attributes", {
         attributesCount: updateInput.attributes.length,
       });
 
-      // Validate REFERENCE attributes have entityType
       for (const attr of updateInput.attributes) {
         if (!isReferencedAttribute(attr) && "inputType" in attr && attr.inputType === "REFERENCE") {
           if (!("entityType" in attr) || !attr.entityType) {
@@ -147,20 +137,15 @@ export class PageTypeService {
         }
       }
 
-      // check if the page type has the attributes already
-      const attributesToCreate = updateInput.attributes.filter((a) => {
-        if (isReferencedAttribute(a)) {
-          return false;
-        }
-
-        return !pageType.attributes?.some((attr) => attr.name === a.name);
-      }) as SimpleAttribute[];
+      const attributesToCreate = updateInput.attributes.filter(
+        (a): a is SimpleAttribute =>
+          isSimpleAttribute(a) && !pageType.attributes?.some((attr) => attr.name === a.name)
+      );
 
       logger.debug("Attributes to create", {
         attributesToCreate,
       });
 
-      // Check which inline attributes already exist globally before creating
       const inlineInputs = attributesToCreate.filter((a) => "name" in a);
       let attributes: { id: string }[];
 
@@ -221,14 +206,13 @@ export class PageTypeService {
         attributes = [];
       }
 
-      // Resolve referenced attributes (cache-first with API fallback)
       const existingAttributeNames =
         pageType.attributes
           ?.map((attr) => attr.name)
           .filter((name): name is string => name !== null) ?? [];
       let referencedAttributeIds: string[];
       try {
-        referencedAttributeIds = await this.resolveReferencedAttributesWithCache(
+        referencedAttributeIds = this.resolveReferencedAttributesFromCache(
           updateInput.attributes,
           existingAttributeNames,
           options?.attributeCache,
@@ -246,10 +230,8 @@ export class PageTypeService {
         );
       }
 
-      // Combine new and referenced attribute IDs
       const allAttributeIds = [...attributes.map((attr) => attr.id), ...referencedAttributeIds];
 
-      // Filter out already assigned attributes
       const attributesToAssign = this.filterOutAssignedAttributes(pageType, allAttributeIds);
 
       if (attributesToAssign.length > 0) {

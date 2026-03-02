@@ -201,39 +201,6 @@ export class ProductTypeService {
       return [];
     }
 
-    const resolvedAttributes: Attribute[] = [];
-    let cacheHitCount = 0;
-    const cacheMisses: string[] = [];
-
-    if (attributeCache) {
-      for (const name of referencedAttrNames) {
-        const cached = attributeCache.getProductAttribute(name);
-        if (cached) {
-          resolvedAttributes.push({
-            id: cached.id,
-            name: cached.name,
-            type: "PRODUCT_TYPE" as const,
-            inputType: cached.inputType as Attribute["inputType"],
-            entityType: null,
-            choices: null,
-          });
-          cacheHitCount++;
-        } else {
-          cacheMisses.push(name);
-        }
-      }
-
-      if (cacheHitCount > 0) {
-        logger.debug("Resolved attributes from cache", {
-          productTypeName: productType.name,
-          cacheHits: cacheHitCount,
-          cacheMisses: cacheMisses.length,
-        });
-      }
-    } else {
-      cacheMisses.push(...referencedAttrNames);
-    }
-
     const existingAttributeNames = new Set(
       [
         ...(productType.productAttributes?.map((a) => a.name) ?? []),
@@ -241,20 +208,73 @@ export class ProductTypeService {
       ].filter((name): name is string => name !== null)
     );
 
-    const unassignedCacheMisses = cacheMisses.filter((name) => !existingAttributeNames.has(name));
+    const namesToResolve = referencedAttrNames.filter((name) => !existingAttributeNames.has(name));
 
-    if (unassignedCacheMisses.length > 0) {
-      logger.debug("Resolving attributes via API (cache miss or no cache)", {
+    if (namesToResolve.length === 0) {
+      return [];
+    }
+
+    if (!attributeCache) {
+      throw new ProductTypeAttributeValidationError(
+        `Cannot resolve attribute references for product type "${productType.name}" without attribute cache. ` +
+          `The attributes stage must complete successfully before product types can be processed.`,
+        productType.name ?? "unknown",
+        namesToResolve.join(", ")
+      );
+    }
+
+    const resolvedAttributes: Attribute[] = [];
+    const unresolvedNames: string[] = [];
+
+    for (const name of namesToResolve) {
+      const cached = attributeCache.getProductAttribute(name);
+      if (cached) {
+        resolvedAttributes.push({
+          id: cached.id,
+          name: cached.name,
+          type: "PRODUCT_TYPE" as const,
+          inputType: cached.inputType as Attribute["inputType"],
+          entityType: null,
+          choices: null,
+        });
+      } else {
+        unresolvedNames.push(name);
+      }
+    }
+
+    if (resolvedAttributes.length > 0) {
+      logger.debug("Resolved attributes from cache", {
         productTypeName: productType.name,
-        attributeNames: unassignedCacheMisses,
+        resolved: resolvedAttributes.length,
+        alreadyAssigned: existingAttributeNames.size,
+      });
+    }
+
+    if (unresolvedNames.length > 0) {
+      logger.error("Failed to resolve referenced attributes from cache", {
+        productTypeName: productType.name,
+        attributeNames: unresolvedNames,
       });
 
-      const apiResolved = await this.attributeService.repo.getAttributesByNames({
-        names: unassignedCacheMisses,
-        type: "PRODUCT_TYPE",
-      });
+      for (const name of unresolvedNames) {
+        const result = validateAttributeReference(
+          name,
+          "product",
+          "productTypes",
+          productType.name ?? "unknown",
+          attributeCache
+        );
+        if (!result.valid) {
+          throw result.error;
+        }
+      }
 
-      resolvedAttributes.push(...apiResolved);
+      throw new ProductTypeAttributeValidationError(
+        `Failed to resolve referenced attributes for product type "${productType.name}": ${unresolvedNames.join(", ")}. ` +
+          `Ensure all referenced attributes are defined in the productAttributes section.`,
+        productType.name ?? "unknown",
+        unresolvedNames.join(", ")
+      );
     }
 
     const attributesByName = new Map(
@@ -263,42 +283,6 @@ export class ProductTypeService {
         .map((attr) => [attr.name, attr] as const)
     );
 
-    // Fail-fast: validate that all unassigned referenced attributes were resolved
-    const unresolvedNames = referencedAttrNames.filter(
-      (name) => !existingAttributeNames.has(name) && !attributesByName.has(name)
-    );
-    if (unresolvedNames.length > 0) {
-      logger.error("Failed to resolve referenced attributes", {
-        productTypeName: productType.name,
-        attributeNames: unresolvedNames,
-      });
-
-      // If cache is available, use validateAttributeReference for detailed error messages
-      if (attributeCache) {
-        for (const name of unresolvedNames) {
-          const result = validateAttributeReference(
-            name,
-            "product",
-            "productTypes",
-            productType.name ?? "unknown",
-            attributeCache
-          );
-          if (!result.valid) {
-            throw result.error;
-          }
-        }
-      }
-
-      // Fallback to generic error if no cache or no specific error generated
-      throw new ProductTypeAttributeValidationError(
-        `Failed to resolve referenced attributes for product type "${productType.name}". ` +
-          `This may indicate a network issue or that the attributes do not exist: ${unresolvedNames.join(", ")}`,
-        productType.name ?? "unknown",
-        unresolvedNames.join(", ")
-      );
-    }
-
-    // Build variantSelection map and validate input types (fail-fast)
     const variantSelectionByName = buildVariantSelectionMap(inputAttributes, isReferencedAttribute);
     validateVariantSelectionInputTypes(
       [...variantSelectionByName.keys()],
@@ -306,7 +290,6 @@ export class ProductTypeService {
       productType.name ?? "unknown"
     );
 
-    // Return attribute assignments with variantSelection (only unassigned attributes)
     return resolvedAttributes
       .filter((attr) => attr.name && !existingAttributeNames.has(attr.name))
       .map((attr) => ({
@@ -337,13 +320,11 @@ export class ProductTypeService {
       productTypeName: productType.name,
     });
 
-    // Build variantSelection map for inline (non-referenced) attributes
     const variantSelectionByName = buildVariantSelectionMap(
       inputAttributes,
       (attr) => !isReferencedAttribute(attr)
     );
 
-    // Map created attributes to assignment inputs with variantSelection
     const createdAttributeAssignments: AttributeAssignmentInput[] = createdAttributes.map((a) => {
       if (!a.name) {
         logger.warn("Created attribute has no name, variantSelection cannot be applied", {
@@ -367,7 +348,6 @@ export class ProductTypeService {
       });
     }
 
-    // Update variantSelection on already-assigned attributes (VARIANT type only)
     if (type === "VARIANT") {
       await this.updateExistingAttributeAssignments(productType, inputAttributes);
     }
@@ -375,45 +355,30 @@ export class ProductTypeService {
     return { createdAttributes, updatedAttributes };
   }
 
-  /**
-   * Updates variantSelection on attributes that are already assigned to the product type.
-   * This handles the case where a user changes variantSelection on an existing assignment.
-   */
   private async updateExistingAttributeAssignments(
     productType: ProductType,
     inputAttributes: AttributeInput[]
   ): Promise<void> {
-    // Check if repository supports updates (optional method)
     if (!this.repository.updateAttributeAssignments) {
       logger.debug("Repository does not support updateAttributeAssignments, skipping");
       return;
     }
 
-    // Get already-assigned variant attributes with their IDs
     const existingVariantAttrs = productType.variantAttributes ?? [];
     if (existingVariantAttrs.length === 0) {
       return;
     }
 
-    // Build map of desired variantSelection from input (for both inline and referenced)
     const desiredVariantSelection = buildFullVariantSelectionMap(inputAttributes);
 
-    // Find attributes that need updating
-    // Currently-assigned attributes have variantSelection=false by default if not set
-    // We need to find ones where desired !== current
     const attributesToUpdate: Array<{ id: string; variantSelection: boolean }> = [];
 
     for (const existingAttr of existingVariantAttrs) {
       if (!existingAttr.name) continue;
 
       const desiredValue = desiredVariantSelection.get(existingAttr.name);
-      // If the attribute is not in the input, skip it (no desired change)
       if (desiredValue === undefined) continue;
 
-      // We need to compare against the current state in Saleor
-      // Since the ProductType response doesn't include variantSelection status,
-      // we always update to the desired value when it's defined in input
-      // This ensures the desired state is applied
       attributesToUpdate.push({
         id: existingAttr.id,
         variantSelection: desiredValue,
@@ -495,7 +460,6 @@ export class ProductTypeService {
       return [];
     }
 
-    // Single batch query instead of N individual queries
     const allNames = attributesToProcess.map((a) => a.name);
     const existingGlobal = await this.attributeService.repo.getAttributesByNames({
       names: allNames,
@@ -512,7 +476,6 @@ export class ProductTypeService {
     for (const attributeInput of attributesToProcess) {
       const existing = existingMap.get(attributeInput.name);
       if (existing) {
-        // Reuse existing global attribute from previous deployment or another product type
         logger.debug("Reusing existing global attribute", {
           attributeName: attributeInput.name,
           attributeId: existing.id,
@@ -522,7 +485,6 @@ export class ProductTypeService {
         continue;
       }
 
-      // Create the attribute since it doesn't exist
       const createdAttributes = await this.attributeService.bootstrapAttributes({
         attributeInputs: [{ ...attributeInput, type: "PRODUCT_TYPE" }],
       });
@@ -546,7 +508,6 @@ export class ProductTypeService {
       hasCacheProvided: Boolean(options?.attributeCache),
     });
 
-    // Validate REFERENCE attributes have entityType
     const allAttributes = [...(input.productAttributes || []), ...(input.variantAttributes || [])];
     for (const attr of allAttributes) {
       if (!isReferencedAttribute(attr) && "inputType" in attr && attr.inputType === "REFERENCE") {
@@ -561,8 +522,6 @@ export class ProductTypeService {
       }
     }
 
-    // Validate variantSelection is only used on variant attributes with supported input types
-    // Note: For referenced attributes, validation happens in getExistingAttributesToAssign
     for (const attr of input.variantAttributes ?? []) {
       if (!hasVariantSelection(attr)) continue;
       if (isReferencedAttribute(attr)) continue;

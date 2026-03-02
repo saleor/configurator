@@ -140,64 +140,6 @@ export class AttributeService {
     return this.repository;
   }
 
-  /**
-   * Resolves referenced attributes by name and returns their IDs for assignment
-   * @param inputAttributes - List of attribute inputs that may contain references
-   * @param attributeType - The type of attributes to resolve (PRODUCT_TYPE or PAGE_TYPE)
-   * @param existingAttributeNames - Names of attributes already assigned to prevent duplicate assignment
-   * @returns Array of attribute IDs that should be assigned
-   */
-  async resolveReferencedAttributes(
-    inputAttributes: AttributeInput[],
-    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE",
-    existingAttributeNames: string[] = []
-  ): Promise<string[]> {
-    const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
-
-    if (referencedAttributes.length === 0) {
-      return [];
-    }
-
-    logger.debug("Resolving referenced attributes", {
-      count: referencedAttributes.length,
-      type: attributeType,
-    });
-
-    const referencedAttributeNames = referencedAttributes.map((a) => a.attribute);
-    const existingSet = new Set(existingAttributeNames);
-    const unassignedAttributeNames = referencedAttributeNames.filter(
-      (name) => !existingSet.has(name)
-    );
-
-    if (unassignedAttributeNames.length === 0) {
-      logger.debug("All referenced attributes are already assigned");
-      return [];
-    }
-
-    const existingAttributes = await this.repository.getAttributesByNames({
-      names: unassignedAttributeNames,
-      type: attributeType,
-    });
-
-    if (existingAttributes.length === 0) {
-      logger.warn("No referenced attributes found", {
-        names: unassignedAttributeNames,
-        type: attributeType,
-      });
-      return [];
-    }
-
-    const attributeIds = existingAttributes.map((attr) => attr.id);
-
-    logger.debug("Resolved referenced attributes", {
-      found: existingAttributes.length,
-      requested: unassignedAttributeNames.length,
-      attributeIds,
-    });
-
-    return attributeIds;
-  }
-
   async bootstrapAttributes({ attributeInputs }: { attributeInputs: FullAttribute[] }) {
     logger.debug("Bootstrapping attributes", {
       count: attributeInputs.length,
@@ -233,11 +175,6 @@ export class AttributeService {
     return existingAttribute;
   }
 
-  /**
-   * Create multiple attributes in bulk using Saleor's bulk mutation
-   * @param attributes - Array of attributes to create
-   * @returns Object containing successful and failed attributes
-   */
   async bootstrapAttributesBulk(attributes: FullAttribute[]): Promise<{
     successful: Attribute[];
     failed: BulkFailure[];
@@ -267,11 +204,6 @@ export class AttributeService {
     return { successful, failed };
   }
 
-  /**
-   * Update multiple attributes in bulk using Saleor's bulk mutation
-   * @param updates - Array of objects containing the input and existing attribute to update
-   * @returns Object containing successful and failed updates
-   */
   async updateAttributesBulk(
     updates: Array<{ input: FullAttribute; existing: Attribute }>
   ): Promise<{
@@ -317,80 +249,10 @@ export class AttributeService {
   }
 }
 
-/**
- * Shared cache-first resolution for referenced attribute names.
- * Returns { resolvedIds, unresolvedNames } — callers decide how to handle unresolved.
- */
-export async function resolveAttributeNamesWithCache(
-  names: string[],
-  section: "product" | "content",
-  attributeCache: AttributeCache | undefined,
-  repository: AttributeOperations
-): Promise<{ resolvedIds: string[]; unresolvedNames: string[] }> {
-  if (names.length === 0) return { resolvedIds: [], unresolvedNames: [] };
-
-  const resolvedIds: string[] = [];
-  const cacheMisses: string[] = [];
-
-  if (attributeCache) {
-    for (const name of names) {
-      const cached =
-        section === "product"
-          ? attributeCache.getProductAttribute(name)
-          : attributeCache.getContentAttribute(name);
-      if (cached) {
-        resolvedIds.push(cached.id);
-      } else {
-        cacheMisses.push(name);
-      }
-    }
-  } else {
-    cacheMisses.push(...names);
-  }
-
-  if (cacheMisses.length > 0) {
-    const apiType = section === "product" ? "PRODUCT_TYPE" : "PAGE_TYPE";
-    const apiResolved = await repository.getAttributesByNames({
-      names: cacheMisses,
-      type: apiType,
-    });
-
-    const resolvedNameSet = new Set<string>();
-    for (const attr of apiResolved) {
-      if (attr.name) {
-        resolvedIds.push(attr.id);
-        resolvedNameSet.add(attr.name);
-      }
-    }
-    const stillUnresolved = cacheMisses.filter((n) => !resolvedNameSet.has(n));
-    return { resolvedIds, unresolvedNames: stillUnresolved };
-  }
-
-  return { resolvedIds, unresolvedNames: [] };
-}
-
-/**
- * Result of attribute reference validation.
- */
 export type AttributeValidationResult =
   | { valid: true; attribute: CachedAttribute }
   | { valid: false; error: AttributeNotFoundError | WrongAttributeTypeError };
 
-/**
- * Validates an attribute reference using the AttributeCache.
- *
- * Validation flow:
- * 1. Check if attribute exists in expected section (product/content)
- * 2. If not found, check if it exists in the wrong section
- * 3. If not found anywhere, find similar names for suggestions
- *
- * @param attributeName - The name of the attribute being referenced
- * @param expectedSection - Whether this is a product or content attribute reference
- * @param referencingEntityType - The type of entity making the reference (productTypes/modelTypes)
- * @param referencingEntityName - The name of the entity making the reference
- * @param cache - The AttributeCache to validate against
- * @returns Validation result with attribute if valid, or error if invalid
- */
 type AttributeSectionLabel = "productAttributes" | "contentAttributes";
 
 function toSectionLabel(section: "product" | "content"): AttributeSectionLabel {
