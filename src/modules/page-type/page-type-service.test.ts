@@ -85,7 +85,14 @@ describe("PageTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateContentAttributes([
-        { id: "attr-1", name: "Published Date", slug: "published-date", inputType: "DATE" },
+        {
+          id: "attr-1",
+          name: "Published Date",
+          slug: "published-date",
+          inputType: "DATE",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       const inputAttributes: AttributeInput[] = [
@@ -112,9 +119,7 @@ describe("PageTypeService", () => {
       const existingPageType = {
         id: "page-type-1",
         name: "Blog Post",
-        attributes: [
-          { id: "attr-1", name: "Published Date" },
-        ],
+        attributes: [{ id: "attr-1", name: "Published Date" }],
       };
 
       const mockPageTypeOperations = {
@@ -136,9 +141,7 @@ describe("PageTypeService", () => {
 
       const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Published Date" },
-      ];
+      const inputAttributes: AttributeInput[] = [{ attribute: "Published Date" }];
 
       await service.bootstrapPageType({
         name: "Blog Post",
@@ -270,12 +273,17 @@ describe("PageTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateContentAttributes([
-        { id: "cached-attr-1", name: "SEO Title", slug: "seo-title", inputType: "PLAIN_TEXT" },
+        {
+          id: "cached-attr-1",
+          name: "SEO Title",
+          slug: "seo-title",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "SEO Title" },
-      ];
+      const inputAttributes: AttributeInput[] = [{ attribute: "SEO Title" }];
 
       await service.bootstrapPageType(
         { name: "Blog Post", attributes: inputAttributes },
@@ -315,12 +323,17 @@ describe("PageTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateContentAttributes([
-        { id: "other-attr", name: "Other Attribute", slug: "other", inputType: "DROPDOWN" },
+        {
+          id: "other-attr",
+          name: "Other Attribute",
+          slug: "other",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Author" },
-      ];
+      const inputAttributes: AttributeInput[] = [{ attribute: "Author" }];
 
       await expect(
         service.bootstrapPageType(

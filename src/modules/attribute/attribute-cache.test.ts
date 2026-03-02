@@ -1,18 +1,53 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { AttributeCache, type CachedAttribute } from "./attribute-cache";
+import { AttributeCache, type CachedAttribute, cachedToResolverAttribute } from "./attribute-cache";
 
 describe("AttributeCache", () => {
   let cache: AttributeCache;
 
   const sampleProductAttributes: CachedAttribute[] = [
-    { id: "attr1", name: "Publisher", slug: "publisher", inputType: "PLAIN_TEXT" },
-    { id: "attr2", name: "Genre", slug: "genre", inputType: "DROPDOWN" },
-    { id: "attr3", name: "Condition", slug: "condition", inputType: "DROPDOWN" },
+    {
+      id: "attr1",
+      name: "Publisher",
+      slug: "publisher",
+      inputType: "PLAIN_TEXT",
+      entityType: null,
+      choices: [],
+    },
+    {
+      id: "attr2",
+      name: "Genre",
+      slug: "genre",
+      inputType: "DROPDOWN",
+      entityType: null,
+      choices: [],
+    },
+    {
+      id: "attr3",
+      name: "Condition",
+      slug: "condition",
+      inputType: "DROPDOWN",
+      entityType: null,
+      choices: [],
+    },
   ];
 
   const sampleContentAttributes: CachedAttribute[] = [
-    { id: "attr4", name: "Author", slug: "author", inputType: "PLAIN_TEXT" },
-    { id: "attr5", name: "Scent Family", slug: "scent-family", inputType: "DROPDOWN" },
+    {
+      id: "attr4",
+      name: "Author",
+      slug: "author",
+      inputType: "PLAIN_TEXT",
+      entityType: null,
+      choices: [],
+    },
+    {
+      id: "attr5",
+      name: "Scent Family",
+      slug: "scent-family",
+      inputType: "DROPDOWN",
+      entityType: null,
+      choices: [],
+    },
   ];
 
   beforeEach(() => {
@@ -186,5 +221,54 @@ describe("AttributeCache", () => {
       expect(names).toContain("Scent Family");
       expect(names).toHaveLength(2);
     });
+  });
+});
+
+describe("cachedToResolverAttribute", () => {
+  it("should convert cached attribute with choices to resolver shape", () => {
+    const cached: CachedAttribute = {
+      id: "attr2",
+      name: "Genre",
+      slug: "genre",
+      inputType: "DROPDOWN",
+      entityType: null,
+      choices: [
+        { id: "genre-fiction", name: "Fiction", value: "fiction" },
+        { id: "genre-nonfiction", name: "Non-Fiction", value: "nonfiction" },
+      ],
+    };
+    const result = cachedToResolverAttribute(cached);
+    expect(result.id).toBe("attr2");
+    expect(result.name).toBe("Genre");
+    expect(result.inputType).toBe("DROPDOWN");
+    expect(result.entityType).toBeNull();
+    expect(result.choices?.edges).toHaveLength(2);
+    expect(result.choices?.edges?.[0].node.id).toBe("genre-fiction");
+  });
+
+  it("should convert cached attribute with entityType for references", () => {
+    const cached: CachedAttribute = {
+      id: "attr-ref",
+      name: "Related Product",
+      slug: "related-product",
+      inputType: "REFERENCE",
+      entityType: "PRODUCT",
+      choices: [],
+    };
+    const result = cachedToResolverAttribute(cached);
+    expect(result.entityType).toBe("PRODUCT");
+  });
+
+  it("should handle empty choices array", () => {
+    const cached: CachedAttribute = {
+      id: "attr1",
+      name: "Publisher",
+      slug: "publisher",
+      inputType: "PLAIN_TEXT",
+      entityType: null,
+      choices: [],
+    };
+    const result = cachedToResolverAttribute(cached);
+    expect(result.choices?.edges).toHaveLength(0);
   });
 });

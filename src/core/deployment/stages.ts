@@ -218,6 +218,12 @@ async function processAttributesSequentially(
           name: result.name,
           slug: toSlug(result.name),
           inputType: resolvedInputType ?? attr.inputType,
+          entityType: result.entityType ?? null,
+          choices: (result.choices?.edges ?? [])
+            .filter((e): e is typeof e & { node: { id: string; name: string } } =>
+              Boolean(e?.node?.id && e?.node?.name)
+            )
+            .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
         } satisfies CachedAttribute;
       }
       return null;
@@ -270,7 +276,13 @@ async function processAttributesBulk(
       return { input: attr, existing };
     });
 
-  const successfulAttrs: Array<{ id: string; name: string; inputType: string }> = [];
+  const successfulAttrs: Array<{
+    id: string;
+    name: string;
+    inputType: string;
+    entityType: string | null;
+    choices: Array<{ id: string; name: string; value: string }>;
+  }> = [];
 
   if (toCreate.length > 0) {
     logger.info(`Creating ${toCreate.length} new ${sectionName} via bulk mutation`);
@@ -281,7 +293,17 @@ async function processAttributesBulk(
       });
       for (const attr of createResult.successful) {
         if (attr.id && attr.name && attr.inputType) {
-          successfulAttrs.push({ id: attr.id, name: attr.name, inputType: attr.inputType });
+          successfulAttrs.push({
+            id: attr.id,
+            name: attr.name,
+            inputType: attr.inputType,
+            entityType: attr.entityType ?? null,
+            choices: (attr.choices?.edges ?? [])
+              .filter((e): e is typeof e & { node: { id: string; name: string } } =>
+                Boolean(e?.node?.id && e?.node?.name)
+              )
+              .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
+          });
         }
       }
     } catch (error) {
@@ -301,7 +323,17 @@ async function processAttributesBulk(
       });
       for (const attr of updateResult.successful) {
         if (attr.id && attr.name && attr.inputType) {
-          successfulAttrs.push({ id: attr.id, name: attr.name, inputType: attr.inputType });
+          successfulAttrs.push({
+            id: attr.id,
+            name: attr.name,
+            inputType: attr.inputType,
+            entityType: attr.entityType ?? null,
+            choices: (attr.choices?.edges ?? [])
+              .filter((e): e is typeof e & { node: { id: string; name: string } } =>
+                Boolean(e?.node?.id && e?.node?.name)
+              )
+              .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
+          });
         }
       }
     } catch (error) {
@@ -321,6 +353,8 @@ async function processAttributesBulk(
         name: attr.name,
         slug: toSlug(attr.name),
         inputType: parsedInputType,
+        entityType: attr.entityType,
+        choices: attr.choices,
       });
     }
   }
@@ -338,6 +372,12 @@ async function processAttributesBulk(
           name: attr.name,
           slug: toSlug(attr.name),
           inputType: parsedInputType,
+          entityType: attr.entityType ?? null,
+          choices: (attr.choices?.edges ?? [])
+            .filter((e): e is typeof e & { node: { id: string; name: string } } =>
+              Boolean(e?.node?.id && e?.node?.name)
+            )
+            .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
         });
       }
     }

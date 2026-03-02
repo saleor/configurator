@@ -15,9 +15,7 @@ function isPageTypeUpdateInput(input: PageTypeInput): input is PageTypeUpdateInp
   return "attributes" in input;
 }
 
-function isSimpleAttribute(
-  attr: SimpleAttribute | { attribute: string }
-): attr is SimpleAttribute {
+function isSimpleAttribute(attr: SimpleAttribute | { attribute: string }): attr is SimpleAttribute {
   return "name" in attr;
 }
 

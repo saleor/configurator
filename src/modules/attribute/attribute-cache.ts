@@ -29,11 +29,19 @@ export const ATTRIBUTE_INPUT_TYPES = [
 
 export type AttributeInputType = (typeof ATTRIBUTE_INPUT_TYPES)[number];
 
+export interface CachedAttributeChoice {
+  readonly id: string;
+  readonly name: string;
+  readonly value: string;
+}
+
 export interface CachedAttribute {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
   readonly inputType: AttributeInputType;
+  readonly entityType: string | null;
+  readonly choices: readonly CachedAttributeChoice[];
 }
 
 export type WrongSectionResult =
@@ -61,6 +69,41 @@ export interface IAttributeCache {
   clear(): void;
   getAllProductAttributeNames(): string[];
   getAllContentAttributeNames(): string[];
+}
+
+/**
+ * Shape that attribute resolvers expect — mirrors the GraphQL edge/node structure.
+ * Decoupled from the full GraphQL Attribute type to keep the cache independent.
+ */
+export interface ResolverAttribute {
+  readonly id: string;
+  readonly name: string;
+  readonly entityType: string | null;
+  readonly inputType: string;
+  readonly choices: {
+    readonly edges: ReadonlyArray<{
+      readonly node: {
+        readonly id: string;
+        readonly name: string;
+        readonly value: string;
+      };
+    }>;
+  } | null;
+}
+
+/** Convert flat cache entry to the edge/node shape resolvers expect. */
+export function cachedToResolverAttribute(cached: CachedAttribute): ResolverAttribute {
+  return {
+    id: cached.id,
+    name: cached.name,
+    entityType: cached.entityType,
+    inputType: cached.inputType,
+    choices: {
+      edges: cached.choices.map((c) => ({
+        node: { id: c.id, name: c.name, value: c.value },
+      })),
+    },
+  };
 }
 
 export class AttributeCache implements IAttributeCache {

@@ -74,11 +74,7 @@ describe("AttributeService", () => {
       const updatedAttributeInput = {
         name: "Genre",
         inputType: "DROPDOWN" as const,
-        values: [
-          { name: "Fiction" },
-          { name: "Non-Fiction" },
-          { name: "Romance" },
-        ],
+        values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Romance" }],
         type: "PRODUCT_TYPE" as const,
       };
 
@@ -553,6 +549,8 @@ describe("AttributeService", () => {
       name: "Color",
       slug: "color",
       inputType: "DROPDOWN",
+      entityType: null,
+      choices: [],
     };
 
     const contentAttr: CachedAttribute = {
@@ -560,6 +558,8 @@ describe("AttributeService", () => {
       name: "SEO Title",
       slug: "seo-title",
       inputType: "PLAIN_TEXT",
+      entityType: null,
+      choices: [],
     };
 
     it("should return valid when attribute exists in expected product section", () => {
@@ -667,8 +667,22 @@ describe("AttributeService", () => {
     it("should return AttributeNotFoundError with similar name suggestions via Levenshtein distance", () => {
       const cache = createCache([
         productAttr,
-        { id: "attr-prod-2", name: "Colour", slug: "colour", inputType: "DROPDOWN" },
-        { id: "attr-prod-3", name: "Size", slug: "size", inputType: "DROPDOWN" },
+        {
+          id: "attr-prod-2",
+          name: "Colour",
+          slug: "colour",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-prod-3",
+          name: "Size",
+          slug: "size",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       const result = validateAttributeReference(
@@ -694,7 +708,14 @@ describe("AttributeService", () => {
 
     it("should return AttributeNotFoundError with empty suggestions when no similar names exist", () => {
       const cache = createCache([
-        { id: "attr-prod-1", name: "XXXXXXXXXX", slug: "xxxxxxxxxx", inputType: "NUMERIC" },
+        {
+          id: "attr-prod-1",
+          name: "XXXXXXXXXX",
+          slug: "xxxxxxxxxx",
+          inputType: "NUMERIC",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       const result = validateAttributeReference(

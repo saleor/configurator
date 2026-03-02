@@ -1087,7 +1087,14 @@ describe("ProductTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateProductAttributes([
-        { id: "plaintext-1", name: "Description", slug: "description", inputType: "PLAIN_TEXT" },
+        {
+          id: "plaintext-1",
+          name: "Description",
+          slug: "description",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       await expect(
@@ -1122,7 +1129,14 @@ describe("ProductTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateProductAttributes([
-        { id: "dropdown-ref-1", name: "Color", slug: "color", inputType: "DROPDOWN" },
+        {
+          id: "dropdown-ref-1",
+          name: "Color",
+          slug: "color",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       await service.bootstrapProductType(
@@ -1515,7 +1529,14 @@ describe("ProductTypeService", () => {
       // Populate cache with product attributes
       const cache = new AttributeCache();
       cache.populateProductAttributes([
-        { id: "cached-color-id", name: "Color", slug: "color", inputType: "DROPDOWN" },
+        {
+          id: "cached-color-id",
+          name: "Color",
+          slug: "color",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       // When: bootstrap with a referenced attribute that exists in cache
@@ -1565,7 +1586,14 @@ describe("ProductTypeService", () => {
 
       const cache = new AttributeCache();
       cache.populateProductAttributes([
-        { id: "other-attr", name: "Other", slug: "other", inputType: "PLAIN_TEXT" },
+        {
+          id: "other-attr",
+          name: "Other",
+          slug: "other",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       await expect(
@@ -1625,7 +1653,14 @@ describe("ProductTypeService", () => {
       // Populate cache with "Author" in content section only (not product section)
       const cache = new AttributeCache();
       cache.populateContentAttributes([
-        { id: "content-author-id", name: "Author", slug: "author", inputType: "PLAIN_TEXT" },
+        {
+          id: "content-author-id",
+          name: "Author",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       // When/Then: referencing a content attribute from a product type should throw a
