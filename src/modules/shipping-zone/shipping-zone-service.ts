@@ -1,6 +1,9 @@
 import { logger } from "../../lib/logger";
+import { BulkOperationThresholds, DelayConfig } from "../../lib/utils/bulk-operation-constants";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
+import { delay } from "../../lib/utils/resilience";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
 import type { WarehouseOperations } from "../warehouse/repository";
@@ -89,22 +92,6 @@ export class ShippingZoneService {
     return this.warehouseIdCache;
   }
 
-  private async resolveWarehouseSlugToId(slug: string): Promise<string> {
-    logger.debug("Resolving warehouse slug to ID", { slug });
-    const warehouseMap = await this.getWarehouseIdMap();
-    const id = warehouseMap.get(slug);
-
-    if (!id) {
-      throw new ShippingZoneValidationError(
-        `Warehouse with slug '${slug}' not found`,
-        "warehouses"
-      );
-    }
-
-    logger.debug("Resolved warehouse slug to ID", { slug, id });
-    return id;
-  }
-
   private async resolveWarehouseSlugsToIds(slugs: string[]): Promise<string[]> {
     if (!slugs || slugs.length === 0) {
       return [];
@@ -123,19 +110,6 @@ export class ShippingZoneService {
       }
       return id;
     });
-  }
-
-  private async resolveChannelSlugToId(slug: string): Promise<string> {
-    logger.debug("Resolving channel slug to ID", { slug });
-    const channelMap = await this.getChannelIdMap();
-    const id = channelMap.get(slug);
-
-    if (!id) {
-      throw new ShippingZoneValidationError(`Channel with slug '${slug}' not found`, "channels");
-    }
-
-    logger.debug("Resolved channel slug to ID", { slug, id });
-    return id;
   }
 
   private async getChannelIdMap(): Promise<Map<string, string>> {
@@ -257,6 +231,38 @@ export class ShippingZoneService {
     return object.filterUndefinedValues(baseInput);
   }
 
+  private async ensureWarehousesAssignedToChannels(input: ShippingZoneInput): Promise<void> {
+    if (
+      !input.warehouses ||
+      input.warehouses.length === 0 ||
+      !input.channels ||
+      input.channels.length === 0
+    ) {
+      return;
+    }
+
+    const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
+    const channelIds = await this.resolveChannelSlugsToIds(input.channels);
+
+    for (const chId of channelIds) {
+      try {
+        await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
+        logger.debug("Assigned warehouses to channel for shipping zone preconditions", {
+          channelId: chId,
+          warehouseCount: warehouseIds.length,
+        });
+      } catch (e) {
+        if (isTransientError(e)) {
+          throw e;
+        }
+        logger.warn("Failed to pre-assign warehouses to channel", {
+          channelId: chId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
+
   async createShippingZone(input: ShippingZoneInput): Promise<ShippingZone> {
     logger.debug("Creating new shipping zone", { name: input.name });
     this.validateShippingZoneInput(input);
@@ -269,31 +275,7 @@ export class ShippingZoneService {
     }
 
     try {
-      // Ensure warehouses are assigned to the zone's channels before creating the zone
-      if (
-        input.warehouses &&
-        input.warehouses.length > 0 &&
-        input.channels &&
-        input.channels.length > 0
-      ) {
-        const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
-        const channelIds = await this.resolveChannelSlugsToIds(input.channels);
-
-        for (const chId of channelIds) {
-          try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
-            logger.debug("Assigned warehouses to channel for shipping zone preconditions", {
-              channelId: chId,
-              warehouseCount: warehouseIds.length,
-            });
-          } catch (e) {
-            logger.warn("Failed to pre-assign warehouses to channel", {
-              channelId: chId,
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-      }
+      await this.ensureWarehousesAssignedToChannels(input);
 
       const createInput = await this.mapInputToCreateInput(input);
       const shippingZone = await this.repository.createShippingZone(createInput);
@@ -317,6 +299,10 @@ export class ShippingZoneService {
         throw error;
       }
 
+      if (isTransientError(error)) {
+        throw error;
+      }
+
       logger.error("Failed to create shipping zone", {
         error: error instanceof Error ? error.message : "Unknown error",
         name: input.name,
@@ -333,34 +319,7 @@ export class ShippingZoneService {
     logger.debug("Updating shipping zone", { id, name: input.name });
 
     try {
-      // Ensure warehouses are assigned to the zone's channels before updating the zone
-      if (
-        input.warehouses &&
-        input.warehouses.length > 0 &&
-        input.channels &&
-        input.channels.length > 0
-      ) {
-        const warehouseIds = await this.resolveWarehouseSlugsToIds(input.warehouses);
-        const channelIds = await this.resolveChannelSlugsToIds(input.channels);
-
-        for (const chId of channelIds) {
-          try {
-            await this.channelRepository.updateChannel(chId, { addWarehouses: warehouseIds });
-            logger.debug(
-              "Assigned warehouses to channel for shipping zone preconditions (update)",
-              {
-                channelId: chId,
-                warehouseCount: warehouseIds.length,
-              }
-            );
-          } catch (e) {
-            logger.warn("Failed to pre-assign warehouses to channel (update)", {
-              channelId: chId,
-              error: e instanceof Error ? e.message : String(e),
-            });
-          }
-        }
-      }
+      await this.ensureWarehousesAssignedToChannels(input);
 
       // Get current shipping zone to calculate warehouse/channel changes
       const currentZone = await this.repository.getShippingZone(id);
@@ -382,6 +341,18 @@ export class ShippingZoneService {
       });
       return shippingZone;
     } catch (error) {
+      // Re-throw validation errors without wrapping (consistent with createShippingZone)
+      if (
+        error instanceof ShippingZoneValidationError ||
+        error instanceof ShippingMethodValidationError
+      ) {
+        throw error;
+      }
+
+      if (isTransientError(error)) {
+        throw error;
+      }
+
       logger.error("Failed to update shipping zone", {
         error: error instanceof Error ? error.message : "Unknown error",
         id,
@@ -412,6 +383,37 @@ export class ShippingZoneService {
     return this.createShippingZone(input);
   }
 
+  /**
+   * Resolves and applies channel listings to a shipping method.
+   */
+  private async applyShippingMethodChannelListings(
+    methodId: string,
+    channelListings: ShippingMethodInput["channelListings"]
+  ): Promise<void> {
+    if (!channelListings || !Array.isArray(channelListings) || channelListings.length === 0) {
+      return;
+    }
+
+    const channelIds = await this.resolveChannelSlugsToIds(
+      channelListings.map((listing) => listing.channel)
+    );
+    const channelListingInput = {
+      addChannels: channelListings.map((listing, index) => ({
+        channelId: channelIds[index],
+        price: listing.price?.toString(),
+        minimumOrderPrice:
+          listing.minimumOrderPrice != null && listing.minimumOrderPrice > 0
+            ? listing.minimumOrderPrice.toString()
+            : undefined,
+        maximumOrderPrice:
+          listing.maximumOrderPrice != null && listing.maximumOrderPrice > 0
+            ? listing.maximumOrderPrice.toString()
+            : undefined,
+      })),
+    };
+    await this.repository.updateShippingMethodChannelListing(methodId, channelListingInput);
+  }
+
   private async createShippingMethods(
     shippingZoneId: string,
     methods: ShippingMethodInput[]
@@ -419,39 +421,16 @@ export class ShippingZoneService {
     for (const method of methods) {
       const createInput = this.mapShippingMethodToCreateInput(method, shippingZoneId);
       const createdMethod = await this.repository.createShippingMethod(createInput);
+      await this.applyShippingMethodChannelListings(createdMethod.id, method.channelListings);
+      await this.delayAfterChannelListingUpdate(method.channelListings);
+    }
+  }
 
-      // Update channel listings if provided
-      if (
-        method.channelListings &&
-        Array.isArray(method.channelListings) &&
-        method.channelListings.length > 0
-      ) {
-        const channelIds = await this.resolveChannelSlugsToIds(
-          method.channelListings.map((listing) => listing.channel)
-        );
-        const channelListingInput = {
-          addChannels: method.channelListings.map((listing, index) => ({
-            channelId: channelIds[index],
-            price: listing.price?.toString(),
-            minimumOrderPrice: listing.minimumOrderPrice
-              ? {
-                  amount: listing.minimumOrderPrice,
-                  currency: listing.currency || "USD",
-                }
-              : undefined,
-            maximumOrderPrice: listing.maximumOrderPrice
-              ? {
-                  amount: listing.maximumOrderPrice,
-                  currency: listing.currency || "USD",
-                }
-              : undefined,
-          })),
-        };
-        await this.repository.updateShippingMethodChannelListing(
-          createdMethod.id,
-          channelListingInput
-        );
-      }
+  private async delayAfterChannelListingUpdate(
+    channelListings: ShippingMethodInput["channelListings"]
+  ): Promise<void> {
+    if (channelListings && Array.isArray(channelListings) && channelListings.length > 0) {
+      await delay(DelayConfig.SHIPPING_CHANNEL_LISTING_DELAY_MS);
     }
   }
 
@@ -487,6 +466,7 @@ export class ShippingZoneService {
     for (const desiredMethod of validDesiredMethods) {
       this.validateShippingMethodInput(desiredMethod);
       const currentMethod = currentMethodsMap.get(desiredMethod.name);
+      let methodId: string;
 
       if (currentMethod) {
         // Update existing method
@@ -496,78 +476,17 @@ export class ShippingZoneService {
         });
         const updateInput = this.mapShippingMethodToCreateInput(desiredMethod, shippingZoneId);
         await this.repository.updateShippingMethod(currentMethod.id, updateInput);
-
-        // Update channel listings if provided
-        if (
-          desiredMethod.channelListings &&
-          Array.isArray(desiredMethod.channelListings) &&
-          desiredMethod.channelListings.length > 0
-        ) {
-          const channelIds = await this.resolveChannelSlugsToIds(
-            desiredMethod.channelListings.map((listing) => listing.channel)
-          );
-          const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing, index) => ({
-              channelId: channelIds[index],
-              price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice
-                ? {
-                    amount: listing.minimumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-              maximumOrderPrice: listing.maximumOrderPrice
-                ? {
-                    amount: listing.maximumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-            })),
-          };
-          await this.repository.updateShippingMethodChannelListing(
-            currentMethod.id,
-            channelListingInput
-          );
-        }
+        methodId = currentMethod.id;
       } else {
         // Create new method
         logger.debug("Creating shipping method", { name: desiredMethod.name });
         const createInput = this.mapShippingMethodToCreateInput(desiredMethod, shippingZoneId);
         const createdMethod = await this.repository.createShippingMethod(createInput);
-
-        // Update channel listings if provided
-        if (
-          desiredMethod.channelListings &&
-          Array.isArray(desiredMethod.channelListings) &&
-          desiredMethod.channelListings.length > 0
-        ) {
-          const channelIds = await this.resolveChannelSlugsToIds(
-            desiredMethod.channelListings.map((listing) => listing.channel)
-          );
-          const channelListingInput = {
-            addChannels: desiredMethod.channelListings.map((listing, index) => ({
-              channelId: channelIds[index],
-              price: listing.price?.toString(),
-              minimumOrderPrice: listing.minimumOrderPrice
-                ? {
-                    amount: listing.minimumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-              maximumOrderPrice: listing.maximumOrderPrice
-                ? {
-                    amount: listing.maximumOrderPrice,
-                    currency: listing.currency || "USD",
-                  }
-                : undefined,
-            })),
-          };
-          await this.repository.updateShippingMethodChannelListing(
-            createdMethod.id,
-            channelListingInput
-          );
-        }
+        methodId = createdMethod.id;
       }
+
+      await this.applyShippingMethodChannelListings(methodId, desiredMethod.channelListings);
+      await this.delayAfterChannelListingUpdate(desiredMethod.channelListings);
     }
   }
 
@@ -591,12 +510,25 @@ export class ShippingZoneService {
       );
     }
 
+    // Use sequential mode with delays for more than 3 zones to prevent rate limiting
+    const useSequential = inputs.length > BulkOperationThresholds.SHIPPING_ZONES_SEQUENTIAL;
+
     const results = await ServiceErrorWrapper.wrapBatch(
       inputs,
       "Bootstrap shipping zones",
       (zone) => zone.name,
-      (input) => this.getOrCreateShippingZone(input)
+      (input) => this.getOrCreateShippingZone(input),
+      {
+        sequential: useSequential,
+        delayMs: useSequential ? DelayConfig.DEFAULT_CHUNK_DELAY_MS : 0,
+      }
     );
+
+    if (useSequential) {
+      logger.info(
+        `Processed ${inputs.length} shipping zones sequentially with fixed ${DelayConfig.DEFAULT_CHUNK_DELAY_MS}ms delay`
+      );
+    }
 
     if (results.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} shipping zones`;

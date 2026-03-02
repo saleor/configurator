@@ -7,6 +7,7 @@ import {
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
+import { isTransientError } from "../../lib/utils/error-classification";
 import type {
   Attribute as AttributeMeta,
   AttributeUpdateInput,
@@ -20,7 +21,7 @@ import type {
 } from "../../modules/config/schema/schema";
 import type { Attribute as ProductAttributeMeta } from "../../modules/product/repository";
 import { StageAggregateError } from "./errors";
-import type { DeploymentStage } from "./types";
+import type { DeploymentContext, DeploymentStage } from "./types";
 
 export const validationStage: DeploymentStage = {
   name: StageNames.VALIDATION,
@@ -48,6 +49,9 @@ export const shopSettingsStage: DeploymentStage = {
 
       await context.configurator.services.shop.updateSettings(config.shop);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to update shop settings: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -95,6 +99,9 @@ export const productTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing product types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage product type")) {
         throw error;
       }
@@ -274,6 +281,9 @@ export const channelsStage: DeploymentStage = {
         await context.configurator.services.tax.updateChannelTaxConfiguration(existing.id, taxCfg);
       }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage channels: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -305,11 +315,16 @@ export const pageTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(pageType)
             .then(() => ({ name: pageType.name, success: true }))
-            .catch((error) => ({
-              name: pageType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
+            .catch((error) => {
+              if (isTransientError(error)) {
+                throw error;
+              }
+              return {
+                name: pageType.name,
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+              };
+            })
         )
       );
 
@@ -331,6 +346,12 @@ export const pageTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing page types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      if (isTransientError(error)) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage page type")) {
         throw error;
       }
@@ -359,11 +380,16 @@ export const modelTypesStage: DeploymentStage = {
           context.configurator.services.pageType
             .bootstrapPageType(modelType)
             .then(() => ({ name: modelType.name, success: true }))
-            .catch((error) => ({
-              name: modelType.name,
-              success: false,
-              error: error instanceof Error ? error : new Error(String(error)),
-            }))
+            .catch((error) => {
+              if (isTransientError(error)) {
+                throw error;
+              }
+              return {
+                name: modelType.name,
+                success: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+              };
+            })
         )
       );
 
@@ -385,6 +411,12 @@ export const modelTypesStage: DeploymentStage = {
         throw new StageAggregateError("Managing model types", failures, successes);
       }
     } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      if (isTransientError(error)) {
+        throw error;
+      }
       if (error instanceof Error && error.message.includes("Failed to manage model type")) {
         throw error;
       }
@@ -410,6 +442,9 @@ export const collectionsStage: DeploymentStage = {
 
       await context.configurator.services.collection.bootstrapCollections(config.collections);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage collections: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -432,6 +467,9 @@ export const menusStage: DeploymentStage = {
 
       await context.configurator.services.menu.bootstrapMenus(config.menus);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage menus: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -472,6 +510,9 @@ export const modelsStage: DeploymentStage = {
         );
       }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage models: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -492,8 +533,36 @@ export const categoriesStage: DeploymentStage = {
         return;
       }
 
-      await context.configurator.services.category.bootstrapCategories(config.categories);
+      // Count total categories including nested subcategories
+      const countCategories = (cats: typeof config.categories): number =>
+        cats.reduce((sum, cat) => {
+          const subcats =
+            "subcategories" in cat && Array.isArray(cat.subcategories)
+              ? countCategories(cat.subcategories)
+              : 0;
+          return sum + 1 + subcats;
+        }, 0);
+
+      const totalCategories = countCategories(config.categories);
+
+      // Size-adaptive strategy: use optimized processing for larger configs
+      if (totalCategories <= BulkOperationThresholds.CATEGORIES) {
+        // Small config: use existing sequential approach for simplicity
+        logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(totalCategories, "categories"));
+        await context.configurator.services.category.bootstrapCategories(config.categories);
+      } else {
+        // Large config: use level-based parallel processing for efficiency
+        logger.info(
+          `Processing ${totalCategories} categories via optimized level-based processing`
+        );
+        await context.configurator.services.category.bootstrapCategoriesOptimized(
+          config.categories
+        );
+      }
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage categories: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -522,6 +591,9 @@ export const warehousesStage: DeploymentStage = {
 
       await context.configurator.services.warehouse.bootstrapWarehouses(config.warehouses);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage warehouses: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -544,6 +616,9 @@ export const taxClassesStage: DeploymentStage = {
 
       await context.configurator.services.tax.bootstrapTaxClasses(config.taxClasses);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage tax classes: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -566,6 +641,9 @@ export const shippingZonesStage: DeploymentStage = {
 
       await context.configurator.services.shippingZone.bootstrapShippingZones(config.shippingZones);
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage shipping zones: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -575,6 +653,14 @@ export const shippingZonesStage: DeploymentStage = {
     return context.summary.results.every((r) => r.entityType !== "Shipping Zones");
   },
 };
+
+async function primeCategoryCacheForProductProcessing(context: DeploymentContext): Promise<void> {
+  const allCategories = await context.configurator.services.category.getAllCategories();
+  if (allCategories && allCategories.length > 0) {
+    context.configurator.services.product.primeCategoryCache(allCategories);
+    logger.debug("Category cache primed", { count: allCategories.length });
+  }
+}
 
 export const attributeChoicesPreflightStage: DeploymentStage = {
   name: StageNames.ATTRIBUTE_CHOICES_PREFLIGHT,
@@ -589,6 +675,8 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
       const changedSlugs = new Set(productChanges.map((r) => r.entityName));
       const productsToProcess = config.products.filter((p) => changedSlugs.has(p.slug));
       if (productsToProcess.length === 0) return;
+
+      await primeCategoryCacheForProductProcessing(context);
 
       // Collect attribute values per attribute name
       const valuesByAttr = new Map<string, Set<string>>();
@@ -645,10 +733,14 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
           refreshed as unknown as ProductAttributeMeta[]
         );
       }
+
       logger.debug("Attribute choices preflight completed", {
         attributes: refreshed?.length ?? existing.length,
       });
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to prepare attribute choices: ${error instanceof Error ? error.message : String(error)}`
       );
@@ -696,26 +788,17 @@ export const productsStage: DeploymentStage = {
         return;
       }
 
-      // Size-adaptive strategy: use bulk operations for larger deployments
+      // Always use bulk mutations for efficiency and to avoid rate limiting
       const productOptions = context.args.skipMedia ? { skipMedia: true } : undefined;
-      if (productsToProcess.length <= BulkOperationThresholds.PRODUCTS) {
-        // Small config: use existing sequential approach for better error granularity
-        logger.debug(
-          BulkOperationMessages.SEQUENTIAL_PROCESSING(productsToProcess.length, "products")
-        );
-        await context.configurator.services.product.bootstrapProducts(
-          productsToProcess,
-          productOptions
-        );
-      } else {
-        // Large config: use bulk mutations for efficiency and to avoid rate limiting
-        logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
-        await context.configurator.services.product.bootstrapProductsBulk(
-          productsToProcess,
-          productOptions
-        );
-      }
+      logger.info(BulkOperationMessages.BULK_PROCESSING(productsToProcess.length, "products"));
+      await context.configurator.services.product.bootstrapProductsBulk(
+        productsToProcess,
+        productOptions
+      );
     } catch (error) {
+      if (isTransientError(error)) {
+        throw error;
+      }
       throw new Error(
         `Failed to manage products: ${error instanceof Error ? error.message : String(error)}`
       );

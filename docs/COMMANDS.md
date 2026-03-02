@@ -4,13 +4,13 @@ Complete reference for all Saleor Configurator commands, including syntax, optio
 
 ## Environment Variables
 
-**Test Environment (Always Available):**
+**Test Environment:**
 ```bash
-export TEST_URL="https://store-rzalldyg.saleor.cloud/graphql/"
-export TEST_TOKEN="YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs"
+# Copy .env.example to .env.local and fill in SALEOR_URL and SALEOR_TOKEN
+source .env.local
 
 # Usage in commands
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 **Production Environment:**
@@ -348,7 +348,7 @@ LOG_LEVEL=debug pnpm dev introspect --url=$URL --token=$TOKEN
 pnpm check && pnpm build && pnpm test && npx tsc --noEmit
 
 # API connectivity test
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --dry-run
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --dry-run
 ```
 
 **GraphQL Diagnostics:**
@@ -482,18 +482,18 @@ git push
 ```bash
 # 1. Start development
 git checkout -b feature/new-entity
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 2. Make changes to config.yml
 # ... edit configuration ...
 
 # 3. Test changes
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN --dry-run
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --dry-run
 
 # 4. Deploy and test
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN  # Test idempotency
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN  # Test idempotency
 
 # 5. Quality checks before pushing
 pnpm check:fix && pnpm build && pnpm test && npx tsc --noEmit && pnpm check:ci

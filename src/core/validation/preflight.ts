@@ -14,18 +14,25 @@ import type {
 } from "../../modules/config/schema/schema";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
-type EntityArrayKey =
-  | "channels"
-  | "warehouses"
-  | "shippingZones"
-  | "productTypes"
-  | "pageTypes"
-  | "categories"
-  | "products"
-  | "collections"
-  | "menus"
-  | "models"
-  | "taxClasses";
+const ENTITY_SECTIONS = [
+  "channels",
+  "warehouses",
+  "shippingZones",
+  "productTypes",
+  "pageTypes",
+  "categories",
+  "products",
+  "collections",
+  "menus",
+  "models",
+  "taxClasses",
+] as const;
+
+type EntityArrayKey = (typeof ENTITY_SECTIONS)[number];
+
+export function isEntitySection(value: string): value is EntityArrayKey {
+  return (ENTITY_SECTIONS as readonly string[]).includes(value);
+}
 
 export interface DuplicateIssue {
   section: EntityArrayKey;

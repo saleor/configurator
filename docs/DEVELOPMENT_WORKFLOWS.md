@@ -32,12 +32,9 @@ pnpm dev start
 
 **Environment Configuration:**
 ```bash
-# Create local environment file
-touch .env.local
-
-# Add test environment variables
-echo "TEST_URL=https://store-rzalldyg.saleor.cloud/graphql/" >> .env.local
-echo "TEST_TOKEN=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs" >> .env.local
+# Copy .env.example to .env.local and fill in SALEOR_URL and SALEOR_TOKEN
+cp .env.example .env.local
+# Edit .env.local with your test credentials
 ```
 
 ### Development Tools Configuration
@@ -144,8 +141,8 @@ pnpm test
 npx tsc --noEmit
 
 # Test CLI functionality with real environment
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --dry-run
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --dry-run
 ```
 
 **4. Pre-commit Quality Assurance:**
@@ -174,19 +171,18 @@ git push origin feature/new-entity-support
 
 **End-to-End CLI Testing Protocol (MANDATORY for core changes):**
 ```bash
-# Test credentials
-URL="https://store-rzalldyg.saleor.cloud/graphql/"
-TOKEN="YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs"
+# Credentials from .env.local (see .env.example for template)
+source .env.local
 
 # Complete validation workflow
-rm -rf config.yml                           # 1. Clean slate
-pnpm dev introspect --url=$URL --token=$TOKEN  # 2. Fresh introspection
-# Edit config.yml with test changes            # 3. Apply your changes  
-pnpm dev deploy --url=$URL --token=$TOKEN      # 4. Deploy changes
-pnpm dev deploy --url=$URL --token=$TOKEN      # 5. Test idempotency
-rm config.yml                               # 6. Clean again
-pnpm dev introspect --url=$URL --token=$TOKEN  # 7. Re-introspect
-pnpm dev diff --url=$URL --token=$TOKEN        # 8. Should show no changes
+rm -rf config.yml                                                    # 1. Clean slate
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci     # 2. Fresh introspection
+# Edit config.yml with test changes                                  # 3. Apply your changes
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci         # 4. Deploy changes
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci         # 5. Test idempotency
+rm config.yml                                                        # 6. Clean again
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci     # 7. Re-introspect
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN                # 8. Should show no changes
 ```
 
 ## Code Review Process
@@ -300,7 +296,7 @@ time pnpm build
 time pnpm test
 
 # CLI performance with real data
-time pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+time pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 **Security Validation:**
@@ -389,8 +385,8 @@ node dist/main.js start
 node dist/main.js introspect --help
 
 # Test with real environment
-node dist/main.js introspect --url=$TEST_URL --token=$TEST_TOKEN
-node dist/main.js diff --url=$TEST_URL --token=$TEST_TOKEN
+node dist/main.js introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
+node dist/main.js diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 **Release Verification:**

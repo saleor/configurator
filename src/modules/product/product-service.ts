@@ -1,5 +1,6 @@
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
@@ -15,6 +16,7 @@ import type {
   ProductOperations,
   ProductUpdateInput,
   ProductVariant,
+  ProductVariantWithChannelListings,
 } from "./repository";
 
 export class ProductService {
@@ -63,6 +65,20 @@ export class ProductService {
   }
 
   /**
+   * Pre-populate category cache to avoid individual API calls during product processing.
+   * This fetches all categories once and caches them by slug.
+   */
+  primeCategoryCache(categories: Array<{ id: string; slug: string; name?: string | null }>) {
+    for (const category of categories) {
+      const key = (category.slug || "").toLowerCase();
+      if (key) {
+        this.categoryIdCache.set(key, category.id);
+      }
+    }
+    logger.debug(`Category cache primed with ${categories.length} categories`);
+  }
+
+  /**
    * Wraps a plain text description in EditorJS JSON format.
    * If the description is already valid JSON, it passes through unchanged.
    * If it looks like JSON but is invalid, logs a warning and wraps as plain text.
@@ -103,48 +119,6 @@ export class ProductService {
       ],
       version: "2.24.3",
     });
-  }
-
-  /**
-   * Pre-warm caches with bulk data to reduce individual queries
-   */
-  async preCacheProducts(slugs: string[]): Promise<void> {
-    if (slugs.length === 0) return;
-
-    // Fetch all products in bulk
-    const products = await this.repository.getProductsBySlugs(slugs);
-
-    // Cache them for future use
-    products.forEach((product) => {
-      if (product?.slug) {
-        // You could store these in a local cache if needed
-        // For now, this just ensures they're fetched efficiently
-      }
-    });
-  }
-
-  /**
-   * Process items in chunks to avoid rate limiting
-   */
-  private async processInChunks<T, R>(
-    items: T[],
-    processor: (chunk: T[]) => Promise<R[]>,
-    chunkSize: number = 10
-  ): Promise<R[]> {
-    const results: R[] = [];
-
-    for (let i = 0; i < items.length; i += chunkSize) {
-      const chunk = items.slice(i, i + chunkSize);
-      const chunkResults = await processor(chunk);
-      results.push(...chunkResults);
-
-      // Small delay between chunks to avoid rate limiting
-      if (i + chunkSize < items.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-    }
-
-    return results;
   }
 
   private async resolveProductTypeReference(productTypeName: string): Promise<string> {
@@ -296,11 +270,7 @@ export class ProductService {
   private async resolveAttributeValues(
     attributes: Record<string, string | string[]> = {}
   ): Promise<AttributeValueInput[]> {
-    // AttributeResolver returns a union payload matching GraphQL AttributeValueInput shape
-    // Cast to our local AttributeValueInput type used in ModelService for consistency
-    return (await this.attributeResolver.resolveAttributes(
-      attributes
-    )) as unknown as AttributeValueInput[];
+    return this.attributeResolver.resolveAttributes(attributes);
   }
 
   private normalizeExternalMediaUrl(url: string): string {
@@ -403,10 +373,7 @@ export class ProductService {
     product: Product,
     mediaInputs: ProductMediaInput[] = []
   ): Promise<void> {
-    const productReference =
-      typeof (product as Product & { slug?: string }).slug === "string"
-        ? ((product as Product & { slug?: string }).slug ?? product.id)
-        : product.id;
+    const productReference = product.slug;
 
     logger.debug("Syncing product media", {
       productReference,
@@ -517,16 +484,12 @@ export class ProductService {
       });
 
       // Update existing product (note: productType cannot be changed after creation)
-      // Build minimal input - only include fields that are not empty to avoid GraphQL errors
       const updateProductInput: ProductUpdateInput = {
         name: productInput.name,
         slug: slug,
         category: categoryId,
-        attributes: [],
+        attributes,
       };
-
-      // Always include attributes array (tests expect this field)
-      updateProductInput.attributes = attributes;
 
       // Wrap description as EditorJS JSON if provided
       updateProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
@@ -541,9 +504,15 @@ export class ProductService {
           ProductError
         );
       } catch (e) {
+        if (isTransientError(e)) {
+          throw e;
+        }
         const msg = e instanceof Error ? e.message : String(e);
         // Fallback: retry without description if server rejects description JSON
-        if (updateProductInput.description && /description|json|string/i.test(msg)) {
+        if (
+          updateProductInput.description &&
+          /description.*invalid|invalid.*description|description.*json/i.test(msg)
+        ) {
           logger.warn("Retrying product update without description due to error", { msg });
           const retryInput: ProductUpdateInput = { ...updateProductInput, description: undefined };
           product = await ServiceErrorWrapper.wrapServiceCall(
@@ -570,17 +539,13 @@ export class ProductService {
     logger.debug("Creating new product", { name: productInput.name, slug: slug });
 
     // Create new product
-    // Build minimal input - only include fields that are not empty to avoid GraphQL errors
     const createProductInput: ProductCreateInput = {
       name: productInput.name,
       slug: slug,
       productType: productTypeId,
       category: categoryId,
-      attributes: [],
+      attributes,
     };
-
-    // Always include attributes array (tests expect this field)
-    createProductInput.attributes = attributes;
 
     // Wrap description as EditorJS JSON if provided
     createProductInput.description = this.wrapDescriptionAsEditorJS(productInput.description);
@@ -617,6 +582,9 @@ export class ProductService {
       try {
         let variant: ProductVariant;
 
+        // Resolve variant attributes once (used by both create and update)
+        const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
+
         // Check if variant with this SKU already exists
         const existingVariant = await ServiceErrorWrapper.wrapServiceCall(
           "lookup product variant by SKU",
@@ -632,10 +600,6 @@ export class ProductService {
             sku: variantInput.sku,
           });
 
-          // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
-
-          // Update existing variant (note: can't change product association during update)
           variant = await ServiceErrorWrapper.wrapServiceCall(
             "update product variant",
             "product variant",
@@ -647,7 +611,6 @@ export class ProductService {
                 trackInventory: true,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
-                // TODO: Handle channelListings in separate commit
               }),
             ProductError
           );
@@ -660,10 +623,6 @@ export class ProductService {
         } else {
           logger.debug("Creating new variant", { sku: variantInput.sku });
 
-          // Resolve variant attributes
-          const variantAttributes = await this.resolveAttributeValues(variantInput.attributes);
-
-          // Create new variant
           variant = await ServiceErrorWrapper.wrapServiceCall(
             "create product variant",
             "product variant",
@@ -676,7 +635,6 @@ export class ProductService {
                 trackInventory: true,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
-                // TODO: Handle channelListings in separate commit
               }),
             ProductError
           );
@@ -708,7 +666,7 @@ export class ProductService {
     options?: { skipMedia?: boolean }
   ): Promise<{
     product: Product;
-    variants: ProductVariant[];
+    variants: (ProductVariant | ProductVariantWithChannelListings)[];
   }> {
     logger.debug("Bootstrapping product", {
       name: productInput.name,
@@ -749,18 +707,20 @@ export class ProductService {
             channelCount: productInput.channelListings.length,
           });
         } catch (error) {
-          logger.warn(
-            "Failed to update product channel listings, continuing with product creation",
-            {
-              productId: product.id,
-              error: error instanceof Error ? error.message : "Unknown error",
-            }
-          );
+          if (isTransientError(error)) {
+            throw error;
+          }
+          logger.warn("Failed to update product channel listings (non-fatal)", {
+            productId: product.id,
+            productName: productInput.name,
+            channelCount: productInput.channelListings.length,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
         }
       }
 
       // 5. Update variant channel listings (optional, graceful degradation)
-      const updatedVariants = [...variants];
+      const updatedVariants: (ProductVariant | ProductVariantWithChannelListings)[] = [...variants];
       for (let i = 0; i < productInput.variants.length; i++) {
         const variantInput = productInput.variants[i];
         const variant = variants[i];
@@ -782,17 +742,22 @@ export class ProductService {
               ProductError
             );
             if (updatedVariant) {
-              updatedVariants[i] = updatedVariant as ProductVariant;
+              updatedVariants[i] = updatedVariant;
             }
             logger.debug("Variant channel listings updated", {
               variantId: variant.id,
               channelCount: variantInput.channelListings.length,
             });
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn(
-              "Failed to update variant channel listings, continuing with variant creation",
+              "Failed to update variant channel listings (non-fatal, will retry on next deploy)",
               {
                 variantId: variant.id,
+                variantSku: variantInput.sku,
+                channelCount: variantInput.channelListings.length,
                 error: error instanceof Error ? error.message : "Unknown error",
               }
             );
@@ -897,88 +862,43 @@ export class ProductService {
     return { productTypes, categories, channels };
   }
 
-  /**
-   * Pre-resolves a set of product type references to warm the cache
-   * Follows Single Responsibility Principle - only handles product type pre-caching
-   *
-   * @param productTypes - Set of product type names to resolve
-   */
-  private async preCacheProductTypes(productTypes: Set<string>): Promise<void> {
-    if (productTypes.size === 0) return;
+  private async preCacheReferences(
+    items: Set<string>,
+    entityType: string,
+    resolver: (item: string) => Promise<unknown>
+  ): Promise<void> {
+    if (items.size === 0) return;
 
-    logger.debug(`Pre-resolving ${productTypes.size} product types`);
+    logger.debug(`Pre-resolving ${items.size} ${entityType}`);
 
-    for (const productType of productTypes) {
+    for (const item of items) {
       try {
-        await this.resolveProductTypeReference(productType);
+        await resolver(item);
       } catch (error) {
-        logger.warn(`Failed to pre-cache product type: ${productType}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        if (isTransientError(error)) {
+          throw error;
+        }
+        logger.warn(
+          `Failed to pre-cache ${entityType}: ${item} (will fall back to live resolution, increasing rate-limit exposure)`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
       }
     }
   }
 
-  /**
-   * Pre-resolves a set of category references to warm the cache
-   * Follows Single Responsibility Principle - only handles category pre-caching
-   *
-   * @param categories - Set of category slugs to resolve
-   */
-  private async preCacheCategories(categories: Set<string>): Promise<void> {
-    if (categories.size === 0) return;
-
-    logger.debug(`Pre-resolving ${categories.size} categories`);
-
-    for (const category of categories) {
-      try {
-        await this.resolveCategoryReference(category);
-      } catch (error) {
-        logger.warn(`Failed to pre-cache category: ${category}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  }
-
-  /**
-   * Pre-resolves a set of channel references to warm the cache
-   * Follows Single Responsibility Principle - only handles channel pre-caching
-   *
-   * @param channels - Set of channel slugs to resolve
-   */
-  private async preCacheChannels(channels: Set<string>): Promise<void> {
-    if (channels.size === 0) return;
-
-    logger.debug(`Pre-resolving ${channels.size} channels`);
-
-    for (const channel of channels) {
-      try {
-        await this.resolveChannelReference(channel);
-      } catch (error) {
-        logger.warn(`Failed to pre-cache channel: ${channel}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    }
-  }
-
-  /**
-   * Pre-caches all references used by products to avoid rate limiting
-   * Coordinates the pre-caching of product types, categories, and channels
-   *
-   * @param products - Array of product inputs to extract references from
-   */
   private async preCacheProductReferences(products: ProductInput[]): Promise<void> {
     logger.debug("Pre-caching references to avoid rate limiting");
 
     const { productTypes, categories, channels } = this.extractUniqueReferences(products);
 
-    // Pre-resolve all references in parallel for better performance
     await Promise.all([
-      this.preCacheProductTypes(productTypes),
-      this.preCacheCategories(categories),
-      this.preCacheChannels(channels),
+      this.preCacheReferences(productTypes, "product types", (pt) =>
+        this.resolveProductTypeReference(pt)
+      ),
+      this.preCacheReferences(categories, "categories", (c) => this.resolveCategoryReference(c)),
+      this.preCacheReferences(channels, "channels", (c) => this.resolveChannelReference(c)),
     ]);
 
     logger.debug("Reference pre-caching completed", {
@@ -990,31 +910,69 @@ export class ProductService {
 
   /**
    * Bootstrap multiple products using bulk mutations for improved performance
-   * Uses bulk operations to reduce API calls and avoid rate limiting
+   *
+   * Uses Saleor's nested bulk mutation capabilities to create products with their
+   * channelListings, variants, and media in a single API call for NEW products.
+   * This reduces API calls from 151+ to 1-5 for 50 products, avoiding rate limiting.
+   *
+   * For UPDATES, separate calls are still required (no productBulkUpdate API exists).
    */
   async bootstrapProductsBulk(
     products: ProductInput[],
     options?: { skipMedia?: boolean }
   ): Promise<void> {
-    logger.info(`Bootstrapping ${products.length} products via bulk operations`, {
+    logger.info(`Bootstrapping ${products.length} products via nested bulk operations`, {
       skipMedia: options?.skipMedia,
     });
 
-    // Step 1: Fetch existing products to determine create vs update
+    const { toCreate, toUpdate } = await this.partitionProductsByExistence(products);
+
+    logger.info(`Products to create: ${toCreate.length}, to update: ${toUpdate.length}`);
+
+    const allFailures: Array<{ entity: string; error: Error }> = [];
+    const createdProducts = await this.bulkCreateNewProducts(toCreate, allFailures, options);
+    const updatedProducts = await this.updateExistingProducts(toUpdate, allFailures);
+
+    await this.syncPostUpdateOperations(toUpdate, updatedProducts, allFailures, options);
+
+    if (allFailures.length > 0) {
+      const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products`;
+      logger.error(errorMessage, { failures: allFailures });
+      throw new ProductError(errorMessage);
+    }
+
+    const totalVariants =
+      toCreate.reduce((sum, p) => sum + (p.variants?.length || 0), 0) +
+      toUpdate.reduce((sum, u) => sum + (u.input.variants?.length || 0), 0);
+
+    logger.info("Successfully bootstrapped all products via nested bulk operations", {
+      total: products.length,
+      created: createdProducts.length,
+      updated: updatedProducts.length,
+      variants: totalVariants,
+      apiCallsReduced:
+        toCreate.length > 0 ? `${toCreate.length} products created in 1 API call` : "N/A",
+    });
+  }
+
+  /**
+   * Fetches existing products and partitions inputs into create vs update buckets.
+   * Also pre-caches references to avoid rate limiting during processing.
+   */
+  private async partitionProductsByExistence(products: ProductInput[]): Promise<{
+    toCreate: ProductInput[];
+    toUpdate: Array<{ existing: Product; input: ProductInput }>;
+  }> {
     const existingProductsMap = new Map<string, Product>();
     const slugs = products.map((p) => p.slug);
 
-    // Fetch existing products using bulk query for better performance
     const existingProducts = await this.repository.getProductsBySlugs(slugs);
-
-    // Map existing products by slug for quick lookup
     existingProducts.forEach((product) => {
       if (product?.slug) {
         existingProductsMap.set(product.slug, product);
       }
     });
 
-    // Step 2: Separate into create and update buckets
     const toCreate: ProductInput[] = [];
     const toUpdate: Array<{ existing: Product; input: ProductInput }> = [];
 
@@ -1027,84 +985,117 @@ export class ProductService {
       }
     }
 
-    // Step 2.5: Pre-cache all references to avoid rate limiting during loops
     await this.preCacheProductReferences(products);
 
-    logger.info(`Products to create: ${toCreate.length}, to update: ${toUpdate.length}`);
+    return { toCreate, toUpdate };
+  }
 
-    const allFailures: Array<{ entity: string; error: Error }> = [];
+  /**
+   * Bulk creates new products with inline channelListings, variants, and media
+   * using Saleor's nested bulk mutation capability.
+   */
+  private async bulkCreateNewProducts(
+    toCreate: ProductInput[],
+    allFailures: Array<{ entity: string; error: Error }>,
+    options?: { skipMedia?: boolean }
+  ): Promise<Product[]> {
+    if (toCreate.length === 0) return [];
+
+    logger.info(`Creating ${toCreate.length} new products via nested bulk mutation`);
     const createdProducts: Product[] = [];
-    const updatedProducts: Product[] = [];
 
-    // Step 3: Bulk create new products (without variants initially)
-    if (toCreate.length > 0) {
-      logger.info(`Creating ${toCreate.length} new products via bulk mutation`);
+    try {
+      const createInputs = await Promise.all(
+        toCreate.map(async (productInput) => {
+          const productTypeId = await this.resolveProductTypeReference(productInput.productType);
+          const categoryId = productInput.category
+            ? await this.resolveCategoryReference(productInput.category)
+            : undefined;
+          const attributes = productInput.attributes
+            ? await this.resolveAttributeValues(productInput.attributes)
+            : [];
 
-      try {
-        // Prepare bulk create inputs
-        const createInputs = await Promise.all(
-          toCreate.map(async (productInput) => {
-            const productTypeId = await this.resolveProductTypeReference(productInput.productType);
-            const categoryId = productInput.category
-              ? await this.resolveCategoryReference(productInput.category)
+          const channelListings = productInput.channelListings
+            ? await this.resolveProductChannelListingsForBulk(productInput.channelListings)
+            : undefined;
+
+          const variants = productInput.variants
+            ? await this.resolveVariantsForBulk(productInput.variants)
+            : undefined;
+
+          const media =
+            !options?.skipMedia && productInput.media
+              ? productInput.media.map((m) => ({ mediaUrl: m.externalUrl, alt: m.alt }))
               : undefined;
-            const attributes = productInput.attributes
-              ? await this.resolveAttributeValues(productInput.attributes)
-              : [];
 
-            const input: ProductCreateInput = {
-              name: productInput.name,
-              slug: productInput.slug,
-              description: this.wrapDescriptionAsEditorJS(productInput.description),
-              productType: productTypeId,
-              category: categoryId,
-              attributes,
-            };
+          return {
+            name: productInput.name,
+            slug: productInput.slug,
+            description: this.wrapDescriptionAsEditorJS(productInput.description),
+            productType: productTypeId,
+            category: categoryId,
+            attributes,
+            channelListings,
+            variants,
+            media,
+          };
+        })
+      );
 
-            return input;
-          })
-        );
+      const createResult = await this.repository.bulkCreateProducts({
+        products: createInputs,
+        errorPolicy: "IGNORE_FAILED",
+      });
 
-        // Execute bulk create
-        const createResult = await this.repository.bulkCreateProducts({
-          products: createInputs,
-          errorPolicy: "IGNORE_FAILED",
-        });
-
-        // Process results
-        if (createResult.results) {
-          createResult.results.forEach(({ product, errors }, index) => {
-            if (errors && errors.length > 0) {
-              allFailures.push({
-                entity: toCreate[index].name,
-                error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
-              });
-              logger.warn(`Failed to create product: ${toCreate[index].name}`, { errors });
-            } else if (product) {
-              createdProducts.push(product);
-            }
-          });
-        }
-
-        // Log global errors if any
-        if (createResult.errors && createResult.errors.length > 0) {
-          logger.warn("Global errors during bulk product creation", {
-            errors: createResult.errors,
-          });
-        }
-      } catch (error) {
-        logger.error("Failed to bulk create products", { error });
-        toCreate.forEach((p) => {
-          allFailures.push({
-            entity: p.name,
-            error: error instanceof Error ? error : new Error(String(error)),
-          });
+      if (createResult.results) {
+        createResult.results.forEach(({ product, errors }, index) => {
+          if (errors && errors.length > 0) {
+            allFailures.push({
+              entity: toCreate[index].name,
+              error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
+            });
+            logger.warn(`Failed to create product: ${toCreate[index].name}`, { errors });
+          } else if (product) {
+            createdProducts.push(product);
+          }
         });
       }
+
+      if (createResult.errors && createResult.errors.length > 0) {
+        logger.warn("Global errors during bulk product creation", {
+          errors: createResult.errors,
+        });
+        allFailures.push({
+          entity: "bulk product creation (global)",
+          error: new Error(
+            createResult.errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")
+          ),
+        });
+      }
+
+      logger.info(`Bulk created ${createdProducts.length} products with inline variants and media`);
+    } catch (error) {
+      logger.error("Failed to bulk create products", { error });
+      toCreate.forEach((p) => {
+        allFailures.push({
+          entity: p.name,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      });
     }
 
-    // Step 4: Update existing products individually (no bulk update for products)
-    // Note: productBulkUpdate doesn't exist in Saleor, so we update sequentially
+    return createdProducts;
+  }
+
+  /**
+   * Updates existing products individually (no productBulkUpdate API in Saleor).
+   */
+  private async updateExistingProducts(
+    toUpdate: Array<{ existing: Product; input: ProductInput }>,
+    allFailures: Array<{ entity: string; error: Error }>
+  ): Promise<Product[]> {
+    const updatedProducts: Product[] = [];
+
     for (const { existing, input } of toUpdate) {
       try {
         const categoryId = input.category
@@ -1125,6 +1116,9 @@ export class ProductService {
         const updated = await this.repository.updateProduct(existing.id, updateInput);
         updatedProducts.push(updated);
       } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
         allFailures.push({
           entity: input.name,
           error: error instanceof Error ? error : new Error(String(error)),
@@ -1133,49 +1127,55 @@ export class ProductService {
       }
     }
 
-    // Step 5: Collect all variants from all products (created and updated)
-    const allProducts = [...createdProducts, ...updatedProducts];
-    const allVariants: Array<{
-      productId: string;
-      productInput: ProductInput;
-      variantInput: ProductVariantInput;
-    }> = [];
+    return updatedProducts;
+  }
 
-    for (const productInput of products) {
-      const product = allProducts.find((p) => p.slug === productInput.slug);
-      if (product?.id && productInput.variants && productInput.variants.length > 0) {
-        for (const variantInput of productInput.variants) {
-          allVariants.push({ productId: product.id, productInput, variantInput });
-        }
-      }
+  /**
+   * Syncs channel listings, variants, and media for updated products.
+   * These require separate API calls since they can't be updated inline.
+   */
+  private async syncPostUpdateOperations(
+    toUpdate: Array<{ existing: Product; input: ProductInput }>,
+    updatedProducts: Product[],
+    allFailures: Array<{ entity: string; error: Error }>,
+    options?: { skipMedia?: boolean }
+  ): Promise<void> {
+    if (toUpdate.length === 0) return;
+
+    const updateProductInputs = toUpdate.map((u) => u.input);
+
+    await this.syncUpdatedProductChannelListings(updateProductInputs, updatedProducts);
+    await this.syncUpdatedProductVariants(updateProductInputs, updatedProducts, allFailures);
+
+    if (!options?.skipMedia) {
+      await this.syncUpdatedProductMedia(updateProductInputs, updatedProducts);
     }
+  }
 
-    // Step 5.5: Update product channel listings BEFORE creating variants
-    // Saleor requires the product to be assigned to a channel before variants can have listings in that channel
-    const allProductInputs = [...toCreate, ...toUpdate.map((u) => u.input)];
-    await Promise.all(
-      allProductInputs.map(async (productInput) => {
-        const product = allProducts.find((p) => p.slug === productInput.slug);
+  /**
+   * Syncs channel listings for updated products.
+   */
+  private async syncUpdatedProductChannelListings(
+    productInputs: ProductInput[],
+    updatedProducts: Product[]
+  ): Promise<void> {
+    const results = await Promise.allSettled(
+      productInputs.map(async (productInput) => {
+        const product = updatedProducts.find((p) => p.slug === productInput.slug);
         if (!product) return;
 
-        // Update channel listings for product (must happen before variant creation)
         if (productInput.channelListings && productInput.channelListings.length > 0) {
           try {
-            const channelInputs = await Promise.all(
-              productInput.channelListings.map(async (listing) => ({
-                channelId: await this.resolveChannelReference(listing.channel),
-                isPublished: listing.isPublished ?? false,
-                publishedAt: listing.publishedAt,
-                visibleInListings: listing.visibleInListings ?? false,
-                isAvailableForPurchase: listing.isAvailableForPurchase,
-                availableForPurchaseAt: listing.availableForPurchaseAt,
-              }))
+            const channelInputs = await this.resolveProductChannelListingsForBulk(
+              productInput.channelListings
             );
-
             await this.repository.updateProductChannelListings(product.id, {
               updateChannels: channelInputs,
             });
           } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
             logger.warn(`Failed to update channel listings for product ${productInput.name}`, {
               error,
             });
@@ -1184,122 +1184,244 @@ export class ProductService {
       })
     );
 
-    // Step 6: Bulk create all variants (grouped by product - API requires one product per call)
-    if (allVariants.length > 0) {
-      logger.info(`Creating ${allVariants.length} variants via bulk mutation`);
+    const transientFailure = results.find(
+      (r) => r.status === "rejected" && isTransientError(r.reason)
+    );
+    if (transientFailure && transientFailure.status === "rejected") {
+      throw transientFailure.reason;
+    }
+  }
 
-      // Group variants by product ID (bulk create requires one product per call)
-      const variantsByProduct = new Map<
-        string,
-        Array<{
-          productInput: (typeof allVariants)[0]["productInput"];
-          variantInput: (typeof allVariants)[0]["variantInput"];
-        }>
-      >();
-      for (const { productId, productInput, variantInput } of allVariants) {
-        if (!variantsByProduct.has(productId)) {
-          variantsByProduct.set(productId, []);
+  /**
+   * Resolves a single variant input for update operations.
+   */
+  private async resolveVariantForUpdate(variantInput: ProductVariantInput) {
+    const variantAttributes = variantInput.attributes
+      ? await this.resolveAttributeValues(variantInput.attributes)
+      : [];
+
+    return {
+      name: variantInput.name,
+      sku: variantInput.sku,
+      trackInventory: true,
+      weight: variantInput.weight,
+      attributes: variantAttributes,
+    };
+  }
+
+  /**
+   * Creates/updates variants for existing products.
+   * Existing variants are updated by SKU; only missing variants are bulk created.
+   */
+  private async syncUpdatedProductVariants(
+    productInputs: ProductInput[],
+    updatedProducts: Product[],
+    allFailures: Array<{ entity: string; error: Error }>
+  ): Promise<void> {
+    const variantsForSync: Array<{
+      productId: string;
+      productInput: ProductInput;
+      variantInput: ProductVariantInput;
+    }> = [];
+
+    for (const productInput of productInputs) {
+      const product = updatedProducts.find((p) => p.slug === productInput.slug);
+      if (product?.id && productInput.variants && productInput.variants.length > 0) {
+        for (const variantInput of productInput.variants) {
+          variantsForSync.push({ productId: product.id, productInput, variantInput });
         }
-        variantsByProduct.get(productId)!.push({ productInput, variantInput });
       }
+    }
 
-      // Process each product's variants
-      for (const [productId, variants] of variantsByProduct) {
+    if (variantsForSync.length === 0) return;
+
+    logger.info(`Syncing ${variantsForSync.length} variants for existing products`);
+
+    const variantsByProduct = new Map<
+      string,
+      Array<{ productInput: ProductInput; variantInput: ProductVariantInput }>
+    >();
+    for (const { productId, productInput, variantInput } of variantsForSync) {
+      const existing = variantsByProduct.get(productId);
+      if (existing) {
+        existing.push({ productInput, variantInput });
+      } else {
+        variantsByProduct.set(productId, [{ productInput, variantInput }]);
+      }
+    }
+
+    for (const [productId, variants] of variantsByProduct) {
+      const variantsToCreate: Array<{
+        productInput: ProductInput;
+        variantInput: ProductVariantInput;
+      }> = [];
+
+      for (const variant of variants) {
         try {
-          // Prepare variant inputs (without product field - it goes at mutation level)
-          const variantInputs = await Promise.all(
-            variants.map(async ({ variantInput }) => {
-              const attributes = variantInput.attributes
-                ? await this.resolveAttributeValues(variantInput.attributes)
-                : [];
-
-              // Resolve channel listings for bulk create
-              const channelListings = variantInput.channelListings
-                ? await Promise.all(
-                    variantInput.channelListings.map(async (listing) => ({
-                      channelId: await this.resolveChannelReference(listing.channel),
-                      price: listing.price,
-                      costPrice: listing.costPrice,
-                    }))
-                  )
-                : undefined;
-
-              return {
-                name: variantInput.name,
-                sku: variantInput.sku,
-                trackInventory: true,
-                weight: variantInput.weight,
-                attributes,
-                channelListings,
-              };
-            })
+          const existingVariant = await this.repository.getProductVariantBySku(
+            variant.variantInput.sku
           );
+          if (existingVariant) {
+            const updateInput = await this.resolveVariantForUpdate(variant.variantInput);
+            await this.repository.updateProductVariant(existingVariant.id, updateInput);
 
-          // Execute bulk variant create with product ID at top level
-          const variantResult = await this.repository.bulkCreateVariants({
-            product: productId,
-            variants: variantInputs,
-            errorPolicy: "IGNORE_FAILED",
-          });
+            if (
+              variant.variantInput.channelListings &&
+              variant.variantInput.channelListings.length > 0
+            ) {
+              const channelListingInput = await this.resolveVariantChannelListings(
+                variant.variantInput.channelListings
+              );
+              await this.repository.updateProductVariantChannelListings(
+                existingVariant.id,
+                channelListingInput
+              );
+            }
 
-          // Process variant results
-          if (variantResult.results) {
-            variantResult.results.forEach(({ errors }, index) => {
-              if (errors && errors.length > 0) {
-                const variant = variants[index];
-                logger.warn(
-                  `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
-                  { errors }
-                );
-              }
-            });
+            continue;
           }
+
+          variantsToCreate.push(variant);
         } catch (error) {
-          logger.error(`Failed to bulk create variants for product ${productId}`, { error });
-          variants.forEach((v) => {
-            allFailures.push({
-              entity: `${v.productInput.name} - ${v.variantInput.sku}`,
-              error: error instanceof Error ? error : new Error(String(error)),
-            });
+          if (isTransientError(error)) {
+            throw error;
+          }
+          allFailures.push({
+            entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
+            error: error instanceof Error ? error : new Error(String(error)),
           });
+          logger.warn(
+            `Failed to sync existing variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+            { error }
+          );
         }
       }
-    }
 
-    // Step 7: Handle media for products (no bulk APIs) - skip if skipMedia option is set
-    // Note: Channel listings are already updated in Step 5.5 before variant creation
-    if (!options?.skipMedia) {
-      await Promise.all(
-        allProductInputs.map(async (productInput) => {
-          const product = allProducts.find((p) => p.slug === productInput.slug);
-          if (!product) return;
+      if (variantsToCreate.length === 0) {
+        continue;
+      }
 
-          // Sync media
-          if (productInput.media !== undefined) {
-            try {
-              await this.syncProductMedia(product, productInput.media);
-            } catch (error) {
-              logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
+      try {
+        const variantInputs = await this.resolveVariantsForBulk(
+          variantsToCreate.map((v) => v.variantInput)
+        );
+
+        const variantResult = await this.repository.bulkCreateVariants({
+          product: productId,
+          variants: variantInputs,
+          errorPolicy: "IGNORE_FAILED",
+        });
+
+        if (variantResult.results) {
+          variantResult.results.forEach(({ errors }, index) => {
+            if (errors && errors.length > 0) {
+              const variant = variantsToCreate[index];
+              allFailures.push({
+                entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
+                error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
+              });
+              logger.warn(
+                `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+                { errors }
+              );
             }
+          });
+        }
+      } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
+        logger.error(`Failed to bulk create variants for product ${productId}`, { error });
+        variantsToCreate.forEach((v) => {
+          allFailures.push({
+            entity: `${v.productInput.name} - ${v.variantInput.sku}`,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+        });
+      }
+    }
+  }
+
+  /**
+   * Syncs media for updated products.
+   */
+  private async syncUpdatedProductMedia(
+    productInputs: ProductInput[],
+    updatedProducts: Product[]
+  ): Promise<void> {
+    const results = await Promise.allSettled(
+      productInputs.map(async (productInput) => {
+        const product = updatedProducts.find((p) => p.slug === productInput.slug);
+        if (!product) return;
+
+        if (productInput.media !== undefined) {
+          try {
+            await this.syncProductMedia(product, productInput.media);
+          } catch (error) {
+            if (isTransientError(error)) {
+              throw error;
+            }
+            logger.warn(`Failed to sync media for product ${productInput.name}`, { error });
           }
-        })
-      );
-    } else {
-      logger.debug("Skipping media sync for bulk products (skipMedia=true)");
-    }
+        }
+      })
+    );
 
-    // Step 8: Report results
-    if (allFailures.length > 0) {
-      const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products`;
-      logger.error(errorMessage, { failures: allFailures });
-      throw new ProductError(errorMessage);
+    const transientFailure = results.find(
+      (r) => r.status === "rejected" && isTransientError(r.reason)
+    );
+    if (transientFailure && transientFailure.status === "rejected") {
+      throw transientFailure.reason;
     }
+  }
 
-    logger.info("Successfully bootstrapped all products via bulk operations", {
-      total: products.length,
-      created: createdProducts.length,
-      updated: updatedProducts.length,
-      variants: allVariants.length,
-    });
+  /**
+   * Resolves product channel listings to API format for bulk operations.
+   */
+  private async resolveProductChannelListingsForBulk(
+    channelListings: NonNullable<ProductInput["channelListings"]>
+  ) {
+    return Promise.all(
+      channelListings.map(async (listing) => ({
+        channelId: await this.resolveChannelReference(listing.channel),
+        isPublished: listing.isPublished,
+        publishedAt: listing.publishedAt,
+        visibleInListings: listing.visibleInListings,
+        isAvailableForPurchase: listing.isAvailableForPurchase,
+        availableForPurchaseAt: listing.availableForPurchaseAt,
+      }))
+    );
+  }
+
+  /**
+   * Resolves variant inputs with their attributes and channel listings for bulk operations.
+   */
+  private async resolveVariantsForBulk(variants: ProductVariantInput[]) {
+    return Promise.all(
+      variants.map(async (variantInput) => {
+        const variantAttributes = variantInput.attributes
+          ? await this.resolveAttributeValues(variantInput.attributes)
+          : [];
+
+        const channelListings = variantInput.channelListings
+          ? await Promise.all(
+              variantInput.channelListings.map(async (listing) => ({
+                channelId: await this.resolveChannelReference(listing.channel),
+                price: listing.price,
+                costPrice: listing.costPrice,
+              }))
+            )
+          : undefined;
+
+        return {
+          name: variantInput.name,
+          sku: variantInput.sku,
+          trackInventory: true,
+          weight: variantInput.weight,
+          attributes: variantAttributes,
+          channelListings,
+        };
+      })
+    );
   }
 }

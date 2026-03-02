@@ -16,12 +16,32 @@ export interface DeploymentStage {
   skip?(context: DeploymentContext): boolean;
 }
 
+/**
+ * Resilience metrics tracked per deployment stage
+ */
+export interface OperationResilienceMetrics {
+  readonly rateLimitHits: number;
+  readonly retryAttempts: number;
+  readonly graphqlErrors: number;
+  readonly networkErrors: number;
+}
+
+export interface StageResilienceMetrics extends OperationResilienceMetrics {
+  readonly operations?: Readonly<Record<string, OperationResilienceMetrics>>;
+}
+
 export interface DeploymentMetrics {
   readonly duration: number;
   readonly startTime: Date;
   readonly endTime: Date;
   readonly stageDurations: ReadonlyMap<string, number>;
   readonly entityCounts: ReadonlyMap<string, EntityCount>;
+  readonly stageResilience: ReadonlyMap<string, StageResilienceMetrics>;
+  readonly totalRateLimitHits: number;
+  readonly totalRetries: number;
+  readonly totalGraphQLErrors: number;
+  readonly totalNetworkErrors: number;
+  readonly operationResilience: ReadonlyMap<string, OperationResilienceMetrics>;
 }
 
 export interface EntityCount {

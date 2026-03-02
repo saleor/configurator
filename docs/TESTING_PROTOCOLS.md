@@ -32,9 +32,9 @@ Comprehensive testing procedures, validation workflows, and quality gates for th
 
 **Test Environment:**
 ```bash
-# Standard test credentials (safe for development)
-TEST_URL="https://store-rzalldyg.saleor.cloud/graphql/"
-TEST_TOKEN="YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs"
+# Credentials from .env.local (see .env.example for template)
+source .env.local
+# Uses $SALEOR_URL and $SALEOR_TOKEN
 ```
 
 **Complete Validation Workflow:**
@@ -44,7 +44,7 @@ rm -rf config.yml
 rm -rf config-backup*.yml
 
 # 2. Fresh Introspection
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 3. Backup Original State
 cp config.yml config-backup-original.yml
@@ -58,26 +58,26 @@ cp config.yml config-backup-original.yml
 # - Add new category
 
 # 5. Deploy Changes
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 6. Idempotency Test (CRITICAL)
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Should complete successfully with "no changes" message
 
 # 7. Clean Re-introspection
 rm config.yml
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 8. Configuration Integrity Check
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Should show no differences
 
 # 9. Rollback to Original State
 cp config-backup-original.yml config.yml
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 10. Final Verification
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Should show no differences from original state
 ```
 
@@ -86,40 +86,40 @@ pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
 **Selective Operation Testing:**
 ```bash
 # Test selective introspection
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN --include=shop,channels
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN --exclude=products,categories
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --include=shop,channels
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --exclude=products,categories
 
 # Test selective deployment  
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN --include=collections --dry-run
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN --exclude=products --dry-run
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --include=collections --dry-run
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --exclude=products --dry-run
 
 # Test selective diff
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --include=productTypes
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN --exclude=variants
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --include=productTypes
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN --exclude=variants
 ```
 
 **Error Handling Testing:**
 ```bash
 # Test invalid configuration
 echo "invalid: yaml: content: here" > config-invalid.yml
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN --config=config-invalid.yml
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --config=config-invalid.yml
 
 # Test network timeout handling
-timeout 5s pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+timeout 5s pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Test permission errors (use invalid token)
-pnpm dev introspect --url=$TEST_URL --token="invalid-token"
+pnpm dev introspect --url=$SALEOR_URL --token="invalid-token"
 ```
 
 **Performance Testing:**
 ```bash
 # Large configuration testing
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Measure introspection time and memory usage
 
 # Batch operation testing
 # Create config with 50+ entities and test deployment performance
-time pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+time pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 ## GraphQL Contract Safeguards
@@ -334,17 +334,17 @@ describe('CategoryRepository Integration', () => {
 **CLI Performance Targets:**
 ```bash
 # Introspection performance (standard store)
-pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Target: <30 seconds for complete introspection
 # Memory: <500MB peak usage
 
 # Deployment performance  
-pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Target: <60 seconds for full deployment
 # Success rate: 100% for valid configurations
 
 # Diff performance
-pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Target: <10 seconds for complete diff
 ```
 
@@ -358,15 +358,15 @@ start_time=$(date +%s)
 
 # Test introspection performance
 echo "Testing introspection..."
-/usr/bin/time -l pnpm dev introspect --url=$TEST_URL --token=$TEST_TOKEN
+/usr/bin/time -l pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Test deployment performance
 echo "Testing deployment..."
-/usr/bin/time -l pnpm dev deploy --url=$TEST_URL --token=$TEST_TOKEN
+/usr/bin/time -l pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Test diff performance  
 echo "Testing diff..."
-/usr/bin/time -l pnpm dev diff --url=$TEST_URL --token=$TEST_TOKEN
+/usr/bin/time -l pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 end_time=$(date +%s)
 total_time=$((end_time - start_time))
@@ -380,7 +380,7 @@ echo "Total test time: ${total_time} seconds"
 # Profile memory usage during operations
 node --max-old-space-size=1024 \
      --inspect \
-     dist/main.js introspect --url=$TEST_URL --token=$TEST_TOKEN
+     dist/main.js introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Monitor memory usage
 ps aux | grep node | grep configurator
@@ -460,7 +460,7 @@ export TEST_TIMEOUT=30000
 export DISABLE_NETWORK=true
 
 # Use test-specific GraphQL endpoint
-export GRAPHQL_ENDPOINT=$TEST_URL
+export GRAPHQL_ENDPOINT=$SALEOR_URL
 ```
 
 **Test Database Management:**

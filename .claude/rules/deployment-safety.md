@@ -46,23 +46,27 @@ Select version bump:
 
 ## E2E Testing
 
-Before pushing core changes:
+Before pushing core changes. **Always use `--ci`** for deploy and introspect to skip interactive prompts.
 
 ```bash
-# Test environment
---url=https://store-rzalldyg.saleor.cloud/graphql/
---token=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Credentials from .env.local (see .env.example for template)
+# source .env.local
 
-# Full validation
+# Full validation (--ci skips all confirmation prompts)
 rm -rf config.yml
-pnpm dev introspect [credentials]
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 # Make test changes
-pnpm dev deploy [credentials]
-pnpm dev deploy [credentials]  # Should show no changes (idempotent)
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Should show no changes (idempotent)
 rm config.yml
-pnpm dev introspect [credentials]
-pnpm dev diff [credentials]    # Should show no diff
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff (no --ci needed, read-only)
 ```
+
+**Checking results after deploy:**
+- Deployment report auto-saved as `deployment-report-*.json` in CWD
+- Console shows deployment summary with resilience stats
+- Use `LOG_LEVEL=debug` for verbose request/retry logging
 
 ## CI Expectations
 

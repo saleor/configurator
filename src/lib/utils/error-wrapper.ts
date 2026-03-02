@@ -1,28 +1,17 @@
 import type { CombinedError } from "@urql/core";
 import { GraphQLError } from "../errors/graphql";
 import { logger } from "../logger";
+import { isTransientError } from "./error-classification";
 
-/**
- * Type guard to check if error is a CombinedError from URQL
- */
 function isCombinedError(error: unknown): error is CombinedError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "graphQLErrors" in error &&
-    Array.isArray((error as Record<string, unknown>).graphQLErrors)
-  );
+  if (typeof error !== "object" || error === null || !("graphQLErrors" in error)) {
+    return false;
+  }
+  return Array.isArray(error.graphQLErrors);
 }
 
-// Type for error constructor that accepts at least a message parameter
-// Uses any[] to allow for flexible parameter types in derived error classes while maintaining compatibility
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-// biome-ignore lint/suspicious/noExplicitAny: Type definition requires flexible parameter handling
-type ErrorConstructor = new (message: string, ...args: any[]) => Error;
+type ErrorConstructor = new (message: string, entityIdentifier?: string) => Error;
 
-/**
- * Wraps a service method with error handling and logging
- */
 export async function wrapServiceCall<T>(
   operation: string,
   entityType: string,
@@ -38,41 +27,42 @@ export async function wrapServiceCall<T>(
     logger.debug(`Completed ${operation}`, { entityType, entityIdentifier });
     return result;
   } catch (error) {
+    if (isTransientError(error)) {
+      throw error;
+    }
+
     logger.error(`Failed ${operation}`, {
       entityType,
       entityIdentifier,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    // If it's already the expected error type, re-throw it
     if (ErrorClass && error instanceof ErrorClass) {
       throw error;
     }
 
-    // Handle GraphQL errors with proper context
     if (isCombinedError(error)) {
       throw GraphQLError.fromCombinedError(`Failed to ${operation} for ${context}`, error);
     }
 
-    // Wrap in the provided error class if available
     if (ErrorClass) {
       const message = `Failed to ${operation} for ${context}: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      throw new ErrorClass(message, entityIdentifier);
+      const wrapped = new ErrorClass(message, entityIdentifier);
+      if (error instanceof Error) {
+        wrapped.cause = error;
+      }
+      throw wrapped;
     }
 
-    // Default error wrapping
     const message = `Failed to ${operation} for ${context}: ${
       error instanceof Error ? error.message : String(error)
     }`;
-    throw new Error(message);
+    throw new Error(message, { cause: error instanceof Error ? error : undefined });
   }
 }
 
-/**
- * Wraps multiple async operations with individual error handling
- */
 export async function wrapBatch<T, R>(
   items: T[],
   operation: string,
@@ -86,44 +76,49 @@ export async function wrapBatch<T, R>(
   successes: Array<{ item: T; result: R }>;
   failures: Array<{ item: T; error: Error }>;
 }> {
-  const { sequential = false, delayMs = 0 } = options || {};
+  const { sequential = false, delayMs = 0 } = options ?? {};
 
   let results: PromiseSettledResult<
     { item: T; success: true; result: R } | { item: T; success: false; error: Error }
   >[];
 
   if (sequential) {
-    // Process items sequentially with optional delay
     results = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       if (i > 0 && delayMs > 0) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-      const result = await Promise.allSettled([
-        (async () => {
-          try {
-            const result = await processFn(item);
-            return { item, success: true as const, result };
-          } catch (error) {
-            return {
-              item,
-              success: false as const,
-              error: error instanceof Error ? error : new Error(String(error)),
-            };
-          }
-        })(),
-      ]);
-      results.push(result[0]);
+      try {
+        const result = await processFn(item);
+        results.push({
+          status: "fulfilled" as const,
+          value: { item, success: true as const, result },
+        });
+      } catch (error) {
+        if (isTransientError(error)) {
+          throw error;
+        }
+        results.push({
+          status: "fulfilled" as const,
+          value: {
+            item,
+            success: false as const,
+            error: error instanceof Error ? error : new Error(String(error)),
+          },
+        });
+      }
     }
   } else {
-    // Process items concurrently (original behavior)
     results = await Promise.allSettled(
       items.map(async (item) => {
         try {
           const result = await processFn(item);
           return { item, success: true as const, result };
         } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
           return {
             item,
             success: false as const,
@@ -137,13 +132,28 @@ export async function wrapBatch<T, R>(
   const successes: Array<{ item: T; result: R }> = [];
   const failures: Array<{ item: T; error: Error }> = [];
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (result.status === "fulfilled") {
       if (result.value.success) {
         successes.push({ item: result.value.item, result: result.value.result });
       } else {
         failures.push({ item: result.value.item, error: result.value.error });
       }
+    } else {
+      // Transient errors (rate-limit, network) must propagate for retry, not be collected as failures
+      if (isTransientError(result.reason)) {
+        throw result.reason;
+      }
+      const item = items[i];
+      logger.error(`Unexpected rejection in ${operation} batch`, {
+        identifier: getIdentifier(item),
+        reason: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      });
+      failures.push({
+        item,
+        error: result.reason instanceof Error ? result.reason : new Error(String(result.reason)),
+      });
     }
   }
 
@@ -158,10 +168,6 @@ export async function wrapBatch<T, R>(
   return { successes, failures };
 }
 
-/**
- * Service error wrapper utility object
- * Provides consistent error handling across service layer
- */
 export const ServiceErrorWrapper = {
   wrapServiceCall,
   wrapBatch,

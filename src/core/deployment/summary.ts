@@ -1,7 +1,12 @@
 import { cliConsole } from "../../cli/console";
 import type { DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
+import { formatDuration, getTopOperationResilienceHotspots } from "./utils";
 
+/**
+ * Generates and displays a human-readable summary of deployment results
+ * including timing, changes applied, and resilience statistics
+ */
 export class DeploymentSummaryReport {
   private readonly maxLineWidth = 57; // Box width (60) minus padding and borders
 
@@ -10,6 +15,9 @@ export class DeploymentSummaryReport {
     private readonly summary: DiffSummary
   ) {}
 
+  /**
+   * Display the deployment summary in a formatted box to the console
+   */
   display(): void {
     const lines = this.buildSummaryLines();
     cliConsole.box(lines, "📊 Deployment Summary");
@@ -26,7 +34,7 @@ export class DeploymentSummaryReport {
     const lines: string[] = [];
 
     // Timing information
-    lines.push(`Duration: ${this.formatDuration(this.metrics.duration)}`);
+    lines.push(`Duration: ${formatDuration(this.metrics.duration)}`);
     lines.push(`Started: ${this.metrics.startTime.toLocaleTimeString()}`);
     lines.push(`Completed: ${this.metrics.endTime.toLocaleTimeString()}`);
     lines.push("");
@@ -35,7 +43,7 @@ export class DeploymentSummaryReport {
     if (this.metrics.stageDurations.size > 0) {
       lines.push("Stage Timing:");
       for (const [stage, duration] of this.metrics.stageDurations) {
-        const line = `• ${stage}: ${this.formatDuration(duration)}`;
+        const line = `• ${stage}: ${formatDuration(duration)}`;
         lines.push(this.truncateLine(line));
       }
       lines.push("");
@@ -55,6 +63,43 @@ export class DeploymentSummaryReport {
       }
     } else {
       lines.push("No changes were applied");
+    }
+
+    // Resilience stats (only show if there were any events)
+    if (this.hasResilienceStats()) {
+      lines.push("");
+      lines.push("Resilience Stats:");
+      if (this.metrics.totalRateLimitHits > 0) {
+        lines.push(`• Rate Limits: ${this.metrics.totalRateLimitHits} handled`);
+      }
+      if (this.metrics.totalRetries > 0) {
+        lines.push(`• Retries: ${this.metrics.totalRetries} attempts`);
+      }
+      if (this.metrics.totalGraphQLErrors > 0) {
+        lines.push(`• GraphQL Errors: ${this.metrics.totalGraphQLErrors}`);
+      }
+      if (this.metrics.totalNetworkErrors > 0) {
+        lines.push(`• Network Errors: ${this.metrics.totalNetworkErrors}`);
+      }
+
+      const topHotspots = getTopOperationResilienceHotspots(this.metrics.operationResilience, 3);
+      if (topHotspots.length > 0) {
+        lines.push("Top Throttle Hotspots:");
+        for (const hotspot of topHotspots) {
+          const details = [];
+          if (hotspot.rateLimitHits > 0) {
+            details.push(`${hotspot.rateLimitHits} rate limits`);
+          }
+          if (hotspot.retryAttempts > 0) {
+            details.push(`${hotspot.retryAttempts} retries`);
+          }
+
+          if (details.length > 0) {
+            const line = `• ${hotspot.operation}: ${details.join(", ")}`;
+            lines.push(this.truncateLine(line));
+          }
+        }
+      }
     }
 
     // Entity breakdown if available
@@ -77,16 +122,12 @@ export class DeploymentSummaryReport {
     return lines;
   }
 
-  private formatDuration(ms: number): string {
-    const seconds = ms / 1000;
-    if (seconds < 1) {
-      return `${ms}ms`;
-    } else if (seconds < 60) {
-      return `${seconds.toFixed(1)}s`;
-    } else {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
-    }
+  private hasResilienceStats(): boolean {
+    return (
+      this.metrics.totalRateLimitHits > 0 ||
+      this.metrics.totalRetries > 0 ||
+      this.metrics.totalGraphQLErrors > 0 ||
+      this.metrics.totalNetworkErrors > 0
+    );
   }
 }

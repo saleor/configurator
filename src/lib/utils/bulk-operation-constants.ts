@@ -26,6 +26,18 @@ export const BulkOperationThresholds = {
    * Below this threshold, sequential processing is used for better error granularity
    */
   PRODUCTS: 10,
+
+  /**
+   * Number of categories above which level-based parallel processing is used
+   * Below this threshold, simple sequential processing with delays is sufficient
+   */
+  CATEGORIES: 10,
+
+  /**
+   * Number of shipping zones above which sequential processing with delays is used
+   * instead of parallel processing to prevent rate limiting
+   */
+  SHIPPING_ZONES_SEQUENTIAL: 3,
 } as const;
 
 /**
@@ -43,6 +55,29 @@ export const DelayConfig = {
    * Lower than chunk delay as models are processed one at a time
    */
   MODEL_PROCESSING_DELAY_MS: 100,
+
+  /**
+   * Delay in milliseconds between processing category tree levels
+   * Applied between levels (not items) to minimize total wait time
+   */
+  CATEGORY_LEVEL_DELAY_MS: 200,
+
+  /**
+   * Delay in milliseconds between individual category items within a level
+   * Small delay to avoid rate limits during sequential category processing
+   */
+  CATEGORY_ITEM_DELAY_MS: 50,
+
+  /**
+   * Delay in milliseconds between sequential category bootstrap operations
+   */
+  CATEGORY_SEQUENTIAL_DELAY_MS: 100,
+
+  /**
+   * Delay in milliseconds after shipping method channel listing updates
+   * Prevents rate limiting when updating multiple shipping methods
+   */
+  SHIPPING_CHANNEL_LISTING_DELAY_MS: 200,
 } as const;
 
 /**
@@ -60,6 +95,12 @@ export const ChunkSizeConfig = {
    * Product types are less prone to rate limiting
    */
   PRODUCT_TYPES_CHUNK_SIZE: 10,
+
+  /**
+   * Maximum concurrent categories to create within a level
+   * Controls parallelism for sibling categories
+   */
+  CATEGORIES_CONCURRENCY: 5,
 } as const;
 
 /**
@@ -69,12 +110,12 @@ export const RetryConfig = {
   /**
    * Initial delay in milliseconds before the first retry attempt
    */
-  INITIAL_DELAY_MS: 1000,
+  INITIAL_DELAY_MS: 750,
 
   /**
    * Maximum delay in milliseconds between retry attempts
    */
-  MAX_DELAY_MS: 15000,
+  MAX_DELAY_MS: 8000,
 
   /**
    * Maximum number of retry attempts before giving up
@@ -172,7 +213,7 @@ export const EntityTypes = {
   ATTRIBUTES: "Attributes",
   CHANNELS: "Channels",
   PAGE_TYPES: "Page Types",
-  MODEL_TYPES: "Models",
+  MODEL_TYPES: "Model Types",
   COLLECTIONS: "Collections",
   MENUS: "Menus",
   MODELS: "Models",

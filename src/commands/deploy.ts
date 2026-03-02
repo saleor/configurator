@@ -31,23 +31,9 @@ import {
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
-import { validateNoDuplicateIdentifiers } from "../core/validation/preflight";
+import { isEntitySection, validateNoDuplicateIdentifiers } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
-
-const VALID_ENTITY_SECTIONS = new Set<string>([
-  "channels",
-  "warehouses",
-  "shippingZones",
-  "productTypes",
-  "pageTypes",
-  "categories",
-  "products",
-  "collections",
-  "menus",
-  "models",
-  "taxClasses",
-]);
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -71,10 +57,6 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
-
-function isEntitySection(value: string): value is DuplicateIssue["section"] {
-  return VALID_ENTITY_SECTIONS.has(value);
-}
 
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
@@ -119,12 +101,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         },
         error
       );
-      this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+      this.console.error(deploymentError.getUserMessage(args.verbose));
       process.exit(deploymentError.getExitCode());
     }
 
     const deploymentError = toDeploymentError(error, "deployment");
-    this.console.error(deploymentError.getUserMessage(args.verbose ?? false));
+    this.console.error(deploymentError.getUserMessage(args.verbose));
     process.exit(deploymentError.getExitCode());
   }
 
@@ -246,8 +228,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         }
         this.console.text("");
       }
-    } catch {
-      // Best-effort: ignore if config load fails after deploy
+    } catch (error) {
+      logger.warn("Post-deploy cleanup analysis skipped: config load failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -280,8 +264,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           if (pruned.length > 0) {
             this.console.muted(`Pruned ${pruned.length} old report(s)`);
           }
-        } catch {
-          // Best-effort pruning
+        } catch (pruneError) {
+          logger.debug("Failed to prune old reports", {
+            error: pruneError instanceof Error ? pruneError.message : String(pruneError),
+          });
         }
       }
     } catch (error) {

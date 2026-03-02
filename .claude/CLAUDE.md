@@ -14,6 +14,35 @@ Declarative "commerce as code" CLI for Saleor e-commerce. Define your store conf
 | `pnpm check:fix` | Auto-fix lint and formatting |
 | `pnpm check:ci` | CI validation mode |
 
+### Running CLI Commands (Important)
+
+**Always use `--ci` when running deploy, introspect, or recipe commands.** These commands use interactive prompts (confirmations) that block non-interactive execution. `--ci` skips all prompts.
+
+```bash
+# Credentials come from .env.local (see .env.example for template)
+# source .env.local or set SALEOR_URL and SALEOR_TOKEN
+
+# Deploy (always --ci)
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+
+# Introspect (always --ci)
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+
+# Diff (no --ci needed, read-only with no prompts)
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
+```
+
+**Outputs to check after deploy:**
+- **Console**: Deployment summary box with timing, changes, and resilience stats
+- **Report**: Auto-saved as `deployment-report-YYYY-MM-DD_HH-MM-SS.json` in CWD (or `--report-path=custom.json`)
+- **Logs**: Set `LOG_LEVEL=debug` for verbose logging (default: `info`)
+
+**Governor tuning (env vars):**
+- `GRAPHQL_GOVERNOR_ENABLED=true|false` — enable/disable request governor
+- `GRAPHQL_MAX_CONCURRENCY=4` — max concurrent GraphQL requests
+- `GRAPHQL_INTERVAL_CAP=20` — max requests per interval
+- `GRAPHQL_INTERVAL_MS=1000` — interval window in ms
+
 ### Entity Identification
 
 | Entity Type | Identifier | Examples |
@@ -67,19 +96,18 @@ pnpm check:fix && pnpm build && pnpm test && pnpm check:ci
 ## E2E Testing (Core Changes)
 
 ```bash
-# Test environment
---url=https://store-rzalldyg.saleor.cloud/graphql/
---token=YbE8g7ZNl0HkxdK92pfNdLJVQwV0Xs
+# Credentials from .env.local (see .env.example for template)
+# source .env.local
 
-# Validation workflow
+# Validation workflow (always use --ci to skip interactive prompts)
 rm -rf config.yml
-pnpm dev introspect [credentials]
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
 # Make test changes to config.yml
-pnpm dev deploy [credentials]
-pnpm dev deploy [credentials]  # Should show no changes (idempotent)
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Should show no changes (idempotent)
 rm config.yml
-pnpm dev introspect [credentials]
-pnpm dev diff [credentials]    # Should show no diff
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff
 ```
 
 ## Documentation
