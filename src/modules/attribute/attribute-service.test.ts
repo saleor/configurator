@@ -358,7 +358,12 @@ describe("AttributeService", () => {
             id: "1",
             name: "Size",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }, { node: { id: "m1", name: "M", value: "m" } }] },
+            choices: {
+              edges: [
+                { node: { id: "s1", name: "S", value: "s" } },
+                { node: { id: "m1", name: "M", value: "m" } },
+              ],
+            },
           }),
         },
         {

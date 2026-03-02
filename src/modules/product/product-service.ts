@@ -2,12 +2,16 @@ import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import {
+  cachedToResolverAttribute,
+  type IAttributeCache,
+  type ResolverAttribute,
+} from "../attribute/attribute-cache";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
 import { extractSourceUrlFromMetadata } from "./media-metadata";
-import { cachedToResolverAttribute, type IAttributeCache, type ResolverAttribute } from "../attribute/attribute-cache";
 import type {
   Product,
   ProductCreateInput,

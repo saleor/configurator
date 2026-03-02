@@ -965,9 +965,8 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
             inputType: parsedInputType,
             entityType: (attr.entityType as string | null) ?? null,
             choices: (attr.choices?.edges ?? [])
-              .filter(
-                (e): e is typeof e & { node: { id: string; name: string } } =>
-                  Boolean(e?.node?.id && e?.node?.name)
+              .filter((e): e is typeof e & { node: { id: string; name: string } } =>
+                Boolean(e?.node?.id && e?.node?.name)
               )
               .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
           });

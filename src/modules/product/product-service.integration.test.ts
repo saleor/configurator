@@ -133,8 +133,22 @@ describe("ProductService Integration", () => {
 
       // Prime attribute cache
       primeWithCache(service, [
-        { id: "attr-1", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-2", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        {
+          id: "attr-1",
+          name: "author",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-2",
+          name: "isbn",
+          slug: "isbn",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
         {
           id: "attr-3",
           name: "format",
@@ -294,8 +308,22 @@ describe("ProductService Integration", () => {
 
       // Prime attribute cache for the product's attributes
       primeWithCache(service, [
-        { id: "attr-1", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-2", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        {
+          id: "attr-1",
+          name: "author",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-2",
+          name: "isbn",
+          slug: "isbn",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
         {
           id: "attr-3",
           name: "format",
@@ -405,7 +433,14 @@ describe("ProductService Integration", () => {
             { id: "large-id", name: "Large", value: "large" },
           ],
         },
-        { id: "attr-material", name: "material", slug: "material", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        {
+          id: "attr-material",
+          name: "material",
+          slug: "material",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       const mockProduct = {
@@ -593,7 +628,14 @@ describe("ProductService Integration", () => {
 
       // Prime attribute cache with reference attribute
       primeWithCache(service, [
-        { id: "attr-ref", name: "related-product", slug: "related-product", inputType: "REFERENCE", entityType: "PRODUCT", choices: [] },
+        {
+          id: "attr-ref",
+          name: "related-product",
+          slug: "related-product",
+          inputType: "REFERENCE",
+          entityType: "PRODUCT",
+          choices: [],
+        },
       ]);
 
       const mockProduct = {
@@ -702,11 +744,46 @@ describe("ProductService Integration", () => {
 
       // Prime attribute cache for both product and variant attributes
       primeWithCache(service, [
-        { id: "attr-author", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-isbn", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-publisher", name: "publisher", slug: "publisher", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-format", name: "format", slug: "format", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
-        { id: "attr-pages", name: "pages", slug: "pages", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        {
+          id: "attr-author",
+          name: "author",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-isbn",
+          name: "isbn",
+          slug: "isbn",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-publisher",
+          name: "publisher",
+          slug: "publisher",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-format",
+          name: "format",
+          slug: "format",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-pages",
+          name: "pages",
+          slug: "pages",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
       ]);
 
       // Mock channel

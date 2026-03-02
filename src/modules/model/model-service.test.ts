@@ -43,7 +43,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -58,7 +58,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -73,7 +73,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -91,7 +91,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const result = await service.createModel(mockModelInput);
@@ -114,7 +114,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const result = await service.getOrCreateModel(mockModelInput);
@@ -137,7 +137,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const result = await service.getOrCreateModel(mockModelInput);
@@ -158,7 +158,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.bootstrapModels(duplicateModels)).rejects.toThrow(ModelValidationError);
@@ -182,7 +182,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const results = await service.bootstrapModels(models);
@@ -206,7 +206,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.createModel(mockModelInput)).rejects.toThrow(
@@ -227,7 +227,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       await expect(service.updateModel("1", mockModelInput)).rejects.toThrow(
@@ -247,7 +247,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const blogPostInput = { ...mockModelInput, modelType: "Blog Post" };
@@ -267,7 +267,7 @@ describe("ModelService", () => {
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        new AttributeCache(),
+        new AttributeCache()
       );
 
       const invalidInput = { ...mockModelInput, modelType: "Unknown Type" };

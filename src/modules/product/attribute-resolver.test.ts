@@ -29,9 +29,7 @@ const mockRepository: ProductOperations = {
   bulkUpdateVariants: vi.fn(),
 };
 
-function createResolverWithCache(
-  attributes: Record<string, ResolverAttribute>
-): AttributeResolver {
+function createResolverWithCache(attributes: Record<string, ResolverAttribute>): AttributeResolver {
   return new AttributeResolver(mockRepository, {
     getAttributeByNameFromCache: (name) => attributes[name] ?? null,
   });
@@ -152,9 +150,7 @@ describe("AttributeResolver", () => {
       });
 
       // DROPDOWN uses single value; first choice wins
-      expect(result).toEqual([
-        { id: "attr-2", dropdown: { id: "size-s" } },
-      ]);
+      expect(result).toEqual([{ id: "attr-2", dropdown: { id: "size-s" } }]);
     });
 
     it("should handle dropdown attributes with choice values instead of names", async () => {
@@ -175,9 +171,7 @@ describe("AttributeResolver", () => {
 
       const result = await resolver.resolveAttributes({ color: "red" });
 
-      expect(result).toEqual([
-        { id: "attr-2", dropdown: { id: "color-red" } },
-      ]);
+      expect(result).toEqual([{ id: "attr-2", dropdown: { id: "color-red" } }]);
     });
 
     it("should warn and skip invalid dropdown choices", async () => {
@@ -202,9 +196,7 @@ describe("AttributeResolver", () => {
         size: ["Small", "ExtraLarge"], // ExtraLarge doesn't exist
       });
 
-      expect(result).toEqual([
-        { id: "attr-2", dropdown: { id: "size-s" } },
-      ]);
+      expect(result).toEqual([{ id: "attr-2", dropdown: { id: "size-s" } }]);
 
       consoleSpy.mockRestore();
     });
@@ -233,12 +225,8 @@ describe("AttributeResolver", () => {
         "related-product": "Related Book",
       });
 
-      expect(result).toEqual([
-        { id: "attr-3", references: ["prod-123"] },
-      ]);
-      expect(mockRepository.getProductByName).toHaveBeenCalledWith(
-        "Related Book"
-      );
+      expect(result).toEqual([{ id: "attr-3", references: ["prod-123"] }]);
+      expect(mockRepository.getProductByName).toHaveBeenCalledWith("Related Book");
     });
 
     it("should warn and skip reference attributes for missing products", async () => {
@@ -362,9 +350,9 @@ describe("AttributeResolver", () => {
     it("should throw when attribute is not in cache", async () => {
       const resolver = createResolverWithCache({});
 
-      await expect(
-        resolver.resolveAttributes({ "Missing Attr": "value" })
-      ).rejects.toThrow(/not found in attribute cache/i);
+      await expect(resolver.resolveAttributes({ "Missing Attr": "value" })).rejects.toThrow(
+        /not found in attribute cache/i
+      );
     });
 
     it("should resolve attribute from cache without API call", async () => {
@@ -375,18 +363,14 @@ describe("AttributeResolver", () => {
           inputType: "DROPDOWN",
           entityType: null,
           choices: {
-            edges: [
-              { node: { id: "c-red", name: "Red", value: "red" } },
-            ],
+            edges: [{ node: { id: "c-red", name: "Red", value: "red" } }],
           },
         },
       });
 
       const result = await resolver.resolveAttributes({ color: "Red" });
 
-      expect(result).toEqual([
-        { id: "attr-color", dropdown: { id: "c-red" } },
-      ]);
+      expect(result).toEqual([{ id: "attr-color", dropdown: { id: "c-red" } }]);
     });
   });
 });

@@ -22,7 +22,7 @@ export class ModelService {
   constructor(
     private repository: ModelOperations,
     private pageTypeService: PageTypeService,
-    private attributeCache: IAttributeCache,
+    private attributeCache: IAttributeCache
   ) {}
 
   setAttributeCache(cache: IAttributeCache) {

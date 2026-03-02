@@ -41,9 +41,7 @@ describe("ModelAttributeResolver", () => {
 
     expect(result).toContainEqual({ id: "attr-cat", dropdown: { id: "cat-news" } });
     expect(result).toContainEqual(expect.objectContaining({ id: "attr-featured", boolean: true }));
-    expect(result).toContainEqual(
-      expect.objectContaining({ id: "attr-date", date: "2025-01-01" })
-    );
+    expect(result).toContainEqual(expect.objectContaining({ id: "attr-date", date: "2025-01-01" }));
   });
 
   it("throws when attribute is not in cache", async () => {
