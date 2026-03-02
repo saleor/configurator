@@ -31,27 +31,7 @@ import type {
   ChannelUpdateInput,
   TaxConfigurationInput,
 } from "../../modules/config/schema/schema";
-import type { ResolverAttribute } from "../../modules/attribute/attribute-cache";
 import { StageAggregateError } from "./errors";
-
-function hasChoiceFields(
-  edge: { node: { id: string; name: string | null; value: string | null } }
-): edge is { node: { id: string; name: string; value: string } } {
-  return edge.node.name !== null && edge.node.value !== null;
-}
-
-function toResolverAttribute(attr: AttributeMeta): ResolverAttribute | null {
-  if (!attr.name || !attr.inputType) return null;
-  return {
-    id: attr.id,
-    name: attr.name,
-    entityType: attr.entityType,
-    inputType: attr.inputType,
-    choices: attr.choices
-      ? { edges: attr.choices.edges.filter(hasChoiceFields).map((e) => ({ node: e.node })) }
-      : null,
-  };
-}
 
 import type { DeploymentContext, DeploymentStage } from "./types";
 
@@ -971,11 +951,28 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
         type: "PRODUCT_TYPE",
       });
       if (refreshed.length > 0) {
-        const resolverAttrs = refreshed
-          .map(toResolverAttribute)
-          .filter((a): a is ResolverAttribute => a !== null);
-        if (resolverAttrs.length > 0) {
-          context.configurator.services.product.primeAttributeCache(resolverAttrs);
+        const refreshedCached: CachedAttribute[] = [];
+        for (const attr of refreshed) {
+          if (!attr.id || !attr.name || !attr.inputType) continue;
+          const parsedInputType = toAttributeInputType(attr.inputType);
+          if (!parsedInputType) continue;
+          refreshedCached.push({
+            id: attr.id,
+            name: attr.name,
+            slug: toSlug(attr.name),
+            inputType: parsedInputType,
+            entityType: (attr.entityType as string | null) ?? null,
+            choices: (attr.choices?.edges ?? [])
+              .filter(
+                (e): e is typeof e & { node: { id: string; name: string } } =>
+                  Boolean(e?.node?.id && e?.node?.name)
+              )
+              .map((e) => ({ id: e.node.id, name: e.node.name, value: e.node.value ?? "" })),
+          });
+        }
+        if (refreshedCached.length > 0) {
+          context.attributeCache.populateProductAttributes(refreshedCached);
+          context.configurator.services.product.setAttributeCache(context.attributeCache);
         }
       }
 
@@ -1000,6 +997,8 @@ export const productsStage: DeploymentStage = {
   name: StageNames.PRODUCTS,
   async execute(context) {
     try {
+      context.configurator.services.product.setAttributeCache(context.attributeCache);
+
       const config = await context.configurator.services.configStorage.load();
       if (!config.products?.length) {
         logger.debug("No products to manage");

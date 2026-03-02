@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AttributeCache, type CachedAttribute } from "../attribute/attribute-cache";
 import type { ProductInput } from "../config/schema/schema";
 import { ProductService } from "./product-service";
 import type { ProductOperations } from "./repository";
+
+function primeWithCache(service: ProductService, attrs: CachedAttribute[]) {
+  const cache = new AttributeCache();
+  cache.populateProductAttributes(attrs);
+  service.setAttributeCache(cache);
+}
 
 const mockRepository: ProductOperations = {
   createProduct: vi.fn(),
@@ -126,20 +133,19 @@ describe("ProductService Integration", () => {
       });
 
       // Prime attribute cache
-      service.primeAttributeCache([
-        { id: "attr-1", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-2", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-1", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-2", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
         {
           id: "attr-3",
           name: "format",
+          slug: "format",
           inputType: "DROPDOWN",
           entityType: null,
-          choices: {
-            edges: [
-              { node: { id: "choice-1", name: "Hardcover", value: "hardcover" } },
-              { node: { id: "choice-2", name: "Paperback", value: "paperback" } },
-            ],
-          },
+          choices: [
+            { id: "choice-1", name: "Hardcover", value: "hardcover" },
+            { id: "choice-2", name: "Paperback", value: "paperback" },
+          ],
         },
       ]);
 
@@ -288,20 +294,19 @@ describe("ProductService Integration", () => {
       });
 
       // Prime attribute cache for the product's attributes
-      service.primeAttributeCache([
-        { id: "attr-1", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-2", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-1", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-2", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
         {
           id: "attr-3",
           name: "format",
+          slug: "format",
           inputType: "DROPDOWN",
           entityType: null,
-          choices: {
-            edges: [
-              { node: { id: "choice-1", name: "Hardcover", value: "hardcover" } },
-              { node: { id: "choice-2", name: "Paperback", value: "paperback" } },
-            ],
-          },
+          choices: [
+            { id: "choice-1", name: "Hardcover", value: "hardcover" },
+            { id: "choice-2", name: "Paperback", value: "paperback" },
+          ],
         },
       ]);
 
@@ -377,33 +382,31 @@ describe("ProductService Integration", () => {
       });
 
       // Prime attribute cache for dropdown and plain text attributes
-      service.primeAttributeCache([
+      primeWithCache(service, [
         {
           id: "attr-color",
           name: "color",
+          slug: "color",
           inputType: "DROPDOWN",
           entityType: null,
-          choices: {
-            edges: [
-              { node: { id: "red-id", name: "Red", value: "red" } },
-              { node: { id: "blue-id", name: "Blue", value: "blue" } },
-            ],
-          },
+          choices: [
+            { id: "red-id", name: "Red", value: "red" },
+            { id: "blue-id", name: "Blue", value: "blue" },
+          ],
         },
         {
           id: "attr-size",
           name: "size",
+          slug: "size",
           inputType: "DROPDOWN",
           entityType: null,
-          choices: {
-            edges: [
-              { node: { id: "small-id", name: "Small", value: "small" } },
-              { node: { id: "medium-id", name: "Medium", value: "medium" } },
-              { node: { id: "large-id", name: "Large", value: "large" } },
-            ],
-          },
+          choices: [
+            { id: "small-id", name: "Small", value: "small" },
+            { id: "medium-id", name: "Medium", value: "medium" },
+            { id: "large-id", name: "Large", value: "large" },
+          ],
         },
-        { id: "attr-material", name: "material", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+        { id: "attr-material", name: "material", slug: "material", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
       ]);
 
       const mockProduct = {
@@ -590,8 +593,8 @@ describe("ProductService Integration", () => {
       });
 
       // Prime attribute cache with reference attribute
-      service.primeAttributeCache([
-        { id: "attr-ref", name: "related-product", inputType: "REFERENCE", entityType: "PRODUCT", choices: null },
+      primeWithCache(service, [
+        { id: "attr-ref", name: "related-product", slug: "related-product", inputType: "REFERENCE", entityType: "PRODUCT", choices: [] },
       ]);
 
       const mockProduct = {
@@ -699,12 +702,12 @@ describe("ProductService Integration", () => {
       });
 
       // Prime attribute cache for both product and variant attributes
-      service.primeAttributeCache([
-        { id: "attr-author", name: "author", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-isbn", name: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-publisher", name: "publisher", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-format", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
-        { id: "attr-pages", name: "pages", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-author", name: "author", slug: "author", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-isbn", name: "isbn", slug: "isbn", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-publisher", name: "publisher", slug: "publisher", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-format", name: "format", slug: "format", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
+        { id: "attr-pages", name: "pages", slug: "pages", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
       ]);
 
       // Mock channel

@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AttributeCache, type CachedAttribute } from "../attribute/attribute-cache";
 import type { ProductInput } from "../config/schema/schema";
 import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
 import { ProductService } from "./product-service";
 import type { ProductOperations } from "./repository";
+
+function primeWithCache(service: ProductService, attrs: CachedAttribute[]) {
+  const cache = new AttributeCache();
+  cache.populateProductAttributes(attrs);
+  service.setAttributeCache(cache);
+}
 
 const mockRepository: ProductOperations = {
   createProduct: vi.fn(),
@@ -257,8 +264,8 @@ describe("ProductService", () => {
 
     it("should create new variants when SKUs don't exist", async () => {
       vi.mocked(mockRepository.getProductVariantBySku).mockResolvedValue(null);
-      service.primeAttributeCache([
-        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-1", name: "format", slug: "format", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
       ]);
       vi.mocked(mockRepository.createProductVariant)
         .mockResolvedValueOnce({
@@ -308,8 +315,8 @@ describe("ProductService", () => {
         weight: { value: 1.0 },
         channelListings: [],
       });
-      service.primeAttributeCache([
-        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-1", name: "format", slug: "format", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
       ]);
       vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
         id: "existing-var-1",
@@ -353,8 +360,8 @@ describe("ProductService", () => {
         })
         .mockResolvedValueOnce(null); // New variant
 
-      service.primeAttributeCache([
-        { id: "attr-1", name: "format", inputType: "PLAIN_TEXT", entityType: null, choices: null },
+      primeWithCache(service, [
+        { id: "attr-1", name: "format", slug: "format", inputType: "PLAIN_TEXT", entityType: null, choices: [] },
       ]);
 
       vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
