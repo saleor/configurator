@@ -1369,4 +1369,167 @@ describe("ConfigurationService", () => {
       expect(result.menus?.[0]?.items?.[0]?.children?.[0]?.url).toBe("https://child.example.com");
     });
   });
+
+  describe("mapProductTypes deduplication", () => {
+    it("should deduplicate product types by name, keeping first occurrence", () => {
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "pt-1",
+            name: "T-Shirt",
+            isShippingRequired: true,
+            productAttributes: [
+              {
+                id: "attr-1",
+                name: "Color",
+                type: "PRODUCT_TYPE",
+                inputType: "DROPDOWN",
+                choices: { edges: [{ node: { name: "Red" } }, { node: { name: "Blue" } }] },
+              },
+            ],
+            assignedVariantAttributes: [
+              {
+                attribute: {
+                  id: "attr-2",
+                  name: "Size",
+                  type: "PRODUCT_TYPE",
+                  inputType: "PLAIN_TEXT",
+                  choices: null,
+                },
+                variantSelection: false,
+              },
+            ],
+          },
+        },
+        {
+          node: {
+            id: "pt-2",
+            name: "T-Shirt",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [],
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.productTypes).toHaveLength(1);
+      expect(result.productTypes?.[0]?.productAttributes).toHaveLength(1);
+      expect(result.productTypes?.[0]?.variantAttributes).toHaveLength(1);
+    });
+
+    it("should keep all unique product types unchanged", () => {
+      const rawConfig = createRawConfigWithProductTypes([
+        {
+          node: {
+            id: "pt-1",
+            name: "T-Shirt",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [],
+          },
+        },
+        {
+          node: {
+            id: "pt-2",
+            name: "Hoodie",
+            isShippingRequired: true,
+            productAttributes: [],
+            assignedVariantAttributes: [],
+          },
+        },
+        {
+          node: {
+            id: "pt-3",
+            name: "Mug",
+            isShippingRequired: false,
+            productAttributes: [],
+            assignedVariantAttributes: [],
+          },
+        },
+      ]);
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.productTypes).toHaveLength(3);
+    });
+  });
+
+  describe("mapPageTypes deduplication", () => {
+    it("should deduplicate page types by name, keeping first occurrence", () => {
+      const rawConfig = createBaseRawConfig({
+        pageTypes: {
+          edges: [
+            {
+              node: {
+                id: "pgt-1",
+                name: "Blog Post",
+                attributes: [
+                  {
+                    id: "attr-1",
+                    name: "Author",
+                    type: "PAGE_TYPE",
+                    inputType: "PLAIN_TEXT",
+                    choices: null,
+                  },
+                ],
+              },
+            },
+            {
+              node: {
+                id: "pgt-2",
+                name: "Blog Post",
+                attributes: [],
+              },
+            },
+          ],
+        },
+      });
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.pageTypes).toHaveLength(1);
+      const pageType = result.pageTypes?.[0] as { name: string; attributes: unknown[] };
+      expect(pageType.attributes).toHaveLength(1);
+    });
+
+    it("should keep all unique page types unchanged", () => {
+      const rawConfig = createBaseRawConfig({
+        pageTypes: {
+          edges: [
+            {
+              node: {
+                id: "pgt-1",
+                name: "Blog Post",
+                attributes: [],
+              },
+            },
+            {
+              node: {
+                id: "pgt-2",
+                name: "Landing Page",
+                attributes: [],
+              },
+            },
+            {
+              node: {
+                id: "pgt-3",
+                name: "FAQ",
+                attributes: [],
+              },
+            },
+          ],
+        },
+      });
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = service.mapConfig(rawConfig);
+
+      expect(result.pageTypes).toHaveLength(3);
+    });
+  });
 });

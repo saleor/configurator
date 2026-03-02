@@ -233,18 +233,29 @@ export class ConfigurationService {
   }
 
   private mapProductTypes(rawProductTypes: RawSaleorConfig["productTypes"]): ProductTypeInput[] {
-    type ProductTypeEdge = NonNullable<RawSaleorConfig["productTypes"]>["edges"][number];
-    return (
-      rawProductTypes?.edges?.map((edge: ProductTypeEdge) => ({
-        name: edge.node.name,
+    const edges = rawProductTypes?.edges ?? [];
+    const seen = new Set<string>();
+    const result: ProductTypeInput[] = [];
+
+    for (const edge of edges) {
+      const name = edge.node.name;
+      if (seen.has(name)) {
+        logger.warn(`Skipping duplicate product type "${name}" during introspect`);
+        continue;
+      }
+      seen.add(name);
+      result.push({
+        name,
         isShippingRequired: edge.node.isShippingRequired,
         productAttributes: this.mapAttributes(edge.node.productAttributes ?? [], "PRODUCT_TYPE"),
         variantAttributes: this.mapVariantAttributes(
           edge.node.assignedVariantAttributes ?? [],
           "PRODUCT_TYPE"
         ),
-      })) ?? []
-    );
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -350,14 +361,25 @@ export class ConfigurationService {
   }
 
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
-    type PageTypeEdge = NonNullable<RawSaleorConfig["pageTypes"]>["edges"][number];
-    return (
-      rawPageTypes?.edges?.map((edge: PageTypeEdge) => ({
-        name: edge.node.name,
-        slug: toSlug(edge.node.name),
+    const edges = rawPageTypes?.edges ?? [];
+    const seen = new Set<string>();
+    const result: { name: string; slug: string; attributes: FullAttribute[] }[] = [];
+
+    for (const edge of edges) {
+      const name = edge.node.name;
+      if (seen.has(name)) {
+        logger.warn(`Skipping duplicate page type "${name}" during introspect`);
+        continue;
+      }
+      seen.add(name);
+      result.push({
+        name,
+        slug: toSlug(name),
         attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
-      })) ?? []
-    );
+      });
+    }
+
+    return result;
   }
 
   private mapShopSettings(rawConfig: RawSaleorConfig): SaleorConfig["shop"] {
