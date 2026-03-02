@@ -67,7 +67,10 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { id: "c1", name: "Fiction", value: "fiction" } },
+            { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+          ],
         },
       };
 
@@ -84,9 +87,9 @@ describe("AttributeService", () => {
           ...existingAttribute,
           choices: {
             edges: [
-              { node: { name: "Fiction" } },
-              { node: { name: "Non-Fiction" } },
-              { node: { name: "Romance" } },
+              { node: { id: "c1", name: "Fiction", value: "fiction" } },
+              { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+              { node: { id: "c3", name: "Romance", value: "romance" } },
             ],
           },
         }),
@@ -114,7 +117,10 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { id: "c1", name: "Fiction", value: "fiction" } },
+            { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+          ],
         },
       };
 
@@ -352,7 +358,7 @@ describe("AttributeService", () => {
             id: "1",
             name: "Size",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "S" } }, { node: { name: "M" } }] },
+            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }, { node: { id: "m1", name: "M", value: "m" } }] },
           }),
         },
         {
@@ -366,7 +372,7 @@ describe("AttributeService", () => {
             id: "2",
             name: "Color",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "Red" } }] },
+            choices: { edges: [{ node: { id: "r1", name: "Red", value: "red" } }] },
           }),
         },
       ];
@@ -435,7 +441,7 @@ describe("AttributeService", () => {
             id: "1",
             name: "Size",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "S" } }] },
+            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }] },
           }),
         },
       ];
@@ -470,7 +476,7 @@ describe("AttributeService", () => {
             id: "1",
             name: "Size",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "S" } }] },
+            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }] },
           }),
         },
         {
@@ -484,7 +490,7 @@ describe("AttributeService", () => {
             id: "2",
             name: "Color",
             inputType: "DROPDOWN",
-            choices: { edges: [{ node: { name: "Red" } }] },
+            choices: { edges: [{ node: { id: "r1", name: "Red", value: "red" } }] },
           }),
         },
       ];
