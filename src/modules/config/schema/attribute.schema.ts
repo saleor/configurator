@@ -38,9 +38,15 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
 
 export type MultipleValuesAttribute = z.infer<typeof multipleValuesAttributeSchema>;
 
-// Schema for reference type attributes
+// Schema for reference type attributes (multiple references)
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+});
+
+// Schema for single reference type attributes
+const singleReferenceAttributeSchema = baseAttributeSchema.extend({
+  inputType: z.literal("SINGLE_REFERENCE"),
   entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
@@ -53,6 +59,7 @@ const singleAttributeSchema = baseAttributeSchema.extend({
 export const simpleAttributeSchema = z.discriminatedUnion("inputType", [
   multipleValuesAttributeSchema,
   referenceAttributeSchema,
+  singleReferenceAttributeSchema,
   singleAttributeSchema,
 ]);
 
