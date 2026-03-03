@@ -1,5 +1,15 @@
 # saleor-configurator
 
+## 1.3.0
+
+### Minor Changes
+
+- d32ae04: Add support for SINGLE_REFERENCE attribute input type across introspect, deploy, and diff operations
+
+### Patch Changes
+
+- 9983129: Update npm in workflows
+
 ## 1.2.2
 
 ### Patch Changes
