@@ -19,7 +19,8 @@ export type EntityType =
   | "Warehouses"
   | "TaxClasses"
   | "Shipping Zones"
-  | "Attributes";
+  | "Product Attributes"
+  | "Content Attributes";
 
 /**
  * Represents a single field change in a diff operation
@@ -101,7 +102,8 @@ export type ConfigurationSection =
   | "menus"
   | "models"
   | "products"
-  | "attributes"
+  | "productAttributes"
+  | "contentAttributes"
   | "warehouses"
   | "shippingZones"
   | "taxClasses";

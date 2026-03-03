@@ -1,12 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
-import { AttributeService } from "./attribute-service";
+import {
+  AttributeNotFoundError,
+  WrongAttributeTypeError,
+} from "../../lib/errors/validation-errors";
+import type { FullAttribute } from "../config/schema/attribute.schema";
+import type { CachedAttribute } from "./attribute-cache";
+import { AttributeCache } from "./attribute-cache";
+import { AttributeService, validateAttributeReference } from "./attribute-service";
 import type { Attribute, AttributeBulkCreateResult, AttributeBulkUpdateResult } from "./repository";
+
+function createTestAttribute(overrides: {
+  id: string;
+  name: string;
+  type?: string;
+  inputType: string;
+  entityType?: string | null;
+  choices?: Attribute["choices"];
+}): Attribute {
+  return {
+    type: "PRODUCT_TYPE",
+    entityType: null,
+    choices: null,
+    ...overrides,
+  } as Attribute;
+}
 
 describe("AttributeService", () => {
   describe("bootstrapAttributes", () => {
     it("should create an attribute that already exists", async () => {
-      // Given
       const existingAttribute = {
         name: "Color",
         inputType: "DROPDOWN" as const,
@@ -29,175 +50,16 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       await service.bootstrapAttributes({
         attributeInputs: [existingAttribute],
       });
 
-      // Then
       expect(mockOperations.createAttribute).toHaveBeenCalled();
-    });
-  });
-
-  describe("resolveReferencedAttributes", () => {
-    it("should resolve referenced attributes for product types", async () => {
-      // Given
-      const mockOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([
-          {
-            id: "attr-1",
-            name: "Author",
-            type: "PRODUCT_TYPE",
-            inputType: "PLAIN_TEXT",
-          },
-        ]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const service = new AttributeService(mockOperations);
-
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Author" }, // Reference to existing attribute
-        { name: "New Attribute", inputType: "PLAIN_TEXT" }, // New attribute
-      ];
-
-      // When
-      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
-
-      // Then
-      expect(result).toEqual(["attr-1"]);
-      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
-        names: ["Author"],
-        type: "PRODUCT_TYPE",
-      });
-    });
-
-    it("should resolve referenced attributes for page types", async () => {
-      // Given
-      const mockOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([
-          {
-            id: "attr-2",
-            name: "Published Date",
-            type: "PAGE_TYPE",
-            inputType: "DATE",
-          },
-        ]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const service = new AttributeService(mockOperations);
-
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Published Date" }, // Reference to existing attribute
-      ];
-
-      // When
-      const result = await service.resolveReferencedAttributes(inputAttributes, "PAGE_TYPE");
-
-      // Then
-      expect(result).toEqual(["attr-2"]);
-      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
-        names: ["Published Date"],
-        type: "PAGE_TYPE",
-      });
-    });
-
-    it("should filter out already assigned attributes", async () => {
-      // Given
-      const mockOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(), // Should not be called
-      };
-
-      const service = new AttributeService(mockOperations);
-
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "Author" }, // Already assigned
-        { attribute: "Genre" }, // Not assigned
-      ];
-
-      const existingAttributeNames = ["Author"]; // Author is already assigned
-
-      // When
-      const result = await service.resolveReferencedAttributes(
-        inputAttributes,
-        "PRODUCT_TYPE",
-        existingAttributeNames
-      );
-
-      // Then
-      expect(result).toEqual([]);
-      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
-        names: ["Genre"], // Only Genre should be looked up
-        type: "PRODUCT_TYPE",
-      });
-    });
-
-    it("should return empty array when no referenced attributes", async () => {
-      // Given
-      const mockOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn(),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(), // Should not be called
-      };
-
-      const service = new AttributeService(mockOperations);
-
-      const inputAttributes: AttributeInput[] = [
-        { name: "New Attribute", inputType: "PLAIN_TEXT" }, // No references
-      ];
-
-      // When
-      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
-
-      // Then
-      expect(result).toEqual([]);
-      expect(mockOperations.getAttributesByNames).not.toHaveBeenCalled();
-    });
-
-    it("should handle case when referenced attributes are not found", async () => {
-      // Given
-      const mockOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(), // No attributes found
-      };
-
-      const service = new AttributeService(mockOperations);
-
-      const inputAttributes: AttributeInput[] = [
-        { attribute: "NonExistent" }, // Reference to non-existent attribute
-      ];
-
-      // When
-      const result = await service.resolveReferencedAttributes(inputAttributes, "PRODUCT_TYPE");
-
-      // Then
-      expect(result).toEqual([]);
-      expect(mockOperations.getAttributesByNames).toHaveBeenCalledWith({
-        names: ["NonExistent"],
-        type: "PRODUCT_TYPE",
-      });
     });
   });
 
   describe("updateAttribute", () => {
     it("should update attribute with new values", async () => {
-      // Given
       const existingAttribute: Attribute = {
         id: "attr-1",
         name: "Genre",
@@ -205,18 +67,17 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { id: "c1", name: "Fiction", value: "fiction" } },
+            { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+          ],
         },
       };
 
       const updatedAttributeInput = {
         name: "Genre",
         inputType: "DROPDOWN" as const,
-        values: [
-          { name: "Fiction" },
-          { name: "Non-Fiction" },
-          { name: "Romance" }, // New value
-        ],
+        values: [{ name: "Fiction" }, { name: "Non-Fiction" }, { name: "Romance" }],
         type: "PRODUCT_TYPE" as const,
       };
 
@@ -226,9 +87,9 @@ describe("AttributeService", () => {
           ...existingAttribute,
           choices: {
             edges: [
-              { node: { name: "Fiction" } },
-              { node: { name: "Non-Fiction" } },
-              { node: { name: "Romance" } },
+              { node: { id: "c1", name: "Fiction", value: "fiction" } },
+              { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+              { node: { id: "c3", name: "Romance", value: "romance" } },
             ],
           },
         }),
@@ -239,10 +100,8 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttribute(updatedAttributeInput, existingAttribute);
 
-      // Then
       expect(mockOperations.updateAttribute).toHaveBeenCalledWith("attr-1", {
         name: "Genre",
         addValues: [{ name: "Romance" }],
@@ -251,7 +110,6 @@ describe("AttributeService", () => {
     });
 
     it("should not update attribute when no new values", async () => {
-      // Given
       const existingAttribute: Attribute = {
         id: "attr-1",
         name: "Genre",
@@ -259,7 +117,10 @@ describe("AttributeService", () => {
         inputType: "DROPDOWN",
         entityType: null,
         choices: {
-          edges: [{ node: { name: "Fiction" } }, { node: { name: "Non-Fiction" } }],
+          edges: [
+            { node: { id: "c1", name: "Fiction", value: "fiction" } },
+            { node: { id: "c2", name: "Non-Fiction", value: "non-fiction" } },
+          ],
         },
       };
 
@@ -280,16 +141,13 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttribute(sameAttributeInput, existingAttribute);
 
-      // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
       expect(result).toBe(existingAttribute);
     });
 
     it("should not update plain text attributes", async () => {
-      // Given
       const existingAttribute: Attribute = {
         id: "attr-1",
         name: "Author",
@@ -315,16 +173,13 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttribute(attributeInput, existingAttribute);
 
-      // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
       expect(result).toBe(existingAttribute);
     });
 
     it("should handle reference attributes without updates", async () => {
-      // Given
       const existingAttribute: Attribute = {
         id: "attr-1",
         name: "Related Books",
@@ -351,10 +206,8 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttribute(attributeInput, existingAttribute);
 
-      // Then
       expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
       expect(result).toBe(existingAttribute);
     });
@@ -362,7 +215,6 @@ describe("AttributeService", () => {
 
   describe("bootstrapAttributesBulk", () => {
     it("should successfully create multiple attributes in bulk", async () => {
-      // Given
       const attributes: FullAttribute[] = [
         {
           name: "Size",
@@ -432,10 +284,8 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.bootstrapAttributesBulk(attributes);
 
-      // Then
       expect(result.successful).toHaveLength(3);
       expect(result.failed).toHaveLength(0);
       expect(mockOperations.bulkCreateAttributes).toHaveBeenCalledWith({
@@ -445,7 +295,6 @@ describe("AttributeService", () => {
     });
 
     it("should handle partial failures in bulk create", async () => {
-      // Given
       const attributes: FullAttribute[] = [
         { name: "Size", inputType: "DROPDOWN", values: [{ name: "S" }], type: "PRODUCT_TYPE" },
         { name: "Color", inputType: "DROPDOWN", values: [{ name: "Red" }], type: "PRODUCT_TYPE" },
@@ -484,10 +333,8 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.bootstrapAttributesBulk(attributes);
 
-      // Then
       expect(result.successful).toHaveLength(1);
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0]).toEqual({
@@ -499,7 +346,6 @@ describe("AttributeService", () => {
 
   describe("updateAttributesBulk", () => {
     it("should successfully update multiple attributes in bulk", async () => {
-      // Given
       const updates = [
         {
           input: {
@@ -508,14 +354,17 @@ describe("AttributeService", () => {
             values: [{ name: "S" }, { name: "M" }, { name: "L" }],
             type: "PRODUCT_TYPE" as const,
           },
-          existing: {
+          existing: createTestAttribute({
             id: "1",
             name: "Size",
-            type: "PRODUCT_TYPE",
             inputType: "DROPDOWN",
-            entityType: null,
-            choices: { edges: [{ node: { name: "S" } }, { node: { name: "M" } }] },
-          } as Attribute,
+            choices: {
+              edges: [
+                { node: { id: "s1", name: "S", value: "s" } },
+                { node: { id: "m1", name: "M", value: "m" } },
+              ],
+            },
+          }),
         },
         {
           input: {
@@ -524,14 +373,12 @@ describe("AttributeService", () => {
             values: [{ name: "Red" }, { name: "Blue" }],
             type: "PRODUCT_TYPE" as const,
           },
-          existing: {
+          existing: createTestAttribute({
             id: "2",
             name: "Color",
-            type: "PRODUCT_TYPE",
             inputType: "DROPDOWN",
-            entityType: null,
-            choices: { edges: [{ node: { name: "Red" } }] },
-          } as Attribute,
+            choices: { edges: [{ node: { id: "r1", name: "Red", value: "red" } }] },
+          }),
         },
       ];
 
@@ -576,10 +423,8 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttributesBulk(updates);
 
-      // Then
       expect(result.successful).toHaveLength(2);
       expect(result.failed).toHaveLength(0);
       expect(mockOperations.bulkUpdateAttributes).toHaveBeenCalledWith({
@@ -589,7 +434,6 @@ describe("AttributeService", () => {
     });
 
     it("should skip updates when no changes detected", async () => {
-      // Given
       const updates = [
         {
           input: {
@@ -598,14 +442,12 @@ describe("AttributeService", () => {
             values: [{ name: "S" }],
             type: "PRODUCT_TYPE" as const,
           },
-          existing: {
+          existing: createTestAttribute({
             id: "1",
             name: "Size",
-            type: "PRODUCT_TYPE",
             inputType: "DROPDOWN",
-            entityType: null,
-            choices: { edges: [{ node: { name: "S" } }] },
-          } as Attribute,
+            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }] },
+          }),
         },
       ];
 
@@ -619,17 +461,14 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttributesBulk(updates);
 
-      // Then
       expect(result.successful).toHaveLength(1);
       expect(result.failed).toHaveLength(0);
       expect(mockOperations.bulkUpdateAttributes).not.toHaveBeenCalled();
     });
 
     it("should handle partial failures in bulk update", async () => {
-      // Given
       const updates = [
         {
           input: {
@@ -638,14 +477,12 @@ describe("AttributeService", () => {
             values: [{ name: "S" }, { name: "M" }, { name: "L" }],
             type: "PRODUCT_TYPE" as const,
           },
-          existing: {
+          existing: createTestAttribute({
             id: "1",
             name: "Size",
-            type: "PRODUCT_TYPE",
             inputType: "DROPDOWN",
-            entityType: null,
-            choices: { edges: [{ node: { name: "S" } }] },
-          } as Attribute,
+            choices: { edges: [{ node: { id: "s1", name: "S", value: "s" } }] },
+          }),
         },
         {
           input: {
@@ -654,14 +491,12 @@ describe("AttributeService", () => {
             values: [{ name: "Red" }, { name: "Blue" }],
             type: "PRODUCT_TYPE" as const,
           },
-          existing: {
+          existing: createTestAttribute({
             id: "2",
             name: "Color",
-            type: "PRODUCT_TYPE",
             inputType: "DROPDOWN",
-            entityType: null,
-            choices: { edges: [{ node: { name: "Red" } }] },
-          } as Attribute,
+            choices: { edges: [{ node: { id: "r1", name: "Red", value: "red" } }] },
+          }),
         },
       ];
 
@@ -698,16 +533,217 @@ describe("AttributeService", () => {
 
       const service = new AttributeService(mockOperations);
 
-      // When
       const result = await service.updateAttributesBulk(updates);
 
-      // Then
       expect(result.successful).toHaveLength(1);
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0]).toEqual({
         input: updates[1].input,
         errors: ["values: Invalid value"],
       });
+    });
+  });
+
+  describe("validateAttributeReference", () => {
+    function createCache(
+      productAttrs: CachedAttribute[] = [],
+      contentAttrs: CachedAttribute[] = []
+    ): AttributeCache {
+      const cache = new AttributeCache();
+      cache.populateProductAttributes(productAttrs);
+      cache.populateContentAttributes(contentAttrs);
+      return cache;
+    }
+
+    const productAttr: CachedAttribute = {
+      id: "attr-prod-1",
+      name: "Color",
+      slug: "color",
+      inputType: "DROPDOWN",
+      entityType: null,
+      choices: [],
+    };
+
+    const contentAttr: CachedAttribute = {
+      id: "attr-content-1",
+      name: "SEO Title",
+      slug: "seo-title",
+      inputType: "PLAIN_TEXT",
+      entityType: null,
+      choices: [],
+    };
+
+    it("should return valid when attribute exists in expected product section", () => {
+      const cache = createCache([productAttr]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.attribute).toEqual(productAttr);
+      }
+    });
+
+    it("should return valid when attribute exists in expected content section", () => {
+      const cache = createCache([], [contentAttr]);
+
+      const result = validateAttributeReference(
+        "SEO Title",
+        "content",
+        "modelTypes",
+        "Blog Post",
+        cache
+      );
+
+      expect(result.valid).toBe(true);
+      if (result.valid) {
+        expect(result.attribute).toEqual(contentAttr);
+      }
+    });
+
+    it("should return WrongAttributeTypeError when attribute exists in content but looked in product", () => {
+      const cache = createCache([], [contentAttr]);
+
+      const result = validateAttributeReference(
+        "SEO Title",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid && result.error instanceof WrongAttributeTypeError) {
+        expect(result.error.attributeName).toBe("SEO Title");
+        expect(result.error.foundInSection).toBe("contentAttributes");
+        expect(result.error.expectedSection).toBe("productAttributes");
+        expect(result.error.referencingEntityType).toBe("productTypes");
+        expect(result.error.referencingEntityName).toBe("T-Shirt");
+      } else {
+        expect.unreachable("Expected WrongAttributeTypeError");
+      }
+    });
+
+    it("should return WrongAttributeTypeError when attribute exists in product but looked in content", () => {
+      const cache = createCache([productAttr]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "content",
+        "modelTypes",
+        "Blog Post",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid && result.error instanceof WrongAttributeTypeError) {
+        expect(result.error.attributeName).toBe("Color");
+        expect(result.error.foundInSection).toBe("productAttributes");
+        expect(result.error.expectedSection).toBe("contentAttributes");
+        expect(result.error.referencingEntityType).toBe("modelTypes");
+        expect(result.error.referencingEntityName).toBe("Blog Post");
+      } else {
+        expect.unreachable("Expected WrongAttributeTypeError");
+      }
+    });
+
+    it("should return AttributeNotFoundError when attribute does not exist anywhere", () => {
+      const cache = createCache();
+
+      const result = validateAttributeReference(
+        "NonExistent",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid && result.error instanceof AttributeNotFoundError) {
+        expect(result.error.attributeName).toBe("NonExistent");
+        expect(result.error.expectedSection).toBe("productAttributes");
+        expect(result.error.referencingEntityType).toBe("productTypes");
+        expect(result.error.referencingEntityName).toBe("T-Shirt");
+      } else {
+        expect.unreachable("Expected AttributeNotFoundError");
+      }
+    });
+
+    it("should return AttributeNotFoundError with similar name suggestions via Levenshtein distance", () => {
+      const cache = createCache([
+        productAttr,
+        {
+          id: "attr-prod-2",
+          name: "Colour",
+          slug: "colour",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
+        {
+          id: "attr-prod-3",
+          name: "Size",
+          slug: "size",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      const result = validateAttributeReference(
+        "Colr",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid && result.error instanceof AttributeNotFoundError) {
+        expect(result.error.attributeName).toBe("Colr");
+        expect(result.error.similarNames).toBeDefined();
+        expect(result.error.similarNames?.length).toBeGreaterThan(0);
+        expect(result.error.similarNames).toContain("Color");
+        expect(result.error.similarNames).toContain("Colour");
+        expect(result.error.similarNames).not.toContain("Size");
+      } else {
+        expect.unreachable("Expected AttributeNotFoundError");
+      }
+    });
+
+    it("should return AttributeNotFoundError with empty suggestions when no similar names exist", () => {
+      const cache = createCache([
+        {
+          id: "attr-prod-1",
+          name: "XXXXXXXXXX",
+          slug: "xxxxxxxxxx",
+          inputType: "NUMERIC",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      const result = validateAttributeReference(
+        "Color",
+        "product",
+        "productTypes",
+        "T-Shirt",
+        cache
+      );
+
+      expect(result.valid).toBe(false);
+      if (!result.valid && result.error instanceof AttributeNotFoundError) {
+        expect(result.error.attributeName).toBe("Color");
+        expect(result.error.similarNames).toEqual([]);
+      } else {
+        expect.unreachable("Expected AttributeNotFoundError");
+      }
     });
   });
 });

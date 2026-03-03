@@ -31,9 +31,10 @@ import {
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
-import { isEntitySection, validateNoDuplicateIdentifiers } from "../core/validation/preflight";
+import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
+import { AttributeCache } from "../modules/attribute/attribute-cache";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   ci: z
@@ -91,17 +92,33 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         process.exit(EXIT_CODES.VALIDATION);
       }
 
-      const validationErrors = error.validationErrors.map((err) => `${err.path}: ${err.message}`);
+      const suggestions = error.validationErrors
+        .filter((err) => err.message.startsWith("Fix: "))
+        .map((err) => err.message.slice(5));
+
+      const nonSuggestionErrors = error.validationErrors.filter(
+        (err) => !err.message.startsWith("Fix: ")
+      );
+
+      const validationErrors = nonSuggestionErrors.map((err) => `${err.path}: ${err.message}`);
       const deploymentError = new ValidationDeploymentError(
         "Configuration validation failed",
         validationErrors,
         {
           file: error.filePath,
-          errorCount: error.validationErrors.length,
+          errorCount: nonSuggestionErrors.length,
         },
         error
       );
       this.console.error(deploymentError.getUserMessage(args.verbose));
+
+      if (suggestions.length > 0) {
+        this.console.text("");
+        for (const suggestion of suggestions) {
+          this.console.hint(`  💡 ${suggestion}`);
+        }
+      }
+
       process.exit(deploymentError.getExitCode());
     }
 
@@ -229,9 +246,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         this.console.text("");
       }
     } catch (error) {
-      logger.warn("Post-deploy cleanup analysis skipped: config load failed", {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      logger.warn("Failed to generate cleanup suggestions", { error });
     }
   }
 
@@ -292,6 +307,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       args,
       summary,
       startTime,
+      attributeCache: new AttributeCache(),
     };
 
     const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
@@ -324,7 +340,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     try {
       const cfg = await configurator.services.configStorage.load();
-      validateNoDuplicateIdentifiers(cfg, args.config);
+      runPreflightValidation(cfg, args.config);
     } catch (error) {
       if (error instanceof ConfigurationValidationError) {
         throw error;

@@ -405,30 +405,6 @@ const updateProductMediaMetadataMutation = graphql(`
   }
 `);
 
-const getAttributeByNameQuery = graphql(`
-  query GetAttributeByName($name: String!) {
-    attributes(filter: { search: $name }, first: 100) {
-      edges {
-        node {
-          id
-          name
-          entityType
-          inputType
-          choices(first: 100) {
-            edges {
-              node {
-                id
-                name
-                value
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`);
-
 const getProductVariantBySkuQuery = graphql(`
   query GetProductVariantBySku($skus: [String!]!) {
     productVariants(filter: { sku: $skus }, first: 1) {
@@ -787,7 +763,6 @@ export interface ProductOperations {
     parent?: { slug?: string | null } | null;
   } | null>;
   getCategoryByPath(path: string): Promise<{ id: string; name: string } | null>;
-  getAttributeByName(name: string): Promise<Attribute | null>;
   getChannelBySlug(slug: string): Promise<Channel | null>;
   updateProductChannelListings(
     id: string,
@@ -811,10 +786,6 @@ export interface ProductOperations {
   bulkCreateVariants(input: ProductVariantBulkCreateInput): Promise<ProductVariantBulkCreateResult>;
   bulkUpdateVariants(input: ProductVariantBulkUpdateInput): Promise<ProductVariantBulkUpdateResult>;
 }
-
-export type Attribute = NonNullable<
-  NonNullable<ResultOf<typeof getAttributeByNameQuery>["attributes"]>["edges"]
->[number]["node"];
 
 export class ProductRepository implements ProductOperations {
   constructor(private client: Client) {}
@@ -1178,27 +1149,6 @@ export class ProductRepository implements ProductOperations {
     }
 
     return await this.getCategoryBySlug(finalCategorySlug);
-  }
-
-  async getAttributeByName(name: string): Promise<Attribute | null> {
-    logger.debug("Looking up attribute by name", { name });
-
-    const result = await this.client.query(getAttributeByNameQuery, { name });
-
-    // Find exact match among search results to prevent duplicate creation
-    const exactMatch = result.data?.attributes?.edges?.find((edge) => edge.node?.name === name);
-    const attribute = exactMatch?.node;
-
-    if (attribute) {
-      logger.debug("Found attribute", {
-        id: attribute.id,
-        name: attribute.name,
-      });
-    } else {
-      logger.debug("No attribute found", { name });
-    }
-
-    return attribute || null;
   }
 
   async getChannelBySlug(slug: string): Promise<Channel | null> {

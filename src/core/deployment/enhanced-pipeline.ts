@@ -1,4 +1,5 @@
 import { logger } from "../../lib/logger";
+import { isTransientError } from "../../lib/utils/error-classification";
 import { resilienceTracker } from "../../lib/utils/resilience-tracker";
 import { StageAggregateError } from "./errors";
 import { MetricsCollector } from "./metrics";
@@ -85,6 +86,12 @@ export class EnhancedDeploymentPipeline {
 
       logger.debug(`Stage completed: ${stage.name}`, { duration });
     } catch (error) {
+      // Let transient errors (rate limit, network) abort the pipeline for caller-level retry
+      if (isTransientError(error)) {
+        stopSpinner();
+        throw error;
+      }
+
       // Stage failed - collect information and continue
       const endTime = new Date();
       stopSpinner();

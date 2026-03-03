@@ -1,13 +1,17 @@
 import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import type { AttributeOperations } from "../attribute/repository";
+import {
+  cachedToResolverAttribute,
+  type IAttributeCache,
+  type ResolverAttribute,
+} from "../attribute/attribute-cache";
 
 /**
- * Resolves model/page attribute values into typed AttributeValueInput payloads,
- * mirroring the product AttributeResolver logic but scoped for PAGE_TYPE attributes.
+ * Resolves model/page attribute values into typed AttributeValueInput payloads.
+ * Uses the shared attribute cache — no API calls.
  */
 export class ModelAttributeResolver {
-  constructor(private readonly attributeRepo: AttributeOperations) {}
+  constructor(private readonly cache: IAttributeCache) {}
 
   async resolveAttributes(
     attributes: Record<string, unknown> = {}
@@ -15,35 +19,24 @@ export class ModelAttributeResolver {
     const names = Object.keys(attributes);
     if (names.length === 0) return [];
 
-    // Fetch metadata for PAGE_TYPE attributes by names
-    const meta = await this.attributeRepo.getAttributesByNames({ names, type: "PAGE_TYPE" });
-    const byName = new Map((meta || []).map((a) => [a.name, a] as const));
-
     const results: AttributeValueInput[] = [];
     for (const name of names) {
       const value = attributes[name];
-      const attr = byName.get(name);
-      if (!attr) {
-        logger.warn(`Page attribute "${name}" not found; skipping`);
-        continue;
+      const cached = this.cache.getContentAttribute(name);
+      if (!cached) {
+        throw new Error(
+          `Content attribute "${name}" not found in attribute cache. ` +
+            `Ensure it is defined in contentAttributes config.`
+        );
       }
-      const payload = this.toPayload(attr, value);
+      const resolved = cachedToResolverAttribute(cached);
+      const payload = this.toPayload(resolved, value);
       if (payload) results.push(payload);
     }
     return results;
   }
 
-  private toPayload(
-    attribute: {
-      id: string;
-      inputType?: string | null;
-      // choices: { edges?: { node: { name?: string | null; id?: string | null } }[] } | null;
-      choices?: {
-        edges?: Array<{ node: { id?: string | null; name?: string | null } | null } | null>;
-      } | null;
-    },
-    raw: unknown
-  ): AttributeValueInput | null {
+  private toPayload(attribute: ResolverAttribute, raw: unknown): AttributeValueInput | null {
     const inputType = (attribute.inputType || "").toUpperCase();
     const ensureArray = (v: unknown) =>
       Array.isArray(v) ? v : v === undefined || v === null ? [] : [v];

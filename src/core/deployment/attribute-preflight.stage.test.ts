@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../../modules/attribute/attribute-cache";
 import { attributeChoicesPreflightStage } from "./stages";
 import type { DeploymentContext } from "./types";
 
@@ -38,7 +39,7 @@ describe("attributeChoicesPreflightStage", () => {
     const services = {
       attribute: { repo: attributeRepo },
       configStorage: { load: vi.fn().mockResolvedValue(config) },
-      product: { primeAttributeCache: vi.fn(), primeCategoryCache: vi.fn() },
+      product: { setAttributeCache: vi.fn(), primeCategoryCache: vi.fn() },
       category: {
         getAllCategories: vi.fn().mockResolvedValue([{ id: "cat1", slug: "c", name: "C" }]),
       },
@@ -66,6 +67,7 @@ describe("attributeChoicesPreflightStage", () => {
       } as any,
       summary: summary as any,
       startTime: new Date(),
+      attributeCache: new AttributeCache(),
     };
   };
 
@@ -81,7 +83,7 @@ describe("attributeChoicesPreflightStage", () => {
 
     // addValues called for missing Spain and Wind
     expect(ctx.configurator.services.attribute.repo.updateAttribute).toHaveBeenCalled();
-    expect(ctx.configurator.services.product.primeAttributeCache).toHaveBeenCalled();
+    expect(ctx.configurator.services.product.setAttributeCache).toHaveBeenCalled();
     // Category cache should be primed before product processing
     expect(ctx.configurator.services.category.getAllCategories).toHaveBeenCalled();
     expect(ctx.configurator.services.product.primeCategoryCache).toHaveBeenCalled();

@@ -25,7 +25,6 @@ describe("Attribute Duplicate Handling", () => {
       },
       bootstrapAttributes: vi.fn(),
       updateAttribute: vi.fn(),
-      resolveReferencedAttributes: vi.fn().mockResolvedValue([]), // <-- Add this line
     } as unknown as AttributeService;
 
     mockProductType = {
@@ -49,14 +48,13 @@ describe("Attribute Duplicate Handling", () => {
         },
       } as Attribute;
 
-      // Mock that the attribute already exists globally
       vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([
         existingAttribute,
       ]);
 
       const inputAttributes: AttributeInput[] = [
         {
-          name: "Color", // This attribute already exists
+          name: "Color",
           inputType: "DROPDOWN" as const,
           values: [{ name: "Red" }, { name: "Blue" }, { name: "Green" }],
         },
@@ -77,7 +75,6 @@ describe("Attribute Duplicate Handling", () => {
     });
 
     it("should allow creating attribute when it doesn't exist globally", async () => {
-      // Mock that the attribute doesn't exist globally
       vi.mocked(mockAttributeService.repo.getAttributesByNames).mockResolvedValue([]);
       vi.mocked(mockAttributeService.bootstrapAttributes).mockResolvedValue([
         {
@@ -89,7 +86,7 @@ describe("Attribute Duplicate Handling", () => {
 
       const inputAttributes: AttributeInput[] = [
         {
-          name: "Color", // This attribute doesn't exist yet
+          name: "Color",
           inputType: "DROPDOWN" as const,
           values: [{ name: "Red" }, { name: "Blue" }],
         },
@@ -122,7 +119,7 @@ describe("Attribute Duplicate Handling", () => {
         {
           name: "Size",
           inputType: "DROPDOWN" as const,
-          values: [{ name: "S" }, { name: "M" }, { name: "L" }], // Different values
+          values: [{ name: "S" }, { name: "M" }, { name: "L" }],
         },
       ];
 

@@ -236,11 +236,11 @@ export class DiffService {
 
     try {
       if (!quiet) {
-        logger.info("📥 Loading local configuration...");
+        cliConsole.muted("📥 Loading local configuration...");
       }
 
       if (!quiet) {
-        logger.info("🌐 Fetching remote configuration...");
+        cliConsole.muted("🌐 Fetching remote configuration...");
       }
 
       const summary = await this.compareForIntrospect({
@@ -249,7 +249,7 @@ export class DiffService {
       });
 
       if (!quiet) {
-        logger.info("🔍 Analyzing differences...\n");
+        cliConsole.muted("🔍 Analyzing differences...\n");
       }
 
       // Format output (filtering is now handled in diff service)
@@ -298,7 +298,8 @@ export class DiffService {
     return new Map([
       ["shop", new ShopComparator() as EntityComparator],
       ["channels", new ChannelComparator() as EntityComparator],
-      ["attributes", new AttributesComparator() as EntityComparator],
+      ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
+      ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator
@@ -334,10 +335,10 @@ export class DiffService {
    * Loads remote configuration with error handling and timeout
    */
   private async loadRemoteConfiguration(): Promise<SaleorConfig> {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     try {
-      // Apply timeout to remote configuration retrieval
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        timeoutHandle = setTimeout(() => {
           reject(
             new Error(
               `Remote configuration retrieval timed out after ${this.config.remoteTimeoutMs}ms`
@@ -356,6 +357,8 @@ export class DiffService {
           error instanceof Error ? error.message : String(error)
         }`
       );
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
     }
   }
 
@@ -379,7 +382,8 @@ export class DiffService {
     // Entity array comparisons
     const entityTypes = [
       "channels",
-      "attributes",
+      "productAttributes",
+      "contentAttributes",
       "productTypes",
       "pageTypes",
       "modelTypes",
@@ -438,7 +442,8 @@ export class DiffService {
     // Entity array comparisons
     const entityTypeMappings: Record<string, ConfigurationSection> = {
       channels: "channels",
-      attributes: "attributes",
+      productAttributes: "productAttributes",
+      contentAttributes: "contentAttributes",
       productTypes: "productTypes",
       pageTypes: "pageTypes",
       modelTypes: "modelTypes",
@@ -508,13 +513,20 @@ export class DiffService {
    */
   private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
     const results: T[] = [];
+    const errors: Error[] = [];
     const executing = new Set<Promise<void>>();
 
     for (const promise of promises) {
-      const executePromise = promise.then((result) => {
-        results.push(result);
-        executing.delete(executePromise);
-      });
+      const executePromise = promise
+        .then((result) => {
+          results.push(result);
+        })
+        .catch((error) => {
+          errors.push(error instanceof Error ? error : new Error(String(error)));
+        })
+        .finally(() => {
+          executing.delete(executePromise);
+        });
 
       executing.add(executePromise);
 
@@ -524,6 +536,11 @@ export class DiffService {
     }
 
     await Promise.all(executing);
+
+    if (errors.length > 0) {
+      throw new AggregateError(errors, `${errors.length} comparison(s) failed`);
+    }
+
     return results;
   }
 
@@ -531,9 +548,15 @@ export class DiffService {
    * Calculates summary statistics from diff results
    */
   private calculateSummary(results: readonly DiffResult[]): DiffSummary {
-    const creates = results.filter((r) => r.operation === "CREATE").length;
-    const updates = results.filter((r) => r.operation === "UPDATE").length;
-    const deletes = results.filter((r) => r.operation === "DELETE").length;
+    let creates = 0;
+    let updates = 0;
+    let deletes = 0;
+
+    for (const r of results) {
+      if (r.operation === "CREATE") creates++;
+      else if (r.operation === "UPDATE") updates++;
+      else if (r.operation === "DELETE") deletes++;
+    }
 
     return {
       totalChanges: results.length,

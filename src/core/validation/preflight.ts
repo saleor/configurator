@@ -1,3 +1,9 @@
+import { logger } from "../../lib/logger";
+import { findSimilarNames } from "../../lib/utils/string";
+import type {
+  ContentAttribute,
+  ProductAttribute,
+} from "../../modules/config/schema/global-attributes.schema";
 import type {
   CategoryInput,
   ChannelInput,
@@ -12,6 +18,7 @@ import type {
   TaxClassInput,
   WarehouseInput,
 } from "../../modules/config/schema/schema";
+import { validateNoInlineDefinitions } from "../../modules/config/validation/inline-attribute-validator";
 import { ConfigurationValidationError } from "../errors/configuration-errors";
 
 const ENTITY_SECTIONS = [
@@ -26,12 +33,16 @@ const ENTITY_SECTIONS = [
   "menus",
   "models",
   "taxClasses",
+  "productAttributes",
+  "contentAttributes",
 ] as const;
 
 type EntityArrayKey = (typeof ENTITY_SECTIONS)[number];
 
+const ENTITY_SECTION_SET: ReadonlySet<string> = new Set(ENTITY_SECTIONS);
+
 export function isEntitySection(value: string): value is EntityArrayKey {
-  return (ENTITY_SECTIONS as readonly string[]).includes(value);
+  return ENTITY_SECTION_SET.has(value);
 }
 
 export interface DuplicateIssue {
@@ -41,10 +52,6 @@ export interface DuplicateIssue {
   label: string;
 }
 
-/**
- * Preflight validation scanning for duplicate identifiers across key entities.
- * Throws a ConfigurationValidationError with a friendly list if duplicates are found.
- */
 export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssue[] {
   const issues: DuplicateIssue[] = [];
 
@@ -59,7 +66,7 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     for (const item of arr) {
       const id = getId(item);
       if (!id) continue;
-      const count = seen.get(id) || 0;
+      const count = seen.get(id) ?? 0;
       seen.set(id, count + 1);
     }
     for (const [id, count] of seen) {
@@ -86,26 +93,27 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
   checkDuplicates<PageTypeInput>("pageTypes", config.pageTypes, (t) => t.name, "page type name");
   checkDuplicates<CategoryInput>("categories", config.categories, (c) => c.slug, "category slug");
   checkDuplicates<ProductInput>("products", config.products, (p) => p.slug, "product slug");
-  // Optional others
-  checkDuplicates<MenuInput>(
-    "menus",
-    config.menus,
-    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
-    "menu identifier"
-  );
+  checkDuplicates<MenuInput>("menus", config.menus, (m) => m.slug, "menu slug");
   checkDuplicates<CollectionInput>(
     "collections",
     config.collections,
     (c) => c.slug,
     "collection slug"
   );
-  checkDuplicates<ModelInput>(
-    "models",
-    config.models,
-    (m) => (m as { slug?: string; name?: string }).slug || (m as { name?: string }).name || "",
-    "model identifier"
-  );
+  checkDuplicates<ModelInput>("models", config.models, (m) => m.slug, "model slug");
   checkDuplicates<TaxClassInput>("taxClasses", config.taxClasses, (t) => t.name, "tax class name");
+  checkDuplicates<ProductAttribute>(
+    "productAttributes",
+    config.productAttributes,
+    (a) => a.name,
+    "product attribute name"
+  );
+  checkDuplicates<ContentAttribute>(
+    "contentAttributes",
+    config.contentAttributes,
+    (a) => a.name,
+    "content attribute name"
+  );
 
   return issues;
 }
@@ -120,5 +128,137 @@ export function validateNoDuplicateIdentifiers(config: SaleorConfig, filePath: s
       path: i.section,
       message: `Duplicate ${i.label} '${i.identifier}' found ${i.count} times. Ensure it is unique.`,
     }))
+  );
+}
+
+export function validateNoInlineAttributeDefinitions(config: SaleorConfig, filePath: string): void {
+  const errors = validateNoInlineDefinitions(config);
+  if (errors.length === 0) return;
+
+  throw new ConfigurationValidationError(
+    "Inline attribute definitions are no longer supported",
+    filePath,
+    errors.flatMap((e) => [
+      { path: e.entityType, message: e.message },
+      ...e.getRecoverySuggestions().map((s) => ({ path: e.entityType, message: `Fix: ${s}` })),
+    ])
+  );
+}
+
+export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath: string): void {
+  const productNames = new Set((config.productAttributes ?? []).map((a) => a.name));
+  const crossDupes = (config.contentAttributes ?? [])
+    .filter((a) => productNames.has(a.name))
+    .map((a) => a.name);
+
+  if (crossDupes.length > 0) {
+    throw new ConfigurationValidationError(
+      "Attribute names must be unique across productAttributes and contentAttributes",
+      filePath,
+      crossDupes.map((name) => ({
+        path: "productAttributes/contentAttributes",
+        message: `"${name}" appears in both productAttributes and contentAttributes. Each attribute must exist in only one section.`,
+      }))
+    );
+  }
+}
+
+function buildUnresolvedMessage(
+  refName: string,
+  sectionLabel: string,
+  availableNames: ReadonlySet<string>
+): string {
+  const base = `References attribute "${refName}" which does not exist in ${sectionLabel}`;
+  const similar = findSimilarNames(refName, [...availableNames]);
+  if (similar.length > 0) {
+    return `${base}. Did you mean "${similar[0]}"?`;
+  }
+  return base;
+}
+
+export function validateAttributeReferences(config: SaleorConfig, filePath: string): void {
+  const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
+  const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
+
+  const errors: Array<{ path: string; message: string }> = [];
+
+  for (const pt of config.productTypes ?? []) {
+    for (const ref of [...(pt.productAttributes ?? []), ...(pt.variantAttributes ?? [])]) {
+      if ("attribute" in ref && !productAttrNames.has(ref.attribute)) {
+        errors.push({
+          path: `productTypes.${pt.name}`,
+          message: buildUnresolvedMessage(ref.attribute, "productAttributes", productAttrNames),
+        });
+      }
+    }
+  }
+
+  for (const pt of config.pageTypes ?? []) {
+    if ("attributes" in pt) {
+      for (const ref of pt.attributes ?? []) {
+        if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
+          errors.push({
+            path: `pageTypes.${pt.name}`,
+            message: buildUnresolvedMessage(ref.attribute, "contentAttributes", contentAttrNames),
+          });
+        }
+      }
+    }
+  }
+
+  for (const mt of config.modelTypes ?? []) {
+    for (const ref of mt.attributes ?? []) {
+      if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
+        errors.push({
+          path: `modelTypes.${mt.name}`,
+          message: buildUnresolvedMessage(ref.attribute, "contentAttributes", contentAttrNames),
+        });
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new ConfigurationValidationError("Unresolved attribute references", filePath, errors);
+  }
+}
+
+export function runPreflightValidation(config: SaleorConfig, filePath: string): void {
+  logger.debug("Running preflight validation", { filePath });
+
+  const validators = [
+    validateNoDuplicateIdentifiers,
+    validateNoCrossSectionDuplicates,
+    validateNoInlineAttributeDefinitions,
+    validateAttributeReferences,
+  ];
+
+  const errors: ConfigurationValidationError[] = [];
+
+  for (const validate of validators) {
+    try {
+      validate(config, filePath);
+    } catch (error) {
+      if (error instanceof ConfigurationValidationError) {
+        errors.push(error);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (errors.length === 0) {
+    logger.debug("Preflight validation passed");
+    return;
+  }
+
+  if (errors.length === 1) {
+    throw errors[0];
+  }
+
+  const allValidationErrors = errors.flatMap((e) => e.validationErrors);
+  throw new ConfigurationValidationError(
+    `Multiple validation errors found (${errors.length} checks failed)`,
+    filePath,
+    allValidationErrors
   );
 }

@@ -1,10 +1,10 @@
 import { z } from "zod";
 import {
   attributeInputSchema,
-  fullAttributeSchema,
   referencedAttributeSchema,
   simpleAttributeSchema,
 } from "./attribute.schema";
+import { contentAttributeSchema, productAttributeSchema } from "./global-attributes.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -893,6 +893,18 @@ export const configSchema = z
       .describe(
         "Tax class definitions that specify tax rates per country. Tax classes can be assigned to products, product types, and shipping methods to control tax calculation"
       ),
+    productAttributes: z
+      .array(productAttributeSchema)
+      .optional()
+      .describe(
+        "Product attributes (PRODUCT_TYPE in Saleor API) that can be referenced by productTypes. These are created before productTypes are processed."
+      ),
+    contentAttributes: z
+      .array(contentAttributeSchema)
+      .optional()
+      .describe(
+        "Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed."
+      ),
     productTypes: z
       .array(productTypeSchema)
       .optional()
@@ -940,12 +952,6 @@ export const configSchema = z
       .optional()
       .describe(
         "Navigation menu structures with hierarchical menu items. Menu items can link to categories, collections, pages, or external URLs"
-      ),
-    attributes: z
-      .array(fullAttributeSchema)
-      .optional()
-      .describe(
-        "Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment"
       ),
   })
   .describe(

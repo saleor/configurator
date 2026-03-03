@@ -28,7 +28,8 @@ export abstract class BaseDiffFormatter {
     // Stable preferred order for rendering
     const order: readonly EntityType[] = [
       "Channels",
-      "Attributes",
+      "Product Attributes",
+      "Content Attributes",
       "Product Types",
       "Page Types",
       "Models",

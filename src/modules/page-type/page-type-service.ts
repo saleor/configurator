@@ -1,10 +1,28 @@
+import {
+  AttributeNotFoundError,
+  WrongAttributeTypeError,
+} from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
+import type { AttributeCache } from "../attribute/attribute-cache";
 import type { AttributeService } from "../attribute/attribute-service";
-import { isReferencedAttribute } from "../attribute/attribute-service";
+import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
 import type { SimpleAttribute } from "../config/schema/attribute.schema";
 import type { PageTypeInput, PageTypeUpdateInput } from "../config/schema/schema";
 import { PageTypeAttributeError, PageTypeAttributeValidationError } from "./errors";
 import type { PageTypeOperations } from "./repository";
+
+function isPageTypeUpdateInput(input: PageTypeInput): input is PageTypeUpdateInput {
+  return "attributes" in input;
+}
+
+function isSimpleAttribute(attr: SimpleAttribute | { attribute: string }): attr is SimpleAttribute {
+  return "name" in attr;
+}
+
+export interface BootstrapPageTypeOptions {
+  attributeCache?: AttributeCache;
+  referencingEntityType?: "pageTypes" | "modelTypes";
+}
 
 export class PageTypeService {
   constructor(
@@ -32,42 +50,78 @@ export class PageTypeService {
     return this.repository.createPageType({ name });
   }
 
-  private async filterOutAssignedAttributes(pageTypeId: string, attributeIds: string[]) {
-    logger.debug("Checking for assigned attributes", {
-      pageTypeId,
-      attributeIds,
-    });
-    const pageType = await this.repository.getPageType(pageTypeId);
+  private filterOutAssignedAttributes(
+    pageType: { attributes?: Array<{ id: string }> | null },
+    attributeIds: string[]
+  ): string[] {
     if (!pageType?.attributes?.length) {
-      logger.debug("No existing attributes found for page type", {
-        pageTypeId,
-      });
       return attributeIds;
     }
 
-    const assignedAttributeIds = new Set(
-      pageType.attributes.map((attr: { id: string }) => attr.id)
-    );
-    const filteredIds = attributeIds.filter((id) => !assignedAttributeIds.has(id));
-
-    return filteredIds;
+    const assignedIds = new Set(pageType.attributes.map((a) => a.id));
+    return attributeIds.filter((id) => !assignedIds.has(id));
   }
 
-  async bootstrapPageType(input: PageTypeInput) {
+  private resolveReferencedAttributesFromCache(
+    inputAttributes: Array<{ attribute: string } | SimpleAttribute>,
+    existingAttributeNames: string[],
+    attributeCache: AttributeCache | undefined,
+    entityName: string,
+    referencingEntityType: "pageTypes" | "modelTypes" = "pageTypes"
+  ): string[] {
+    const referencedAttributes = inputAttributes.filter(isReferencedAttribute);
+    if (referencedAttributes.length === 0) return [];
+
+    const referencedAttrNames = referencedAttributes.map((a) => a.attribute);
+    const existingSet = new Set(existingAttributeNames);
+    const namesToResolve = referencedAttrNames.filter((name) => !existingSet.has(name));
+    if (namesToResolve.length === 0) {
+      logger.debug("All referenced content attributes are already assigned");
+      return [];
+    }
+
+    if (!attributeCache) {
+      throw new PageTypeAttributeValidationError(
+        `Cannot resolve attribute references for ${referencingEntityType} "${entityName}" without attribute cache. ` +
+          `Ensure the attributes stage completed successfully.`,
+        entityName,
+        namesToResolve.join(", ")
+      );
+    }
+
+    const resolvedIds: string[] = [];
+    for (const name of namesToResolve) {
+      const result = validateAttributeReference(
+        name,
+        "content",
+        referencingEntityType,
+        entityName,
+        attributeCache
+      );
+      if (result.valid) {
+        resolvedIds.push(result.attribute.id);
+      } else {
+        throw result.error;
+      }
+    }
+
+    return resolvedIds;
+  }
+
+  async bootstrapPageType(input: PageTypeInput, options?: BootstrapPageTypeOptions) {
     logger.debug("Bootstrapping page type", {
       name: input.name,
+      hasCacheProvided: Boolean(options?.attributeCache),
     });
 
     const pageType = await this.getOrCreate(input.name);
 
-    // Check if this is an update input (has attributes)
-    if ("attributes" in input) {
-      const updateInput = input as PageTypeUpdateInput;
+    if (isPageTypeUpdateInput(input)) {
+      const updateInput = input;
       logger.debug("Processing page type attributes", {
         attributesCount: updateInput.attributes.length,
       });
 
-      // Validate REFERENCE attributes have entityType
       for (const attr of updateInput.attributes) {
         if (!isReferencedAttribute(attr) && "inputType" in attr && attr.inputType === "REFERENCE") {
           if (!("entityType" in attr) || !attr.entityType) {
@@ -81,51 +135,92 @@ export class PageTypeService {
         }
       }
 
-      // check if the page type has the attributes already
-      const attributesToCreate = updateInput.attributes.filter((a) => {
-        if (isReferencedAttribute(a)) {
-          return false;
-        }
-
-        return !pageType.attributes?.some((attr) => attr.name === a.name);
-      }) as SimpleAttribute[];
+      const attributesToCreate = updateInput.attributes.filter(
+        (a): a is SimpleAttribute =>
+          isSimpleAttribute(a) && !pageType.attributes?.some((attr) => attr.name === a.name)
+      );
 
       logger.debug("Attributes to create", {
         attributesToCreate,
       });
 
-      // Create new attributes
+      const inlineInputs = attributesToCreate.filter((a) => "name" in a);
       let attributes: { id: string }[];
-      try {
-        attributes = await this.attributeService.bootstrapAttributes({
-          attributeInputs: attributesToCreate
-            .filter((a) => "name" in a) // Only create new attributes, not referenced ones
-            .map((a) => ({
-              ...a,
-              type: "PAGE_TYPE" as const,
-            })),
+
+      if (inlineInputs.length > 0) {
+        const existingGlobal = await this.attributeService.repo.getAttributesByNames({
+          names: inlineInputs.map((a) => a.name),
+          type: "PAGE_TYPE",
         });
-      } catch (error) {
-        throw new PageTypeAttributeError(
-          `Failed to create attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
-          input.name,
-          "attribute_creation"
+        const existingMap = new Map(
+          existingGlobal
+            .filter((a): a is typeof a & { name: string } => typeof a.name === "string")
+            .map((a) => [a.name, a] as const)
         );
+
+        const toCreate = inlineInputs.filter((a) => !existingMap.has(a.name));
+        const reused = inlineInputs
+          .filter((a) => existingMap.has(a.name))
+          .map((a) => {
+            const existing = existingMap.get(a.name);
+            if (!existing) throw new Error(`Expected attribute "${a.name}" in existing map`);
+            return existing;
+          });
+
+        let created: { id: string }[] = [];
+        if (toCreate.length > 0) {
+          try {
+            created = await this.attributeService.bootstrapAttributes({
+              attributeInputs: toCreate.map((a) => ({
+                ...a,
+                type: "PAGE_TYPE" as const,
+              })),
+            });
+          } catch (error) {
+            if (
+              error instanceof AttributeNotFoundError ||
+              error instanceof WrongAttributeTypeError
+            ) {
+              throw error;
+            }
+            throw new PageTypeAttributeError(
+              `Failed to create attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
+              input.name,
+              "attribute_creation"
+            );
+          }
+        }
+
+        if (reused.length > 0) {
+          logger.debug("Reusing existing global content attributes", {
+            pageType: input.name,
+            reusedCount: reused.length,
+            reusedNames: inlineInputs.filter((a) => existingMap.has(a.name)).map((a) => a.name),
+          });
+        }
+
+        attributes = [...reused, ...created];
+      } else {
+        attributes = [];
       }
 
-      // Resolve referenced attributes
       const existingAttributeNames =
         pageType.attributes
           ?.map((attr) => attr.name)
           .filter((name): name is string => name !== null) ?? [];
       let referencedAttributeIds: string[];
       try {
-        referencedAttributeIds = await this.attributeService.resolveReferencedAttributes(
+        referencedAttributeIds = this.resolveReferencedAttributesFromCache(
           updateInput.attributes,
-          "PAGE_TYPE",
-          existingAttributeNames
+          existingAttributeNames,
+          options?.attributeCache,
+          input.name,
+          options?.referencingEntityType ?? "pageTypes"
         );
       } catch (error) {
+        if (error instanceof AttributeNotFoundError || error instanceof WrongAttributeTypeError) {
+          throw error;
+        }
         throw new PageTypeAttributeError(
           `Failed to resolve referenced attributes for page type: ${error instanceof Error ? error.message : String(error)}`,
           input.name,
@@ -133,14 +228,9 @@ export class PageTypeService {
         );
       }
 
-      // Combine new and referenced attribute IDs
       const allAttributeIds = [...attributes.map((attr) => attr.id), ...referencedAttributeIds];
 
-      // Filter out already assigned attributes
-      const attributesToAssign = await this.filterOutAssignedAttributes(
-        pageType.id,
-        allAttributeIds
-      );
+      const attributesToAssign = this.filterOutAssignedAttributes(pageType, allAttributeIds);
 
       if (attributesToAssign.length > 0) {
         logger.debug("Assigning attributes to page type", {

@@ -15,7 +15,9 @@ const createAttributeMutation = graphql(`
         choices(first: 100) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
@@ -40,7 +42,9 @@ const updateAttributeMutation = graphql(`
         choices(first: 100) {
           edges {
             node {
+              id
               name
+              value
             }
           }
         }
@@ -161,11 +165,16 @@ export type AttributeBulkUpdateResult = NonNullable<
 >;
 
 const getAttributesByNamesQuery = graphql(`
-  query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum) {
+  query GetAttributesByNames($names: [String!]!, $type: AttributeTypeEnum, $after: String) {
     attributes(
       first: 100
+      after: $after
       where: { name: { oneOf: $names }, type: { eq: $type } }
     ) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -193,7 +202,7 @@ export type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQ
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;
   updateAttribute(id: string, attributeInput: AttributeUpdateInput): Promise<Attribute>;
-  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[] | null | undefined>;
+  getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[]>;
   bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult>;
   bulkUpdateAttributes(input: AttributeBulkUpdateInput): Promise<AttributeBulkUpdateResult>;
 }
@@ -207,7 +216,6 @@ export class AttributeRepository implements AttributeOperations {
     });
 
     if (!result.data?.attributeCreate?.attribute) {
-      // Handle GraphQL errors with automatic formatting
       if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
         throw GraphQLError.fromGraphQLErrors(
           result.error.graphQLErrors,
@@ -215,14 +223,12 @@ export class AttributeRepository implements AttributeOperations {
         );
       }
 
-      // Handle network errors
       if (result.error) {
         throw new GraphQLError(
           `Network error: ${result.error.message} while creating attribute ${attributeInput.name}`
         );
       }
 
-      // Handle business logic errors
       const businessErrors = result.data?.attributeCreate?.errors ?? [];
 
       throw GraphQLError.fromDataErrors(
@@ -247,7 +253,7 @@ export class AttributeRepository implements AttributeOperations {
       );
     }
 
-    logger.info("Attribute updated", {
+    logger.debug("Attribute updated", {
       name: result.data.attributeUpdate.attribute.name,
       id,
     });
@@ -255,20 +261,50 @@ export class AttributeRepository implements AttributeOperations {
     return result.data.attributeUpdate.attribute as Attribute;
   }
 
-  async getAttributesByNames(input: GetAttributesByNamesInput) {
-    const result = await this.client.query(getAttributesByNamesQuery, {
-      names: input.names,
-      type: input.type,
-    });
+  private async fetchAttributesByNamesPage(
+    names: GetAttributesByNamesInput["names"],
+    type: GetAttributesByNamesInput["type"],
+    after: string | null
+  ) {
+    const result = await this.client.query(getAttributesByNamesQuery, { names, type, after });
 
-    return result.data?.attributes?.edges?.map((edge) => edge.node as Attribute);
+    if (result.error) {
+      if (result.error.graphQLErrors && result.error.graphQLErrors.length > 0) {
+        throw GraphQLError.fromGraphQLErrors(
+          result.error.graphQLErrors,
+          `Failed to fetch attributes by names: ${names.join(", ")}`
+        );
+      }
+
+      throw new GraphQLError(
+        `Network error while fetching attributes by names: ${result.error.message}`
+      );
+    }
+
+    return result.data?.attributes;
+  }
+
+  async getAttributesByNames(input: GetAttributesByNamesInput): Promise<Attribute[]> {
+    const allAttributes: Attribute[] = [];
+    let cursor: string | null = null;
+
+    do {
+      const page = await this.fetchAttributesByNamesPage(input.names, input.type, cursor);
+      const edges = page?.edges ?? [];
+      for (const edge of edges) {
+        allAttributes.push(edge.node as Attribute);
+      }
+
+      cursor = page?.pageInfo?.hasNextPage ? (page.pageInfo.endCursor ?? null) : null;
+    } while (cursor);
+
+    return allAttributes;
   }
 
   async bulkCreateAttributes(input: AttributeBulkCreateInput): Promise<AttributeBulkCreateResult> {
     const result = await this.client.mutation(attributeBulkCreateMutation, input);
 
     if (!result.data?.attributeBulkCreate) {
-      // Handle GraphQL errors
       if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
         throw GraphQLError.fromGraphQLErrors(
           result.error.graphQLErrors,
@@ -276,7 +312,6 @@ export class AttributeRepository implements AttributeOperations {
         );
       }
 
-      // Handle network errors
       if (result.error) {
         throw new GraphQLError(
           `Network error: ${result.error.message} while bulk creating attributes`
@@ -295,7 +330,6 @@ export class AttributeRepository implements AttributeOperations {
     const result = await this.client.mutation(attributeBulkUpdateMutation, input);
 
     if (!result.data?.attributeBulkUpdate) {
-      // Handle GraphQL errors
       if (result.error?.graphQLErrors && result.error.graphQLErrors.length > 0) {
         throw GraphQLError.fromGraphQLErrors(
           result.error.graphQLErrors,
@@ -303,7 +337,6 @@ export class AttributeRepository implements AttributeOperations {
         );
       }
 
-      // Handle network errors
       if (result.error) {
         throw new GraphQLError(
           `Network error: ${result.error.message} while bulk updating attributes`

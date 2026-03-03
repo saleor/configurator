@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const attributeValueSchema = z.object({
-  name: z.string(),
+  name: z.string().min(1, "Attribute value name is required"),
 });
 
 const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);

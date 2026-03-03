@@ -57,6 +57,14 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       const rawConfig = parse(yml);
       logger.debug("Raw YAML configuration", { rawConfig });
 
+      if (rawConfig && typeof rawConfig === "object" && "attributes" in rawConfig) {
+        throw new Error(
+          `The 'attributes' section is no longer supported. ` +
+            `Use 'productAttributes' and 'contentAttributes' instead. ` +
+            `Run 'saleor-configurator introspect' to migrate your config.`
+        );
+      }
+
       const { success, data, error } = configSchema.safeParse(rawConfig);
 
       logger.debug("Parsed configuration", { data });

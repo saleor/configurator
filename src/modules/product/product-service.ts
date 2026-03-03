@@ -2,13 +2,17 @@ import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import {
+  cachedToResolverAttribute,
+  type IAttributeCache,
+  type ResolverAttribute,
+} from "../attribute/attribute-cache";
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
 import { ProductError } from "./errors";
 import { extractSourceUrlFromMetadata } from "./media-metadata";
 import type {
-  Attribute,
   Product,
   ProductCreateInput,
   ProductMedia,
@@ -19,49 +23,40 @@ import type {
   ProductVariantWithChannelListings,
 } from "./repository";
 
+export type ProductServiceRefs = {
+  getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
+  getChannelIdBySlug?: (slug: string) => Promise<string | null>;
+  getAttributeByNameFromCache?: (name: string) => ResolverAttribute | null;
+  getProductTypeIdByName?: (name: string) => Promise<string | null>;
+  getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
+};
+
 export class ProductService {
   private attributeResolver: AttributeResolver;
 
   constructor(
     private repository: ProductOperations,
-    refs?: {
-      getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-      getChannelIdBySlug?: (slug: string) => Promise<string | null>;
-      getAttributeByNameFromCache?: (name: string) => Attribute | null;
-      getProductTypeIdByName?: (name: string) => Promise<string | null>;
-      getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
-    }
+    refs?: ProductServiceRefs
   ) {
     this.attributeResolver = new AttributeResolver(repository, refs);
     this.refs = refs;
   }
 
-  private refs?: {
-    getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
-    getChannelIdBySlug?: (slug: string) => Promise<string | null>;
-    getAttributeByNameFromCache?: (name: string) => Attribute | null;
-    getProductTypeIdByName?: (name: string) => Promise<string | null>;
-    getCategoryIdBySlug?: (slug: string) => Promise<string | null>;
-  };
+  private refs?: ProductServiceRefs;
 
   // Deployment-scoped caches
-  private attributeCache: Map<string, Attribute> = new Map(); // key: name lower
   private productTypeIdCache: Map<string, string> = new Map(); // key: name lower
   private categoryIdCache: Map<string, string> = new Map(); // key: slug lower
 
-  setAttributeCacheAccessor(getter: (name: string) => Attribute | null) {
-    this.refs = { ...(this.refs || {}), getAttributeByNameFromCache: getter };
+  setAttributeCache(cache: IAttributeCache) {
+    this.refs = {
+      ...(this.refs || {}),
+      getAttributeByNameFromCache: (name: string) => {
+        const cached = cache.getProductAttribute(name);
+        return cached ? cachedToResolverAttribute(cached) : null;
+      },
+    };
     this.attributeResolver.setRefs(this.refs);
-  }
-
-  primeAttributeCache(attributes: Attribute[]) {
-    for (const attr of attributes) {
-      const key = (attr.name || "").toLowerCase();
-      if (key) this.attributeCache.set(key, attr);
-    }
-    this.setAttributeCacheAccessor(
-      (name: string) => this.attributeCache.get(name.toLowerCase()) || null
-    );
   }
 
   /**
@@ -480,7 +475,6 @@ export class ProductService {
       logger.debug("Found existing product, updating", {
         id: existingProduct.id,
         name: existingProduct.name,
-        // slug: existingProduct.slug,
       });
 
       // Update existing product (note: productType cannot be changed after creation)

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { AttributeService } from "../attribute/attribute-service";
+import { AttributeCache } from "../attribute/attribute-cache";
 import type { ModelInput } from "../config/schema/schema";
 import type { PageTypeService } from "../page-type/page-type-service";
 import { ModelValidationError } from "./errors";
@@ -40,13 +40,10 @@ describe("ModelService", () => {
       const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
       } as unknown as PageTypeService;
-      const mockAttributeService = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      } as unknown as AttributeService;
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -58,13 +55,10 @@ describe("ModelService", () => {
       const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
       } as unknown as PageTypeService;
-      const mockAttributeService = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      } as unknown as AttributeService;
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -76,13 +70,10 @@ describe("ModelService", () => {
       const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
       } as unknown as PageTypeService;
-      const mockAttributeService = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      } as unknown as AttributeService;
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.createModel(invalidInput)).rejects.toThrow(ModelValidationError);
@@ -97,13 +88,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const result = await service.createModel(mockModelInput);
@@ -123,13 +111,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const result = await service.getOrCreateModel(mockModelInput);
@@ -149,13 +134,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const result = await service.getOrCreateModel(mockModelInput);
@@ -173,13 +155,10 @@ describe("ModelService", () => {
       const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
       } as unknown as PageTypeService;
-      const mockAttributeService = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      } as unknown as AttributeService;
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.bootstrapModels(duplicateModels)).rejects.toThrow(ModelValidationError);
@@ -200,13 +179,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const results = await service.bootstrapModels(models);
@@ -227,13 +203,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.createModel(mockModelInput)).rejects.toThrow(
@@ -251,13 +224,10 @@ describe("ModelService", () => {
           .fn()
           .mockResolvedValue({ id: "simple-type-id", name: "Simple", attributes: [] }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       await expect(service.updateModel("1", mockModelInput)).rejects.toThrow(
@@ -274,13 +244,10 @@ describe("ModelService", () => {
       const mockPageTypeService: Partial<PageTypeService> = {
         getPageTypeByName: vi.fn().mockResolvedValue({ id: "blog-post-id", name: "Blog Post" }),
       };
-      const mockAttributeService: any = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      };
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const blogPostInput = { ...mockModelInput, modelType: "Blog Post" };
@@ -297,13 +264,10 @@ describe("ModelService", () => {
       const mockPageTypeService = {
         getPageTypeByName: vi.fn().mockResolvedValue(null),
       } as unknown as PageTypeService;
-      const mockAttributeService = {
-        processAttributes: vi.fn().mockResolvedValue([]),
-      } as unknown as AttributeService;
       const service = new ModelService(
         mockOperations,
         mockPageTypeService as PageTypeService,
-        mockAttributeService as AttributeService
+        new AttributeCache()
       );
 
       const invalidInput = { ...mockModelInput, modelType: "Unknown Type" };

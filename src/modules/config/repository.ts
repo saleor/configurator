@@ -1,6 +1,7 @@
 import type { Client, CombinedError } from "@urql/core";
 import { graphql, type ResultOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
+import { logger } from "../../lib/logger";
 
 // @ts-ignore - Large query type can exceed TS instantiation limits; runtime types remain intact
 const getConfigQuery = graphql(`
@@ -529,8 +530,15 @@ export class ConfigurationRepository implements ConfigurationOperations {
         attributes: fullAttributes,
       } as RawSaleorConfig;
       return data;
-    } catch (_e) {
-      // If pagination fails, fall back to the original data
+    } catch (error) {
+      logger.warn(
+        "Paginated fetch failed — falling back to initial query data which may be truncated",
+        {
+          error: error instanceof Error ? error.message : String(error),
+          truncationRisk:
+            "Attributes limited to first 100, products limited to first 100. Run introspect again if data appears incomplete.",
+        }
+      );
       return result.data as RawSaleorConfig;
     }
   }

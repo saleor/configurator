@@ -1,5 +1,10 @@
 import type { CombinedError } from "@urql/core";
 import { GraphQLError } from "../errors/graphql";
+import {
+  AttributeNotFoundError,
+  InlineAttributeError,
+  WrongAttributeTypeError,
+} from "../errors/validation-errors";
 import { logger } from "../logger";
 import { isTransientError } from "./error-classification";
 
@@ -36,6 +41,16 @@ export async function wrapServiceCall<T>(
       entityIdentifier,
       error: error instanceof Error ? error.message : String(error),
     });
+
+    // Preserve structured validation errors that carry recovery suggestions, similar names, etc.
+    // These should not be wrapped into generic service errors as that loses their structured data.
+    if (
+      error instanceof AttributeNotFoundError ||
+      error instanceof WrongAttributeTypeError ||
+      error instanceof InlineAttributeError
+    ) {
+      throw error;
+    }
 
     if (ErrorClass && error instanceof ErrorClass) {
       throw error;

@@ -1,21 +1,22 @@
 import { describe, expect, it } from "vitest";
-import type { DiffResult } from "../diff/types";
-import { categoriesStage, channelsStage, productTypesStage } from "./stages";
+import { AttributeCache } from "../../modules/attribute/attribute-cache";
+import type { DiffOperation, DiffResult, EntityType } from "../diff/types";
+import { attributesStage, categoriesStage, channelsStage, productTypesStage } from "./stages";
 import type { DeploymentContext } from "./types";
 
 describe("Dependency-Aware Stage Skipping", () => {
   const createMockContext = (
-    results: Array<{ entityType: string; entityName: string; operation: string }>
+    results: Array<{ entityType: EntityType; entityName: string; operation: DiffOperation }>
   ): DeploymentContext => {
     const diffResults: DiffResult[] = results.map((r) => ({
-      operation: r.operation as any,
-      entityType: r.entityType as any,
+      operation: r.operation,
+      entityType: r.entityType,
       entityName: r.entityName,
     }));
 
     return {
-      configurator: {} as any,
-      args: {} as any,
+      configurator: {} as DeploymentContext["configurator"],
+      args: {} as DeploymentContext["args"],
       startTime: new Date(),
       summary: {
         totalChanges: results.length,
@@ -24,55 +25,40 @@ describe("Dependency-Aware Stage Skipping", () => {
         deletes: results.filter((r) => r.operation === "DELETE").length,
         results: diffResults,
       },
+      attributeCache: new AttributeCache(),
     } as DeploymentContext;
   };
 
   describe("Real-world scenarios", () => {
-    it("should run categories stage when products reference categories (minimal-config scenario)", () => {
-      // This represents the exact scenario from minimal-config.yml:
-      // - Products section with 2 products referencing categories
-      // - No categories section in config (no category changes)
+    it("should run categories stage when products reference categories", () => {
       const context = createMockContext([
         { entityType: "Products", entityName: "boston-museum-science", operation: "CREATE" },
         { entityType: "Products", entityName: "premium-smartphone-x1", operation: "CREATE" },
       ]);
 
-      // Categories stage should NOT skip (dependency-aware)
       expect(categoriesStage.skip?.(context)).toBe(false);
-
-      // Product Types stage should NOT skip (dependency-aware)
       expect(productTypesStage.skip?.(context)).toBe(false);
-
-      // Channels stage should NOT skip (dependency-aware)
       expect(channelsStage.skip?.(context)).toBe(false);
     });
 
     it("should skip dependency stages when no products and no dependency changes", () => {
-      // This represents a scenario with only shop settings changes
       const context = createMockContext([
-        { entityType: "Shop Settings", entityName: "shop", operation: "update" },
+        { entityType: "Shop Settings", entityName: "shop", operation: "UPDATE" },
       ]);
 
-      // All dependency stages should skip (no products)
       expect(categoriesStage.skip?.(context)).toBe(true);
       expect(productTypesStage.skip?.(context)).toBe(true);
       expect(channelsStage.skip?.(context)).toBe(true);
     });
 
     it("should run only relevant dependency stages", () => {
-      // Products + Categories changes, but no Product Types/Channels changes
       const context = createMockContext([
         { entityType: "Products", entityName: "smartphone", operation: "CREATE" },
         { entityType: "Categories", entityName: "electronics", operation: "CREATE" },
       ]);
 
-      // Categories stage should run (has category changes)
       expect(categoriesStage.skip?.(context)).toBe(false);
-
-      // Product Types stage should run (has product changes - dependency)
       expect(productTypesStage.skip?.(context)).toBe(false);
-
-      // Channels stage should run (has product changes - dependency)
       expect(channelsStage.skip?.(context)).toBe(false);
     });
   });
@@ -89,14 +75,69 @@ describe("Dependency-Aware Stage Skipping", () => {
     it("should handle mixed entity types", () => {
       const context = createMockContext([
         { entityType: "Products", entityName: "product1", operation: "CREATE" },
-        { entityType: "Warehouses", entityName: "warehouse1", operation: "update" },
-        { entityType: "Shipping Zones", entityName: "zone1", operation: "delete" },
+        { entityType: "Warehouses", entityName: "warehouse1", operation: "UPDATE" },
+        { entityType: "Shipping Zones", entityName: "zone1", operation: "DELETE" },
       ]);
 
-      // All dependency stages should run because of Products changes
       expect(categoriesStage.skip?.(context)).toBe(false);
       expect(productTypesStage.skip?.(context)).toBe(false);
       expect(channelsStage.skip?.(context)).toBe(false);
+    });
+  });
+
+  describe("Attributes stage skip behavior", () => {
+    it("should NOT skip when diff has attribute changes", () => {
+      const context = createMockContext([
+        { entityType: "Product Attributes", entityName: "Color", operation: "CREATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("should NOT skip when diff has content attribute changes", () => {
+      const context = createMockContext([
+        { entityType: "Content Attributes", entityName: "Author", operation: "CREATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("should NOT skip when product types need the attribute cache", () => {
+      const context = createMockContext([
+        { entityType: "Product Types", entityName: "Books", operation: "CREATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("should NOT skip when page types need the attribute cache", () => {
+      const context = createMockContext([
+        { entityType: "Page Types", entityName: "BlogPost", operation: "CREATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("should NOT skip when model types need the attribute cache", () => {
+      const context = createMockContext([
+        { entityType: "Model Types" as EntityType, entityName: "Article", operation: "UPDATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(false);
+    });
+
+    it("should skip when diff has only unrelated changes", () => {
+      const context = createMockContext([
+        { entityType: "Shop Settings", entityName: "shop", operation: "UPDATE" },
+        { entityType: "Channels", entityName: "default-channel", operation: "UPDATE" },
+      ]);
+
+      expect(attributesStage.skip?.(context)).toBe(true);
+    });
+
+    it("should skip when diff is empty", () => {
+      const context = createMockContext([]);
+      expect(attributesStage.skip?.(context)).toBe(true);
     });
   });
 });

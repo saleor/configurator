@@ -1,10 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
+import { AttributeCache } from "../attribute/attribute-cache";
 import { AttributeService } from "../attribute/attribute-service";
 import type { AttributeOperations } from "../attribute/repository";
 import type { AttributeInput } from "../config/schema/attribute.schema";
 import { ProductTypeAttributeValidationError } from "./errors";
 import { ProductTypeService } from "./product-type-service";
 import type { ProductType, ProductTypeOperations } from "./repository";
+
+vi.mock("../../lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 /** Create mock product type operations with default implementations */
 const createMockProductTypeOperations = (
@@ -768,39 +778,29 @@ describe("ProductTypeService", () => {
         variantAttributes: [],
       };
 
-      const mockProductTypeOperations = {
+      const { service } = createTestService({
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
-        createProductType: vi.fn(),
-        assignAttributesToProductType: vi.fn(),
-      };
+      });
 
-      const mockAttributeOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        // Return null to simulate resolution failure (network error, etc.)
-        getAttributesByNames: vi.fn().mockResolvedValue(null),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([]);
 
-      const attributeService = new AttributeService(mockAttributeOperations);
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
-
-      // Using a referenced attribute that will fail to resolve
-      // The error is wrapped by ServiceErrorWrapper, so we check the message content
       await expect(
-        service.bootstrapProductType({
-          name: existingProductType.name,
-          isShippingRequired: false,
-          productAttributes: [],
-          variantAttributes: [
-            {
-              attribute: "NonExistentAttribute", // Referenced by name
-              variantSelection: true,
-            },
-          ],
-        })
-      ).rejects.toThrow(/Failed to resolve referenced attributes/);
+        service.bootstrapProductType(
+          {
+            name: existingProductType.name,
+            isShippingRequired: false,
+            productAttributes: [],
+            variantAttributes: [
+              {
+                attribute: "NonExistentAttribute",
+                variantSelection: true,
+              },
+            ],
+          },
+          { attributeCache: cache }
+        )
+      ).rejects.toThrow(/does not exist in productAttributes/);
     });
 
     it("should not throw when no referenced attributes need resolution", async () => {
@@ -826,8 +826,8 @@ describe("ProductTypeService", () => {
       const mockAttributeOperations = {
         createAttribute: vi.fn().mockResolvedValue(colorAttribute),
         updateAttribute: vi.fn(),
-        // Return null, but since there are no referenced attrs, it should be fine
-        getAttributesByNames: vi.fn().mockResolvedValue(null),
+        // Return empty array, but since there are no referenced attrs, it should be fine
+        getAttributesByNames: vi.fn().mockResolvedValue([]),
         bulkCreateAttributes: vi.fn(),
         bulkUpdateAttributes: vi.fn(),
       };
@@ -1081,43 +1081,37 @@ describe("ProductTypeService", () => {
         variantAttributes: [],
       };
 
-      const mockProductTypeOperations = {
+      const { service } = createTestService({
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
-        createProductType: vi.fn(),
-        assignAttributesToProductType: vi.fn(),
-      };
+      });
 
-      // The referenced attribute has PLAIN_TEXT input type which doesn't support variantSelection
-      const plainTextAttribute = {
-        id: "plaintext-1",
-        name: "Description",
-        inputType: "PLAIN_TEXT" as const,
-      };
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        {
+          id: "plaintext-1",
+          name: "Description",
+          slug: "description",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+      ]);
 
-      const mockAttributeOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([plainTextAttribute]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const attributeService = new AttributeService(mockAttributeOperations);
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
-
-      // Using a referenced attribute with variantSelection: true but the attribute has unsupported inputType
       await expect(
-        service.bootstrapProductType({
-          name: existingProductType.name,
-          isShippingRequired: false,
-          productAttributes: [],
-          variantAttributes: [
-            {
-              attribute: "Description", // Referenced by name
-              variantSelection: true,
-            },
-          ],
-        })
+        service.bootstrapProductType(
+          {
+            name: existingProductType.name,
+            isShippingRequired: false,
+            productAttributes: [],
+            variantAttributes: [
+              {
+                attribute: "Description",
+                variantSelection: true,
+              },
+            ],
+          },
+          { attributeCache: cache }
+        )
       ).rejects.toThrow(/does not support variant selection/);
     });
 
@@ -1129,45 +1123,40 @@ describe("ProductTypeService", () => {
         variantAttributes: [],
       };
 
-      const mockProductTypeOperations = {
+      const { service, mockProductTypeOperations } = createTestService({
         getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
-        createProductType: vi.fn(),
-        assignAttributesToProductType: vi.fn(),
-      };
-
-      // The referenced attribute has DROPDOWN input type which supports variantSelection
-      const dropdownAttribute = {
-        id: "dropdown-ref-1",
-        name: "Color",
-        inputType: "DROPDOWN" as const,
-      };
-
-      const mockAttributeOperations = {
-        createAttribute: vi.fn(),
-        updateAttribute: vi.fn(),
-        getAttributesByNames: vi.fn().mockResolvedValue([dropdownAttribute]),
-        bulkCreateAttributes: vi.fn(),
-        bulkUpdateAttributes: vi.fn(),
-      };
-
-      const attributeService = new AttributeService(mockAttributeOperations);
-      const service = new ProductTypeService(mockProductTypeOperations, attributeService);
-
-      await service.bootstrapProductType({
-        name: existingProductType.name,
-        isShippingRequired: false,
-        productAttributes: [],
-        variantAttributes: [
-          {
-            attribute: "Color", // Referenced by name
-            variantSelection: true,
-          },
-        ],
       });
+
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        {
+          id: "dropdown-ref-1",
+          name: "Color",
+          slug: "color",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      await service.bootstrapProductType(
+        {
+          name: existingProductType.name,
+          isShippingRequired: false,
+          productAttributes: [],
+          variantAttributes: [
+            {
+              attribute: "Color",
+              variantSelection: true,
+            },
+          ],
+        },
+        { attributeCache: cache }
+      );
 
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
         productTypeId: existingProductType.id,
-        attributes: [{ id: dropdownAttribute.id, variantSelection: true }],
+        attributes: [{ id: "dropdown-ref-1", variantSelection: true }],
         type: "VARIANT",
       });
     });
@@ -1515,6 +1504,178 @@ describe("ProductTypeService", () => {
           { id: "material-attr-id", variantSelection: false },
         ],
       });
+    });
+  });
+
+  describe("cache-first attribute resolution", () => {
+    it("should use cache for product attribute resolution when cache is provided", async () => {
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "1",
+        name: "Apparel",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service, mockAttributeOperations, mockProductTypeOperations } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
+        }
+      );
+
+      // Populate cache with product attributes
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        {
+          id: "cached-color-id",
+          name: "Color",
+          slug: "color",
+          inputType: "DROPDOWN",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      // When: bootstrap with a referenced attribute that exists in cache
+      await service.bootstrapProductType(
+        {
+          name: "Apparel",
+          isShippingRequired: false,
+          productAttributes: [{ attribute: "Color" }],
+          variantAttributes: [],
+        },
+        { attributeCache: cache }
+      );
+
+      // Then: should NOT call getAttributesByNames for the cached attribute
+      // The mock returns [] by default; if cache is used, the API call for "Color"
+      // reference resolution should be skipped entirely
+      const getAttrCalls = (
+        mockAttributeOperations.getAttributesByNames as ReturnType<typeof vi.fn>
+      ).mock.calls;
+      const referenceResolutionCalls = getAttrCalls.filter((call: unknown[]) => {
+        const arg = call[0] as { names: string[]; type: string };
+        return arg.names.includes("Color") && arg.type === "PRODUCT_TYPE";
+      });
+      expect(referenceResolutionCalls).toHaveLength(0);
+
+      // And: should assign the cached attribute
+      expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productTypeId: "1",
+          attributes: expect.arrayContaining([expect.objectContaining({ id: "cached-color-id" })]),
+          type: "PRODUCT",
+        })
+      );
+    });
+
+    it("should throw when referenced attribute is not in cache", async () => {
+      const existingProductType: ProductType = {
+        id: "2",
+        name: "Electronics",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service } = createTestService({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      const cache = new AttributeCache();
+      cache.populateProductAttributes([
+        {
+          id: "other-attr",
+          name: "Other",
+          slug: "other",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      await expect(
+        service.bootstrapProductType(
+          {
+            name: "Electronics",
+            isShippingRequired: true,
+            productAttributes: [{ attribute: "Brand" }],
+            variantAttributes: [],
+          },
+          { attributeCache: cache }
+        )
+      ).rejects.toThrow(/does not exist in productAttributes/);
+    });
+
+    it("should throw when no attribute cache is provided", async () => {
+      const existingProductType: ProductType = {
+        id: "3",
+        name: "Books",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service } = createTestService({
+        getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+      });
+
+      await expect(
+        service.bootstrapProductType({
+          name: "Books",
+          isShippingRequired: false,
+          productAttributes: [{ attribute: "Missing Attribute" }],
+          variantAttributes: [],
+        })
+      ).rejects.toThrow(/without attribute cache/);
+    });
+
+    it("should throw wrong-section error when content attribute is referenced from product type", async () => {
+      // Given: an existing product type with no assigned attributes
+      const existingProductType: ProductType = {
+        id: "4",
+        name: "Furniture",
+        productAttributes: [],
+        variantAttributes: [],
+      };
+
+      const { service } = createTestService(
+        {
+          getProductTypeByName: vi.fn().mockResolvedValue(existingProductType),
+        },
+        {
+          // API also returns nothing for PRODUCT_TYPE lookup
+          getAttributesByNames: vi.fn().mockResolvedValue([]),
+        }
+      );
+
+      // Populate cache with "Author" in content section only (not product section)
+      const cache = new AttributeCache();
+      cache.populateContentAttributes([
+        {
+          id: "content-author-id",
+          name: "Author",
+          slug: "author",
+          inputType: "PLAIN_TEXT",
+          entityType: null,
+          choices: [],
+        },
+      ]);
+
+      // When/Then: referencing a content attribute from a product type should throw a
+      // detailed wrong-section error via validateAttributeReference
+      await expect(
+        service.bootstrapProductType(
+          {
+            name: "Furniture",
+            isShippingRequired: true,
+            productAttributes: [{ attribute: "Author" }],
+            variantAttributes: [],
+          },
+          { attributeCache: cache }
+        )
+      ).rejects.toThrow(/content attribute, not a product attribute/);
     });
   });
 });

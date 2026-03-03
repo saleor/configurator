@@ -1,6 +1,7 @@
 import type { CombinedError } from "@urql/core";
 import { beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { GraphQLError } from "../errors/graphql";
+import { AttributeNotFoundError } from "../errors/validation-errors";
 import { logger } from "../logger";
 import { ServiceErrorWrapper } from "./error-wrapper";
 
@@ -137,6 +138,45 @@ describe("ServiceErrorWrapper", () => {
           entityIdentifier: "product-id",
           error: "Specific error",
         });
+      });
+
+      it("should pass through structured validation errors without wrapping", async () => {
+        const structuredError = new AttributeNotFoundError(
+          "Colr",
+          "productAttributes",
+          "productTypes",
+          "Apparel",
+          ["Color", "Colour"]
+        );
+        const mockFn = vi.fn().mockRejectedValue(structuredError);
+
+        // Even when ErrorClass is provided, structured validation errors should pass through
+        await expect(
+          ServiceErrorWrapper.wrapServiceCall(
+            "update",
+            "product type",
+            "T-Shirt",
+            mockFn,
+            TestServiceError
+          )
+        ).rejects.toThrow(structuredError);
+
+        // Verify the original error is preserved with all its properties
+        try {
+          await ServiceErrorWrapper.wrapServiceCall(
+            "update",
+            "product type",
+            "T-Shirt",
+            mockFn,
+            TestServiceError
+          );
+        } catch (error) {
+          expect(error).toBeInstanceOf(AttributeNotFoundError);
+          expect((error as AttributeNotFoundError).similarNames).toEqual(["Color", "Colour"]);
+          expect((error as AttributeNotFoundError).getRecoverySuggestions()[0]).toContain(
+            "Did you mean"
+          );
+        }
       });
 
       it("should handle GraphQL errors with proper context", async () => {
