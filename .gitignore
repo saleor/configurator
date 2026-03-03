@@ -31,3 +31,4 @@ scripts/convert-excel-to-yaml-products.ts
 scripts/extract-excel-data.ts
 scripts/extract-products-from-excel.ts
 .DS_Store
+.idea/
