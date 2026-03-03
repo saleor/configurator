@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 1.2.2
+
+### Patch Changes
+
+- fa4d7f1: Remove redundant registry-url from release workflow setup-node step, as OIDC trusted publishing handles npm authentication
+
 ## 1.2.1
 
 ### Patch Changes
