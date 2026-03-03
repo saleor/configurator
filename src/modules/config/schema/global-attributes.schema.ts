@@ -38,6 +38,11 @@ const referenceGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
+const singleReferenceGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
+  inputType: z.literal("SINGLE_REFERENCE"),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+});
+
 const simpleGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
 });
@@ -47,6 +52,7 @@ const globalAttributeSchema = z.discriminatedUnion("inputType", [
   multiselectGlobalAttributeSchema,
   swatchGlobalAttributeSchema,
   referenceGlobalAttributeSchema,
+  singleReferenceGlobalAttributeSchema,
   simpleGlobalAttributeSchema,
 ]);
 

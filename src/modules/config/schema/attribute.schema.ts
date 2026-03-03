@@ -44,6 +44,12 @@ const referenceAttributeSchema = baseAttributeSchema.extend({
   entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
 });
 
+// Schema for single reference type attributes
+const singleReferenceAttributeSchema = baseAttributeSchema.extend({
+  inputType: z.literal("SINGLE_REFERENCE"),
+  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+});
+
 // Schema for simple value attributes
 const singleAttributeSchema = baseAttributeSchema.extend({
   inputType: z.enum(["PLAIN_TEXT", "NUMERIC", "DATE", "BOOLEAN", "RICH_TEXT", "DATE_TIME", "FILE"]),
@@ -53,6 +59,7 @@ const singleAttributeSchema = baseAttributeSchema.extend({
 export const simpleAttributeSchema = z.discriminatedUnion("inputType", [
   multipleValuesAttributeSchema,
   referenceAttributeSchema,
+  singleReferenceAttributeSchema,
   singleAttributeSchema,
 ]);
 

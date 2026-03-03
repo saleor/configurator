@@ -3681,6 +3681,7 @@ export type introspection_types = {
       | "MULTISELECT"
       | "FILE"
       | "REFERENCE"
+      | "SINGLE_REFERENCE"
       | "NUMERIC"
       | "RICH_TEXT"
       | "PLAIN_TEXT"
