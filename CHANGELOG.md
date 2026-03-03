@@ -1,5 +1,225 @@
 # saleor-configurator
 
+## 1.2.0
+
+### Minor Changes
+
+- 9b7d9e4: Add Claude Code plugin for AI-powered Saleor configuration
+
+  This plugin enables developers to configure Saleor e-commerce stores using natural language
+  conversations with Claude. Features include:
+
+  **Commands (8 total):**
+
+  - `/configurator-workflow` - Complete multi-phase workflow
+  - `/configurator-setup` - Interactive store configuration wizard
+  - `/configurator-model` - Product modeling wizard with decision frameworks
+  - `/configurator-edit` - Menu-driven configuration editing
+  - `/configurator-validate` - Schema validation and best practices check
+  - `/configurator-review` - Launch config review agent
+  - `/configurator-import` - Import from CSV, Excel, or Shopify
+  - `/configurator-init` - Initialize config.yml skeleton
+
+  **Agents (5 total):**
+
+  - `config-review` - Analyzes config.yml with confidence scoring
+  - `troubleshoot` - Diagnoses deployment failures
+  - `discover` - Analyzes existing stores
+  - `csv-importer` - Imports tabular data with field mapping
+  - `shopify-importer` - Specialized Shopify export import
+
+  **Skills (6 total):**
+
+  - `product-modeling` - Complete domain modeling with decision frameworks
+  - `configurator-cli` - CLI commands and flags reference
+  - `configurator-schema` - Config.yml structure guide
+  - `configurator-recipes` - Pre-built store templates
+  - `data-importer` - Import workflows and transformations
+  - `saleor-domain` - Entity relationships and GraphQL
+
+  **Hooks:**
+
+  - YAML validation before writes
+  - Deployment safety checks (dry-run requirement)
+  - CLI result analysis and error handling
+  - Task completion quality gate
+
+  **Additional features:**
+
+  - MCP server integration (Context7, Saleor)
+  - JSON Schema for config.yml validation
+  - User settings template for credentials
+
+- 41f8e49: Add global `productAttributes` and `contentAttributes` sections
+
+  Attributes are now defined once and referenced everywhere. Previously, every product type and page type had to repeat full attribute definitions inline — leading to drift, duplication errors, and verbose configs. Now you declare attributes in top-level `productAttributes`/`contentAttributes` sections and reference them by name.
+
+  - **New config sections**: Define shared attributes once in `productAttributes` (PRODUCT_TYPE) and `contentAttributes` (PAGE_TYPE) sections, then reference by name in product types, page types, and model types
+  - **Introspect**: Automatically extracts and deduplicates attributes from the Saleor API into the correct section by type
+  - **Deploy**: Attributes stage runs first and populates an in-memory cache (with full choice metadata and entity types). Product types, page types, products, and models all resolve attribute values from cache — zero API calls for attribute lookups during deployment
+  - **Validation**: Rejects inline attribute definitions with migration guidance; provides "did you mean?" suggestions for typos against known attribute names
+  - **Diff**: Shows attribute changes grouped under "Product Attributes" and "Content Attributes" headers
+  - **Stage dependencies**: Products and models now correctly depend on the attributes stage (transitive through their types), ensuring the cache is always populated before resolution
+  - **Saleor API fix**: Enforced `choices(first: 100)` limit on all attribute queries to comply with Saleor's connection page size constraint (was 250, causing silent truncation)
+
+- 3dcb52d: Refactor Claude Code plugin to v2.1.0 with streamlined commands and intelligent debugging
+
+  **Commands consolidated from 8 to 6 focused commands:**
+
+  - `/configurator` - Core operations (init, validate, edit, review) in a single entry point
+  - `/configurator-fix` - New intelligent debugging with auto-fix and plain language explanations
+  - `/recipe` - Quick start with pre-built store recipes (fashion, electronics, food, subscription)
+  - `/discover` - Generate config from existing website via chrome-devtools or Saleor introspection
+  - `/configurator-model` - Interactive product modeling wizard (unchanged)
+  - `/configurator-import` - Data import from CSV, Excel, or Shopify (unchanged)
+
+  **Removed commands:** `/configurator-workflow`, `/configurator-setup`, `/configurator-init`, `/configurator-edit`, `/configurator-validate`, `/configurator-review`
+
+  **Agent changes:**
+
+  - Renamed `discover` agent to `store-analyzer` for clarity
+  - Updated agent descriptions and cross-references
+
+  **Skill improvements:**
+
+  - Added cross-references between related skills
+  - Improved frontmatter descriptions for better discoverability
+
+  **Other changes:**
+
+  - Removed hooks system (hooks.json, session-context.sh) in favor of simpler approach
+  - Added CHANGELOG.md and LICENSE
+  - Updated README with new command structure and getting-started workflows
+
+- d0ae747: ### Rate-Limiting Resilience
+
+  Deployments against Saleor Cloud were failing on every run. When Saleor's API responded with "slow down" (rate limit), the configurator treated it as a permanent error instead of waiting and retrying. This caused partial deployments that left stores in an inconsistent state — products created without variants, missing attributes, broken references — requiring manual cleanup.
+
+  **Deployments now complete successfully.** Rate limits are handled automatically with backoff and retry. The same config that previously failed every time now deploys cleanly in all scenarios.
+
+  Before/after on the same config, same Saleor instance:
+
+  - Before: 3/3 deploys failed (exit code 5), 4m30s average, corrupted store state
+  - After: 3/3 deploys succeeded (exit code 0), 1m02s average, clean state
+
+  **Faster stage execution** from eliminating error-handling overhead and cascading failures:
+
+  - Categories: 53s → 3.8s
+  - Products: 33.5s → 7.6s
+
+  **Request governor** proactively limits request rate to stay under Saleor's limits (configurable via env vars: `GRAPHQL_GOVERNOR_ENABLED`, `GRAPHQL_MAX_CONCURRENCY`, `GRAPHQL_INTERVAL_CAP`, `GRAPHQL_INTERVAL_MS`).
+
+  **Deployment reports now show what happened** when rate limits occur — which operations were throttled, in which stages, and how many retries were needed. Previously this information was lost.
+
+  **Silent data loss fixed.** Attribute resolution failures were silently ignored, causing products to be created with missing attributes and no error reported. These now fail explicitly.
+
+- 11cef9e: Add recipes: pre-built configuration templates for common e-commerce patterns
+
+  New `configurator recipe` command with subcommands:
+
+  - `configurator recipe list [--category <category>]` - Browse available recipes
+  - `configurator recipe show <name>` - Preview a recipe's configuration and metadata
+  - `configurator recipe apply <name> --url <url> --token <token>` - Apply a recipe to your Saleor instance
+  - `configurator recipe export <name> [--output <path>]` - Export a recipe for local customization
+
+  Built-in recipes included:
+
+  - **multi-region** - Configure channels for US, EU, and UK markets with regional warehouses
+  - **digital-products** - Product types for digital goods (ebooks, software, subscriptions)
+  - **click-and-collect** - Warehouse pickup points with local collection shipping
+  - **custom-shipping** - Shipping zones with tiered rates for US, EU, and worldwide
+
+  All commands support `--json` flag for CI/CD automation and scripting.
+
+- 2f97fff: Move deployment reports to managed `.configurator/reports/` directory with auto-pruning
+
+  - Reports now saved to `.configurator/reports/` instead of the project root
+  - Auto-prunes to keep only the last 5 reports in the managed directory
+  - `--report-path` escape hatch preserved for custom paths (no pruning applied)
+  - Cleans up deploy command: removes inline comments, fixes type safety, extracts helper methods
+
+- 25646e5: Add `--skip-media` flag to `diff` and `deploy` commands
+
+  This feature allows users to exclude media fields from comparison and deployment operations when syncing across environments with different media URLs.
+
+  ### New Features:
+
+  - **`--skip-media` flag**: Available on both `diff` and `deploy` commands
+  - **Media comparison skipping**: When enabled, media differences are not reported in diff results
+  - **Media sync skipping**: When enabled, existing media on target environment is preserved during deployment
+  - **CLI feedback**: Clear status messages indicate when media handling is being skipped
+
+  ### Usage:
+
+  ```bash
+  # Show diff excluding media differences
+  saleor-configurator diff --skip-media
+
+  # Deploy without modifying target media
+  saleor-configurator deploy --skip-media
+  ```
+
+  ### Technical Improvements:
+
+  - Unified `ComparatorOptions` type using `Pick<DiffOptions, 'skipMedia'>`
+  - Removed duplicate `Products` entry from EntityType union
+  - Removed redundant `skipMedia` field from `DeploymentContext` (access via `args.skipMedia`)
+  - Updated all entity comparators with consistent options signature
+  - Added unit tests for skipMedia behavior in ProductComparator
+
+- 5e828ca: Add variant selector attribute configuration to product types
+
+  Users can now specify which variant attributes should be used for variant selection in storefronts (e.g., Size, Color dropdowns) via the `variantSelection` property.
+
+  **New Features:**
+
+  - `variantSelection: true` on variant attributes in YAML config
+  - Introspect outputs `variantSelection` for enabled attributes (omits when false for cleaner YAML)
+  - Diff shows variant selection changes
+  - Validation ensures only supported input types (`DROPDOWN`, `BOOLEAN`, `SWATCH`, `NUMERIC`) can use variant selection
+  - Works with both inline and referenced attributes
+
+  **Example:**
+
+  ```yaml
+  productTypes:
+    - name: T-Shirt
+      variantAttributes:
+        - name: Size
+          inputType: DROPDOWN
+          variantSelection: true
+          values:
+            - name: Small
+            - name: Medium
+            - name: Large
+        - name: Color
+          inputType: SWATCH
+          variantSelection: true
+  ```
+
+### Patch Changes
+
+- 79010d2: Deduplicate product types and page types during introspect
+
+  The Saleor GraphQL API occasionally returns duplicate product type and page type entries in paginated edges. The first occurrence contains real attributes; subsequent duplicates have empty attribute arrays. Previously these all passed through to `config.yml`, causing duplicate entries with missing data.
+
+  Introspect now deduplicates by name, keeping only the first occurrence (which has the real attributes) and logging a warning for each skipped duplicate. Verified against a live Saleor instance that returned 8 duplicate product type edges.
+
+- ae25834: docs: add comprehensive domain modeling documentation
+
+  - Add Domain Modeling section to README with core entities, attributes, and examples
+  - Expand example.yml with taxClasses, collections, pageTypes, models, and menus
+  - Add Domain Modeling Errors section to TROUBLESHOOTING.md
+  - Add Attribute System section to ENTITY_REFERENCE.md with all attribute types
+
+- 336a577: Set up plugin distribution for Claude Code marketplace and directory submission
+
+  - Enrich root `.claude-plugin/marketplace.json` with `$schema`, `metadata` (version, homepage), plugin `category`, and `keywords` for marketplace discovery
+  - Fix README install instructions: replace deprecated `/install-plugin` with current `/plugin marketplace add` and `/plugin install` syntax
+  - Add "From Official Directory" install section for post-approval directory installs
+
+- 6e080db: Improve skill file quality: enrich trigger keywords in descriptions, standardize description format to "Use when..." style, and fix version bump on product-modeling plugin skill
+
 ## 1.1.0
 
 ### Minor Changes
