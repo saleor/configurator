@@ -6,7 +6,11 @@ import {
 import type { FullAttribute } from "../config/schema/attribute.schema";
 import type { CachedAttribute } from "./attribute-cache";
 import { AttributeCache } from "./attribute-cache";
-import { AttributeService, validateAttributeReference } from "./attribute-service";
+import {
+  AttributeService,
+  createAttributeInput,
+  validateAttributeReference,
+} from "./attribute-service";
 import type { Attribute, AttributeBulkCreateResult, AttributeBulkUpdateResult } from "./repository";
 
 function createTestAttribute(overrides: {
@@ -55,6 +59,58 @@ describe("AttributeService", () => {
       });
 
       expect(mockOperations.createAttribute).toHaveBeenCalled();
+    });
+  });
+
+  describe("createAttributeInput", () => {
+    it("should create input for SINGLE_REFERENCE attribute with entityType", () => {
+      const input: FullAttribute = {
+        name: "Featured Product",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT",
+        type: "PRODUCT_TYPE",
+      };
+
+      const result = createAttributeInput(input);
+
+      expect(result).toEqual({
+        name: "Featured Product",
+        type: "PRODUCT_TYPE",
+        slug: "featured-product",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT",
+      });
+    });
+
+    it("should throw validation error for SINGLE_REFERENCE without entityType", () => {
+      const input = {
+        name: "Featured Product",
+        inputType: "SINGLE_REFERENCE",
+        type: "PRODUCT_TYPE",
+      } as FullAttribute;
+
+      expect(() => createAttributeInput(input)).toThrow(
+        "Entity type is required for reference attribute Featured Product"
+      );
+    });
+
+    it("should create input for SINGLE_REFERENCE with PAGE entityType", () => {
+      const input: FullAttribute = {
+        name: "Related Page",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PAGE",
+        type: "PAGE_TYPE",
+      };
+
+      const result = createAttributeInput(input);
+
+      expect(result).toEqual({
+        name: "Related Page",
+        type: "PAGE_TYPE",
+        slug: "related-page",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PAGE",
+      });
     });
   });
 
@@ -192,6 +248,39 @@ describe("AttributeService", () => {
       const attributeInput = {
         name: "Related Books",
         inputType: "REFERENCE" as const,
+        entityType: "PRODUCT" as const,
+        type: "PRODUCT_TYPE" as const,
+      };
+
+      const mockOperations = {
+        createAttribute: vi.fn(),
+        updateAttribute: vi.fn(),
+        getAttributesByNames: vi.fn(),
+        bulkCreateAttributes: vi.fn(),
+        bulkUpdateAttributes: vi.fn(),
+      };
+
+      const service = new AttributeService(mockOperations);
+
+      const result = await service.updateAttribute(attributeInput, existingAttribute);
+
+      expect(mockOperations.updateAttribute).not.toHaveBeenCalled();
+      expect(result).toBe(existingAttribute);
+    });
+
+    it("should handle single reference attributes without updates", async () => {
+      const existingAttribute: Attribute = {
+        id: "attr-1",
+        name: "Featured Product",
+        type: "PRODUCT_TYPE",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "PRODUCT",
+        choices: null,
+      };
+
+      const attributeInput = {
+        name: "Featured Product",
+        inputType: "SINGLE_REFERENCE" as const,
         entityType: "PRODUCT" as const,
         type: "PRODUCT_TYPE" as const,
       };

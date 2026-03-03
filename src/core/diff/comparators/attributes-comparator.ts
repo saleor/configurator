@@ -55,9 +55,11 @@ export class AttributesComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("inputType", remote.inputType, local.inputType));
     }
     // reference entityType
-    if (local.inputType === "REFERENCE" || remote.inputType === "REFERENCE") {
-      const l = local.inputType === "REFERENCE" ? local.entityType : undefined;
-      const r = remote.inputType === "REFERENCE" ? remote.entityType : undefined;
+    const isRefType = (t: string) => t === "REFERENCE" || t === "SINGLE_REFERENCE";
+    if (isRefType(local.inputType) || isRefType(remote.inputType)) {
+      const l = isRefType(local.inputType) && "entityType" in local ? local.entityType : undefined;
+      const r =
+        isRefType(remote.inputType) && "entityType" in remote ? remote.entityType : undefined;
       if (l !== r) {
         changes.push(this.createFieldChange("entityType", r, l));
       }

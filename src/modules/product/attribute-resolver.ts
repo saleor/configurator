@@ -16,6 +16,7 @@ const ATTRIBUTE_INPUT_TYPES = {
   MULTISELECT: "MULTISELECT",
   SWATCH: "SWATCH",
   REFERENCE: "REFERENCE",
+  SINGLE_REFERENCE: "SINGLE_REFERENCE",
   NUMERIC: "NUMERIC",
   DATE: "DATE",
   DATE_TIME: "DATE_TIME",
@@ -220,7 +221,10 @@ class DropdownAttributeHandler extends AttributeHandler {
 
 class ReferenceAttributeHandler extends AttributeHandler {
   canHandle(inputType: string): boolean {
-    return inputType === ATTRIBUTE_INPUT_TYPES.REFERENCE;
+    return (
+      inputType === ATTRIBUTE_INPUT_TYPES.REFERENCE ||
+      inputType === ATTRIBUTE_INPUT_TYPES.SINGLE_REFERENCE
+    );
   }
 
   async handle(
