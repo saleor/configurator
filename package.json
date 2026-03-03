@@ -20,6 +20,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saleor/configurator.git"
+  },
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
