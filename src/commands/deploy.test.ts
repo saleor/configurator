@@ -366,6 +366,11 @@ describe("Deploy Command", () => {
       const { confirmAction } = await import("../cli/command");
       vi.mocked(confirmAction).mockResolvedValueOnce(false);
 
+      // Simulate interactive TTY so isNonInteractiveEnvironment() returns false
+      // and the confirmation prompt is not auto-skipped by Task 2 changes
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValueOnce(false);
+
       await expect(deployHandler(createDefaultArgs({ ci: false }))).rejects.toThrow(
         "process.exit(0)"
       );
