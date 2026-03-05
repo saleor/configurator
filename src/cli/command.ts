@@ -120,6 +120,19 @@ export async function selectOption<T extends string>(
   });
 }
 
+export function mergeEnvArgs<T extends Record<string, unknown>>(args: T): T {
+  const definedArgs = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));
+  return {
+    ...(process.env.SALEOR_URL !== undefined &&
+      args.url === undefined && { url: process.env.SALEOR_URL }),
+    ...(process.env.SALEOR_TOKEN !== undefined &&
+      args.token === undefined && { token: process.env.SALEOR_TOKEN }),
+    ...(process.env.SALEOR_CONFIG !== undefined &&
+      args.config === undefined && { config: process.env.SALEOR_CONFIG }),
+    ...definedArgs,
+  } as T;
+}
+
 export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
   name: string;
   description: string;
@@ -198,7 +211,7 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
       // Handle interactive mode for missing arguments
       let validatedArgs: z.infer<T>;
 
-      const args = options as Partial<z.infer<T>>;
+      const args = mergeEnvArgs(options as Partial<z.infer<T>>);
       if (config.requiresInteractive && (!args.url || !args.token)) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(args);
