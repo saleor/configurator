@@ -9,7 +9,7 @@ saleor_token: ""    # Your Saleor API token (keep secret!)
 
 # Default behavior settings
 auto_validate: true           # Auto-validate after config changes
-dry_run_default: true         # Default to dry-run for deployments
+plan_default: true            # Default to --plan for deployments
 show_deletion_warnings: true  # Warn before destructive operations
 
 # Preferred channels (for import operations)
@@ -42,10 +42,10 @@ Add any project-specific notes or configuration reminders here.
 /configurator review
 
 # Deploy to Saleor
-npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+npx configurator deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Preview changes
-npx configurator diff --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+npx configurator diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 ### Notes

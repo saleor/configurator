@@ -89,13 +89,13 @@ Runs the same checks CI will run (linting without auto-fix, format checking, Typ
 rm -rf config.yml
 
 # 2. Fresh introspection
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 3. Deploy changes
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 4. Test idempotency (deploy again - should have no changes)
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # 5. Clean and re-introspect
 rm config.yml

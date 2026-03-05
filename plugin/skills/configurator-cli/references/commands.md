@@ -2,6 +2,46 @@
 
 Complete reference for all Configurator CLI commands.
 
+## validate
+
+Validates `config.yml` against the schema locally. No network access required.
+
+### Synopsis
+
+```bash
+pnpm dlx @saleor/configurator validate [options]
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--config <file>` | Configuration file path | `config.yml` |
+| `--json` | Force JSON envelope output | Auto in non-TTY |
+| `--text` | Force human-readable output | `false` |
+
+### Examples
+
+```bash
+# Validate default config
+pnpm dlx @saleor/configurator validate
+
+# Validate custom file
+pnpm dlx @saleor/configurator validate --config staging-config.yml
+
+# Machine-readable output
+pnpm dlx @saleor/configurator validate --json
+```
+
+### Exit Codes
+
+| Code | Description |
+|------|-------------|
+| 0 | Configuration is valid |
+| 2 | Configuration has validation errors |
+
+---
+
 ## introspect
 
 Fetches configuration from a Saleor instance and writes to `config.yml`.
@@ -9,43 +49,37 @@ Fetches configuration from a Saleor instance and writes to `config.yml`.
 ### Synopsis
 
 ```bash
-npx configurator introspect [options]
+pnpm dlx @saleor/configurator introspect [options]
 ```
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_API_URL` |
+| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_URL` |
 | `--token <token>` | API authentication token | `$SALEOR_TOKEN` |
-| `--output <file>` | Output file path | `config.yml` |
+| `--config <file>` | Output file path | `config.yml` |
 | `--include <types>` | Entity types to include | All types |
 | `--exclude <types>` | Entity types to exclude | None |
+| `--drift-check` | Exit code 1 if remote differs from local | `false` |
+| `--json` | Force JSON envelope output | Auto in non-TTY |
+| `--text` | Force human-readable output | `false` |
 
 ### Examples
 
 ```bash
-# Basic introspection
-npx configurator introspect --url=https://store.saleor.cloud/graphql/ --token=abc123
+# Basic introspection (interactive)
+pnpm dlx @saleor/configurator introspect
 
-# Using environment variables
-export SALEOR_API_URL="https://store.saleor.cloud/graphql/"
-export SALEOR_TOKEN="abc123"
-npx configurator introspect
+# Using environment variables (from .env.local)
+pnpm dlx @saleor/configurator introspect
 
 # Only fetch products and categories
-npx configurator introspect --include=products,categories
-
-# Fetch everything except products
-npx configurator introspect --exclude=products
+pnpm dlx @saleor/configurator introspect --include=products,categories
 
 # Custom output file
-npx configurator introspect --output=staging-config.yml
+pnpm dlx @saleor/configurator introspect --config=staging-config.yml
 ```
-
-### Output
-
-Creates or overwrites `config.yml` with the current remote state.
 
 ---
 
@@ -56,61 +90,63 @@ Pushes local configuration to a Saleor instance.
 ### Synopsis
 
 ```bash
-npx configurator deploy [options]
+pnpm dlx @saleor/configurator deploy [options]
 ```
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_API_URL` |
+| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_URL` |
 | `--token <token>` | API authentication token | `$SALEOR_TOKEN` |
-| `--input <file>` | Input config file | `config.yml` |
+| `--config <file>` | Input config file | `config.yml` |
 | `--include <types>` | Entity types to deploy | All types |
 | `--exclude <types>` | Entity types to skip | None |
-| `--dry-run` | Preview without executing | `false` |
-| `--fail-on-delete` | Exit if deletions detected | `false` |
+| `--plan` | Preview without executing | `false` |
+| `--fail-on-delete` | Exit code 6 if deletions detected | `false` |
+| `--fail-on-breaking` | Exit code 7 if breaking changes | `false` |
 | `--skip-media` | Skip media file uploads | `false` |
+| `--report-path <file>` | Custom path for deployment report | Auto-generated |
+| `--json` | Force JSON envelope output | Auto in non-TTY |
+| `--text` | Force human-readable output | `false` |
 
 ### Examples
 
 ```bash
-# Basic deployment
-npx configurator deploy --url=https://store.saleor.cloud/graphql/ --token=abc123
+# Preview changes (plan mode)
+pnpm dlx @saleor/configurator deploy --plan
 
-# Dry run - preview changes
-npx configurator deploy --dry-run
+# Machine-readable plan
+pnpm dlx @saleor/configurator deploy --plan --json
+
+# Execute deployment
+pnpm dlx @saleor/configurator deploy
 
 # Safe deployment - fail if anything would be deleted
-npx configurator deploy --fail-on-delete
+pnpm dlx @saleor/configurator deploy --fail-on-delete
 
 # Deploy only specific entity types
-npx configurator deploy --include=channels,productTypes
-
-# Skip product deployment
-npx configurator deploy --exclude=products
+pnpm dlx @saleor/configurator deploy --include=channels,productTypes
 
 # Skip media uploads for faster deployment
-npx configurator deploy --skip-media
+pnpm dlx @saleor/configurator deploy --skip-media
+
+# Save report to custom path
+pnpm dlx @saleor/configurator deploy --report-path=reports/deploy.json
 ```
-
-### Output
-
-Shows deployment progress with:
-- `✓ CREATE` - Entity created
-- `✓ UPDATE` - Entity updated
-- `✓ DELETE` - Entity deleted
-- `✗ ERROR` - Operation failed
 
 ### Exit Codes
 
 | Code | Description |
 |------|-------------|
 | 0 | Success - all operations completed |
-| 1 | Error - one or more operations failed |
-| 2 | Validation - config.yml has errors |
-| 3 | Authentication - invalid credentials |
-| 4 | Network - connection failed |
+| 1 | Unexpected error |
+| 2 | Authentication - invalid credentials |
+| 3 | Network - connection failed |
+| 4 | Validation - config.yml has errors |
+| 5 | Partial failure - some operations failed |
+| 6 | Deletion blocked - `--fail-on-delete` triggered |
+| 7 | Breaking blocked - `--fail-on-breaking` triggered |
 
 ---
 
@@ -121,34 +157,44 @@ Compares local configuration with remote Saleor instance.
 ### Synopsis
 
 ```bash
-npx configurator diff [options]
+pnpm dlx @saleor/configurator diff [options]
 ```
 
 ### Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_API_URL` |
+| `--url <url>` | Saleor GraphQL endpoint | `$SALEOR_URL` |
 | `--token <token>` | API authentication token | `$SALEOR_TOKEN` |
-| `--input <file>` | Input config file | `config.yml` |
+| `--config <file>` | Input config file | `config.yml` |
 | `--include <types>` | Entity types to compare | All types |
 | `--exclude <types>` | Entity types to skip | None |
 | `--skip-media` | Skip media file comparison | `false` |
+| `--entity-type <type>` | Filter to one entity type | None |
+| `--entity <Type/name>` | Filter to one specific entity | None |
+| `--json` | Force JSON envelope output | Auto in non-TTY |
+| `--text` | Force human-readable output | `false` |
 
 ### Examples
 
 ```bash
 # Compare all entities
-npx configurator diff
+pnpm dlx @saleor/configurator diff
 
-# Compare only products
-npx configurator diff --include=products
+# Machine-readable diff
+pnpm dlx @saleor/configurator diff --json
 
-# Compare everything except media
-npx configurator diff --skip-media
+# Compare only categories
+pnpm dlx @saleor/configurator diff --include=categories
+
+# Drill into specific entity type
+pnpm dlx @saleor/configurator diff --entity-type "Categories" --json
+
+# Drill into specific entity
+pnpm dlx @saleor/configurator diff --entity "Categories/electronics" --json
 ```
 
-### Output Format
+### Output Format (Human-Readable)
 
 ```
 channels:
@@ -163,14 +209,6 @@ products:
   - DELETE "old-product" (Discontinued Item)
 ```
 
-### Symbols
-
-| Symbol | Meaning |
-|--------|---------|
-| `+` | Will be created |
-| `~` | Will be updated |
-| `-` | Will be deleted |
-
 ---
 
 ## start
@@ -180,7 +218,7 @@ Interactive setup wizard for new configurations.
 ### Synopsis
 
 ```bash
-npx configurator start [options]
+pnpm dlx @saleor/configurator start [options]
 ```
 
 ### Options
@@ -188,25 +226,7 @@ npx configurator start [options]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--template <name>` | Start from template | None |
-| `--output <file>` | Output file path | `config.yml` |
-
-### Examples
-
-```bash
-# Interactive wizard
-npx configurator start
-
-# Start from fashion template
-npx configurator start --template=fashion-store
-```
-
-### Wizard Steps
-
-1. **Store Type**: Select business type (fashion, electronics, etc.)
-2. **Channels**: Configure sales channels and currencies
-3. **Product Types**: Define product structures
-4. **Categories**: Set up category hierarchy
-5. **Review**: Preview generated configuration
+| `--config <file>` | Output file path | `config.yml` |
 
 ---
 
@@ -225,7 +245,9 @@ These options work with all commands:
 
 | Variable | Description |
 |----------|-------------|
-| `SALEOR_API_URL` | Default GraphQL endpoint |
+| `SALEOR_URL` | Default GraphQL endpoint |
 | `SALEOR_TOKEN` | Default API token |
-| `CONFIGURATOR_CONFIG` | Default config file path |
 | `NO_COLOR` | Disable colored output |
+| `LOG_LEVEL` | Log verbosity (debug, info, warn, error) |
+
+Credentials can also be set in `.env.local` (auto-loaded by the CLI).

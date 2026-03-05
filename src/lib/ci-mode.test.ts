@@ -19,8 +19,16 @@ describe("isNonInteractiveEnvironment", () => {
   });
 
   function setTTY(stdout: boolean | undefined, stdin: boolean | undefined) {
-    Object.defineProperty(process.stdout, "isTTY", { value: stdout, writable: true, configurable: true });
-    Object.defineProperty(process.stdin, "isTTY", { value: stdin, writable: true, configurable: true });
+    Object.defineProperty(process.stdout, "isTTY", {
+      value: stdout,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(process.stdin, "isTTY", {
+      value: stdin,
+      writable: true,
+      configurable: true,
+    });
   }
 
   it("returns false when both stdout and stdin are TTY (real terminal)", () => {

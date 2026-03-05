@@ -7,10 +7,13 @@ Complete reference for Configurator CLI exit codes and error handling.
 | Code | Name | Description |
 |------|------|-------------|
 | 0 | SUCCESS | Operation completed successfully |
-| 1 | GENERAL_ERROR | Unspecified error occurred |
-| 2 | VALIDATION_ERROR | Configuration file has errors |
-| 3 | AUTHENTICATION_ERROR | Invalid or expired credentials |
-| 4 | NETWORK_ERROR | Connection or network failure |
+| 1 | UNEXPECTED | Unspecified error occurred |
+| 2 | AUTHENTICATION | Invalid or expired credentials |
+| 3 | NETWORK | Connection or network failure |
+| 4 | VALIDATION | Configuration file has errors |
+| 5 | PARTIAL_FAILURE | Some operations succeeded, others failed |
+| 6 | DELETION_BLOCKED | `--fail-on-delete` flag triggered |
+| 7 | BREAKING_BLOCKED | `--fail-on-breaking` flag triggered |
 
 ---
 
@@ -22,13 +25,14 @@ Operation completed without errors.
 - All entities deployed successfully
 - Introspection completed
 - Diff showed no errors
-- Dry run validation passed
+- Deployment plan validation passed
+- Config validation passed
 
 **No action needed**.
 
 ---
 
-## Code 1: GENERAL_ERROR
+## Code 1: UNEXPECTED
 
 An unspecified or unexpected error occurred.
 
@@ -40,73 +44,24 @@ An unspecified or unexpected error occurred.
 
 **Troubleshooting**:
 
-1. **Check the error message** for specific details:
-   ```
-   Error: ProductCreate mutation failed
-   Field: slug
-   Message: Product with this slug already exists
-   ```
-
-2. **Run with --verbose** for more context:
+1. **Check the JSON envelope** for error details:
    ```bash
-   npx configurator deploy --verbose
+   pnpm dlx @saleor/configurator deploy --json 2>/dev/null | jq '.errors'
    ```
 
-3. **Check Saleor logs** if you have access to the instance
+2. **Check logs** in the envelope:
+   ```bash
+   pnpm dlx @saleor/configurator deploy --json 2>/dev/null | jq '.logs'
+   ```
 
-**Common fixes**:
-- Duplicate slug/name: Change the identifier
-- Invalid reference: Ensure referenced entities exist
-- Permission denied: Verify token permissions
+3. **Check reports** for detailed deployment results:
+   ```bash
+   cat .configurator/reports/deploy/*.json | jq '.'
+   ```
 
 ---
 
-## Code 2: VALIDATION_ERROR
-
-The `config.yml` file has syntax or schema errors.
-
-**When returned**:
-- Invalid YAML syntax
-- Missing required fields
-- Invalid field values
-- Schema constraint violations
-
-**Error output format**:
-```
-Validation Error in config.yml:
-
-  Line 15: Missing required field 'currencyCode' in channel
-  Line 23: Invalid attribute type 'INVALID_TYPE'
-  Line 45: Product references unknown productType 'Nonexistent'
-```
-
-**Troubleshooting**:
-
-1. **Check YAML syntax**:
-   ```bash
-   # Validate YAML
-   python -c "import yaml; yaml.safe_load(open('config.yml'))"
-   ```
-
-2. **Review line numbers** in error message
-
-3. **Common YAML issues**:
-   - Incorrect indentation (use 2 spaces)
-   - Missing quotes around special characters
-   - Tabs instead of spaces
-
-**Common fixes**:
-
-| Error | Fix |
-|-------|-----|
-| Missing required field | Add the field with valid value |
-| Invalid type | Check allowed values in schema |
-| Unknown reference | Create the referenced entity first |
-| Duplicate identifier | Make slugs/names unique |
-
----
-
-## Code 3: AUTHENTICATION_ERROR
+## Code 2: AUTHENTICATION
 
 Invalid, expired, or insufficient credentials.
 
@@ -116,43 +71,23 @@ Invalid, expired, or insufficient credentials.
 - Missing token
 - Insufficient permissions
 
-**Error output format**:
-```
-Authentication Error:
-  Unable to authenticate with provided credentials.
-
-  Verify:
-  - Token is valid and not expired
-  - URL points to correct Saleor instance
-  - Token has required permissions
-```
-
 **Troubleshooting**:
 
-1. **Verify the URL**:
+1. **Verify credentials are set**:
    ```bash
-   # Check if URL is accessible
-   curl -I https://your-store.saleor.cloud/graphql/
+   echo $SALEOR_URL   # Should be https://...saleor.cloud/graphql/
+   echo $SALEOR_TOKEN  # Should be non-empty
    ```
 
 2. **Test token**:
    ```bash
-   curl -X POST https://your-store.saleor.cloud/graphql/ \
+   curl -X POST $SALEOR_URL \
      -H "Authorization: Bearer $SALEOR_TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"query": "{ shop { name } }"}'
    ```
 
 3. **Check token permissions** in Saleor Dashboard
-
-**Common fixes**:
-
-| Issue | Fix |
-|-------|-----|
-| Token expired | Generate new token in Dashboard |
-| Wrong instance | Verify `--url` matches your store |
-| Missing permissions | Add required permissions to token |
-| Typo in token | Copy token again carefully |
 
 **Required permissions for full access**:
 - `MANAGE_PRODUCTS`
@@ -165,7 +100,7 @@ Authentication Error:
 
 ---
 
-## Code 4: NETWORK_ERROR
+## Code 3: NETWORK
 
 Connection or network-related failure.
 
@@ -175,126 +110,147 @@ Connection or network-related failure.
 - SSL/TLS errors
 - Server unreachable
 
-**Error output format**:
-```
-Network Error:
-  Unable to connect to https://store.saleor.cloud/graphql/
-
-  Error: ECONNREFUSED
-
-  Verify:
-  - URL is correct
-  - Internet connection is working
-  - Server is running
-  - Firewall allows connection
-```
-
 **Troubleshooting**:
 
-1. **Check connectivity**:
+1. **Verify URL is reachable**:
    ```bash
-   # Ping the domain
-   ping store.saleor.cloud
-
-   # Check if port is open
-   nc -zv store.saleor.cloud 443
+   curl -I $SALEOR_URL
    ```
 
-2. **Check DNS**:
+2. **Check DNS and connectivity**:
    ```bash
-   nslookup store.saleor.cloud
+   ping $(echo $SALEOR_URL | awk -F/ '{print $3}')
    ```
-
-3. **Check SSL**:
-   ```bash
-   openssl s_client -connect store.saleor.cloud:443
-   ```
-
-**Common fixes**:
-
-| Issue | Fix |
-|-------|-----|
-| Server down | Wait and retry, check status page |
-| Firewall blocking | Whitelist Saleor domain |
-| VPN issues | Connect/disconnect VPN |
-| DNS failure | Try different DNS server |
-| SSL error | Check system certificates |
 
 ---
 
-## Error Messages
+## Code 4: VALIDATION
 
-### GraphQL Errors
+The `config.yml` file has syntax or schema errors.
+
+**When returned**:
+- Invalid YAML syntax
+- Missing required fields
+- Invalid field values
+- Schema constraint violations
+
+**Troubleshooting**:
+
+1. **Run validate for details**:
+   ```bash
+   pnpm dlx @saleor/configurator validate --json 2>/dev/null | jq '.result.errors[]'
+   ```
+
+2. **Common YAML issues**:
+   - Incorrect indentation (use 2 spaces)
+   - Missing quotes around special characters
+   - Tabs instead of spaces
+
+---
+
+## Code 5: PARTIAL_FAILURE
+
+Some operations succeeded, others failed. The deployment completed but not all entities were applied.
+
+**When returned**:
+- GraphQL errors on specific entities
+- Server rejected some mutations
+- Rate limiting caused failures
+
+**Troubleshooting**:
+
+1. **Parse failed entities from envelope**:
+   ```bash
+   pnpm dlx @saleor/configurator deploy --json 2>/dev/null | jq '.errors[] | "\(.entity): \(.message)"'
+   ```
+
+2. **Drill into specific failures**:
+   ```bash
+   pnpm dlx @saleor/configurator diff --entity "Categories/electronics" --json 2>/dev/null
+   ```
+
+3. **Fix and redeploy** -- only the failed entities will be retried.
+
+---
+
+## Code 6: DELETION_BLOCKED
+
+The `--fail-on-delete` flag was set and deletions were detected.
+
+**When returned**:
+- Entities exist in remote but not in local config
+- `--fail-on-delete` flag is active
+
+**Resolution**:
+- Review the deletions in `diff` output
+- Either add the entities to config or remove `--fail-on-delete`
+
+---
+
+## Code 7: BREAKING_BLOCKED
+
+The `--fail-on-breaking` flag was set and breaking changes were detected.
+
+**When returned**:
+- Breaking changes detected in deployment plan
+- `--fail-on-breaking` flag is active
+
+**Resolution**:
+- Review the breaking changes
+- Either adjust config or remove `--fail-on-breaking`
+
+---
+
+## Exit Code Decision Tree
 
 ```
-GraphQL Error:
-  Operation: ProductCreate
-  Field: variants.0.sku
-  Message: This field is required.
+exitCode == 0 --> Success
+exitCode == 1 --> Check .errors and .logs in envelope
+exitCode == 2 --> Regenerate token, verify URL
+exitCode == 3 --> Check network, DNS, firewall
+exitCode == 4 --> Run validate --json, fix config
+exitCode == 5 --> Parse .errors for failed entities, drill down with --entity
+exitCode == 6 --> Review deletions, decide to keep or remove --fail-on-delete
+exitCode == 7 --> Review breaking changes, decide to accept or block
 ```
-
-**Fix**: Add the missing required field to your config.
-
-### Rate Limiting
-
-```
-Rate Limit Error:
-  Too many requests. Please wait before retrying.
-  Retry-After: 60 seconds
-```
-
-**Fix**: Wait the specified time and retry.
-
-### Conflict Errors
-
-```
-Conflict Error:
-  Entity: Product "my-product"
-  Message: Entity was modified since last fetch.
-```
-
-**Fix**: Run `introspect` to get latest state, reapply changes.
 
 ---
 
 ## Best Practices
 
-### 1. Always check exit codes in scripts
+### 1. Always parse JSON envelopes in automation
 
 ```bash
-npx configurator deploy
-if [ $? -eq 2 ]; then
-  echo "Config validation failed"
-  exit 1
-fi
-```
-
-### 2. Use --dry-run before deploy
-
-```bash
-npx configurator deploy --dry-run
-if [ $? -eq 0 ]; then
-  npx configurator deploy
-fi
-```
-
-### 3. Handle errors gracefully
-
-```bash
-npx configurator deploy 2>&1 | tee deploy.log
-EXIT_CODE=${PIPESTATUS[0]}
+OUTPUT=$(pnpm dlx @saleor/configurator deploy --json 2>/dev/null)
+EXIT_CODE=$(echo "$OUTPUT" | jq -r '.exitCode')
 
 case $EXIT_CODE in
   0) echo "Success" ;;
-  2) echo "Fix config.yml errors" ;;
-  3) echo "Check credentials" ;;
-  4) echo "Check network" ;;
+  2) echo "Check credentials" ;;
+  3) echo "Check network" ;;
+  4) echo "Fix config.yml errors" ;;
+  5) echo "Partial failure - check errors" ;;
+  6) echo "Deletions blocked" ;;
+  7) echo "Breaking changes blocked" ;;
   *) echo "Unexpected error" ;;
 esac
 ```
 
-### 4. Capture verbose output for debugging
+### 2. Use validate before deploy
 
 ```bash
-npx configurator deploy --verbose 2>&1 > debug.log
+pnpm dlx @saleor/configurator validate --json
+if [ $? -eq 0 ]; then
+  pnpm dlx @saleor/configurator deploy
+fi
+```
+
+### 3. Drill down on partial failures
+
+```bash
+# Get failed entities
+pnpm dlx @saleor/configurator deploy --json 2>/dev/null | \
+  jq -r '.errors[].entity' | while read entity; do
+    pnpm dlx @saleor/configurator diff --entity "$entity" --json 2>/dev/null
+  done
 ```

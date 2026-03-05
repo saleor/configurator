@@ -218,11 +218,11 @@ categories:
   - name: "Electronics"
     slug: "electronics"
     description: "Electronic devices and gadgets"
-    children:
+    subcategories:
       - name: "Phones"
         slug: "phones"
         description: "Smartphones and mobile devices"
-        children:
+        subcategories:
           - name: "Smartphones"
             slug: "smartphones"
           - name: "Phone Cases"
@@ -232,7 +232,7 @@ categories:
       - name: "Computers"
         slug: "computers"
         description: "Laptops, desktops, and accessories"
-        children:
+        subcategories:
           - name: "Laptops"
             slug: "laptops"
           - name: "Desktops"
@@ -245,7 +245,7 @@ categories:
       - name: "Audio"
         slug: "audio"
         description: "Headphones, speakers, and audio equipment"
-        children:
+        subcategories:
           - name: "Headphones"
             slug: "headphones"
           - name: "Speakers"
@@ -258,7 +258,7 @@ categories:
       - name: "Software"
         slug: "software"
         description: "Digital software and apps"
-        children:
+        subcategories:
           - name: "Productivity"
             slug: "productivity-software"
           - name: "Security"
@@ -351,13 +351,13 @@ shippingZones:
 # =============================================================================
 taxClasses:
   - name: "Electronics"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
 
   - name: "Digital Products"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
 
 # =============================================================================

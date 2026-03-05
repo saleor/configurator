@@ -1,7 +1,8 @@
 import { Logger } from "tslog";
-import { isCiOutputMode } from "./ci-mode";
+import { isCiOutputMode, isNonInteractiveEnvironment } from "./ci-mode";
 import { LOG_LEVEL } from "./env";
 import { EnvironmentVariableError } from "./errors/shared";
+import { globalLogCollector } from "./json-log-collector";
 
 // Map string log levels to numbers as required by tslog
 const logLevelMap = {
@@ -49,6 +50,26 @@ export const logger = new Logger({
   prettyErrorParentNamesSeparator: ":",
   hideLogPositionForProduction: process.env.NODE_ENV === "production",
 });
+
+// In non-interactive mode, also collect logs for JSON envelope embedding
+if (isNonInteractiveEnvironment()) {
+  const levelMap: Record<number, "debug" | "info" | "warn" | "error"> = {
+    2: "debug",
+    3: "info",
+    4: "warn",
+    5: "error",
+    6: "error",
+  };
+
+  logger.attachTransport((logObj) => {
+    const level = levelMap[logObj._meta.logLevelId as number];
+    if (level) {
+      const message =
+        logObj[0] && typeof logObj[0] === "string" ? logObj[0] : JSON.stringify(logObj);
+      globalLogCollector.add(level, message);
+    }
+  });
+}
 
 // Log the current log level on startup
 logger.debug("Logger initialized", { level: LOG_LEVEL });

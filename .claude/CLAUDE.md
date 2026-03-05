@@ -16,19 +16,19 @@ Declarative "commerce as code" CLI for Saleor e-commerce. Define your store conf
 
 ### Running CLI Commands (Important)
 
-**Always use `--ci` when running deploy, introspect, or recipe commands.** These commands use interactive prompts (confirmations) that block non-interactive execution. `--ci` skips all prompts.
+**Non-interactive mode is auto-detected** in non-TTY environments (pipes, CI, subprocesses). No special flag needed — confirmations are skipped automatically.
 
 ```bash
 # Credentials come from .env.local (see .env.example for template)
 # source .env.local or set SALEOR_URL and SALEOR_TOKEN
 
-# Deploy (always --ci)
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+# Deploy
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
-# Introspect (always --ci)
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+# Introspect
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
-# Diff (no --ci needed, read-only with no prompts)
+# Diff
 pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
@@ -99,14 +99,14 @@ pnpm check:fix && pnpm build && pnpm test && pnpm check:ci
 # Credentials from .env.local (see .env.example for template)
 # source .env.local
 
-# Validation workflow (always use --ci to skip interactive prompts)
+# Validation workflow (non-interactive auto-detected in non-TTY)
 rm -rf config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Make test changes to config.yml
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Should show no changes (idempotent)
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN  # Should show no changes (idempotent)
 rm config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff
 ```
 

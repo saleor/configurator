@@ -201,11 +201,11 @@ categories:
   - name: "Clothing"
     slug: "clothing"
     description: "All clothing items"
-    children:
+    subcategories:
       - name: "Men's"
         slug: "mens"
         description: "Men's clothing"
-        children:
+        subcategories:
           - name: "T-Shirts"
             slug: "mens-t-shirts"
             description: "Men's t-shirts and casual tops"
@@ -218,7 +218,7 @@ categories:
       - name: "Women's"
         slug: "womens"
         description: "Women's clothing"
-        children:
+        subcategories:
           - name: "Dresses"
             slug: "womens-dresses"
             description: "Women's dresses"
@@ -235,7 +235,7 @@ categories:
   - name: "Accessories"
     slug: "accessories"
     description: "Fashion accessories"
-    children:
+    subcategories:
       - name: "Bags"
         slug: "bags"
         description: "Handbags, backpacks, and more"
@@ -356,14 +356,14 @@ shippingZones:
 # =============================================================================
 taxClasses:
   - name: "Standard Rate"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
-      - country: DE
+      - countryCode: DE
         rate: 19
-      - country: FR
+      - countryCode: FR
         rate: 20
-      - country: GB
+      - countryCode: GB
         rate: 20
 
 # =============================================================================

@@ -7,6 +7,10 @@ argument-hint: [--auto-fix]
 
 # Configurator Fix
 
+## Required Skills
+- `configurator-schema` — config.yml structure and valid field values
+- `configurator-cli` — CLI commands and exit codes
+
 Intelligent debugging and fixing for config.yml issues. This command reads your configuration, identifies problems, explains them in plain language, and offers to automatically fix common issues.
 
 ## Usage

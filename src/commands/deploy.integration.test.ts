@@ -59,12 +59,12 @@ describe("Deploy Command - Integration Tests", () => {
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -138,12 +138,12 @@ describe("Deploy Command - Integration Tests", () => {
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true, // Use CI mode to avoid confirmation prompt
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -183,12 +183,12 @@ describe("Deploy Command - Integration Tests", () => {
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -238,13 +238,13 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          ci: true,
           quiet: false,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(0)");
 
@@ -293,13 +293,13 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: "invalid-token",
           config: configPath,
-          ci: true,
           quiet: false,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(2)");
 
@@ -342,13 +342,13 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          ci: true,
           quiet: false,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(3)");
 
@@ -374,13 +374,13 @@ describe("Deploy Command - Integration Tests", () => {
           url: TEST_URL,
           token: TEST_TOKEN,
           config: "non-existent-config.yml",
-          ci: true,
           quiet: false,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -409,13 +409,13 @@ invalid_yaml: [
           url: TEST_URL,
           token: TEST_TOKEN,
           config: configPath,
-          ci: true,
           quiet: false,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -437,12 +437,12 @@ invalid_yaml: [
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(4)");
 
@@ -578,12 +578,12 @@ invalid_yaml: [
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -668,12 +668,12 @@ invalid_yaml: [
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -765,12 +765,12 @@ invalid_yaml: [
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(5)");
 
@@ -798,12 +798,12 @@ invalid_yaml: [
           token: TEST_TOKEN,
           config: configPath,
           quiet: false,
-          ci: true,
           verbose: false,
           json: false,
           plan: false,
           failOnDelete: false,
           skipMedia: false,
+          text: true,
         })
       ).rejects.toThrow("process.exit(0)");
 

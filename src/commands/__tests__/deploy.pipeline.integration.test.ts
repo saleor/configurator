@@ -21,12 +21,12 @@ describe.skip("Deploy Command with Pipeline Integration", () => {
       token: "test-token",
       config: configPath,
       quiet: true,
-      ci: true,
       verbose: false,
       json: false,
       plan: false,
       failOnDelete: false,
       skipMedia: false,
+      text: true,
     };
 
     // Mock console methods to capture output

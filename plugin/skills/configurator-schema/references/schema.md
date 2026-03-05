@@ -1,24 +1,26 @@
 # Configuration Schema Reference
 
-Complete schema documentation for `config.yml`.
+Complete schema documentation for `config.yml`. All field names match the Zod schemas in `src/modules/config/schema/schema.ts`.
 
 ## Top-Level Structure
 
 ```yaml
-# config.yml schema
-shop: ShopSettings           # Optional - store-wide settings
-channels: Channel[]          # Required - at least one channel
-productTypes: ProductType[]  # Optional - product type definitions
-pageTypes: PageType[]        # Optional - page type definitions
-attributes: Attribute[]      # Optional - attribute definitions
-categories: Category[]       # Optional - category hierarchy
-collections: Collection[]    # Optional - product collections
-products: Product[]          # Optional - product catalog
-taxClasses: TaxClass[]       # Optional - tax classifications
-shippingZones: ShippingZone[] # Optional - shipping zones
-warehouses: Warehouse[]      # Optional - warehouse locations
-menus: Menu[]                # Optional - navigation menus
-pages: Page[]                # Optional - content pages
+# config.yml schema — all sections are optional
+shop: ShopSettings              # Store-wide settings (singleton)
+channels: Channel[]             # Sales channels
+productAttributes: Attribute[]  # Standalone product attributes (PRODUCT_TYPE)
+contentAttributes: Attribute[]  # Standalone content attributes (PAGE_TYPE)
+productTypes: ProductType[]     # Product type definitions
+pageTypes: PageType[]           # Page type definitions (alias: modelTypes)
+modelTypes: ModelType[]         # Model type definitions (preferred over pageTypes)
+categories: Category[]          # Category hierarchy
+collections: Collection[]       # Product collections
+products: Product[]             # Product catalog
+models: Model[]                 # Content models/pages
+taxClasses: TaxClass[]          # Tax classifications
+shippingZones: ShippingZone[]   # Shipping zones
+warehouses: Warehouse[]         # Warehouse locations
+menus: Menu[]                   # Navigation menus
 ```
 
 ---
@@ -27,11 +29,24 @@ pages: Page[]                # Optional - content pages
 
 ```yaml
 shop:
-  name: string                    # Store name
-  description: string             # Store description
-  trackInventoryByDefault: boolean # Default inventory tracking
-  fulfillmentAutoApprove: boolean # Auto-approve fulfillment
-  fulfillmentAllowUnpaid: boolean # Allow unpaid fulfillment
+  headerText: string                          # Text displayed in the shop header
+  description: string                         # Store description
+  trackInventoryByDefault: boolean            # Default inventory tracking
+  fulfillmentAutoApprove: boolean             # Auto-approve fulfillments
+  fulfillmentAllowUnpaid: boolean             # Allow fulfillment of unpaid orders
+  automaticFulfillmentDigitalProducts: boolean # Auto-fulfill digital products
+  defaultWeightUnit: KG | LB | OZ | G | TONNE # Default weight unit
+  defaultDigitalMaxDownloads: number | null   # Max downloads for digital products
+  defaultDigitalUrlValidDays: number | null   # Days download links remain valid
+  defaultMailSenderName: string | null        # Default sender name for emails
+  defaultMailSenderAddress: string | null     # Default sender email address
+  customerSetPasswordUrl: string              # URL for customer password setup
+  reserveStockDurationAnonymousUser: number | null    # Minutes to reserve stock (anonymous)
+  reserveStockDurationAuthenticatedUser: number | null # Minutes to reserve stock (logged in)
+  limitQuantityPerCheckout: number            # Max quantity per checkout
+  enableAccountConfirmationByEmail: boolean   # Require email confirmation
+  allowLoginWithoutConfirmation: boolean      # Allow login before confirmation
+  displayGrossPrices: boolean                 # Show prices including taxes
 ```
 
 ---
@@ -40,18 +55,29 @@ shop:
 
 ```yaml
 channels:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    currencyCode: CurrencyCode # Required - ISO 4217 (USD, EUR, etc.)
-    defaultCountry: CountryCode # Required - ISO 3166-1 (US, DE, etc.)
-    isActive: boolean         # Optional - channel status (default: true)
-    stockSettings:            # Optional - stock configuration
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    currencyCode: CurrencyCode  # Required — ISO 4217 (USD, EUR, etc.)
+    defaultCountry: CountryCode # Required — ISO 3166-1 (US, DE, etc.)
+    isActive: boolean           # Optional — channel status (default: false)
+    settings:                   # Optional — advanced configuration
       allocationStrategy: PRIORITIZE_HIGH_STOCK | PRIORITIZE_SORTING_ORDER
-    orderSettings:            # Optional - order configuration
       automaticallyConfirmAllNewOrders: boolean
       automaticallyFulfillNonShippableGiftCard: boolean
-      expireOrdersAfter: number # minutes
-      markAsPaidStrategy: PAYMENT_FLOW | TRANSACTION_FLOW
+      expireOrdersAfter: number               # Minutes
+      deleteExpiredOrdersAfter: number         # Days
+      markAsPaidStrategy: TRANSACTION_FLOW | PAYMENT_FLOW
+      allowUnpaidOrders: boolean
+      includeDraftOrderInVoucherUsage: boolean
+      useLegacyErrorFlow: boolean
+      automaticallyCompleteFullyPaidCheckouts: boolean
+      defaultTransactionFlowStrategy: AUTHORIZATION | CHARGE
+    taxConfiguration:           # Optional — channel tax settings
+      taxCalculationStrategy: FLAT_RATES | TAX_APP
+      chargeTaxes: boolean
+      displayGrossPrices: boolean
+      pricesEnteredWithTax: boolean
+      taxAppId: string          # Required when using TAX_APP strategy
 ```
 
 **Example**:
@@ -62,8 +88,16 @@ channels:
     currencyCode: USD
     defaultCountry: US
     isActive: true
-    stockSettings:
+    settings:
       allocationStrategy: PRIORITIZE_HIGH_STOCK
+      automaticallyConfirmAllNewOrders: true
+      markAsPaidStrategy: TRANSACTION_FLOW
+      defaultTransactionFlowStrategy: AUTHORIZATION
+    taxConfiguration:
+      taxCalculationStrategy: FLAT_RATES
+      chargeTaxes: true
+      displayGrossPrices: false
+      pricesEnteredWithTax: false
 ```
 
 ---
@@ -72,25 +106,27 @@ channels:
 
 ```yaml
 productTypes:
-  - name: string              # Required - unique identifier
-    slug: string              # Optional - auto-generated from name
-    isShippingRequired: boolean # Required - physical product?
-    isDigital: boolean        # Optional - digital product
-    weight: Weight            # Optional - default weight
-    taxClass: string          # Optional - reference to TaxClass.name
-    productAttributes:        # Optional - product-level attributes
-      - AttributeAssignment
-    variantAttributes:        # Optional - variant-level attributes
-      - AttributeAssignment
+  - name: string                # Required — unique identifier
+    isShippingRequired: boolean # Optional — physical product? (default: false)
+    taxClass: string            # Optional — reference to TaxClass.name
+    productAttributes:          # Optional — product-level attributes
+      - AttributeInput
+    variantAttributes:          # Optional — variant-level attributes
+      - AttributeInput
 ```
 
-**AttributeAssignment**:
+**AttributeInput** — inline definition or reference:
 ```yaml
-attributeAssignment:
-  name: string                # Reference to Attribute.name
-  type: AttributeType         # DROPDOWN, MULTISELECT, etc.
-  values:                     # Optional - predefined values
-    - AttributeValue
+# Option 1: Inline attribute definition
+- name: "Brand"
+  inputType: DROPDOWN
+  values:
+    - name: "Nike"
+    - name: "Adidas"
+
+# Option 2: Reference to standalone attribute (by slug)
+- attribute: "brand"
+  variantSelection: true   # Optional — use for variant selection in storefront
 ```
 
 **Example**:
@@ -98,89 +134,61 @@ attributeAssignment:
 productTypes:
   - name: "T-Shirt"
     isShippingRequired: true
+    taxClass: "Standard Rate"
     productAttributes:
       - name: "Brand"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "Nike"
           - name: "Adidas"
     variantAttributes:
       - name: "Size"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "S"
           - name: "M"
           - name: "L"
           - name: "XL"
       - name: "Color"
-        type: SWATCH
+        inputType: SWATCH
+        values:
+          - name: "Black"
+          - name: "White"
 ```
 
 ---
 
-## Attribute
+## Standalone Attributes
+
+Standalone attributes are defined at the top level and can be referenced by product types and model types.
 
 ```yaml
-attributes:
-  - name: string              # Required - unique identifier
-    slug: string              # Optional - auto-generated
-    type: AttributeType       # Required - see Attribute Types
-    inputType: AttributeInputType # Required - see Input Types
-    valueRequired: boolean    # Optional - require value
-    visibleInStorefront: boolean # Optional - show to customers
-    filterableInStorefront: boolean # Optional - enable filtering
-    filterableInDashboard: boolean # Optional - enable in admin
-    availableInGrid: boolean  # Optional - show in product grid
-    storefrontSearchPosition: number # Optional - search weight
-    values:                   # Optional - predefined values
-      - AttributeValue
-```
+productAttributes:              # Creates attributes with type PRODUCT_TYPE
+  - name: string                # Required
+    inputType: AttributeInputType # Required
+    values:                     # Required for DROPDOWN, MULTISELECT, SWATCH
+      - name: string
 
-**Attribute Types**:
-- `PRODUCT_TYPE` - For product types
-- `PAGE_TYPE` - For page types
-
-**Input Types**:
-- `DROPDOWN` - Single select dropdown
-- `MULTISELECT` - Multi-select checkboxes
-- `FILE` - File upload
-- `REFERENCE` - Entity reference
-- `NUMERIC` - Number input
-- `RICH_TEXT` - Rich text editor
-- `PLAIN_TEXT` - Plain text input
-- `SWATCH` - Color/pattern swatch
-- `BOOLEAN` - True/false toggle
-- `DATE` - Date picker
-- `DATE_TIME` - Date and time picker
-
-**AttributeValue**:
-```yaml
-values:
-  - name: string              # Required - display name
-    slug: string              # Optional - auto-generated
-    value: string             # Optional - for SWATCH (hex color)
-    richText: string          # Optional - for RICH_TEXT
-    plainText: string         # Optional - for PLAIN_TEXT
-    file: FileInput           # Optional - for FILE
-```
-
-**Example**:
-```yaml
-attributes:
-  - name: "Color"
-    type: PRODUCT_TYPE
-    inputType: SWATCH
-    valueRequired: true
-    visibleInStorefront: true
-    filterableInStorefront: true
+contentAttributes:              # Creates attributes with type PAGE_TYPE
+  - name: string
+    inputType: AttributeInputType
     values:
-      - name: "Red"
-        value: "#FF0000"
-      - name: "Blue"
-        value: "#0000FF"
-      - name: "Green"
-        value: "#00FF00"
+      - name: string
 ```
+
+**Attribute Input Types**:
+- `DROPDOWN` — Single select (requires `values`)
+- `MULTISELECT` — Multi-select (requires `values`)
+- `SWATCH` — Color/pattern swatch (requires `values`)
+- `BOOLEAN` — True/false toggle
+- `PLAIN_TEXT` — Plain text input
+- `RICH_TEXT` — Rich text editor
+- `NUMERIC` — Number input
+- `DATE` — Date picker
+- `DATE_TIME` — Date and time picker
+- `FILE` — File upload
+- `REFERENCE` — Entity reference (requires `entityType`: PAGE, PRODUCT, or PRODUCT_VARIANT)
+- `SINGLE_REFERENCE` — Single entity reference (requires `entityType`)
 
 ---
 
@@ -188,15 +196,10 @@ attributes:
 
 ```yaml
 categories:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    description: string       # Optional - category description
-    backgroundImage: ImageInput # Optional - category image
-    seo:                      # Optional - SEO metadata
-      title: string
-      description: string
-    children:                 # Optional - nested categories
-      - Category              # Recursive structure
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    subcategories:              # Optional — nested categories
+      - Category                # Recursive structure
 ```
 
 **Example**:
@@ -204,11 +207,10 @@ categories:
 categories:
   - name: "Clothing"
     slug: "clothing"
-    description: "All clothing items"
-    children:
+    subcategories:
       - name: "Men's"
         slug: "mens"
-        children:
+        subcategories:
           - name: "T-Shirts"
             slug: "mens-t-shirts"
           - name: "Pants"
@@ -223,62 +225,59 @@ categories:
 
 ```yaml
 products:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    productType: string       # Required - reference to ProductType.name
-    category: string          # Optional - category slug path
-    description: string       # Optional - product description
-    seo:                      # Optional - SEO metadata
-      title: string
-      description: string
-    weight: Weight            # Optional - product weight
-    media:                    # Optional - product images
-      - MediaInput
-    channelListings:          # Required - channel availability
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    productType: string         # Required — reference to ProductType.name
+    category: string            # Required — category slug
+    description: string         # Optional — product description
+    taxClass: string            # Optional — overrides product type's tax class
+    attributes:                 # Optional — product attribute values
+      AttributeName: value      # String or string array
+    media:                      # Optional — external media assets
+      - ProductMedia
+    channelListings:            # Optional — channel availability
       - ProductChannelListing
-    variants:                 # Required - at least one variant
+    variants:                   # Required — at least one variant
       - ProductVariant
 ```
 
 **ProductChannelListing**:
 ```yaml
 channelListings:
-  - channel: string           # Required - channel slug
-    isPublished: boolean      # Required - visibility
-    publicationDate: string   # Optional - ISO date
-    isAvailableForPurchase: boolean # Required
-    availableForPurchaseDate: string # Optional - ISO date
-    visibleInListings: boolean # Required - show in listings
+  - channel: string             # Required — channel slug
+    isPublished: boolean        # Optional (default: true)
+    publishedAt: string         # Optional — ISO date
+    isAvailableForPurchase: boolean # Optional
+    availableForPurchaseAt: string  # Optional — ISO date
+    visibleInListings: boolean  # Optional (default: true)
 ```
 
 **ProductVariant**:
 ```yaml
 variants:
-  - name: string              # Optional - variant name
-    sku: string               # Required - unique SKU
-    trackInventory: boolean   # Optional - track stock
-    weight: Weight            # Optional - variant weight
-    attributes:               # Required - variant attribute values
-      AttributeName: AttributeValue
-    channelListings:          # Required - pricing
+  - name: string                # Required — variant name
+    sku: string                 # Required — unique SKU
+    weight: number              # Optional — weight (in shop's default unit)
+    digital: boolean            # Optional — digital product flag
+    attributes:                 # Optional — variant attribute values
+      AttributeName: value      # String or string array
+    channelListings:            # Optional — pricing
       - VariantChannelListing
-    stocks:                   # Optional - warehouse stock
-      - Stock
 ```
 
 **VariantChannelListing**:
 ```yaml
 channelListings:
-  - channel: string           # Required - channel slug
-    price: number             # Required - price amount
-    costPrice: number         # Optional - cost price
+  - channel: string             # Required — channel slug
+    price: number               # Optional — price amount
+    costPrice: number           # Optional — cost price
 ```
 
-**Stock**:
+**ProductMedia**:
 ```yaml
-stocks:
-  - warehouse: string         # Required - warehouse slug
-    quantity: number          # Required - stock quantity
+media:
+  - externalUrl: string         # Required — URL to external image/video (validated)
+    alt: string                 # Optional — accessible alt text
 ```
 
 **Example**:
@@ -287,24 +286,29 @@ products:
   - name: "Classic T-Shirt"
     slug: "classic-t-shirt"
     productType: "T-Shirt"
-    category: "clothing/mens/t-shirts"
-    description: "A comfortable cotton t-shirt"
+    category: "mens-t-shirts"
+    taxClass: "Standard Rate"
+    attributes:
+      Brand: "Nike"
+    media:
+      - externalUrl: "https://cdn.example.com/tshirt-front.jpg"
+        alt: "Classic T-Shirt front view"
     channelListings:
       - channel: "us-store"
         isPublished: true
         isAvailableForPurchase: true
         visibleInListings: true
     variants:
-      - sku: "TSHIRT-S-RED"
+      - name: "Small Red"
+        sku: "TSHIRT-S-RED"
+        weight: 0.2
         attributes:
           Size: "S"
           Color: "Red"
         channelListings:
           - channel: "us-store"
             price: 29.99
-        stocks:
-          - warehouse: "main"
-            quantity: 100
+            costPrice: 12.00
 ```
 
 ---
@@ -313,17 +317,22 @@ products:
 
 ```yaml
 collections:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    description: string       # Optional - collection description
-    backgroundImage: ImageInput # Optional - collection image
-    seo:                      # Optional - SEO metadata
-      title: string
-      description: string
-    channelListings:          # Required - visibility
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    description: string         # Optional — collection description
+    isPublished: boolean        # Optional — top-level publish shorthand
+    products:                   # Optional — product slugs
+      - string
+    channelListings:            # Optional — channel visibility
       - CollectionChannelListing
-    products:                 # Optional - manual product list
-      - string                # Product slugs
+```
+
+**CollectionChannelListing**:
+```yaml
+channelListings:
+  - channelSlug: string         # Required — channel slug
+    isPublished: boolean        # Optional
+    publishedAt: string         # Optional — ISO date
 ```
 
 ---
@@ -332,20 +341,23 @@ collections:
 
 ```yaml
 warehouses:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    email: string             # Optional - contact email
-    isPrivate: boolean        # Optional - private warehouse
-    clickAndCollectOption: DISABLED | LOCAL | ALL # Optional
-    address:                  # Required - warehouse address
-      streetAddress1: string
-      streetAddress2: string
-      city: string
-      postalCode: string
-      country: CountryCode
-      countryArea: string
-    shippingZones:            # Optional - associated zones
-      - string                # ShippingZone names
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    email: string               # Optional — contact email
+    isPrivate: boolean          # Optional (default: false)
+    clickAndCollectOption: DISABLED | LOCAL | ALL  # Optional (default: DISABLED)
+    address:                    # Required — warehouse address
+      streetAddress1: string    # Required
+      streetAddress2: string    # Optional
+      city: string              # Required
+      cityArea: string          # Optional
+      postalCode: string        # Optional
+      country: CountryCode      # Required
+      countryArea: string       # Optional
+      companyName: string       # Optional
+      phone: string             # Optional
+    shippingZones:              # Optional — associated zone names
+      - string
 ```
 
 ---
@@ -354,29 +366,36 @@ warehouses:
 
 ```yaml
 shippingZones:
-  - name: string              # Required - unique identifier
-    countries:                # Required - covered countries
+  - name: string                # Required — unique identifier
+    description: string         # Optional
+    default: boolean            # Optional (default: false)
+    countries:                  # Required — covered countries
       - CountryCode
-    warehouses:               # Optional - source warehouses
-      - string                # Warehouse slugs
-    shippingMethods:          # Optional - shipping methods
+    warehouses:                 # Optional — source warehouse slugs
+      - string
+    channels:                   # Optional — channel slugs
+      - string
+    shippingMethods:            # Optional — shipping methods
       - ShippingMethod
 ```
 
 **ShippingMethod**:
 ```yaml
 shippingMethods:
-  - name: string              # Required - method name
-    type: PRICE | WEIGHT      # Required - calculation type
-    minimumOrderPrice: number # Optional - minimum order
-    maximumOrderPrice: number # Optional - maximum order
-    minimumOrderWeight: Weight # Optional - minimum weight
-    maximumOrderWeight: Weight # Optional - maximum weight
-    channelListings:          # Required - pricing
-      - channel: string
-        price: number
-        minimumOrderPrice: number
-        maximumOrderPrice: number
+  - name: string                # Required — method name
+    description: string         # Optional
+    type: PRICE | WEIGHT        # Required — calculation type
+    minimumDeliveryDays: number # Optional — min delivery days
+    maximumDeliveryDays: number # Optional — max delivery days
+    taxClass: string            # Optional — reference to TaxClass.name
+    minimumOrderWeight: Weight  # Optional (for WEIGHT type)
+    maximumOrderWeight: Weight  # Optional (for WEIGHT type)
+    channelListings:            # Optional — pricing per channel
+      - channel: string         # Required — channel slug
+        price: number           # Required — shipping price
+        currency: CurrencyCode  # Optional
+        minimumOrderPrice: number # Optional
+        maximumOrderPrice: number # Optional
 ```
 
 ---
@@ -385,10 +404,23 @@ shippingMethods:
 
 ```yaml
 taxClasses:
-  - name: string              # Required - unique identifier
-    countries:                # Optional - country-specific rates
-      - country: CountryCode
-        rate: number          # Percentage (e.g., 20 for 20%)
+  - name: string                # Required — unique identifier
+    countryRates:               # Optional — per-country tax rates
+      - countryCode: CountryCode  # Required — ISO 3166-1 alpha-2
+        rate: number              # Required — percentage (0-100)
+```
+
+**Example**:
+```yaml
+taxClasses:
+  - name: "Standard Rate"
+    countryRates:
+      - countryCode: US
+        rate: 0
+      - countryCode: GB
+        rate: 20
+      - countryCode: DE
+        rate: 19
 ```
 
 ---
@@ -397,22 +429,76 @@ taxClasses:
 
 ```yaml
 menus:
-  - name: string              # Required - display name
-    slug: string              # Required - unique identifier
-    items:                    # Optional - menu items
+  - name: string                # Required — display name
+    slug: string                # Required — unique identifier
+    items:                      # Optional — menu items
       - MenuItem
 ```
 
 **MenuItem**:
 ```yaml
 items:
-  - name: string              # Required - item name
-    url: string               # Optional - external URL
-    category: string          # Optional - category slug
-    collection: string        # Optional - collection slug
-    page: string              # Optional - page slug
-    children:                 # Optional - nested items
+  - name: string                # Required — item name
+    url: string                 # Optional — external URL
+    category: string            # Optional — category slug
+    collection: string          # Optional — collection slug
+    page: string                # Optional — page/model slug
+    children:                   # Optional — nested items
       - MenuItem
+```
+
+---
+
+## Model Type (alias: Page Type)
+
+`modelTypes` is the preferred key. `pageTypes` is supported as an alias.
+
+**modelTypes** (full features):
+```yaml
+modelTypes:
+  - name: string                # Required — unique identifier
+    slug: string                # Optional
+    attributes:                 # Optional — attribute definitions
+      - AttributeInput          # Inline or reference
+```
+
+**pageTypes** (basic):
+```yaml
+pageTypes:
+  - name: string                # Required — unique identifier
+    attributes:                 # Optional — attribute definitions
+      - AttributeInput
+```
+
+---
+
+## Model (alias: Page)
+
+Content models/pages with structured data based on model types.
+
+```yaml
+models:
+  - title: string               # Required — model title (NOT name)
+    slug: string                # Required — unique identifier
+    modelType: string           # Required — reference to ModelType.name
+    content: string             # Optional — page content
+    isPublished: boolean        # Optional
+    publishedAt: string         # Optional — ISO date
+    attributes:                 # Optional — attribute values
+      attributeSlug: value      # String, number, boolean, or string array
+```
+
+**Example**:
+```yaml
+models:
+  - title: "About Us"
+    slug: "about-us"
+    modelType: "Landing Page"
+    content: "Welcome to our store..."
+    isPublished: true
+    attributes:
+      author: "John Doe"
+      tags: ["company", "about"]
 ```
 
 ---
@@ -423,18 +509,9 @@ items:
 ```yaml
 weight:
   value: number
-  unit: G | KG | LB | OZ
+  unit: G | KG | LB | OZ | TONNE
 ```
 
-**ImageInput**:
-```yaml
-image:
-  url: string                 # External URL
-  # OR
-  file: string                # Local file path
-  alt: string                 # Alt text
-```
+**CurrencyCode**: ISO 4217 codes (USD, EUR, GBP, JPY, PLN, CZK, BRL, etc.)
 
-**CurrencyCode**: ISO 4217 codes (USD, EUR, GBP, JPY, etc.)
-
-**CountryCode**: ISO 3166-1 alpha-2 codes (US, DE, GB, JP, etc.)
+**CountryCode**: ISO 3166-1 alpha-2 codes (US, DE, GB, JP, PL, BR, etc.)

@@ -100,10 +100,10 @@ categories:
     # backgroundImage: "path/to/image.jpg"        # [OPTIONAL] Background image
 
     # Nested categories (can be multiple levels deep)
-    # children:
+    # subcategories:
     #   - name: "Subcategory"
     #     slug: "subcategory"
-    #     children:
+    #     subcategories:
     #       - name: "Sub-subcategory"
     #         slug: "sub-subcategory"
 
@@ -207,10 +207,10 @@ products:
 # Tax rate configurations
 # taxClasses:
 #   - name: "Standard Rate"                       # [REQUIRED] Unique name (identifier)
-#     countries:
-#       - country: US
-#         rate: 0                                 # Tax rate percentage
-#       - country: DE
+#     countryRates:
+#       - countryCode: US
+#         rate: 0                                 # Tax rate percentage (0-100)
+#       - countryCode: DE
 #         rate: 19
 
 # -----------------------------------------------------------------------------

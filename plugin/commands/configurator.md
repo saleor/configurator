@@ -9,6 +9,10 @@ argument-hint: [init|validate|edit|review] [options]
 
 Core command for managing your Saleor configuration. This command provides essential operations for working with config.yml.
 
+## Required Skills
+- `configurator-schema` — config.yml structure and validation rules
+- `configurator-cli` — CLI commands, flags, and exit codes
+
 ## Usage
 
 ```bash

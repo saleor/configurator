@@ -1,7 +1,7 @@
 ---
 name: data-importer
 version: 2.0.0
-description: "Transforms external product data into Saleor config.yml format. Use when importing from CSV, Excel, Shopify exports, or any external data source."
+description: "Transforms external product data into Saleor config.yml format. Use whenever importing, migrating, or converting data from CSV, Excel, Shopify, or any external source. Not for manual config editing (use configurator-schema)."
 allowed-tools: Bash, Read, Write, Edit, AskUserQuestion, Glob
 license: MIT
 compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."

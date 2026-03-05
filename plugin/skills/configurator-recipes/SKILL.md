@@ -1,7 +1,7 @@
 ---
 name: configurator-recipes
 version: 2.0.0
-description: "Pre-built store configuration templates for common business types. Use when asking about store templates, example configs, fashion/electronics/subscription setup, or starting points."
+description: "Pre-built store configuration templates for common business types. Use whenever user asks for templates, examples, starting points, or mentions fashion/electronics/subscription store setup. Not for custom product type design (use product-modeling)."
 allowed-tools: Read, Write
 license: MIT
 compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
@@ -93,11 +93,66 @@ After copying a recipe:
 
 ## Creating Your Own Recipe
 
-1. Start with a working `config.yml`
-2. Generalize names and values
-3. Add YAML comments explaining each section
-4. Test deployment to a fresh Saleor instance
-5. Document what users should customize
+### Template Structure
+
+A recipe template should follow this structure:
+
+```yaml
+# Recipe: [Business Type] Store
+# Description: [What this recipe sets up]
+# Customize: [List key things users should change]
+
+channels:
+  - name: "Main Store"          # ← User should rename
+    slug: "main"                # ← User should update
+    currencyCode: USD           # ← User should set region
+    defaultCountry: US
+    isActive: true
+
+productTypes:
+  # Each type should have a comment explaining its purpose
+  - name: "[Type Name]"
+    isShippingRequired: true
+    productAttributes: [...]
+    variantAttributes: [...]
+
+categories:
+  # Keep hierarchy to 3 levels max
+  - name: "[Root Category]"
+    slug: "[root-slug]"
+    subcategories: [...]
+```
+
+### Required Sections
+
+Every recipe must include:
+1. **Header comment** — recipe name, description, customization checklist
+2. **At least one channel** — with valid currency and country codes
+3. **Product types** — with product and variant attributes defined
+4. **Categories** — at least a basic hierarchy
+5. **Comments** — explaining what each section does and what to customize
+
+### Testing Your Recipe
+
+```bash
+# 1. Deploy to a fresh Saleor instance
+npx configurator deploy --url=$STAGING_URL --token=$STAGING_TOKEN
+
+# 2. Verify idempotency (second deploy should show no changes)
+npx configurator deploy --url=$STAGING_URL --token=$STAGING_TOKEN
+
+# 3. Introspect and diff to confirm round-trip fidelity
+npx configurator introspect --url=$STAGING_URL --token=$STAGING_TOKEN --config=introspected.yml
+npx configurator diff --url=$STAGING_URL --token=$STAGING_TOKEN
+```
+
+### Documentation Checklist
+
+- [ ] Every section has comments explaining purpose
+- [ ] All placeholder values are clearly marked for customization
+- [ ] Currency/country codes use valid ISO standards
+- [ ] Slugs are descriptive and follow lowercase-hyphen convention
+- [ ] README or header documents what the recipe creates
 
 ## See Also
 

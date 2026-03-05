@@ -90,7 +90,7 @@ Products display based on configuration:
 ### Required Environment Variables
 
 ```bash
-# Saleor API endpoint (same as SALEOR_API_URL)
+# Saleor API endpoint (CLI uses SALEOR_URL; Next.js apps often use NEXT_PUBLIC_SALEOR_API_URL)
 NEXT_PUBLIC_SALEOR_API_URL=https://your-store.saleor.cloud/graphql/
 
 # Channel to use (matches config.yml channel slug)
@@ -139,7 +139,7 @@ Categories in config.yml automatically populate navigation:
 categories:
   - name: "Clothing"
     slug: "clothing"
-    children:
+    subcategories:
       - name: "T-Shirts"
         slug: "t-shirts"
 ```
@@ -279,7 +279,7 @@ Product media in config.yml displays in storefront:
 products:
   - name: "Product"
     media:
-      - url: "https://cdn.example.com/image.jpg"
+      - externalUrl: "https://cdn.example.com/image.jpg"
         alt: "Product front view"
 ```
 

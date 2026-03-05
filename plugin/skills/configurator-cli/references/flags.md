@@ -12,14 +12,15 @@ Saleor GraphQL API endpoint URL.
 --url=https://your-store.saleor.cloud/graphql/
 ```
 
-**Environment variable**: `SALEOR_API_URL`
+**Environment variable**: `SALEOR_URL`
 
-**Format**: Must be a valid URL ending in `/graphql/`
+**Format**: Must be a valid HTTPS URL ending in `/graphql/`
 
 **Examples**:
 - Saleor Cloud: `https://store-abc123.saleor.cloud/graphql/`
 - Self-hosted: `https://api.yourstore.com/graphql/`
-- Local dev: `http://localhost:8000/graphql/`
+
+**Validation**: The CLI validates URLs must use HTTPS and end with `/graphql/`.
 
 ### --token
 
@@ -70,15 +71,6 @@ Comma-separated list of entity types to include.
 - `menus`
 - `pages`
 
-**Examples**:
-```bash
-# Only deploy products and their dependencies
-npx configurator deploy --include=products,productTypes,categories
-
-# Only diff channels
-npx configurator diff --include=channels
-```
-
 ### --exclude
 
 Comma-separated list of entity types to exclude.
@@ -87,42 +79,47 @@ Comma-separated list of entity types to exclude.
 --exclude=products,pages
 ```
 
-**Examples**:
-```bash
-# Deploy everything except products
-npx configurator deploy --exclude=products
+**Note**: `--include` and `--exclude` are mutually exclusive.
 
-# Introspect without pages and menus
-npx configurator introspect --exclude=pages,menus
+### --entity-type
+
+Filter diff results to a single entity type. Available on `diff` command.
+
+```bash
+--entity-type="Categories"
 ```
 
-**Note**: `--include` and `--exclude` are mutually exclusive.
+### --entity
+
+Filter diff results to a specific entity by Type/name. Available on `diff` command.
+
+```bash
+--entity="Categories/electronics"
+```
 
 ---
 
 ## Safety Flags
 
-### --dry-run
+### --plan
 
-Preview changes without executing them.
+Preview changes without executing them. Available on `deploy` command.
 
 ```bash
-npx configurator deploy --dry-run
+pnpm dlx @saleor/configurator deploy --plan
 ```
 
 **Behavior**:
 - Shows what would be created, updated, deleted
-- No actual API calls made
-- Exit code indicates validation success/failure
-
-**Best practice**: Always run `--dry-run` before deploying to production.
+- No actual API mutations made
+- Combine with `--json` for machine-readable plan
 
 ### --fail-on-delete
 
-Exit with error code if any deletions detected.
+Exit with code 6 if any deletions detected. Available on `deploy` command.
 
 ```bash
-npx configurator deploy --fail-on-delete
+pnpm dlx @saleor/configurator deploy --fail-on-delete
 ```
 
 **Use cases**:
@@ -130,127 +127,88 @@ npx configurator deploy --fail-on-delete
 - Production deployments
 - Automated sync processes
 
-**Exit code**: Returns 1 if deletions would occur.
+### --fail-on-breaking
+
+Exit with code 7 if breaking changes detected. Available on `deploy` command.
+
+```bash
+pnpm dlx @saleor/configurator deploy --fail-on-breaking
+```
 
 ### --skip-media
 
 Skip media file comparison and upload.
 
 ```bash
-npx configurator deploy --skip-media
-npx configurator diff --skip-media
-```
-
-**Use cases**:
-- Faster deployments when media unchanged
-- Limited bandwidth environments
-- Focus on configuration changes only
-
----
-
-## Input/Output Flags
-
-### --input
-
-Path to configuration file (for deploy and diff).
-
-```bash
---input=staging-config.yml
-```
-
-**Default**: `config.yml`
-
-**Examples**:
-```bash
-# Deploy from custom file
-npx configurator deploy --input=environments/production.yml
-
-# Diff against specific config
-npx configurator diff --input=backup/config-2024-01-15.yml
-```
-
-### --output
-
-Path for output file (for introspect and start).
-
-```bash
---output=my-config.yml
-```
-
-**Default**: `config.yml`
-
-**Examples**:
-```bash
-# Introspect to custom file
-npx configurator introspect --output=environments/staging.yml
-
-# Create new config with custom name
-npx configurator start --output=store-config.yml
+pnpm dlx @saleor/configurator deploy --skip-media
 ```
 
 ---
 
 ## Output Control Flags
 
+### --json
+
+Force JSON envelope output, even in a TTY terminal.
+
+```bash
+pnpm dlx @saleor/configurator deploy --json
+```
+
+**Note**: In non-TTY mode (pipes, CI), JSON envelope is the default output format.
+
+### --text
+
+Force human-readable output, even in non-TTY mode. Overrides `--json`.
+
+```bash
+pnpm dlx @saleor/configurator deploy --text
+```
+
 ### --verbose
 
 Enable detailed logging output.
 
 ```bash
-npx configurator deploy --verbose
+pnpm dlx @saleor/configurator deploy --verbose
 ```
-
-**Shows**:
-- GraphQL queries being executed
-- Response data
-- Timing information
-- Debug details
 
 ### --quiet
 
 Suppress all non-error output.
 
 ```bash
-npx configurator deploy --quiet
+pnpm dlx @saleor/configurator deploy --quiet
 ```
 
-**Use cases**:
-- CI/CD scripts parsing exit codes
-- Automated processes
-- Reducing log noise
+### --report-path
 
-### --no-color
-
-Disable colored terminal output.
+Custom file path for the deployment report. Available on `deploy` command.
 
 ```bash
-npx configurator deploy --no-color
+pnpm dlx @saleor/configurator deploy --report-path=reports/my-deploy.json
 ```
 
-**Environment variable**: `NO_COLOR=1`
+**Default**: Auto-generated as `deployment-report-YYYY-MM-DD_HH-MM-SS.json` in the current working directory.
 
 **Use cases**:
-- CI/CD environments
-- Log files
-- Piping to other commands
+- CI/CD pipelines needing predictable report file location
+- Archiving reports alongside deployment artifacts
+- Custom report directories
 
 ---
 
-## Template Flags
+## Input/Output Flags
 
-### --template
+### --config
 
-Start from a predefined template (for start command).
+Path to configuration file.
 
 ```bash
-npx configurator start --template=fashion-store
+--config=staging-config.yml
 ```
 
-**Available templates**:
-- `fashion-store` - Apparel with size/color variants
-- `electronics-store` - Tech products with specs
-- `subscription-service` - Recurring products
-- `minimal` - Basic store structure
+**Default**: `config.yml`
 
 ---
 
@@ -259,36 +217,96 @@ npx configurator start --template=fashion-store
 ### Safe Production Deploy
 
 ```bash
-npx configurator deploy \
-  --url=$PROD_URL \
-  --token=$PROD_TOKEN \
+pnpm dlx @saleor/configurator deploy \
+  \
   --fail-on-delete \
   --exclude=products
 ```
 
-### Fast Configuration Sync
+### Machine-Readable Plan
 
 ```bash
-npx configurator deploy \
-  --include=channels,productTypes,attributes \
-  --skip-media
+pnpm dlx @saleor/configurator deploy \
+  --plan --json
+```
+
+### Entity-Scoped Debugging
+
+```bash
+pnpm dlx @saleor/configurator diff \
+  --entity "Categories/electronics" \
+  --json
+```
+
+### Safe Production Deploy with Breaking Change Protection
+
+```bash
+pnpm dlx @saleor/configurator deploy \
+  --fail-on-delete \
+  --fail-on-breaking \
+  --report-path=reports/deploy.json
 ```
 
 ### CI/CD Pipeline
 
 ```bash
-npx configurator diff --quiet || exit 0
-npx configurator deploy --fail-on-delete --quiet
+pnpm dlx @saleor/configurator validate --json
+pnpm dlx @saleor/configurator deploy --fail-on-delete --report-path=reports/deploy.json --json
 ```
 
-### Environment-Specific
+## Environment Variables
 
+| Variable | Description |
+|----------|-------------|
+| `SALEOR_URL` | Default GraphQL endpoint |
+| `SALEOR_TOKEN` | Default API token |
+| `NO_COLOR` | Disable colored output |
+| `LOG_LEVEL` | Log verbosity (debug, info, warn, error) |
+| `GRAPHQL_GOVERNOR_ENABLED` | Enable/disable request governor |
+| `GRAPHQL_MAX_CONCURRENCY` | Max concurrent GraphQL requests |
+| `GRAPHQL_INTERVAL_CAP` | Max requests per interval |
+| `GRAPHQL_INTERVAL_MS` | Interval window in ms |
+
+Credentials can also be set in `.env.local` (auto-loaded by the CLI).
+
+---
+
+## Governor Tuning
+
+The request governor prevents rate limiting by controlling GraphQL request flow. Tune via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GRAPHQL_GOVERNOR_ENABLED` | `true` | Enable/disable the governor |
+| `GRAPHQL_MAX_CONCURRENCY` | `4` | Max concurrent GraphQL requests |
+| `GRAPHQL_INTERVAL_CAP` | `20` | Max requests per interval window |
+| `GRAPHQL_INTERVAL_MS` | `1000` | Interval window in milliseconds |
+
+### Recommended Profiles
+
+**Conservative (rate-limited APIs or CI)**:
 ```bash
-# Staging
-npx configurator deploy --input=environments/staging.yml
-
-# Production
-npx configurator deploy \
-  --input=environments/production.yml \
-  --fail-on-delete
+GRAPHQL_MAX_CONCURRENCY=2
+GRAPHQL_INTERVAL_CAP=10
+GRAPHQL_INTERVAL_MS=1000
 ```
+
+**Default (most Saleor Cloud instances)**:
+```bash
+GRAPHQL_MAX_CONCURRENCY=4
+GRAPHQL_INTERVAL_CAP=20
+GRAPHQL_INTERVAL_MS=1000
+```
+
+**Aggressive (self-hosted, no rate limits)**:
+```bash
+GRAPHQL_GOVERNOR_ENABLED=false
+```
+
+### Diagnosing Rate Limits
+
+If you see 429 errors or throttling in logs:
+1. Set `LOG_LEVEL=debug` to see request timing
+2. Lower `GRAPHQL_MAX_CONCURRENCY` (try `2`)
+3. Lower `GRAPHQL_INTERVAL_CAP` (try `10`)
+4. If persistent, increase `GRAPHQL_INTERVAL_MS` (try `2000`)

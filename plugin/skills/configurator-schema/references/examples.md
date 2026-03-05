@@ -100,17 +100,17 @@ productTypes:
     isShippingRequired: true
     productAttributes:
       - name: "Brand"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "House Brand"
       - name: "Material"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "100% Cotton"
           - name: "Cotton Blend"
     variantAttributes:
       - name: "Size"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "XS"
           - name: "S"
@@ -118,7 +118,7 @@ productTypes:
           - name: "L"
           - name: "XL"
       - name: "Color"
-        type: SWATCH
+        inputType: SWATCH
         values:
           - name: "Black"
             value: "#000000"
@@ -191,10 +191,10 @@ categories:
   - name: "Electronics"
     slug: "electronics"
     description: "Electronic devices and accessories"
-    children:
+    subcategories:
       - name: "Computers"
         slug: "computers"
-        children:
+        subcategories:
           - name: "Laptops"
             slug: "laptops"
           - name: "Desktops"
@@ -203,14 +203,14 @@ categories:
             slug: "computer-accessories"
       - name: "Phones"
         slug: "phones"
-        children:
+        subcategories:
           - name: "Smartphones"
             slug: "smartphones"
           - name: "Cases & Covers"
             slug: "phone-cases"
       - name: "Audio"
         slug: "audio"
-        children:
+        subcategories:
           - name: "Headphones"
             slug: "headphones"
           - name: "Speakers"
@@ -218,17 +218,17 @@ categories:
 
   - name: "Clothing"
     slug: "clothing"
-    children:
+    subcategories:
       - name: "Men's"
         slug: "mens"
-        children:
+        subcategories:
           - name: "Shirts"
             slug: "mens-shirts"
           - name: "Pants"
             slug: "mens-pants"
       - name: "Women's"
         slug: "womens"
-        children:
+        subcategories:
           - name: "Dresses"
             slug: "womens-dresses"
           - name: "Tops"
@@ -319,32 +319,32 @@ Tax classes with country rates:
 ```yaml
 taxClasses:
   - name: "Standard Rate"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
-      - country: GB
+      - countryCode: GB
         rate: 20
-      - country: DE
+      - countryCode: DE
         rate: 19
-      - country: FR
+      - countryCode: FR
         rate: 20
 
   - name: "Reduced Rate"
-    countries:
-      - country: GB
+    countryRates:
+      - countryCode: GB
         rate: 5
-      - country: DE
+      - countryCode: DE
         rate: 7
-      - country: FR
+      - countryCode: FR
         rate: 5.5
 
   - name: "Zero Rate"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
-      - country: GB
+      - countryCode: GB
         rate: 0
-      - country: DE
+      - countryCode: DE
         rate: 0
 ```
 
@@ -360,7 +360,7 @@ menus:
     slug: "main-nav"
     items:
       - name: "Shop"
-        children:
+        subcategories:
           - name: "All Products"
             collection: "all-products"
           - name: "New Arrivals"
@@ -368,13 +368,13 @@ menus:
           - name: "Sale"
             collection: "sale"
       - name: "Categories"
-        children:
+        subcategories:
           - name: "Electronics"
             category: "electronics"
           - name: "Clothing"
             category: "clothing"
       - name: "About"
-        children:
+        subcategories:
           - name: "Our Story"
             page: "about-us"
           - name: "Contact"
@@ -384,7 +384,7 @@ menus:
     slug: "footer"
     items:
       - name: "Customer Service"
-        children:
+        subcategories:
           - name: "FAQ"
             page: "faq"
           - name: "Shipping Info"
@@ -392,7 +392,7 @@ menus:
           - name: "Returns"
             page: "returns"
       - name: "Legal"
-        children:
+        subcategories:
           - name: "Privacy Policy"
             page: "privacy"
           - name: "Terms of Service"
@@ -412,13 +412,13 @@ productTypes:
     isDigital: true
     productAttributes:
       - name: "File Format"
-        type: DROPDOWN
+        inputType: DROPDOWN
         values:
           - name: "PDF"
           - name: "EPUB"
           - name: "MP3"
       - name: "File Size"
-        type: PLAIN_TEXT
+        inputType: PLAIN_TEXT
 
 products:
   - name: "E-Book: Getting Started Guide"
@@ -445,6 +445,53 @@ products:
         channelListings:
           - channel: "main"
             price: 9.99
+```
+
+---
+
+## Content Models
+
+Model types and models for structured content pages:
+
+```yaml
+modelTypes:
+  - name: "Blog Post"
+    attributes:
+      - name: "Author"
+        inputType: PLAIN_TEXT
+      - name: "Tags"
+        inputType: MULTISELECT
+        values:
+          - name: "News"
+          - name: "Tutorial"
+          - name: "Update"
+      - name: "Featured Image"
+        inputType: FILE
+
+  - name: "Landing Page"
+    attributes:
+      - name: "Hero Title"
+        inputType: PLAIN_TEXT
+      - name: "Body Content"
+        inputType: RICH_TEXT
+
+models:
+  - title: "Getting Started Guide"
+    slug: "getting-started"
+    modelType: "Blog Post"
+    content: "Welcome to our store..."
+    isPublished: true
+    attributes:
+      Author: "Jane Doe"
+      Tags: ["Tutorial", "News"]
+
+  - title: "Summer Sale"
+    slug: "summer-sale"
+    modelType: "Landing Page"
+    isPublished: true
+    publishedAt: "2026-06-01T00:00:00Z"
+    attributes:
+      "Hero Title": "Summer Sale - Up to 50% Off"
 ```
 
 ---

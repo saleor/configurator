@@ -2,6 +2,20 @@
 
 Complete guide to modeling custom entities and building hierarchical structures in Saleor.
 
+## Table of Contents
+
+- [Part 1: Models (Pages)](#part-1-models-pages) — Understanding, configuring, and linking Models
+  - [When to Create a Model](#when-to-create-a-model)
+  - [Model Type Configuration](#model-type-configuration)
+  - [Model Instance Configuration](#model-instance-configuration)
+  - [Linking Models to Products](#linking-models-to-products)
+  - [Common Model Patterns](#common-model-patterns) — Brand, Scent Profile, Ingredient, Artist, Recipe
+- [Part 2: Structures (Menus)](#part-2-structures-menus) — Navigation and curated guides
+  - [Structure Configuration](#structure-configuration)
+  - [Common Structure Patterns](#common-structure-patterns) — Main Nav, Footer, Mega Menu, Curated Guide, Campaign
+- [Part 3: Combining Models and Structures](#part-3-combining-models-and-structures) — Wine Store example
+- [Summary: When to Use What](#summary-when-to-use-what)
+
 ## Part 1: Models (Pages)
 
 ### Understanding Models

@@ -4,23 +4,27 @@
 export type DiffOperation = "CREATE" | "UPDATE" | "DELETE";
 
 /**
- * Represents a single entity type that can be compared
+ * Canonical list of entity types that can be compared.
+ * EntityType union is derived from this array.
  */
-export type EntityType =
-  | "Product Types"
-  | "Products"
-  | "Channels"
-  | "Page Types"
-  | "Categories"
-  | "Collections"
-  | "Menus"
-  | "Models"
-  | "Shop Settings"
-  | "Warehouses"
-  | "TaxClasses"
-  | "Shipping Zones"
-  | "Product Attributes"
-  | "Content Attributes";
+export const ENTITY_TYPES = [
+  "Product Types",
+  "Products",
+  "Channels",
+  "Page Types",
+  "Categories",
+  "Collections",
+  "Menus",
+  "Models",
+  "Shop Settings",
+  "Warehouses",
+  "TaxClasses",
+  "Shipping Zones",
+  "Product Attributes",
+  "Content Attributes",
+] as const;
+
+export type EntityType = (typeof ENTITY_TYPES)[number];
 
 /**
  * Represents a single field change in a diff operation

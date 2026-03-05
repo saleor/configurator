@@ -47,7 +47,8 @@ describe("introspect command", () => {
       backup: true,
       verbose: false,
       format: "table",
-      ci: false,
+      driftCheck: false,
+      text: true,
     };
 
     it("should validate valid arguments", () => {
@@ -80,7 +81,7 @@ describe("introspect command", () => {
         expect(result.data.backup).toBe(true);
         expect(result.data.verbose).toBe(false);
         expect(result.data.format).toBe("table");
-        expect(result.data.ci).toBe(false);
+        expect(result.data.driftCheck).toBe(false);
       }
     });
 
@@ -126,17 +127,17 @@ describe("introspect command", () => {
       }
     });
 
-    it("should handle CI mode flag correctly", () => {
+    it("should handle drift-check flag correctly", () => {
       // Arrange
-      const argsWithCi = { ...validArgs, ci: true };
+      const argsWithDriftCheck = { ...validArgs, driftCheck: true };
 
       // Act
-      const result = introspectCommandSchema.safeParse(argsWithCi);
+      const result = introspectCommandSchema.safeParse(argsWithDriftCheck);
 
       // Assert
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.ci).toBe(true);
+        expect(result.data.driftCheck).toBe(true);
       }
     });
 
@@ -148,7 +149,7 @@ describe("introspect command", () => {
         backup: false,
         verbose: true,
         quiet: true,
-        ci: true,
+        driftCheck: true,
       };
 
       // Act
@@ -161,7 +162,7 @@ describe("introspect command", () => {
         expect(result.data.backup).toBe(false);
         expect(result.data.verbose).toBe(true);
         expect(result.data.quiet).toBe(true);
-        expect(result.data.ci).toBe(true);
+        expect(result.data.driftCheck).toBe(true);
       }
     });
   });

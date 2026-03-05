@@ -62,7 +62,6 @@ describe("attributeChoicesPreflightStage", () => {
         token: "",
         config: "config.yml",
         quiet: true,
-        ci: true,
         verbose: false,
       } as any,
       summary: summary as any,

@@ -18,14 +18,13 @@ vi.mock("../core/deployment/report-storage", () => ({
 }));
 
 vi.mock("../cli/console");
-vi.mock("../cli/command", () => ({
-  baseCommandArgsSchema: {
-    extend: vi.fn().mockReturnValue({
-      parse: vi.fn().mockReturnValue({}),
-    }),
-  },
-  confirmAction: vi.fn().mockResolvedValue(true),
-}));
+vi.mock("../cli/command", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../cli/command")>();
+  return {
+    ...actual,
+    confirmAction: vi.fn().mockResolvedValue(true),
+  };
+});
 vi.mock("../lib/logger");
 vi.mock("../core/deployment");
 vi.mock("../core/deployment/enhanced-pipeline", () => ({
@@ -84,15 +83,15 @@ function createMockConfigurator(
       overrides?.diff !== undefined
         ? overrides.diff
         : vi.fn().mockResolvedValue({
-        summary: {
-          totalChanges: 1,
-          creates: 1,
-          updates: 0,
-          deletes: 0,
-          results: [],
-        },
-        output: "",
-      }),
+            summary: {
+              totalChanges: 1,
+              creates: 1,
+              updates: 0,
+              deletes: 0,
+              results: [],
+            },
+            output: "",
+          }),
   };
 }
 
@@ -110,13 +109,13 @@ function createDefaultArgs(overrides?: Partial<Parameters<typeof deployHandler>[
     url: "https://test.saleor.cloud",
     token: "test-token",
     config: "config.yml",
-    ci: true,
     quiet: false,
     verbose: false,
     json: false,
     plan: false,
     failOnDelete: false,
     skipMedia: false,
+    text: true, // Force human-readable in non-TTY test environment
     ...overrides,
   };
 }
@@ -148,9 +147,11 @@ describe("Deploy Command", () => {
   let mockDiffService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
-    mockExit = vi.spyOn(process, "exit").mockImplementation((code?: string | number | null): never => {
-      throw new Error(`process.exit(${code})`);
-    });
+    mockExit = vi
+      .spyOn(process, "exit")
+      .mockImplementation((code?: string | number | null): never => {
+        throw new Error(`process.exit(${code})`);
+      });
 
     vi.spyOn(logger, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -371,9 +372,7 @@ describe("Deploy Command", () => {
       const ciModeModule = await import("../lib/ci-mode");
       vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValueOnce(false);
 
-      await expect(deployHandler(createDefaultArgs({ ci: false }))).rejects.toThrow(
-        "process.exit(0)"
-      );
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
       expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
@@ -423,15 +422,23 @@ describe("Deploy Command", () => {
         })
       );
 
-      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
-        "process.exit(1)"
-      );
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
 
       expect(consoleLogSpy).toHaveBeenCalledOnce();
       const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
       const parsed = JSON.parse(rawOutput);
 
-      expect(parsed).toMatchObject({
+      // Verify envelope wrapper
+      expect(parsed.command).toBe("deploy");
+      expect(parsed.exitCode).toBe(1);
+      expect(parsed.version).toBeDefined();
+      expect(parsed.logs).toBeInstanceOf(Array);
+      expect(parsed.errors).toBeInstanceOf(Array);
+
+      // Verify result payload
+      expect(parsed.result).toMatchObject({
         summary: {
           creates: 1,
           updates: 1,
@@ -443,8 +450,8 @@ describe("Deploy Command", () => {
         saleorUrl: "https://test.saleor.cloud",
       });
 
-      expect(parsed.operations).toHaveLength(2);
-      expect(parsed.validationErrors).toEqual([]);
+      expect(parsed.result.operations).toHaveLength(2);
+      expect(parsed.result.validationErrors).toEqual([]);
     });
 
     it("each operation has entity, name, action, and fields", async () => {
@@ -473,14 +480,14 @@ describe("Deploy Command", () => {
         })
       );
 
-      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
-        "process.exit(1)"
-      );
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
 
       const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
       const parsed = JSON.parse(rawOutput);
 
-      expect(parsed.operations[0]).toEqual({
+      expect(parsed.result.operations[0]).toEqual({
         entity: "Product Types",
         name: "T-Shirt",
         action: "update",
@@ -511,16 +518,16 @@ describe("Deploy Command", () => {
         })
       );
 
-      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
-        "process.exit(1)"
-      );
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
 
       const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
       const parsed = JSON.parse(rawOutput);
 
-      expect(parsed.willDeleteEntities).toBe(true);
-      expect(parsed.summary.deletes).toBe(1);
-      expect(parsed.operations[0]).toMatchObject({
+      expect(parsed.result.willDeleteEntities).toBe(true);
+      expect(parsed.result.summary.deletes).toBe(1);
+      expect(parsed.result.operations[0]).toMatchObject({
         entity: "Categories",
         name: "old-category",
         action: "delete",
@@ -543,9 +550,9 @@ describe("Deploy Command", () => {
         })
       );
 
-      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
-        "process.exit(0)"
-      );
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(0)");
 
       expect(mockExit).toHaveBeenCalledWith(0);
     });

@@ -1,12 +1,14 @@
 import yaml from "yaml";
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
-import { baseCommandArgsSchema, confirmAction } from "../cli/command";
+import { baseCommandArgsSchema, confirmAction, shouldOutputJson } from "../cli/command";
 import { Console } from "../cli/console";
 import { createConfigurator, type SaleorConfigurator } from "../core/configurator";
 import { DiffService } from "../core/diff";
-import type { DiffSummary, IntrospectDiffResult } from "../core/diff/types";
+import type { DiffSummary, IntrospectDiffResult, ParsedSelectiveOptions } from "../core/diff/types";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
+import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
+import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
@@ -94,16 +96,17 @@ export const introspectCommandSchema = baseCommandArgsSchema.extend({
   dryRun: z.boolean().default(false).describe("Preview changes without applying them"),
   backup: z.boolean().default(true).describe("Create a backup before making changes"),
   format: z.enum(["table", "json", "yaml"]).default("table").describe("Output format"),
-  ci: z
+  driftCheck: z
     .boolean()
     .default(false)
-    .describe("CI mode: non-interactive, exits with code 1 if changes detected"),
+    .describe("Exit with code 1 if remote differs from local (for CI drift detection)"),
   include: z
     .string()
     .optional()
     .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
   verbose: z.boolean().default(false).describe("Show detailed changes for all items"),
+  text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
 
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
@@ -114,12 +117,13 @@ export interface IntrospectContext {
   isQuiet: boolean;
   configurator: SaleorConfigurator;
   startTime: number;
+  selectiveOptions: ParsedSelectiveOptions;
 }
 
 export class IntrospectCommandHandler
   implements CommandHandler<IntrospectCommandArgs, CommandResult>
 {
-  console: Console = new Console();
+  readonly console: Console = new Console();
 
   private setupConsole(isQuiet: boolean): void {
     this.console.setOptions({ quiet: isQuiet });
@@ -127,7 +131,9 @@ export class IntrospectCommandHandler
 
   async execute(args: IntrospectCommandArgs): Promise<CommandResult> {
     const startTime = Date.now();
-    const isQuiet = args.quiet || args.ci;
+    const isQuiet = args.quiet || shouldOutputJson(args);
+
+    const selectiveOptions = parseSelectiveOptions(args);
 
     try {
       // Initialize
@@ -135,14 +141,14 @@ export class IntrospectCommandHandler
       this.console.header(INTROSPECT_MESSAGES.HEADER);
 
       // Display configuration info
-      this.displayConfigurationInfo(args, isQuiet);
+      this.displayConfigurationInfo(args, isQuiet, selectiveOptions);
 
       // Check if config file exists
       const configExists = fileExists(args.config);
 
       if (!configExists) {
         // Handle case where no config exists - just create it without diff analysis
-        return await this.handleNoExistingConfig(args, startTime);
+        return await this.handleNoExistingConfig(args, startTime, selectiveOptions);
       }
 
       // Create context for existing config flow
@@ -152,14 +158,15 @@ export class IntrospectCommandHandler
         isQuiet,
         configurator,
         startTime,
+        selectiveOptions,
       };
 
       // Execute main flow
       const diffResult = await this.analyzeDifferences(context);
-      await this.displayResults(diffResult, context);
+      this.displayResults(diffResult, context);
 
       // Check exit conditions
-      const earlyExitResult = await this.checkEarlyExitConditions(diffResult.summary, context);
+      const earlyExitResult = this.checkEarlyExitConditions(diffResult.summary, context);
       if (earlyExitResult) return earlyExitResult;
 
       // Perform introspection
@@ -177,7 +184,8 @@ export class IntrospectCommandHandler
 
   private async handleNoExistingConfig(
     args: IntrospectCommandArgs,
-    startTime: number
+    startTime: number,
+    selectiveOptions: ParsedSelectiveOptions
   ): Promise<CommandResult> {
     // Create configurator
     const configurator = createConfigurator(args);
@@ -185,10 +193,6 @@ export class IntrospectCommandHandler
     try {
       // Fetch and save configuration directly - no diff, no confirmation needed
       this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
-
-      // Parse selective options from args
-      const { includeSections, excludeSections } = parseSelectiveOptions(args);
-      const selectiveOptions = { includeSections, excludeSections };
 
       await configurator.introspect(selectiveOptions);
 
@@ -203,7 +207,11 @@ export class IntrospectCommandHandler
     }
   }
 
-  private displayConfigurationInfo(args: IntrospectCommandArgs, isQuiet: boolean): void {
+  private displayConfigurationInfo(
+    args: IntrospectCommandArgs,
+    isQuiet: boolean,
+    selectiveOptions: ParsedSelectiveOptions
+  ): void {
     if (isQuiet) return;
 
     // Show existing file info
@@ -214,7 +222,7 @@ export class IntrospectCommandHandler
     }
 
     // Show selective options
-    const { includeSections, excludeSections } = parseSelectiveOptions(args);
+    const { includeSections, excludeSections } = selectiveOptions;
     const selectiveSummary = getSelectiveOptionsSummary({
       includeSections,
       excludeSections,
@@ -234,7 +242,7 @@ export class IntrospectCommandHandler
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_DIFF);
 
     const outputFormat = this.getOutputFormat(context.args);
-    const { includeSections, excludeSections } = parseSelectiveOptions(context.args);
+    const { includeSections, excludeSections } = context.selectiveOptions;
 
     // Create DiffService instance with the same service container
     const diffService = new DiffService(context.configurator.serviceContainer);
@@ -247,10 +255,10 @@ export class IntrospectCommandHandler
     });
   }
 
-  private async displayResults(
+  private displayResults(
     diffResult: IntrospectDiffResult,
     context: IntrospectContext
-  ): Promise<void> {
+  ): void {
     if (context.isQuiet) return;
 
     const format = this.getOutputFormat(context.args);
@@ -269,18 +277,18 @@ export class IntrospectCommandHandler
     }
   }
 
-  private async checkEarlyExitConditions(
+  private checkEarlyExitConditions(
     summary: DiffSummary,
     context: IntrospectContext
-  ): Promise<CommandResult | null> {
+  ): CommandResult | null {
     // Check dry run
     if (context.args.dryRun) {
       return this.handleDryRun(summary.totalChanges, context);
     }
 
-    // Check CI mode
-    if (context.args.ci) {
-      return this.handleCiMode(summary.totalChanges);
+    // Check drift detection mode
+    if (context.args.driftCheck) {
+      return this.handleDriftCheck(summary.totalChanges);
     }
 
     // Check no changes
@@ -293,11 +301,11 @@ export class IntrospectCommandHandler
 
   private handleDryRun(totalChanges: number, context: IntrospectContext): CommandResult {
     if (totalChanges === 0) {
-      if (!context.args.ci) {
+      if (!context.isQuiet) {
         this.console.success(INTROSPECT_MESSAGES.DRY_RUN_NO_CHANGES);
       }
     } else {
-      if (!context.args.ci) {
+      if (!context.isQuiet) {
         this.console.info(INTROSPECT_MESSAGES.DRY_RUN_CHANGES(totalChanges));
         this.console.info(INTROSPECT_MESSAGES.DRY_RUN_HINT);
       }
@@ -305,8 +313,10 @@ export class IntrospectCommandHandler
     return CommandResult.success();
   }
 
-  private handleCiMode(totalChanges: number): CommandResult {
-    return totalChanges > 0 ? CommandResult.error("", 1) : CommandResult.success();
+  private handleDriftCheck(totalChanges: number): CommandResult {
+    return totalChanges > 0
+      ? CommandResult.error(`Configuration drift detected: ${totalChanges} change(s) found`, 1)
+      : CommandResult.success();
   }
 
   private handleNoChanges(): CommandResult {
@@ -390,11 +400,7 @@ export class IntrospectCommandHandler
   private async executeIntrospection(context: IntrospectContext): Promise<void> {
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
-    // Parse selective options from args
-    const { includeSections, excludeSections } = parseSelectiveOptions(context.args);
-    const selectiveOptions = { includeSections, excludeSections };
-
-    await context.configurator.introspect(selectiveOptions);
+    await context.configurator.introspect(context.selectiveOptions);
 
     const configPath = this.console.important(context.args.config);
     this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
@@ -406,7 +412,7 @@ export class IntrospectCommandHandler
   }
 
   private getOutputFormat(args: IntrospectCommandArgs): "table" | "json" | "yaml" {
-    return args.ci ? "json" : args.format;
+    return shouldOutputJson(args) ? "json" : args.format;
   }
 
   private handleError(error: unknown): CommandResult {
@@ -429,11 +435,29 @@ export class IntrospectCommandHandler
 }
 
 export async function introspectHandler(args: IntrospectCommandArgs): Promise<void> {
+  globalLogCollector.reset();
   const handler = new IntrospectCommandHandler();
   const result = await handler.execute(args);
 
-  if (result.type === "error" && result.message) {
-    handler.console.error(`❌ ${result.message}`);
+  if (shouldOutputJson(args)) {
+    const envelopeResult: Record<string, unknown> = {
+      status: result.type,
+      configPath: args.config,
+    };
+    if (result.type === "error" && result.message) {
+      envelopeResult.message = result.message;
+    }
+    outputEnvelope(
+      buildEnvelope({
+        command: "introspect",
+        exitCode: result.exitCode,
+        result: envelopeResult,
+      })
+    );
+  } else {
+    if (result.type === "error" && result.message) {
+      handler.console.error(`❌ ${result.message}`);
+    }
   }
 
   process.exit(result.exitCode);
@@ -449,7 +473,7 @@ export const introspectCommandConfig: CommandConfig<typeof introspectCommandSche
     `${COMMAND_NAME} introspect --url https://my-shop.saleor.cloud/graphql/ --token token123`,
     `${COMMAND_NAME} introspect --config output.yml`,
     `${COMMAND_NAME} introspect --dry-run`,
-    `${COMMAND_NAME} introspect --ci`,
+    `${COMMAND_NAME} introspect --drift-check # Exit 1 if remote differs from local`,
     `${COMMAND_NAME} introspect --include channels,shop`,
     `${COMMAND_NAME} introspect --exclude products`,
     `${COMMAND_NAME} introspect --format json --quiet`,

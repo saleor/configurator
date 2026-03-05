@@ -35,14 +35,20 @@ describe("report-storage", () => {
   });
 
   describe("generateReportFilename", () => {
-    it("produces correct format", () => {
+    it("produces correct format with store identifier", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2025-06-15T10:30:45.123Z"));
 
-      const filename = generateReportFilename();
-      expect(filename).toBe("deployment-report-2025-06-15_10-30-45.json");
+      const filename = generateReportFilename("deploy", "https://store-abc.saleor.cloud/graphql/");
+      // Local time offset may vary, so just check the pattern
+      expect(filename).toMatch(/^store-abc_2025-06-15_\d{2}h\d{2}m\d{2}s\.json$/);
 
       vi.useRealTimers();
+    });
+
+    it("uses 'unknown' when no URL provided", () => {
+      const filename = generateReportFilename();
+      expect(filename).toMatch(/^unknown_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}s\.json$/);
     });
   });
 
@@ -76,17 +82,23 @@ describe("report-storage", () => {
     });
 
     it("creates directory and returns managed path when no custom path", async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date("2025-06-15T10:30:45.123Z"));
-
       const result = await resolveReportPath();
 
       expect(ensureDirectory).toHaveBeenCalledWith(getReportsDirectory());
-      expect(result).toBe(
-        join(getReportsDirectory(), "deployment-report-2025-06-15_10-30-45.json")
+      expect(result).toMatch(
+        /\.configurator\/reports\/unknown_\d{4}-\d{2}-\d{2}_\d{2}h\d{2}m\d{2}s\.json$/
+      );
+    });
+
+    it("creates command subdirectory when command specified", async () => {
+      const result = await resolveReportPath(
+        undefined,
+        "deploy",
+        "https://store-abc.saleor.cloud/graphql/"
       );
 
-      vi.useRealTimers();
+      expect(ensureDirectory).toHaveBeenCalledWith(getReportsDirectory("deploy"));
+      expect(result).toMatch(/\.configurator\/reports\/deploy\/store-abc_/);
     });
   });
 
@@ -141,15 +153,15 @@ describe("report-storage", () => {
       expect(unlink).toHaveBeenCalledWith(join(dir, "deployment-report-2025-06-02_01-00-00.json"));
     });
 
-    it("ignores non-report files", async () => {
+    it("ignores non-JSON files", async () => {
       vi.mocked(readdir).mockResolvedValue([
-        "deployment-report-2025-06-01_01-00-00.json",
-        "other-file.json",
+        "store-abc_2025-06-01_01h00m00s.json",
         "README.md",
+        "notes.txt",
       ] as unknown as Awaited<ReturnType<typeof readdir>>);
 
       makeStatMock({
-        "deployment-report-2025-06-01_01-00-00.json": 1000,
+        "store-abc_2025-06-01_01h00m00s.json": 1000,
       });
 
       const deleted = await pruneOldReports(dir, 5);

@@ -119,6 +119,29 @@ Check before returning:
 - All SKUs unique
 - Valid references
 
+## Error Recovery
+
+**Invalid CSV / Encoding Issues**:
+- Try reading with `file --mime-encoding "$FILE"` to detect encoding
+- If non-UTF-8, convert: `iconv -f [detected] -t utf-8 "$FILE" > "$FILE.utf8.csv"`
+- If malformed rows, show the problematic lines and offer to skip them
+
+**Missing Required Columns**:
+- If no name/title column found, ask user which column to use
+- If no SKU column, generate SKUs from product name + row number
+- Never silently drop products — report all unmappable rows
+
+**Duplicate SKUs**:
+- Detect duplicates before generating output
+- Show all duplicates with row numbers
+- Offer to auto-suffix (e.g., `SKU-001-2`) or ask user to resolve
+
+**Post-Import Validation**:
+After generating YAML, run `validate --json` to catch schema issues:
+```bash
+npx configurator validate --json 2>/dev/null | jq '.result'
+```
+
 ## Key Principles
 
 1. **Never assume column names** - Always show what exists and ask

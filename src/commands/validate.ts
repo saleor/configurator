@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
+import { shouldOutputJson } from "../cli/command";
+import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
 import { COMMAND_NAME } from "../meta";
 import { configSchema } from "../modules/config/schema/schema";
 
@@ -13,6 +15,7 @@ const VALIDATE_EXIT = {
 export const validateCommandSchema = z.object({
   config: z.string().default("config.yml").describe("Configuration file path"),
   json: z.boolean().default(false).describe("Output validation results as JSON"),
+  text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
 
 export type ValidateCommandArgs = z.infer<typeof validateCommandSchema>;
@@ -34,10 +37,6 @@ function formatZodErrors(zodError: z.ZodError): ValidationError[] {
   }));
 }
 
-function printJsonResult(result: ValidationResult): void {
-  console.log(JSON.stringify(result));
-}
-
 function printTextSuccess(): void {
   console.log("Configuration is valid");
 }
@@ -51,7 +50,8 @@ function printTextErrors(errors: ValidationError[], configPath: string): void {
 }
 
 export async function validateHandler(args: ValidateCommandArgs): Promise<void> {
-  const { config: configPath, json } = args;
+  const { config: configPath } = args;
+  const useJson = shouldOutputJson(args);
 
   let rawContent: string;
 
@@ -59,12 +59,19 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     rawContent = await readFile(configPath, "utf-8");
   } catch (err) {
     const message = err instanceof Error ? err.message : `Failed to read file: ${configPath}`;
+    const validationResult: ValidationResult = {
+      valid: false,
+      errors: [{ path: "", message }],
+    };
 
-    if (json) {
-      printJsonResult({
-        valid: false,
-        errors: [{ path: "", message }],
-      });
+    if (useJson) {
+      outputEnvelope(
+        buildEnvelope({
+          command: "validate",
+          exitCode: VALIDATE_EXIT.INVALID,
+          result: validationResult,
+        })
+      );
     } else {
       console.error(`Error: ${message}`);
     }
@@ -76,8 +83,16 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
   const result = configSchema.safeParse(rawConfig);
 
   if (result.success) {
-    if (json) {
-      printJsonResult({ valid: true, errors: [] });
+    const validationResult: ValidationResult = { valid: true, errors: [] };
+
+    if (useJson) {
+      outputEnvelope(
+        buildEnvelope({
+          command: "validate",
+          exitCode: VALIDATE_EXIT.SUCCESS,
+          result: validationResult,
+        })
+      );
     } else {
       printTextSuccess();
     }
@@ -85,9 +100,16 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
   }
 
   const errors = formatZodErrors(result.error);
+  const validationResult: ValidationResult = { valid: false, errors };
 
-  if (json) {
-    printJsonResult({ valid: false, errors });
+  if (useJson) {
+    outputEnvelope(
+      buildEnvelope({
+        command: "validate",
+        exitCode: VALIDATE_EXIT.INVALID,
+        result: validationResult,
+      })
+    );
   } else {
     printTextErrors(errors, configPath);
   }

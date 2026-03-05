@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mergeEnvArgs } from "./command";
+import { mergeEnvArgs, shouldOutputJson } from "./command";
 
 describe("mergeEnvArgs", () => {
   afterEach(() => {
@@ -54,5 +54,20 @@ describe("mergeEnvArgs", () => {
     const args = { url: "https://example.com/graphql/", token: "tok", config: "config.yml" };
     const result = mergeEnvArgs(args);
     expect(result).toEqual(args);
+  });
+});
+
+describe("shouldOutputJson", () => {
+  it("returns true when --json flag is set", () => {
+    expect(shouldOutputJson({ json: true })).toBe(true);
+  });
+
+  it("returns false when --text flag is set even in non-TTY", () => {
+    expect(shouldOutputJson({ text: true })).toBe(false);
+  });
+
+  it("returns true in non-TTY when no explicit flag", () => {
+    // Test environment is non-TTY, so this should be true
+    expect(shouldOutputJson({})).toBe(true);
   });
 });

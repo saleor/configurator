@@ -1,7 +1,7 @@
 ---
 name: configurator-schema
 version: 2.0.0
-description: "Config.yml schema, entity structure, and validation rules. Use when asking about YAML format, required fields, entity identification, or config validation errors. Do NOT use for general YAML questions unrelated to Saleor Configurator."
+description: "Config.yml schema, entity structure, and validation rules. Use whenever writing, reading, or validating any part of config.yml, or when asking about YAML format, required fields, entity identification, or config validation errors. Do NOT use for general YAML questions unrelated to Saleor Configurator."
 allowed-tools: Read, Grep, Glob
 license: MIT
 compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
@@ -26,19 +26,21 @@ Your store configuration lives in a single `config.yml` file. Each section defin
 
 ```yaml
 # config.yml - Top-level structure
-shop:           # Store-wide settings (singleton)
-channels:       # Sales channels (slug-based)
-productTypes:   # Product type definitions (name-based)
-attributes:     # Attribute definitions (name-based)
-categories:     # Category hierarchy (slug-based)
-collections:    # Product collections (slug-based)
-products:       # Product definitions (slug-based)
-taxClasses:     # Tax classifications (name-based)
-shippingZones:  # Shipping zone definitions (name-based)
-warehouses:     # Warehouse definitions (slug-based)
-menus:          # Navigation menus (slug-based)
-pageTypes:      # Page type definitions (name-based)
-pages:          # Content pages (slug-based)
+shop:               # Store-wide settings (singleton)
+channels:           # Sales channels (slug-based)
+productAttributes:  # Standalone product attributes
+contentAttributes:  # Standalone content attributes
+productTypes:       # Product type definitions (name-based)
+modelTypes:         # Model type definitions (name-based) — preferred over pageTypes
+pageTypes:          # Page type definitions (name-based) — alias for modelTypes
+categories:         # Category hierarchy (slug-based)
+collections:        # Product collections (slug-based)
+products:           # Product definitions (slug-based)
+models:             # Content models/pages (slug-based)
+taxClasses:         # Tax classifications (name-based)
+shippingZones:      # Shipping zone definitions (name-based)
+warehouses:         # Warehouse definitions (slug-based)
+menus:              # Navigation menus (slug-based)
 ```
 
 ## Entity Identification
@@ -47,8 +49,8 @@ Configurator matches your local config to remote entities using an identifier fi
 
 | Identifier | Entity Types |
 |------------|-------------|
-| **slug** | channels, categories, collections, products, warehouses, menus, pages |
-| **name** | productTypes, pageTypes, attributes, taxClasses, shippingZones |
+| **slug** | channels, categories, collections, products, warehouses, menus, models |
+| **name** | productTypes, modelTypes/pageTypes, taxClasses, shippingZones |
 
 **Important**: Changing a slug or name creates a NEW entity instead of updating the existing one.
 
@@ -106,7 +108,7 @@ products:
 categories:
   - name: "Electronics"
     slug: "electronics"
-    children:
+    subcategories:
       - name: "Phones"
         slug: "phones"
 ```

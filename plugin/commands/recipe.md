@@ -7,6 +7,10 @@ argument-hint: [type] [--url=...] [--token=...] [--customize]
 
 # Recipe
 
+## Required Skills
+- `configurator-recipes` — pre-built store templates and customization guidance
+- `configurator-schema` — config.yml structure and validation rules
+
 Quick-start your Saleor store with pre-built, production-ready configurations. Recipes include complete channel, product type, category, and attribute setups tailored to specific business types.
 
 ## Usage
@@ -22,7 +26,7 @@ Quick-start your Saleor store with pre-built, production-ready configurations. R
 /recipe subscription
 
 # With immediate deployment
-/recipe fashion --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+/recipe fashion --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Customize before applying
 /recipe fashion --customize
@@ -155,7 +159,7 @@ If `--url` and `--token` provided:
 
 1. **Dry-run first**:
 ```bash
-npx configurator deploy --url=[url] --token=[token] --dry-run
+npx configurator deploy --url=[url] --token=[token] --plan
 ```
 
 2. **Show what will change**:

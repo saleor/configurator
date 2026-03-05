@@ -7,6 +7,10 @@ argument-hint: [description]
 
 # Domain Modeling Wizard
 
+## Required Skills
+- `product-modeling` — product type design, attribute selection, and variant planning
+- `saleor-domain` — entity relationships and identifier rules
+
 Guide the user through designing their complete catalog structure. This wizard helps translate business requirements into Saleor's data model:
 
 - **ProductTypes & Attributes** - Product structure and variants

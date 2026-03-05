@@ -114,11 +114,11 @@ categories:
   - name: "Subscriptions"
     slug: "subscriptions"
     description: "All subscription plans"
-    children:
+    subcategories:
       - name: "Plans"
         slug: "plans"
         description: "Subscription plans"
-        children:
+        subcategories:
           - name: "Basic Plans"
             slug: "basic-plans"
             description: "Entry-level subscriptions"
@@ -132,7 +132,7 @@ categories:
   - name: "Add-Ons"
     slug: "add-ons"
     description: "Additional services and features"
-    children:
+    subcategories:
       - name: "Storage"
         slug: "storage-add-ons"
         description: "Additional storage capacity"
@@ -146,7 +146,7 @@ categories:
   - name: "One-Time Purchases"
     slug: "one-time"
     description: "Single purchase items"
-    children:
+    subcategories:
       - name: "Credits"
         slug: "credits"
         description: "Credit packs"
@@ -184,12 +184,12 @@ collections:
 # =============================================================================
 taxClasses:
   - name: "Digital Services"
-    countries:
-      - country: US
+    countryRates:
+      - countryCode: US
         rate: 0
-      - country: GB
+      - countryCode: GB
         rate: 20
-      - country: DE
+      - countryCode: DE
         rate: 19
 
 # =============================================================================
