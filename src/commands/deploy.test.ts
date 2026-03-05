@@ -8,9 +8,10 @@ import { logger } from "../lib/logger";
 import { deployHandler } from "./deploy";
 
 vi.mock("../core/deployment/report-storage", () => ({
-  resolveReportPath: vi.fn(
-    async (customPath?: string) => customPath ?? ".configurator/reports/deployment-report-mock.json"
-  ),
+  resolveReportPath: vi.fn(async (customPath?: string) => {
+    if (customPath !== undefined) return customPath;
+    return ".configurator/reports/deployment-report-mock.json";
+  }),
   isInManagedDirectory: vi.fn(() => false),
   pruneOldReports: vi.fn(async () => []),
   getReportsDirectory: vi.fn(() => ".configurator/reports"),
@@ -80,8 +81,9 @@ function createMockConfigurator(
       },
     },
     diff:
-      overrides?.diff ??
-      vi.fn().mockResolvedValue({
+      overrides?.diff !== undefined
+        ? overrides.diff
+        : vi.fn().mockResolvedValue({
         summary: {
           totalChanges: 1,
           creates: 1,
@@ -119,6 +121,10 @@ function createDefaultArgs(overrides?: Partial<Parameters<typeof deployHandler>[
   };
 }
 
+function createPartialMock<T>(partial: Partial<T>): T {
+  return partial as unknown as T;
+}
+
 function setupProgressMocks() {
   if (!vi.mocked(cliConsole).progress) {
     vi.mocked(cliConsole).progress = {} as typeof cliConsole.progress;
@@ -142,9 +148,9 @@ describe("Deploy Command", () => {
   let mockDiffService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
-    mockExit = vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null) => {
+    mockExit = vi.spyOn(process, "exit").mockImplementation((code?: string | number | null): never => {
       throw new Error(`process.exit(${code})`);
-    }) as never);
+    });
 
     vi.spyOn(logger, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -163,11 +169,10 @@ describe("Deploy Command", () => {
       }),
     };
 
-    vi.spyOn(deploymentModule, "DeploymentPipeline").mockImplementation(
-      () =>
-        mockDeploymentPipeline as unknown as InstanceType<
-          typeof deploymentModule.DeploymentPipeline
-        >
+    vi.spyOn(deploymentModule, "DeploymentPipeline").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentPipeline>>(
+        mockDeploymentPipeline
+      )
     );
 
     const { executeEnhancedDeployment } = await import("../core/deployment/enhanced-pipeline");
@@ -194,17 +199,15 @@ describe("Deploy Command", () => {
     }));
 
     vi.spyOn(deploymentModule, "getAllStages").mockReturnValue([]);
-    vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(
-      () =>
-        ({
-          display: vi.fn(),
-        }) as unknown as InstanceType<typeof deploymentModule.DeploymentSummaryReport>
+    vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentSummaryReport>>({
+        display: vi.fn(),
+      })
     );
-    vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(
-      () =>
-        ({
-          saveToFile: vi.fn(),
-        }) as unknown as InstanceType<typeof deploymentModule.DeploymentReportGenerator>
+    vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentReportGenerator>>({
+        saveToFile: vi.fn(),
+      })
     );
 
     mockCreateConfigurator = vi.fn().mockReturnValue(createMockConfigurator(mockDiffService));
@@ -346,11 +349,10 @@ describe("Deploy Command", () => {
         saveToFile: vi.fn(),
       };
 
-      vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(
-        () =>
-          mockReportGenerator as unknown as InstanceType<
-            typeof deploymentModule.DeploymentReportGenerator
-          >
+      vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() =>
+        createPartialMock<InstanceType<typeof deploymentModule.DeploymentReportGenerator>>(
+          mockReportGenerator
+        )
       );
 
       await expect(
