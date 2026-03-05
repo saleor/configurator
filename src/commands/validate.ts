@@ -70,7 +70,6 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     }
 
     process.exit(VALIDATE_EXIT.INVALID);
-    return;
   }
 
   const rawConfig = parse(rawContent);
@@ -83,7 +82,6 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
       printTextSuccess();
     }
     process.exit(VALIDATE_EXIT.SUCCESS);
-    return;
   }
 
   const errors = formatZodErrors(result.error);
