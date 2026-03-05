@@ -45,6 +45,9 @@ vi.mock("../core/diff/formatters", () => ({
   SummaryDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock summary diff output"),
   })),
+  createJsonFormatter: vi.fn(() => ({
+    format: vi.fn().mockReturnValue('{"mock":"json"}'),
+  })),
 }));
 
 function createMockDiffService() {
@@ -368,6 +371,177 @@ describe("Deploy Command", () => {
       );
 
       expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("deploy --plan --json", () => {
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+    });
+
+    it("outputs JSON with summary, operations, and willDeleteEntities", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 2,
+              creates: 1,
+              updates: 1,
+              deletes: 0,
+              results: [
+                {
+                  operation: "CREATE",
+                  entityType: "Categories",
+                  entityName: "new-category",
+                  changes: [],
+                },
+                {
+                  operation: "UPDATE",
+                  entityType: "Product Types",
+                  entityName: "T-Shirt",
+                  changes: [
+                    { field: "name", currentValue: "Old Name", desiredValue: "T-Shirt" },
+                    { field: "hasVariants", currentValue: false, desiredValue: true },
+                  ],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
+        "process.exit(1)"
+      );
+
+      expect(consoleLogSpy).toHaveBeenCalledOnce();
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      expect(parsed).toMatchObject({
+        summary: {
+          creates: 1,
+          updates: 1,
+          deletes: 0,
+          noChange: 0,
+        },
+        willDeleteEntities: false,
+        configFile: "config.yml",
+        saleorUrl: "https://test.saleor.cloud",
+      });
+
+      expect(parsed.operations).toHaveLength(2);
+      expect(parsed.validationErrors).toEqual([]);
+    });
+
+    it("each operation has entity, name, action, and fields", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 1,
+              creates: 0,
+              updates: 1,
+              deletes: 0,
+              results: [
+                {
+                  operation: "UPDATE",
+                  entityType: "Product Types",
+                  entityName: "T-Shirt",
+                  changes: [
+                    { field: "name", currentValue: "Old", desiredValue: "T-Shirt" },
+                    { field: "hasVariants", currentValue: false, desiredValue: true },
+                  ],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
+        "process.exit(1)"
+      );
+
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      expect(parsed.operations[0]).toEqual({
+        entity: "Product Types",
+        name: "T-Shirt",
+        action: "update",
+        fields: ["name", "hasVariants"],
+      });
+    });
+
+    it("sets willDeleteEntities true when deletes are present", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 1,
+              creates: 0,
+              updates: 0,
+              deletes: 1,
+              results: [
+                {
+                  operation: "DELETE",
+                  entityType: "Categories",
+                  entityName: "old-category",
+                  changes: [],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
+        "process.exit(1)"
+      );
+
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      expect(parsed.willDeleteEntities).toBe(true);
+      expect(parsed.summary.deletes).toBe(1);
+      expect(parsed.operations[0]).toMatchObject({
+        entity: "Categories",
+        name: "old-category",
+        action: "delete",
+      });
+    });
+
+    it("exits 0 when no changes in plan mode", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 0,
+              creates: 0,
+              updates: 0,
+              deletes: 0,
+              results: [],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ plan: true, json: true }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+
       expect(mockExit).toHaveBeenCalledWith(0);
     });
   });

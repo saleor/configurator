@@ -380,6 +380,36 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return formatter.format(summary);
   }
 
+  private formatPlanJsonOutput(
+    diffAnalysis: { summary: DiffSummary; hasDestructiveOperations: boolean },
+    args: DeployCommandArgs
+  ): string {
+    const { summary } = diffAnalysis;
+
+    const operations = summary.results.map((result) => ({
+      entity: result.entityType,
+      name: result.entityName,
+      action: result.operation.toLowerCase(),
+      fields: result.changes?.map((c) => c.field) ?? [],
+    }));
+
+    const planOutput = {
+      summary: {
+        creates: summary.creates,
+        updates: summary.updates,
+        deletes: summary.deletes,
+        noChange: 0,
+      },
+      operations,
+      validationErrors: [] as string[],
+      willDeleteEntities: diffAnalysis.hasDestructiveOperations,
+      configFile: args.config,
+      saleorUrl: args.url,
+    };
+
+    return JSON.stringify(planOutput, null, 2);
+  }
+
   private checkDeletionPolicy(summary: DiffSummary, args: DeployCommandArgs): void {
     if (args.failOnDelete && summary.deletes > 0) {
       const message = `❌ Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
@@ -408,9 +438,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     process.exit(EXIT_CODES.SUCCESS);
   }
 
-  private handlePlanMode(diffAnalysis: { summary: DiffSummary }, args: DeployCommandArgs): never {
+  private handlePlanMode(
+    diffAnalysis: { summary: DiffSummary; hasDestructiveOperations: boolean },
+    args: DeployCommandArgs
+  ): never {
     if (args.json) {
-      console.log(this.formatJsonOutput(diffAnalysis.summary, args));
+      console.log(this.formatPlanJsonOutput(diffAnalysis, args));
     } else {
       this.displayDeploymentPreview(diffAnalysis.summary);
       this.console.muted("\n📋 Plan mode: No changes will be applied");
