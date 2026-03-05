@@ -1,10 +1,23 @@
-# Saleor Configurator - AI Agent Integration Guide
+# Saleor Configurator
 
 Declarative "commerce as code" CLI for Saleor. Define store configuration in YAML, sync with your Saleor instance.
 
-## Quick Reference
+## Build, Test, and Development
 
-### Commands
+```bash
+pnpm install          # Install dependencies
+pnpm build            # Compile TypeScript
+pnpm test             # Run test suite
+pnpm dev <command>    # Run CLI in development mode
+pnpm check:fix        # Auto-fix lint and formatting
+pnpm check:ci         # CI validation mode
+```
+
+## Project Structure
+
+Primary source in `src/`. CLI surface (`src/cli`) wires Commander commands from `src/commands`. Orchestration in `src/core`. Entity logic in `src/modules/<entity>`. Shared tooling (GraphQL, logging, schemas) in `src/lib`. Tests mirror the structure. Documentation in `docs/`, YAML samples in `recipes/`.
+
+## Commands
 
 | Command | Purpose | Requires Network |
 |---------|---------|-----------------|
@@ -14,7 +27,7 @@ Declarative "commerce as code" CLI for Saleor. Define store configuration in YAM
 | `deploy` | Apply configuration to Saleor | Yes |
 | `introspect` | Pull remote config to local file | Yes |
 
-### Exit Codes
+## Exit Codes
 
 | Code | Name | Meaning |
 |------|------|---------|
@@ -27,7 +40,7 @@ Declarative "commerce as code" CLI for Saleor. Define store configuration in YAM
 | 6 | DELETION_BLOCKED | `--fail-on-delete` triggered |
 | 7 | BREAKING_BLOCKED | `--fail-on-breaking` triggered |
 
-### Safety Rules
+## Safety Rules
 
 - Always run `validate` before `diff` or `deploy`
 - Always run `diff` or `deploy --plan` before `deploy`
@@ -259,17 +272,32 @@ The store identifier is extracted from the Saleor URL hostname. Report content m
 | `--verbose` | All | Detailed output |
 | `--quiet` | All | Suppress non-error output |
 
-## Build, Test, and Development
+## Skills
+
+Portable skills are available in the `skills/` directory and can be installed by any AI coding tool:
 
 ```bash
-pnpm install          # Install dependencies
-pnpm build            # Compile TypeScript
-pnpm test             # Run test suite
-pnpm dev <command>    # Run CLI in development mode
-pnpm check:fix        # Auto-fix lint and formatting
-pnpm check:ci         # CI validation mode
+npx skills add saleor/configurator
 ```
 
-## Project Structure
+| Skill | Description |
+|-------|-------------|
+| **configurator-cli** | CLI commands, flags, and automation patterns |
+| **configurator-schema** | Config.yml structure, entity schemas, validation rules |
+| **saleor-domain** | Saleor entity types, relationships, identifier rules |
+| **product-modeling** | Product type design, attribute selection, variant planning |
+| **configurator-recipes** | Pre-built store templates (fashion, electronics, subscriptions) |
+| **data-importer** | CSV/Excel/Shopify data import and field mapping |
+| **agent-output-parsing** | JSON envelope parsing and drill-down patterns |
+| **configurator-workflow** | End-to-end deployment workflow (validate -> diff -> plan -> deploy) |
+| **configurator-troubleshoot** | Error diagnosis, exit code decision tree, common fix patterns |
 
-Primary source in `src/`. CLI surface (`src/cli`) wires Commander commands from `src/commands`. Orchestration in `src/core`. Entity logic in `src/modules/<entity>`. Shared tooling (GraphQL, logging, schemas) in `src/lib`. Tests mirror the structure. Documentation in `docs/`, YAML samples in `recipes/`.
+## Claude Code Plugin
+
+For the full Claude Code experience with slash commands, agents, hooks, and MCP integrations, see the [`plugin/`](plugin/) directory. Install with:
+
+```bash
+claude --plugin-dir ./plugin
+```
+
+The plugin adds interactive commands (`/configurator`, `/recipe`, `/discover`), autonomous agents (config-review, troubleshoot, import), and proactive hooks on top of the portable skills.

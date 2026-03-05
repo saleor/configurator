@@ -526,6 +526,31 @@ LOG_LEVEL=debug npx @saleor/configurator diff --url <URL> --token <TOKEN>
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for detailed troubleshooting procedures.
 
+## AI Agent Integration
+
+Saleor Configurator provides first-class support for AI coding tools through two mechanisms:
+
+### Portable Skills (`skills/`)
+
+Nine portable skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI, etc.):
+
+```bash
+# Install via skills.sh
+npx skills add saleor/configurator
+```
+
+Skills cover CLI usage, config schema, Saleor domain modeling, product design, recipes, data import, output parsing, deployment workflows, and troubleshooting.
+
+### Claude Code Plugin (`plugin/`)
+
+Full-featured Claude Code plugin with slash commands, autonomous agents, hooks, and MCP integrations:
+
+```bash
+claude --plugin-dir ./plugin
+```
+
+See [`AGENTS.md`](AGENTS.md) for the complete AI agent integration guide.
+
 ## Contributing
 
 ### Development Setup

@@ -318,6 +318,16 @@ Validate the plugin structure:
 ./plugin/scripts/validate-plugin.sh
 ```
 
+## Portable Skills
+
+The domain knowledge from this plugin's skills is also available as portable skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI, etc.):
+
+```bash
+npx skills add saleor/configurator
+```
+
+Portable skills live in the top-level [`skills/`](../skills/) directory. They contain the same technical content without Claude Code-specific frontmatter (`allowed-tools`, `compatibility`). The plugin adds agents, commands, hooks, and MCP integrations on top.
+
 ## License
 
 MIT License - see [LICENSE](./LICENSE) for details.
