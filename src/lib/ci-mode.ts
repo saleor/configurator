@@ -23,10 +23,12 @@ export function isCiOutputMode(): boolean {
 
 /**
  * Returns true when running in a non-interactive environment where prompts
- * should be skipped automatically. Covers:
- * - Non-TTY stdin (pipes, CI runners, agent contexts)
- * - CI environment variable set (GitHub Actions, etc.)
+ * should be skipped automatically.
+ *
+ * Uses process.stdout.isTTY — the Node.js-recommended way to detect terminal
+ * context. This is false/undefined in CI runners, pipes, and agent contexts
+ * without needing any CI environment variable.
  */
 export function isNonInteractiveEnvironment(): boolean {
-  return !process.stdin.isTTY || Boolean(process.env.CI);
+  return !process.stdout.isTTY;
 }
