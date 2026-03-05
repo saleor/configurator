@@ -9,6 +9,7 @@ export { deployCommandConfig } from "./deploy";
 export { diffCommandConfig } from "./diff";
 export { introspectCommandConfig } from "./introspect";
 export { createRecipeCommand } from "./recipe";
+export { schemaCommandConfig } from "./schema";
 export { startCommandConfig } from "./start";
 export { validateCommandConfig } from "./validate";
 
@@ -16,6 +17,7 @@ import { deployCommandConfig } from "./deploy";
 import { diffCommandConfig } from "./diff";
 import { introspectCommandConfig } from "./introspect";
 import { createRecipeCommand } from "./recipe";
+import { schemaCommandConfig } from "./schema";
 import { startCommandConfig } from "./start";
 import { validateCommandConfig } from "./validate";
 
@@ -27,6 +29,7 @@ export const commands = [
   deployCommandConfig,
   diffCommandConfig,
   introspectCommandConfig,
+  schemaCommandConfig,
   startCommandConfig,
   validateCommandConfig,
 ];
