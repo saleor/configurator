@@ -22,7 +22,7 @@ function buildDocumentationSchema(): Record<string, unknown> {
   };
 }
 
-export function schemaHandler(args: SchemaCommandArgs): void {
+export async function schemaHandler(args: SchemaCommandArgs): Promise<void> {
   const { output } = args;
   const documentationSchema = buildDocumentationSchema();
   const json = JSON.stringify(documentationSchema, null, 2);
