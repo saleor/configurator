@@ -20,3 +20,13 @@ export function isCiOutputMode(): boolean {
     CI_OUTPUT_FLAGS.includes(arg as (typeof CI_OUTPUT_FLAGS)[number])
   );
 }
+
+/**
+ * Returns true when running in a non-interactive environment where prompts
+ * should be skipped automatically. Covers:
+ * - Non-TTY stdin (pipes, CI runners, agent contexts)
+ * - CI environment variable set (GitHub Actions, etc.)
+ */
+export function isNonInteractiveEnvironment(): boolean {
+  return !process.stdin.isTTY || Boolean(process.env.CI);
+}

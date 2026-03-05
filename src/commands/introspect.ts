@@ -6,6 +6,7 @@ import { Console } from "../cli/console";
 import { createConfigurator, type SaleorConfigurator } from "../core/configurator";
 import { DiffService } from "../core/diff";
 import type { DiffSummary, IntrospectDiffResult } from "../core/diff/types";
+import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
@@ -331,6 +332,10 @@ export class IntrospectCommandHandler
   }
 
   private async requestConfirmation(summary: DiffSummary): Promise<CommandResult | null> {
+    if (isNonInteractiveEnvironment()) {
+      return null;
+    }
+
     this.console.warn(INTROSPECT_MESSAGES.WARNING_OVERWRITE);
 
     if (summary.totalChanges > 0) {

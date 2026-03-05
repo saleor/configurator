@@ -32,6 +32,7 @@ import {
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
 import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
+import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { AttributeCache } from "../modules/attribute/attribute-cache";
@@ -171,7 +172,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     hasDestructiveOperations: boolean,
     args: DeployCommandArgs
   ): Promise<boolean> {
-    if (args.ci) return true;
+    if (args.ci || isNonInteractiveEnvironment()) return true;
 
     if (hasDestructiveOperations) {
       const warningMessage = this.formatDestructiveOperationsWarning(summary);
