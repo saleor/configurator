@@ -83,6 +83,19 @@ function formatZodIssue(issue: z.ZodIssue): string {
       return `Expected ${typeMatch[1]}, but received ${typeMatch[2]}`;
     }
   }
+  if (issue.code === "invalid_union") {
+    const branches = issue.errors
+      .map((branchIssues, i) => {
+        const firstIssue = branchIssues[0];
+        if (!firstIssue) return `option ${i + 1}`;
+        const branchPath =
+          firstIssue.path.length > 0 ? ` (missing: ${firstIssue.path.join(".")})` : "";
+        return `option ${i + 1}${branchPath}: ${firstIssue.message}`;
+      })
+      .join("; ");
+    return `Value doesn't match any expected format. Expected one of: [${branches}]`;
+  }
+
   if (message === "Invalid input") {
     return "Value doesn't match any of the expected types";
   }

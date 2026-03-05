@@ -116,7 +116,9 @@ describe("ZodValidationError", () => {
       if (!result.success) {
         const error = ZodValidationError.fromZodError(result.error);
 
-        expect(error.message).toContain("value: Value doesn't match any of the expected types");
+        expect(error.message).toContain(
+          "value: Value doesn't match any expected format. Expected one of:"
+        );
       }
     });
 
