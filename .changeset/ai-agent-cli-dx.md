@@ -24,3 +24,13 @@
 ### Log Collection
 
 - **JSON log collector**: When using `--json`, log messages (info, warn, error, debug) are captured and included in the JSON envelope instead of being printed to stderr, giving you a single parseable output.
+
+### Claude Code Plugin
+
+- **AGENTS.md**: New integration guide for AI agents — JSON envelope schemas, workflow sequences, exit code decision trees, and parsing examples for both bash and Node.js.
+- **New agent: configurator-expert**: Dedicated agent for store configuration analysis and troubleshooting.
+- **New skill: agent-output-parsing**: Teaches agents how to parse and act on structured JSON output from the CLI.
+- **New skill reference: ci-cd**: Guide for using Configurator in CI/CD pipelines with drift detection and safe deployment patterns.
+- **Pre-deploy safety hook**: Automatic validation gate that runs before deployments.
+- **Improved skills**: Updated configurator-cli, configurator-recipes, configurator-schema, saleor-domain, and product-modeling skills with new flags, examples, and Phase 2 capabilities.
+- **Updated agents**: Refreshed troubleshoot, config-review, store-analyzer, csv-importer, and shopify-importer agents with JSON output awareness and improved workflows.
