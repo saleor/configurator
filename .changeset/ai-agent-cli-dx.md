@@ -25,9 +25,14 @@
 
 - **JSON log collector**: When using `--json`, log messages (info, warn, error, debug) are captured and included in the JSON envelope instead of being printed to stderr, giving you a single parseable output.
 
+### Cross-Tool AI Agent Skills
+
+- **Portable skills directory**: New top-level `skills/` directory with 9 tool-agnostic skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI). Install with `npx skills add saleor/configurator`.
+- **New skills**: `configurator-workflow` (end-to-end validate-diff-plan-deploy sequence) and `configurator-troubleshoot` (error diagnosis framework and exit code decision tree).
+- **AGENTS.md open standard**: Restructured to follow the [agents.md](https://agents.md/) convention for cross-tool discoverability.
+
 ### Claude Code Plugin
 
-- **AGENTS.md**: New integration guide for AI agents — JSON envelope schemas, workflow sequences, exit code decision trees, and parsing examples for both bash and Node.js.
 - **New agent: configurator-expert**: Dedicated agent for store configuration analysis and troubleshooting.
 - **New skill: agent-output-parsing**: Teaches agents how to parse and act on structured JSON output from the CLI.
 - **New skill reference: ci-cd**: Guide for using Configurator in CI/CD pipelines with drift detection and safe deployment patterns.
