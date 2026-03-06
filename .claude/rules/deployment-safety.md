@@ -46,21 +46,21 @@ Select version bump:
 
 ## E2E Testing
 
-Before pushing core changes. **Always use `--ci`** for deploy and introspect to skip interactive prompts.
+Before pushing core changes. Non-interactive mode is auto-detected in non-TTY environments.
 
 ```bash
 # Credentials from .env.local (see .env.example for template)
 # source .env.local
 
-# Full validation (--ci skips all confirmation prompts)
+# Full validation (non-interactive auto-detected in non-TTY)
 rm -rf config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 # Make test changes
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci  # Should show no changes (idempotent)
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN  # Should show no changes (idempotent)
 rm config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --ci
-pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff (no --ci needed, read-only)
+pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff
 ```
 
 **Checking results after deploy:**

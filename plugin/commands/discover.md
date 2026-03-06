@@ -7,6 +7,10 @@ argument-hint: [url] [--introspect]
 
 # Discover
 
+## Required Skills
+- `saleor-domain` — entity relationships and identifier rules
+- `configurator-cli` — CLI commands, introspect workflow, and flags
+
 Intelligently generate Saleor configuration by exploring your existing website. This command uses chrome-devtools MCP to analyze your site's structure, business context, and product catalog, then translates it into a proper config.yml.
 
 ## Usage
@@ -19,7 +23,7 @@ Intelligently generate Saleor configuration by exploring your existing website. 
 /discover https://example.com
 
 # With Saleor introspection (if already have Saleor instance)
-/discover --introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+/discover --introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 ## Two Discovery Modes
@@ -129,18 +133,18 @@ During exploration, ask clarifying questions:
 
 ```bash
 # Verify credentials
-[ -n "$SALEOR_API_URL" ] && [ -n "$SALEOR_TOKEN" ] && echo "READY" || echo "MISSING"
+[ -n "$SALEOR_URL" ] && [ -n "$SALEOR_TOKEN" ] && echo "READY" || echo "MISSING"
 ```
 
 If missing, ask user to provide:
-- SALEOR_API_URL
+- SALEOR_URL
 - SALEOR_TOKEN
 
 **Introspection Process**:
 
 1. **Run introspect command**:
 ```bash
-npx configurator introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+npx configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 2. **Analyze generated config**:

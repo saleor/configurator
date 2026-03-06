@@ -49,15 +49,37 @@ claude --plugin-dir ./configurator-claude-plugin/plugin
 
 ## Configuration
 
-### Environment Variables
+### Credentials
 
-Set these in your shell or create a `.env` file:
+The CLI auto-loads `.env.local` from the working directory. Create one from the template:
 
 ```bash
-# Required for deployment operations
-export SALEOR_API_URL="https://your-store.saleor.cloud/graphql/"
+cp .env.example .env.local
+```
+
+```bash
+# .env.local
+SALEOR_URL="https://your-store.saleor.cloud/graphql/"
+SALEOR_TOKEN="your-api-token"
+```
+
+Alternatively, set environment variables directly:
+
+```bash
+export SALEOR_URL="https://your-store.saleor.cloud/graphql/"
 export SALEOR_TOKEN="your-api-token"
 ```
+
+> **Note**: The Saleor MCP server uses `SALEOR_API_URL`; the CLI uses `SALEOR_URL`.
+
+### Non-Interactive Mode
+
+In non-TTY environments (pipes, CI, subprocesses), the CLI automatically:
+- Skips all confirmation prompts
+- Outputs JSON envelope format (parseable with `jq`)
+- Auto-saves deployment reports
+
+Force JSON output in a terminal with `--json`. Force human-readable output in non-TTY with `--text`.
 
 ### MCP Servers
 
@@ -69,6 +91,10 @@ The plugin bundles two MCP servers:
 | **Saleor MCP** | Queries live store data | No (optional) |
 
 Both servers are optional - the plugin works fully without them using embedded knowledge.
+
+## CLI Invocation
+
+Both `npx configurator` and `pnpm dlx @saleor/configurator` work interchangeably. Customer-facing examples use the shorter `npx configurator` form.
 
 ## Commands
 
@@ -96,7 +122,7 @@ Both servers are optional - the plugin works fully without them using embedded k
 
 **Need to configure from Saleor instance?**
 ```bash
-/discover --introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+/discover --introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 **Working with existing config.yml?**
@@ -144,6 +170,9 @@ Skills provide embedded knowledge that Claude uses automatically:
 | **store-analyzer** | Analyzes existing stores to suggest configurations | Yellow |
 | **csv-importer** | Imports generic tabular data with interactive mapping | Cyan |
 | **shopify-importer** | Specialized Shopify export import with variant grouping | Green |
+| **configurator-expert** | Autonomous deploy/sync/debug workflow (validate → diff → plan → deploy) | Blue |
+
+> **Agent model selection**: All agents use `model: sonnet` for cost-effective focused task execution. For complex multi-step workflows, the orchestrating Claude instance provides the reasoning while agents handle specific subtasks.
 
 ## When to Use Each Agent
 
@@ -227,10 +256,10 @@ pip install pyyaml jsonschema
 
 ```bash
 # Preview changes first
-npx configurator diff --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+npx configurator diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
 
 # Deploy
-npx configurator deploy --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+npx configurator deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
 ```
 
 ## Best Practices
@@ -250,7 +279,7 @@ The plugin provides intelligent guidance throughout your workflow:
 - Dependency warnings during edits
 
 **Safety Features**:
-- Dry-run preview before deployment
+- Plan preview before deployment
 - Deletion warnings
 - Backup suggestions for destructive operations
 - Configuration validation gates
@@ -288,6 +317,16 @@ Validate the plugin structure:
 ```bash
 ./plugin/scripts/validate-plugin.sh
 ```
+
+## Portable Skills
+
+The domain knowledge from this plugin's skills is also available as portable skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI, etc.):
+
+```bash
+npx skills add saleor/configurator
+```
+
+Portable skills live in the top-level [`skills/`](../skills/) directory. They contain the same technical content without Claude Code-specific frontmatter (`allowed-tools`, `compatibility`). The plugin adds agents, commands, hooks, and MCP integrations on top.
 
 ## License
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+import { config as loadDotenv } from "dotenv";
+
+loadDotenv({ path: ".env.local", override: false });
+
 import { Command, type CommanderError } from "@commander-js/extra-typings";
 import packageJson from "../../package.json";
 import { commands, subcommandCreators } from "../commands/index.js";

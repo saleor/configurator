@@ -8,23 +8,23 @@ import { logger } from "../lib/logger";
 import { deployHandler } from "./deploy";
 
 vi.mock("../core/deployment/report-storage", () => ({
-  resolveReportPath: vi.fn(
-    async (customPath?: string) => customPath ?? ".configurator/reports/deployment-report-mock.json"
-  ),
+  resolveReportPath: vi.fn(async (customPath?: string) => {
+    if (customPath !== undefined) return customPath;
+    return ".configurator/reports/deployment-report-mock.json";
+  }),
   isInManagedDirectory: vi.fn(() => false),
   pruneOldReports: vi.fn(async () => []),
   getReportsDirectory: vi.fn(() => ".configurator/reports"),
 }));
 
 vi.mock("../cli/console");
-vi.mock("../cli/command", () => ({
-  baseCommandArgsSchema: {
-    extend: vi.fn().mockReturnValue({
-      parse: vi.fn().mockReturnValue({}),
-    }),
-  },
-  confirmAction: vi.fn().mockResolvedValue(true),
-}));
+vi.mock("../cli/command", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../cli/command")>();
+  return {
+    ...actual,
+    confirmAction: vi.fn().mockResolvedValue(true),
+  };
+});
 vi.mock("../lib/logger");
 vi.mock("../core/deployment");
 vi.mock("../core/deployment/enhanced-pipeline", () => ({
@@ -44,6 +44,9 @@ vi.mock("../core/diff/formatters", () => ({
   })),
   SummaryDiffFormatter: vi.fn(() => ({
     format: vi.fn().mockReturnValue("Mock summary diff output"),
+  })),
+  createJsonFormatter: vi.fn(() => ({
+    format: vi.fn().mockReturnValue('{"mock":"json"}'),
   })),
 }));
 
@@ -77,17 +80,18 @@ function createMockConfigurator(
       },
     },
     diff:
-      overrides?.diff ??
-      vi.fn().mockResolvedValue({
-        summary: {
-          totalChanges: 1,
-          creates: 1,
-          updates: 0,
-          deletes: 0,
-          results: [],
-        },
-        output: "",
-      }),
+      overrides?.diff !== undefined
+        ? overrides.diff
+        : vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 1,
+              creates: 1,
+              updates: 0,
+              deletes: 0,
+              results: [],
+            },
+            output: "",
+          }),
   };
 }
 
@@ -105,15 +109,19 @@ function createDefaultArgs(overrides?: Partial<Parameters<typeof deployHandler>[
     url: "https://test.saleor.cloud",
     token: "test-token",
     config: "config.yml",
-    ci: true,
     quiet: false,
     verbose: false,
     json: false,
     plan: false,
     failOnDelete: false,
     skipMedia: false,
+    text: true, // Force human-readable in non-TTY test environment
     ...overrides,
   };
+}
+
+function createPartialMock<T>(partial: Partial<T>): T {
+  return partial as unknown as T;
 }
 
 function setupProgressMocks() {
@@ -139,9 +147,11 @@ describe("Deploy Command", () => {
   let mockDiffService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
-    mockExit = vi.spyOn(process, "exit").mockImplementation(((code?: string | number | null) => {
-      throw new Error(`process.exit(${code})`);
-    }) as never);
+    mockExit = vi
+      .spyOn(process, "exit")
+      .mockImplementation((code?: string | number | null): never => {
+        throw new Error(`process.exit(${code})`);
+      });
 
     vi.spyOn(logger, "error").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -160,11 +170,10 @@ describe("Deploy Command", () => {
       }),
     };
 
-    vi.spyOn(deploymentModule, "DeploymentPipeline").mockImplementation(
-      () =>
-        mockDeploymentPipeline as unknown as InstanceType<
-          typeof deploymentModule.DeploymentPipeline
-        >
+    vi.spyOn(deploymentModule, "DeploymentPipeline").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentPipeline>>(
+        mockDeploymentPipeline
+      )
     );
 
     const { executeEnhancedDeployment } = await import("../core/deployment/enhanced-pipeline");
@@ -191,17 +200,15 @@ describe("Deploy Command", () => {
     }));
 
     vi.spyOn(deploymentModule, "getAllStages").mockReturnValue([]);
-    vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(
-      () =>
-        ({
-          display: vi.fn(),
-        }) as unknown as InstanceType<typeof deploymentModule.DeploymentSummaryReport>
+    vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentSummaryReport>>({
+        display: vi.fn(),
+      })
     );
-    vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(
-      () =>
-        ({
-          saveToFile: vi.fn(),
-        }) as unknown as InstanceType<typeof deploymentModule.DeploymentReportGenerator>
+    vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() =>
+      createPartialMock<InstanceType<typeof deploymentModule.DeploymentReportGenerator>>({
+        saveToFile: vi.fn(),
+      })
     );
 
     mockCreateConfigurator = vi.fn().mockReturnValue(createMockConfigurator(mockDiffService));
@@ -343,11 +350,10 @@ describe("Deploy Command", () => {
         saveToFile: vi.fn(),
       };
 
-      vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(
-        () =>
-          mockReportGenerator as unknown as InstanceType<
-            typeof deploymentModule.DeploymentReportGenerator
-          >
+      vi.spyOn(deploymentModule, "DeploymentReportGenerator").mockImplementation(() =>
+        createPartialMock<InstanceType<typeof deploymentModule.DeploymentReportGenerator>>(
+          mockReportGenerator
+        )
       );
 
       await expect(
@@ -363,11 +369,191 @@ describe("Deploy Command", () => {
       const { confirmAction } = await import("../cli/command");
       vi.mocked(confirmAction).mockResolvedValueOnce(false);
 
-      await expect(deployHandler(createDefaultArgs({ ci: false }))).rejects.toThrow(
-        "process.exit(0)"
-      );
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValueOnce(false);
+
+      await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
       expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("deploy --plan --json", () => {
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+    });
+
+    it("outputs JSON with summary, operations, and willDeleteEntities", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 2,
+              creates: 1,
+              updates: 1,
+              deletes: 0,
+              results: [
+                {
+                  operation: "CREATE",
+                  entityType: "Categories",
+                  entityName: "new-category",
+                  changes: [],
+                },
+                {
+                  operation: "UPDATE",
+                  entityType: "Product Types",
+                  entityName: "T-Shirt",
+                  changes: [
+                    { field: "name", currentValue: "Old Name", desiredValue: "T-Shirt" },
+                    { field: "hasVariants", currentValue: false, desiredValue: true },
+                  ],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
+
+      expect(consoleLogSpy).toHaveBeenCalledOnce();
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      // Verify envelope wrapper
+      expect(parsed.command).toBe("deploy");
+      expect(parsed.exitCode).toBe(1);
+      expect(parsed.version).toBeDefined();
+      expect(parsed.logs).toBeInstanceOf(Array);
+      expect(parsed.errors).toBeInstanceOf(Array);
+
+      // Verify result payload
+      expect(parsed.result).toMatchObject({
+        summary: {
+          creates: 1,
+          updates: 1,
+          deletes: 0,
+          noChange: 0,
+        },
+        willDeleteEntities: false,
+        configFile: "config.yml",
+        saleorUrl: "https://test.saleor.cloud",
+      });
+
+      expect(parsed.result.operations).toHaveLength(2);
+      expect(parsed.result.validationErrors).toEqual([]);
+    });
+
+    it("each operation has entity, name, action, and fields", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 1,
+              creates: 0,
+              updates: 1,
+              deletes: 0,
+              results: [
+                {
+                  operation: "UPDATE",
+                  entityType: "Product Types",
+                  entityName: "T-Shirt",
+                  changes: [
+                    { field: "name", currentValue: "Old", desiredValue: "T-Shirt" },
+                    { field: "hasVariants", currentValue: false, desiredValue: true },
+                  ],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
+
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      expect(parsed.result.operations[0]).toEqual({
+        entity: "Product Types",
+        name: "T-Shirt",
+        action: "update",
+        fields: ["name", "hasVariants"],
+      });
+    });
+
+    it("sets willDeleteEntities true when deletes are present", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 1,
+              creates: 0,
+              updates: 0,
+              deletes: 1,
+              results: [
+                {
+                  operation: "DELETE",
+                  entityType: "Categories",
+                  entityName: "old-category",
+                  changes: [],
+                },
+              ],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(1)");
+
+      const rawOutput = consoleLogSpy.mock.calls[0][0] as string;
+      const parsed = JSON.parse(rawOutput);
+
+      expect(parsed.result.willDeleteEntities).toBe(true);
+      expect(parsed.result.summary.deletes).toBe(1);
+      expect(parsed.result.operations[0]).toMatchObject({
+        entity: "Categories",
+        name: "old-category",
+        action: "delete",
+      });
+    });
+
+    it("exits 0 when no changes in plan mode", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createMockConfigurator(mockDiffService, {
+          diff: vi.fn().mockResolvedValue({
+            summary: {
+              totalChanges: 0,
+              creates: 0,
+              updates: 0,
+              deletes: 0,
+              results: [],
+            },
+            output: "",
+          }),
+        })
+      );
+
+      await expect(
+        deployHandler(createDefaultArgs({ plan: true, json: true, text: false }))
+      ).rejects.toThrow("process.exit(0)");
+
       expect(mockExit).toHaveBeenCalledWith(0);
     });
   });

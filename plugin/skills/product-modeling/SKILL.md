@@ -1,7 +1,7 @@
 ---
 name: product-modeling
 version: 2.0.0
-description: "Product type design, attribute selection, and variant planning for Saleor. Use when asking about product vs variant attributes, how to structure product types, attribute types, variant matrices, or catalog organization."
+description: "Product type design, attribute selection, and variant planning for Saleor. Use whenever user mentions products, variants, SKUs, attributes, catalogs, or product types. Not for YAML syntax (use configurator-schema) or CLI commands (use configurator-cli)."
 allowed-tools: Read, Glob
 license: MIT
 compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
@@ -179,7 +179,7 @@ For complete guidance and examples, see [references/models-and-structures.md](re
 3. **Select types** -- use the attribute type decision tree
 4. **Calculate SKU count** -- ensure the variant matrix is manageable
 5. **Write the YAML** -- create the ProductType configuration
-6. **Validate** -- deploy with `--dry-run` to check structure
+6. **Validate** -- deploy with `--plan` to check structure
 
 ## Common Mistakes
 

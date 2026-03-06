@@ -1,45 +1,28 @@
 import { Command } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
+import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { ZodValidationError } from "../lib/errors/zod";
+import { safePath, safeToken, saleorUrl } from "../lib/validation";
 import { type Console, cliConsole } from "./console";
-import { CliArgumentError } from "./errors";
 
 export interface CommandHandler<T extends Record<string, unknown>, R> {
   console: Console;
   execute(args: T): Promise<R>;
 }
 
-/**
- * Validates and normalizes a Saleor URL
- */
-function validateSaleorUrl(url: string): string {
-  try {
-    const parsedUrl = new URL(url);
-
-    // Auto-append /graphql/ if missing
-    if (!parsedUrl.pathname.endsWith("/graphql/")) {
-      if (parsedUrl.pathname.endsWith("/")) {
-        parsedUrl.pathname += "graphql/";
-      } else {
-        parsedUrl.pathname += "/graphql/";
-      }
-    }
-
-    return parsedUrl.toString();
-  } catch {
-    throw new CliArgumentError(
-      `Invalid URL format: ${url}. Expected format: https://your-store.saleor.cloud/graphql/`
-    );
-  }
-}
-
 export const baseCommandArgsSchema = z.object({
-  url: z.string().describe("Saleor instance URL").transform(validateSaleorUrl),
-  token: z.string({ error: "Token is required" }).describe("Saleor API token"),
-  config: z.string().default("config.yml").describe("Configuration file path"),
+  url: saleorUrl().describe("Saleor instance URL"),
+  token: safeToken().describe("Saleor API token"),
+  config: safePath().default("config.yml").describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
+
+export function shouldOutputJson(args: { json?: boolean; text?: boolean }): boolean {
+  if (args.text === true) return false;
+  if (args.json === true) return true;
+  return isNonInteractiveEnvironment();
+}
 
 export type BaseCommandArgs = z.infer<typeof baseCommandArgsSchema>;
 
@@ -82,10 +65,6 @@ export async function promptForMissingArgs(
     });
   }
 
-  // Set defaults for optional fields
-  result.config = result.config || "config.yml";
-  result.quiet = result.quiet || false;
-
   return baseCommandArgsSchema.parse(result);
 }
 
@@ -118,6 +97,19 @@ export async function selectOption<T extends string>(
     message,
     choices,
   });
+}
+
+export function mergeEnvArgs<T extends Record<string, unknown>>(args: T): T {
+  const definedArgs = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));
+  return {
+    ...(process.env.SALEOR_URL !== undefined &&
+      args.url === undefined && { url: process.env.SALEOR_URL }),
+    ...(process.env.SALEOR_TOKEN !== undefined &&
+      args.token === undefined && { token: process.env.SALEOR_TOKEN }),
+    ...(process.env.SALEOR_CONFIG !== undefined &&
+      args.config === undefined && { config: process.env.SALEOR_CONFIG }),
+    ...definedArgs,
+  } as T;
 }
 
 export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
@@ -198,7 +190,7 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
       // Handle interactive mode for missing arguments
       let validatedArgs: z.infer<T>;
 
-      const args = options as Partial<z.infer<T>>;
+      const args = mergeEnvArgs(options as Partial<z.infer<T>>);
       if (config.requiresInteractive && (!args.url || !args.token)) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(args);

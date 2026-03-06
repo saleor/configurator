@@ -57,7 +57,7 @@ Help users discover and document their existing Saleor store configuration by:
 
 ### Method 1: Saleor MCP (Preferred)
 
-If Saleor MCP is configured (check for SALEOR_API_URL and SALEOR_TOKEN):
+If Saleor MCP is configured (check for SALEOR_URL and SALEOR_TOKEN):
 
 Query the live instance for:
 - Channels (names, slugs, currencies)
@@ -69,7 +69,7 @@ Query the live instance for:
 
 **Note**: Use the Configurator CLI for this:
 ```bash
-npx configurator introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN --output=discovered-config.yml
+npx configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --output=discovered-config.yml
 ```
 
 ### Method 2: Storefront Analysis
@@ -82,7 +82,7 @@ Look for Saleor SDK usage:
 ```bash
 grep -r "@saleor/sdk" --include="*.ts" --include="*.tsx"
 grep -r "useSaleorClient" --include="*.ts" --include="*.tsx"
-grep -r "SALEOR_API_URL" --include="*.env*"
+grep -r "SALEOR_URL\|SALEOR_API_URL" --include="*.env*"
 ```
 
 Look for GraphQL queries:
@@ -205,7 +205,7 @@ After discovery, offer to:
 
 1. **Generate config.yml**:
    ```bash
-   npx configurator introspect --url=$SALEOR_API_URL --token=$SALEOR_TOKEN
+   npx configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
    ```
 
 2. **Compare with expected**:
@@ -224,7 +224,7 @@ If Saleor MCP is not available:
 4. Suggest setting up credentials for full discovery:
    ```
    To enable live discovery, set:
-   export SALEOR_API_URL="https://your-store.saleor.cloud/graphql/"
+   export SALEOR_URL="https://your-store.saleor.cloud/graphql/"
    export SALEOR_TOKEN="your-api-token"
    ```
 

@@ -4,20 +4,48 @@ import { logger } from "../../lib/logger";
 import { ensureDirectory } from "../../lib/utils/file";
 
 const MANAGED_DIR_NAME = ".configurator/reports";
-const REPORT_GLOB_PREFIX = "deployment-report-";
 const REPORT_EXTENSION = ".json";
 const DEFAULT_MAX_REPORTS = 5;
 
-export function generateReportFilename(): string {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/:/g, "-")
-    .replace(/\..+/, "")
-    .replace("T", "_");
-  return `${REPORT_GLOB_PREFIX}${timestamp}${REPORT_EXTENSION}`;
+export function extractStoreIdentifier(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    // For *.saleor.cloud, extract the subdomain (e.g., "store-rzalldyg")
+    if (hostname.endsWith(".saleor.cloud")) {
+      return hostname.replace(".saleor.cloud", "");
+    }
+    return hostname;
+  } catch {
+    return "unknown";
+  }
 }
 
-export function getReportsDirectory(): string {
+export function formatReadableTimestamp(): string {
+  const now = new Date();
+  const date = now.toISOString().split("T")[0];
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${date}_${hours}h${minutes}m${seconds}s`;
+}
+
+export function generateReportFilename(command?: string, url?: string): string {
+  const storeId = url ? extractStoreIdentifier(url) : "unknown";
+  const timestamp = formatReadableTimestamp();
+  return `${storeId}_${timestamp}${REPORT_EXTENSION}`;
+}
+
+export function generateReportPath(command: string, url: string): string {
+  const dir = resolve(process.cwd(), MANAGED_DIR_NAME, command);
+  const filename = generateReportFilename(command, url);
+  return join(dir, filename);
+}
+
+export function getReportsDirectory(commandSubdir?: string): string {
+  if (commandSubdir) {
+    return resolve(process.cwd(), MANAGED_DIR_NAME, commandSubdir);
+  }
   return resolve(process.cwd(), MANAGED_DIR_NAME);
 }
 
@@ -27,14 +55,18 @@ export function isInManagedDirectory(reportPath: string): boolean {
   return resolvedPath.startsWith(managedDir);
 }
 
-export async function resolveReportPath(customPath?: string): Promise<string> {
+export async function resolveReportPath(
+  customPath?: string,
+  command?: string,
+  url?: string
+): Promise<string> {
   if (customPath) {
     return customPath;
   }
 
-  const dir = getReportsDirectory();
+  const dir = command ? getReportsDirectory(command) : getReportsDirectory();
   await ensureDirectory(dir);
-  return join(dir, generateReportFilename());
+  return join(dir, generateReportFilename(command, url));
 }
 
 interface ReportFileEntry {
@@ -45,9 +77,7 @@ interface ReportFileEntry {
 async function listReportFiles(dir: string): Promise<readonly ReportFileEntry[]> {
   const entries = await readdir(dir);
 
-  const reportNames = entries.filter(
-    (name) => name.startsWith(REPORT_GLOB_PREFIX) && name.endsWith(REPORT_EXTENSION)
-  );
+  const reportNames = entries.filter((name) => name.endsWith(REPORT_EXTENSION));
 
   const withStats = await Promise.all(
     reportNames.map(async (name) => {

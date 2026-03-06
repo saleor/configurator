@@ -151,7 +151,7 @@ npx @saleor/configurator deploy \
 | Preview changes | `npx @saleor/configurator diff --url <URL> --token <TOKEN>` |
 | Deploy changes | `npx @saleor/configurator deploy --url <URL> --token <TOKEN>` |
 | Apply recipe | `npx @saleor/configurator recipe apply <name> --url <URL> --token <TOKEN>` |
-| CI deployment | `npx @saleor/configurator deploy --url <URL> --token <TOKEN> --ci` |
+| CI deployment | `npx @saleor/configurator deploy --url <URL> --token <TOKEN> --fail-on-delete` |
 
 ## Commands
 
@@ -191,9 +191,6 @@ Syncs your local configuration to the remote Saleor instance.
 ```bash
 # Interactive mode with confirmation prompts
 npx @saleor/configurator deploy --url <URL> --token <TOKEN>
-
-# CI mode - skip confirmations
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --ci
 
 # Custom config file
 npx @saleor/configurator deploy --url <URL> --token <TOKEN> --config production.yml
@@ -466,16 +463,18 @@ jobs:
           npx @saleor/configurator deploy \
             --url ${{ secrets.SALEOR_URL }} \
             --token ${{ secrets.SALEOR_TOKEN }} \
-            --ci
 ```
 
 ### Key Flags for Automation
 
 | Flag | Description |
 |------|-------------|
-| `--ci` | Skip all confirmation prompts |
 | `--json` | Output machine-readable JSON |
+| `--fail-on-delete` | Exit code 6 if deletions detected |
+| `--fail-on-breaking` | Exit code 7 if breaking changes detected |
 | `--quiet` | Suppress non-essential output |
+
+Non-interactive mode is auto-detected in non-TTY environments (pipes, CI, subprocesses).
 
 ### Multi-Environment Pattern
 
@@ -483,12 +482,12 @@ jobs:
 # Production deployment
 npx @saleor/configurator deploy \
   --url $PROD_URL --token $PROD_TOKEN \
-  --config config.yml --ci
+  --config config.yml --fail-on-delete
 
 # Staging deployment
 npx @saleor/configurator deploy \
   --url $STAGING_URL --token $STAGING_TOKEN \
-  --config config.yml --ci
+  --config config.yml
 ```
 
 See [docs/ci-cd/README.md](docs/ci-cd/README.md) for workflow templates, exit codes, and advanced patterns.
@@ -526,6 +525,31 @@ LOG_LEVEL=debug npx @saleor/configurator diff --url <URL> --token <TOKEN>
 ```
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for detailed troubleshooting procedures.
+
+## AI Agent Integration
+
+Saleor Configurator provides first-class support for AI coding tools through two mechanisms:
+
+### Portable Skills (`skills/`)
+
+Nine portable skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI, etc.):
+
+```bash
+# Install via skills.sh
+npx skills add saleor/configurator
+```
+
+Skills cover CLI usage, config schema, Saleor domain modeling, product design, recipes, data import, output parsing, deployment workflows, and troubleshooting.
+
+### Claude Code Plugin (`plugin/`)
+
+Full-featured Claude Code plugin with slash commands, autonomous agents, hooks, and MCP integrations:
+
+```bash
+claude --plugin-dir ./plugin
+```
+
+See [`AGENTS.md`](AGENTS.md) for the complete AI agent integration guide.
 
 ## Contributing
 

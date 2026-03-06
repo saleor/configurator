@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
-import { baseCommandArgsSchema, confirmAction } from "../cli/command";
+import { baseCommandArgsSchema, confirmAction, shouldOutputJson } from "../cli/command";
 import { Console } from "../cli/console";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
@@ -25,22 +25,21 @@ import {
 } from "../core/deployment/report-storage";
 import { DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
-import { createJsonFormatter, DeployDiffFormatter } from "../core/diff/formatters";
+import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
   ConfigurationLoadError,
   ConfigurationValidationError,
 } from "../core/errors/configuration-errors";
 import type { DuplicateIssue } from "../core/validation/preflight";
 import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
+import { isNonInteractiveEnvironment } from "../lib/ci-mode";
+import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
+import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { AttributeCache } from "../modules/attribute/attribute-cache";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
-  ci: z
-    .boolean()
-    .default(false)
-    .describe("CI mode - skip all confirmations for automated environments"),
   reportPath: z
     .string()
     .optional()
@@ -55,6 +54,7 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .boolean()
     .default(false)
     .describe("Skip media fields during deployment (preserves target media)"),
+  text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -168,10 +168,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   private async confirmDeployment(
     summary: DiffSummary,
-    hasDestructiveOperations: boolean,
-    args: DeployCommandArgs
+    hasDestructiveOperations: boolean
   ): Promise<boolean> {
-    if (args.ci) return true;
+    if (isNonInteractiveEnvironment()) return true;
 
     if (hasDestructiveOperations) {
       const warningMessage = this.formatDestructiveOperationsWarning(summary);
@@ -268,7 +267,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   ): Promise<void> {
     try {
       const reportGenerator = new DeploymentReportGenerator(metrics, summary);
-      const reportPath = await resolveReportPath(args.reportPath);
+      const reportPath = await resolveReportPath(args.reportPath, "deploy", args.url);
       await reportGenerator.saveToFile(reportPath);
       this.console.text("");
       this.console.success(`Deployment report saved to: ${reportPath}`);
@@ -294,9 +293,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   private async executeDeployment(
     args: DeployCommandArgs,
-    summary: DiffSummary
+    summary: DiffSummary,
+    configurator: ReturnType<typeof createConfigurator>
   ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
-    const configurator = createConfigurator(args);
     const startTime = new Date();
 
     this.console.muted("🚀 Deploying configuration to Saleor...");
@@ -335,9 +334,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private async validateLocalConfiguration(args: DeployCommandArgs): Promise<void> {
-    const configurator = createConfigurator(args);
-
+  private async validateLocalConfiguration(
+    args: DeployCommandArgs,
+    configurator: ReturnType<typeof createConfigurator>
+  ): Promise<void> {
     try {
       const cfg = await configurator.services.configStorage.load();
       runPreflightValidation(cfg, args.config);
@@ -352,13 +352,14 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
   }
 
-  private async analyzeDifferences(args: DeployCommandArgs): Promise<{
+  private async analyzeDifferences(
+    args: DeployCommandArgs,
+    configurator: ReturnType<typeof createConfigurator>
+  ): Promise<{
     summary: DiffSummary;
     output: string;
     hasDestructiveOperations: boolean;
   }> {
-    const configurator = createConfigurator(args);
-
     const { summary, output } = await configurator.diff({
       skipMedia: args.skipMedia,
     });
@@ -370,51 +371,83 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private formatJsonOutput(summary: DiffSummary, args: DeployCommandArgs): string {
-    const formatter = createJsonFormatter({
-      saleorUrl: args.url,
+  private formatPlanResult(
+    diffAnalysis: { summary: DiffSummary; hasDestructiveOperations: boolean },
+    args: DeployCommandArgs
+  ) {
+    const { summary } = diffAnalysis;
+
+    const operations = summary.results.map((result) => ({
+      entity: result.entityType,
+      name: result.entityName,
+      action: result.operation.toLowerCase(),
+      fields: result.changes?.map((c) => c.field) ?? [],
+    }));
+
+    return {
+      status: "plan" as const,
+      summary: {
+        creates: summary.creates,
+        updates: summary.updates,
+        deletes: summary.deletes,
+        noChange: 0,
+      },
+      operations,
+      validationErrors: [] as string[],
+      willDeleteEntities: diffAnalysis.hasDestructiveOperations,
       configFile: args.config,
-      prettyPrint: true,
-    });
-    return formatter.format(summary);
+      saleorUrl: args.url,
+    };
   }
 
-  private checkDeletionPolicy(summary: DiffSummary, args: DeployCommandArgs): void {
+  private checkDeletionPolicy(summary: DiffSummary, args: DeployCommandArgs, useJson: boolean): void {
     if (args.failOnDelete && summary.deletes > 0) {
-      const message = `❌ Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
-      if (args.json) {
-        console.log(
-          JSON.stringify({
-            status: "blocked",
-            reason: "deletions_detected",
-            deletions: summary.deletes,
-            message,
+      const message = `Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
+      if (useJson) {
+        outputEnvelope(
+          buildEnvelope({
+            command: "deploy",
+            exitCode: EXIT_CODES.DELETION_BLOCKED,
+            result: { status: "blocked", reason: "deletions_detected", deletions: summary.deletes },
+            errors: [{ message }],
           })
         );
       } else {
-        this.console.error(message);
+        this.console.error(`❌ ${message}`);
       }
       process.exit(EXIT_CODES.DELETION_BLOCKED);
     }
   }
 
-  private handleNoChanges(summary: DiffSummary, args: DeployCommandArgs): never {
-    if (args.json) {
-      console.log(this.formatJsonOutput(summary, args));
+  private handleNoChanges(summary: DiffSummary, useJson: boolean): never {
+    if (useJson) {
+      outputEnvelope(
+        buildEnvelope({
+          command: "deploy",
+          exitCode: EXIT_CODES.SUCCESS,
+          result: { status: "no-changes" as const },
+        })
+      );
     } else {
       this.console.status("✅ No changes detected - configuration is already in sync");
     }
     process.exit(EXIT_CODES.SUCCESS);
   }
 
-  private handlePlanMode(diffAnalysis: { summary: DiffSummary }, args: DeployCommandArgs): never {
-    if (args.json) {
-      console.log(this.formatJsonOutput(diffAnalysis.summary, args));
+  private handlePlanMode(
+    diffAnalysis: { summary: DiffSummary; hasDestructiveOperations: boolean },
+    args: DeployCommandArgs,
+    useJson: boolean
+  ): never {
+    const exitCode = diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS;
+    if (useJson) {
+      const result = this.formatPlanResult(diffAnalysis, args);
+      outputEnvelope(buildEnvelope({ command: "deploy", exitCode, result }));
     } else {
       this.displayDeploymentPreview(diffAnalysis.summary);
       this.console.muted("\n📋 Plan mode: No changes will be applied");
     }
-    process.exit(diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS);
+    process.exit(exitCode);
   }
 
   private displayDeploymentPreview(summary: DiffSummary): void {
@@ -438,33 +471,35 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   private async performDeploymentFlow(args: DeployCommandArgs): Promise<void> {
-    try {
-      await this.validateLocalConfiguration(args);
+    const configurator = createConfigurator(args);
+    const useJson = shouldOutputJson(args);
 
-      if (!args.json) {
+    try {
+      await this.validateLocalConfiguration(args, configurator);
+
+      if (!useJson) {
         this.console.muted("⏳ Analyzing configuration differences...");
       }
 
-      const diffAnalysis = await this.analyzeDifferences(args);
+      const diffAnalysis = await this.analyzeDifferences(args, configurator);
 
       if (diffAnalysis.summary.totalChanges === 0) {
-        this.handleNoChanges(diffAnalysis.summary, args);
+        return this.handleNoChanges(diffAnalysis.summary, useJson);
       }
 
-      this.checkDeletionPolicy(diffAnalysis.summary, args);
+      this.checkDeletionPolicy(diffAnalysis.summary, args, useJson);
 
       if (args.plan) {
-        this.handlePlanMode(diffAnalysis, args);
+        return this.handlePlanMode(diffAnalysis, args, useJson);
       }
 
-      if (!args.json) {
+      if (!useJson) {
         this.displayDeploymentPreview(diffAnalysis.summary);
       }
 
       const shouldDeploy = await this.confirmDeployment(
         diffAnalysis.summary,
-        diffAnalysis.hasDestructiveOperations,
-        args
+        diffAnalysis.hasDestructiveOperations
       );
 
       if (!shouldDeploy) {
@@ -472,7 +507,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         process.exit(0);
       }
 
-      const deploymentResult = await this.executeDeployment(args, diffAnalysis.summary);
+      const deploymentResult = await this.executeDeployment(args, diffAnalysis.summary, configurator);
       this.logDeploymentCompletion(diffAnalysis.summary, deploymentResult);
       process.exit(deploymentResult.exitCode);
     } catch (error) {
@@ -484,9 +519,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   async execute(args: DeployCommandArgs): Promise<void> {
-    this.console.setOptions({ quiet: args.quiet || args.json });
+    globalLogCollector.reset();
+    const useJson = shouldOutputJson(args);
+    this.console.setOptions({ quiet: args.quiet || useJson });
 
-    if (!args.json) {
+    if (!useJson) {
       this.console.header("🚀 Saleor Configuration Deploy\n");
       if (args.skipMedia) {
         this.console.muted(
@@ -516,13 +553,13 @@ export const deployCommandConfig: CommandConfig<typeof deployCommandSchema> = {
   requiresInteractive: true,
   examples: [
     `${COMMAND_NAME} deploy --url https://my-shop.saleor.cloud/graphql/ --token token123`,
-    `${COMMAND_NAME} deploy --config custom-config.yml --ci`,
+    `${COMMAND_NAME} deploy --config custom-config.yml`,
     `${COMMAND_NAME} deploy --report-path custom-report.json`,
     `${COMMAND_NAME} deploy --quiet`,
     `${COMMAND_NAME} deploy # Saves report to .configurator/reports/`,
     `${COMMAND_NAME} deploy --plan # Dry-run: show what would be deployed`,
     `${COMMAND_NAME} deploy --json # Output deployment results as JSON`,
-    `${COMMAND_NAME} deploy --fail-on-delete --ci # Block deployment if deletions detected`,
+    `${COMMAND_NAME} deploy --fail-on-delete # Block deployment if deletions detected`,
     `${COMMAND_NAME} deploy --skip-media # Deploy without modifying existing media`,
   ],
 };

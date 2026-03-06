@@ -1,7 +1,7 @@
 ---
 name: saleor-domain
 version: 2.0.0
-description: "Saleor e-commerce entity types, relationships, and identifier rules. Use when asking about how entities relate, slug vs name identification, channels, or what Configurator manages."
+description: "Saleor e-commerce entity types, relationships, and identifier rules. Use before answering any question about Saleor entities, how they connect, identifier rules (slug vs name), channels, or what Configurator manages."
 allowed-tools: Read, WebFetch
 license: MIT
 compatibility: "Claude Code or Claude.ai. Requires @saleor/configurator CLI installed."
@@ -70,7 +70,7 @@ Product ────────────────────────
                      ├── warehouse ──► Warehouse     │
                      └── channelListings ────────────┘
 
-Category (tree) └── children ──► Category[]
+Category (tree) └── subcategories ──► Category[]
 ShippingZone    └── warehouses ──► Warehouse[]
 ```
 
@@ -96,6 +96,37 @@ Configurator manages your store's structure. Some things are runtime-only:
 | Attributes and channels | Checkouts |
 | Warehouses and shipping zones | Payments |
 | Tax classes | Webhooks |
+
+## Entity Relationships in config.yml
+
+Here are practical examples showing how entities reference each other:
+
+```yaml
+# A product references its type (by name), category (by slug path),
+# and channels (by slug) for pricing:
+products:
+  - name: "Classic T-Shirt"
+    slug: "classic-t-shirt"
+    productType: "T-Shirt"        # → matches productTypes[].name
+    category: "clothing/t-shirts"  # → matches category slug path
+    variants:
+      - sku: "TSHIRT-S-RED"
+        channelListings:
+          - channel: "us-store"    # → matches channels[].slug
+            price: 29.99
+        stocks:
+          - warehouse: "main-wh"   # → matches warehouses[].slug
+            quantity: 100
+```
+
+```yaml
+# A shipping zone references warehouses and targets countries:
+shippingZones:
+  - name: "US Shipping"
+    countries: [US]
+    warehouses:
+      - "main-wh"                  # → matches warehouses[].slug
+```
 
 ## Common Mistakes
 

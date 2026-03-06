@@ -86,7 +86,6 @@ export class CliRunner {
     url: string;
     token: string;
     config?: string;
-    ci?: boolean;
     skipDiff?: boolean;
     timeout?: number;
     env?: Record<string, string>;
@@ -98,10 +97,6 @@ export class CliRunner {
 
     if (options.config) {
       args.push("--config", options.config);
-    }
-
-    if (options.ci) {
-      args.push("--ci", "true");
     }
 
     if (options.skipDiff) {

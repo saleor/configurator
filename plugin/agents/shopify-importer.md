@@ -121,6 +121,27 @@ productTypes:
 **Missing SKUs**: Generate from Handle + options
 **HTML Description**: Store as-is or strip tags
 
-### 7. Validate & Return
+### 7. Error Recovery
+
+**Invalid CSV / Encoding Issues**:
+- Try `file --mime-encoding "$FILE"` to detect encoding
+- If non-UTF-8, convert: `iconv -f [detected] -t utf-8 "$FILE" > "$FILE.utf8.csv"`
+
+**Missing Required Columns**:
+- If Handle missing, the file is likely not a Shopify export — suggest csv-importer instead
+- If Variant SKU missing for some rows, generate from Handle + Option values
+
+**Duplicate SKUs**:
+- Shopify exports can have duplicate SKUs across variants
+- Detect and report all duplicates with Handle + row numbers
+- Offer to auto-suffix or ask user to resolve
+
+**Post-Import Validation**:
+After generating YAML, validate the output:
+```bash
+npx configurator validate --json 2>/dev/null | jq '.result'
+```
+
+### 8. Validate & Return
 
 Check unique SKUs, valid references, then return YAML to parent command.

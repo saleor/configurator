@@ -22,7 +22,6 @@ export class ZodValidationError extends BaseError {
 }
 
 function formatZodIssue(issue: z.ZodIssue): string {
-  // For Zod v4, let's use the default message but improve some specific cases
   const message = issue.message;
 
   // Customize common error patterns for better UX

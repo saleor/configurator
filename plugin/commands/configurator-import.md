@@ -7,6 +7,10 @@ argument-hint: <file-path> [--source shopify]
 
 # Configurator Import
 
+## Required Skills
+- `data-importer` — transformation patterns and field mapping strategies
+- `configurator-schema` — config.yml structure and validation rules
+
 Import external product data into Saleor's config.yml format.
 
 ## Usage

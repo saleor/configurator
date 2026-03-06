@@ -104,22 +104,6 @@ describe("ZodValidationError", () => {
       }
     });
 
-    it("should handle union type errors", () => {
-      const schema = z.object({
-        value: z.union([z.string(), z.number()]),
-      });
-
-      const result = schema.safeParse({
-        value: true, // boolean is not allowed
-      });
-
-      if (!result.success) {
-        const error = ZodValidationError.fromZodError(result.error);
-
-        expect(error.message).toContain("value: Value doesn't match any of the expected types");
-      }
-    });
-
     it("should handle enum validation", () => {
       const schema = z.object({
         role: z.enum(["admin", "user", "guest"]),

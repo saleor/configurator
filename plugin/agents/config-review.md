@@ -88,6 +88,19 @@ This prevents noise from uncertain issues while ensuring real problems are surfa
 - Edge case that could go either way
 - DO NOT REPORT these
 
+### Calibration Examples
+
+Use these anchored examples to keep scores consistent:
+
+| Score | Example Finding |
+|-------|-----------------|
+| **98** | Product references productType "Dres" — no type with that name exists (typo of "Dress") |
+| **95** | Duplicate SKU "TSHIRT-BLK-M" found in two different products |
+| **85** | Channel "staging" is inactive but 12 products have listings in it |
+| **78** | 15 products have no description — poor SEO and customer experience |
+| **65** | Category "misc" exists but has no products or children assigned |
+| **45** | Slug "item-1" is not very descriptive — but could be intentional placeholder (DO NOT REPORT) |
+
 ## Review Process
 
 ### Step 1: Load Configuration
@@ -244,7 +257,7 @@ NEXT STEPS
 2. Address Y high-priority issues for best practices
 3. Review Z medium-priority suggestions
 4. Run /configurator validate after fixes
-5. Deploy with: npx configurator deploy --dry-run first
+5. Deploy with: npx configurator deploy --plan first
 ```
 
 ## Output Guidelines

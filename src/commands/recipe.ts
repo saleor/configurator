@@ -9,6 +9,7 @@ import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console, cliConsole } from "../cli/console";
 import { createConfigurator } from "../core/configurator";
 import { DeployDiffFormatter } from "../core/diff/formatters";
+import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { ZodValidationError } from "../lib/errors/zod";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
@@ -107,7 +108,6 @@ async function showHandler(args: z.infer<typeof recipeShowArgsSchema>): Promise<
 
 export const recipeApplyArgsSchema = baseCommandArgsSchema.extend({
   name: z.string(),
-  ci: z.boolean().default(false),
   plan: z.boolean().default(false),
   json: z.boolean().default(false),
 });
@@ -221,7 +221,7 @@ async function applyHandler(args: z.infer<typeof recipeApplyArgsSchema>): Promis
       process.exit(summary.totalChanges > 0 ? 1 : 0);
     }
 
-    if (!args.ci && !args.json) {
+    if (!isNonInteractiveEnvironment() && !args.json) {
       const shouldProceed = await confirmAction(
         `Apply recipe "${recipe.metadata.name}" with ${summary.totalChanges} changes?`,
         "This will modify your Saleor instance.",
@@ -354,7 +354,6 @@ export function createRecipeCommand() {
       .requiredOption("--url <url>", "Saleor instance URL")
       .requiredOption("--token <token>", "Saleor API token")
       .option("--quiet", "Suppress output")
-      .option("--ci", "CI mode - skip confirmations")
       .option("--plan", "Show plan without applying")
       .option("--json", "Output as JSON")
       .action(async (name, options) => {

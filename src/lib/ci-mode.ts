@@ -20,3 +20,19 @@ export function isCiOutputMode(): boolean {
     CI_OUTPUT_FLAGS.includes(arg as (typeof CI_OUTPUT_FLAGS)[number])
   );
 }
+
+/**
+ * Returns true when running in a non-interactive environment where prompts
+ * should be skipped automatically.
+ *
+ * A truly interactive terminal has BOTH stdin and stdout attached to a TTY.
+ * If either is missing, we cannot reliably show or receive interactive prompts.
+ * This covers pipes, CI runners, and most AI coding agents (Claude Code, Codex,
+ * etc.) which run commands without a full terminal attached.
+ *
+ * Edge case: agents that allocate a full PTY for both streams will not be
+ * detected here — those should use the --ci flag explicitly.
+ */
+export function isNonInteractiveEnvironment(): boolean {
+  return !process.stdout.isTTY || !process.stdin.isTTY;
+}
