@@ -196,11 +196,13 @@ Some agents are designed to be invoked automatically:
 
 ## Schema Validation
 
-The plugin includes a JSON Schema for config.yml validation:
+Use the CLI validator as the source of truth:
 
-- **Location**: `schemas/config.schema.json`
-- **Usage**: IDE autocomplete, pre-commit validation, error messages
-- **Coverage**: All entity types (channels, products, categories, etc.)
+```bash
+npx configurator validate --config config.yml --json
+```
+
+`./scripts/validate-config.sh` uses that same CLI path first. If the CLI is unavailable, it tries JSON Schema fallback from canonical schema locations (repo root `schema.json` or installed package schema).
 
 ### Validate from CLI
 
@@ -212,7 +214,7 @@ The plugin includes a JSON Schema for config.yml validation:
 ./scripts/validate-config.sh myconfig.yml --verbose
 ```
 
-Requires Python with `pyyaml` and `jsonschema`:
+Optional fallback dependencies (only when CLI validator is unavailable):
 ```bash
 pip install pyyaml jsonschema
 ```

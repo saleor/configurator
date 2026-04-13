@@ -118,7 +118,8 @@ channels:
 # Recipe-specific content below
 productTypes: [...]
 categories: [...]
-attributes: [...]
+productAttributes: [...]
+contentAttributes: [...]
 ```
 
 4. **Write to config.yml**
@@ -144,6 +145,7 @@ python3 -c "import yaml; yaml.safe_load(open('config.yml'))"
 Configuration includes:
 - [N] channels
 - [N] product types with [N] attributes
+- [N] shared product/content attributes
 - [N] categories in [N]-level hierarchy
 - [N] collections
 

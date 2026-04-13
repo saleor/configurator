@@ -1,6 +1,12 @@
 # Configuration Schema Reference
 
-Complete schema documentation for `config.yml`. All field names match the Zod schemas in `src/modules/config/schema/schema.ts`.
+Conceptual reference for `config.yml` structure.
+
+This file is intentionally not exhaustive to avoid schema drift. For authoritative field validation, use:
+
+```bash
+npx configurator validate --config config.yml --json
+```
 
 ## Top-Level Structure
 

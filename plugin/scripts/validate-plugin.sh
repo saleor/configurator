@@ -225,10 +225,10 @@ fi
 
 # Check for schemas
 if [ -d "$PLUGIN_DIR/schemas" ]; then
-    success "schemas/ directory exists"
+    success "schemas/ directory exists (optional)"
 
     if [ -f "$PLUGIN_DIR/schemas/config.schema.json" ]; then
-        success "config.schema.json exists"
+        success "config.schema.json exists (optional snapshot)"
 
         if command -v python3 &> /dev/null; then
             if python3 -c "import json; json.load(open('$PLUGIN_DIR/schemas/config.schema.json'))" 2>/dev/null; then
@@ -237,6 +237,8 @@ if [ -d "$PLUGIN_DIR/schemas" ]; then
                 error "config.schema.json has invalid JSON syntax"
             fi
         fi
+    else
+        info "  i No plugin-local config.schema.json (CLI validation is authoritative)"
     fi
 fi
 

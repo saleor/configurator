@@ -22,25 +22,19 @@ Your store configuration lives in a single `config.yml` file. Each section defin
 - "How do I reference one entity from another?"
 - When NOT designing product types or choosing attributes -- use `product-modeling` instead
 
-## File Structure
+## Schema Concepts
 
-```yaml
-# config.yml - Top-level structure
-shop:               # Store-wide settings (singleton)
-channels:           # Sales channels (slug-based)
-productAttributes:  # Standalone product attributes
-contentAttributes:  # Standalone content attributes
-productTypes:       # Product type definitions (name-based)
-modelTypes:         # Model type definitions (name-based) — preferred over pageTypes
-pageTypes:          # Page type definitions (name-based) — alias for modelTypes
-categories:         # Category hierarchy (slug-based)
-collections:        # Product collections (slug-based)
-products:           # Product definitions (slug-based)
-models:             # Content models/pages (slug-based)
-taxClasses:         # Tax classifications (name-based)
-shippingZones:      # Shipping zone definitions (name-based)
-warehouses:         # Warehouse definitions (slug-based)
-menus:              # Navigation menus (slug-based)
+Treat `config.yml` as four conceptual groups instead of memorizing a long top-level key list:
+
+1. **Store foundations**: `shop`, `channels`
+2. **Catalog model**: `productAttributes`, `contentAttributes`, `productTypes`, `modelTypes`/`pageTypes`
+3. **Catalog data**: categories/collections/products/models
+4. **Operations**: warehouses/shipping/tax/menus
+
+The exact allowed fields evolve over time. For authoritative validation, always run:
+
+```bash
+npx configurator validate --config config.yml --json
 ```
 
 ## Entity Identification
@@ -54,63 +48,33 @@ Configurator matches your local config to remote entities using an identifier fi
 
 **Important**: Changing a slug or name creates a NEW entity instead of updating the existing one.
 
-## Common Entity Examples
-
-### Channel
+## Minimal Pattern
 
 ```yaml
 channels:
-  - name: "US Store"
-    slug: "us-store"
+  - name: "Main Store"
+    slug: "main"
     currencyCode: USD
     defaultCountry: US
-    isActive: true
-```
 
-### Product Type
+productAttributes:
+  - name: "Brand"
+    inputType: PLAIN_TEXT
 
-```yaml
 productTypes:
   - name: "T-Shirt"
-    isShippingRequired: true
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-    variantAttributes:
-      - name: "Size"
-        type: DROPDOWN
-        values: [{ name: "S" }, { name: "M" }, { name: "L" }]
-      - name: "Color"
-        type: SWATCH
-```
+      - attribute: "Brand"
 
-### Product
-
-```yaml
 products:
-  - name: "Classic T-Shirt"
-    slug: "classic-t-shirt"
+  - name: "Classic Tee"
+    slug: "classic-tee"
     productType: "T-Shirt"
-    category: "clothing/t-shirts"
     variants:
-      - sku: "TSHIRT-S-RED"
-        attributes:
-          Size: "S"
-          Color: "Red"
+      - sku: "TEE-001"
         channelListings:
-          - channel: "us-store"
+          - channel: "main"
             price: 29.99
-```
-
-### Category (hierarchical)
-
-```yaml
-categories:
-  - name: "Electronics"
-    slug: "electronics"
-    subcategories:
-      - name: "Phones"
-        slug: "phones"
 ```
 
 ## Attribute Types
@@ -127,18 +91,16 @@ For detailed guidance on choosing the right type, see the `product-modeling` ski
 4. **Currency codes** -- valid ISO 4217 (USD, EUR, GBP, etc.)
 5. **Country codes** -- valid ISO 3166-1 alpha-2 (US, DE, GB, etc.)
 
-## Entity Dependencies
+## Dependency Concepts
 
-Entities depend on each other and must exist in the right order:
+You usually model in this order:
 
-```
-Level 0 (independent):  shop, channels, productTypes, pageTypes, taxClasses, shippingZones
-Level 1 (needs L0):     categories, warehouses, attributes
-Level 2 (needs L1):     collections, pages
-Level 3 (needs L2):     products, menus
-```
+1. Foundations (`shop`, `channels`)
+2. Reusable types and attributes (`productAttributes`, `contentAttributes`, `productTypes`, `modelTypes`)
+3. Concrete catalog entities (`categories`, `collections`, `products`, `models`)
+4. Operational entities (`warehouses`, `shippingZones`, `taxClasses`, `menus`)
 
-Configurator handles deployment order automatically, but understanding dependencies helps when troubleshooting validation errors.
+Configurator handles execution order, but this mental model helps diagnose missing-reference errors.
 
 ## Common Mistakes
 
@@ -159,8 +121,8 @@ Configurator handles deployment order automatically, but understanding dependenc
 
 ## See Also
 
-- For complete schema documentation, see [references/schema.md](references/schema.md)
-- For example configurations, see [references/examples.md](references/examples.md)
+- For worked examples, see [references/examples.md](references/examples.md)
+- For migration from legacy syntax, run `npx configurator introspect`
 
 ### Related Skills
 
