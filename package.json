@@ -29,7 +29,7 @@
     "pnpm": ">=9.0.0"
   },
   "saleor": {
-    "schemaVersion": "3.23"
+    "schemaVersion": "3.20"
   },
   "scripts": {
     "dev": "tsx src/cli/main.ts",

@@ -12,6 +12,7 @@ const updateShopSettingsMutation = graphql(`
         defaultWeightUnit
         fulfillmentAutoApprove
         fulfillmentAllowUnpaid
+        automaticFulfillmentDigitalProducts
       }
       errors {
         field

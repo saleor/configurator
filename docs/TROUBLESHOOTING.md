@@ -55,7 +55,7 @@ GraphQL Error
 │   ├── Verify URL format (must end with /graphql/)
 │   └── Test connectivity: curl -I $URL
 ├── Schema Validation (400)
-│   ├── Check Saleor version compatibility (3.23+)
+│   ├── Check Saleor version compatibility (3.20+)
 │   ├── Run: pnpm fetch-schema
 │   └── Verify GraphQL query syntax
 └── Permission Errors (specific operations)
@@ -594,7 +594,7 @@ models:
 **Saleor Version Compatibility:**
 | Saleor | Configurator | Status |
 |--------|-------------|---------|
-| 3.23.x | 1.3.x+ | ✅ Current |
+| 3.20.x | 0.14.x+ | ✅ Current |
 | 3.19.x | 0.12.x-0.14.x | ⚠️ Legacy |
 | 3.18.x | 0.10.x-0.12.x | ❌ Deprecated |
 

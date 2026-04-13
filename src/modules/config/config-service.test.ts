@@ -37,6 +37,8 @@ const mockRawShopData: RawSaleorConfig["shop"] = {
   trackInventoryByDefault: false,
   reserveStockDurationAnonymousUser: 60,
   reserveStockDurationAuthenticatedUser: 60,
+  defaultDigitalMaxDownloads: 10,
+  defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
 };
@@ -50,6 +52,8 @@ const mockMappedShopData: SaleorConfig["shop"] = {
   trackInventoryByDefault: false,
   reserveStockDurationAnonymousUser: 60,
   reserveStockDurationAuthenticatedUser: 60,
+  defaultDigitalMaxDownloads: 10,
+  defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
 };

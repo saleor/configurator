@@ -1,6 +1,7 @@
 import type { AnyVariables, Client } from "@urql/core";
 import { graphql, type ResultOf, type TadaDocumentNode, type VariablesOf } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
+import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 
 const GetPages = graphql(`
@@ -160,6 +161,55 @@ const UpdatePage = graphql(`
   }
 `);
 
+const UpdatePageAttributes = graphql(`
+  mutation UpdatePageAttributes($id: ID!, $input: [AttributeValueInput!]!) {
+    pageAttributeAssign(id: $id, attributeValues: $input) {
+      page {
+        id
+        attributes {
+          attribute {
+            id
+            slug
+          }
+          values {
+            id
+            name
+            value
+          }
+        }
+      }
+      errors {
+        field
+        message
+        code
+        attributes
+      }
+    }
+  }
+`);
+
+const UnassignPageAttributes = graphql(`
+  mutation UnassignPageAttributes($id: ID!, $attributeIds: [ID!]!) {
+    pageAttributeUnassign(id: $id, attributeIds: $attributeIds) {
+      page {
+        id
+        attributes {
+          attribute {
+            id
+            slug
+          }
+        }
+      }
+      errors {
+        field
+        message
+        code
+        attributes
+      }
+    }
+  }
+`);
+
 // Type exports for external use
 export type Page = NonNullable<ResultOf<typeof GetPageBySlug>["page"]>;
 export type PageCreateInput = VariablesOf<typeof CreatePage>["input"];
@@ -170,6 +220,8 @@ export interface ModelOperations {
   getPageBySlug(slug: string): Promise<Page | null>;
   createPage(input: PageCreateInput): Promise<Page>;
   updatePage(id: string, input: PageInput): Promise<Page>;
+  updatePageAttributes(id: string, attributes: AttributeValueInput[]): Promise<void>;
+  unassignPageAttributes(id: string, attributeIds: string[]): Promise<void>;
 }
 
 export class ModelRepository implements ModelOperations {
@@ -263,5 +315,42 @@ export class ModelRepository implements ModelOperations {
     });
 
     return data.pageUpdate.page as Page;
+  }
+
+  async updatePageAttributes(id: string, attributes: AttributeValueInput[]): Promise<void> {
+    if (attributes.length === 0) {
+      logger.debug("No attributes to update for page");
+      return;
+    }
+
+    logger.debug("Updating page attributes", { id, attributeCount: attributes.length });
+    const data = await this.mutation(UpdatePageAttributes, {
+      id,
+      input: attributes as VariablesOf<typeof UpdatePageAttributes>["input"],
+    });
+
+    if (data.pageAttributeAssign?.errors && data.pageAttributeAssign.errors.length > 0) {
+      const error = data.pageAttributeAssign.errors[0];
+      throw new GraphQLError(`Failed to update page attributes: ${error.message}`);
+    }
+
+    logger.debug("Successfully updated page attributes", { id });
+  }
+
+  async unassignPageAttributes(id: string, attributeIds: string[]): Promise<void> {
+    if (attributeIds.length === 0) {
+      logger.debug("No attributes to unassign from page");
+      return;
+    }
+
+    logger.debug("Unassigning page attributes", { id, attributeCount: attributeIds.length });
+    const data = await this.mutation(UnassignPageAttributes, { id, attributeIds });
+
+    if (data.pageAttributeUnassign?.errors && data.pageAttributeUnassign.errors.length > 0) {
+      const error = data.pageAttributeUnassign.errors[0];
+      throw new GraphQLError(`Failed to unassign page attributes: ${error.message}`);
+    }
+
+    logger.debug("Successfully unassigned page attributes", { id });
   }
 }
