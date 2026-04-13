@@ -12,6 +12,8 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 - [warehouses](#warehouses)
 - [shippingZones](#shippingzones)
 - [taxClasses](#taxclasses)
+- [productAttributes](#productattributes)
+- [contentAttributes](#contentattributes)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
 - [modelTypes](#modeltypes)
@@ -20,7 +22,6 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 - [products](#products)
 - [models](#models)
 - [menus](#menus)
-- [attributes](#attributes)
 
 ## shop
 
@@ -176,6 +177,42 @@ Each item is of type: `object`
 - **name** (`string`) *required*: TaxClass.name - Unique identifier for the tax class
 - **countryRates** (`array<object>`): TaxClass.countries - Tax rates per country for this tax class
 
+## productAttributes
+
+Product attributes (PRODUCT_TYPE in Saleor API) that can be referenced by productTypes. These are created before productTypes are processed.
+
+**Type:** `array<AttributeInput>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `AttributeInput`
+
+**Item properties:**
+
+- **name** (`string`) *required*: No description available
+- **inputType** (`string`) *required*: No description available
+- **values** (`array<object>`) *required*: No description available
+- **entityType** (`string (enum)`) *required*: No description available
+  - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT`
+
+## contentAttributes
+
+Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed.
+
+**Type:** `array<AttributeInput>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `AttributeInput`
+
+**Item properties:**
+
+- **name** (`string`) *required*: No description available
+- **inputType** (`string`) *required*: No description available
+- **values** (`array<object>`) *required*: No description available
+- **entityType** (`string (enum)`) *required*: No description available
+  - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT`
+
 ## productTypes
 
 Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type
@@ -318,14 +355,4 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Menu.name
 - **slug** (`string`) *required*: Menu.slug
 - **items** (`array<object>`): Menu.items - Top-level menu items
-
-## attributes
-
-Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment
-
-**Type:** `array<unknown>` *(optional)*
-
-**Array items:**
-
-Each item is of type: `unknown`
 
