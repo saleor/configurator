@@ -1,9 +1,11 @@
 #!/bin/bash
-# validate-config.sh - Validates config.yml against the JSON schema
+# validate-config.sh - Validates config.yml using the CLI schema validator first,
+# then falls back to JSON Schema validation using canonical schema locations.
 #
 # Usage: ./scripts/validate-config.sh [config-file] [--verbose]
 #
 # Requirements (one of):
+#   - configurator CLI in PATH (recommended)
 #   - Python 3 with pyyaml and jsonschema packages
 #   - Node.js with ajv-cli package
 #
@@ -20,7 +22,6 @@ NC='\033[0m'
 # Get script directory (plugin root)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
-SCHEMA_PATH="$PLUGIN_ROOT/schemas/config.schema.json"
 
 # Parse arguments
 CONFIG_FILE="${1:-config.yml}"
@@ -33,6 +34,25 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+resolve_schema_path() {
+    local repo_schema="$PLUGIN_ROOT/../schema.json"
+    if [ -f "$repo_schema" ]; then
+        echo "$repo_schema"
+        return 0
+    fi
+
+    if command -v node &> /dev/null; then
+        local package_schema
+        package_schema=$(node -e "try { console.log(require.resolve('@saleor/configurator/schema.json')); } catch { process.exit(1); }" 2>/dev/null || true)
+        if [ -n "$package_schema" ] && [ -f "$package_schema" ]; then
+            echo "$package_schema"
+            return 0
+        fi
+    fi
+
+    return 1
+}
 
 # Check if config file exists
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -47,20 +67,98 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
-# Check if schema exists
-if [ ! -f "$SCHEMA_PATH" ]; then
-    echo -e "${RED}Error: Schema not found at $SCHEMA_PATH${NC}"
-    echo "Please ensure the plugin is correctly installed."
-    exit 1
-fi
+SCHEMA_PATH=$(resolve_schema_path || true)
 
 echo "═══════════════════════════════════════════════════"
 echo "  Saleor Config.yml Validator"
 echo "═══════════════════════════════════════════════════"
 echo ""
 echo "Config file: $CONFIG_FILE"
-echo "Schema: $SCHEMA_PATH"
+echo "Schema: ${SCHEMA_PATH:-<not found>}"
 echo ""
+
+# Function to validate with the configurator CLI (authoritative schema)
+validate_with_cli() {
+    if ! command -v "$1" &> /dev/null; then
+        return 2
+    fi
+
+    if ! command -v python3 &> /dev/null; then
+        return 2
+    fi
+
+    CLI_OUTPUT=$(mktemp)
+    "$@" validate --config "$CONFIG_FILE" --json > "$CLI_OUTPUT" 2>/dev/null || true
+
+    if [ ! -s "$CLI_OUTPUT" ]; then
+        rm -f "$CLI_OUTPUT"
+        return 2
+    fi
+
+    python3 - "$CLI_OUTPUT" "$VERBOSE" <<'PY'
+import json
+import sys
+
+output_path = sys.argv[1]
+verbose = sys.argv[2].lower() == "true"
+
+try:
+    with open(output_path, "r", encoding="utf-8") as f:
+        envelope = json.load(f)
+except Exception:
+    sys.exit(2)
+
+if not isinstance(envelope, dict):
+    sys.exit(2)
+
+result = envelope.get("result")
+if not isinstance(result, dict):
+    sys.exit(2)
+
+valid = result.get("valid")
+errors = result.get("errors", [])
+if not isinstance(errors, list):
+    errors = []
+
+if valid is True and envelope.get("exitCode") == 0:
+    print("✓ Config is valid!")
+    sys.exit(0)
+
+print(f"VALIDATION FAILED - {len(errors)} error(s) found")
+print("")
+print("─" * 50)
+
+for i, error in enumerate(errors[:10], 1):
+    if isinstance(error, dict):
+        path = error.get("path") or "(root)"
+        message = error.get("message") or "Unknown validation error"
+    else:
+        path = "(root)"
+        message = str(error)
+
+    print(f"{i}. Path: {path}")
+    print(f"   Error: {message}")
+    print("")
+
+if len(errors) > 10:
+    print(f"... and {len(errors) - 10} more errors")
+
+if verbose:
+    envelope_errors = envelope.get("errors")
+    if isinstance(envelope_errors, list) and envelope_errors:
+        print("Envelope errors:")
+        for entry in envelope_errors:
+            print(f"  - {entry}")
+        print("")
+
+print("─" * 50)
+sys.exit(1)
+PY
+
+    RESULT=$?
+    rm -f "$CLI_OUTPUT"
+    return $RESULT
+}
 
 # Function to validate with Python
 validate_with_python() {
@@ -160,8 +258,33 @@ validate_with_node() {
 echo "--- Validation ---"
 echo ""
 
-# First try Python (most common)
-if command -v python3 &> /dev/null; then
+# First try CLI validation (authoritative runtime schema)
+if command -v configurator &> /dev/null; then
+    echo "Using configurator CLI validator..."
+    if validate_with_cli configurator; then
+        exit 0
+    else
+        RESULT=$?
+        if [ $RESULT -ne 2 ]; then
+            exit $RESULT
+        fi
+    fi
+fi
+
+if command -v npx &> /dev/null; then
+    echo "Using local npx configurator validator..."
+    if validate_with_cli npx --no-install configurator; then
+        exit 0
+    else
+        RESULT=$?
+        if [ $RESULT -ne 2 ]; then
+            exit $RESULT
+        fi
+    fi
+fi
+
+# Fall back to JSON schema validators if a schema path is available
+if [ -n "$SCHEMA_PATH" ] && command -v python3 &> /dev/null; then
     # Check for required packages
     if python3 -c "import yaml, jsonschema" 2>/dev/null; then
         validate_with_python
@@ -170,18 +293,24 @@ if command -v python3 &> /dev/null; then
 fi
 
 # Try Node.js with ajv
-if command -v node &> /dev/null; then
-    validate_with_node
-    RESULT=$?
-    if [ $RESULT -ne 2 ]; then
-        exit $RESULT
+if [ -n "$SCHEMA_PATH" ] && command -v node &> /dev/null; then
+    if validate_with_node; then
+        exit 0
+    else
+        RESULT=$?
+        if [ $RESULT -ne 2 ]; then
+            exit $RESULT
+        fi
     fi
 fi
 
 # No validator available
-echo -e "${YELLOW}Warning: No JSON Schema validator found${NC}"
+echo -e "${YELLOW}Warning: No CLI validator or schema source found${NC}"
 echo ""
 echo "Install one of the following:"
+echo ""
+echo "  CLI (recommended):"
+echo "    npm i -g @saleor/configurator"
 echo ""
 echo "  Python (recommended):"
 echo "    pip install pyyaml jsonschema"
