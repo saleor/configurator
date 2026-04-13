@@ -324,7 +324,7 @@ export class ModelService {
     const attributeValues: AttributeValueInput[] = await attrResolver.resolveAttributes(attributes);
 
     if (attributeValues.length > 0) {
-      await this.repository.updatePageAttributes(pageId, attributeValues);
+      await this.repository.updatePage(pageId, { attributes: attributeValues });
       logger.debug("Successfully updated model attributes", {
         pageId,
         updatedCount: attributeValues.length,

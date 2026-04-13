@@ -576,10 +576,12 @@ const productVariantBulkCreateMutation = graphql(`
 
 const productVariantBulkUpdateMutation = graphql(`
   mutation ProductVariantBulkUpdate(
+    $product: ID!
     $variants: [ProductVariantBulkUpdateInput!]!
     $errorPolicy: ErrorPolicyEnum
   ) {
     productVariantBulkUpdate(
+      product: $product
       variants: $variants
       errorPolicy: $errorPolicy
     ) {
@@ -622,7 +624,7 @@ const productVariantBulkUpdateMutation = graphql(`
 `);
 
 const getChannelBySlugQuery = graphql(`
-  query GetChannelBySlug($slug: String!) {
+  query GetChannelBySlug {
     channels {
       id
       name
@@ -1154,7 +1156,7 @@ export class ProductRepository implements ProductOperations {
   async getChannelBySlug(slug: string): Promise<Channel | null> {
     logger.debug("Looking up channel by slug", { slug });
 
-    const result = await this.client.query(getChannelBySlugQuery, { slug });
+    const result = await this.client.query(getChannelBySlugQuery, {});
 
     // channels is an array in this schema; find exact slug match
     const channels = result.data?.channels as Channel[] | undefined;

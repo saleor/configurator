@@ -287,7 +287,5 @@ function createMockOperations(): ModelOperations & {
     getPageBySlug: vi.fn(),
     createPage: vi.fn(),
     updatePage: vi.fn(),
-    updatePageAttributes: vi.fn(),
-    unassignPageAttributes: vi.fn(),
   };
 }
