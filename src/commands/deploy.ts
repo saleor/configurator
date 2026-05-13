@@ -38,6 +38,10 @@ import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
 import { COMMAND_NAME } from "../meta";
 import { AttributeCache } from "../modules/attribute/attribute-cache";
+import {
+  hasLegacyDigitalShopSettings,
+  LEGACY_DIGITAL_SHOP_SETTINGS_WARNING,
+} from "../modules/shop/legacy-digital-settings";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   reportPath: z
@@ -352,6 +356,24 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
   }
 
+  private async warnAboutLegacyDigitalShopSettings(
+    configurator: ReturnType<typeof createConfigurator>,
+    useJson: boolean
+  ): Promise<void> {
+    const cfg = await configurator.services.configStorage.load();
+
+    if (!cfg.shop || !hasLegacyDigitalShopSettings(cfg.shop)) {
+      return;
+    }
+
+    if (useJson) {
+      logger.warn(LEGACY_DIGITAL_SHOP_SETTINGS_WARNING);
+      return;
+    }
+
+    this.console.warn(LEGACY_DIGITAL_SHOP_SETTINGS_WARNING);
+  }
+
   private async analyzeDifferences(
     args: DeployCommandArgs,
     configurator: ReturnType<typeof createConfigurator>
@@ -476,6 +498,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
     try {
       await this.validateLocalConfiguration(args, configurator);
+      await this.warnAboutLegacyDigitalShopSettings(configurator, useJson);
 
       if (!useJson) {
         this.console.muted("⏳ Analyzing configuration differences...");

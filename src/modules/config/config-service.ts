@@ -397,8 +397,6 @@ export class ConfigurationService {
       trackInventoryByDefault: settings.trackInventoryByDefault,
       reserveStockDurationAnonymousUser: settings.reserveStockDurationAnonymousUser,
       reserveStockDurationAuthenticatedUser: settings.reserveStockDurationAuthenticatedUser,
-      defaultDigitalMaxDownloads: settings.defaultDigitalMaxDownloads,
-      defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
       defaultWeightUnit: settings.defaultWeightUnit,
       allowLoginWithoutConfirmation: settings.allowLoginWithoutConfirmation,
     });

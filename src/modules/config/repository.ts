@@ -15,8 +15,6 @@ const getConfigQuery = graphql(`
       trackInventoryByDefault
       reserveStockDurationAnonymousUser
       reserveStockDurationAuthenticatedUser
-      defaultDigitalMaxDownloads
-      defaultDigitalUrlValidDays
       defaultWeightUnit
       allowLoginWithoutConfirmation
     }

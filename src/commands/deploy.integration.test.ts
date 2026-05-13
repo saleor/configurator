@@ -9,6 +9,7 @@ import {
 import type { TempDirectory } from "../test-helpers/filesystem";
 import { createTempDirectory } from "../test-helpers/filesystem";
 import { createFetchMock } from "../test-helpers/graphql-mocks";
+import { LEGACY_DIGITAL_SHOP_SETTINGS_WARNING } from "../modules/shop/legacy-digital-settings";
 import { deployHandler } from "./deploy";
 
 const TEST_URL = "https://test.saleor.cloud/graphql/";
@@ -95,6 +96,51 @@ describe("Deploy Command - Integration Tests", () => {
         authorization: `Bearer ${TEST_TOKEN}`,
         "content-type": "application/json",
       });
+    });
+
+    it("should warn and strip legacy digital shop settings before deploy mutation", async () => {
+      const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      const configPath = createConfigFile()
+        .withShop({
+          defaultMailSenderName: "Updated Shop Name",
+          automaticFulfillmentDigitalProducts: true,
+          defaultDigitalMaxDownloads: 5,
+          defaultDigitalUrlValidDays: 14,
+        })
+        .saveToFile(tempDir);
+
+      await expect(
+        deployHandler({
+          url: TEST_URL,
+          token: TEST_TOKEN,
+          config: configPath,
+          quiet: false,
+          verbose: false,
+          json: false,
+          plan: false,
+          failOnDelete: false,
+          skipMedia: false,
+          text: true,
+        })
+      ).rejects.toThrow("process.exit(0)");
+
+      expect(
+        consoleSpy.mock.calls.some(([message]) =>
+          String(message).includes(LEGACY_DIGITAL_SHOP_SETTINGS_WARNING)
+        )
+      ).toBe(true);
+
+      const shopUpdateCalls = (fetchSpy?.mock.calls as FetchMockCall[]).filter((call) => {
+        const body = call[1]?.body?.toString();
+        return body?.includes("shopSettingsUpdate");
+      });
+      expect(shopUpdateCalls.length).toBeGreaterThan(0);
+
+      const requestBody = JSON.parse(shopUpdateCalls[0]?.[1]?.body?.toString() ?? "{}");
+      expect(requestBody.variables.input).toEqual({
+        defaultMailSenderName: "Updated Shop Name",
+      });
+      expect(requestBody.query).not.toContain("automaticFulfillmentDigitalProducts");
     });
 
     it("should handle no changes scenario gracefully", async () => {

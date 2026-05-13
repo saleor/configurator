@@ -70,7 +70,69 @@ function makeEmptyChoices() {
   };
 }
 
+type FieldSelection = {
+  kind: string;
+  name?: { value: string };
+  selectionSet?: { selections: FieldSelection[] };
+};
+
+function collectFieldNames(selection: FieldSelection | undefined, fieldNames = new Set<string>()) {
+  if (!selection) {
+    return fieldNames;
+  }
+
+  if (selection.kind === "Field" && selection.name?.value) {
+    fieldNames.add(selection.name.value);
+  }
+
+  for (const child of selection.selectionSet?.selections ?? []) {
+    collectFieldNames(child, fieldNames);
+  }
+
+  return fieldNames;
+}
+
 describe("ConfigurationRepository", () => {
+  it("should not query Saleor 3.23 removed digital shop fields", async () => {
+    const capturedDocuments: TypedDocumentNode[] = [];
+
+    const mockClient: Client = {
+      query: async (document: TypedDocumentNode) => {
+        capturedDocuments.push(document);
+
+        const operation = document.definitions.find(
+          (definition: { kind: string }) => definition.kind === "OperationDefinition"
+        ) as { name?: { value: string } } | undefined;
+
+        if (operation?.name?.value === "GetProductsPage") {
+          return { data: { products: makeEmptyPage() } };
+        }
+
+        if (operation?.name?.value === "GetAttributesPage") {
+          return { data: { attributes: makeEmptyPage() } };
+        }
+
+        return { data: makeEmptyConfigData() };
+      },
+      mutation: async () => {
+        throw new Error("Not implemented");
+      },
+      subscribe: () => {
+        throw new Error("Not implemented");
+      },
+    } as unknown as Client;
+
+    const repository = new ConfigurationRepository(mockClient);
+    await repository.fetchConfig();
+
+    const getConfigDocument = capturedDocuments[0];
+    const operation = getConfigDocument.definitions[0] as FieldSelection;
+    const fieldNames = collectFieldNames(operation);
+
+    expect(fieldNames.has("defaultDigitalMaxDownloads")).toBe(false);
+    expect(fieldNames.has("defaultDigitalUrlValidDays")).toBe(false);
+  });
+
   it("should keep product channel listings outside variant scope in pagination query", async () => {
     const capturedDocuments: TypedDocumentNode[] = [];
 
@@ -111,11 +173,6 @@ describe("ConfigurationRepository", () => {
     );
     expect(productsField).toBeDefined();
 
-    type FieldSelection = {
-      kind: string;
-      name?: { value: string };
-      selectionSet?: { selections: FieldSelection[] };
-    };
     const edgesField = (productsField as FieldSelection)?.selectionSet?.selections.find(
       (selection) => selection.kind === "Field" && selection.name?.value === "edges"
     );

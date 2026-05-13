@@ -173,6 +173,24 @@ describe("Schema Union Types", () => {
         trackInventoryByDefault: false,
       });
     });
+
+    it("should continue validating legacy digital shop settings", () => {
+      const updateInput = {
+        shop: {
+          automaticFulfillmentDigitalProducts: true,
+          defaultDigitalMaxDownloads: 5,
+          defaultDigitalUrlValidDays: 14,
+        },
+      };
+
+      const result = configSchema.parse(updateInput);
+
+      expect(result.shop).toEqual({
+        automaticFulfillmentDigitalProducts: true,
+        defaultDigitalMaxDownloads: 5,
+        defaultDigitalUrlValidDays: 14,
+      });
+    });
   });
 
   describe("PageType Schema", () => {
