@@ -377,8 +377,6 @@ export function createFetchMock() {
               trackInventoryByDefault: true,
               reserveStockDurationAnonymousUser: 10,
               reserveStockDurationAuthenticatedUser: 10,
-              defaultDigitalMaxDownloads: null,
-              defaultDigitalUrlValidDays: null,
               defaultWeightUnit: "KG",
               allowLoginWithoutConfirmation: false,
             },

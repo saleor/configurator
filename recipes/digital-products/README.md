@@ -146,16 +146,6 @@ Extend license options for software:
       slug: site
 ```
 
-### Configuring Download Limits
-
-Adjust default digital settings:
-
-```yaml
-shop:
-  defaultDigitalMaxDownloads: 10  # Increase download limit
-  defaultDigitalUrlValidDays: 60  # Extend validity period
-```
-
 ### Adding Subscription Tiers
 
 Create tiered subscription options:

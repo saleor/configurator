@@ -478,8 +478,6 @@ export function createMatchingCurrentStateConfig(): ConfigFileBuilder {
       trackInventoryByDefault: true,
       reserveStockDurationAnonymousUser: 10,
       reserveStockDurationAuthenticatedUser: 10,
-      defaultDigitalMaxDownloads: undefined,
-      defaultDigitalUrlValidDays: undefined,
       defaultWeightUnit: "KG",
       allowLoginWithoutConfirmation: false,
     })

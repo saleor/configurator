@@ -9,8 +9,6 @@ shop:
   enableAccountConfirmationByEmail: true
   limitQuantityPerCheckout: 10
   trackInventoryByDefault: false  # Digital products don't need inventory tracking
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
   defaultWeightUnit: KG
 
 channels:

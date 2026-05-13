@@ -486,22 +486,8 @@ const shopSchema = z.object({
     .optional()
     .describe("Whether new products should track inventory by default"),
   defaultWeightUnit: weightUnitEnum.optional().describe("Default unit for product weights"),
-  automaticFulfillmentDigitalProducts: z
-    .boolean()
-    .optional()
-    .describe("Automatically fulfill digital products upon payment"),
   fulfillmentAutoApprove: z.boolean().optional().describe("Automatically approve fulfillments"),
   fulfillmentAllowUnpaid: z.boolean().optional().describe("Allow fulfillment of unpaid orders"),
-  defaultDigitalMaxDownloads: z
-    .number()
-    .optional()
-    .nullable()
-    .describe("Maximum downloads allowed for digital products"),
-  defaultDigitalUrlValidDays: z
-    .number()
-    .optional()
-    .nullable()
-    .describe("Days that download links remain valid"),
   defaultMailSenderName: z
     .string()
     .optional()

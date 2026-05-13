@@ -34,10 +34,7 @@ shop:
   trackInventoryByDefault: boolean            # Default inventory tracking
   fulfillmentAutoApprove: boolean             # Auto-approve fulfillments
   fulfillmentAllowUnpaid: boolean             # Allow fulfillment of unpaid orders
-  automaticFulfillmentDigitalProducts: boolean # Auto-fulfill digital products
   defaultWeightUnit: KG | LB | OZ | G | TONNE # Default weight unit
-  defaultDigitalMaxDownloads: number | null   # Max downloads for digital products
-  defaultDigitalUrlValidDays: number | null   # Days download links remain valid
   defaultMailSenderName: string | null        # Default sender name for emails
   defaultMailSenderAddress: string | null     # Default sender email address
   customerSetPasswordUrl: string              # URL for customer password setup

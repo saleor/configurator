@@ -34,6 +34,9 @@ Saleor Configurator brings **infrastructure-as-code** principles to e-commerce. 
 
 **Prerequisites:** Node.js 20+
 
+**Saleor compatibility:** Saleor Configurator supports the latest Saleor minor version only.
+This release targets Saleor 3.23.
+
 ### Installation
 
 ```bash
