@@ -5,11 +5,11 @@
 # This is a minimal config.yml skeleton showing the structure of each section.
 # Copy this file and fill in your actual values.
 #
-# Validation: npx configurator validate (or use the JSON schema at schemas/config.schema.json)
+# Validation: npx configurator validate
 #
 # Entity Identification Rules:
-#   - slug-based: channels, categories, collections, products, warehouses, menus, pages
-#   - name-based: productTypes, pageTypes, attributes, taxClasses, shippingZones
+#   - slug-based: channels, categories, collections, products, warehouses, menus, models
+#   - name-based: productTypes, modelTypes/pageTypes, productAttributes/contentAttributes, taxClasses, shippingZones
 #
 # Required fields are marked with [REQUIRED], optional with [OPTIONAL]
 #
@@ -73,19 +73,18 @@ productTypes:
     #         value: "#000000"                    # Hex color for SWATCH type
 
 # -----------------------------------------------------------------------------
-# ATTRIBUTES (name-based identification) - standalone reusable attributes
+# GLOBAL ATTRIBUTES (name-based identification) - standalone reusable attributes
 # -----------------------------------------------------------------------------
-# Define attributes separately if reused across multiple product types
-# attributes:
+# Define shared attributes once, then reference them from productTypes/modelTypes.
+# productAttributes:                              # PRODUCT_TYPE attributes
 #   - name: "Material"                            # [REQUIRED] Unique attribute name
-#     type: DROPDOWN                              # [REQUIRED] Attribute type
-#     inputType: DROPDOWN                         # [OPTIONAL] Input type
-#     valueRequired: false                        # [OPTIONAL] Is selection required
-#     visibleInStorefront: true                   # [OPTIONAL] Show in storefront
-#     filterableInStorefront: true                # [OPTIONAL] Enable filtering
+#     inputType: DROPDOWN                         # [REQUIRED] Attribute input type
 #     values:
 #       - name: "Cotton"
 #       - name: "Polyester"
+# contentAttributes:                              # PAGE_TYPE attributes
+#   - name: "Author"
+#     inputType: PLAIN_TEXT
 
 # -----------------------------------------------------------------------------
 # CATEGORIES (slug-based identification, hierarchical)

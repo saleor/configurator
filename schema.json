@@ -22,7 +22,13 @@
         "defaultWeightUnit": {
           "description": "Default unit for product weights",
           "type": "string",
-          "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+          "enum": [
+            "KG",
+            "LB",
+            "OZ",
+            "G",
+            "TONNE"
+          ]
         },
         "automaticFulfillmentDigitalProducts": {
           "description": "Automatically fulfill digital products upon payment",
@@ -455,7 +461,10 @@
                   "allocationStrategy": {
                     "description": "Strategy for allocating stock when multiple locations have inventory",
                     "type": "string",
-                    "enum": ["PRIORITIZE_SORTING_ORDER", "PRIORITIZE_HIGH_STOCK"]
+                    "enum": [
+                      "PRIORITIZE_SORTING_ORDER",
+                      "PRIORITIZE_HIGH_STOCK"
+                    ]
                   },
                   "automaticallyConfirmAllNewOrders": {
                     "description": "Automatically confirm all new orders without manual review",
@@ -476,7 +485,10 @@
                   "markAsPaidStrategy": {
                     "description": "Strategy for marking orders as paid - transaction flow (recommended) or legacy payment flow",
                     "type": "string",
-                    "enum": ["TRANSACTION_FLOW", "PAYMENT_FLOW"]
+                    "enum": [
+                      "TRANSACTION_FLOW",
+                      "PAYMENT_FLOW"
+                    ]
                   },
                   "allowUnpaidOrders": {
                     "description": "Allow creation of orders without immediate payment",
@@ -497,7 +509,10 @@
                   "defaultTransactionFlowStrategy": {
                     "description": "Default payment flow - authorize first then capture, or charge immediately",
                     "type": "string",
-                    "enum": ["AUTHORIZATION", "CHARGE"]
+                    "enum": [
+                      "AUTHORIZATION",
+                      "CHARGE"
+                    ]
                   }
                 },
                 "additionalProperties": false
@@ -509,7 +524,10 @@
                   "taxCalculationStrategy": {
                     "description": "Method for calculating taxes - flat rates or external tax app",
                     "type": "string",
-                    "enum": ["FLAT_RATES", "TAX_APP"]
+                    "enum": [
+                      "FLAT_RATES",
+                      "TAX_APP"
+                    ]
                   },
                   "chargeTaxes": {
                     "description": "Whether to charge taxes in this channel",
@@ -531,7 +549,13 @@
                 "additionalProperties": false
               }
             },
-            "required": ["name", "currencyCode", "defaultCountry", "slug", "isActive"],
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
             "additionalProperties": false
           },
           {
@@ -853,7 +877,13 @@
                 "type": "boolean"
               }
             },
-            "required": ["name", "currencyCode", "defaultCountry", "slug", "isActive"],
+            "required": [
+              "name",
+              "currencyCode",
+              "defaultCountry",
+              "slug",
+              "isActive"
+            ],
             "additionalProperties": false
           }
         ]
@@ -1184,14 +1214,22 @@
                 "type": "string"
               }
             },
-            "required": ["streetAddress1", "city", "country"],
+            "required": [
+              "streetAddress1",
+              "city",
+              "country"
+            ],
             "additionalProperties": false
           },
           "clickAndCollectOption": {
             "description": "Warehouse.clickAndCollectOption",
             "default": "DISABLED",
             "type": "string",
-            "enum": ["DISABLED", "LOCAL", "ALL"]
+            "enum": [
+              "DISABLED",
+              "LOCAL",
+              "ALL"
+            ]
           },
           "shippingZones": {
             "description": "Warehouse.shippingZones",
@@ -1201,7 +1239,13 @@
             }
           }
         },
-        "required": ["name", "slug", "isPrivate", "address", "clickAndCollectOption"],
+        "required": [
+          "name",
+          "slug",
+          "isPrivate",
+          "address",
+          "clickAndCollectOption"
+        ],
         "additionalProperties": false
       }
     },
@@ -1513,7 +1557,10 @@
                 "type": {
                   "description": "ShippingMethod.type",
                   "type": "string",
-                  "enum": ["PRICE", "WEIGHT"]
+                  "enum": [
+                    "PRICE",
+                    "WEIGHT"
+                  ]
                 },
                 "minimumDeliveryDays": {
                   "description": "ShippingMethod.minimumDeliveryDays",
@@ -1533,14 +1580,23 @@
                   "properties": {
                     "unit": {
                       "type": "string",
-                      "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
                     },
                     "value": {
                       "type": "number",
                       "minimum": 0
                     }
                   },
-                  "required": ["unit", "value"],
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
                   "additionalProperties": false
                 },
                 "maximumOrderWeight": {
@@ -1549,14 +1605,23 @@
                   "properties": {
                     "unit": {
                       "type": "string",
-                      "enum": ["KG", "LB", "OZ", "G", "TONNE"]
+                      "enum": [
+                        "KG",
+                        "LB",
+                        "OZ",
+                        "G",
+                        "TONNE"
+                      ]
                     },
                     "value": {
                       "type": "number",
                       "minimum": 0
                     }
                   },
-                  "required": ["unit", "value"],
+                  "required": [
+                    "unit",
+                    "value"
+                  ],
                   "additionalProperties": false
                 },
                 "taxClass": {
@@ -1636,17 +1701,27 @@
                         "minimum": 0
                       }
                     },
-                    "required": ["channel", "price"],
+                    "required": [
+                      "channel",
+                      "price"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["name", "type"],
+              "required": [
+                "name",
+                "type"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name", "default", "countries"],
+        "required": [
+          "name",
+          "default",
+          "countries"
+        ],
         "additionalProperties": false
       }
     },
@@ -1929,13 +2004,410 @@
                   "maximum": 100
                 }
               },
-              "required": ["countryCode", "rate"],
+              "required": [
+                "countryCode",
+                "rate"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "additionalProperties": false
+      }
+    },
+    "productAttributes": {
+      "description": "Product attributes (PRODUCT_TYPE in Saleor API) that can be referenced by productTypes. These are created before productTypes are processed.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "DROPDOWN"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "MULTISELECT"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SWATCH"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SINGLE_REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "enum": [
+                  "PLAIN_TEXT",
+                  "NUMERIC",
+                  "DATE",
+                  "BOOLEAN",
+                  "RICH_TEXT",
+                  "DATE_TIME",
+                  "FILE"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "contentAttributes": {
+      "description": "Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "DROPDOWN"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "MULTISELECT"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SWATCH"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SINGLE_REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "enum": [
+                  "PLAIN_TEXT",
+                  "NUMERIC",
+                  "DATE",
+                  "BOOLEAN",
+                  "RICH_TEXT",
+                  "DATE_TIME",
+                  "FILE"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     "productTypes": {
@@ -1970,9 +2442,16 @@
                         "name": {
                           "type": "string"
                         },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
                         "inputType": {
                           "type": "string",
-                          "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
                         },
                         "values": {
                           "type": "array",
@@ -1980,15 +2459,22 @@
                             "type": "object",
                             "properties": {
                               "name": {
-                                "type": "string"
+                                "type": "string",
+                                "minLength": 1
                               }
                             },
-                            "required": ["name"],
+                            "required": [
+                              "name"
+                            ],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": ["name", "inputType", "values"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -1996,6 +2482,9 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2003,10 +2492,18 @@
                         },
                         "entityType": {
                           "type": "string",
-                          "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
                         }
                       },
-                      "required": ["name", "inputType", "entityType"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -2014,6 +2511,38 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "SINGLE_REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2028,7 +2557,10 @@
                           ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -2039,9 +2571,14 @@
                   "properties": {
                     "attribute": {
                       "type": "string"
+                    },
+                    "variantSelection": {
+                      "type": "boolean"
                     }
                   },
-                  "required": ["attribute"],
+                  "required": [
+                    "attribute"
+                  ],
                   "additionalProperties": false
                 }
               ]
@@ -2060,9 +2597,16 @@
                         "name": {
                           "type": "string"
                         },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
                         "inputType": {
                           "type": "string",
-                          "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
                         },
                         "values": {
                           "type": "array",
@@ -2070,15 +2614,22 @@
                             "type": "object",
                             "properties": {
                               "name": {
-                                "type": "string"
+                                "type": "string",
+                                "minLength": 1
                               }
                             },
-                            "required": ["name"],
+                            "required": [
+                              "name"
+                            ],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": ["name", "inputType", "values"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -2086,6 +2637,9 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2093,10 +2647,18 @@
                         },
                         "entityType": {
                           "type": "string",
-                          "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
                         }
                       },
-                      "required": ["name", "inputType", "entityType"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -2104,6 +2666,38 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "SINGLE_REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2118,7 +2712,10 @@
                           ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -2129,16 +2726,24 @@
                   "properties": {
                     "attribute": {
                       "type": "string"
+                    },
+                    "variantSelection": {
+                      "type": "boolean"
                     }
                   },
-                  "required": ["attribute"],
+                  "required": [
+                    "attribute"
+                  ],
                   "additionalProperties": false
                 }
               ]
             }
           }
         },
-        "required": ["name", "isShippingRequired"],
+        "required": [
+          "name",
+          "isShippingRequired"
+        ],
         "additionalProperties": false
       }
     },
@@ -2167,9 +2772,16 @@
                             "name": {
                               "type": "string"
                             },
+                            "variantSelection": {
+                              "type": "boolean"
+                            },
                             "inputType": {
                               "type": "string",
-                              "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                              "enum": [
+                                "DROPDOWN",
+                                "MULTISELECT",
+                                "SWATCH"
+                              ]
                             },
                             "values": {
                               "type": "array",
@@ -2177,15 +2789,22 @@
                                 "type": "object",
                                 "properties": {
                                   "name": {
-                                    "type": "string"
+                                    "type": "string",
+                                    "minLength": 1
                                   }
                                 },
-                                "required": ["name"],
+                                "required": [
+                                  "name"
+                                ],
                                 "additionalProperties": false
                               }
                             }
                           },
-                          "required": ["name", "inputType", "values"],
+                          "required": [
+                            "name",
+                            "inputType",
+                            "values"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -2193,6 +2812,9 @@
                           "properties": {
                             "name": {
                               "type": "string"
+                            },
+                            "variantSelection": {
+                              "type": "boolean"
                             },
                             "inputType": {
                               "type": "string",
@@ -2200,10 +2822,18 @@
                             },
                             "entityType": {
                               "type": "string",
-                              "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                              "enum": [
+                                "PAGE",
+                                "PRODUCT",
+                                "PRODUCT_VARIANT"
+                              ]
                             }
                           },
-                          "required": ["name", "inputType", "entityType"],
+                          "required": [
+                            "name",
+                            "inputType",
+                            "entityType"
+                          ],
                           "additionalProperties": false
                         },
                         {
@@ -2211,6 +2841,38 @@
                           "properties": {
                             "name": {
                               "type": "string"
+                            },
+                            "variantSelection": {
+                              "type": "boolean"
+                            },
+                            "inputType": {
+                              "type": "string",
+                              "const": "SINGLE_REFERENCE"
+                            },
+                            "entityType": {
+                              "type": "string",
+                              "enum": [
+                                "PAGE",
+                                "PRODUCT",
+                                "PRODUCT_VARIANT"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "inputType",
+                            "entityType"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "variantSelection": {
+                              "type": "boolean"
                             },
                             "inputType": {
                               "type": "string",
@@ -2225,7 +2887,10 @@
                               ]
                             }
                           },
-                          "required": ["name", "inputType"],
+                          "required": [
+                            "name",
+                            "inputType"
+                          ],
                           "additionalProperties": false
                         }
                       ]
@@ -2236,16 +2901,24 @@
                       "properties": {
                         "attribute": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         }
                       },
-                      "required": ["attribute"],
+                      "required": [
+                        "attribute"
+                      ],
                       "additionalProperties": false
                     }
                   ]
                 }
               }
             },
-            "required": ["name", "attributes"],
+            "required": [
+              "name",
+              "attributes"
+            ],
             "additionalProperties": false
           },
           {
@@ -2256,7 +2929,9 @@
                 "type": "string"
               }
             },
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "additionalProperties": false
           }
         ]
@@ -2289,9 +2964,16 @@
                         "name": {
                           "type": "string"
                         },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
                         "inputType": {
                           "type": "string",
-                          "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
                         },
                         "values": {
                           "type": "array",
@@ -2299,15 +2981,22 @@
                             "type": "object",
                             "properties": {
                               "name": {
-                                "type": "string"
+                                "type": "string",
+                                "minLength": 1
                               }
                             },
-                            "required": ["name"],
+                            "required": [
+                              "name"
+                            ],
                             "additionalProperties": false
                           }
                         }
                       },
-                      "required": ["name", "inputType", "values"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -2315,6 +3004,9 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2322,10 +3014,18 @@
                         },
                         "entityType": {
                           "type": "string",
-                          "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
                         }
                       },
-                      "required": ["name", "inputType", "entityType"],
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
                       "additionalProperties": false
                     },
                     {
@@ -2333,6 +3033,38 @@
                       "properties": {
                         "name": {
                           "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "SINGLE_REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
                         },
                         "inputType": {
                           "type": "string",
@@ -2347,7 +3079,10 @@
                           ]
                         }
                       },
-                      "required": ["name", "inputType"],
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
                       "additionalProperties": false
                     }
                   ]
@@ -2358,16 +3093,23 @@
                   "properties": {
                     "attribute": {
                       "type": "string"
+                    },
+                    "variantSelection": {
+                      "type": "boolean"
                     }
                   },
-                  "required": ["attribute"],
+                  "required": [
+                    "attribute"
+                  ],
                   "additionalProperties": false
                 }
               ]
             }
           }
         },
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "additionalProperties": false
       }
     },
@@ -2391,7 +3133,10 @@
                 "type": "string"
               }
             },
-            "required": ["name", "slug"],
+            "required": [
+              "name",
+              "slug"
+            ],
             "additionalProperties": false
           }
         ]
@@ -2445,12 +3190,17 @@
                   "type": "string"
                 }
               },
-              "required": ["channelSlug"],
+              "required": [
+                "channelSlug"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name", "slug"],
+        "required": [
+          "name",
+          "slug"
+        ],
         "additionalProperties": false
       }
     },
@@ -2524,7 +3274,11 @@
                   "default": true,
                   "type": "boolean"
                 },
-                "availableForPurchase": {
+                "isAvailableForPurchase": {
+                  "description": "Whether the product is available for purchase in this channel",
+                  "type": "boolean"
+                },
+                "availableForPurchaseAt": {
                   "description": "ISO date when the product becomes available for purchase",
                   "type": "string"
                 },
@@ -2533,7 +3287,11 @@
                   "type": "string"
                 }
               },
-              "required": ["channel", "isPublished", "visibleInListings"],
+              "required": [
+                "channel",
+                "isPublished",
+                "visibleInListings"
+              ],
               "additionalProperties": false
             }
           },
@@ -2553,7 +3311,9 @@
                   "type": "string"
                 }
               },
-              "required": ["externalUrl"],
+              "required": [
+                "externalUrl"
+              ],
               "additionalProperties": false
             }
           },
@@ -2618,17 +3378,28 @@
                         "type": "number"
                       }
                     },
-                    "required": ["channel"],
+                    "required": [
+                      "channel"
+                    ],
                     "additionalProperties": false
                   }
                 }
               },
-              "required": ["name", "sku"],
+              "required": [
+                "name",
+                "sku"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["name", "slug", "productType", "category", "variants"],
+        "required": [
+          "name",
+          "slug",
+          "productType",
+          "category",
+          "variants"
+        ],
         "additionalProperties": false
       }
     },
@@ -2689,7 +3460,11 @@
             }
           }
         },
-        "required": ["title", "slug", "modelType"],
+        "required": [
+          "title",
+          "slug",
+          "modelType"
+        ],
         "additionalProperties": false
       }
     },
@@ -2715,98 +3490,11 @@
             }
           }
         },
-        "required": ["name", "slug"],
+        "required": [
+          "name",
+          "slug"
+        ],
         "additionalProperties": false
-      }
-    },
-    "attributes": {
-      "description": "Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment",
-      "type": "array",
-      "items": {
-        "allOf": [
-          {
-            "anyOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "inputType": {
-                    "type": "string",
-                    "enum": ["DROPDOWN", "MULTISELECT", "SWATCH"]
-                  },
-                  "values": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["name"],
-                      "additionalProperties": false
-                    }
-                  }
-                },
-                "required": ["name", "inputType", "values"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "inputType": {
-                    "type": "string",
-                    "const": "REFERENCE"
-                  },
-                  "entityType": {
-                    "type": "string",
-                    "enum": ["PAGE", "PRODUCT", "PRODUCT_VARIANT"]
-                  }
-                },
-                "required": ["name", "inputType", "entityType"],
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  },
-                  "inputType": {
-                    "type": "string",
-                    "enum": [
-                      "PLAIN_TEXT",
-                      "NUMERIC",
-                      "DATE",
-                      "BOOLEAN",
-                      "RICH_TEXT",
-                      "DATE_TIME",
-                      "FILE"
-                    ]
-                  }
-                },
-                "required": ["name", "inputType"],
-                "additionalProperties": false
-              }
-            ]
-          },
-          {
-            "type": "object",
-            "properties": {
-              "type": {
-                "type": "string",
-                "enum": ["PRODUCT_TYPE", "PAGE_TYPE"]
-              }
-            },
-            "required": ["type"],
-            "additionalProperties": false
-          }
-        ]
       }
     }
   },
@@ -2831,7 +3519,10 @@
           }
         }
       },
-      "required": ["name", "slug"],
+      "required": [
+        "name",
+        "slug"
+      ],
       "additionalProperties": false
     },
     "__schema1": {
@@ -2865,7 +3556,9 @@
           }
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "additionalProperties": false
     }
   },
