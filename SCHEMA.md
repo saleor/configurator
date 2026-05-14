@@ -1,6 +1,8 @@
 # Saleor Configurator Configuration Schema
 
-Schema for Saleor Configurator YAML configuration files. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.
+**Supported Saleor minor:** `3.23.x`
+
+Schema for Saleor Configurator YAML configuration files targeting Saleor 3.23.x. This defines all available fields, their types, and validation rules for managing Saleor e-commerce store configuration as code.
 
 > [!TIP]
 > For a complete configuration example, see [example.yml](example.yml).
@@ -12,6 +14,8 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 - [warehouses](#warehouses)
 - [shippingZones](#shippingzones)
 - [taxClasses](#taxclasses)
+- [productAttributes](#productattributes)
+- [contentAttributes](#contentattributes)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
 - [modelTypes](#modeltypes)
@@ -20,7 +24,6 @@ Schema for Saleor Configurator YAML configuration files. This defines all availa
 - [products](#products)
 - [models](#models)
 - [menus](#menus)
-- [attributes](#attributes)
 
 ## shop
 
@@ -33,12 +36,10 @@ Global shop configuration settings that apply across all channels and define sto
 - **headerText** (`string`): Text displayed in the shop header
 - **description** (`string`): General description of the shop
 - **trackInventoryByDefault** (`boolean`): Whether new products should track inventory by default
+- **useLegacyShippingZoneStockAvailability** (`boolean`): Use shipping zones to determine stock availability
 - **defaultWeightUnit** (`string (enum)`): Default unit for product weights
-- **automaticFulfillmentDigitalProducts** (`boolean`): Automatically fulfill digital products upon payment
 - **fulfillmentAutoApprove** (`boolean`): Automatically approve fulfillments
 - **fulfillmentAllowUnpaid** (`boolean`): Allow fulfillment of unpaid orders
-- **defaultDigitalMaxDownloads** (`number | null`): Maximum downloads allowed for digital products
-- **defaultDigitalUrlValidDays** (`number | null`): Days that download links remain valid
 - **defaultMailSenderName** (`string | null`): Default name for outgoing emails
 - **defaultMailSenderAddress** (`string | null`): Default email address for outgoing emails
 - **customerSetPasswordUrl** (`string`): URL where customers can set their password
@@ -175,6 +176,42 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: TaxClass.name - Unique identifier for the tax class
 - **countryRates** (`array<object>`): TaxClass.countries - Tax rates per country for this tax class
+
+## productAttributes
+
+Product attributes (PRODUCT_TYPE in Saleor API) that can be referenced by productTypes. These are created before productTypes are processed.
+
+**Type:** `array<AttributeInput>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `AttributeInput`
+
+**Item properties:**
+
+- **name** (`string`) *required*: No description available
+- **inputType** (`string`) *required*: No description available
+- **values** (`array<object>`) *required*: No description available
+- **entityType** (`string (enum)`) *required*: No description available
+  - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT` | `CATEGORY` | `COLLECTION`
+
+## contentAttributes
+
+Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed.
+
+**Type:** `array<AttributeInput>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `AttributeInput`
+
+**Item properties:**
+
+- **name** (`string`) *required*: No description available
+- **inputType** (`string`) *required*: No description available
+- **values** (`array<object>`) *required*: No description available
+- **entityType** (`string (enum)`) *required*: No description available
+  - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT` | `CATEGORY` | `COLLECTION`
 
 ## productTypes
 
@@ -318,14 +355,4 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Menu.name
 - **slug** (`string`) *required*: Menu.slug
 - **items** (`array<object>`): Menu.items - Top-level menu items
-
-## attributes
-
-Unassigned attributes (typically PRODUCT_TYPE) that exist globally but are not assigned to any product type. These will be created/updated without assignment
-
-**Type:** `array<unknown>` *(optional)*
-
-**Array items:**
-
-Each item is of type: `unknown`
 
