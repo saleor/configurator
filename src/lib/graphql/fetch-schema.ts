@@ -1,13 +1,12 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getSupportedSaleorMinor } from "../package-info";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = join(__dirname, "../../../");
 
-const packageJson = JSON.parse(readFileSync(join(projectRoot, "package.json"), "utf-8"));
-
-const version = packageJson.saleor.schemaVersion;
+const version = getSupportedSaleorMinor();
 const url = `https://raw.githubusercontent.com/saleor/saleor/${version}/saleor/graphql/schema.graphql`;
 
 const response = await fetch(url);
