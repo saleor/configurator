@@ -327,7 +327,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -339,7 +339,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
-              slug: null,
+              slug: "color",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -351,7 +351,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "3",
               name: "Material",
-              slug: null,
+              slug: "material",
               type: "PRODUCT_TYPE",
               inputType: "PLAIN_TEXT",
               entityType: null,
@@ -396,7 +396,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -478,7 +478,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -490,7 +490,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
-              slug: null,
+              slug: "color",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -596,7 +596,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
