@@ -260,6 +260,7 @@ describe("DiffService", () => {
         shop: {
           defaultMailSenderName: "New Shop",
           displayGrossPrices: true,
+          useLegacyShippingZoneStockAvailability: false,
         },
       };
 
@@ -267,6 +268,7 @@ describe("DiffService", () => {
         shop: {
           defaultMailSenderName: "Old Shop",
           displayGrossPrices: false,
+          useLegacyShippingZoneStockAvailability: true,
         },
       };
 
@@ -280,7 +282,7 @@ describe("DiffService", () => {
       expect(summary.totalChanges).toBe(1);
       expect(summary.updates).toBe(1);
       expect(summary.results[0].entityType).toBe("Shop Settings");
-      expect(summary.results[0].changes).toHaveLength(2);
+      expect(summary.results[0].changes).toHaveLength(3);
     });
   });
 

@@ -486,6 +486,10 @@ const shopSchemaShape = {
     .boolean()
     .optional()
     .describe("Whether new products should track inventory by default"),
+  useLegacyShippingZoneStockAvailability: z
+    .boolean()
+    .optional()
+    .describe("Use shipping zones to determine stock availability"),
   defaultWeightUnit: weightUnitEnum.optional().describe("Default unit for product weights"),
   automaticFulfillmentDigitalProducts: removedInSaleor("3.23"),
   fulfillmentAutoApprove: z.boolean().optional().describe("Automatically approve fulfillments"),

@@ -98,6 +98,8 @@ describe("ConfigurationRepository", () => {
 
     const getConfigDocument = capturedDocuments[0];
     const serializedDocument = JSON.stringify(getConfigDocument);
+    expect(serializedDocument).toContain('"value":"useLegacyShippingZoneStockAvailability"');
+
     for (const field of removedShopSettingsFields) {
       expect(serializedDocument).not.toContain(`"value":"${field}"`);
     }

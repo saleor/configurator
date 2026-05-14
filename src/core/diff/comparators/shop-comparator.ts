@@ -12,6 +12,7 @@ interface ShopSettings {
   readonly enableAccountConfirmationByEmail?: boolean;
   readonly limitQuantityPerCheckout?: number;
   readonly trackInventoryByDefault?: boolean;
+  readonly useLegacyShippingZoneStockAvailability?: boolean;
   readonly reserveStockDurationAnonymousUser?: number;
   readonly reserveStockDurationAuthenticatedUser?: number;
   readonly defaultWeightUnit?: string;
@@ -28,6 +29,7 @@ const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
   "enableAccountConfirmationByEmail",
   "limitQuantityPerCheckout",
   "trackInventoryByDefault",
+  "useLegacyShippingZoneStockAvailability",
   "reserveStockDurationAnonymousUser",
   "reserveStockDurationAuthenticatedUser",
   "defaultWeightUnit",

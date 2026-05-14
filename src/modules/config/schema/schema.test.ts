@@ -168,6 +168,7 @@ describe("Schema Union Types", () => {
           defaultMailSenderName: "Test Store",
           displayGrossPrices: true,
           trackInventoryByDefault: false,
+          useLegacyShippingZoneStockAvailability: true,
         },
       };
 
@@ -177,6 +178,7 @@ describe("Schema Union Types", () => {
         defaultMailSenderName: "Test Store",
         displayGrossPrices: true,
         trackInventoryByDefault: false,
+        useLegacyShippingZoneStockAvailability: true,
       });
     });
 

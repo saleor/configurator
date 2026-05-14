@@ -395,6 +395,7 @@ export class ConfigurationService {
       enableAccountConfirmationByEmail: settings.enableAccountConfirmationByEmail,
       limitQuantityPerCheckout: settings.limitQuantityPerCheckout,
       trackInventoryByDefault: settings.trackInventoryByDefault,
+      useLegacyShippingZoneStockAvailability: settings.useLegacyShippingZoneStockAvailability,
       reserveStockDurationAnonymousUser: settings.reserveStockDurationAnonymousUser,
       reserveStockDurationAuthenticatedUser: settings.reserveStockDurationAuthenticatedUser,
       defaultWeightUnit: settings.defaultWeightUnit,

@@ -13,6 +13,7 @@ const getConfigQuery = graphql(`
       enableAccountConfirmationByEmail
       limitQuantityPerCheckout
       trackInventoryByDefault
+      useLegacyShippingZoneStockAvailability
       reserveStockDurationAnonymousUser
       reserveStockDurationAuthenticatedUser
       defaultWeightUnit
