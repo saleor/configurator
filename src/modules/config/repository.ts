@@ -7,6 +7,7 @@ import { logger } from "../../lib/logger";
 const getConfigQuery = graphql(`
   query GetConfig {
     shop {
+      schemaVersion
       defaultMailSenderName
       defaultMailSenderAddress
       displayGrossPrices
