@@ -431,6 +431,41 @@ describe("Schema Union Types", () => {
         attribute: "Genre",
       });
     });
+
+    it("should parse Saleor 3.23 category and collection reference entity types", () => {
+      const result = configSchema.parse({
+        productTypes: [
+          {
+            name: "Book",
+            productAttributes: [
+              {
+                name: "Related Category",
+                inputType: "REFERENCE",
+                entityType: "CATEGORY",
+              },
+              {
+                name: "Featured Collection",
+                inputType: "SINGLE_REFERENCE",
+                entityType: "COLLECTION",
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.productTypes?.[0].productAttributes).toEqual([
+        {
+          name: "Related Category",
+          inputType: "REFERENCE",
+          entityType: "CATEGORY",
+        },
+        {
+          name: "Featured Collection",
+          inputType: "SINGLE_REFERENCE",
+          entityType: "COLLECTION",
+        },
+      ]);
+    });
   });
 });
 

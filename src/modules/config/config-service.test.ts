@@ -453,6 +453,83 @@ describe("ConfigurationService", () => {
         ptAttrs?.every((a) => typeof (a as Record<string, unknown>).attribute === "string")
       ).toBe(true);
     });
+
+    it("should preserve Saleor 3.23 reference entity types during introspection", async () => {
+      const rawConfig = createBaseRawConfig({
+        productTypes: {
+          edges: [
+            {
+              node: {
+                id: "product-type-1",
+                name: "Book",
+                isShippingRequired: false,
+                productAttributes: [
+                  {
+                    id: "attr-1",
+                    name: "Related Category",
+                    type: "PRODUCT_TYPE",
+                    inputType: "REFERENCE",
+                    entityType: "CATEGORY",
+                    choices: null,
+                  },
+                  {
+                    id: "attr-2",
+                    name: "Featured Collection",
+                    type: "PRODUCT_TYPE",
+                    inputType: "SINGLE_REFERENCE",
+                    entityType: "COLLECTION",
+                    choices: null,
+                  },
+                ],
+                assignedVariantAttributes: [],
+              },
+            },
+          ],
+        },
+        attributes: {
+          edges: [
+            {
+              node: {
+                id: "attr-1",
+                name: "Related Category",
+                slug: "related-category",
+                type: "PRODUCT_TYPE",
+                inputType: "REFERENCE",
+                entityType: "CATEGORY",
+                choices: null,
+              },
+            },
+            {
+              node: {
+                id: "attr-2",
+                name: "Featured Collection",
+                slug: "featured-collection",
+                type: "PRODUCT_TYPE",
+                inputType: "SINGLE_REFERENCE",
+                entityType: "COLLECTION",
+                choices: null,
+              },
+            },
+          ],
+        },
+      });
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = await service.retrieveWithoutSaving();
+
+      expect(result.productAttributes).toEqual([
+        {
+          name: "Related Category",
+          inputType: "REFERENCE",
+          entityType: "CATEGORY",
+        },
+        {
+          name: "Featured Collection",
+          inputType: "SINGLE_REFERENCE",
+          entityType: "COLLECTION",
+        },
+      ]);
+    });
   });
 
   describe("createDefault", () => {

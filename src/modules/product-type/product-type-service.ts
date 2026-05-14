@@ -514,7 +514,7 @@ export class ProductTypeService {
         if (!("entityType" in attr) || !attr.entityType) {
           throw new ProductTypeAttributeValidationError(
             `Attribute "${attr.name}" is a REFERENCE type but missing required 'entityType'. ` +
-              `Please specify entityType as "PAGE", "PRODUCT", or "PRODUCT_VARIANT" in your config.`,
+              `Please specify entityType as "PAGE", "PRODUCT", "PRODUCT_VARIANT", "CATEGORY", or "COLLECTION" in your config.`,
             input.name,
             attr.name
           );

@@ -7,7 +7,7 @@ import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
+import type { AttributeInput, FullAttribute, ReferenceEntityType } from "./schema/attribute.schema";
 import {
   type ContentAttribute,
   contentAttributeSchema,
@@ -970,7 +970,7 @@ export class ConfigurationService {
 type RawAttribute = NonNullable<
   NonNullable<RawSaleorConfig["productTypes"]>["edges"][number]["node"]["productAttributes"]
 >[number] & {
-  entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
+  entityType?: ReferenceEntityType;
 };
 
 type SaleorAttributeType = "PRODUCT_TYPE" | "PAGE_TYPE";
