@@ -14,8 +14,6 @@ interface ShopSettings {
   readonly trackInventoryByDefault?: boolean;
   readonly reserveStockDurationAnonymousUser?: number;
   readonly reserveStockDurationAuthenticatedUser?: number;
-  readonly defaultDigitalMaxDownloads?: number;
-  readonly defaultDigitalUrlValidDays?: number;
   readonly defaultWeightUnit?: string;
   readonly allowLoginWithoutConfirmation?: boolean;
 }
@@ -32,8 +30,6 @@ const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
   "trackInventoryByDefault",
   "reserveStockDurationAnonymousUser",
   "reserveStockDurationAuthenticatedUser",
-  "defaultDigitalMaxDownloads",
-  "defaultDigitalUrlValidDays",
   "defaultWeightUnit",
   "allowLoginWithoutConfirmation",
 ] as const;

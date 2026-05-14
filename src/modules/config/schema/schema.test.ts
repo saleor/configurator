@@ -8,6 +8,12 @@ import {
   type ShopInput,
 } from "./schema";
 
+const removedShopSettingsFields = [
+  "automaticFulfillmentDigitalProducts",
+  "defaultDigitalMaxDownloads",
+  "defaultDigitalUrlValidDays",
+] as const;
+
 describe("Schema Union Types", () => {
   describe("ProductType Schema", () => {
     it("should parse create input (name only)", () => {
@@ -172,6 +178,22 @@ describe("Schema Union Types", () => {
         displayGrossPrices: true,
         trackInventoryByDefault: false,
       });
+    });
+
+    it("should reject shop settings removed in Saleor 3.23", () => {
+      for (const field of removedShopSettingsFields) {
+        const result = configSchema.safeParse({
+          shop: {
+            [field]: field === "automaticFulfillmentDigitalProducts" ? true : 10,
+          },
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.issues[0]?.path).toEqual(["shop", field]);
+        expect(result.error?.issues[0]?.message).toBe(
+          "Removed in Saleor 3.23. Delete this field from config.yml."
+        );
+      }
     });
   });
 

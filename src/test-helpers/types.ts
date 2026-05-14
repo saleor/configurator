@@ -28,8 +28,6 @@ export interface TestShopConfig {
   trackInventoryByDefault?: boolean;
   reserveStockDurationAnonymousUser?: number;
   reserveStockDurationAuthenticatedUser?: number;
-  defaultDigitalMaxDownloads?: number | undefined;
-  defaultDigitalUrlValidDays?: number | undefined;
   defaultWeightUnit?: string;
   allowLoginWithoutConfirmation?: boolean;
 }

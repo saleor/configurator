@@ -2,6 +2,12 @@ import type { Client, TypedDocumentNode } from "@urql/core";
 import { describe, expect, it, vi } from "vitest";
 import { ConfigurationRepository } from "./repository";
 
+const removedShopSettingsFields = [
+  "automaticFulfillmentDigitalProducts",
+  "defaultDigitalMaxDownloads",
+  "defaultDigitalUrlValidDays",
+] as const;
+
 type MockQueryHandler = (operationName: string, variables: Record<string, unknown>) => unknown;
 
 function createMockClient(queryHandler: MockQueryHandler): Client {
@@ -71,6 +77,32 @@ function makeEmptyChoices() {
 }
 
 describe("ConfigurationRepository", () => {
+  it("should not query shop settings removed in Saleor 3.23", async () => {
+    const capturedDocuments: TypedDocumentNode[] = [];
+    const client = createMockClient((opName) => {
+      if (opName === "GetConfig") {
+        return { data: makeEmptyConfigData() };
+      }
+
+      throw new Error("Skip pagination for this query shape assertion");
+    });
+    const originalQuery = client.query;
+    client.query = ((document: TypedDocumentNode, variables: Record<string, unknown>) => {
+      capturedDocuments.push(document);
+      return originalQuery(document, variables);
+    }) as Client["query"];
+
+    const repository = new ConfigurationRepository(client);
+
+    await repository.fetchConfig();
+
+    const getConfigDocument = capturedDocuments[0];
+    const serializedDocument = JSON.stringify(getConfigDocument);
+    for (const field of removedShopSettingsFields) {
+      expect(serializedDocument).not.toContain(`"value":"${field}"`);
+    }
+  });
+
   it("should keep product channel listings outside variant scope in pagination query", async () => {
     const capturedDocuments: TypedDocumentNode[] = [];
 
@@ -96,7 +128,7 @@ describe("ConfigurationRepository", () => {
 
     const repository = new ConfigurationRepository(mockClient);
 
-    await (repository as unknown as Record<string, () => Promise<unknown>>)["fetchAllProducts"]();
+    await (repository as unknown as Record<string, () => Promise<unknown>>).fetchAllProducts();
     expect(capturedDocuments).toHaveLength(1);
     const queryDocument = capturedDocuments[0];
 
@@ -178,7 +210,7 @@ describe("ConfigurationRepository", () => {
       const repo = new ConfigurationRepository(client);
       const result = await (
         repo as unknown as Record<string, () => Promise<{ edges: Array<{ node: { id: string } }> }>>
-      )["fetchAllAttributes"]();
+      ).fetchAllAttributes();
 
       expect(result.edges).toHaveLength(150);
       expect(result.edges[0].node.id).toBe("attr-0");
@@ -238,7 +270,7 @@ describe("ConfigurationRepository", () => {
           string,
           () => Promise<{ edges: Array<{ node: { choices: { edges: unknown[] } } }> }>
         >
-      )["fetchAllAttributes"]();
+      ).fetchAllAttributes();
 
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].node.choices.edges).toHaveLength(130);
@@ -255,9 +287,9 @@ describe("ConfigurationRepository", () => {
       });
 
       const repo = new ConfigurationRepository(client);
-      const result = await (repo as unknown as Record<string, () => Promise<{ edges: unknown[] }>>)[
-        "fetchAllAttributes"
-      ]();
+      const result = await (
+        repo as unknown as Record<string, () => Promise<{ edges: unknown[] }>>
+      ).fetchAllAttributes();
 
       expect(result.edges).toHaveLength(0);
     });
