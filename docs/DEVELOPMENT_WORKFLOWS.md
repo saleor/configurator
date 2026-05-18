@@ -361,7 +361,7 @@ cat .changeset/changeset-name.md
 **Changeset Guidelines:**
 ```markdown
 ---
-"@saleor/configurator": patch  # or minor/major
+"@saleor/configurator": patch  # patch fixes for the current Saleor minor
 ---
 
 Brief description of user-facing changes. This appears in changelog and npm.
@@ -371,6 +371,12 @@ Focus on:
 - Why the change was made
 - Any breaking changes or migration requirements
 ```
+
+Configurator versions follow the supported Saleor major and minor from
+`package.json#saleor.schemaVersion`. For example, configurator `3.23.x` targets
+Saleor `3.23.x`, and configurator `3.24.0` starts the Saleor `3.24.x` line.
+Use patch changesets for fixes within the current Saleor target, and use a
+minor changeset when moving to the next Saleor minor.
 
 ### Pre-Release Testing
 

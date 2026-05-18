@@ -2,9 +2,9 @@
 "@saleor/configurator": major
 ---
 
-Align configurator compatibility with Saleor 3.23.x and establish the new support contract for configurator 2.0.
+Align configurator compatibility with Saleor 3.23.x and establish the new support contract for configurator 3.23.0.
 
-Configurator now targets the active Saleor minor declared in `package.json#saleor.schemaVersion`. Patch versions inside that minor are treated as compatible, but older Saleor minors are no longer active support targets for the latest configurator line. Saleor 3.23 compatibility is not backported to configurator 1.x.
+Configurator versions now follow the supported Saleor major and minor declared in `package.json#saleor.schemaVersion`. Configurator 3.23.x targets Saleor 3.23.x; fixes within that support line ship as configurator patch releases. Older Saleor minors are no longer active support targets for the latest configurator line, and Saleor 3.23 compatibility is not backported to configurator 1.x.
 
 Included in this release:
 
