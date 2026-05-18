@@ -1,0 +1,28 @@
+contentAttributes:
+  - name: "PR175 Content Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Content Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Inline Page Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Inline Model Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+
+pageTypes:
+  - name: "PR175 Legacy Page Type"
+    attributes:
+      - attribute: "PR175 Content Category"
+      - attribute: "PR175 Content Collections"
+      - attribute: "PR175 Inline Page Category"
+
+modelTypes:
+  - name: "PR175 Content Model Type"
+    slug: pr175-content-model-type
+    attributes:
+      - attribute: "PR175 Content Category"
+      - attribute: "PR175 Content Collections"
+      - attribute: "PR175 Inline Model Collections"

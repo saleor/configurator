@@ -1,0 +1,27 @@
+productAttributes:
+  - name: "PR175 Product Categories"
+    inputType: REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Featured Collection"
+    inputType: SINGLE_REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Inline Product Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Inline Product Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Variant Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+
+productTypes:
+  - name: "PR175 Product Reference Type"
+    isShippingRequired: true
+    productAttributes:
+      - attribute: "PR175 Product Categories"
+      - attribute: "PR175 Featured Collection"
+      - attribute: "PR175 Inline Product Category"
+      - attribute: "PR175 Inline Product Collections"
+    variantAttributes:
+      - attribute: "PR175 Variant Category"
