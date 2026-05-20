@@ -1,62 +1,18 @@
 # saleor-configurator
 
-## 2.0.0
+## 3.23.0
 
 ### Major Changes
 
-- d202b3e: Align configurator compatibility with Saleor 3.23.x and establish the new support contract for configurator 3.23.0.
+- d202b3e: Align configurator compatibility with Saleor 3.23.x and adopt Saleor-versioned releases. Configurator 3.23.x targets Saleor 3.23.x, with fixes shipping as configurator patch releases within that support line.
 
-  Configurator versions now follow the supported Saleor major and minor declared in `package.json#saleor.schemaVersion`. Configurator 3.23.x targets Saleor 3.23.x; fixes within that support line ship as configurator patch releases. Older Saleor minors are no longer active support targets for the latest configurator line, and Saleor 3.23 compatibility is not backported to configurator 1.x.
-
-  Included in this release:
-
-  - Refresh GraphQL schema/types to Saleor 3.23.
-  - Remove GraphQL usage of shop settings removed in Saleor 3.23.
-  - Reject removed digital product shop settings in `config.yml` with migration-focused validation messages.
-  - Add support for `shop.useLegacyShippingZoneStockAvailability`.
-  - Add support for `CATEGORY` and `COLLECTION` reference attribute entity types.
-  - Warn, without failing, when remote Saleor minor differs from the supported minor.
-  - Publish the supported Saleor minor in generated schema artifacts.
+  This release refreshes GraphQL schema/types for Saleor 3.23, removes usage of shop settings removed upstream, adds `shop.useLegacyShippingZoneStockAvailability`, supports `CATEGORY` and `COLLECTION` reference attribute entity types, warns on Saleor minor mismatches, and publishes the supported Saleor minor in generated schema artifacts.
 
 ### Minor Changes
 
-- e8ce77e: ### AI & CI/CD Integration
+- e8ce77e: Improve AI and CI/CD automation with environment variable credentials, non-interactive mode detection, structured JSON output, the `--text` flag, new `validate` and `schema` commands, scoped diff/deploy filters, `deploy --plan --json`, smarter report paths, clearer validation errors, and JSON log collection.
 
-  - **Environment variable credentials**: Read `SALEOR_URL`, `SALEOR_TOKEN`, and `SALEOR_CONFIG` from environment variables or `.env.local`, so you no longer need to pass `--url` and `--token` on every command.
-  - **Auto-detect non-interactive mode**: Confirmations are automatically skipped in CI pipelines, piped commands, and other non-TTY environments — no special flag needed.
-  - **Structured JSON output**: All commands now support `--json` for machine-readable output wrapped in a consistent envelope with `command`, `version`, `exitCode`, `result`, `logs`, and `errors` fields.
-  - **`--text` flag**: Force human-readable output even when running in non-TTY mode.
-
-  ### New Commands
-
-  - **`validate`**: Offline validation of your `config.yml` against the schema — catch errors before deploying.
-  - **`schema`**: Output the full JSON Schema for `config.yml`, useful for editor autocompletion and external tooling.
-
-  ### Diff & Deploy Improvements
-
-  - **Entity filtering**: Use `--entity-type` and `--entity` flags on `diff` and `deploy` to scope operations to specific entity types or individual entities (e.g., `--entity Categories/electronics`).
-  - **Deploy `--plan --json`**: Get a structured plan of what would change without actually deploying.
-  - **Smarter report paths**: Deployment reports now include the command name and Saleor instance in the filename for easier identification.
-  - **Improved validation errors**: Union type validation errors now include hints about which branches failed, making schema errors easier to diagnose.
-
-  ### Log Collection
-
-  - **JSON log collector**: When using `--json`, log messages (info, warn, error, debug) are captured and included in the JSON envelope instead of being printed to stderr, giving you a single parseable output.
-
-  ### Cross-Tool AI Agent Skills
-
-  - **Portable skills directory**: New top-level `skills/` directory with 9 tool-agnostic skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI). Install with `npx skills add saleor/configurator`.
-  - **New skills**: `configurator-workflow` (end-to-end validate-diff-plan-deploy sequence) and `configurator-troubleshoot` (error diagnosis framework and exit code decision tree).
-  - **AGENTS.md open standard**: Restructured to follow the [agents.md](https://agents.md/) convention for cross-tool discoverability.
-
-  ### Claude Code Plugin
-
-  - **New agent: configurator-expert**: Dedicated agent for store configuration analysis and troubleshooting.
-  - **New skill: agent-output-parsing**: Teaches agents how to parse and act on structured JSON output from the CLI.
-  - **New skill reference: ci-cd**: Guide for using Configurator in CI/CD pipelines with drift detection and safe deployment patterns.
-  - **Pre-deploy safety hook**: Automatic validation gate that runs before deployments.
-  - **Improved skills**: Updated configurator-cli, configurator-recipes, configurator-schema, saleor-domain, and product-modeling skills with new flags, examples, and Phase 2 capabilities.
-  - **Updated agents**: Refreshed troubleshoot, config-review, store-analyzer, csv-importer, and shopify-importer agents with JSON output awareness and improved workflows.
+  Also adds portable cross-tool skills and refreshes the Claude Code plugin with JSON-aware workflows, CI/CD guidance, safer pre-deploy validation, and updated agents/commands.
 
 ### Patch Changes
 
