@@ -24,7 +24,7 @@ describe("Deploy Command - Integration Tests", () => {
 
   beforeEach(() => {
     // These tests use mocked fetch and assert deploy command behavior, not API pacing.
-    // Keep the real governor defaults covered in governor tests without adding wall-clock delay here.
+    // The governor has separate tests, so disabling it here does not remove governor test coverage.
     process.env.GRAPHQL_GOVERNOR_ENABLED = "false";
     tempDir = createTempDirectory();
 
