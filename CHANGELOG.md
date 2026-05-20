@@ -1,5 +1,24 @@
 # saleor-configurator
 
+## 3.23.0
+
+### Major Changes
+
+- d202b3e: Align configurator compatibility with Saleor 3.23.x and adopt Saleor-versioned releases. Configurator 3.23.x targets Saleor 3.23.x, with fixes shipping as configurator patch releases within that support line.
+
+  This release refreshes GraphQL schema/types for Saleor 3.23, removes usage of shop settings removed upstream, adds `shop.useLegacyShippingZoneStockAvailability`, supports `CATEGORY` and `COLLECTION` reference attribute entity types, warns on Saleor minor mismatches, and publishes the supported Saleor minor in generated schema artifacts.
+
+### Minor Changes
+
+- e8ce77e: Improve AI and CI/CD automation with environment variable credentials, non-interactive mode detection, structured JSON output, the `--text` flag, new `validate` and `schema` commands, scoped diff/deploy filters, `deploy --plan --json`, smarter report paths, clearer validation errors, and JSON log collection.
+
+  Also adds portable cross-tool skills and refreshes the Claude Code plugin with JSON-aware workflows, CI/CD guidance, safer pre-deploy validation, and updated agents/commands.
+
+### Patch Changes
+
+- 268eec6: Remove the unused `xlsx` dependency from the package manifest and lockfile.
+- 510e909: Deployments now use sandbox-safe API pacing by default, reducing HTTP 429 failures when applying larger configurations to Saleor Cloud sandbox environments. Users deploying to faster unrestricted environments can still tune or disable the request governor with environment variables.
+
 ## 1.3.0
 
 ### Minor Changes
