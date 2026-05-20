@@ -1,0 +1,16 @@
+shop:
+  headerText: "PR 175 shop 3.23"
+  description: "Exercises Saleor 3.23 shop settings supported by configurator PR 175"
+  trackInventoryByDefault: true
+  useLegacyShippingZoneStockAvailability: true
+  defaultWeightUnit: KG
+  fulfillmentAutoApprove: true
+  fulfillmentAllowUnpaid: false
+  defaultMailSenderName: "Configurator PR 175"
+  defaultMailSenderAddress: "qa@example.com"
+  reserveStockDurationAnonymousUser: 20
+  reserveStockDurationAuthenticatedUser: 30
+  limitQuantityPerCheckout: 25
+  enableAccountConfirmationByEmail: false
+  allowLoginWithoutConfirmation: true
+  displayGrossPrices: true

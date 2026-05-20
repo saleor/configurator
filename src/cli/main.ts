@@ -5,11 +5,11 @@ import { config as loadDotenv } from "dotenv";
 loadDotenv({ path: ".env.local", override: false });
 
 import { Command, type CommanderError } from "@commander-js/extra-typings";
-import packageJson from "../../package.json";
 import { commands, subcommandCreators } from "../commands/index.js";
 import { isCiOutputMode } from "../lib/ci-mode";
 import { BaseError } from "../lib/errors/shared";
 import { logger } from "../lib/logger";
+import { getPackageVersion } from "../lib/package-info";
 import { COMMAND_NAME } from "../meta";
 import { type CommandConfig, createCommand } from "./command";
 import { cliConsole } from "./console";
@@ -23,7 +23,7 @@ export type CommandOption = {
 const CLI_CONFIG = {
   name: "configurator",
   description: "🛒 Manage your Saleor e-commerce store configuration as code",
-  version: packageJson.version,
+  version: getPackageVersion(),
 } as const;
 
 function registerCommands(program: Command): void {

@@ -1,0 +1,108 @@
+shop:
+  headerText: "PR 175 Saleor 3.23 parity test"
+  description: "Configurator PR 175 smoke-test configuration"
+  trackInventoryByDefault: true
+  useLegacyShippingZoneStockAvailability: true
+  defaultWeightUnit: KG
+  fulfillmentAutoApprove: true
+  fulfillmentAllowUnpaid: false
+  defaultMailSenderName: "Configurator PR 175"
+  defaultMailSenderAddress: "qa@example.com"
+  reserveStockDurationAnonymousUser: 20
+  reserveStockDurationAuthenticatedUser: 30
+  limitQuantityPerCheckout: 25
+  enableAccountConfirmationByEmail: false
+  allowLoginWithoutConfirmation: true
+  displayGrossPrices: true
+
+channels:
+  - name: "PR175 Web"
+    slug: pr175-web
+    currencyCode: USD
+    defaultCountry: US
+    isActive: true
+    settings:
+      allocationStrategy: PRIORITIZE_SORTING_ORDER
+      automaticallyConfirmAllNewOrders: true
+      automaticallyFulfillNonShippableGiftCard: true
+      expireOrdersAfter: 7
+      deleteExpiredOrdersAfter: 30
+      markAsPaidStrategy: TRANSACTION_FLOW
+      allowUnpaidOrders: false
+      includeDraftOrderInVoucherUsage: false
+      useLegacyErrorFlow: false
+      automaticallyCompleteFullyPaidCheckouts: true
+      defaultTransactionFlowStrategy: CHARGE
+
+productAttributes:
+  - name: "PR175 Product Categories"
+    inputType: REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Featured Collection"
+    inputType: SINGLE_REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Inline Product Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Inline Product Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Variant Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+
+contentAttributes:
+  - name: "PR175 Content Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Content Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+  - name: "PR175 Inline Page Category"
+    inputType: SINGLE_REFERENCE
+    entityType: CATEGORY
+  - name: "PR175 Inline Model Collections"
+    inputType: REFERENCE
+    entityType: COLLECTION
+
+productTypes:
+  - name: "PR175 Product Reference Type"
+    isShippingRequired: true
+    productAttributes:
+      - attribute: "PR175 Product Categories"
+      - attribute: "PR175 Featured Collection"
+      - attribute: "PR175 Inline Product Category"
+      - attribute: "PR175 Inline Product Collections"
+    variantAttributes:
+      - attribute: "PR175 Variant Category"
+
+pageTypes:
+  - name: "PR175 Legacy Page Type"
+    attributes:
+      - attribute: "PR175 Content Category"
+      - attribute: "PR175 Content Collections"
+      - attribute: "PR175 Inline Page Category"
+
+modelTypes:
+  - name: "PR175 Content Model Type"
+    slug: pr175-content-model-type
+    attributes:
+      - attribute: "PR175 Content Category"
+      - attribute: "PR175 Content Collections"
+      - attribute: "PR175 Inline Model Collections"
+
+categories:
+  - name: "PR175 Catalog"
+    slug: pr175-catalog
+    subcategories:
+      - name: "PR175 Accessories"
+        slug: pr175-accessories
+
+collections:
+  - name: "PR175 Collection"
+    slug: pr175-collection
+    isPublished: true
+    channelListings:
+      - channelSlug: pr175-web
+        isPublished: true
+        publishedAt: "2026-05-15T00:00:00Z"

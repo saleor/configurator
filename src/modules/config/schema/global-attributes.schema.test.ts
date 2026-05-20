@@ -196,6 +196,26 @@ describe("global-attributes.schema", () => {
         expect(result.success).toBe(true);
       });
 
+      it("should parse REFERENCE with CATEGORY entityType", () => {
+        const input = { name: "Related Category", inputType: "REFERENCE", entityType: "CATEGORY" };
+
+        const result = productAttributeSchema.safeParse(input);
+
+        expect(result.success).toBe(true);
+      });
+
+      it("should parse SINGLE_REFERENCE with COLLECTION entityType", () => {
+        const input = {
+          name: "Related Collection",
+          inputType: "SINGLE_REFERENCE",
+          entityType: "COLLECTION",
+        };
+
+        const result = productAttributeSchema.safeParse(input);
+
+        expect(result.success).toBe(true);
+      });
+
       it("should reject invalid entityType", () => {
         const input = { name: "Invalid", inputType: "REFERENCE", entityType: "INVALID" };
 

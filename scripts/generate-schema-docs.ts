@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { getSupportedSaleorMinor } from "../src/lib/package-info.js";
 
 interface JsonSchemaProperty {
   type?: string | string[];
@@ -49,6 +50,7 @@ function generateSchemaDocs(): void {
 
 function generateMarkdownFromSchema(schema: JsonSchema): string {
   let markdown = `# ${schema.title}\n\n`;
+  markdown += `**Supported Saleor minor:** \`${getSupportedSaleorMinor()}.x\`\n\n`;
   markdown += `${schema.description}\n\n`;
   markdown += `> [!TIP]\n`;
   markdown += `> For a complete configuration example, see [example.yml](example.yml).\n\n`;

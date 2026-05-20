@@ -9,6 +9,7 @@ function createConfig(overrides: Partial<GraphQLGovernorConfig> = {}): GraphQLGo
   return {
     enabled: true,
     maxConcurrent: 4,
+    minTimeMs: 0,
     intervalCap: 20,
     intervalMs: 1000,
     fallbackCooldownMs: 3000,
@@ -164,10 +165,11 @@ describe("getGraphQLGovernorConfigFromEnv", () => {
     const config = getGraphQLGovernorConfigFromEnv({});
 
     expect(config.enabled).toBe(true);
-    expect(config.maxConcurrent).toBe(4);
-    expect(config.intervalCap).toBe(20);
-    expect(config.intervalMs).toBe(1000);
-    expect(config.fallbackCooldownMs).toBe(3000);
+    expect(config.maxConcurrent).toBe(1);
+    expect(config.minTimeMs).toBe(500);
+    expect(config.intervalCap).toBe(120);
+    expect(config.intervalMs).toBe(60000);
+    expect(config.fallbackCooldownMs).toBe(60000);
   });
 
   it("parses boolean env vars correctly", () => {
@@ -193,19 +195,21 @@ describe("getGraphQLGovernorConfigFromEnv", () => {
   it("parses positive integer env vars correctly", () => {
     const config = getGraphQLGovernorConfigFromEnv({
       GRAPHQL_MAX_CONCURRENCY: "8",
+      GRAPHQL_MIN_TIME_MS: "25",
       GRAPHQL_INTERVAL_CAP: "50",
       GRAPHQL_INTERVAL_MS: "2000",
     });
 
     expect(config.maxConcurrent).toBe(8);
+    expect(config.minTimeMs).toBe(25);
     expect(config.intervalCap).toBe(50);
     expect(config.intervalMs).toBe(2000);
   });
 
   it("rejects zero and negative for positive integer params", () => {
-    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MAX_CONCURRENCY: "0" }).maxConcurrent).toBe(4); // fallback to default
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MAX_CONCURRENCY: "0" }).maxConcurrent).toBe(1); // fallback to default
     expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MAX_CONCURRENCY: "-1" }).maxConcurrent).toBe(
-      4
+      1
     ); // fallback to default
   });
 
@@ -213,17 +217,20 @@ describe("getGraphQLGovernorConfigFromEnv", () => {
     expect(
       getGraphQLGovernorConfigFromEnv({ GRAPHQL_FALLBACK_COOLDOWN_MS: "0" }).fallbackCooldownMs
     ).toBe(0);
+    expect(getGraphQLGovernorConfigFromEnv({ GRAPHQL_MIN_TIME_MS: "0" }).minTimeMs).toBe(0);
   });
 
   it("falls back to default for non-numeric values", () => {
     const config = getGraphQLGovernorConfigFromEnv({
       GRAPHQL_MAX_CONCURRENCY: "abc",
+      GRAPHQL_MIN_TIME_MS: "abc",
       GRAPHQL_INTERVAL_CAP: "",
       GRAPHQL_INTERVAL_MS: "3.5",
     });
 
-    expect(config.maxConcurrent).toBe(4); // default
-    expect(config.intervalCap).toBe(20); // default
+    expect(config.maxConcurrent).toBe(1); // default
+    expect(config.minTimeMs).toBe(500); // default
+    expect(config.intervalCap).toBe(120); // default
     // parseInt("3.5") = 3, which is > 0, so it's accepted
     expect(config.intervalMs).toBe(3);
   });

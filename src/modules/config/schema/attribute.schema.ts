@@ -5,6 +5,14 @@ const attributeValueSchema = z.object({
 });
 
 const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);
+export const referenceEntityTypeSchema = z.enum([
+  "PAGE",
+  "PRODUCT",
+  "PRODUCT_VARIANT",
+  "CATEGORY",
+  "COLLECTION",
+]);
+export type ReferenceEntityType = z.infer<typeof referenceEntityTypeSchema>;
 
 /**
  * Input types that support variantSelection when assigned as variant attributes.
@@ -41,13 +49,13 @@ export type MultipleValuesAttribute = z.infer<typeof multipleValuesAttributeSche
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+  entityType: referenceEntityTypeSchema,
 });
 
 // Schema for single reference type attributes
 const singleReferenceAttributeSchema = baseAttributeSchema.extend({
   inputType: z.literal("SINGLE_REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+  entityType: referenceEntityTypeSchema,
 });
 
 // Schema for simple value attributes

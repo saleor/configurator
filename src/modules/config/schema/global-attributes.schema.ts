@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { referenceEntityTypeSchema } from "./attribute.schema";
 
 // Shared value schema for dropdown/multiselect/swatch attributes
 const attributeValueSchema = z.object({
@@ -15,7 +16,6 @@ const attributeValueSchema = z.object({
 const baseGlobalAttributeSchema = z.object({
   name: z.string().min(1, "Attribute name is required"),
 });
-
 const dropdownGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("DROPDOWN"),
   values: z.array(attributeValueSchema).min(1, "Dropdown attributes must have at least one value"),
@@ -35,12 +35,12 @@ const swatchGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
 
 const referenceGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+  entityType: referenceEntityTypeSchema,
 });
 
 const singleReferenceGlobalAttributeSchema = baseGlobalAttributeSchema.extend({
   inputType: z.literal("SINGLE_REFERENCE"),
-  entityType: z.enum(["PAGE", "PRODUCT", "PRODUCT_VARIANT"]),
+  entityType: referenceEntityTypeSchema,
 });
 
 const simpleGlobalAttributeSchema = baseGlobalAttributeSchema.extend({

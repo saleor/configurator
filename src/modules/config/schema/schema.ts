@@ -5,6 +5,7 @@ import {
   simpleAttributeSchema,
 } from "./attribute.schema";
 import { contentAttributeSchema, productAttributeSchema } from "./global-attributes.schema";
+import { removedInSaleor } from "./helpers.schema";
 
 // ProductType Update Schema - full state representation
 const productTypeSchema = z.object({
@@ -478,30 +479,23 @@ export type ChannelInput = z.infer<typeof channelSchema>;
 
 const weightUnitEnum = z.enum(["KG", "LB", "OZ", "G", "TONNE"]);
 
-const shopSchema = z.object({
+const shopSchemaShape = {
   headerText: z.string().optional().describe("Text displayed in the shop header"),
   description: z.string().optional().describe("General description of the shop"),
   trackInventoryByDefault: z
     .boolean()
     .optional()
     .describe("Whether new products should track inventory by default"),
-  defaultWeightUnit: weightUnitEnum.optional().describe("Default unit for product weights"),
-  automaticFulfillmentDigitalProducts: z
+  useLegacyShippingZoneStockAvailability: z
     .boolean()
     .optional()
-    .describe("Automatically fulfill digital products upon payment"),
+    .describe("Use shipping zones to determine stock availability"),
+  defaultWeightUnit: weightUnitEnum.optional().describe("Default unit for product weights"),
+  automaticFulfillmentDigitalProducts: removedInSaleor("3.23"),
   fulfillmentAutoApprove: z.boolean().optional().describe("Automatically approve fulfillments"),
   fulfillmentAllowUnpaid: z.boolean().optional().describe("Allow fulfillment of unpaid orders"),
-  defaultDigitalMaxDownloads: z
-    .number()
-    .optional()
-    .nullable()
-    .describe("Maximum downloads allowed for digital products"),
-  defaultDigitalUrlValidDays: z
-    .number()
-    .optional()
-    .nullable()
-    .describe("Days that download links remain valid"),
+  defaultDigitalMaxDownloads: removedInSaleor("3.23"),
+  defaultDigitalUrlValidDays: removedInSaleor("3.23"),
   defaultMailSenderName: z
     .string()
     .optional()
@@ -536,7 +530,9 @@ const shopSchema = z.object({
     .optional()
     .describe("Allow login before email confirmation"),
   displayGrossPrices: z.boolean().optional().describe("Show prices including taxes"),
-});
+};
+
+const shopSchema = z.object(shopSchemaShape);
 
 export type ShopInput = z.infer<typeof shopSchema>;
 

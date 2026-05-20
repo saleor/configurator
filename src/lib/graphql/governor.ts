@@ -2,10 +2,14 @@ import Bottleneck from "bottleneck";
 import { logger } from "../logger";
 import { delay } from "../utils/resilience";
 
-const DEFAULT_MAX_CONCURRENCY = 4;
-const DEFAULT_INTERVAL_CAP = 20;
-const DEFAULT_INTERVAL_MS = 1000;
-const DEFAULT_FALLBACK_COOLDOWN_MS = 3000;
+// Saleor Cloud sandbox API limit: 120 requests/minute per environment.
+// Keep defaults sandbox-safe; production/on-prem can override with env vars.
+// See: https://docs.saleor.io/api-usage/usage-limits
+const DEFAULT_MAX_CONCURRENCY = 1;
+const DEFAULT_MIN_TIME_MS = 500;
+const DEFAULT_INTERVAL_CAP = 120;
+const DEFAULT_INTERVAL_MS = 60_000;
+const DEFAULT_FALLBACK_COOLDOWN_MS = 60_000;
 const MAX_COOLDOWN_WAIT_MS = 600_000; // 10 minutes absolute maximum
 
 function parseBoolean(value: string | undefined, defaultValue: boolean, envName?: string): boolean {
@@ -54,6 +58,7 @@ function parseNonNegativeInteger(
 export interface GraphQLGovernorConfig {
   readonly enabled: boolean;
   readonly maxConcurrent: number;
+  readonly minTimeMs: number;
   readonly intervalCap: number;
   readonly intervalMs: number;
   readonly fallbackCooldownMs: number;
@@ -74,6 +79,11 @@ export function getGraphQLGovernorConfigFromEnv(
       env.GRAPHQL_MAX_CONCURRENCY,
       DEFAULT_MAX_CONCURRENCY,
       "GRAPHQL_MAX_CONCURRENCY"
+    ),
+    minTimeMs: parseNonNegativeInteger(
+      env.GRAPHQL_MIN_TIME_MS,
+      DEFAULT_MIN_TIME_MS,
+      "GRAPHQL_MIN_TIME_MS"
     ),
     intervalCap: parsePositiveInteger(
       env.GRAPHQL_INTERVAL_CAP,
@@ -103,7 +113,7 @@ export class GraphQLGovernor {
     this.limiter = config.enabled
       ? new Bottleneck({
           maxConcurrent: config.maxConcurrent,
-          minTime: 0,
+          minTime: config.minTimeMs,
           reservoir: config.intervalCap,
           reservoirRefreshAmount: config.intervalCap,
           reservoirRefreshInterval: config.intervalMs,

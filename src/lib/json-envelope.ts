@@ -1,5 +1,5 @@
-import packageJson from "../../package.json";
 import { globalLogCollector, type LogEntry } from "./json-log-collector";
+import { getPackageVersion } from "./package-info";
 
 export interface EnvelopeError {
   readonly entity?: string;
@@ -25,7 +25,7 @@ export function buildEnvelope<T>(options: {
 }): JsonEnvelope<T> {
   return {
     command: options.command,
-    version: getVersion(),
+    version: getPackageVersion(),
     exitCode: options.exitCode,
     result: options.result,
     logs: options.logs ?? globalLogCollector.getLogs(),
@@ -35,8 +35,4 @@ export function buildEnvelope<T>(options: {
 
 export function outputEnvelope<T>(envelope: JsonEnvelope<T>): void {
   console.log(JSON.stringify(envelope, null, 2));
-}
-
-function getVersion(): string {
-  return packageJson.version;
 }

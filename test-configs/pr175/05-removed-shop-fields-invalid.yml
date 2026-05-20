@@ -1,0 +1,4 @@
+shop:
+  automaticFulfillmentDigitalProducts: true
+  defaultDigitalMaxDownloads: 5
+  defaultDigitalUrlValidDays: 30

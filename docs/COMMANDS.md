@@ -464,6 +464,9 @@ git push --follow-tags                 # Push with tags for releases
 # 1. Create changeset
 pnpm changeset
 
+# Use patch for fixes within the current Saleor target.
+# Use minor when package.json#saleor.schemaVersion moves to the next Saleor minor.
+
 # 2. Stage and commit changeset
 git add .changeset/
 git commit -m "chore: add changeset for feature"

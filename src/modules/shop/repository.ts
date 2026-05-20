@@ -10,9 +10,9 @@ const updateShopSettingsMutation = graphql(`
         headerText
         description
         defaultWeightUnit
+        useLegacyShippingZoneStockAvailability
         fulfillmentAutoApprove
         fulfillmentAllowUnpaid
-        automaticFulfillmentDigitalProducts
       }
       errors {
         field

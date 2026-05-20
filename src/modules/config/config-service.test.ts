@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { globalLogCollector } from "../../lib/json-log-collector";
+import { logger } from "../../lib/logger";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { ProductInput, SaleorConfig } from "./schema/schema";
@@ -29,16 +31,16 @@ const createRawConfigWithProductTypes = (productTypeEdges: ProductTypeEdge[]): R
   });
 
 const mockRawShopData: RawSaleorConfig["shop"] = {
+  schemaVersion: "3.23.0",
   defaultMailSenderName: "Test Store",
   defaultMailSenderAddress: "test@example.com",
   displayGrossPrices: false,
   enableAccountConfirmationByEmail: false,
   limitQuantityPerCheckout: 10,
   trackInventoryByDefault: false,
+  useLegacyShippingZoneStockAvailability: true,
   reserveStockDurationAnonymousUser: 60,
   reserveStockDurationAuthenticatedUser: 60,
-  defaultDigitalMaxDownloads: 10,
-  defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
 };
@@ -50,10 +52,9 @@ const mockMappedShopData: SaleorConfig["shop"] = {
   enableAccountConfirmationByEmail: false,
   limitQuantityPerCheckout: 10,
   trackInventoryByDefault: false,
+  useLegacyShippingZoneStockAvailability: true,
   reserveStockDurationAnonymousUser: 60,
   reserveStockDurationAuthenticatedUser: 60,
-  defaultDigitalMaxDownloads: 10,
-  defaultDigitalUrlValidDays: 10,
   defaultWeightUnit: "KG" as const,
   allowLoginWithoutConfirmation: false,
 };
@@ -99,6 +100,77 @@ describe("ConfigurationService", () => {
       expect(result.productTypes).toEqual([]);
       expect(result.pageTypes).toEqual([]);
       expect(storage.save).toHaveBeenCalledWith(result);
+    });
+
+    it("should not warn when Saleor patch version differs within the supported minor", async () => {
+      const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+      const repository = new MockRepository(
+        createBaseRawConfig({
+          shop: {
+            ...mockRawShopData,
+            schemaVersion: "3.23.7",
+          },
+        })
+      );
+      const service = new ConfigurationService(repository, createMockStorage());
+
+      await service.retrieveWithoutSaving();
+
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("Saleor version mismatch"));
+      warnSpy.mockRestore();
+    });
+
+    it("should warn when Saleor minor differs from the supported minor", async () => {
+      const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+      const repository = new MockRepository(
+        createBaseRawConfig({
+          shop: {
+            ...mockRawShopData,
+            schemaVersion: "3.22.9",
+          },
+        })
+      );
+      const service = new ConfigurationService(repository, createMockStorage());
+
+      await service.retrieveWithoutSaving();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Saleor version mismatch: configurator targets Saleor 3.23.x, connected instance reports 3.22.9. Configuration may still work, but this Saleor minor is outside the supported parity target."
+      );
+      warnSpy.mockRestore();
+    });
+
+    it("should include the version mismatch warning in JSON logs when --json is used", async () => {
+      const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+      const originalArgv = process.argv;
+      process.argv = ["node", "configurator", "diff", "--json"];
+      globalLogCollector.reset();
+
+      try {
+        const repository = new MockRepository(
+          createBaseRawConfig({
+            shop: {
+              ...mockRawShopData,
+              schemaVersion: "3.24.0",
+            },
+          })
+        );
+        const service = new ConfigurationService(repository, createMockStorage());
+
+        await service.retrieveWithoutSaving();
+
+        expect(globalLogCollector.getLogs()).toContainEqual(
+          expect.objectContaining({
+            level: "warn",
+            message:
+              "Saleor version mismatch: configurator targets Saleor 3.23.x, connected instance reports 3.24.0. Configuration may still work, but this Saleor minor is outside the supported parity target.",
+          })
+        );
+      } finally {
+        process.argv = originalArgv;
+        globalLogCollector.reset();
+        warnSpy.mockRestore();
+      }
     });
 
     it("should propagate errors from repository", async () => {
@@ -454,6 +526,83 @@ describe("ConfigurationService", () => {
       expect(
         ptAttrs?.every((a) => typeof (a as Record<string, unknown>).attribute === "string")
       ).toBe(true);
+    });
+
+    it("should preserve Saleor 3.23 reference entity types during introspection", async () => {
+      const rawConfig = createBaseRawConfig({
+        productTypes: {
+          edges: [
+            {
+              node: {
+                id: "product-type-1",
+                name: "Book",
+                isShippingRequired: false,
+                productAttributes: [
+                  {
+                    id: "attr-1",
+                    name: "Related Category",
+                    type: "PRODUCT_TYPE",
+                    inputType: "REFERENCE",
+                    entityType: "CATEGORY",
+                    choices: null,
+                  },
+                  {
+                    id: "attr-2",
+                    name: "Featured Collection",
+                    type: "PRODUCT_TYPE",
+                    inputType: "SINGLE_REFERENCE",
+                    entityType: "COLLECTION",
+                    choices: null,
+                  },
+                ],
+                assignedVariantAttributes: [],
+              },
+            },
+          ],
+        },
+        attributes: {
+          edges: [
+            {
+              node: {
+                id: "attr-1",
+                name: "Related Category",
+                slug: "related-category",
+                type: "PRODUCT_TYPE",
+                inputType: "REFERENCE",
+                entityType: "CATEGORY",
+                choices: null,
+              },
+            },
+            {
+              node: {
+                id: "attr-2",
+                name: "Featured Collection",
+                slug: "featured-collection",
+                type: "PRODUCT_TYPE",
+                inputType: "SINGLE_REFERENCE",
+                entityType: "COLLECTION",
+                choices: null,
+              },
+            },
+          ],
+        },
+      });
+
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+      const result = await service.retrieveWithoutSaving();
+
+      expect(result.productAttributes).toEqual([
+        {
+          name: "Related Category",
+          inputType: "REFERENCE",
+          entityType: "CATEGORY",
+        },
+        {
+          name: "Featured Collection",
+          inputType: "SINGLE_REFERENCE",
+          entityType: "COLLECTION",
+        },
+      ]);
     });
   });
 

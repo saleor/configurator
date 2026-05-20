@@ -34,6 +34,12 @@ Saleor Configurator brings **infrastructure-as-code** principles to e-commerce. 
 
 **Prerequisites:** Node.js 20+
 
+### Compatibility
+
+Configurator releases follow the supported Saleor major and minor version. Configurator `3.23.x` targets Saleor `3.23.x`.
+
+The supported Saleor minor is declared in `package.json#saleor.schemaVersion`. Patch versions within that Saleor minor are treated as compatible. Older Saleor minors may still work, but they are not active support targets for the latest configurator line.
+
 ### Installation
 
 ```bash
@@ -579,12 +585,21 @@ pnpm check:fix && pnpm build && pnpm test
 
 ### Versioning
 
-This project uses [Changesets](https://github.com/changesets/changesets) for version management:
+This project uses [Changesets](https://github.com/changesets/changesets) for release notes and publishing, with one repository-specific rule: configurator package major and minor versions follow the supported Saleor major and minor.
 
 ```bash
 # Document your changes
 pnpm changeset
 ```
+
+Release rules:
+
+- Patch fixes for the current Saleor target use a patch changeset.
+- Moving support to the next Saleor minor updates `package.json#saleor.schemaVersion` and uses a minor changeset.
+- The first Saleor-bound release from `1.x` to `3.23.0` requires manually editing the generated release PR version.
+- Releases are published from `main` by the GitHub Actions release workflow.
+
+For example, configurator `3.23.x` targets Saleor `3.23.x`; configurator `3.24.0` starts the Saleor `3.24.x` line.
 
 See [docs/DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md) for detailed contribution guidelines.
 

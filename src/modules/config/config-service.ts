@@ -1,13 +1,17 @@
 import invariant from "tiny-invariant";
 import type { ParsedSelectiveOptions } from "../../core/diff/types";
+import { isCiOutputMode } from "../../lib/ci-mode";
+import { globalLogCollector } from "../../lib/json-log-collector";
 import { logger } from "../../lib/logger";
+import { getSupportedSaleorMinor } from "../../lib/package-info";
+import { isSaleorMinorMismatch } from "../../lib/saleor-version";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
 import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { AttributeInput, FullAttribute } from "./schema/attribute.schema";
+import type { AttributeInput, FullAttribute, ReferenceEntityType } from "./schema/attribute.schema";
 import {
   type ContentAttribute,
   contentAttributeSchema,
@@ -66,6 +70,8 @@ export class ConfigurationService {
 
   private async buildConfig(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
+    this.warnOnSaleorVersionMismatch(rawConfig.shop?.schemaVersion);
+
     const config = this.mapConfig(rawConfig, selectiveOptions);
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
 
@@ -79,6 +85,20 @@ export class ConfigurationService {
     this.reorderConfigKeys(config as SaleorConfig);
 
     return config;
+  }
+
+  private warnOnSaleorVersionMismatch(actualVersion: string | null | undefined): void {
+    const supportedMinor = getSupportedSaleorMinor();
+    if (!isSaleorMinorMismatch(actualVersion, supportedMinor)) {
+      return;
+    }
+
+    const message = `Saleor version mismatch: configurator targets Saleor ${supportedMinor}.x, connected instance reports ${actualVersion}. Configuration may still work, but this Saleor minor is outside the supported parity target.`;
+    logger.warn(message);
+
+    if (isCiOutputMode()) {
+      globalLogCollector.add("warn", message);
+    }
   }
 
   private reorderConfigKeys(config: SaleorConfig): void {
@@ -395,10 +415,9 @@ export class ConfigurationService {
       enableAccountConfirmationByEmail: settings.enableAccountConfirmationByEmail,
       limitQuantityPerCheckout: settings.limitQuantityPerCheckout,
       trackInventoryByDefault: settings.trackInventoryByDefault,
+      useLegacyShippingZoneStockAvailability: settings.useLegacyShippingZoneStockAvailability,
       reserveStockDurationAnonymousUser: settings.reserveStockDurationAnonymousUser,
       reserveStockDurationAuthenticatedUser: settings.reserveStockDurationAuthenticatedUser,
-      defaultDigitalMaxDownloads: settings.defaultDigitalMaxDownloads,
-      defaultDigitalUrlValidDays: settings.defaultDigitalUrlValidDays,
       defaultWeightUnit: settings.defaultWeightUnit,
       allowLoginWithoutConfirmation: settings.allowLoginWithoutConfirmation,
     });
@@ -971,7 +990,7 @@ export class ConfigurationService {
 type RawAttribute = NonNullable<
   NonNullable<RawSaleorConfig["productTypes"]>["edges"][number]["node"]["productAttributes"]
 >[number] & {
-  entityType?: "PAGE" | "PRODUCT" | "PRODUCT_VARIANT";
+  entityType?: ReferenceEntityType;
 };
 
 type SaleorAttributeType = "PRODUCT_TYPE" | "PAGE_TYPE";

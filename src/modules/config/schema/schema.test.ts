@@ -8,6 +8,12 @@ import {
   type ShopInput,
 } from "./schema";
 
+const removedShopSettingsFields = [
+  "automaticFulfillmentDigitalProducts",
+  "defaultDigitalMaxDownloads",
+  "defaultDigitalUrlValidDays",
+] as const;
+
 describe("Schema Union Types", () => {
   describe("ProductType Schema", () => {
     it("should parse create input (name only)", () => {
@@ -162,6 +168,7 @@ describe("Schema Union Types", () => {
           defaultMailSenderName: "Test Store",
           displayGrossPrices: true,
           trackInventoryByDefault: false,
+          useLegacyShippingZoneStockAvailability: true,
         },
       };
 
@@ -171,7 +178,24 @@ describe("Schema Union Types", () => {
         defaultMailSenderName: "Test Store",
         displayGrossPrices: true,
         trackInventoryByDefault: false,
+        useLegacyShippingZoneStockAvailability: true,
       });
+    });
+
+    it("should reject shop settings removed in Saleor 3.23", () => {
+      for (const field of removedShopSettingsFields) {
+        const result = configSchema.safeParse({
+          shop: {
+            [field]: field === "automaticFulfillmentDigitalProducts" ? true : 10,
+          },
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.error?.issues[0]?.path).toEqual(["shop", field]);
+        expect(result.error?.issues[0]?.message).toBe(
+          "Removed in Saleor 3.23. Delete this field from config.yml."
+        );
+      }
     });
   });
 
@@ -406,6 +430,41 @@ describe("Schema Union Types", () => {
       expect(result.productTypes?.[0].productAttributes?.[1]).toEqual({
         attribute: "Genre",
       });
+    });
+
+    it("should parse Saleor 3.23 category and collection reference entity types", () => {
+      const result = configSchema.parse({
+        productTypes: [
+          {
+            name: "Book",
+            productAttributes: [
+              {
+                name: "Related Category",
+                inputType: "REFERENCE",
+                entityType: "CATEGORY",
+              },
+              {
+                name: "Featured Collection",
+                inputType: "SINGLE_REFERENCE",
+                entityType: "COLLECTION",
+              },
+            ],
+          },
+        ],
+      });
+
+      expect(result.productTypes?.[0].productAttributes).toEqual([
+        {
+          name: "Related Category",
+          inputType: "REFERENCE",
+          entityType: "CATEGORY",
+        },
+        {
+          name: "Featured Collection",
+          inputType: "SINGLE_REFERENCE",
+          entityType: "COLLECTION",
+        },
+      ]);
     });
   });
 });

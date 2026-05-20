@@ -1,0 +1,21 @@
+productTypes:
+  - name: "PR175 Inline Schema Product Type"
+    isShippingRequired: true
+    productAttributes:
+      - name: "PR175 Inline Schema Category"
+        inputType: SINGLE_REFERENCE
+        entityType: CATEGORY
+      - name: "PR175 Inline Schema Collections"
+        inputType: REFERENCE
+        entityType: COLLECTION
+
+modelTypes:
+  - name: "PR175 Inline Schema Model Type"
+    slug: pr175-inline-schema-model-type
+    attributes:
+      - name: "PR175 Inline Schema Content Category"
+        inputType: SINGLE_REFERENCE
+        entityType: CATEGORY
+      - name: "PR175 Inline Schema Content Collections"
+        inputType: REFERENCE
+        entityType: COLLECTION

@@ -112,6 +112,44 @@ describe("AttributeService", () => {
         entityType: "PAGE",
       });
     });
+
+    it("should create input for REFERENCE with CATEGORY entityType", () => {
+      const input: FullAttribute = {
+        name: "Related Category",
+        inputType: "REFERENCE",
+        entityType: "CATEGORY",
+        type: "PRODUCT_TYPE",
+      };
+
+      const result = createAttributeInput(input);
+
+      expect(result).toEqual({
+        name: "Related Category",
+        type: "PRODUCT_TYPE",
+        slug: "related-category",
+        inputType: "REFERENCE",
+        entityType: "CATEGORY",
+      });
+    });
+
+    it("should create input for SINGLE_REFERENCE with COLLECTION entityType", () => {
+      const input: FullAttribute = {
+        name: "Featured Collection",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "COLLECTION",
+        type: "PRODUCT_TYPE",
+      };
+
+      const result = createAttributeInput(input);
+
+      expect(result).toEqual({
+        name: "Featured Collection",
+        type: "PRODUCT_TYPE",
+        slug: "featured-collection",
+        inputType: "SINGLE_REFERENCE",
+        entityType: "COLLECTION",
+      });
+    });
   });
 
   describe("updateAttribute", () => {
@@ -327,7 +365,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -339,7 +377,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
-              slug: null,
+              slug: "color",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -351,7 +389,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "3",
               name: "Material",
-              slug: null,
+              slug: "material",
               type: "PRODUCT_TYPE",
               inputType: "PLAIN_TEXT",
               entityType: null,
@@ -396,7 +434,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -478,7 +516,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -490,7 +528,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "2",
               name: "Color",
-              slug: null,
+              slug: "color",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
@@ -596,7 +634,7 @@ describe("AttributeService", () => {
             attribute: {
               id: "1",
               name: "Size",
-              slug: null,
+              slug: "size",
               type: "PRODUCT_TYPE",
               inputType: "DROPDOWN",
               entityType: null,
