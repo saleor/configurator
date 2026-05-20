@@ -20,8 +20,10 @@ describe("Deploy Command - Integration Tests", () => {
   let tempDir: TempDirectory;
   let fetchSpy: MockInstance<typeof fetch>;
   let mockExit: MockInstance;
+  const originalGovernorEnabled = process.env.GRAPHQL_GOVERNOR_ENABLED;
 
   beforeEach(() => {
+    process.env.GRAPHQL_GOVERNOR_ENABLED = "false";
     tempDir = createTempDirectory();
 
     // Use the enhanced fetch mock from graphql-mocks
@@ -36,6 +38,11 @@ describe("Deploy Command - Integration Tests", () => {
   afterEach(() => {
     tempDir.cleanup();
     vi.restoreAllMocks();
+    if (originalGovernorEnabled === undefined) {
+      Reflect.deleteProperty(process.env, "GRAPHQL_GOVERNOR_ENABLED");
+    } else {
+      process.env.GRAPHQL_GOVERNOR_ENABLED = originalGovernorEnabled;
+    }
   });
 
   describe("Success Scenarios", () => {
