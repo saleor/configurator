@@ -29,17 +29,22 @@ import type {
 import type {
   ChannelInput,
   ChannelUpdateInput,
+  SaleorConfig,
   TaxConfigurationInput,
 } from "../../modules/config/schema/schema";
 import { StageAggregateError } from "./errors";
 
 import type { DeploymentContext, DeploymentStage } from "./types";
 
+async function getDeploymentConfig(context: DeploymentContext): Promise<SaleorConfig> {
+  return context.config ?? (await context.configurator.services.configStorage.load());
+}
+
 export const validationStage: DeploymentStage = {
   name: StageNames.VALIDATION,
   async execute(context) {
     try {
-      await context.configurator.services.configStorage.load();
+      await getDeploymentConfig(context);
     } catch (error) {
       throw new Error(
         `Configuration validation failed: ${error instanceof Error ? error.message : String(error)}`
@@ -52,7 +57,7 @@ export const shopSettingsStage: DeploymentStage = {
   name: StageNames.SHOP_SETTINGS,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.shop) {
         logger.debug("No shop settings to update");
         return;
@@ -77,7 +82,7 @@ export const productTypesStage: DeploymentStage = {
   name: StageNames.PRODUCT_TYPES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.productTypes?.length) {
         logger.debug("No product types to manage");
         return;
@@ -411,7 +416,7 @@ export const attributesStage: DeploymentStage = {
   name: StageNames.ATTRIBUTES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       const productAttributes = config.productAttributes ?? [];
       const contentAttributes = config.contentAttributes ?? [];
 
@@ -519,7 +524,7 @@ export const channelsStage: DeploymentStage = {
   name: StageNames.CHANNELS,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.channels?.length) {
         logger.debug("No channels to manage");
         return;
@@ -603,7 +608,7 @@ export const pageTypesStage: DeploymentStage = {
   name: StageNames.PAGE_TYPES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.pageTypes?.length) {
         logger.debug("No page types to manage");
         return;
@@ -636,7 +641,7 @@ export const modelTypesStage: DeploymentStage = {
   name: StageNames.MODEL_TYPES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.modelTypes?.length) {
         logger.debug("No model types to manage");
         return;
@@ -671,7 +676,7 @@ export const collectionsStage: DeploymentStage = {
   name: StageNames.COLLECTIONS,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.collections?.length) {
         logger.debug("No collections to manage");
         return;
@@ -696,7 +701,7 @@ export const menusStage: DeploymentStage = {
   name: StageNames.MENUS,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.menus?.length) {
         logger.debug("No menus to manage");
         return;
@@ -723,7 +728,7 @@ export const modelsStage: DeploymentStage = {
     try {
       context.configurator.services.model.setAttributeCache(context.attributeCache);
 
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.models?.length) {
         logger.debug("No models to manage");
         return;
@@ -763,7 +768,7 @@ export const categoriesStage: DeploymentStage = {
   name: StageNames.CATEGORIES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.categories?.length) {
         logger.debug("No categories to manage");
         return;
@@ -812,7 +817,7 @@ export const warehousesStage: DeploymentStage = {
   name: StageNames.WAREHOUSES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.warehouses?.length) {
         logger.debug("No warehouses to manage");
         return;
@@ -837,7 +842,7 @@ export const taxClassesStage: DeploymentStage = {
   name: StageNames.TAX_CLASSES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.taxClasses?.length) {
         logger.debug("No tax classes to manage");
         return;
@@ -862,7 +867,7 @@ export const shippingZonesStage: DeploymentStage = {
   name: StageNames.SHIPPING_ZONES,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.shippingZones?.length) {
         logger.debug("No shipping zones to manage");
         return;
@@ -895,7 +900,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
   name: StageNames.ATTRIBUTE_CHOICES_PREFLIGHT,
   async execute(context) {
     try {
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.products || config.products.length === 0) return;
 
       const productChanges = context.summary.results.filter((r) => r.entityType === "Products");
@@ -1006,7 +1011,7 @@ export const productsStage: DeploymentStage = {
     try {
       context.configurator.services.product.setAttributeCache(context.attributeCache);
 
-      const config = await context.configurator.services.configStorage.load();
+      const config = await getDeploymentConfig(context);
       if (!config.products?.length) {
         logger.debug("No products to manage");
         return;

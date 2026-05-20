@@ -337,6 +337,40 @@ describe("Deploy Command", () => {
       expect(mockExit).toHaveBeenCalledWith(0);
     });
 
+    it("should pass scoped include options to diff and deployment context", async () => {
+      const diff = vi.fn().mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 1,
+          updates: 0,
+          deletes: 0,
+          results: [{ operation: "CREATE", entityType: "Products", entityName: "phone" }],
+        },
+        output: "",
+      });
+      const configurator = createMockConfigurator(mockDiffService, { diff });
+      configurator.services.configStorage.load = vi.fn().mockResolvedValue({
+        shop: { defaultMailSenderName: "Test" },
+        categories: [{ name: "Electronics", slug: "electronics" }],
+        products: [],
+      });
+      mockCreateConfigurator.mockReturnValue(configurator);
+
+      await expect(deployHandler(createDefaultArgs({ include: "products" }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+
+      expect(diff).toHaveBeenCalledWith({
+        skipMedia: false,
+        includeSections: ["products"],
+        excludeSections: [],
+      });
+      expect(mockExecuteEnhancedDeployment).toHaveBeenCalledOnce();
+      expect(mockExecuteEnhancedDeployment.mock.calls[0][1].config).toEqual({
+        products: [],
+      });
+    });
+
     it("should skip confirmation in CI mode", async () => {
       await expect(deployHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
