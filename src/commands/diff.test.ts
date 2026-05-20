@@ -177,6 +177,18 @@ describe("diff command", () => {
       expect(mockConfigurator.diff).toHaveBeenCalledOnce();
     });
 
+    it("should pass include and exclude options to configurator.diff()", async () => {
+      await expect(handleDiff({ ...mockArgs, include: "menus,products" })).rejects.toThrow(
+        "process.exit"
+      );
+
+      expect(mockConfigurator.diff).toHaveBeenCalledWith({
+        skipMedia: false,
+        includeSections: ["menus", "products"],
+        excludeSections: [],
+      });
+    });
+
     it("should display diff output", async () => {
       await expect(handleDiff(mockArgs)).rejects.toThrow("process.exit");
 
@@ -382,13 +394,9 @@ describe("diff command", () => {
         output: "Diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, failOnDelete: true })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, failOnDelete: true })).rejects.toThrow("process.exit");
 
-      expect(mockConsole.error).toHaveBeenCalledWith(
-        expect.stringContaining("--fail-on-delete")
-      );
+      expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("--fail-on-delete"));
       expect(process.exit).toHaveBeenCalledWith(EXIT_CODES.DELETION_BLOCKED);
     });
 
@@ -398,13 +406,11 @@ describe("diff command", () => {
         output: "Diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, failOnBreaking: true })
-      ).rejects.toThrow("process.exit");
-
-      expect(mockConsole.error).toHaveBeenCalledWith(
-        expect.stringContaining("--fail-on-breaking")
+      await expect(handleDiff({ ...baseArgs, failOnBreaking: true })).rejects.toThrow(
+        "process.exit"
       );
+
+      expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("--fail-on-breaking"));
       expect(process.exit).toHaveBeenCalledWith(EXIT_CODES.BREAKING_BLOCKED);
     });
 
@@ -414,18 +420,14 @@ describe("diff command", () => {
         creates: 1,
         updates: 0,
         deletes: 0,
-        results: [
-          { operation: "CREATE", entityType: "Categories", entityName: "electronics" },
-        ],
+        results: [{ operation: "CREATE", entityType: "Categories", entityName: "electronics" }],
       };
       mockConfigurator.diff.mockResolvedValueOnce({
         summary: noDeletions,
         output: "Diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, failOnDelete: true })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, failOnDelete: true })).rejects.toThrow("process.exit");
 
       expect(process.exit).toHaveBeenCalledWith(0);
     });
@@ -452,14 +454,12 @@ describe("diff command", () => {
         output: "Full diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, entityType: "Categories" })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, entityType: "Categories" })).rejects.toThrow(
+        "process.exit"
+      );
 
       // Should show filtered count (2 Categories), not all 3
-      expect(mockConsole.status).toHaveBeenCalledWith(
-        expect.stringContaining("2 differences")
-      );
+      expect(mockConsole.status).toHaveBeenCalledWith(expect.stringContaining("2 differences"));
     });
 
     it("should filter results by --entity", async () => {
@@ -468,14 +468,12 @@ describe("diff command", () => {
         output: "Full diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, entity: "Categories/electronics" })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, entity: "Categories/electronics" })).rejects.toThrow(
+        "process.exit"
+      );
 
       // Should show filtered count (1 specific entity)
-      expect(mockConsole.status).toHaveBeenCalledWith(
-        expect.stringContaining("1 difference")
-      );
+      expect(mockConsole.status).toHaveBeenCalledWith(expect.stringContaining("1 difference"));
     });
 
     it("should show no differences when filter matches nothing", async () => {
@@ -484,9 +482,9 @@ describe("diff command", () => {
         output: "Full diff output",
       });
 
-      await expect(
-        handleDiff({ ...baseArgs, entityType: "Channels" })
-      ).rejects.toThrow("process.exit");
+      await expect(handleDiff({ ...baseArgs, entityType: "Channels" })).rejects.toThrow(
+        "process.exit"
+      );
 
       expect(mockConsole.status).toHaveBeenCalledWith(
         expect.stringContaining("No differences found")

@@ -90,6 +90,10 @@ export interface DiffOptions {
    * Media differences will not be reported in diff results.
    */
   readonly skipMedia?: boolean;
+  /** Sections to include (empty array means include all) */
+  readonly includeSections?: readonly ConfigurationSection[];
+  /** Sections to exclude */
+  readonly excludeSections?: readonly ConfigurationSection[];
 }
 
 /**

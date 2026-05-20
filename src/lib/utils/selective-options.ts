@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ConfigurationSection, ParsedSelectiveOptions } from "../../core/diff/types";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
 
 export type { ConfigurationSection } from "../../core/diff/types";
 
@@ -106,6 +107,18 @@ export const parseSelectiveOptions = (
   const only = "only" in validatedOptions ? validatedOptions.only : undefined;
   const include = "include" in validatedOptions ? validatedOptions.include : undefined;
   const exclude = validatedOptions.exclude;
+  const hasInclude = Boolean(include?.trim() || only?.trim());
+  const hasExclude = Boolean(exclude?.trim());
+
+  if (include?.trim() && only?.trim()) {
+    throw new Error("Invalid selective options: Cannot specify both --include and --only");
+  }
+
+  if (hasInclude && hasExclude) {
+    throw new Error(
+      "Invalid selective options: Cannot specify both --include/--only and --exclude"
+    );
+  }
 
   return {
     includeSections: parseIncludeSections(only, include),
@@ -135,6 +148,28 @@ export const shouldIncludeSection = (
   }
 
   return true;
+};
+
+export const hasSelectiveOptions = (options: ParsedSelectiveOptions): boolean =>
+  options.includeSections.length > 0 || options.excludeSections.length > 0;
+
+export const scopeConfig = (
+  config: SaleorConfig,
+  options: ParsedSelectiveOptions
+): SaleorConfig => {
+  if (!hasSelectiveOptions(options)) {
+    return config;
+  }
+
+  const scopedConfig: Partial<SaleorConfig> = {};
+
+  for (const section of AVAILABLE_SECTIONS) {
+    if (shouldIncludeSection(section, options) && config[section] !== undefined) {
+      scopedConfig[section] = config[section] as never;
+    }
+  }
+
+  return scopedConfig as SaleorConfig;
 };
 
 const createIncludeMessage = (

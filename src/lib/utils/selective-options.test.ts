@@ -85,6 +85,24 @@ describe("selective-options utility", () => {
         `Invalid sections specified in --exclude: invalid, unknown. Available sections: ${AVAILABLE_SECTIONS.join(", ")}`
       );
     });
+
+    it("should reject include and exclude together", () => {
+      expect(() => parseSelectiveOptions({ include: "shop", exclude: "channels" })).toThrow(
+        "Cannot specify both --include/--only and --exclude"
+      );
+    });
+
+    it("should reject only and exclude together", () => {
+      expect(() => parseSelectiveOptions({ only: "shop", exclude: "channels" })).toThrow(
+        "Cannot specify both --include/--only and --exclude"
+      );
+    });
+
+    it("should reject include and only together", () => {
+      expect(() => parseSelectiveOptions({ include: "shop", only: "channels" })).toThrow(
+        "Cannot specify both --include and --only"
+      );
+    });
   });
 
   describe("shouldIncludeSection", () => {
