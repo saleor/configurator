@@ -1,5 +1,6 @@
 import type { DeployCommandArgs } from "../../commands/deploy";
 import type { AttributeCache } from "../../modules/attribute/attribute-cache";
+import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { SaleorConfigurator } from "../configurator";
 import type { DiffSummary } from "../diff";
 
@@ -9,6 +10,7 @@ export interface DeploymentContext {
   readonly summary: DiffSummary;
   readonly startTime: Date;
   readonly attributeCache: AttributeCache;
+  readonly config?: SaleorConfig;
   // Note: skipMedia is accessed via args.skipMedia to avoid duplication
 }
 

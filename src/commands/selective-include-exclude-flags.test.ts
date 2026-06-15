@@ -21,13 +21,13 @@ describe("Bug #9: Selective Include/Exclude Flags Ignored", () => {
       expect(result.excludeSections).toEqual(["productTypes", "pageTypes"]);
     });
 
-    it("should handle both include and exclude (include takes precedence)", () => {
-      const result = parseSelectiveOptions({
-        include: "shop",
-        exclude: "channels",
-      });
-      expect(result.includeSections).toEqual(["shop"]);
-      expect(result.excludeSections).toEqual(["channels"]);
+    it("should reject both include and exclude", () => {
+      expect(() =>
+        parseSelectiveOptions({
+          include: "shop",
+          exclude: "channels",
+        })
+      ).toThrow("Cannot specify both --include/--only and --exclude");
     });
 
     it("should handle empty options", () => {

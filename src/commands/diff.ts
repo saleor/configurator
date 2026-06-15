@@ -15,6 +15,11 @@ import {
 import { scanForDuplicateIdentifiers } from "../core/validation/preflight";
 import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
 import { logger } from "../lib/logger";
+import {
+  getSelectiveOptionsSummary,
+  parseSelectiveOptions,
+  scopeConfig,
+} from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
 
 /**
@@ -47,6 +52,13 @@ export const diffCommandSchema = baseCommandArgsSchema.extend({
     .string()
     .optional()
     .describe("Filter results to a specific entity (e.g., Categories/electronics)"),
+  /** Include only selected top-level config sections */
+  include: z
+    .string()
+    .optional()
+    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
+  /** Exclude selected top-level config sections */
+  exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
 });
 
 export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
@@ -148,17 +160,22 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
     const configurator = createConfigurator(args);
 
     try {
+      const selectiveOptions = parseSelectiveOptions(args);
       // Skip header for JSON/GitHub output (machine-readable)
       if (!useJson && !args.githubComment) {
         this.console.muted(
           "⏳ Preparing a diff between the configuration and the Saleor instance..."
         );
+        const selectiveSummary = getSelectiveOptionsSummary(selectiveOptions);
+        [selectiveSummary.includeMessage, selectiveSummary.excludeMessage]
+          .filter((message): message is string => Boolean(message))
+          .forEach((message) => this.console.muted(message));
       }
 
       // Preflight: surface duplicate identifiers with friendly output and block diff
       try {
         const cfg = await configurator.services.configStorage.load();
-        const dupes = scanForDuplicateIdentifiers(cfg);
+        const dupes = scanForDuplicateIdentifiers(scopeConfig(cfg, selectiveOptions));
         if (dupes.length > 0) {
           if (useJson) {
             outputEnvelope(
@@ -187,6 +204,7 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
 
       const { summary: rawSummary, output: defaultOutput } = await configurator.diff({
         skipMedia: args.skipMedia,
+        ...selectiveOptions,
       });
 
       // Apply entity filter if flags present

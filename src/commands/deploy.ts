@@ -36,8 +36,14 @@ import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
 import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
+import {
+  getSelectiveOptionsSummary,
+  parseSelectiveOptions,
+  scopeConfig,
+} from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
 import { AttributeCache } from "../modules/attribute/attribute-cache";
+import type { SaleorConfig } from "../modules/config/schema/schema";
 
 export const deployCommandSchema = baseCommandArgsSchema.extend({
   reportPath: z
@@ -54,6 +60,11 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .boolean()
     .default(false)
     .describe("Skip media fields during deployment (preserves target media)"),
+  include: z
+    .string()
+    .optional()
+    .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
+  exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
 
@@ -235,7 +246,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     summary: DiffSummary
   ): Promise<void> {
     try {
-      const cfg = await context.configurator.services.configStorage.load();
+      const cfg = context.config ?? (await context.configurator.services.configStorage.load());
       const suggestions = analyzeDeploymentCleanup(cfg, summary);
       if (suggestions.length > 0) {
         this.console.warn("🔎 Post-deploy cleanup suggestions:");
@@ -294,7 +305,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   private async executeDeployment(
     args: DeployCommandArgs,
     summary: DiffSummary,
-    configurator: ReturnType<typeof createConfigurator>
+    configurator: ReturnType<typeof createConfigurator>,
+    config: SaleorConfig
   ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
     const startTime = new Date();
 
@@ -307,6 +319,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       summary,
       startTime,
       attributeCache: new AttributeCache(),
+      config,
     };
 
     const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
@@ -336,11 +349,14 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   private async validateLocalConfiguration(
     args: DeployCommandArgs,
-    configurator: ReturnType<typeof createConfigurator>
-  ): Promise<void> {
+    configurator: ReturnType<typeof createConfigurator>,
+    selectiveOptions: ReturnType<typeof parseSelectiveOptions>
+  ): Promise<SaleorConfig> {
     try {
       const cfg = await configurator.services.configStorage.load();
-      runPreflightValidation(cfg, args.config);
+      const scopedConfig = scopeConfig(cfg, selectiveOptions);
+      runPreflightValidation(scopedConfig, args.config);
+      return scopedConfig;
     } catch (error) {
       if (error instanceof ConfigurationValidationError) {
         throw error;
@@ -354,7 +370,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   private async analyzeDifferences(
     args: DeployCommandArgs,
-    configurator: ReturnType<typeof createConfigurator>
+    configurator: ReturnType<typeof createConfigurator>,
+    selectiveOptions: ReturnType<typeof parseSelectiveOptions>
   ): Promise<{
     summary: DiffSummary;
     output: string;
@@ -362,6 +379,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }> {
     const { summary, output } = await configurator.diff({
       skipMedia: args.skipMedia,
+      includeSections: selectiveOptions.includeSections,
+      excludeSections: selectiveOptions.excludeSections,
     });
 
     return {
@@ -400,7 +419,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     };
   }
 
-  private checkDeletionPolicy(summary: DiffSummary, args: DeployCommandArgs, useJson: boolean): void {
+  private checkDeletionPolicy(
+    summary: DiffSummary,
+    args: DeployCommandArgs,
+    useJson: boolean
+  ): void {
     if (args.failOnDelete && summary.deletes > 0) {
       const message = `Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
       if (useJson) {
@@ -475,13 +498,24 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     const useJson = shouldOutputJson(args);
 
     try {
-      await this.validateLocalConfiguration(args, configurator);
+      const selectiveOptions = parseSelectiveOptions(args);
+      if (!useJson) {
+        const selectiveSummary = getSelectiveOptionsSummary(selectiveOptions);
+        [selectiveSummary.includeMessage, selectiveSummary.excludeMessage]
+          .filter((message): message is string => Boolean(message))
+          .forEach((message) => this.console.muted(message));
+      }
+      const scopedConfig = await this.validateLocalConfiguration(
+        args,
+        configurator,
+        selectiveOptions
+      );
 
       if (!useJson) {
         this.console.muted("⏳ Analyzing configuration differences...");
       }
 
-      const diffAnalysis = await this.analyzeDifferences(args, configurator);
+      const diffAnalysis = await this.analyzeDifferences(args, configurator, selectiveOptions);
 
       if (diffAnalysis.summary.totalChanges === 0) {
         return this.handleNoChanges(diffAnalysis.summary, useJson);
@@ -507,7 +541,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         process.exit(0);
       }
 
-      const deploymentResult = await this.executeDeployment(args, diffAnalysis.summary, configurator);
+      const deploymentResult = await this.executeDeployment(
+        args,
+        diffAnalysis.summary,
+        configurator,
+        scopedConfig
+      );
       this.logDeploymentCompletion(diffAnalysis.summary, deploymentResult);
       process.exit(deploymentResult.exitCode);
     } catch (error) {

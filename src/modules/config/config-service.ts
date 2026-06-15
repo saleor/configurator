@@ -75,12 +75,20 @@ export class ConfigurationService {
     const config = this.mapConfig(rawConfig, selectiveOptions);
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
 
-    const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig);
-    if (shouldIncludeSection("productAttributes", options)) {
-      config.productAttributes = productAttributes;
-    }
-    if (shouldIncludeSection("contentAttributes", options)) {
-      config.contentAttributes = contentAttributes;
+    const includeProductAttributes = shouldIncludeSection("productAttributes", options);
+    const includeContentAttributes = shouldIncludeSection("contentAttributes", options);
+
+    if (includeProductAttributes || includeContentAttributes) {
+      const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig, {
+        includeProductAttributes,
+        includeContentAttributes,
+      });
+      if (includeProductAttributes) {
+        config.productAttributes = productAttributes;
+      }
+      if (includeContentAttributes) {
+        config.contentAttributes = contentAttributes;
+      }
     }
     this.reorderConfigKeys(config as SaleorConfig);
 
@@ -306,7 +314,13 @@ export class ConfigurationService {
     });
   }
 
-  private mapGlobalAttributeSections(raw: RawSaleorConfig): {
+  private mapGlobalAttributeSections(
+    raw: RawSaleorConfig,
+    options: {
+      includeProductAttributes: boolean;
+      includeContentAttributes: boolean;
+    }
+  ): {
     productAttributes: ProductAttribute[];
     contentAttributes: ContentAttribute[];
   } {
@@ -333,6 +347,13 @@ export class ConfigurationService {
         );
       }
       const type: SaleorAttributeType = isSaleorAttributeType(rawType) ? rawType : "PRODUCT_TYPE";
+
+      if (type === "PRODUCT_TYPE" && !options.includeProductAttributes) {
+        continue;
+      }
+      if (type === "PAGE_TYPE" && !options.includeContentAttributes) {
+        continue;
+      }
 
       try {
         const fullAttr = this.mapAttribute(toRawAttribute(node), type);

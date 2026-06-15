@@ -1,7 +1,7 @@
 import yaml from "yaml";
 import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
-import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { scopeConfig, shouldIncludeSection } from "../../lib/utils/selective-options";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
@@ -80,14 +80,21 @@ export class DiffService {
    */
   async compare(options?: DiffOptions): Promise<DiffSummary> {
     const startTime = Date.now();
-    logger.info("Starting diff comparison", { skipMedia: options?.skipMedia });
+    const selectiveOptions = this.toSelectiveOptions(options);
+    logger.info("Starting diff comparison", {
+      skipMedia: options?.skipMedia,
+      includeSections: selectiveOptions.includeSections,
+      excludeSections: selectiveOptions.excludeSections,
+    });
 
     try {
       // Load configurations concurrently for better performance
-      const [localConfig, remoteConfig] = await Promise.all([
+      const [loadedLocalConfig, loadedRemoteConfig] = await Promise.all([
         this.loadLocalConfiguration(),
-        this.loadRemoteConfiguration(),
+        this.loadRemoteConfiguration(selectiveOptions),
       ]);
+      const localConfig = scopeConfig(loadedLocalConfig, selectiveOptions);
+      const remoteConfig = scopeConfig(loadedRemoteConfig, selectiveOptions);
 
       if (this.config.enableDebugLogging) {
         logger.debug("Configurations loaded", {
@@ -97,7 +104,10 @@ export class DiffService {
       }
 
       // Perform comparisons with options
-      const results = await this.performComparisons(localConfig, remoteConfig, options);
+      const results = await this.performSelectiveComparisons(localConfig, remoteConfig, {
+        ...selectiveOptions,
+        diffOptions: options,
+      });
 
       // Calculate summary statistics
       const summary = this.calculateSummary(results);
@@ -144,16 +154,17 @@ export class DiffService {
    * @throws {DiffComparisonError} When comparison fails
    */
   async compareForIntrospect(options: DiffServiceIntrospectOptions = {}): Promise<DiffSummary> {
-    const { includeSections, excludeSections } = options;
+    const selectiveOptions = this.toSelectiveOptions(options);
     const startTime = Date.now();
     logger.info("Starting diff comparison for introspect");
 
     try {
       // Load configurations concurrently for better performance
-      const [localConfig, remoteConfig] = await Promise.all([
+      const [loadedLocalConfig, remoteConfig] = await Promise.all([
         this.loadLocalConfigurationTolerant(),
-        this.loadRemoteConfiguration(),
+        this.loadRemoteConfiguration(selectiveOptions),
       ]);
+      const localConfig = scopeConfig(loadedLocalConfig, selectiveOptions);
 
       if (this.config.enableDebugLogging) {
         logger.debug("Configurations loaded for introspect", {
@@ -165,8 +176,8 @@ export class DiffService {
       // Perform comparisons with swapped order (remote as source, local as target)
       // This shows what will be removed/added/updated in the local file
       const results = await this.performSelectiveComparisons(remoteConfig, localConfig, {
-        includeSections,
-        excludeSections,
+        includeSections: selectiveOptions.includeSections,
+        excludeSections: selectiveOptions.excludeSections,
       });
 
       // Calculate summary statistics
@@ -334,7 +345,9 @@ export class DiffService {
   /**
    * Loads remote configuration with error handling and timeout
    */
-  private async loadRemoteConfiguration(): Promise<SaleorConfig> {
+  private async loadRemoteConfiguration(
+    selectiveOptions?: DiffServiceIntrospectOptions
+  ): Promise<SaleorConfig> {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     try {
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -347,7 +360,9 @@ export class DiffService {
         }, this.config.remoteTimeoutMs);
       });
 
-      const configPromise = this.services.configuration.retrieveWithoutSaving();
+      const configPromise = this.services.configuration.retrieveWithoutSaving(
+        selectiveOptions ? this.toSelectiveOptions(selectiveOptions) : undefined
+      );
       const config = await Promise.race([configPromise, timeoutPromise]);
 
       return config || {};
@@ -421,7 +436,7 @@ export class DiffService {
   private async performSelectiveComparisons(
     localConfig: SaleorConfig,
     remoteConfig: SaleorConfig,
-    options: DiffServiceIntrospectOptions
+    options: DiffServiceIntrospectOptions & { diffOptions?: DiffOptions }
   ): Promise<readonly DiffResult[]> {
     const { includeSections, excludeSections } = options;
     const comparisons: Promise<readonly DiffResult[]>[] = [];
@@ -436,7 +451,9 @@ export class DiffService {
 
     // Shop settings comparison
     if (shouldInclude("shop") && this.comparators.has("shop")) {
-      comparisons.push(this.performComparison("shop", localConfig.shop, remoteConfig.shop));
+      comparisons.push(
+        this.performComparison("shop", localConfig.shop, remoteConfig.shop, options.diffOptions)
+      );
     }
 
     // Entity array comparisons
@@ -463,7 +480,8 @@ export class DiffService {
           this.performComparison(
             entityType,
             localConfig[entityType as keyof SaleorConfig] || [],
-            remoteConfig[entityType as keyof SaleorConfig] || []
+            remoteConfig[entityType as keyof SaleorConfig] || [],
+            options.diffOptions
           )
         );
       }
@@ -472,6 +490,15 @@ export class DiffService {
     // Execute comparisons with concurrency limit
     const results = await this.executeConcurrently(comparisons);
     return results.flat();
+  }
+
+  private toSelectiveOptions(
+    options?: Pick<DiffOptions, "includeSections" | "excludeSections">
+  ): Required<Pick<DiffOptions, "includeSections" | "excludeSections">> {
+    return {
+      includeSections: options?.includeSections ?? [],
+      excludeSections: options?.excludeSections ?? [],
+    };
   }
 
   /**
