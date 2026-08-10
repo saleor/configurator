@@ -161,23 +161,12 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
   );
 }
 
-export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath: string): void {
-  const productNames = new Set((config.productAttributes ?? []).map((a) => a.name));
-  const crossDupes = (config.contentAttributes ?? [])
-    .filter((a) => productNames.has(a.name))
-    .map((a) => a.name);
-
-  if (crossDupes.length > 0) {
-    throw new ConfigurationValidationError(
-      "Attribute names must be unique across productAttributes and contentAttributes",
-      filePath,
-      crossDupes.map((name) => ({
-        path: "productAttributes/contentAttributes",
-        message: `"${name}" appears in both productAttributes and contentAttributes. Each attribute must exist in only one section.`,
-      }))
-    );
-  }
-}
+// Note: an attribute name may appear in both productAttributes and
+// contentAttributes. Saleor enforces uniqueness on slug, not name, so a store
+// can legitimately hold a PRODUCT_TYPE and a PAGE_TYPE attribute with the same
+// name — and introspect emits both. Resolution stays unambiguous because every
+// lookup is scoped by attribute type: the attribute cache keeps one bucket per
+// section, and repository queries filter on `type`.
 
 /**
  * Saleor allows exactly one default customer type: setting `isDefault` on one
@@ -274,7 +263,6 @@ export function runPreflightValidation(config: SaleorConfig, filePath: string): 
   const validators = [
     validateNoDuplicateIdentifiers,
     validateSingleDefaultCustomerType,
-    validateNoCrossSectionDuplicates,
     validateNoInlineAttributeDefinitions,
     validateAttributeReferences,
   ];
