@@ -12,6 +12,7 @@ import { toSlug } from "../../lib/utils/string";
 import {
   ATTRIBUTE_INPUT_TYPES,
   type AttributeInputType,
+  type AttributeSection,
   type CachedAttribute,
 } from "../../modules/attribute/attribute-cache";
 import type {
@@ -21,9 +22,11 @@ import type {
 import {
   type FullAttribute,
   fullAttributeSchema,
+  type SaleorAttributeType,
 } from "../../modules/config/schema/attribute.schema";
 import type {
   ContentAttribute,
+  CustomerAttribute,
   ProductAttribute,
 } from "../../modules/config/schema/global-attributes.schema";
 import type {
@@ -156,8 +159,8 @@ function toAttributeInputType(value: string | null | undefined): AttributeInputT
 type AttributeFailure = { entity: string; error: Error };
 
 function validateAttributeInputs(
-  attributes: Array<ProductAttribute | ContentAttribute>,
-  type: "PRODUCT_TYPE" | "PAGE_TYPE"
+  attributes: Array<ProductAttribute | ContentAttribute | CustomerAttribute>,
+  type: SaleorAttributeType
 ): { fullAttributes: FullAttribute[]; failures: AttributeFailure[] } {
   const fullAttributes: FullAttribute[] = [];
   const failures: AttributeFailure[] = [];
@@ -253,7 +256,7 @@ async function processAttributesBulk(
   existingMap: Map<string, AttributeMeta>,
   sectionName: string,
   names: string[],
-  type: "PRODUCT_TYPE" | "PAGE_TYPE"
+  type: SaleorAttributeType
 ): Promise<{ cached: CachedAttribute[]; failures: AttributeFailure[] }> {
   const service = context.configurator.services.attribute;
   const cached: CachedAttribute[] = [];
@@ -382,8 +385,8 @@ async function processAttributesBulk(
 
 async function processGlobalAttributes(
   context: DeploymentContext,
-  attributes: Array<ProductAttribute | ContentAttribute>,
-  type: "PRODUCT_TYPE" | "PAGE_TYPE",
+  attributes: Array<ProductAttribute | ContentAttribute | CustomerAttribute>,
+  type: SaleorAttributeType,
   sectionName: string
 ): Promise<{ cached: CachedAttribute[]; failures: AttributeFailure[] }> {
   if (attributes.length === 0) {
@@ -417,55 +420,60 @@ export const attributesStage: DeploymentStage = {
   async execute(context) {
     try {
       const config = await getDeploymentConfig(context);
-      const productAttributes = config.productAttributes ?? [];
-      const contentAttributes = config.contentAttributes ?? [];
+      const sections = [
+        {
+          section: "product",
+          type: "PRODUCT_TYPE",
+          attributes: config.productAttributes ?? [],
+        },
+        {
+          section: "content",
+          type: "PAGE_TYPE",
+          attributes: config.contentAttributes ?? [],
+        },
+        {
+          section: "customer",
+          type: "CUSTOMER_TYPE",
+          attributes: config.customerAttributes ?? [],
+        },
+      ] as const satisfies ReadonlyArray<{
+        section: AttributeSection;
+        type: SaleorAttributeType;
+        attributes: Array<ProductAttribute | ContentAttribute | CustomerAttribute>;
+      }>;
 
       const allFailures: Array<{ entity: string; error: Error }> = [];
-      const productCached: CachedAttribute[] = [];
-      const contentCached: CachedAttribute[] = [];
+      let cachedCount = 0;
 
-      if (productAttributes.length > 0) {
-        logger.info(`Processing ${productAttributes.length} product attributes`);
+      for (const { section, type, attributes } of sections) {
+        if (attributes.length === 0) continue;
+
+        logger.info(`Processing ${attributes.length} ${section} attributes`);
         const { cached, failures } = await processGlobalAttributes(
           context,
-          productAttributes,
-          "PRODUCT_TYPE",
-          "product attributes"
+          attributes,
+          type,
+          `${section} attributes`
         );
-        productCached.push(...cached);
+        context.attributeCache.populate(section, cached);
+        cachedCount += cached.length;
         allFailures.push(...failures);
-        logger.debug(`Processed ${cached.length} product attributes`);
+        logger.debug(`Processed ${cached.length} ${section} attributes`);
       }
-
-      if (contentAttributes.length > 0) {
-        logger.info(`Processing ${contentAttributes.length} content attributes`);
-        const { cached, failures } = await processGlobalAttributes(
-          context,
-          contentAttributes,
-          "PAGE_TYPE",
-          "content attributes"
-        );
-        contentCached.push(...cached);
-        allFailures.push(...failures);
-        logger.debug(`Processed ${cached.length} content attributes`);
-      }
-
-      context.attributeCache.populateProductAttributes(productCached);
-      context.attributeCache.populateContentAttributes(contentCached);
 
       const stats = context.attributeCache.getStats();
       logger.info(
-        `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content`
+        `Attribute cache populated: ${stats.productAttributeCount} product, ${stats.contentAttributeCount} content, ${stats.customerAttributeCount} customer`
       );
 
       if (allFailures.length > 0) {
         logger.warn(
-          `${allFailures.length} attribute(s) failed but ${productCached.length + contentCached.length} cached successfully`
+          `${allFailures.length} attribute(s) failed but ${cachedCount} cached successfully`
         );
         throw new StageAggregateError(
           "Managing attributes",
           allFailures,
-          [...productAttributes, ...contentAttributes].map((a) => a.name)
+          sections.flatMap(({ attributes }) => attributes.map((a) => a.name))
         );
       }
     } catch (error) {
@@ -478,7 +486,11 @@ export const attributesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    const attributeEntityTypes = ["Product Attributes", "Content Attributes"];
+    const attributeEntityTypes = [
+      "Product Attributes",
+      "Content Attributes",
+      "Customer Attributes",
+    ];
     const hasAttributeChanges = context.summary.results.some((r) =>
       attributeEntityTypes.includes(r.entityType)
     );
@@ -491,6 +503,7 @@ export const attributesStage: DeploymentStage = {
       "Product Types",
       "Page Types",
       "Model Types",
+      "Customer Types",
       "Products",
       "Models",
     ];
@@ -669,6 +682,37 @@ export const modelTypesStage: DeploymentStage = {
     return context.summary.results.every(
       (r) => r.entityType !== "Models" && r.entityType !== "Page Types"
     );
+  },
+};
+
+export const customerTypesStage: DeploymentStage = {
+  name: StageNames.CUSTOMER_TYPES,
+  async execute(context) {
+    try {
+      const config = await getDeploymentConfig(context);
+      if (!config.customerTypes?.length) {
+        logger.debug("No customer types to manage");
+        return;
+      }
+
+      await context.configurator.services.customerType.bootstrapCustomerTypes(
+        config.customerTypes,
+        { attributeCache: context.attributeCache }
+      );
+    } catch (error) {
+      if (error instanceof StageAggregateError) {
+        throw error;
+      }
+      if (isTransientError(error)) {
+        throw error;
+      }
+      throw new Error(
+        `Failed to manage customer types: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  },
+  skip(context) {
+    return context.summary.results.every((r) => r.entityType !== "Customer Types");
   },
 };
 
@@ -983,7 +1027,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
           });
         }
         if (refreshedCached.length > 0) {
-          context.attributeCache.populateProductAttributes(refreshedCached);
+          context.attributeCache.populate("product", refreshedCached);
           context.configurator.services.product.setAttributeCache(context.attributeCache);
         }
       }
@@ -1070,6 +1114,7 @@ export function getAllStages(): DeploymentStage[] {
     channelsStage,
     pageTypesStage,
     modelTypesStage,
+    customerTypesStage,
     categoriesStage,
     collectionsStage,
     menusStage,

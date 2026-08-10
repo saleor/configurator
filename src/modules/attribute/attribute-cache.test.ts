@@ -56,37 +56,37 @@ describe("AttributeCache", () => {
 
   describe("populate", () => {
     it("should populate product attributes", () => {
-      cache.populateProductAttributes(sampleProductAttributes);
+      cache.populate("product", sampleProductAttributes);
 
-      expect(cache.hasProductAttribute("Publisher")).toBe(true);
-      expect(cache.hasProductAttribute("Genre")).toBe(true);
-      expect(cache.hasProductAttribute("Condition")).toBe(true);
+      expect(cache.has("product", "Publisher")).toBe(true);
+      expect(cache.has("product", "Genre")).toBe(true);
+      expect(cache.has("product", "Condition")).toBe(true);
     });
 
     it("should populate content attributes", () => {
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("content", sampleContentAttributes);
 
-      expect(cache.hasContentAttribute("Author")).toBe(true);
-      expect(cache.hasContentAttribute("Scent Family")).toBe(true);
+      expect(cache.has("content", "Author")).toBe(true);
+      expect(cache.has("content", "Scent Family")).toBe(true);
     });
 
     it("should support multiple populate calls (appends)", () => {
-      cache.populateProductAttributes([sampleProductAttributes[0]]);
-      cache.populateProductAttributes([sampleProductAttributes[1]]);
+      cache.populate("product", [sampleProductAttributes[0]]);
+      cache.populate("product", [sampleProductAttributes[1]]);
 
-      expect(cache.hasProductAttribute("Publisher")).toBe(true);
-      expect(cache.hasProductAttribute("Genre")).toBe(true);
+      expect(cache.has("product", "Publisher")).toBe(true);
+      expect(cache.has("product", "Genre")).toBe(true);
     });
   });
 
   describe("lookup", () => {
     beforeEach(() => {
-      cache.populateProductAttributes(sampleProductAttributes);
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("product", sampleProductAttributes);
+      cache.populate("content", sampleContentAttributes);
     });
 
     it("should return attribute by name for product attributes", () => {
-      const attr = cache.getProductAttribute("Publisher");
+      const attr = cache.get("product", "Publisher");
 
       expect(attr).toBeDefined();
       expect(attr?.id).toBe("attr1");
@@ -96,7 +96,7 @@ describe("AttributeCache", () => {
     });
 
     it("should return attribute by name for content attributes", () => {
-      const attr = cache.getContentAttribute("Author");
+      const attr = cache.get("content", "Author");
 
       expect(attr).toBeDefined();
       expect(attr?.id).toBe("attr4");
@@ -104,28 +104,28 @@ describe("AttributeCache", () => {
     });
 
     it("should return undefined for non-existent product attribute", () => {
-      const attr = cache.getProductAttribute("NonExistent");
+      const attr = cache.get("product", "NonExistent");
       expect(attr).toBeUndefined();
     });
 
     it("should return undefined for non-existent content attribute", () => {
-      const attr = cache.getContentAttribute("NonExistent");
+      const attr = cache.get("content", "NonExistent");
       expect(attr).toBeUndefined();
     });
 
     it("should not find product attribute in content section", () => {
-      expect(cache.getContentAttribute("Publisher")).toBeUndefined();
+      expect(cache.get("content", "Publisher")).toBeUndefined();
     });
 
     it("should not find content attribute in product section", () => {
-      expect(cache.getProductAttribute("Author")).toBeUndefined();
+      expect(cache.get("product", "Author")).toBeUndefined();
     });
   });
 
   describe("findAttributeInWrongSection", () => {
     beforeEach(() => {
-      cache.populateProductAttributes(sampleProductAttributes);
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("product", sampleProductAttributes);
+      cache.populate("content", sampleContentAttributes);
     });
 
     it("should find content attribute when looking for product attribute", () => {
@@ -175,8 +175,8 @@ describe("AttributeCache", () => {
     });
 
     it("should return correct counts after populating", () => {
-      cache.populateProductAttributes(sampleProductAttributes);
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("product", sampleProductAttributes);
+      cache.populate("content", sampleContentAttributes);
 
       const stats = cache.getStats();
 
@@ -188,25 +188,25 @@ describe("AttributeCache", () => {
 
   describe("clear", () => {
     it("should clear all cached data", () => {
-      cache.populateProductAttributes(sampleProductAttributes);
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("product", sampleProductAttributes);
+      cache.populate("content", sampleContentAttributes);
 
       cache.clear();
 
-      expect(cache.hasProductAttribute("Publisher")).toBe(false);
-      expect(cache.hasContentAttribute("Author")).toBe(false);
+      expect(cache.has("product", "Publisher")).toBe(false);
+      expect(cache.has("content", "Author")).toBe(false);
       expect(cache.getStats().totalCount).toBe(0);
     });
   });
 
   describe("getAllAttributeNames", () => {
     beforeEach(() => {
-      cache.populateProductAttributes(sampleProductAttributes);
-      cache.populateContentAttributes(sampleContentAttributes);
+      cache.populate("product", sampleProductAttributes);
+      cache.populate("content", sampleContentAttributes);
     });
 
     it("should return all product attribute names", () => {
-      const names = cache.getAllProductAttributeNames();
+      const names = cache.getAllNames("product");
 
       expect(names).toContain("Publisher");
       expect(names).toContain("Genre");
@@ -215,7 +215,7 @@ describe("AttributeCache", () => {
     });
 
     it("should return all content attribute names", () => {
-      const names = cache.getAllContentAttributeNames();
+      const names = cache.getAllNames("content");
 
       expect(names).toContain("Author");
       expect(names).toContain("Scent Family");

@@ -258,7 +258,7 @@ describe("Deployment Stages", () => {
     it("returns all stages in correct order", () => {
       const stages = getAllStages();
 
-      expect(stages).toHaveLength(16);
+      expect(stages).toHaveLength(17);
       expect(stages[0].name).toBe("Validating configuration");
       expect(stages[1].name).toBe("Updating shop settings");
       expect(stages[2].name).toBe("Managing tax classes");
@@ -267,14 +267,15 @@ describe("Deployment Stages", () => {
       expect(stages[5].name).toBe("Managing channels");
       expect(stages[6].name).toBe("Managing page types");
       expect(stages[7].name).toBe("Managing model types");
-      expect(stages[8].name).toBe("Managing categories");
-      expect(stages[9].name).toBe("Managing collections");
-      expect(stages[10].name).toBe("Managing menus");
-      expect(stages[11].name).toBe("Managing models");
-      expect(stages[12].name).toBe("Managing warehouses");
-      expect(stages[13].name).toBe("Managing shipping zones");
-      expect(stages[14].name).toBe("Preparing attribute choices");
-      expect(stages[15].name).toBe("Managing products");
+      expect(stages[8].name).toBe("Managing customer types");
+      expect(stages[9].name).toBe("Managing categories");
+      expect(stages[10].name).toBe("Managing collections");
+      expect(stages[11].name).toBe("Managing menus");
+      expect(stages[12].name).toBe("Managing models");
+      expect(stages[13].name).toBe("Managing warehouses");
+      expect(stages[14].name).toBe("Managing shipping zones");
+      expect(stages[15].name).toBe("Preparing attribute choices");
+      expect(stages[16].name).toBe("Managing products");
     });
   });
 

@@ -483,7 +483,52 @@ const getConfigQuery = graphql(`
   }
 `);
 
-export type RawSaleorConfig = ResultOf<typeof getConfigQuery>;
+/**
+ * Customer types are fetched separately from the main config query: they require
+ * MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES, and a permission error inside the main
+ * query would fail the whole introspect for tokens that predate Saleor 3.23.
+ */
+const getCustomerTypesQuery = graphql(`
+  query GetConfigCustomerTypes($first: Int!, $after: String) {
+    customerTypes(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          slug
+          isDefault
+          attributes {
+            id
+            name
+            type
+            inputType
+            entityType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+type RawCustomerTypesResult = ResultOf<typeof getCustomerTypesQuery>;
+
+export type RawCustomerTypeEdges = NonNullable<RawCustomerTypesResult["customerTypes"]>["edges"];
+
+export type RawSaleorConfig = ResultOf<typeof getConfigQuery> & {
+  /** Undefined when customer types could not be read (missing permission). */
+  customerTypes?: RawCustomerTypeEdges;
+};
 
 type RawAttributeConnection = NonNullable<RawSaleorConfig["attributes"]>;
 type RawAttributeEdge = NonNullable<RawAttributeConnection["edges"]>[number];
@@ -522,12 +567,17 @@ export class ConfigurationRepository implements ConfigurationOperations {
 
       const fullAttributes = await this.fetchAllAttributes();
 
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const customerTypes = await this.fetchCustomerTypes();
+
       const data: RawSaleorConfig = {
         ...(result.data as RawSaleorConfig),
         products: {
           edges: allProductEdges,
         },
         attributes: fullAttributes,
+        customerTypes,
       } as RawSaleorConfig;
       return data;
     } catch (error) {
@@ -541,6 +591,43 @@ export class ConfigurationRepository implements ConfigurationOperations {
       );
       return result.data as RawSaleorConfig;
     }
+  }
+
+  /**
+   * Returns undefined (rather than throwing) when the token lacks
+   * MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES, so the rest of introspect still works.
+   */
+  private async fetchCustomerTypes(): Promise<RawCustomerTypeEdges | undefined> {
+    const edges: RawCustomerTypeEdges = [];
+    let after: string | null = null;
+
+    for (;;) {
+      const result: {
+        error?: CombinedError;
+        data?: RawCustomerTypesResult;
+      } = await this.client.query(getCustomerTypesQuery, { first: 100, after });
+
+      if (result.error) {
+        if (GraphQLError.isForbiddenError(result.error)) {
+          logger.warn(
+            "Skipping customer types: the token lacks MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES",
+            { error: result.error.message }
+          );
+          return undefined;
+        }
+        throw GraphQLError.fromCombinedError("Failed to fetch customer types", result.error);
+      }
+
+      const page = result.data?.customerTypes;
+      edges.push(...(page?.edges ?? []));
+
+      if (!page?.pageInfo?.hasNextPage) break;
+      after = page.pageInfo.endCursor ?? null;
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    return edges;
   }
 
   private async fetchAllProducts() {

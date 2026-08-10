@@ -5,7 +5,7 @@ import { ModelAttributeResolver } from "./model-attribute-resolver";
 describe("ModelAttributeResolver", () => {
   it("resolves dropdown, boolean, and date from cache", async () => {
     const cache = new AttributeCache();
-    cache.populateContentAttributes([
+    cache.populate("content", [
       {
         id: "attr-cat",
         name: "Category",
@@ -46,7 +46,7 @@ describe("ModelAttributeResolver", () => {
 
   it("throws when attribute is not in cache", async () => {
     const cache = new AttributeCache();
-    cache.populateContentAttributes([]); // empty
+    cache.populate("content", []); // empty
 
     const resolver = new ModelAttributeResolver(cache);
     await expect(resolver.resolveAttributes({ Missing: "value" })).rejects.toThrow(

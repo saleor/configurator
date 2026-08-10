@@ -16,9 +16,11 @@ Schema for Saleor Configurator YAML configuration files targeting Saleor 3.23.x.
 - [taxClasses](#taxclasses)
 - [productAttributes](#productattributes)
 - [contentAttributes](#contentattributes)
+- [customerAttributes](#customerattributes)
 - [productTypes](#producttypes)
 - [pageTypes](#pagetypes)
 - [modelTypes](#modeltypes)
+- [customerTypes](#customertypes)
 - [categories](#categories)
 - [collections](#collections)
 - [products](#products)
@@ -213,6 +215,24 @@ Each item is of type: `AttributeInput`
 - **entityType** (`string (enum)`) *required*: No description available
   - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT` | `CATEGORY` | `COLLECTION`
 
+## customerAttributes
+
+Customer attributes (CUSTOMER_TYPE in Saleor API) that can be referenced by customerTypes. These are created before customerTypes are processed.
+
+**Type:** `array<AttributeInput>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `AttributeInput`
+
+**Item properties:**
+
+- **name** (`string`) *required*: No description available
+- **inputType** (`string`) *required*: No description available
+- **values** (`array<object>`) *required*: No description available
+- **entityType** (`string (enum)`) *required*: No description available
+  - **Allowed values:** `PAGE` | `PRODUCT` | `PRODUCT_VARIANT` | `CATEGORY` | `COLLECTION`
+
 ## productTypes
 
 Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type
@@ -261,6 +281,23 @@ Each item is of type: `object`
 - **name** (`string`) *required*: ModelType.name
 - **slug** (`string`): ModelType.slug
 - **attributes** (`array<AttributeInput>`): ModelType.attributes
+
+## customerTypes
+
+Customer type templates that define the structure and attributes for groups of customers. Every customer belongs to a customer type; one of them is the default assigned to customers with no explicit type
+
+**Type:** `array<object>` *(optional)*
+
+**Array items:**
+
+Each item is of type: `object`
+
+**Item properties:**
+
+- **name** (`string`) *required*: CustomerType.name
+- **slug** (`string`) *required*: CustomerType.slug
+- **isDefault** (`boolean`) *required*: CustomerType.isDefault - customers without an explicit type get the default one. Only one customer type can be the default
+- **attributes** (`array<AttributeInput>`): CustomerType.attributes - references to attributes in the customerAttributes section
 
 ## categories
 

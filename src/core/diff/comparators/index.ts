@@ -4,6 +4,7 @@ export { BaseEntityComparator } from "./base-comparator";
 export { CategoryComparator } from "./category-comparator";
 export { ChannelComparator } from "./channel-comparator";
 export { CollectionComparator } from "./collection-comparator";
+export { CustomerTypeComparator } from "./customer-type-comparator";
 export { MenuComparator } from "./menu-comparator";
 export { ModelComparator } from "./model-comparator";
 export { PageTypeComparator } from "./page-type-comparator";

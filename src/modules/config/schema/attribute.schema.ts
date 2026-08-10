@@ -4,7 +4,14 @@ const attributeValueSchema = z.object({
   name: z.string().min(1, "Attribute value name is required"),
 });
 
-const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE"]);
+export const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE", "CUSTOMER_TYPE"]);
+
+/** Saleor's attribute type — the entity family an attribute can be assigned to. */
+export type SaleorAttributeType = z.infer<typeof attributeTypeSchema>;
+
+export function isSaleorAttributeType(value: unknown): value is SaleorAttributeType {
+  return attributeTypeSchema.safeParse(value).success;
+}
 export const referenceEntityTypeSchema = z.enum([
   "PAGE",
   "PRODUCT",

@@ -84,7 +84,7 @@ describe("PageTypeService", () => {
       const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       const cache = new AttributeCache();
-      cache.populateContentAttributes([
+      cache.populate("content", [
         {
           id: "attr-1",
           name: "Published Date",
@@ -272,7 +272,7 @@ describe("PageTypeService", () => {
       const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       const cache = new AttributeCache();
-      cache.populateContentAttributes([
+      cache.populate("content", [
         {
           id: "cached-attr-1",
           name: "SEO Title",
@@ -322,7 +322,7 @@ describe("PageTypeService", () => {
       const service = new PageTypeService(mockPageTypeOperations, attributeService);
 
       const cache = new AttributeCache();
-      cache.populateContentAttributes([
+      cache.populate("content", [
         {
           id: "other-attr",
           name: "Other Attribute",

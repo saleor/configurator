@@ -8,9 +8,9 @@ const attributeValueSchema = z.object({
 
 // ============================================================================
 // SHARED GLOBAL ATTRIBUTE SCHEMA
-// Both productAttributes and contentAttributes share the same structure.
-// The section they appear in determines their Saleor API type
-// (PRODUCT_TYPE vs PAGE_TYPE).
+// productAttributes, contentAttributes and customerAttributes share the same
+// structure. The section they appear in determines their Saleor API type
+// (PRODUCT_TYPE vs PAGE_TYPE vs CUSTOMER_TYPE).
 // ============================================================================
 
 const baseGlobalAttributeSchema = z.object({
@@ -56,9 +56,11 @@ const globalAttributeSchema = z.discriminatedUnion("inputType", [
   simpleGlobalAttributeSchema,
 ]);
 
-// Product and content attributes share the same schema — the section determines the type
+// Product, content and customer attributes share the same schema — the section determines the type
 export const productAttributeSchema = globalAttributeSchema;
 export const contentAttributeSchema = globalAttributeSchema;
+export const customerAttributeSchema = globalAttributeSchema;
 
 export type ProductAttribute = z.infer<typeof productAttributeSchema>;
 export type ContentAttribute = z.infer<typeof contentAttributeSchema>;
+export type CustomerAttribute = z.infer<typeof customerAttributeSchema>;

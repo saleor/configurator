@@ -227,7 +227,7 @@ export class ProductTypeService {
     const unresolvedNames: string[] = [];
 
     for (const name of namesToResolve) {
-      const cached = attributeCache.getProductAttribute(name);
+      const cached = attributeCache.get("product", name);
       if (cached) {
         resolvedAttributes.push({
           id: cached.id,

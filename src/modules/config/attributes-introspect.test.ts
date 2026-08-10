@@ -453,4 +453,136 @@ describe("ConfigurationService – attributes introspection", () => {
     expect(cfg.contentAttributes?.length).toBe(1);
     expect(cfg.contentAttributes?.[0].name).toBe("Author");
   });
+
+  it("maps CUSTOMER_TYPE attributes into customerAttributes section", async () => {
+    const raw = {
+      shop: {},
+      channels: [],
+      productTypes: { edges: [] },
+      pageTypes: { edges: [] },
+      categories: { edges: [] },
+      warehouses: { edges: [] },
+      shippingZones: { edges: [] },
+      taxClasses: { edges: [] },
+      collections: { edges: [] },
+      menus: { edges: [] },
+      pages: { edges: [] },
+      products: { edges: [] },
+      attributes: {
+        edges: [
+          {
+            node: {
+              id: "a1",
+              name: "Loyalty Tier",
+              slug: "loyalty-tier",
+              type: "CUSTOMER_TYPE",
+              inputType: "DROPDOWN",
+              entityType: null,
+              choices: { edges: [{ node: { name: "Gold" } }, { node: { name: "Silver" } }] },
+            },
+          },
+          {
+            node: {
+              id: "a2",
+              name: "Brand",
+              slug: "brand",
+              type: "PRODUCT_TYPE",
+              inputType: "PLAIN_TEXT",
+              entityType: null,
+              choices: { edges: [] },
+            },
+          },
+        ],
+      },
+    } as unknown as RawSaleorConfig;
+
+    const svc = makeService(raw);
+    const cfg = await svc.retrieveWithoutSaving();
+
+    expect(cfg.customerAttributes?.length).toBe(1);
+    expect(cfg.customerAttributes?.[0].name).toBe("Loyalty Tier");
+    // The section implies the type, so it is stripped from the entry
+    expect((cfg.customerAttributes?.[0] as Record<string, unknown>).type).toBeUndefined();
+
+    // and it does not leak into the other sections
+    expect(cfg.productAttributes?.map((a) => a.name)).toEqual(["Brand"]);
+    expect(cfg.contentAttributes).toEqual([]);
+  });
+
+  it("maps customer types with attribute references", async () => {
+    const raw = {
+      shop: {},
+      channels: [],
+      productTypes: { edges: [] },
+      pageTypes: { edges: [] },
+      categories: { edges: [] },
+      warehouses: { edges: [] },
+      shippingZones: { edges: [] },
+      taxClasses: { edges: [] },
+      collections: { edges: [] },
+      menus: { edges: [] },
+      pages: { edges: [] },
+      products: { edges: [] },
+      attributes: { edges: [] },
+      customerTypes: [
+        {
+          node: {
+            id: "ct1",
+            name: "Retail",
+            slug: "retail",
+            isDefault: true,
+            attributes: [
+              {
+                id: "a1",
+                name: "Loyalty Tier",
+                type: "CUSTOMER_TYPE",
+                inputType: "PLAIN_TEXT",
+                entityType: null,
+                choices: { edges: [] },
+              },
+            ],
+          },
+        },
+      ],
+    } as unknown as RawSaleorConfig;
+
+    const svc = makeService(raw);
+    const cfg = await svc.retrieveWithoutSaving();
+
+    expect(cfg.customerTypes).toEqual([
+      {
+        name: "Retail",
+        slug: "retail",
+        isDefault: true,
+        attributes: [{ attribute: "Loyalty Tier" }],
+      },
+    ]);
+  });
+
+  it("omits the customerTypes section when customer types could not be read", async () => {
+    const raw = {
+      shop: {},
+      channels: [],
+      productTypes: { edges: [] },
+      pageTypes: { edges: [] },
+      categories: { edges: [] },
+      warehouses: { edges: [] },
+      shippingZones: { edges: [] },
+      taxClasses: { edges: [] },
+      collections: { edges: [] },
+      menus: { edges: [] },
+      pages: { edges: [] },
+      products: { edges: [] },
+      attributes: { edges: [] },
+      // undefined: the token lacks MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES
+      customerTypes: undefined,
+    } as unknown as RawSaleorConfig;
+
+    const svc = makeService(raw);
+    const cfg = await svc.retrieveWithoutSaving();
+
+    expect(cfg.customerTypes).toBeUndefined();
+    // Undefined sections are dropped when the config is serialized to YAML
+    expect(yaml.stringify(cfg)).not.toContain("customerTypes");
+  });
 });

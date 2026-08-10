@@ -7,6 +7,7 @@ import {
   validateAttributeReferences,
   validateNoCrossSectionDuplicates,
   validateNoDuplicateIdentifiers,
+  validateSingleDefaultCustomerType,
 } from "./preflight";
 
 describe("Duplicate preflight validation", () => {
@@ -279,5 +280,66 @@ describe("runPreflightValidation", () => {
     expect(() => runPreflightValidation(cfg, "config.yml")).toThrow(
       /Multiple validation errors found/
     );
+  });
+});
+
+describe("customer types preflight validation", () => {
+  it("accepts exactly one default customer type", () => {
+    const cfg = {
+      customerTypes: [
+        { name: "Retail", slug: "retail", isDefault: true },
+        { name: "Wholesale", slug: "wholesale", isDefault: false },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(() => validateSingleDefaultCustomerType(cfg, "config.yml")).not.toThrow();
+  });
+
+  it("rejects more than one default customer type", () => {
+    const cfg = {
+      customerTypes: [
+        { name: "Retail", slug: "retail", isDefault: true },
+        { name: "Wholesale", slug: "wholesale", isDefault: true },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(() => validateSingleDefaultCustomerType(cfg, "config.yml")).toThrow(
+      ConfigurationValidationError
+    );
+  });
+
+  it("reports duplicate customer type slugs", () => {
+    const cfg = {
+      customerTypes: [
+        { name: "Retail", slug: "retail" },
+        { name: "Retail copy", slug: "retail" },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(scanForDuplicateIdentifiers(cfg)).toEqual([
+      expect.objectContaining({ section: "customerTypes", identifier: "retail" }),
+    ]);
+  });
+
+  it("rejects references to attributes missing from customerAttributes", () => {
+    const cfg = {
+      customerAttributes: [{ name: "Loyalty Tier", inputType: "PLAIN_TEXT" }],
+      customerTypes: [{ name: "Retail", slug: "retail", attributes: [{ attribute: "Unknown" }] }],
+    } as unknown as SaleorConfig;
+
+    expect(() => validateAttributeReferences(cfg, "config.yml")).toThrow(
+      ConfigurationValidationError
+    );
+  });
+
+  it("accepts references that exist in customerAttributes", () => {
+    const cfg = {
+      customerAttributes: [{ name: "Loyalty Tier", inputType: "PLAIN_TEXT" }],
+      customerTypes: [
+        { name: "Retail", slug: "retail", attributes: [{ attribute: "Loyalty Tier" }] },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(() => validateAttributeReferences(cfg, "config.yml")).not.toThrow();
   });
 });

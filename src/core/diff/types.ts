@@ -22,6 +22,8 @@ export const ENTITY_TYPES = [
   "Shipping Zones",
   "Product Attributes",
   "Content Attributes",
+  "Customer Attributes",
+  "Customer Types",
 ] as const;
 
 export type EntityType = (typeof ENTITY_TYPES)[number];
@@ -112,6 +114,8 @@ export type ConfigurationSection =
   | "products"
   | "productAttributes"
   | "contentAttributes"
+  | "customerAttributes"
+  | "customerTypes"
   | "warehouses"
   | "shippingZones"
   | "taxClasses";

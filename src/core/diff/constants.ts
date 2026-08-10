@@ -22,6 +22,8 @@ export const DIFF_ICONS = {
     "Shipping Zones": "🚚",
     "Product Attributes": "🏷️",
     "Content Attributes": "📝",
+    "Customer Attributes": "👤",
+    "Customer Types": "👥",
   },
   SUMMARY: {
     RESULTS: "📊",

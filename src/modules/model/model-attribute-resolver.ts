@@ -22,7 +22,7 @@ export class ModelAttributeResolver {
     const results: AttributeValueInput[] = [];
     for (const name of names) {
       const value = attributes[name];
-      const cached = this.cache.getContentAttribute(name);
+      const cached = this.cache.get("content", name);
       if (!cached) {
         throw new Error(
           `Content attribute "${name}" not found in attribute cache. ` +
