@@ -2,12 +2,14 @@ import { logger } from "../../lib/logger";
 import { findSimilarNames } from "../../lib/utils/string";
 import type {
   ContentAttribute,
+  CustomerAttribute,
   ProductAttribute,
 } from "../../modules/config/schema/global-attributes.schema";
 import type {
   CategoryInput,
   ChannelInput,
   CollectionInput,
+  CustomerTypeInput,
   MenuInput,
   ModelInput,
   PageTypeInput,
@@ -35,6 +37,8 @@ const ENTITY_SECTIONS = [
   "taxClasses",
   "productAttributes",
   "contentAttributes",
+  "customerAttributes",
+  "customerTypes",
 ] as const;
 
 type EntityArrayKey = (typeof ENTITY_SECTIONS)[number];
@@ -114,6 +118,18 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     (a) => a.name,
     "content attribute name"
   );
+  checkDuplicates<CustomerAttribute>(
+    "customerAttributes",
+    config.customerAttributes,
+    (a) => a.name,
+    "customer attribute name"
+  );
+  checkDuplicates<CustomerTypeInput>(
+    "customerTypes",
+    config.customerTypes,
+    (t) => t.slug,
+    "customer type slug"
+  );
 
   return issues;
 }
@@ -163,6 +179,24 @@ export function validateNoCrossSectionDuplicates(config: SaleorConfig, filePath:
   }
 }
 
+/**
+ * Saleor allows exactly one default customer type: setting `isDefault` on one
+ * clears it on the previous default. Declaring several would never converge.
+ */
+export function validateSingleDefaultCustomerType(config: SaleorConfig, filePath: string): void {
+  const defaults = (config.customerTypes ?? []).filter((t) => t.isDefault);
+  if (defaults.length <= 1) return;
+
+  throw new ConfigurationValidationError(
+    "Only one customer type can be the default",
+    filePath,
+    defaults.map((t) => ({
+      path: `customerTypes.${t.slug}`,
+      message: `"${t.slug}" is marked as isDefault, but ${defaults.length} customer types are. Exactly one customer type may be the default.`,
+    }))
+  );
+}
+
 function buildUnresolvedMessage(
   refName: string,
   sectionLabel: string,
@@ -179,6 +213,7 @@ function buildUnresolvedMessage(
 export function validateAttributeReferences(config: SaleorConfig, filePath: string): void {
   const productAttrNames = new Set((config.productAttributes ?? []).map((a) => a.name));
   const contentAttrNames = new Set((config.contentAttributes ?? []).map((a) => a.name));
+  const customerAttrNames = new Set((config.customerAttributes ?? []).map((a) => a.name));
 
   const errors: Array<{ path: string; message: string }> = [];
 
@@ -206,6 +241,17 @@ export function validateAttributeReferences(config: SaleorConfig, filePath: stri
     }
   }
 
+  for (const ct of config.customerTypes ?? []) {
+    for (const ref of ct.attributes ?? []) {
+      if ("attribute" in ref && !customerAttrNames.has(ref.attribute)) {
+        errors.push({
+          path: `customerTypes.${ct.slug}`,
+          message: buildUnresolvedMessage(ref.attribute, "customerAttributes", customerAttrNames),
+        });
+      }
+    }
+  }
+
   for (const mt of config.modelTypes ?? []) {
     for (const ref of mt.attributes ?? []) {
       if ("attribute" in ref && !contentAttrNames.has(ref.attribute)) {
@@ -227,6 +273,7 @@ export function runPreflightValidation(config: SaleorConfig, filePath: string): 
 
   const validators = [
     validateNoDuplicateIdentifiers,
+    validateSingleDefaultCustomerType,
     validateNoCrossSectionDuplicates,
     validateNoInlineAttributeDefinitions,
     validateAttributeReferences,

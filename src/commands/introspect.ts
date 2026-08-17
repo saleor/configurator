@@ -255,10 +255,7 @@ export class IntrospectCommandHandler
     });
   }
 
-  private displayResults(
-    diffResult: IntrospectDiffResult,
-    context: IntrospectContext
-  ): void {
+  private displayResults(diffResult: IntrospectDiffResult, context: IntrospectContext): void {
     if (context.isQuiet) return;
 
     const format = this.getOutputFormat(context.args);

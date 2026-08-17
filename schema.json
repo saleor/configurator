@@ -2396,6 +2396,206 @@
         ]
       }
     },
+    "customerAttributes": {
+      "description": "Customer attributes (CUSTOMER_TYPE in Saleor API) that can be referenced by customerTypes. These are created before customerTypes are processed.",
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "DROPDOWN"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "MULTISELECT"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SWATCH"
+              },
+              "values": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT",
+                  "CATEGORY",
+                  "COLLECTION"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "const": "SINGLE_REFERENCE"
+              },
+              "entityType": {
+                "type": "string",
+                "enum": [
+                  "PAGE",
+                  "PRODUCT",
+                  "PRODUCT_VARIANT",
+                  "CATEGORY",
+                  "COLLECTION"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType",
+              "entityType"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputType": {
+                "type": "string",
+                "enum": [
+                  "PLAIN_TEXT",
+                  "NUMERIC",
+                  "DATE",
+                  "BOOLEAN",
+                  "RICH_TEXT",
+                  "DATE_TIME",
+                  "FILE"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "inputType"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
     "productTypes": {
       "description": "Product type templates that define the structure and attributes for groups of similar products. Each product must be assigned to a product type",
       "type": "array",
@@ -3111,6 +3311,193 @@
         },
         "required": [
           "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "customerTypes": {
+      "description": "Customer type templates that define the structure and attributes for groups of customers. Every customer belongs to a customer type; one of them is the default assigned to customers with no explicit type",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "CustomerType.name",
+            "type": "string"
+          },
+          "slug": {
+            "description": "CustomerType.slug",
+            "type": "string"
+          },
+          "isDefault": {
+            "description": "CustomerType.isDefault - customers without an explicit type get the default one. Only one customer type can be the default",
+            "default": false,
+            "type": "boolean"
+          },
+          "attributes": {
+            "description": "CustomerType.attributes - references to attributes in the customerAttributes section",
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "DROPDOWN",
+                            "MULTISELECT",
+                            "SWATCH"
+                          ]
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            },
+                            "required": [
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "values"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT",
+                            "CATEGORY",
+                            "COLLECTION"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "const": "SINGLE_REFERENCE"
+                        },
+                        "entityType": {
+                          "type": "string",
+                          "enum": [
+                            "PAGE",
+                            "PRODUCT",
+                            "PRODUCT_VARIANT",
+                            "CATEGORY",
+                            "COLLECTION"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType",
+                        "entityType"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "variantSelection": {
+                          "type": "boolean"
+                        },
+                        "inputType": {
+                          "type": "string",
+                          "enum": [
+                            "PLAIN_TEXT",
+                            "NUMERIC",
+                            "DATE",
+                            "BOOLEAN",
+                            "RICH_TEXT",
+                            "DATE_TIME",
+                            "FILE"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "inputType"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                {
+                  "description": "Reference to an existing attribute by slug",
+                  "type": "object",
+                  "properties": {
+                    "attribute": {
+                      "type": "string"
+                    },
+                    "variantSelection": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "attribute"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "isDefault"
         ],
         "additionalProperties": false
       }

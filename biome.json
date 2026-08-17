@@ -78,8 +78,11 @@
   },
   "overrides": [
     {
-      "includes": ["src/lib/graphql/graphql-env.d.ts"],
+      "includes": ["src/lib/graphql/graphql-env.d.ts", "schema.json"],
       "linter": {
+        "enabled": false
+      },
+      "formatter": {
         "enabled": false
       },
       "files": {

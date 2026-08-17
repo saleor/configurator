@@ -783,7 +783,7 @@ describe("ProductTypeService", () => {
       });
 
       const cache = new AttributeCache();
-      cache.populateProductAttributes([]);
+      cache.populate("product", []);
 
       await expect(
         service.bootstrapProductType(
@@ -1086,7 +1086,7 @@ describe("ProductTypeService", () => {
       });
 
       const cache = new AttributeCache();
-      cache.populateProductAttributes([
+      cache.populate("product", [
         {
           id: "plaintext-1",
           name: "Description",
@@ -1128,7 +1128,7 @@ describe("ProductTypeService", () => {
       });
 
       const cache = new AttributeCache();
-      cache.populateProductAttributes([
+      cache.populate("product", [
         {
           id: "dropdown-ref-1",
           name: "Color",
@@ -1528,7 +1528,7 @@ describe("ProductTypeService", () => {
 
       // Populate cache with product attributes
       const cache = new AttributeCache();
-      cache.populateProductAttributes([
+      cache.populate("product", [
         {
           id: "cached-color-id",
           name: "Color",
@@ -1585,7 +1585,7 @@ describe("ProductTypeService", () => {
       });
 
       const cache = new AttributeCache();
-      cache.populateProductAttributes([
+      cache.populate("product", [
         {
           id: "other-attr",
           name: "Other",
@@ -1652,7 +1652,7 @@ describe("ProductTypeService", () => {
 
       // Populate cache with "Author" in content section only (not product section)
       const cache = new AttributeCache();
-      cache.populateContentAttributes([
+      cache.populate("content", [
         {
           id: "content-author-id",
           name: "Author",

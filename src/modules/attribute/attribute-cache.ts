@@ -45,31 +45,30 @@ export interface CachedAttribute {
   readonly choices: readonly CachedAttributeChoice[];
 }
 
+/** Config section an attribute is declared in — determines its Saleor attribute type. */
+export const ATTRIBUTE_SECTIONS = ["product", "content", "customer"] as const;
+
+export type AttributeSection = (typeof ATTRIBUTE_SECTIONS)[number];
+
 export type WrongSectionResult =
-  | { found: true; actualSection: "product" | "content"; attribute: CachedAttribute }
+  | { found: true; actualSection: AttributeSection; attribute: CachedAttribute }
   | { found: false };
 
 export interface CacheStats {
   productAttributeCount: number;
   contentAttributeCount: number;
+  customerAttributeCount: number;
   totalCount: number;
 }
 
 export interface IAttributeCache {
-  populateProductAttributes(attrs: readonly CachedAttribute[]): void;
-  populateContentAttributes(attrs: readonly CachedAttribute[]): void;
-  getProductAttribute(name: string): CachedAttribute | undefined;
-  getContentAttribute(name: string): CachedAttribute | undefined;
-  hasProductAttribute(name: string): boolean;
-  hasContentAttribute(name: string): boolean;
-  findAttributeInWrongSection(
-    name: string,
-    expectedSection: "product" | "content"
-  ): WrongSectionResult;
+  populate(section: AttributeSection, attrs: readonly CachedAttribute[]): void;
+  get(section: AttributeSection, name: string): CachedAttribute | undefined;
+  has(section: AttributeSection, name: string): boolean;
+  findAttributeInWrongSection(name: string, expectedSection: AttributeSection): WrongSectionResult;
   getStats(): CacheStats;
   clear(): void;
-  getAllProductAttributeNames(): string[];
-  getAllContentAttributeNames(): string[];
+  getAllNames(section: AttributeSection): string[];
 }
 
 /**
@@ -108,68 +107,55 @@ export function cachedToResolverAttribute(cached: CachedAttribute): ResolverAttr
 }
 
 export class AttributeCache implements IAttributeCache {
-  private readonly productAttributes = new Map<string, CachedAttribute>();
-  private readonly contentAttributes = new Map<string, CachedAttribute>();
+  private readonly sections: Record<AttributeSection, Map<string, CachedAttribute>> = {
+    product: new Map(),
+    content: new Map(),
+    customer: new Map(),
+  };
 
-  populateProductAttributes(attrs: readonly CachedAttribute[]): void {
+  populate(section: AttributeSection, attrs: readonly CachedAttribute[]): void {
+    const target = this.sections[section];
     for (const attr of attrs) {
-      this.productAttributes.set(attr.name, attr);
+      target.set(attr.name, attr);
     }
   }
 
-  populateContentAttributes(attrs: readonly CachedAttribute[]): void {
-    for (const attr of attrs) {
-      this.contentAttributes.set(attr.name, attr);
+  get(section: AttributeSection, name: string): CachedAttribute | undefined {
+    return this.sections[section].get(name);
+  }
+
+  has(section: AttributeSection, name: string): boolean {
+    return this.sections[section].has(name);
+  }
+
+  findAttributeInWrongSection(name: string, expectedSection: AttributeSection): WrongSectionResult {
+    for (const section of ATTRIBUTE_SECTIONS) {
+      if (section === expectedSection) continue;
+      const attr = this.sections[section].get(name);
+      if (attr) {
+        return { found: true, actualSection: section, attribute: attr };
+      }
     }
-  }
-
-  getProductAttribute(name: string): CachedAttribute | undefined {
-    return this.productAttributes.get(name);
-  }
-
-  getContentAttribute(name: string): CachedAttribute | undefined {
-    return this.contentAttributes.get(name);
-  }
-
-  hasProductAttribute(name: string): boolean {
-    return this.productAttributes.has(name);
-  }
-
-  hasContentAttribute(name: string): boolean {
-    return this.contentAttributes.has(name);
-  }
-
-  findAttributeInWrongSection(
-    name: string,
-    expectedSection: "product" | "content"
-  ): WrongSectionResult {
-    if (expectedSection === "product") {
-      const attr = this.contentAttributes.get(name);
-      return attr ? { found: true, actualSection: "content", attribute: attr } : { found: false };
-    }
-
-    const attr = this.productAttributes.get(name);
-    return attr ? { found: true, actualSection: "product", attribute: attr } : { found: false };
+    return { found: false };
   }
 
   getStats(): CacheStats {
+    const { product, content, customer } = this.sections;
     return {
-      productAttributeCount: this.productAttributes.size,
-      contentAttributeCount: this.contentAttributes.size,
-      totalCount: this.productAttributes.size + this.contentAttributes.size,
+      productAttributeCount: product.size,
+      contentAttributeCount: content.size,
+      customerAttributeCount: customer.size,
+      totalCount: product.size + content.size + customer.size,
     };
   }
 
   clear(): void {
-    this.productAttributes.clear();
-    this.contentAttributes.clear();
+    for (const section of ATTRIBUTE_SECTIONS) {
+      this.sections[section].clear();
+    }
   }
 
-  getAllProductAttributeNames(): string[] {
-    return Array.from(this.productAttributes.keys());
-  }
-
-  getAllContentAttributeNames(): string[] {
-    return Array.from(this.contentAttributes.keys());
+  getAllNames(section: AttributeSection): string[] {
+    return Array.from(this.sections[section].keys());
   }
 }

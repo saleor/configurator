@@ -11,10 +11,18 @@ import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
-import type { AttributeInput, FullAttribute, ReferenceEntityType } from "./schema/attribute.schema";
+import {
+  type AttributeInput,
+  type FullAttribute,
+  isSaleorAttributeType,
+  type ReferenceEntityType,
+  type SaleorAttributeType,
+} from "./schema/attribute.schema";
 import {
   type ContentAttribute,
+  type CustomerAttribute,
   contentAttributeSchema,
+  customerAttributeSchema,
   type ProductAttribute,
   productAttributeSchema,
 } from "./schema/global-attributes.schema";
@@ -24,6 +32,7 @@ import type {
   CollectionInput,
   CountryCode,
   CurrencyCode,
+  CustomerTypeInput,
   MenuInput,
   ModelInput,
   ModelTypeInput,
@@ -50,6 +59,39 @@ interface TaxClassCountryRateType {
   taxClass: { id: string; name: string } | null;
 }
 
+/**
+ * Global attribute config sections, keyed by the Saleor attribute type they hold.
+ * The section an attribute is declared in is what gives it its Saleor type.
+ */
+const GLOBAL_ATTRIBUTE_BUCKETS = {
+  PRODUCT_TYPE: {
+    section: "productAttributes",
+    label: "product",
+    schema: productAttributeSchema,
+  },
+  PAGE_TYPE: {
+    section: "contentAttributes",
+    label: "content",
+    schema: contentAttributeSchema,
+  },
+  CUSTOMER_TYPE: {
+    section: "customerAttributes",
+    label: "customer",
+    schema: customerAttributeSchema,
+  },
+} as const satisfies Record<
+  SaleorAttributeType,
+  { section: keyof SaleorConfig; label: string; schema: unknown }
+>;
+
+const ATTRIBUTE_TYPES = Object.keys(GLOBAL_ATTRIBUTE_BUCKETS) as SaleorAttributeType[];
+
+type GlobalAttributesByType = {
+  PRODUCT_TYPE: ProductAttribute[];
+  PAGE_TYPE: ContentAttribute[];
+  CUSTOMER_TYPE: CustomerAttribute[];
+};
+
 import type { ConfigurationStorage } from "./yaml-manager";
 
 export class ConfigurationService {
@@ -75,19 +117,15 @@ export class ConfigurationService {
     const config = this.mapConfig(rawConfig, selectiveOptions);
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
 
-    const includeProductAttributes = shouldIncludeSection("productAttributes", options);
-    const includeContentAttributes = shouldIncludeSection("contentAttributes", options);
+    const includedAttributeTypes = ATTRIBUTE_TYPES.filter((type) =>
+      shouldIncludeSection(GLOBAL_ATTRIBUTE_BUCKETS[type].section, options)
+    );
 
-    if (includeProductAttributes || includeContentAttributes) {
-      const { productAttributes, contentAttributes } = this.mapGlobalAttributeSections(rawConfig, {
-        includeProductAttributes,
-        includeContentAttributes,
-      });
-      if (includeProductAttributes) {
-        config.productAttributes = productAttributes;
-      }
-      if (includeContentAttributes) {
-        config.contentAttributes = contentAttributes;
+    if (includedAttributeTypes.length > 0) {
+      const bySection = this.mapGlobalAttributeSections(rawConfig, includedAttributeTypes);
+      for (const type of includedAttributeTypes) {
+        const { section } = GLOBAL_ATTRIBUTE_BUCKETS[type];
+        config[section] = bySection[type];
       }
     }
     this.reorderConfigKeys(config as SaleorConfig);
@@ -125,9 +163,11 @@ export class ConfigurationService {
     push("taxClasses");
     push("productAttributes");
     push("contentAttributes");
+    push("customerAttributes");
     push("productTypes");
     push("pageTypes");
     push("modelTypes");
+    push("customerTypes");
     push("categories");
     push("collections");
     push("products");
@@ -205,10 +245,7 @@ export class ConfigurationService {
     return inputType === "REFERENCE" || inputType === "SINGLE_REFERENCE";
   }
 
-  private mapAttribute(
-    attribute: RawAttribute,
-    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
-  ): FullAttribute {
+  private mapAttribute(attribute: RawAttribute, attributeType: SaleorAttributeType): FullAttribute {
     invariant(attribute.name, "Unable to retrieve attribute name");
     invariant(attribute.inputType, "Unable to retrieve attribute input type");
 
@@ -253,7 +290,7 @@ export class ConfigurationService {
 
   private mapAttributes(
     rawAttributes: RawAttribute[],
-    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
+    attributeType: SaleorAttributeType
   ): FullAttribute[] {
     return (
       rawAttributes?.map((attribute: RawAttribute) =>
@@ -298,7 +335,7 @@ export class ConfigurationService {
         RawSaleorConfig["productTypes"]
       >["edges"][number]["node"]["assignedVariantAttributes"]
     >,
-    attributeType: "PRODUCT_TYPE" | "PAGE_TYPE"
+    attributeType: SaleorAttributeType
   ): FullAttribute[] {
     type AssignedVariantAttribute = NonNullable<
       RawSaleorConfig["productTypes"]
@@ -316,25 +353,27 @@ export class ConfigurationService {
 
   private mapGlobalAttributeSections(
     raw: RawSaleorConfig,
-    options: {
-      includeProductAttributes: boolean;
-      includeContentAttributes: boolean;
-    }
-  ): {
-    productAttributes: ProductAttribute[];
-    contentAttributes: ContentAttribute[];
-  } {
+    includedTypes: readonly SaleorAttributeType[]
+  ): GlobalAttributesByType {
     type AttributeEdge = NonNullable<RawSaleorConfig["attributes"]>["edges"][number];
     const edges: AttributeEdge[] = raw.attributes?.edges ?? [];
 
+    const collected: GlobalAttributesByType = {
+      PRODUCT_TYPE: [],
+      PAGE_TYPE: [],
+      CUSTOMER_TYPE: [],
+    };
+
     if (edges.length === 0) {
-      return { productAttributes: [], contentAttributes: [] };
+      return collected;
     }
 
-    const seenProductNames = new Set<string>();
-    const seenContentNames = new Set<string>();
-    const productAttributes: ProductAttribute[] = [];
-    const contentAttributes: ContentAttribute[] = [];
+    const included = new Set<SaleorAttributeType>(includedTypes);
+    const seenNames: Record<SaleorAttributeType, Set<string>> = {
+      PRODUCT_TYPE: new Set(),
+      PAGE_TYPE: new Set(),
+      CUSTOMER_TYPE: new Set(),
+    };
 
     for (const edge of edges) {
       const node = edge?.node;
@@ -348,41 +387,27 @@ export class ConfigurationService {
       }
       const type: SaleorAttributeType = isSaleorAttributeType(rawType) ? rawType : "PRODUCT_TYPE";
 
-      if (type === "PRODUCT_TYPE" && !options.includeProductAttributes) {
-        continue;
-      }
-      if (type === "PAGE_TYPE" && !options.includeContentAttributes) {
-        continue;
-      }
+      if (!included.has(type)) continue;
+
+      const { label, schema } = GLOBAL_ATTRIBUTE_BUCKETS[type];
 
       try {
         const fullAttr = this.mapAttribute(toRawAttribute(node), type);
         const { type: _, ...attrWithoutType } = fullAttr;
 
-        if (type === "PRODUCT_TYPE" && !seenProductNames.has(node.name)) {
-          seenProductNames.add(node.name);
-          const parsed = productAttributeSchema.safeParse(attrWithoutType);
-          if (parsed.success) {
-            productAttributes.push(parsed.data);
-          } else {
-            logger.warn(
-              `Skipping malformed product attribute "${node.name}": ${parsed.error.issues.map((i) => i.message).join(", ")}`
-            );
-          }
-        } else if (type === "PRODUCT_TYPE" && seenProductNames.has(node.name)) {
-          logger.warn(`Skipping duplicate product attribute "${node.name}" during introspect`);
-        } else if (type === "PAGE_TYPE" && !seenContentNames.has(node.name)) {
-          seenContentNames.add(node.name);
-          const parsed = contentAttributeSchema.safeParse(attrWithoutType);
-          if (parsed.success) {
-            contentAttributes.push(parsed.data);
-          } else {
-            logger.warn(
-              `Skipping malformed content attribute "${node.name}": ${parsed.error.issues.map((i) => i.message).join(", ")}`
-            );
-          }
-        } else if (type === "PAGE_TYPE" && seenContentNames.has(node.name)) {
-          logger.warn(`Skipping duplicate content attribute "${node.name}" during introspect`);
+        if (seenNames[type].has(node.name)) {
+          logger.warn(`Skipping duplicate ${label} attribute "${node.name}" during introspect`);
+          continue;
+        }
+
+        seenNames[type].add(node.name);
+        const parsed = schema.safeParse(attrWithoutType);
+        if (parsed.success) {
+          collected[type].push(parsed.data);
+        } else {
+          logger.warn(
+            `Skipping malformed ${label} attribute "${node.name}": ${parsed.error.issues.map((i) => i.message).join(", ")}`
+          );
         }
       } catch (error) {
         if (error instanceof UnsupportedInputTypeError) {
@@ -396,11 +421,12 @@ export class ConfigurationService {
     }
 
     logger.debug("Global attributes mapped", {
-      productAttributeCount: productAttributes.length,
-      contentAttributeCount: contentAttributes.length,
+      productAttributeCount: collected.PRODUCT_TYPE.length,
+      contentAttributeCount: collected.PAGE_TYPE.length,
+      customerAttributeCount: collected.CUSTOMER_TYPE.length,
     });
 
-    return { productAttributes, contentAttributes };
+    return collected;
   }
 
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
@@ -419,6 +445,30 @@ export class ConfigurationService {
         name,
         slug: toSlug(name),
         attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
+      });
+    }
+
+    return result;
+  }
+
+  private mapCustomerTypes(
+    rawCustomerTypes: RawSaleorConfig["customerTypes"]
+  ): CustomerTypeInput[] {
+    const seen = new Set<string>();
+    const result: CustomerTypeInput[] = [];
+
+    for (const edge of rawCustomerTypes ?? []) {
+      const { name, slug, isDefault } = edge.node;
+      if (seen.has(slug)) {
+        logger.warn(`Skipping duplicate customer type "${slug}" during introspect`);
+        continue;
+      }
+      seen.add(slug);
+      result.push({
+        name,
+        slug,
+        isDefault,
+        attributes: this.mapAttributes(edge.node.attributes ?? [], "CUSTOMER_TYPE"),
       });
     }
 
@@ -657,6 +707,10 @@ export class ConfigurationService {
           attributes: this.convertAllToReferences(pageType.attributes),
         };
       }),
+      customerTypes: config.customerTypes?.map((customerType) => ({
+        ...customerType,
+        attributes: this.convertAllToReferences(customerType.attributes ?? []),
+      })),
     };
   }
 
@@ -721,6 +775,11 @@ export class ConfigurationService {
 
     if (shouldIncludeSection("models", options)) {
       config.models = this.mapModels(rawConfig.pages?.edges || []);
+    }
+
+    // Undefined means customer types could not be read (missing permission) — omit the section.
+    if (shouldIncludeSection("customerTypes", options) && rawConfig.customerTypes !== undefined) {
+      config.customerTypes = this.mapCustomerTypes(rawConfig.customerTypes);
     }
 
     if (shouldIncludeSection("modelTypes", options)) {
@@ -1013,12 +1072,6 @@ type RawAttribute = NonNullable<
 >[number] & {
   entityType?: ReferenceEntityType;
 };
-
-type SaleorAttributeType = "PRODUCT_TYPE" | "PAGE_TYPE";
-
-function isSaleorAttributeType(value: unknown): value is SaleorAttributeType {
-  return value === "PRODUCT_TYPE" || value === "PAGE_TYPE";
-}
 
 function toRawAttribute(node: {
   name?: string | null;

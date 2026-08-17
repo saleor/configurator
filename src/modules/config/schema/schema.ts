@@ -4,7 +4,11 @@ import {
   referencedAttributeSchema,
   simpleAttributeSchema,
 } from "./attribute.schema";
-import { contentAttributeSchema, productAttributeSchema } from "./global-attributes.schema";
+import {
+  contentAttributeSchema,
+  customerAttributeSchema,
+  productAttributeSchema,
+} from "./global-attributes.schema";
 import { removedInSaleor } from "./helpers.schema";
 
 // ProductType Update Schema - full state representation
@@ -857,6 +861,27 @@ const modelTypeSchema = z.object({
 
 export type ModelTypeInput = z.infer<typeof modelTypeSchema>;
 
+// CustomerType Schema - full state representation
+const customerTypeSchema = z.object({
+  name: z.string().describe("CustomerType.name"),
+  slug: z.string().describe("CustomerType.slug"),
+  isDefault: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      "CustomerType.isDefault - customers without an explicit type get the default one. Only one customer type can be the default"
+    ),
+  attributes: z
+    .array(attributeInputSchema)
+    .optional()
+    .describe(
+      "CustomerType.attributes - references to attributes in the customerAttributes section"
+    ),
+});
+
+export type CustomerTypeInput = z.infer<typeof customerTypeSchema>;
+
 // TODO: config schema should only use the full state representation of the entities, not the create/update schemas
 export const configSchema = z
   .object({
@@ -901,6 +926,12 @@ export const configSchema = z
       .describe(
         "Content attributes (PAGE_TYPE in Saleor API) that can be referenced by modelTypes. These are created before modelTypes are processed."
       ),
+    customerAttributes: z
+      .array(customerAttributeSchema)
+      .optional()
+      .describe(
+        "Customer attributes (CUSTOMER_TYPE in Saleor API) that can be referenced by customerTypes. These are created before customerTypes are processed."
+      ),
     productTypes: z
       .array(productTypeSchema)
       .optional()
@@ -918,6 +949,12 @@ export const configSchema = z
       .optional()
       .describe(
         "Model type templates that define the structure and attributes for content models (renamed from page types). Useful for creating structured content with custom fields"
+      ),
+    customerTypes: z
+      .array(customerTypeSchema)
+      .optional()
+      .describe(
+        "Customer type templates that define the structure and attributes for groups of customers. Every customer belongs to a customer type; one of them is the default assigned to customers with no explicit type"
       ),
     categories: z
       .array(categorySchema)

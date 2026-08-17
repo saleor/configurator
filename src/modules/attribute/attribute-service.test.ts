@@ -677,8 +677,8 @@ describe("AttributeService", () => {
       contentAttrs: CachedAttribute[] = []
     ): AttributeCache {
       const cache = new AttributeCache();
-      cache.populateProductAttributes(productAttrs);
-      cache.populateContentAttributes(contentAttrs);
+      cache.populate("product", productAttrs);
+      cache.populate("content", contentAttrs);
       return cache;
     }
 

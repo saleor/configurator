@@ -12,9 +12,7 @@ function isEntityType(value: string): value is EntityType {
 
 function validateEntityType(value: string): EntityType {
   if (!isEntityType(value)) {
-    throw new Error(
-      `Invalid entity type "${value}". Valid types: ${ENTITY_TYPES.join(", ")}`
-    );
+    throw new Error(`Invalid entity type "${value}". Valid types: ${ENTITY_TYPES.join(", ")}`);
   }
   return value;
 }

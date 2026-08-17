@@ -12,6 +12,8 @@ import { CollectionRepository } from "../modules/collection/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
 import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import { CustomerTypeService } from "../modules/customer-type/customer-type-service";
+import { CustomerTypeRepository } from "../modules/customer-type/repository";
 import { MenuService } from "../modules/menu/menu-service";
 import { MenuRepository } from "../modules/menu/repository";
 import { ModelService } from "../modules/model/model-service";
@@ -36,6 +38,7 @@ export interface ServiceContainer {
   readonly attribute: AttributeService;
   readonly channel: ChannelService;
   readonly pageType: PageTypeService;
+  readonly customerType: CustomerTypeService;
   readonly productType: ProductTypeService;
   readonly shop: ShopService;
   readonly configuration: ConfigurationService;
@@ -59,6 +62,7 @@ export class ServiceComposer {
       attribute: new AttributeRepository(client),
       channel: new ChannelRepository(client),
       pageType: new PageTypeRepository(client),
+      customerType: new CustomerTypeRepository(client),
       productType: new ProductTypeRepository(client),
       shop: new ShopRepository(client),
       configuration: new ConfigurationRepository(client),
@@ -109,6 +113,7 @@ export class ServiceComposer {
       attribute: attributeService,
       channel: channelService,
       pageType: pageTypeService,
+      customerType: new CustomerTypeService(repositories.customerType),
       productType: new ProductTypeService(repositories.productType, attributeService),
       shop: new ShopService(repositories.shop),
       configuration: configurationService,

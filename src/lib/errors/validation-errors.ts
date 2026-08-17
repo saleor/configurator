@@ -1,12 +1,25 @@
 import { COMMAND_NAME } from "../../meta";
 import { BaseError } from "./shared";
 
+/** Config section an attribute belongs to. */
+export type AttributeSectionName = "productAttributes" | "contentAttributes" | "customerAttributes";
+
+/** Entity kinds that reference attributes by name. */
+export type AttributeReferencingEntityType =
+  | "productTypes"
+  | "pageTypes"
+  | "modelTypes"
+  | "customerTypes";
+
+/** "productAttributes" -> "product" */
+const toSectionNoun = (section: AttributeSectionName): string => section.replace(/Attributes$/, "");
+
 export class InlineAttributeError extends BaseError {
   constructor(
-    public readonly entityType: "productTypes" | "pageTypes" | "modelTypes",
+    public readonly entityType: AttributeReferencingEntityType,
     public readonly entityName: string,
     public readonly inlineAttributeNames: readonly string[],
-    public readonly expectedSection: "productAttributes" | "contentAttributes"
+    public readonly expectedSection: AttributeSectionName
   ) {
     const attrList = inlineAttributeNames.join(", ");
     super(
@@ -28,8 +41,8 @@ export class InlineAttributeError extends BaseError {
 export class AttributeNotFoundError extends BaseError {
   constructor(
     public readonly attributeName: string,
-    public readonly expectedSection: "productAttributes" | "contentAttributes",
-    public readonly referencingEntityType: "productTypes" | "pageTypes" | "modelTypes",
+    public readonly expectedSection: AttributeSectionName,
+    public readonly referencingEntityType: AttributeReferencingEntityType,
     public readonly referencingEntityName: string,
     public readonly similarNames?: readonly string[]
   ) {
@@ -61,13 +74,13 @@ export class AttributeNotFoundError extends BaseError {
 export class WrongAttributeTypeError extends BaseError {
   constructor(
     public readonly attributeName: string,
-    public readonly foundInSection: "productAttributes" | "contentAttributes",
-    public readonly expectedSection: "productAttributes" | "contentAttributes",
-    public readonly referencingEntityType: "productTypes" | "pageTypes" | "modelTypes",
+    public readonly foundInSection: AttributeSectionName,
+    public readonly expectedSection: AttributeSectionName,
+    public readonly referencingEntityType: AttributeReferencingEntityType,
     public readonly referencingEntityName: string
   ) {
-    const foundType = foundInSection === "productAttributes" ? "product" : "content";
-    const expectedType = expectedSection === "productAttributes" ? "product" : "content";
+    const foundType = toSectionNoun(foundInSection);
+    const expectedType = toSectionNoun(expectedSection);
 
     super(
       `${referencingEntityType} "${referencingEntityName}" references attribute ` +

@@ -67,6 +67,17 @@ export function validateNoInlineDefinitions(config: SaleorConfig): InlineAttribu
     }
   }
 
+  // Check customerTypes
+  for (const ct of config.customerTypes ?? []) {
+    const inlineAttrs = extractInlineAttributeNames(ct.attributes ?? []);
+
+    if (inlineAttrs.length > 0) {
+      errors.push(
+        new InlineAttributeError("customerTypes", ct.name, inlineAttrs, "customerAttributes")
+      );
+    }
+  }
+
   // Check modelTypes
   for (const mt of config.modelTypes ?? []) {
     const inlineAttrs = extractInlineAttributeNames(mt.attributes ?? []);

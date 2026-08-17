@@ -8,6 +8,11 @@ import {
 } from "./selective-options";
 
 describe("selective-options utility", () => {
+  it("exposes customer sections as selectable", () => {
+    expect(AVAILABLE_SECTIONS).toContain("customerTypes");
+    expect(AVAILABLE_SECTIONS).toContain("customerAttributes");
+  });
+
   describe("parseSelectiveOptions", () => {
     it("should parse valid only sections", () => {
       // Arrange

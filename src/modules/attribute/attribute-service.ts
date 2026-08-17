@@ -1,12 +1,14 @@
 import {
   AttributeNotFoundError,
+  type AttributeReferencingEntityType,
+  type AttributeSectionName,
   findSimilarNames,
   WrongAttributeTypeError,
 } from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
 import { toSlug } from "../../lib/utils/string";
 import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
-import type { AttributeCache, CachedAttribute } from "./attribute-cache";
+import type { AttributeCache, AttributeSection, CachedAttribute } from "./attribute-cache";
 import { AttributeValidationError } from "./errors";
 import type {
   Attribute,
@@ -253,24 +255,25 @@ export type AttributeValidationResult =
   | { valid: true; attribute: CachedAttribute }
   | { valid: false; error: AttributeNotFoundError | WrongAttributeTypeError };
 
-type AttributeSectionLabel = "productAttributes" | "contentAttributes";
+const SECTION_LABELS: Record<AttributeSection, AttributeSectionName> = {
+  product: "productAttributes",
+  content: "contentAttributes",
+  customer: "customerAttributes",
+};
 
-function toSectionLabel(section: "product" | "content"): AttributeSectionLabel {
-  return section === "product" ? "productAttributes" : "contentAttributes";
+function toSectionLabel(section: AttributeSection): AttributeSectionName {
+  return SECTION_LABELS[section];
 }
 
 export function validateAttributeReference(
   attributeName: string,
-  expectedSection: "product" | "content",
-  referencingEntityType: "productTypes" | "pageTypes" | "modelTypes",
+  expectedSection: AttributeSection,
+  referencingEntityType: AttributeReferencingEntityType,
   referencingEntityName: string,
   cache: AttributeCache
 ): AttributeValidationResult {
   const expectedSectionLabel = toSectionLabel(expectedSection);
-  const attr =
-    expectedSection === "product"
-      ? cache.getProductAttribute(attributeName)
-      : cache.getContentAttribute(attributeName);
+  const attr = cache.get(expectedSection, attributeName);
 
   if (attr) {
     return { valid: true, attribute: attr };
@@ -291,11 +294,7 @@ export function validateAttributeReference(
     };
   }
 
-  const allNames =
-    expectedSection === "product"
-      ? cache.getAllProductAttributeNames()
-      : cache.getAllContentAttributeNames();
-  const similarNames = findSimilarNames(attributeName, allNames);
+  const similarNames = findSimilarNames(attributeName, cache.getAllNames(expectedSection));
 
   return {
     valid: false,

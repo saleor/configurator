@@ -52,7 +52,7 @@ export class ProductService {
     this.refs = {
       ...(this.refs || {}),
       getAttributeByNameFromCache: (name: string) => {
-        const cached = cache.getProductAttribute(name);
+        const cached = cache.get("product", name);
         return cached ? cachedToResolverAttribute(cached) : null;
       },
     };

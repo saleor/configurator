@@ -6,7 +6,7 @@ import type { ProductOperations } from "./repository";
 
 function primeWithCache(service: ProductService, attrs: CachedAttribute[]) {
   const cache = new AttributeCache();
-  cache.populateProductAttributes(attrs);
+  cache.populate("product", attrs);
   service.setAttributeCache(cache);
 }
 
