@@ -158,9 +158,15 @@ describe("AttributeService", () => {
         inputType: "PLAIN_TEXT",
         type: "PAGE_TYPE",
       };
+      const customerAttribute: FullAttribute = {
+        name: "Related Products",
+        inputType: "PLAIN_TEXT",
+        type: "CUSTOMER_TYPE",
+      };
 
       expect(createAttributeInput(productAttribute)).not.toHaveProperty("slug");
       expect(createAttributeInput(contentAttribute)).not.toHaveProperty("slug");
+      expect(createAttributeInput(customerAttribute)).not.toHaveProperty("slug");
     });
   });
 

@@ -48,16 +48,24 @@ describe("Duplicate preflight validation", () => {
 
 describe("attribute names shared across sections", () => {
   // Saleor enforces uniqueness on slug, not name: a store can hold a
-  // PRODUCT_TYPE and a PAGE_TYPE attribute called "Related Products", and
-  // introspect emits both. Deploying that config must work.
+  // PRODUCT_TYPE, PAGE_TYPE, and CUSTOMER_TYPE attribute with the same name.
+  // Deploying that config must work.
   const sharedNameConfig = {
     productAttributes: [{ name: "Related Products", inputType: "DROPDOWN" }],
     contentAttributes: [{ name: "Related Products", inputType: "PLAIN_TEXT" }],
+    customerAttributes: [{ name: "Related Products", inputType: "PLAIN_TEXT" }],
     productTypes: [{ name: "T-Shirt", productAttributes: [{ attribute: "Related Products" }] }],
     modelTypes: [{ name: "Blog Post", attributes: [{ attribute: "Related Products" }] }],
+    customerTypes: [
+      {
+        name: "Retail",
+        slug: "retail",
+        attributes: [{ attribute: "Related Products" }],
+      },
+    ],
   } as unknown as SaleorConfig;
 
-  it("accepts the same attribute name in productAttributes and contentAttributes", () => {
+  it("accepts the same attribute name in all attribute sections", () => {
     expect(() => runPreflightValidation(sharedNameConfig, "config.yml")).not.toThrow();
   });
 
