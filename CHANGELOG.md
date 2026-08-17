@@ -1,8 +1,8 @@
 # saleor-configurator
 
-## 3.24.0
+## 3.23.2
 
-### Minor Changes
+### Patch Changes
 
 - 1784baa: Added support for customer types, introduced in Saleor 3.23.
 
@@ -30,8 +30,6 @@
   Both sections work with `introspect`, `deploy`, `diff` and the `--include`/`--exclude` selectors. Only one customer type may declare `isDefault: true`; more than one is rejected during preflight validation.
 
   Reading customer types requires the `MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES` permission. Tokens without it keep working: the section is skipped during introspect with a warning instead of failing the whole run.
-
-### Patch Changes
 
 - 5c9ead1: Fixed `deploy` rejecting or failing to create a configuration where a product attribute and a content attribute share the same name.
 
