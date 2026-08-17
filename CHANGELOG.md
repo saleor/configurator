@@ -1,5 +1,46 @@
 # saleor-configurator
 
+## 3.23.2
+
+### Patch Changes
+
+- 1784baa: Added support for customer types, introduced in Saleor 3.23.
+
+  Two new configuration sections are available:
+
+  - `customerAttributes` — global attributes of Saleor type `CUSTOMER_TYPE`, alongside the existing `productAttributes` and `contentAttributes`.
+  - `customerTypes` — customer type definitions, identified by `slug`, with an optional `isDefault` flag and attribute references pointing at `customerAttributes`.
+
+  ```yaml
+  customerAttributes:
+    - name: Loyalty Tier
+      inputType: DROPDOWN
+      values:
+        - name: Gold
+        - name: Silver
+
+  customerTypes:
+    - name: Retail
+      slug: retail
+      isDefault: true
+      attributes:
+        - attribute: Loyalty Tier
+  ```
+
+  Both sections work with `introspect`, `deploy`, `diff` and the `--include`/`--exclude` selectors. Only one customer type may declare `isDefault: true`; more than one is rejected during preflight validation.
+
+  Reading customer types requires the `MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES` permission. Tokens without it keep working: the section is skipped during introspect with a warning instead of failing the whole run.
+
+- 5c9ead1: Fixed `deploy` rejecting or failing to create a configuration where a product attribute and a content attribute share the same name.
+
+  Saleor enforces attribute uniqueness on slug, not name, so a store can legitimately hold a `PRODUCT_TYPE` and a `PAGE_TYPE` attribute with the same name — for example two attributes both called "Related Products". Introspect writes each into its own section, but preflight validation then refused any name appearing in both `productAttributes` and `contentAttributes`, so deploying an unmodified introspected config failed with:
+
+  ```
+  Attribute names must be unique across productAttributes and contentAttributes
+  ```
+
+  That rule has been removed. Attribute resolution is scoped by type, so a name shared across sections is not ambiguous. Configurator also no longer sends a name-derived slug when creating attributes. Saleor generates the globally unique slug instead, which prevents two new attributes with the same name from colliding. Duplicate names _within_ a single section are still rejected.
+
 ## 3.23.1
 
 ### Patch Changes
