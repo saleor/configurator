@@ -5,7 +5,6 @@ import {
   runPreflightValidation,
   scanForDuplicateIdentifiers,
   validateAttributeReferences,
-  validateNoCrossSectionDuplicates,
   validateNoDuplicateIdentifiers,
   validateSingleDefaultCustomerType,
 } from "./preflight";
@@ -47,30 +46,37 @@ describe("Duplicate preflight validation", () => {
   });
 });
 
-describe("validateNoCrossSectionDuplicates", () => {
-  it("throws when attribute name appears in both sections", () => {
-    const cfg = {
-      productAttributes: [{ name: "Color", inputType: "DROPDOWN" }],
-      contentAttributes: [{ name: "Color", inputType: "PLAIN_TEXT" }],
-    } as unknown as SaleorConfig;
+describe("attribute names shared across sections", () => {
+  // Saleor enforces uniqueness on slug, not name: a store can hold a
+  // PRODUCT_TYPE and a PAGE_TYPE attribute called "Related Products", and
+  // introspect emits both. Deploying that config must work.
+  const sharedNameConfig = {
+    productAttributes: [{ name: "Related Products", inputType: "DROPDOWN" }],
+    contentAttributes: [{ name: "Related Products", inputType: "PLAIN_TEXT" }],
+    productTypes: [{ name: "T-Shirt", productAttributes: [{ attribute: "Related Products" }] }],
+    modelTypes: [{ name: "Blog Post", attributes: [{ attribute: "Related Products" }] }],
+  } as unknown as SaleorConfig;
 
-    expect(() => validateNoCrossSectionDuplicates(cfg, "config.yml")).toThrow(
-      /unique across productAttributes and contentAttributes/
-    );
+  it("accepts the same attribute name in productAttributes and contentAttributes", () => {
+    expect(() => runPreflightValidation(sharedNameConfig, "config.yml")).not.toThrow();
   });
 
-  it("passes when no overlap between sections", () => {
-    const cfg = {
-      productAttributes: [{ name: "Color", inputType: "DROPDOWN" }],
-      contentAttributes: [{ name: "Author", inputType: "PLAIN_TEXT" }],
-    } as unknown as SaleorConfig;
-
-    expect(() => validateNoCrossSectionDuplicates(cfg, "config.yml")).not.toThrow();
+  it("resolves references per section rather than globally", () => {
+    expect(() => validateAttributeReferences(sharedNameConfig, "config.yml")).not.toThrow();
   });
 
-  it("passes when sections are empty", () => {
-    const cfg = {} as SaleorConfig;
-    expect(() => validateNoCrossSectionDuplicates(cfg, "config.yml")).not.toThrow();
+  it("still rejects a duplicate name within a single section", () => {
+    const cfg = {
+      productAttributes: [
+        { name: "Color", inputType: "DROPDOWN" },
+        { name: "Color", inputType: "PLAIN_TEXT" },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(scanForDuplicateIdentifiers(cfg)).toEqual([
+      expect.objectContaining({ section: "productAttributes", identifier: "Color" }),
+    ]);
+    expect(() => runPreflightValidation(cfg, "config.yml")).toThrow(ConfigurationValidationError);
   });
 });
 
@@ -252,12 +258,14 @@ describe("runPreflightValidation", () => {
 
   it("throws single error directly when only one validation fails", () => {
     const cfg = {
-      productAttributes: [{ name: "Color", inputType: "DROPDOWN" }],
-      contentAttributes: [{ name: "Color", inputType: "PLAIN_TEXT" }],
+      productAttributes: [
+        { name: "Color", inputType: "DROPDOWN" },
+        { name: "Color", inputType: "PLAIN_TEXT" },
+      ],
     } as unknown as SaleorConfig;
 
     expect(() => runPreflightValidation(cfg, "config.yml")).toThrow(
-      /unique across productAttributes and contentAttributes/
+      /Duplicate entity identifiers found/
     );
   });
 

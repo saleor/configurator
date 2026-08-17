@@ -6,7 +6,6 @@ import {
   WrongAttributeTypeError,
 } from "../../lib/errors/validation-errors";
 import { logger } from "../../lib/logger";
-import { toSlug } from "../../lib/utils/string";
 import type { AttributeInput, FullAttribute } from "../config/schema/attribute.schema";
 import type { AttributeCache, AttributeSection, CachedAttribute } from "./attribute-cache";
 import { AttributeValidationError } from "./errors";
@@ -25,7 +24,6 @@ export const createAttributeInput = (input: FullAttribute): AttributeCreateInput
   const base = {
     name: input.name,
     type: input.type,
-    slug: toSlug(input.name),
     inputType: input.inputType,
   };
 
