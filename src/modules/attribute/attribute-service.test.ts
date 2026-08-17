@@ -76,7 +76,6 @@ describe("AttributeService", () => {
       expect(result).toEqual({
         name: "Featured Product",
         type: "PRODUCT_TYPE",
-        slug: "featured-product",
         inputType: "SINGLE_REFERENCE",
         entityType: "PRODUCT",
       });
@@ -107,7 +106,6 @@ describe("AttributeService", () => {
       expect(result).toEqual({
         name: "Related Page",
         type: "PAGE_TYPE",
-        slug: "related-page",
         inputType: "SINGLE_REFERENCE",
         entityType: "PAGE",
       });
@@ -126,7 +124,6 @@ describe("AttributeService", () => {
       expect(result).toEqual({
         name: "Related Category",
         type: "PRODUCT_TYPE",
-        slug: "related-category",
         inputType: "REFERENCE",
         entityType: "CATEGORY",
       });
@@ -145,10 +142,25 @@ describe("AttributeService", () => {
       expect(result).toEqual({
         name: "Featured Collection",
         type: "PRODUCT_TYPE",
-        slug: "featured-collection",
         inputType: "SINGLE_REFERENCE",
         entityType: "COLLECTION",
       });
+    });
+
+    it("lets Saleor generate unique slugs for attributes with the same name", () => {
+      const productAttribute: FullAttribute = {
+        name: "Related Products",
+        inputType: "PLAIN_TEXT",
+        type: "PRODUCT_TYPE",
+      };
+      const contentAttribute: FullAttribute = {
+        name: "Related Products",
+        inputType: "PLAIN_TEXT",
+        type: "PAGE_TYPE",
+      };
+
+      expect(createAttributeInput(productAttribute)).not.toHaveProperty("slug");
+      expect(createAttributeInput(contentAttribute)).not.toHaveProperty("slug");
     });
   });
 

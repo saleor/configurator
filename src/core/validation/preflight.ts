@@ -165,8 +165,8 @@ export function validateNoInlineAttributeDefinitions(config: SaleorConfig, fileP
 // contentAttributes. Saleor enforces uniqueness on slug, not name, so a store
 // can legitimately hold a PRODUCT_TYPE and a PAGE_TYPE attribute with the same
 // name — and introspect emits both. Resolution stays unambiguous because every
-// lookup is scoped by attribute type: the attribute cache keeps one bucket per
-// section, and repository queries filter on `type`.
+// lookup is scoped by attribute type. When creating attributes, Configurator
+// leaves the slug unset so Saleor can generate a globally unique value.
 
 /**
  * Saleor allows exactly one default customer type: setting `isDefault` on one

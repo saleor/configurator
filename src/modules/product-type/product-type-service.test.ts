@@ -124,7 +124,6 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
         name: "Color",
         type: "PRODUCT_TYPE",
-        slug: "color",
         inputType: "DROPDOWN",
         values: [{ name: "Red" }],
       });
@@ -423,7 +422,6 @@ describe("ProductTypeService", () => {
       expect(mockAttributeOperations.createAttribute).toHaveBeenCalledWith({
         name: "Author",
         type: "PRODUCT_TYPE",
-        slug: "author",
         inputType: "PLAIN_TEXT",
       });
       expect(mockProductTypeOperations.assignAttributesToProductType).toHaveBeenCalledWith({
