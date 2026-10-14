@@ -15,6 +15,17 @@ export function safePath() {
     );
 }
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
+
+function isHttpsOrLocalHttp(u: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(u);
+    return protocol === "https:" || (protocol === "http:" && LOCAL_HOSTNAMES.has(hostname));
+  } catch {
+    return false;
+  }
+}
+
 export function saleorUrl() {
   return z
     .string()
@@ -26,7 +37,7 @@ export function saleorUrl() {
         return false;
       }
     }, "Must be a valid URL")
-    .refine((u) => u.startsWith("https://"), "Must use HTTPS")
+    .refine(isHttpsOrLocalHttp, "Must use HTTPS (HTTP is allowed only for localhost and 127.0.0.1)")
     .refine((u) => {
       const withoutQuery = u.split("?")[0].split("#")[0];
       return withoutQuery.endsWith("/graphql/") || withoutQuery.endsWith("/graphql");

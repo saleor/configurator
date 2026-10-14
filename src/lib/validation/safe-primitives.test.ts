@@ -32,8 +32,22 @@ describe("saleorUrl", () => {
     );
   });
 
-  it("rejects non-HTTPS URLs", () => {
+  it("accepts HTTP for localhost and 127.0.0.1", () => {
+    expect(saleorUrl().parse("http://localhost:8000/graphql/")).toBe(
+      "http://localhost:8000/graphql/"
+    );
+    expect(saleorUrl().parse("http://127.0.0.1:8000/graphql/")).toBe(
+      "http://127.0.0.1:8000/graphql/"
+    );
+  });
+
+  it("rejects non-HTTPS URLs for remote hosts", () => {
     expect(() => saleorUrl().parse("http://store.saleor.cloud/graphql/")).toThrow();
+  });
+
+  it("rejects HTTP for hosts that only start with a local name", () => {
+    expect(() => saleorUrl().parse("http://localhost.evil.com/graphql/")).toThrow();
+    expect(() => saleorUrl().parse("http://127.0.0.1.evil.com/graphql/")).toThrow();
   });
 
   it("rejects URLs without /graphql endpoint", () => {
