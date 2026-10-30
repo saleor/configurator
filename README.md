@@ -583,6 +583,19 @@ pnpm test
 pnpm check:fix && pnpm build && pnpm test
 ```
 
+### Unused code and dependencies
+
+Run `pnpm knip` to audit unused files, exports, exported types, and dependencies.
+The setup follows `saleor/monorepo`: Knip is pinned to `5.46.2` and configured in
+`knip.config.ts`. CLI and maintenance scripts are entry points; the scan covers
+source and scripts, excludes specification contracts, and ignores generated
+GraphQL declarations.
+
+This is a standalone audit command, not a CI gate. It currently reports existing
+unused code and dependencies and exits nonzero when findings exist. Review each
+finding before removing code, and keep findings visible instead of suppressing
+whole issue categories or marking every source file as an entry point.
+
 ### Versioning
 
 This project uses [Changesets](https://github.com/changesets/changesets) for release notes and publishing, with one repository-specific rule: configurator package major and minor versions follow the supported Saleor major and minor.

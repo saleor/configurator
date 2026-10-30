@@ -62,7 +62,8 @@
     "check:fix": "biome check --write .",
     "check:ci": "biome lint . --diagnostic-level=error",
     "build:engine": "pnpm build:library",
-    "build:library": "tsup src/index.ts src/engine.ts --format esm --target node20 --dts"
+    "build:library": "tsup src/index.ts src/engine.ts --format esm --target node20 --dts",
+    "knip": "knip --config knip.config.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
@@ -73,6 +74,7 @@
     "ajv-formats": "^3.0.1",
     "execa": "^8.0.1",
     "husky": "^9.1.7",
+    "knip": "5.46.2",
     "msw": "^2.4.9",
     "nock": "^13.5.0",
     "strip-ansi": "^7.1.0",
