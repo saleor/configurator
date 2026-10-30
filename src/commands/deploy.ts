@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
 import { baseCommandArgsSchema, confirmAction, shouldOutputJson } from "../cli/command";
-import { Console } from "../cli/console";
+import { Console, cliConsole } from "../cli/console";
+import { SilentProgressReporter } from "../cli/progress";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
 import type { DeploymentContext, DeploymentMetrics } from "../core/deployment";
@@ -13,6 +14,7 @@ import {
 import { analyzeDeploymentCleanup } from "../core/deployment/cleanup-advisor";
 import { executeEnhancedDeployment } from "../core/deployment/enhanced-pipeline";
 import {
+  type DeploymentError,
   EXIT_CODES,
   toDeploymentError,
   ValidationDeploymentError,
@@ -23,7 +25,7 @@ import {
   pruneOldReports,
   resolveReportPath,
 } from "../core/deployment/report-storage";
-import { DeploymentResultFormatter } from "../core/deployment/results";
+import { type DeploymentResult, DeploymentResultFormatter } from "../core/deployment/results";
 import type { DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
@@ -33,7 +35,7 @@ import {
 import type { DuplicateIssue } from "../core/validation/preflight";
 import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
-import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
+import { buildEnvelope, type EnvelopeError, outputEnvelope } from "../lib/json-envelope";
 import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
 import {
@@ -70,6 +72,11 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
 
+function describeDeploymentError(error: DeploymentError): string {
+  const cause = error.originalError instanceof Error ? error.originalError.message : undefined;
+  return cause && cause !== error.message ? `${error.message}: ${cause}` : error.message;
+}
+
 class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   console = new Console();
 
@@ -91,13 +98,33 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       .filter((issue): issue is DuplicateIssue => issue !== null);
   }
 
-  private handleDeploymentError(error: unknown, args: DeployCommandArgs): never {
+  private outputErrorEnvelope(exitCode: number, errors: EnvelopeError[]): void {
+    outputEnvelope(
+      buildEnvelope({
+        command: "deploy",
+        exitCode,
+        result: { status: "error" as const },
+        errors,
+      })
+    );
+  }
+
+  private handleDeploymentError(error: unknown, args: DeployCommandArgs, useJson: boolean): never {
     logger.error("Deployment failed", { error });
 
     if (error instanceof ConfigurationValidationError) {
       const dupes = this.parseDuplicateIssues(error);
 
       if (dupes.length > 0) {
+        if (useJson) {
+          this.outputErrorEnvelope(
+            EXIT_CODES.VALIDATION,
+            dupes.map((d) => ({
+              message: `Duplicate ${d.label} '${d.identifier}' found ${d.count} times in ${d.section}`,
+            }))
+          );
+          process.exit(EXIT_CODES.VALIDATION);
+        }
         printDuplicateIssues(dupes, this.console, args.config);
         this.console.cancelled("\nDeployment blocked until duplicates are resolved.");
         process.exit(EXIT_CODES.VALIDATION);
@@ -121,6 +148,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         },
         error
       );
+
+      if (useJson) {
+        this.outputErrorEnvelope(
+          deploymentError.getExitCode(),
+          nonSuggestionErrors.map((err) => ({ message: `${err.path}: ${err.message}` }))
+        );
+        process.exit(deploymentError.getExitCode());
+      }
+
       this.console.error(deploymentError.getUserMessage(args.verbose));
 
       if (suggestions.length > 0) {
@@ -134,7 +170,13 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
 
     const deploymentError = toDeploymentError(error, "deployment");
-    this.console.error(deploymentError.getUserMessage(args.verbose));
+    if (useJson) {
+      this.outputErrorEnvelope(deploymentError.getExitCode(), [
+        { message: describeDeploymentError(deploymentError) },
+      ]);
+    } else {
+      this.console.error(deploymentError.getUserMessage(args.verbose));
+    }
     process.exit(deploymentError.getExitCode());
   }
 
@@ -275,7 +317,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     args: DeployCommandArgs,
     metrics: DeploymentMetrics,
     summary: DiffSummary
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     try {
       const reportGenerator = new DeploymentReportGenerator(metrics, summary);
       const reportPath = await resolveReportPath(args.reportPath, "deploy", args.url);
@@ -295,10 +337,12 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           });
         }
       }
+      return reportPath;
     } catch (error) {
       this.console.warn(
         `Failed to save deployment report: ${error instanceof Error ? error.message : String(error)}`
       );
+      return undefined;
     }
   }
 
@@ -306,8 +350,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     args: DeployCommandArgs,
     summary: DiffSummary,
     configurator: ReturnType<typeof createConfigurator>,
-    config: SaleorConfig
-  ): Promise<{ metrics: DeploymentMetrics; exitCode: number; hasPartialSuccess: boolean }> {
+    config: SaleorConfig,
+    useJson: boolean
+  ): Promise<{
+    metrics: DeploymentMetrics;
+    result: DeploymentResult;
+    exitCode: number;
+    hasPartialSuccess: boolean;
+    reportPath: string | undefined;
+  }> {
     const startTime = new Date();
 
     this.console.muted("🚀 Deploying configuration to Saleor...");
@@ -335,13 +386,17 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     await this.displayCleanupSuggestions(context, summary);
     this.displayPendingDeletionWarnings(summary);
 
-    const summaryReport = new DeploymentSummaryReport(metrics, summary);
-    summaryReport.display();
+    if (!useJson) {
+      const summaryReport = new DeploymentSummaryReport(metrics, summary);
+      summaryReport.display();
+    }
 
-    await this.saveAndPruneReport(args, metrics, summary);
+    const reportPath = await this.saveAndPruneReport(args, metrics, summary);
 
     return {
       metrics,
+      result,
+      reportPath,
       exitCode,
       hasPartialSuccess: result.overallStatus === "partial",
     };
@@ -479,6 +534,47 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.status(`\n${deployFormatter.format(summary)}`);
   }
 
+  private outputDeploymentEnvelope(
+    summary: DiffSummary,
+    deployment: { result: DeploymentResult; exitCode: number; reportPath: string | undefined }
+  ): void {
+    const stages = deployment.result.stages ?? [];
+    const errors: EnvelopeError[] = stages.flatMap((stage) => [
+      ...(stage.error ? [{ stage: stage.name, message: stage.error }] : []),
+      ...(stage.entities ?? [])
+        .filter((entity) => !entity.success)
+        .map((entity) => ({
+          stage: stage.name,
+          entity: entity.name,
+          message: entity.error ?? `Failed to ${entity.operation} ${entity.name}`,
+        })),
+    ]);
+
+    outputEnvelope(
+      buildEnvelope({
+        command: "deploy",
+        exitCode: deployment.exitCode,
+        result: {
+          status: deployment.result.overallStatus,
+          summary: {
+            totalChanges: summary.totalChanges,
+            creates: summary.creates,
+            updates: summary.updates,
+            deletes: summary.deletes,
+          },
+          stages: stages.map((stage) => ({
+            name: stage.name,
+            status: stage.status,
+            successCount: stage.successCount,
+            failureCount: stage.failureCount,
+          })),
+          reportPath: deployment.reportPath ?? null,
+        },
+        errors,
+      })
+    );
+  }
+
   private logDeploymentCompletion(
     summary: DiffSummary,
     result: { exitCode: number; hasPartialSuccess: boolean }
@@ -537,6 +633,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       );
 
       if (!shouldDeploy) {
+        if (useJson) {
+          outputEnvelope(
+            buildEnvelope({
+              command: "deploy",
+              exitCode: EXIT_CODES.SUCCESS,
+              result: { status: "cancelled" as const },
+            })
+          );
+        }
         this.console.cancelled("Deployment cancelled by user");
         process.exit(0);
       }
@@ -545,15 +650,19 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         args,
         diffAnalysis.summary,
         configurator,
-        scopedConfig
+        scopedConfig,
+        useJson
       );
+      if (useJson) {
+        this.outputDeploymentEnvelope(diffAnalysis.summary, deploymentResult);
+      }
       this.logDeploymentCompletion(diffAnalysis.summary, deploymentResult);
       process.exit(deploymentResult.exitCode);
     } catch (error) {
       if (error instanceof Error && error.message.startsWith("process.exit(")) {
         throw error;
       }
-      this.handleDeploymentError(error, args);
+      this.handleDeploymentError(error, args, useJson);
     }
   }
 
@@ -561,6 +670,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     globalLogCollector.reset();
     const useJson = shouldOutputJson(args);
     this.console.setOptions({ quiet: args.quiet || useJson });
+    if (useJson) {
+      // Keep stdout reserved for the JSON envelope (summary box, progress output)
+      cliConsole.setOptions({ quiet: true });
+      cliConsole.progress = new SilentProgressReporter();
+    }
 
     if (!useJson) {
       this.console.header("🚀 Saleor Configuration Deploy\n");
