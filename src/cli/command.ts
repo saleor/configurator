@@ -121,11 +121,16 @@ export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny
   requiresInteractive?: boolean;
 }
 
-function isBooleanField(field: z.ZodTypeAny): boolean {
-  return (
-    field instanceof z.ZodBoolean ||
-    (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean)
-  );
+function unwrapOptionalAndDefault(field: z.ZodTypeAny): z.ZodTypeAny {
+  let current = field;
+  while (current instanceof z.ZodOptional || current instanceof z.ZodDefault) {
+    current = current._def.innerType as z.ZodTypeAny;
+  }
+  return current;
+}
+
+export function isBooleanField(field: z.ZodTypeAny): boolean {
+  return unwrapOptionalAndDefault(field) instanceof z.ZodBoolean;
 }
 
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {

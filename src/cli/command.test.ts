@@ -1,5 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mergeEnvArgs, shouldOutputJson } from "./command";
+import { z } from "zod";
+import { deployCommandSchema } from "../commands/deploy";
+import { createCommand, isBooleanField, mergeEnvArgs, shouldOutputJson } from "./command";
+
+const VALID_ARGS = ["--url", "https://example.saleor.cloud/graphql/", "--token", "test-token"];
+
+async function parseWithCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>>>(
+  schema: T,
+  argv: string[]
+): Promise<z.infer<T>> {
+  const handler = vi.fn();
+  const command = createCommand({ name: "test", description: "test", schema, handler });
+  command.exitOverride();
+  await command.parseAsync(argv, { from: "user" });
+  expect(handler).toHaveBeenCalledTimes(1);
+  return handler.mock.calls[0][0];
+}
 
 describe("mergeEnvArgs", () => {
   afterEach(() => {
@@ -69,5 +85,45 @@ describe("shouldOutputJson", () => {
   it("returns true in non-TTY when no explicit flag", () => {
     // Test environment is non-TTY, so this should be true
     expect(shouldOutputJson({})).toBe(true);
+  });
+});
+
+describe("isBooleanField", () => {
+  it.each([
+    ["plain boolean", z.boolean()],
+    ["boolean with default", z.boolean().default(false)],
+    ["optional boolean", z.boolean().optional()],
+    ["optional boolean with default", z.boolean().optional().default(false)],
+  ])("detects %s", (_label, field) => {
+    expect(isBooleanField(field)).toBe(true);
+  });
+
+  it("does not treat non-boolean fields as booleans", () => {
+    expect(isBooleanField(z.string().optional())).toBe(false);
+    expect(isBooleanField(z.string().default("x"))).toBe(false);
+  });
+});
+
+describe("createCommand boolean options", () => {
+  it("registers optional-with-default booleans as value-less flags", () => {
+    const command = createCommand({
+      name: "deploy",
+      description: "test",
+      schema: deployCommandSchema,
+      handler: vi.fn(),
+    });
+    const verbose = command.options.find((option) => option.attributeName() === "verbose");
+    expect(verbose?.flags).toBe("--verbose");
+  });
+
+  it("parses deploy --verbose as true without consuming the next flag", async () => {
+    const args = await parseWithCommand(deployCommandSchema, ["--verbose", ...VALID_ARGS]);
+    expect(args.verbose).toBe(true);
+    expect(args.url).toBe("https://example.saleor.cloud/graphql/");
+  });
+
+  it("defaults deploy verbose to false", async () => {
+    const args = await parseWithCommand(deployCommandSchema, VALID_ARGS);
+    expect(args.verbose).toBe(false);
   });
 });
