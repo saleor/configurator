@@ -1116,12 +1116,15 @@ export function getAllStages(): DeploymentStage[] {
     modelTypesStage,
     customerTypesStage,
     categoriesStage,
-    collectionsStage,
-    menusStage,
+    // Models run before products: product reference attributes can point at pages (models)
     modelsStage,
     warehousesStage,
     shippingZonesStage,
     attributeChoicesPreflightStage,
     productsStage,
+    // Collections assign products and menus link to categories, collections and models,
+    // so both run after the entities they reference exist
+    collectionsStage,
+    menusStage,
   ];
 }
