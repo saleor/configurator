@@ -108,16 +108,25 @@ jobs:
           post-pr-comment: ${{ inputs.post-pr-comment }}
 
       - name: Generate Summary
+        env:
+          CONFIGURATOR_COMMAND: ${{ inputs.command }}
+          CONFIGURATOR_ENVIRONMENT: ${{ inputs.environment }}
+          CONFIGURATOR_SUMMARY: ${{ steps.configurator.outputs.summary }}
+          CONFIGURATOR_HAS_CHANGES: ${{ steps.configurator.outputs.has-changes }}
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.configurator.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.configurator.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.configurator.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.configurator.outputs.deletes-count }}
         run: |
-          echo "## Configurator: ${{ inputs.command }} (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ steps.configurator.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.configurator.outputs.has-changes }}" == "true" ]]; then
-            echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-            echo "| Changes | ${{ steps.configurator.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| Creates | ${{ steps.configurator.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| Updates | ${{ steps.configurator.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-            echo "| Deletes | ${{ steps.configurator.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Configurator: ${CONFIGURATOR_COMMAND} (${CONFIGURATOR_ENVIRONMENT})" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** ${CONFIGURATOR_SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${CONFIGURATOR_HAS_CHANGES}" == "true" ]]; then
+            echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
           fi

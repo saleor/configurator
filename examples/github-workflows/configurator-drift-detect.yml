@@ -60,15 +60,20 @@ jobs:
 
       - name: Report Drift
         if: steps.diff.outputs.has-changes == 'true'
+        env:
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.diff.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.diff.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.diff.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.diff.outputs.deletes-count }}
         run: |
-          echo "## Staging Drift Detected" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Staging Drift Detected" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
 
   detect-drift-production:
     name: Check Production Drift
@@ -99,15 +104,20 @@ jobs:
 
       - name: Report Drift
         if: steps.diff.outputs.has-changes == 'true'
+        env:
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.diff.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.diff.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.diff.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.diff.outputs.deletes-count }}
         run: |
-          echo "## Production Drift Detected" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Production Drift Detected" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
 
   # Create issue if drift detected
   create-drift-issue:
