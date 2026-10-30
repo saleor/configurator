@@ -65,6 +65,32 @@ describe("validate command", () => {
     });
   });
 
+  describe("unparseable YAML", () => {
+    const multiDocumentYaml = "shop:\n  headerText: A\n---\nshop:\n  headerText: B\n";
+
+    it("should output a JSON envelope instead of crashing when --json flag is set", async () => {
+      vi.mocked(readFile).mockResolvedValue(multiDocumentYaml as never);
+
+      await expect(validateHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(1)"
+      );
+
+      const parsed = JSON.parse(mockConsoleLog.mock.calls[0][0]);
+      expect(parsed.command).toBe("validate");
+      expect(parsed.exitCode).toBe(1);
+      expect(parsed.result.valid).toBe(false);
+      expect(parsed.result.errors[0].message).toContain("Invalid YAML");
+    });
+
+    it("should print a readable error in text mode", async () => {
+      vi.mocked(readFile).mockResolvedValue(multiDocumentYaml as never);
+
+      await expect(validateHandler(createDefaultArgs())).rejects.toThrow("process.exit(1)");
+
+      expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("not valid YAML"));
+    });
+  });
+
   describe("validation errors", () => {
     it("should exit 2 when config has schema violations", async () => {
       // channels must be an array, not a string

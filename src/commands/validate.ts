@@ -9,6 +9,8 @@ import { configSchema } from "../modules/config/schema/schema";
 
 const VALIDATE_EXIT = {
   SUCCESS: 0,
+  /** Unparseable YAML; kept at 1 to match the previous (uncaught error) behaviour */
+  PARSE_ERROR: 1,
   INVALID: 2,
 } as const;
 
@@ -79,7 +81,32 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     process.exit(VALIDATE_EXIT.INVALID);
   }
 
-  const rawConfig = parse(rawContent);
+  let rawConfig: unknown;
+
+  try {
+    rawConfig = parse(rawContent);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const validationResult: ValidationResult = {
+      valid: false,
+      errors: [{ path: "", message: `Invalid YAML: ${message}` }],
+    };
+
+    if (useJson) {
+      outputEnvelope(
+        buildEnvelope({
+          command: "validate",
+          exitCode: VALIDATE_EXIT.PARSE_ERROR,
+          result: validationResult,
+        })
+      );
+    } else {
+      console.error(`Configuration file "${configPath}" is not valid YAML:\n\n${message}`);
+    }
+
+    process.exit(VALIDATE_EXIT.PARSE_ERROR);
+  }
+
   const result = configSchema.safeParse(rawConfig);
 
   if (result.success) {
