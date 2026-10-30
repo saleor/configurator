@@ -27,6 +27,10 @@ inputs:
     description: 'Node.js version to use'
     required: false
     default: '20'
+  configurator-version:
+    description: 'Version (or npm dist-tag) of @saleor/configurator to install, e.g. 3.23.2'
+    required: false
+    default: 'latest'
   report-path:
     description: 'Path to save deployment report (deploy command only)'
     required: false
@@ -113,7 +117,9 @@ runs:
 
     - name: Install Saleor Configurator
       shell: bash
-      run: npm install -g @saleor/configurator@latest
+      env:
+        CONFIGURATOR_VERSION: ${{ inputs.configurator-version }}
+      run: npm install -g "@saleor/configurator@${CONFIGURATOR_VERSION:-latest}"
 
     - name: Run Configurator
       id: run-configurator
