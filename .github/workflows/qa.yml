@@ -1,4 +1,4 @@
-name: Knip
+name: QA
 
 permissions:
   contents: read
@@ -10,7 +10,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  knip:
+  qa:
+    name: QA
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -31,5 +32,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check schema sync
+        run: pnpm run schema:check
+
+      - name: Lint
+        run: pnpm run check:ci
+
       - name: Check unused files, dependencies, and exports
         run: pnpm run knip
+
+      - name: Run tests
+        env:
+          APP_TOKEN: test-token
+          SALEOR_API_URL: http://test.example.com
+          LOG_LEVEL: error
+        run: pnpm run test:ci
