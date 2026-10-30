@@ -55,8 +55,6 @@ const pageTypeUpdateSchema = z.object({
 // Union type that accepts either create or update input
 // Try update schema first (more specific) then create schema
 const pageTypeSchema = pageTypeUpdateSchema.or(pageTypeCreateSchema);
-
-export type PageTypeCreateInput = z.infer<typeof pageTypeCreateSchema>;
 export type PageTypeUpdateInput = z.infer<typeof pageTypeUpdateSchema>;
 export type PageTypeInput = z.infer<typeof pageTypeSchema>;
 
@@ -568,8 +566,6 @@ type CategoryCreate = z.infer<typeof categoryCreateSchema>;
 type Category = CategoryCreate | CategoryUpdate;
 
 const categorySchema: z.ZodType<Category> = categoryUpdateSchema.or(categoryCreateSchema);
-
-export type CategoryCreateInput = z.infer<typeof categoryCreateSchema>;
 export type CategoryUpdateInput = CategoryUpdate;
 export type CategoryInput = Category;
 
@@ -802,7 +798,7 @@ const collectionSchema = z.object({
 export type CollectionInput = z.infer<typeof collectionSchema>;
 
 // Menu Schema
-export interface MenuItemInputSchema {
+interface MenuItemInputSchema {
   name: string;
   url?: string;
   category?: string;

@@ -12,12 +12,6 @@ export class ChannelFetchError extends ChannelError {
   }
 }
 
-export class ChannelNotFoundError extends ChannelError {
-  constructor(channelSlug: string) {
-    super(`Channel "${channelSlug}" not found`);
-  }
-}
-
 export class ChannelCreationError extends ChannelError {
   constructor(message: string) {
     super(message);

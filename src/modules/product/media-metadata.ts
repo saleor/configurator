@@ -1,6 +1,6 @@
 export const PRODUCT_MEDIA_SOURCE_METADATA_KEY = "configurator.externalUrl";
 
-export interface ProductMediaMetadataEntry {
+interface ProductMediaMetadataEntry {
   key?: string | null;
   value?: string | null;
 }

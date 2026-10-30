@@ -523,7 +523,7 @@ const getCustomerTypesQuery = graphql(`
 
 type RawCustomerTypesResult = ResultOf<typeof getCustomerTypesQuery>;
 
-export type RawCustomerTypeEdges = NonNullable<RawCustomerTypesResult["customerTypes"]>["edges"];
+type RawCustomerTypeEdges = NonNullable<RawCustomerTypesResult["customerTypes"]>["edges"];
 
 export type RawSaleorConfig = ResultOf<typeof getConfigQuery> & {
   /** Undefined when customer types could not be read (missing permission). */

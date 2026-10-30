@@ -372,7 +372,7 @@ export type ShippingMethod = NonNullable<ShippingZone["shippingMethods"]>[number
 export type ShippingZoneCreateInput = VariablesOf<typeof createShippingZoneMutation>["input"];
 export type ShippingZoneUpdateInput = VariablesOf<typeof updateShippingZoneMutation>["input"];
 export type ShippingPriceInput = VariablesOf<typeof createShippingPriceMutation>["input"];
-export type ShippingMethodChannelListingInput = VariablesOf<
+type ShippingMethodChannelListingInput = VariablesOf<
   typeof shippingMethodChannelListingUpdateMutation
 >["input"];
 

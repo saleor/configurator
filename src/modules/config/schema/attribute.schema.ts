@@ -4,7 +4,7 @@ const attributeValueSchema = z.object({
   name: z.string().min(1, "Attribute value name is required"),
 });
 
-export const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE", "CUSTOMER_TYPE"]);
+const attributeTypeSchema = z.enum(["PRODUCT_TYPE", "PAGE_TYPE", "CUSTOMER_TYPE"]);
 
 /** Saleor's attribute type — the entity family an attribute can be assigned to. */
 export type SaleorAttributeType = z.infer<typeof attributeTypeSchema>;
@@ -32,9 +32,6 @@ export const VARIANT_SELECTION_SUPPORTED_TYPES = [
   "NUMERIC",
 ] as const;
 
-/** Derived type for input types that support variantSelection */
-export type VariantSelectionSupportedType = (typeof VARIANT_SELECTION_SUPPORTED_TYPES)[number];
-
 // Base attribute fields that are common to all types
 const baseAttributeSchema = z.object({
   name: z.string(),
@@ -50,8 +47,6 @@ const multipleValuesAttributeSchema = baseAttributeSchema.extend({
   inputType: z.enum(["DROPDOWN", "MULTISELECT", "SWATCH"]),
   values: z.array(attributeValueSchema),
 });
-
-export type MultipleValuesAttribute = z.infer<typeof multipleValuesAttributeSchema>;
 
 // Schema for reference type attributes
 const referenceAttributeSchema = baseAttributeSchema.extend({

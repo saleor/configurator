@@ -23,7 +23,7 @@ import type {
   ProductVariantWithChannelListings,
 } from "./repository";
 
-export type ProductServiceRefs = {
+type ProductServiceRefs = {
   getPageBySlug?: (slug: string) => Promise<{ id: string } | null>;
   getChannelIdBySlug?: (slug: string) => Promise<string | null>;
   getAttributeByNameFromCache?: (name: string) => ResolverAttribute | null;

@@ -2,13 +2,13 @@ import { logger } from "../../lib/logger";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { TaxClassInput, TaxConfigurationInput } from "../config/schema/schema";
 import { DuplicateTaxClassError, InvalidCountryRateError, TaxClassValidationError } from "./errors";
-import type { TaxRepository } from "./repository";
+import type { TaxClass, TaxConfiguration, TaxRepository } from "./repository";
 
 interface TaxClassWithId extends TaxClassInput {
   id?: string;
 }
 
-export interface TaxServiceDependencies {
+interface TaxServiceDependencies {
   repository: TaxRepository;
 }
 
@@ -19,7 +19,7 @@ export class TaxService {
     this.repository = repository;
   }
 
-  async getAllTaxClasses() {
+  async getAllTaxClasses(): Promise<TaxClass[]> {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch all tax classes",
       "tax classes",
@@ -32,7 +32,7 @@ export class TaxService {
     );
   }
 
-  async getExistingTaxClass(name: string) {
+  async getExistingTaxClass(name: string): Promise<TaxClass | undefined> {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch tax class",
       "tax class",
@@ -45,7 +45,7 @@ export class TaxService {
     );
   }
 
-  async createTaxClass(input: TaxClassInput) {
+  async createTaxClass(input: TaxClassInput): Promise<TaxClass> {
     return ServiceErrorWrapper.wrapServiceCall(
       "create tax class",
       "tax class",
@@ -74,7 +74,7 @@ export class TaxService {
     );
   }
 
-  async updateTaxClass(id: string, input: TaxClassInput) {
+  async updateTaxClass(id: string, input: TaxClassInput): Promise<TaxClass> {
     return ServiceErrorWrapper.wrapServiceCall(
       "update tax class",
       "tax class",
@@ -163,7 +163,7 @@ export class TaxService {
     return { ...existing, ...input };
   }
 
-  async getAllTaxConfigurations() {
+  async getAllTaxConfigurations(): Promise<TaxConfiguration[]> {
     return ServiceErrorWrapper.wrapServiceCall(
       "fetch all tax configurations",
       "tax configurations",
@@ -176,7 +176,10 @@ export class TaxService {
     );
   }
 
-  async updateChannelTaxConfiguration(channelId: string, input: TaxConfigurationInput) {
+  async updateChannelTaxConfiguration(
+    channelId: string,
+    input: TaxConfigurationInput
+  ): Promise<TaxConfiguration> {
     return ServiceErrorWrapper.wrapServiceCall(
       "update channel tax configuration",
       "tax configuration",

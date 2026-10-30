@@ -1,6 +1,6 @@
 import { BaseError } from "../../lib/errors/shared";
 
-export class CustomerTypeError extends BaseError {
+class CustomerTypeError extends BaseError {
   constructor(message: string, recoverySuggestions?: string[]) {
     super(message, "CUSTOMER_TYPE_ERROR", recoverySuggestions);
   }

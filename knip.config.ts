@@ -1,7 +1,7 @@
 import type { KnipConfig } from "knip";
 
 const config: KnipConfig = {
-  entry: ["src/cli/main.ts", "scripts/*.ts"],
+  entry: ["src/cli/main.ts", "src/index.ts", "src/engine.ts", "scripts/*.ts"],
   // Specification contracts are design artifacts, not executable source.
   project: ["src/**/*.ts", "scripts/**/*.ts"],
   // gql.tada generates this declaration file from the Saleor schema.

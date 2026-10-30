@@ -1,1 +1,1 @@
-export { safeIdentifier, safePath, safeString, safeToken, saleorUrl } from "./safe-primitives";
+export { safePath, safeToken, saleorUrl } from "./safe-primitives";

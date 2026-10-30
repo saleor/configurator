@@ -30,7 +30,7 @@ export const ATTRIBUTE_INPUT_TYPES = [
 
 export type AttributeInputType = (typeof ATTRIBUTE_INPUT_TYPES)[number];
 
-export interface CachedAttributeChoice {
+interface CachedAttributeChoice {
   readonly id: string;
   readonly name: string;
   readonly value: string;
@@ -46,15 +46,15 @@ export interface CachedAttribute {
 }
 
 /** Config section an attribute is declared in — determines its Saleor attribute type. */
-export const ATTRIBUTE_SECTIONS = ["product", "content", "customer"] as const;
+const ATTRIBUTE_SECTIONS = ["product", "content", "customer"] as const;
 
 export type AttributeSection = (typeof ATTRIBUTE_SECTIONS)[number];
 
-export type WrongSectionResult =
+type WrongSectionResult =
   | { found: true; actualSection: AttributeSection; attribute: CachedAttribute }
   | { found: false };
 
-export interface CacheStats {
+interface CacheStats {
   productAttributeCount: number;
   contentAttributeCount: number;
   customerAttributeCount: number;

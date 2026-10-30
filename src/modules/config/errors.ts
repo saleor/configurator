@@ -1,6 +1,6 @@
 import { BaseError } from "../../lib/errors/shared";
 
-export class ConfigError extends BaseError {}
+class ConfigError extends BaseError {}
 
 export class UnsupportedInputTypeError extends ConfigError {
   constructor(message: string) {

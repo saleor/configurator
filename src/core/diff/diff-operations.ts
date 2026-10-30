@@ -84,32 +84,6 @@ export function hasSafeDiffChangesOnly(summary: DiffSummary): boolean {
 }
 
 /**
- * Gets results for a specific entity type
- * @param summary The diff summary to search
- * @param entityType The entity type to filter by
- * @returns Array of diff results for the specified entity type
- */
-export function getDiffResultsForEntityType(
-  summary: DiffSummary,
-  entityType: EntityType
-): readonly DiffResult[] {
-  return summary.results.filter((result) => result.entityType === entityType);
-}
-
-/**
- * Gets results for a specific operation type
- * @param summary The diff summary to search
- * @param operation The operation type to filter by
- * @returns Array of diff results for the specified operation
- */
-export function getDiffResultsForOperation(
-  summary: DiffSummary,
-  operation: DiffOperation
-): readonly DiffResult[] {
-  return summary.results.filter((result) => result.operation === operation);
-}
-
-/**
  * Recalculates summary statistics from a filtered set of results
  * @param results The filtered diff results
  * @returns A new diff summary with recalculated statistics

@@ -17,7 +17,7 @@ function isCombinedError(error: unknown): error is CombinedError {
 
 type ErrorConstructor = new (message: string, entityIdentifier?: string) => Error;
 
-export async function wrapServiceCall<T>(
+async function wrapServiceCall<T>(
   operation: string,
   entityType: string,
   entityIdentifier: string | undefined,
@@ -78,7 +78,7 @@ export async function wrapServiceCall<T>(
   }
 }
 
-export async function wrapBatch<T, R>(
+async function wrapBatch<T, R>(
   items: T[],
   operation: string,
   getIdentifier: (item: T) => string,

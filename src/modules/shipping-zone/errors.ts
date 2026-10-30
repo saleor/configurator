@@ -1,16 +1,8 @@
 import { BaseError } from "../../lib/errors/shared";
 
-export class ShippingZoneError extends BaseError {
+class ShippingZoneError extends BaseError {
   constructor(message: string, details?: string[]) {
     super(message, "SHIPPING_ZONE_ERROR", details);
-  }
-}
-
-export class ShippingZoneNotFoundError extends ShippingZoneError {
-  constructor(identifier: string) {
-    super(`Shipping zone not found: ${identifier}`, [
-      `Check if shipping zone '${identifier}' exists in your Saleor instance`,
-    ]);
   }
 }
 
@@ -32,7 +24,7 @@ export class ShippingZoneOperationError extends ShippingZoneError {
   }
 }
 
-export class ShippingMethodError extends ShippingZoneError {}
+class ShippingMethodError extends ShippingZoneError {}
 
 export class ShippingMethodValidationError extends ShippingMethodError {
   constructor(message: string, field?: string) {

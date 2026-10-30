@@ -617,7 +617,7 @@ async function bootstrapEntityTypeStage(
   }
 }
 
-export const pageTypesStage: DeploymentStage = {
+const pageTypesStage: DeploymentStage = {
   name: StageNames.PAGE_TYPES,
   async execute(context) {
     try {
@@ -650,7 +650,7 @@ export const pageTypesStage: DeploymentStage = {
   },
 };
 
-export const modelTypesStage: DeploymentStage = {
+const modelTypesStage: DeploymentStage = {
   name: StageNames.MODEL_TYPES,
   async execute(context) {
     try {
@@ -685,7 +685,7 @@ export const modelTypesStage: DeploymentStage = {
   },
 };
 
-export const customerTypesStage: DeploymentStage = {
+const customerTypesStage: DeploymentStage = {
   name: StageNames.CUSTOMER_TYPES,
   async execute(context) {
     try {
@@ -716,7 +716,7 @@ export const customerTypesStage: DeploymentStage = {
   },
 };
 
-export const collectionsStage: DeploymentStage = {
+const collectionsStage: DeploymentStage = {
   name: StageNames.COLLECTIONS,
   async execute(context) {
     try {
@@ -741,7 +741,7 @@ export const collectionsStage: DeploymentStage = {
   },
 };
 
-export const menusStage: DeploymentStage = {
+const menusStage: DeploymentStage = {
   name: StageNames.MENUS,
   async execute(context) {
     try {
@@ -766,7 +766,7 @@ export const menusStage: DeploymentStage = {
   },
 };
 
-export const modelsStage: DeploymentStage = {
+const modelsStage: DeploymentStage = {
   name: StageNames.MODELS,
   async execute(context) {
     try {
@@ -857,7 +857,7 @@ export const categoriesStage: DeploymentStage = {
   },
 };
 
-export const warehousesStage: DeploymentStage = {
+const warehousesStage: DeploymentStage = {
   name: StageNames.WAREHOUSES,
   async execute(context) {
     try {
@@ -882,7 +882,7 @@ export const warehousesStage: DeploymentStage = {
   },
 };
 
-export const taxClassesStage: DeploymentStage = {
+const taxClassesStage: DeploymentStage = {
   name: StageNames.TAX_CLASSES,
   async execute(context) {
     try {
@@ -907,7 +907,7 @@ export const taxClassesStage: DeploymentStage = {
   },
 };
 
-export const shippingZonesStage: DeploymentStage = {
+const shippingZonesStage: DeploymentStage = {
   name: StageNames.SHIPPING_ZONES,
   async execute(context) {
     try {
@@ -1049,7 +1049,7 @@ export const attributeChoicesPreflightStage: DeploymentStage = {
   },
 };
 
-export const productsStage: DeploymentStage = {
+const productsStage: DeploymentStage = {
   name: StageNames.PRODUCTS,
   async execute(context) {
     try {

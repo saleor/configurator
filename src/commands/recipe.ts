@@ -56,7 +56,7 @@ function handleSubcommandError(error: unknown): never {
 // List subcommand
 // ============================================================================
 
-export const recipeListArgsSchema = z.object({
+const recipeListArgsSchema = z.object({
   category: recipeCategorySchema.optional(),
   json: z.boolean().default(false),
 });
@@ -77,7 +77,7 @@ async function listHandler(args: z.infer<typeof recipeListArgsSchema>): Promise<
 // Show subcommand
 // ============================================================================
 
-export const recipeShowArgsSchema = z.object({
+const recipeShowArgsSchema = z.object({
   name: z.string(),
   json: z.boolean().default(false),
 });
@@ -106,7 +106,7 @@ async function showHandler(args: z.infer<typeof recipeShowArgsSchema>): Promise<
 // Apply subcommand
 // ============================================================================
 
-export const recipeApplyArgsSchema = baseCommandArgsSchema.extend({
+const recipeApplyArgsSchema = baseCommandArgsSchema.extend({
   name: z.string(),
   plan: z.boolean().default(false),
   json: z.boolean().default(false),
@@ -268,7 +268,7 @@ async function applyHandler(args: z.infer<typeof recipeApplyArgsSchema>): Promis
 // Export subcommand
 // ============================================================================
 
-export const recipeExportArgsSchema = z.object({
+const recipeExportArgsSchema = z.object({
   name: z.string(),
   output: z.string().optional(),
   json: z.boolean().default(false),

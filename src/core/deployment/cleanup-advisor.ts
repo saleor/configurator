@@ -1,7 +1,7 @@
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import type { DiffSummary } from "../diff";
 
-export interface CleanupSuggestion {
+interface CleanupSuggestion {
   type: "duplicate-variant-sku" | "default-channel-delete";
   message: string;
 }

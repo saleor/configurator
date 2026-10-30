@@ -147,8 +147,8 @@ export type AttributeCreateInput = VariablesOf<typeof createAttributeMutation>["
 
 export type AttributeUpdateInput = VariablesOf<typeof updateAttributeMutation>["input"];
 
-export type AttributeBulkCreateInput = VariablesOf<typeof attributeBulkCreateMutation>;
-export type AttributeBulkUpdateInput = VariablesOf<typeof attributeBulkUpdateMutation>;
+type AttributeBulkCreateInput = VariablesOf<typeof attributeBulkCreateMutation>;
+type AttributeBulkUpdateInput = VariablesOf<typeof attributeBulkUpdateMutation>;
 
 type AttributeFragment = NonNullable<
   NonNullable<NonNullable<ResultOf<typeof createAttributeMutation>>["attributeCreate"]>["attribute"]
@@ -197,7 +197,7 @@ const getAttributesByNamesQuery = graphql(`
   }
 `);
 
-export type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
+type GetAttributesByNamesInput = VariablesOf<typeof getAttributesByNamesQuery>;
 
 export interface AttributeOperations {
   createAttribute(attributeInput: AttributeCreateInput): Promise<Attribute>;

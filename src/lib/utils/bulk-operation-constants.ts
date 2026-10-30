@@ -129,29 +129,6 @@ export const RetryConfig = {
 } as const;
 
 /**
- * Error policy options for bulk mutations
- */
-export const ErrorPolicy = {
-  /**
-   * Continue processing even if individual items fail
-   * Failed items will be reported separately
-   */
-  IGNORE_FAILED: "IGNORE_FAILED",
-
-  /**
-   * Stop processing on first failure
-   * All subsequent items will not be processed
-   */
-  REJECT_EVERYTHING: "REJECT_EVERYTHING",
-
-  /**
-   * Reject only failed items
-   * Successful items will be committed
-   */
-  REJECT_FAILED_ROWS: "REJECT_FAILED_ROWS",
-} as const;
-
-/**
  * Logging messages for bulk operations
  */
 export const BulkOperationMessages = {
@@ -203,25 +180,4 @@ export const StageNames = {
   SHIPPING_ZONES: "Managing shipping zones",
   ATTRIBUTE_CHOICES_PREFLIGHT: "Preparing attribute choices",
   PRODUCTS: "Managing products",
-} as const;
-
-/**
- * Entity type names for logging and error reporting
- */
-export const EntityTypes = {
-  SHOP_SETTINGS: "Shop Settings",
-  PRODUCT_TYPES: "Product Types",
-  ATTRIBUTES: "Attributes",
-  CHANNELS: "Channels",
-  PAGE_TYPES: "Page Types",
-  MODEL_TYPES: "Model Types",
-  CUSTOMER_TYPES: "Customer Types",
-  COLLECTIONS: "Collections",
-  MENUS: "Menus",
-  MODELS: "Models",
-  CATEGORIES: "Categories",
-  WAREHOUSES: "Warehouses",
-  TAX_CLASSES: "TaxClasses",
-  SHIPPING_ZONES: "Shipping Zones",
-  PRODUCTS: "Products",
 } as const;

@@ -275,7 +275,7 @@ export type MenuItem = NonNullable<
 export type MenuCreateInput = VariablesOf<typeof CreateMenu>["input"];
 export type MenuInput = VariablesOf<typeof UpdateMenu>["input"];
 export type MenuItemCreateInput = VariablesOf<typeof CreateMenuItem>["input"];
-export type MenuItemInput = VariablesOf<typeof UpdateMenuItem>["input"];
+type MenuItemInput = VariablesOf<typeof UpdateMenuItem>["input"];
 
 export interface MenuOperations {
   getMenus(): Promise<Menu[]>;

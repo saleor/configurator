@@ -1,4 +1,4 @@
-export const RETRYABLE_TRANSPORT_STATUSES: ReadonlySet<number> = new Set([429, 502, 503, 504]);
+const RETRYABLE_TRANSPORT_STATUSES: ReadonlySet<number> = new Set([429, 502, 503, 504]);
 
 const IDEMPOTENT_MUTATION_KEYWORDS = [
   "Update",
@@ -17,7 +17,7 @@ export function isIdempotentMutation(operationName: string | null | undefined): 
   return IDEMPOTENT_MUTATION_KEYWORDS.some((keyword) => operationName.includes(keyword));
 }
 
-export type GraphQLOperationKind = "query" | "mutation" | "subscription";
+type GraphQLOperationKind = "query" | "mutation" | "subscription";
 
 export function shouldRetryOperation(
   operationKind: GraphQLOperationKind | string | undefined,

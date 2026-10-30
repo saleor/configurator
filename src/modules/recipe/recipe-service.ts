@@ -8,7 +8,7 @@ import { RecipeLoadError } from "./errors";
 import { loadManifest, loadRecipe, loadRecipeFromFile } from "./recipe-repository";
 import type { EntitySummary, Recipe, RecipeCategory, RecipeManifestEntry } from "./schema";
 
-export interface ListRecipesOptions {
+interface ListRecipesOptions {
   category?: RecipeCategory;
 }
 

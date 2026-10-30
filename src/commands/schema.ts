@@ -4,11 +4,11 @@ import type { CommandConfig } from "../cli/command";
 import { COMMAND_NAME } from "../meta";
 import { configSchema } from "../modules/config/schema/schema";
 
-export const schemaCommandSchema = z.object({
+const schemaCommandSchema = z.object({
   output: z.string().optional().describe("Write schema to file instead of stdout"),
 });
 
-export type SchemaCommandArgs = z.infer<typeof schemaCommandSchema>;
+type SchemaCommandArgs = z.infer<typeof schemaCommandSchema>;
 
 function buildDocumentationSchema(): Record<string, unknown> {
   const jsonSchema = z.toJSONSchema(configSchema, { io: "input" });

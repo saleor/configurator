@@ -25,7 +25,7 @@ const createProductTypeMutation = graphql(`
 export type ProductType = NonNullable<
   NonNullable<ResultOf<typeof createProductTypeMutation>["productTypeCreate"]>["productType"]
 >;
-export type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
+type ProductTypeInput = VariablesOf<typeof createProductTypeMutation>["input"];
 
 const assignAttributesToProductTypeMutation = graphql(`
   mutation AssignAttributesToProductType(

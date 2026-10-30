@@ -249,7 +249,7 @@ export class AttributeService {
   }
 }
 
-export type AttributeValidationResult =
+type AttributeValidationResult =
   | { valid: true; attribute: CachedAttribute }
   | { valid: false; error: AttributeNotFoundError | WrongAttributeTypeError };
 
