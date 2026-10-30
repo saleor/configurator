@@ -295,8 +295,7 @@ export class WarehouseService {
     logger.debug("Successfully bootstrapped all warehouses", {
       count: results.successes.length,
     });
-    // Flatten the results - each success contains a single Warehouse, not an array
-    return results.successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
+    return results.successes.map((s) => s.result);
   }
 
   async syncWarehouseShippingZones(

@@ -242,8 +242,7 @@ export class CollectionService {
     logger.debug("Successfully bootstrapped all collections", {
       count: results.successes.length,
     });
-    // Flatten the results - each success contains a single Collection, not an array
-    return results.successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
+    return results.successes.map((s) => s.result);
   }
 
   async syncCollectionProducts(

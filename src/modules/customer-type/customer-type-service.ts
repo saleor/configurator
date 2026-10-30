@@ -155,7 +155,7 @@ export class CustomerTypeService {
 
     logger.debug("Successfully bootstrapped all customer types", { count: successes.length });
 
-    return successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
+    return successes.map((s) => s.result);
   }
 
   private validateUniqueSlugs(inputs: CustomerTypeInput[]): void {
