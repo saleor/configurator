@@ -1,3 +1,4 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { safeIdentifier, safePath, safeString, safeToken, saleorUrl } from "./safe-primitives";
 
@@ -16,6 +17,28 @@ describe("safePath", () => {
 
   it("allows paths within CWD", () => {
     expect(() => safePath().parse("configs/staging.yml")).not.toThrow();
+  });
+
+  it("allows file names containing consecutive dots", () => {
+    expect(safePath().parse("my..config.yml")).toBe("my..config.yml");
+    expect(safePath().parse("configs/v1..2/config.yml")).toBe(
+      path.normalize("configs/v1..2/config.yml")
+    );
+  });
+
+  it("rejects relative paths that escape via .. segments", () => {
+    expect(() => safePath().parse("configs/../../config.yml")).toThrow();
+    expect(() => safePath().parse("..")).toThrow();
+  });
+
+  it("allows absolute paths inside CWD", () => {
+    const inside = path.join(process.cwd(), "configs", "config.yml");
+    expect(safePath().parse(inside)).toBe(inside);
+  });
+
+  it("rejects absolute paths in sibling directories sharing the CWD prefix", () => {
+    const sibling = `${process.cwd()}2${path.sep}config.yml`;
+    expect(() => safePath().parse(sibling)).toThrow();
   });
 });
 

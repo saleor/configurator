@@ -4,13 +4,22 @@ import { z } from "zod";
 // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional control character stripping for input sanitization
 const CONTROL_CHARS_RE = /[\x00-\x1f\x7f]/g;
 
+function hasParentSegment(p: string): boolean {
+  return p.split(/[\\/]/).includes("..");
+}
+
+function isWithinWorkingDirectory(p: string): boolean {
+  const relative = path.relative(process.cwd(), p);
+  return relative === "" || (!hasParentSegment(relative) && !path.isAbsolute(relative));
+}
+
 export function safePath() {
   return z
     .string()
     .transform((p) => path.normalize(p))
-    .refine((p) => !p.includes(".."), "Path traversal not allowed")
+    .refine((p) => !hasParentSegment(p), "Path traversal not allowed")
     .refine(
-      (p) => !path.isAbsolute(p) || p.startsWith(process.cwd()),
+      (p) => !path.isAbsolute(p) || isWithinWorkingDirectory(p),
       "Path must be within working directory"
     );
 }
