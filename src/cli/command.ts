@@ -112,6 +112,20 @@ export function mergeEnvArgs<T extends Record<string, unknown>>(args: T): T {
   } as T;
 }
 
+/**
+ * Removes option values that Commander filled in from defaults, so env vars
+ * (e.g. SALEOR_CONFIG) can take precedence over them. The schema re-applies the
+ * same defaults during validation.
+ */
+export function omitDefaultOptionValues(
+  options: Record<string, unknown>,
+  command: Pick<Command, "getOptionValueSource">
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(options).filter(([key]) => command.getOptionValueSource(key) !== "default")
+  );
+}
+
 export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
   name: string;
   description: string;
@@ -211,7 +225,9 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
       // Handle interactive mode for missing arguments
       let validatedArgs: z.infer<T>;
 
-      const args = mergeEnvArgs(options as Partial<z.infer<T>>);
+      const args = mergeEnvArgs(
+        omitDefaultOptionValues(options as Record<string, unknown>, command) as Partial<z.infer<T>>
+      );
       if (config.requiresInteractive && (!args.url || !args.token)) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(args);

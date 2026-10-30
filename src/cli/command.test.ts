@@ -211,3 +211,31 @@ describe("createCommand help examples", () => {
     expect(logSpy).not.toHaveBeenCalled();
   });
 });
+
+describe("createCommand config resolution", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("uses SALEOR_CONFIG when --config is not passed", async () => {
+    vi.stubEnv("SALEOR_CONFIG", "env-config.yml");
+    const args = await parseWithCommand(deployCommandSchema, VALID_ARGS);
+    expect(args.config).toBe("env-config.yml");
+  });
+
+  it("prefers explicit --config over SALEOR_CONFIG", async () => {
+    vi.stubEnv("SALEOR_CONFIG", "env-config.yml");
+    const args = await parseWithCommand(deployCommandSchema, [
+      ...VALID_ARGS,
+      "--config",
+      "cli-config.yml",
+    ]);
+    expect(args.config).toBe("cli-config.yml");
+  });
+
+  it("falls back to the schema default", async () => {
+    vi.stubEnv("SALEOR_CONFIG", undefined);
+    const args = await parseWithCommand(deployCommandSchema, VALID_ARGS);
+    expect(args.config).toBe("config.yml");
+  });
+});
