@@ -42,7 +42,9 @@ interface DiffServiceConfig {
   readonly enableDebugLogging?: boolean;
   /** Timeout for remote configuration retrieval in milliseconds */
   readonly remoteTimeoutMs?: number;
-  /** Maximum number of concurrent comparisons */
+  /**
+   * @deprecated Has no effect: comparators run in memory once both configs are loaded.
+   */
   readonly maxConcurrentComparisons?: number;
 }
 
@@ -382,61 +384,6 @@ export class DiffService {
   }
 
   /**
-   * Performs all entity comparisons
-   */
-  private async performComparisons(
-    localConfig: SaleorConfig,
-    remoteConfig: SaleorConfig,
-    options?: DiffOptions
-  ): Promise<readonly DiffResult[]> {
-    const comparisons: Promise<readonly DiffResult[]>[] = [];
-
-    // Shop settings comparison
-    if (this.comparators.has("shop")) {
-      comparisons.push(
-        this.performComparison("shop", localConfig.shop, remoteConfig.shop, options)
-      );
-    }
-
-    // Entity array comparisons
-    const entityTypes = [
-      "channels",
-      "productAttributes",
-      "contentAttributes",
-      "productTypes",
-      "pageTypes",
-      "modelTypes",
-      "customerAttributes",
-      "customerTypes",
-      "categories",
-      "products",
-      "collections",
-      "menus",
-      "models",
-      "warehouses",
-      "shippingZones",
-      "taxClasses",
-    ] as const;
-
-    for (const entityType of entityTypes) {
-      if (this.comparators.has(entityType)) {
-        comparisons.push(
-          this.performComparison(
-            entityType,
-            localConfig[entityType] || [],
-            remoteConfig[entityType] || [],
-            options
-          )
-        );
-      }
-    }
-
-    // Execute comparisons with concurrency limit
-    const results = await this.executeConcurrently(comparisons);
-    return results.flat();
-  }
-
-  /**
    * Performs selective entity comparisons based on include/exclude options
    */
   private async performSelectiveComparisons(
@@ -512,7 +459,7 @@ export class DiffService {
     }
 
     // Execute comparisons with concurrency limit
-    const results = await this.executeConcurrently(comparisons);
+    const results = await this.collectComparisons(comparisons);
     return results.flat();
   }
 
@@ -560,39 +507,21 @@ export class DiffService {
   }
 
   /**
-   * Executes promises with concurrency limit
+   * Waits for all comparisons, keeping results in section order and reporting every failure
    */
-  private async executeConcurrently<T>(promises: readonly Promise<T>[]): Promise<T[]> {
-    const results: T[] = [];
-    const errors: Error[] = [];
-    const executing = new Set<Promise<void>>();
-
-    for (const promise of promises) {
-      const executePromise = promise
-        .then((result) => {
-          results.push(result);
-        })
-        .catch((error) => {
-          errors.push(error instanceof Error ? error : new Error(String(error)));
-        })
-        .finally(() => {
-          executing.delete(executePromise);
-        });
-
-      executing.add(executePromise);
-
-      if (executing.size >= this.config.maxConcurrentComparisons) {
-        await Promise.race(executing);
-      }
-    }
-
-    await Promise.all(executing);
+  private async collectComparisons<T>(promises: readonly Promise<T>[]): Promise<T[]> {
+    const settled = await Promise.allSettled(promises);
+    const errors = settled.flatMap((outcome) =>
+      outcome.status === "rejected"
+        ? [outcome.reason instanceof Error ? outcome.reason : new Error(String(outcome.reason))]
+        : []
+    );
 
     if (errors.length > 0) {
       throw new AggregateError(errors, `${errors.length} comparison(s) failed`);
     }
 
-    return results;
+    return settled.flatMap((outcome) => (outcome.status === "fulfilled" ? [outcome.value] : []));
   }
 
   /**
