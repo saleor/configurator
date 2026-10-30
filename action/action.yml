@@ -142,7 +142,9 @@ runs:
       run: ${{ github.action_path }}/scripts/run-configurator.sh
 
     - name: Post PR Comment
-      if: inputs.post-pr-comment == 'true' && github.event_name == 'pull_request'
+      # Also post when a policy check (fail-on-delete/-breaking/-diff) failed the
+      # previous step - that is when reviewers most need to see the diff.
+      if: ${{ !cancelled() && inputs.post-pr-comment == 'true' && github.event_name == 'pull_request' }}
       uses: actions/github-script@v7
       env:
         # Passed via env, never interpolated into the script: the diff contains
