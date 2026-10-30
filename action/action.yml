@@ -46,7 +46,7 @@ inputs:
     description: 'GitHub token for posting PR comments'
     required: false
   fail-on-diff:
-    description: 'Exit with error if any changes detected (diff command)'
+    description: 'Exit with error if any changes detected (diff command, or deploy with plan-only)'
     required: false
     default: 'false'
   fail-on-delete:
