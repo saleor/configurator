@@ -17,10 +17,14 @@ const logLevelMap = {
 
 type LogLevel = keyof typeof logLevelMap;
 
-// Hide the stdout transport in machine-readable mode, while retaining logs
-// for the JSON envelope. --text preserves human output in non-TTY environments.
+// --text overrides automatic/explicit JSON, but GitHub comment output must
+// remain free of logs even with --text (the Action uses this combination).
+const githubCommentOutput = process.argv.some(
+  (arg) => arg === "--github-comment" || arg === "--githubComment"
+);
 const machineReadableOutput =
-  !process.argv.includes("--text") && (isCiOutputMode() || isNonInteractiveEnvironment());
+  githubCommentOutput ||
+  (!process.argv.includes("--text") && (isCiOutputMode() || isNonInteractiveEnvironment()));
 const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
 
 if (mappedLogLevel === undefined) {

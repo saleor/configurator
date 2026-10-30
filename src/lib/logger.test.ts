@@ -19,6 +19,8 @@ describe("logger output", () => {
     { flags: ["--json"], tty: true },
     { flags: ["--github-comment"], tty: true },
     { flags: ["--githubComment"], tty: true },
+    { flags: ["--github-comment", "--text"], tty: false },
+    { flags: ["--githubComment", "--text"], tty: false },
   ])("keeps stdout clean and collects logs for $flags (TTY: $tty)", async ({ flags, tty }) => {
     vi.resetModules();
     vi.stubEnv("LOG_LEVEL", "info");
