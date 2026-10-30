@@ -46,13 +46,14 @@ export class WarehouseService {
     );
   }
 
-  private validateWarehouseInput(input: WarehouseInput): void {
+  private validateWarehouseInput(input: WarehouseInput, preserveAddress = false): void {
     if (!input.slug?.trim()) {
       throw new WarehouseValidationError("Warehouse slug is required", "slug");
     }
     if (!input.name?.trim()) {
       throw new WarehouseValidationError("Warehouse name is required", "name");
     }
+    if (preserveAddress) return;
     // Email is now optional - validation is handled by Zod schema
     if (!input.address) {
       throw new WarehouseValidationError("Warehouse address is required", "address");
@@ -92,7 +93,9 @@ export class WarehouseService {
     }) as WarehouseCreateInput;
   }
 
-  private mapInputToUpdateInput(input: WarehouseInput): WarehouseUpdateInput {
+  private mapInputToUpdateInput(
+    input: Omit<WarehouseInput, "address"> & { address?: WarehouseInput["address"] }
+  ): WarehouseUpdateInput {
     return object.filterUndefinedValues({
       name: input.name,
       slug: input.slug,
@@ -160,7 +163,10 @@ export class WarehouseService {
     );
   }
 
-  async updateWarehouse(id: string, input: WarehouseInput): Promise<Warehouse> {
+  async updateWarehouse(
+    id: string,
+    input: Omit<WarehouseInput, "address"> & { address?: WarehouseInput["address"] }
+  ): Promise<Warehouse> {
     return ServiceErrorWrapper.wrapServiceCall(
       "update warehouse",
       "warehouse",
@@ -200,11 +206,26 @@ export class WarehouseService {
 
     const existingWarehouse = await this.getExistingWarehouse(input.slug);
 
-    // A new store's own default warehouse has no street address, so a pulled
-    // configuration holds it without one; Saleor refuses to save it that way. Leave it
-    // as it is instead of failing every warehouse processed with it.
+    // Saleor cannot save an addressless warehouse's address. Preserve it only
+    // when unchanged, while still applying updates to the warehouse itself.
     if (existingWarehouse && !input.address?.streetAddress1?.trim()) {
-      return existingWarehouse;
+      const currentAddress = {
+        ...existingWarehouse.address,
+        country: existingWarehouse.address?.country?.code,
+      };
+      const addressChanged = Object.entries(input.address ?? {}).some(
+        ([key, value]) =>
+          (value ?? "") !== (currentAddress[key as keyof typeof currentAddress] ?? "")
+      );
+      if (addressChanged) {
+        throw new WarehouseValidationError(
+          "Cannot change a warehouse address without a street address",
+          "address.streetAddress1"
+        );
+      }
+      this.validateWarehouseInput(input, true);
+      const { address: _address, ...update } = input;
+      return this.updateWarehouse(existingWarehouse.id, update);
     }
 
     this.validateWarehouseInput(input);
