@@ -3,6 +3,9 @@
 # This script is executed by the composite action to run configurator commands
 
 set -e
+# Without pipefail, `configurator ... | tee` reports tee's status and a failed
+# command would be treated as a success.
+set -o pipefail
 
 # Returns success when `configurator <command> --help` lists the given flag as a
 # boolean switch (i.e. not followed by a `<value>` placeholder).
