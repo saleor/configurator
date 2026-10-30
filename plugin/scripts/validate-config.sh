@@ -208,7 +208,7 @@ if errors:
         path = " → ".join(str(p) for p in error.absolute_path) if error.absolute_path else "(root)"
         print(f"{i}. Path: {path}")
         print(f"   Error: {error.message}")
-        if $VERBOSE:
+        if "$VERBOSE" == "true":
             if error.schema_path:
                 schema_path = " → ".join(str(p) for p in error.schema_path)
                 print(f"   Schema: {schema_path}")

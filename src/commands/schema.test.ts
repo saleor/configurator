@@ -1,4 +1,6 @@
 import { writeFileSync } from "node:fs";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { schemaHandler } from "./schema";
 
@@ -67,6 +69,19 @@ describe("schema command", () => {
       const parsed = JSON.parse(output);
       expect(parsed).toHaveProperty("properties");
       expect(parsed.properties).toHaveProperty("channels");
+    });
+
+    it("should accept configuration input with omitted defaulted fields", () => {
+      schemaHandler(createDefaultArgs());
+
+      const ajv = new Ajv2020({ strict: false });
+      addFormats(ajv);
+      const validate = ajv.compile(JSON.parse(mockConsoleLog.mock.calls[0][0]));
+
+      expect(validate({ productTypes: [{ name: "T-Shirt" }] })).toBe(true);
+      expect(validate({ productTypes: [{ name: "T-Shirt", isShippingRequired: "yes" }] })).toBe(
+        false
+      );
     });
 
     it("should not call writeFileSync", () => {

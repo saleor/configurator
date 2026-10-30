@@ -66,12 +66,18 @@ productTypes:
     productAttributes:
       - attribute: "Brand"
 
+categories:
+  - name: "Clothing"
+    slug: "clothing"
+
 products:
   - name: "Classic Tee"
     slug: "classic-tee"
     productType: "T-Shirt"
+    category: "clothing"
     variants:
-      - sku: "TEE-001"
+      - name: "Default"
+        sku: "TEE-001"
         channelListings:
           - channel: "main"
             price: 29.99

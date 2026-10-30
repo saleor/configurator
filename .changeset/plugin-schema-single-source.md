@@ -9,3 +9,4 @@ Fix plugin/schema drift that was causing stale syntax guidance (`attributes`) wh
 - Remove duplicated `plugin/schemas/config.schema.json` snapshot to avoid schema forks.
 - Update plugin validation to use CLI validation first (authoritative), with JSON schema fallback to canonical schema locations.
 - Update plugin docs/templates/skills to stop pointing users to stale top-level `attributes` syntax.
+- Generate JSON schemas for configuration input so CLI and fallback validation accept omitted defaulted fields.

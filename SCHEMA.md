@@ -119,7 +119,7 @@ Each item is of type: `object`
     `VN`, `VU`, `WF`, `WS`, `YE`, `YT`,
     `ZA`, `ZM`, `ZW`
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
-- **isActive** (`boolean`) *required*: Whether this channel is currently active and accepting orders
+- **isActive** (`boolean`): Whether this channel is currently active and accepting orders
 - **settings** (`object`): Advanced channel configuration options
 - **taxConfiguration** (`object`): Tax settings specific to this channel
 
@@ -138,9 +138,9 @@ Each item is of type: `object`
 - **name** (`string`) *required*: Warehouse.name
 - **slug** (`string`) *required*: Warehouse.slug
 - **email** (`string`): Warehouse.email
-- **isPrivate** (`boolean`) *required*: Warehouse.isPrivate
+- **isPrivate** (`boolean`): Warehouse.isPrivate
 - **address** (`object`) *required*: Warehouse.address
-- **clickAndCollectOption** (`string (enum)`) *required*: Warehouse.clickAndCollectOption
+- **clickAndCollectOption** (`string (enum)`): Warehouse.clickAndCollectOption
   - **Allowed values:** `DISABLED` | `LOCAL` | `ALL`
 - **shippingZones** (`array<string>`): Warehouse.shippingZones
 
@@ -158,7 +158,7 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: ShippingZone.name
 - **description** (`string`): ShippingZone.description
-- **default** (`boolean`) *required*: ShippingZone.default
+- **default** (`boolean`): ShippingZone.default
 - **countries** (`array<string (enum)>`) *required*: ShippingZone.countries
 - **warehouses** (`array<string>`): ShippingZone.warehouses
 - **channels** (`array<string>`): ShippingZone.channels
@@ -246,7 +246,7 @@ Each item is of type: `object`
 **Item properties:**
 
 - **name** (`string`) *required*: Name of the product type (e.g., 'Book', 'T-Shirt', 'Electronics')
-- **isShippingRequired** (`boolean`) *required*: Whether products of this type require shipping (false for digital products)
+- **isShippingRequired** (`boolean`): Whether products of this type require shipping (false for digital products)
 - **taxClass** (`string`): Reference to a tax class name for default tax calculation on products of this type
 - **productAttributes** (`array<AttributeInput>`): Attributes that apply to the entire product (e.g., Brand, Material)
 - **variantAttributes** (`array<AttributeInput>`): Attributes that can vary between product variants (e.g., Size, Color)
@@ -296,7 +296,7 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: CustomerType.name
 - **slug** (`string`) *required*: CustomerType.slug
-- **isDefault** (`boolean`) *required*: CustomerType.isDefault - customers without an explicit type get the default one. Only one customer type can be the default
+- **isDefault** (`boolean`): CustomerType.isDefault - customers without an explicit type get the default one. Only one customer type can be the default
 - **attributes** (`array<AttributeInput>`): CustomerType.attributes - references to attributes in the customerAttributes section
 
 ## categories
