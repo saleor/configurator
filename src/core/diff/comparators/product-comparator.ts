@@ -193,18 +193,18 @@ export class ProductComparator extends BaseEntityComparator<
         changes.push(
           this.createFieldChange(
             `channels.${channel}`,
-            undefined,
             remoteChannelListing,
-            `Channel "${channel}" will be added`
+            undefined,
+            `Channel "${channel}" is only in Saleor (deploy does not remove it)`
           )
         );
       } else if (localChannelListing && !remoteChannelListing) {
         changes.push(
           this.createFieldChange(
             `channels.${channel}`,
-            localChannelListing,
             undefined,
-            `Channel "${channel}" will be removed`
+            localChannelListing,
+            `Channel "${channel}" will be added`
           )
         );
       } else if (localChannelListing && remoteChannelListing) {
@@ -256,18 +256,18 @@ export class ProductComparator extends BaseEntityComparator<
         changes.push(
           this.createFieldChange(
             `variants.${sku}`,
-            undefined,
             remoteVariant,
-            `Variant "${sku}" will be added`
+            undefined,
+            `Variant "${sku}" is only in Saleor (deploy does not remove it)`
           )
         );
       } else if (localVariant && !remoteVariant) {
         changes.push(
           this.createFieldChange(
             `variants.${sku}`,
-            localVariant,
             undefined,
-            `Variant "${sku}" will be removed`
+            localVariant,
+            `Variant "${sku}" will be added`
           )
         );
       } else if (localVariant && remoteVariant) {

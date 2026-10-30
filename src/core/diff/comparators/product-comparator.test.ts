@@ -117,7 +117,36 @@ describe("ProductComparator", () => {
         (change) => change.field === "variants.BLUE-M"
       );
       expect(blueVariantChange).toBeDefined();
-      expect(blueVariantChange?.description).toMatch(/will be added|will be removed/);
+      expect(blueVariantChange?.description).toBe('Variant "BLUE-M" will be added');
+      expect(blueVariantChange?.currentValue).toBeUndefined();
+      expect(blueVariantChange?.desiredValue).toEqual({ name: "Blue M", sku: "BLUE-M" });
+    });
+
+    it("should report remote-only variants and channel listings as not removed", () => {
+      const remoteProduct = {
+        ...sampleProduct,
+        variants: [...(sampleProduct.variants ?? []), { name: "Old", sku: "OLD-1" }],
+        channelListings: [
+          { channel: "legacy-channel", isPublished: true, visibleInListings: true },
+        ],
+      };
+      const localProduct = { ...sampleProduct, channelListings: [] };
+
+      const results = comparator.compare([localProduct], [remoteProduct]);
+
+      const variantChange = results[0].changes?.find((c) => c.field === "variants.OLD-1");
+      expect(variantChange).toMatchObject({
+        currentValue: { name: "Old", sku: "OLD-1" },
+        desiredValue: undefined,
+        description: 'Variant "OLD-1" is only in Saleor (deploy does not remove it)',
+      });
+
+      const channelChange = results[0].changes?.find((c) => c.field === "channels.legacy-channel");
+      expect(channelChange).toMatchObject({
+        currentValue: { channel: "legacy-channel", isPublished: true, visibleInListings: true },
+        desiredValue: undefined,
+        description: 'Channel "legacy-channel" is only in Saleor (deploy does not remove it)',
+      });
     });
 
     it("should return no changes for identical products", () => {
