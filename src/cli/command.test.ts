@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { deployCommandSchema } from "../commands/deploy";
 import { diffCommandSchema } from "../commands/diff";
+import { introspectCommandSchema } from "../commands/introspect";
 import {
   createCommand,
   isBooleanField,
@@ -306,5 +307,18 @@ describe("interactive prompting", () => {
         include: "shop",
       })
     );
+  });
+});
+
+describe("introspect backup flags", () => {
+  it.each([
+    { flags: [], backup: true },
+    { flags: ["--backup"], backup: true },
+    { flags: ["--no-backup"], backup: false },
+    { flags: ["--no-backup", "--backup"], backup: true },
+    { flags: ["--backup", "--no-backup"], backup: false },
+  ])("parses $flags with backup=$backup", async ({ flags, backup }) => {
+    const args = await parseWithCommand(introspectCommandSchema, [...VALID_ARGS, ...flags]);
+    expect(args.backup).toBe(backup);
   });
 });

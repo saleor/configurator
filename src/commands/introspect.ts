@@ -474,7 +474,7 @@ export const introspectCommandConfig: CommandConfig<typeof introspectCommandSche
     `${COMMAND_NAME} introspect --include channels,shop`,
     `${COMMAND_NAME} introspect --exclude products`,
     `${COMMAND_NAME} introspect --format json --quiet`,
-    `${COMMAND_NAME} introspect --backup=false`,
+    `${COMMAND_NAME} introspect --no-backup`,
     `${COMMAND_NAME} introspect --verbose`,
   ],
 };

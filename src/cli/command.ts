@@ -189,6 +189,15 @@ function generateOptionsFromSchema(
     }
     command.addOption(option);
 
+    if (isBoolean && defaultValue === true) {
+      command.addOption(
+        new Option(
+          `--no-${toKebabCase(key)}`,
+          `Do not ${description[0].toLowerCase()}${description.slice(1)}`
+        )
+      );
+    }
+
     if (aliasFlags) {
       command.addOption(new Option(aliasFlags, description).hideHelp());
     }
