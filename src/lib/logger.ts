@@ -17,9 +17,11 @@ const logLevelMap = {
 
 type LogLevel = keyof typeof logLevelMap;
 
-// In CI output mode, suppress all logs for clean output
-const effectiveLogLevel = isCiOutputMode() ? "fatal" : LOG_LEVEL;
-const mappedLogLevel = logLevelMap[effectiveLogLevel as LogLevel];
+// Hide the stdout transport in machine-readable mode, while retaining logs
+// for the JSON envelope. --text preserves human output in non-TTY environments.
+const machineReadableOutput =
+  !process.argv.includes("--text") && (isCiOutputMode() || isNonInteractiveEnvironment());
+const mappedLogLevel = logLevelMap[LOG_LEVEL as LogLevel];
 
 if (mappedLogLevel === undefined) {
   throw new EnvironmentVariableError(
@@ -29,7 +31,7 @@ if (mappedLogLevel === undefined) {
 
 export const logger = new Logger({
   name: "saleor-configurator",
-  type: "pretty",
+  type: machineReadableOutput ? "hidden" : "pretty",
   minLevel: mappedLogLevel,
   prettyLogTemplate:
     "{{yyyy}}-{{mm}}-{{dd}} {{hh}}:{{MM}}:{{ss}}:{{ms}} {{logLevelName}} [{{name}}] ",
@@ -52,7 +54,7 @@ export const logger = new Logger({
 });
 
 // In non-interactive mode, also collect logs for JSON envelope embedding
-if (isNonInteractiveEnvironment()) {
+if (machineReadableOutput || isNonInteractiveEnvironment()) {
   const levelMap: Record<number, "debug" | "info" | "warn" | "error"> = {
     2: "debug",
     3: "info",
