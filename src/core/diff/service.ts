@@ -2,6 +2,7 @@ import yaml from "yaml";
 import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
 import { scopeConfig, shouldIncludeSection } from "../../lib/utils/selective-options";
+import { withoutDuplicateModelTypes } from "../../modules/config/config-service";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
 import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
@@ -161,11 +162,17 @@ export class DiffService {
 
     try {
       // Load configurations concurrently for better performance
-      const [loadedLocalConfig, remoteConfig] = await Promise.all([
+      const [loadedLocalConfig, loadedRemoteConfig] = await Promise.all([
         this.loadLocalConfigurationTolerant(),
         this.loadRemoteConfiguration(selectiveOptions),
       ]);
       const localConfig = scopeConfig(loadedLocalConfig, selectiveOptions);
+      // Mirror what introspect writes to the file so the preview matches the result
+      const remoteConfig = withoutDuplicateModelTypes(
+        loadedRemoteConfig,
+        loadedLocalConfig,
+        selectiveOptions
+      );
 
       if (this.config.enableDebugLogging) {
         logger.debug("Configurations loaded for introspect", {
