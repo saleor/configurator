@@ -1,5 +1,40 @@
 # saleor-configurator
 
+## 3.23.3
+
+### Patch Changes
+
+- 8001e3f: Expose Configurator as an in-process library through `createConfigurator` from `@saleor/configurator`. Applications can validate, introspect, diff, and deploy using configuration objects or YAML file paths, with generated TypeScript declarations, typed failures, and silent library operations. The existing CLI remains available.
+
+  Preserve existing addressless warehouses and plain-text attribute values when round-tripping introspected configuration.
+
+- c2e13a2: Fixed several CLI argument-handling bugs:
+
+  - Documented kebab-case flags (`--fail-on-delete`, `--skip-media`, `--report-path`, `--github-comment`, `--output-file`, `--entity-type`, `--dry-run`, `--drift-check`, ...) are now accepted. The camelCase spellings (`--failOnDelete`, ...) keep working.
+  - `deploy --verbose` is a plain flag again; before, it expected a value and swallowed the next argument.
+  - The main help banner no longer prints on every command run, and command examples no longer appear twice in `--help`.
+  - `SALEOR_CONFIG` is now applied when `--config` is not passed. Precedence: `--config` > `SALEOR_CONFIG` > `config.yml`.
+  - Flags such as `--plan`, `--include` and `--skip-media` are no longer dropped when the URL or token is entered interactively.
+  - `http://` Saleor URLs are now accepted for local instances (`localhost`, `127.0.0.1`, `::1`). All other hosts still require HTTPS.
+  - Config paths such as `my..config.yml` are now accepted. Absolute paths in sibling directories (for example `/proj2` when the working directory is `/proj`) are now correctly rejected.
+  - `deploy --json` now always prints a JSON envelope: on failures, after a completed deployment, and when cancelled. Nothing else is written to stdout in JSON mode. Exit codes are unchanged.
+  - `validate --json` now reports unparseable YAML in the JSON envelope instead of crashing.
+  - Error messages and recovery suggestions now name the real command (`pnpm dlx @saleor/configurator`) instead of a non-existent `saleor-configurator` binary, and no longer suggest the unsupported `diff --verbose`.
+  - Auto-detected JSON output now suppresses tslog text on stdout, including fatal messages, while collecting logs in the envelope. `--text` retains human-readable logs.
+  - Interactive JSON deployment confirmations and warnings go to stderr; confirmation is still required in a real terminal.
+  - `introspect --no-backup` disables backups; backups remain enabled by default.
+  - `recipe apply` accepts `SALEOR_URL` and `SALEOR_TOKEN`, with explicit flags taking precedence.
+
+- 1d4f06d: Reduce the size of the published CLI and library bundles by removing unused code and redundant exports.
+- a2954fa: Fix plugin/schema drift that was causing stale syntax guidance (`attributes`) while CLI validation expected `productAttributes`/`contentAttributes`.
+
+  - Add `schema:sync` and `schema:check` scripts and enforce them in PR CI, release CI, and `prepublishOnly`.
+  - Keep Zod schema as the single source of truth and regenerate `schema.json` deterministically.
+  - Remove duplicated `plugin/schemas/config.schema.json` snapshot to avoid schema forks.
+  - Update plugin validation to use CLI validation first (authoritative), with JSON schema fallback to canonical schema locations.
+  - Update plugin docs/templates/skills to stop pointing users to stale top-level `attributes` syntax.
+  - Generate JSON schemas for configuration input so CLI and fallback validation accept omitted defaulted fields.
+
 ## 3.23.2
 
 ### Patch Changes
