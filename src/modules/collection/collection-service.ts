@@ -4,7 +4,7 @@ import type {
 } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
-import { processInChunks } from "../../lib/utils/chunked-processor";
+import { processEachInChunks } from "../../lib/utils/chunked-processor";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
@@ -209,11 +209,9 @@ export class CollectionService {
       );
     }
 
-    const { successes, failures } = await processInChunks(
+    const { successes, failures } = await processEachInChunks(
       inputs,
-      async (chunk) => {
-        return Promise.all(chunk.map((input) => this.getOrCreateCollection(input)));
-      },
+      (input) => this.getOrCreateCollection(input),
       {
         chunkSize: 10,
         delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,

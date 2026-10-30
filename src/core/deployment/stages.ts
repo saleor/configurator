@@ -6,7 +6,7 @@ import {
   DelayConfig,
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
-import { processInChunks } from "../../lib/utils/chunked-processor";
+import { processEachInChunks } from "../../lib/utils/chunked-processor";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { toSlug } from "../../lib/utils/string";
 import {
@@ -93,24 +93,20 @@ export const productTypesStage: DeploymentStage = {
 
       const bootstrapOptions = { attributeCache: context.attributeCache };
 
-      const { successes: processedSuccesses, failures: processedFailures } = await processInChunks(
-        config.productTypes,
-        async (chunk) => {
-          return Promise.all(
-            chunk.map((productType) =>
-              context.configurator.services.productType.bootstrapProductType(
-                productType,
-                bootstrapOptions
-              )
-            )
-          );
-        },
-        {
-          chunkSize: ChunkSizeConfig.PRODUCT_TYPES_CHUNK_SIZE,
-          delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
-          entityType: "product types",
-        }
-      );
+      const { successes: processedSuccesses, failures: processedFailures } =
+        await processEachInChunks(
+          config.productTypes,
+          (productType) =>
+            context.configurator.services.productType.bootstrapProductType(
+              productType,
+              bootstrapOptions
+            ),
+          {
+            chunkSize: ChunkSizeConfig.PRODUCT_TYPES_CHUNK_SIZE,
+            delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
+            entityType: "product types",
+          }
+        );
 
       const successes = processedSuccesses.map((s) => s.item.name);
       const failures = processedFailures.map((f) => ({
