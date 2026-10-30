@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { Command } from "@commander-js/extra-typings";
+import { Command, Option } from "@commander-js/extra-typings";
 import ora from "ora";
 import { stringify } from "yaml";
 import { z } from "zod";
@@ -351,8 +351,12 @@ export function createRecipeCommand() {
     new Command("apply")
       .description("Apply a recipe configuration to your Saleor instance")
       .argument("<name>", "Recipe name or path")
-      .requiredOption("--url <url>", "Saleor instance URL")
-      .requiredOption("--token <token>", "Saleor API token")
+      .addOption(
+        new Option("--url <url>", "Saleor instance URL").env("SALEOR_URL").makeOptionMandatory()
+      )
+      .addOption(
+        new Option("--token <token>", "Saleor API token").env("SALEOR_TOKEN").makeOptionMandatory()
+      )
       .option("--quiet", "Suppress output")
       .option("--plan", "Show plan without applying")
       .option("--json", "Output as JSON")
