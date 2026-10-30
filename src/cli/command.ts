@@ -121,10 +121,15 @@ export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny
   requiresInteractive?: boolean;
 }
 
-function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
-  const isBoolean =
+function isBooleanField(field: z.ZodTypeAny): boolean {
+  return (
     field instanceof z.ZodBoolean ||
-    (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
+    (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean)
+  );
+}
+
+function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
+  const isBoolean = isBooleanField(field);
 
   return {
     flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
@@ -147,11 +152,7 @@ function generateOptionsFromSchema(
   Object.entries(shape).forEach(([key, field]) => {
     const { flags, description, defaultValue } = getOptionConfigFromZodForCommander(key, field);
 
-    const isBoolean =
-      field instanceof z.ZodBoolean ||
-      (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
-
-    if (isBoolean) {
+    if (isBooleanField(field)) {
       command.option(flags, description);
     } else {
       command.option(flags, description, defaultValue as string | undefined);
