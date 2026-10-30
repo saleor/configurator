@@ -126,7 +126,16 @@ DEFAULT_REPORTS_DIR=".configurator/reports"
 COUNTS=""
 
 # Execute configurator and capture output
-echo "Running: configurator ${ARGS[*]}"
+# Never print the token: it is only masked when it comes from a registered secret
+DISPLAY_ARGS=()
+for arg in "${ARGS[@]}"; do
+  if [[ -n "$SALEOR_TOKEN" && "$arg" == "$SALEOR_TOKEN" ]]; then
+    DISPLAY_ARGS+=("***")
+  else
+    DISPLAY_ARGS+=("$arg")
+  fi
+done
+echo "Running: configurator ${DISPLAY_ARGS[*]}"
 echo "---"
 
 EXIT_CODE=0
