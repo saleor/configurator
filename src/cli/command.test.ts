@@ -1,3 +1,4 @@
+import { password } from "@inquirer/prompts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { deployCommandSchema } from "../commands/deploy";
@@ -6,9 +7,17 @@ import {
   createCommand,
   isBooleanField,
   mergeEnvArgs,
+  promptForMissingArgs,
   shouldOutputJson,
   toKebabCase,
 } from "./command";
+
+vi.mock("@inquirer/prompts", () => ({
+  input: vi.fn(),
+  password: vi.fn(),
+  confirm: vi.fn(),
+  select: vi.fn(),
+}));
 
 const VALID_ARGS = ["--url", "https://example.saleor.cloud/graphql/", "--token", "test-token"];
 
@@ -237,5 +246,65 @@ describe("createCommand config resolution", () => {
     vi.stubEnv("SALEOR_CONFIG", undefined);
     const args = await parseWithCommand(deployCommandSchema, VALID_ARGS);
     expect(args.config).toBe("config.yml");
+  });
+});
+
+describe("interactive prompting", () => {
+  afterEach(() => {
+    vi.mocked(password).mockReset();
+    vi.unstubAllEnvs();
+  });
+
+  it("promptForMissingArgs keeps command-specific args", async () => {
+    vi.mocked(password).mockResolvedValue("prompted-token");
+
+    const result = await promptForMissingArgs({
+      url: "https://example.saleor.cloud/graphql/",
+      plan: true,
+      include: "shop",
+    });
+
+    expect(result).toMatchObject({
+      url: "https://example.saleor.cloud/graphql/",
+      token: "prompted-token",
+      config: "config.yml",
+      plan: true,
+      include: "shop",
+    });
+  });
+
+  it("keeps deploy flags when the token is prompted for", async () => {
+    vi.stubEnv("SALEOR_TOKEN", undefined);
+    vi.mocked(password).mockResolvedValue("prompted-token");
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const handler = vi.fn();
+    const command = createCommand({
+      name: "deploy",
+      description: "test",
+      schema: deployCommandSchema,
+      handler,
+      requiresInteractive: true,
+    });
+
+    await command.parseAsync(
+      [
+        "--url",
+        "https://example.saleor.cloud/graphql/",
+        "--plan",
+        "--skip-media",
+        "--include",
+        "shop",
+      ],
+      { from: "user" }
+    );
+
+    expect(handler).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token: "prompted-token",
+        plan: true,
+        skipMedia: true,
+        include: "shop",
+      })
+    );
   });
 });

@@ -27,13 +27,14 @@ export function shouldOutputJson(args: { json?: boolean; text?: boolean }): bool
 export type BaseCommandArgs = z.infer<typeof baseCommandArgsSchema>;
 
 /**
- * Prompts for missing required arguments interactively
+ * Prompts for missing required arguments interactively.
+ * Command-specific args (anything outside the base schema) are passed through untouched.
  */
-export async function promptForMissingArgs(
-  args: Partial<BaseCommandArgs>,
+export async function promptForMissingArgs<T extends Partial<BaseCommandArgs>>(
+  args: T,
   requiredFields: Array<keyof BaseCommandArgs> = ["url", "token"]
-): Promise<BaseCommandArgs> {
-  const result = { ...args };
+): Promise<Omit<T, keyof BaseCommandArgs> & BaseCommandArgs> {
+  const result: Partial<BaseCommandArgs> = { ...args };
 
   // Prompt for URL if missing
   if (requiredFields.includes("url") && !result.url) {
@@ -65,7 +66,7 @@ export async function promptForMissingArgs(
     });
   }
 
-  return baseCommandArgsSchema.parse(result);
+  return { ...args, ...baseCommandArgsSchema.parse(result) };
 }
 
 /**
