@@ -71,14 +71,15 @@ jobs:
 | `config-path` | No | `config.yml` | Path to configuration file |
 | `working-directory` | No | `.` | Working directory for the command |
 | `node-version` | No | `20` | Node.js version to use |
+| `configurator-version` | No | `latest` | `@saleor/configurator` version or npm dist-tag to install (e.g. `3.23.2`) |
 | `report-path` | No | - | Path to save deployment report |
-| `verbose` | No | `false` | Enable verbose output |
+| `verbose` | No | `false` | Enable verbose output (sets `LOG_LEVEL=debug`) |
 | `post-pr-comment` | No | `false` | Post diff results as PR comment |
 | `github-token` | No | `${{ github.token }}` | GitHub token for PR comments |
-| `fail-on-diff` | No | `false` | Exit with error if changes detected |
+| `fail-on-diff` | No | `false` | Exit with error if changes detected (`diff`, or `deploy` with `plan-only`) |
 | `fail-on-delete` | No | `false` | Exit with error if deletions detected |
 | `fail-on-breaking` | No | `false` | Exit with error if breaking changes |
-| `ci-mode` | No | `true` | Enable CI mode (skip prompts) |
+| `ci-mode` | No | `true` | **Deprecated, no effect.** Prompts are skipped automatically in CI |
 | `json-output` | No | `false` | Output results in JSON format |
 | `plan-only` | No | `false` | Show deployment plan without executing |
 
@@ -86,22 +87,29 @@ jobs:
 
 | Output | Description |
 |--------|-------------|
-| `exit-code` | Exit code from the command |
+| `exit-code` | Raw exit code from the configurator CLI |
 | `has-changes` | Whether changes were detected |
 | `changes-count` | Total number of changes |
 | `creates-count` | Number of entities to create |
 | `updates-count` | Number of entities to update |
 | `deletes-count` | Number of entities to delete |
-| `report-path` | Path to the deployment report file |
-| `diff-output` | Diff output in markdown format |
+| `report-path` | Path to the deployment report file (the `report-path` input, or the CLI's default report location) |
+| `diff-output` | Diff output in markdown format (when `post-pr-comment` is enabled) |
 | `summary` | Human-readable summary |
+
+Change counts and `has-changes` are read from the CLI's JSON summary. For `diff` and
+`deploy` with `plan-only` in human-readable mode, the action runs the command a second
+time with `--json` to collect them.
 
 ## Exit Codes
 
+Pending changes reported by `diff` or `deploy` with `plan-only` do not fail the step
+unless `fail-on-diff` is enabled (the step then exits with `1`).
+
 | Code | Meaning |
 |------|---------|
-| 0 | Success (or no changes for diff) |
-| 1 | Changes detected (diff only) |
+| 0 | Success (including pending changes from `diff`/`plan-only`) |
+| 1 | Unexpected error, or changes detected with `fail-on-diff` |
 | 2 | Authentication error |
 | 3 | Network error |
 | 4 | Validation error |
@@ -175,15 +183,29 @@ jobs:
       - name: Create Issue on Drift
         if: failure()
         uses: actions/github-script@v7
+        env:
+          # Pass step outputs via env - never interpolate ${{ }} into the script
+          DRIFT_SUMMARY: ${{ steps.drift.outputs.summary }}
         with:
           script: |
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: 'Configuration Drift Detected',
-              body: `Configuration drift was detected in the production environment.\n\n${{ steps.drift.outputs.summary }}`,
+              body: `Configuration drift was detected in the production environment.\n\n${process.env.DRIFT_SUMMARY}`,
               labels: ['drift', 'configuration']
             });
+```
+
+### Pin the Configurator Version
+
+```yaml
+- uses: saleor/configurator/action@v1
+  with:
+    command: diff
+    saleor-url: ${{ secrets.SALEOR_URL }}
+    saleor-token: ${{ secrets.SALEOR_TOKEN }}
+    configurator-version: 3.23.2  # Defaults to latest
 ```
 
 ### Dry Run Deployment

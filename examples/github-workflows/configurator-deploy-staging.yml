@@ -56,14 +56,20 @@ jobs:
 
       - name: Add Summary
         if: always()
+        env:
+          CONFIGURATOR_SUMMARY: ${{ steps.deploy.outputs.summary }}
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.deploy.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.deploy.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.deploy.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.deploy.outputs.deletes-count }}
         run: |
-          echo "## Staging Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ steps.deploy.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Changes | ${{ steps.deploy.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Creates | ${{ steps.deploy.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Updates | ${{ steps.deploy.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deletes | ${{ steps.deploy.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Staging Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** ${CONFIGURATOR_SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
