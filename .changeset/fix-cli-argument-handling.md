@@ -14,3 +14,7 @@ Fixed several CLI argument-handling bugs:
 - `deploy --json` now always prints a JSON envelope: on failures, after a completed deployment, and when cancelled. Nothing else is written to stdout in JSON mode. Exit codes are unchanged.
 - `validate --json` now reports unparseable YAML in the JSON envelope instead of crashing.
 - Error messages and recovery suggestions now name the real command (`pnpm dlx @saleor/configurator`) instead of a non-existent `saleor-configurator` binary, and no longer suggest the unsupported `diff --verbose`.
+- Auto-detected JSON output now suppresses tslog text on stdout, including fatal messages, while collecting logs in the envelope. `--text` retains human-readable logs.
+- Interactive JSON deployment confirmations and warnings go to stderr; confirmation is still required in a real terminal.
+- `introspect --no-backup` disables backups; backups remain enabled by default.
+- `recipe apply` accepts `SALEOR_URL` and `SALEOR_TOKEN`, with explicit flags taking precedence.
