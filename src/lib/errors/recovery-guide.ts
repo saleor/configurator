@@ -80,7 +80,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Remove duplicate '${match[1]}' from your configuration`,
       check: "Search for the duplicate entity name",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -128,7 +128,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Ensure all entity names/slugs are unique within their type",
       check: "Review your configuration for duplicate names or slugs",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -138,7 +138,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Fix the validation error in your configuration",
       check: "Review the entity definition and ensure all required fields are present",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -206,7 +206,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Review your YAML configuration for syntax errors",
       check: "Ensure proper YAML formatting and indentation",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -226,7 +226,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Review the GraphQL error details for specific field issues",
       check: "Verify your configuration matches the current Saleor schema",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -259,7 +259,7 @@ export function getSuggestions(errorMessage: string | undefined | null): Recover
     return [
       {
         fix: "Review the error for details",
-        command: `${COMMAND_NAME} diff --verbose`,
+        command: `${COMMAND_NAME} diff`,
       },
     ];
   }
@@ -278,7 +278,7 @@ export function getSuggestions(errorMessage: string | undefined | null): Recover
     suggestions.push({
       fix: "Review the error message for details",
       check: "Check your configuration against the current Saleor state",
-      command: `${COMMAND_NAME} diff --verbose`,
+      command: `${COMMAND_NAME} diff`,
     });
   }
 

@@ -104,7 +104,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match entity already exists error", () => {
@@ -116,7 +116,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -140,7 +140,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -178,7 +178,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -204,7 +204,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match ENOTFOUND error", () => {
@@ -216,7 +216,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -230,7 +230,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match GraphQL variable with quotes", () => {
@@ -243,7 +243,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
   });
@@ -281,7 +281,7 @@ describe("ErrorRecoveryGuide", () => {
       expect(suggestions[0].check).toBe(
         "Check your configuration against the current Saleor state"
       );
-      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
     });
 
     it("should provide generic suggestion for empty error message", () => {

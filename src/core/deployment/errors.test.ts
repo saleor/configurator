@@ -304,7 +304,7 @@ describe("DeploymentError Classes", () => {
       expect(message).toContain(
         "→ Check: Check your configuration against the current Saleor state"
       );
-      expect(message).toContain(`→ Run: ${COMMAND_NAME} diff --verbose`);
+      expect(message).toContain(`→ Run: ${COMMAND_NAME} diff`);
     });
 
     it("should handle verbose mode hint", () => {

@@ -680,7 +680,7 @@ describe("Error Handling Integration", () => {
       expect(suggestions[0].check).toBe(
         "Check your configuration against the current Saleor state"
       );
-      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff --verbose`);
+      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
 
       console.log(`\nUnknown Error: "${unknownError}"`);
       console.log("Fallback Recovery Suggestions:");
