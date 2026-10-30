@@ -12,7 +12,7 @@ import { logger } from "../lib/logger";
 import { getPackageVersion } from "../lib/package-info";
 import { COMMAND_NAME } from "../meta";
 import { type CommandConfig, createCommand } from "./command";
-import { cliConsole } from "./console";
+import { cliConsole, textStyle } from "./console";
 
 export type CommandOption = {
   flags: string;
@@ -62,24 +62,24 @@ function addConditionalHelpContent(program: Command): void {
   }
 
   // Add help content only to the main program, not subcommands
-  program.addHelpText("before", cliConsole.important("✨ Saleor Configurator ✨\n"));
+  program.addHelpText("before", textStyle.important("✨ Saleor Configurator ✨\n"));
   program.addHelpText("after", buildHelpText());
 }
 
 function buildHelpText(): string {
   return `
-${cliConsole.important("What is Saleor Configurator?")}
-  ${cliConsole.hint("‧ Manage your Saleor e-commerce store configuration as code")}
-  ${cliConsole.hint("‧ Keep store settings in version control & apply across environments")}
-  ${cliConsole.hint("‧ Declarative YAML configuration for products, channels, categories & more")}
+${textStyle.important("What is Saleor Configurator?")}
+  ${textStyle.hint("‧ Manage your Saleor e-commerce store configuration as code")}
+  ${textStyle.hint("‧ Keep store settings in version control & apply across environments")}
+  ${textStyle.hint("‧ Declarative YAML configuration for products, channels, categories & more")}
 
-${cliConsole.important("Quick Start:")}
-  ${cliConsole.hint("‧ First-time setup:")}
-  ${cliConsole.code(`${COMMAND_NAME} start`)}
+${textStyle.important("Quick Start:")}
+  ${textStyle.hint("‧ First-time setup:")}
+  ${textStyle.code(`${COMMAND_NAME} start`)}
   
-  ${cliConsole.hint("‧ Common commands:")}
-  ${cliConsole.code(`${COMMAND_NAME} introspect --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
-  ${cliConsole.code(`${COMMAND_NAME} deploy --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
+  ${textStyle.hint("‧ Common commands:")}
+  ${textStyle.code(`${COMMAND_NAME} introspect --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
+  ${textStyle.code(`${COMMAND_NAME} deploy --url https://your-store.saleor.cloud/graphql/ --token your-token`)}
 `;
 }
 

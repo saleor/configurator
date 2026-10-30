@@ -4,7 +4,7 @@ import { z } from "zod";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { ZodValidationError } from "../lib/errors/zod";
 import { safePath, safeToken, saleorUrl } from "../lib/validation";
-import { type Console, cliConsole } from "./console";
+import { type Console, cliConsole, textStyle } from "./console";
 
 export interface CommandHandler<T extends Record<string, unknown>, R> {
   console: Console;
@@ -197,9 +197,9 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
     const originalHelp = command.helpInformation.bind(command);
     command.helpInformation = () => {
       let help = originalHelp();
-      help += `\n${cliConsole.important("Examples:")}\n`;
+      help += `\n${textStyle.important("Examples:")}\n`;
       for (const example of config.examples ?? []) {
-        help += `${cliConsole.hint(`  ${example}`)}\n`;
+        help += `${textStyle.hint(`  ${example}`)}\n`;
       }
       return help;
     };

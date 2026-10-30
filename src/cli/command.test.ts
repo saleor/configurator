@@ -188,3 +188,26 @@ describe("createCommand flag naming", () => {
     expect(args.entityType).toBe("Categories");
   });
 });
+
+describe("createCommand help examples", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("includes examples in help without printing them", () => {
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const command = createCommand({
+      name: "deploy",
+      description: "test",
+      schema: deployCommandSchema,
+      handler: vi.fn(),
+      examples: ["configurator deploy --plan"],
+    });
+
+    const help = command.helpInformation();
+
+    expect(help).toContain("Examples:");
+    expect(help).toContain("configurator deploy --plan");
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+});
