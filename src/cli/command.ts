@@ -1,4 +1,4 @@
-import { Command } from "@commander-js/extra-typings";
+import { Command, Option } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
@@ -133,11 +133,19 @@ export function isBooleanField(field: z.ZodTypeAny): boolean {
   return unwrapOptionalAndDefault(field) instanceof z.ZodBoolean;
 }
 
+export function toKebabCase(key: string): string {
+  return key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
+}
+
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
   const isBoolean = isBooleanField(field);
+  const flagName = toKebabCase(key);
 
   return {
-    flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
+    flags: isBoolean ? `--${flagName}` : `--${flagName} <${flagName}>`,
+    // camelCase spelling kept as a hidden alias for backwards compatibility
+    aliasFlags: flagName === key ? undefined : isBoolean ? `--${key}` : `--${key} <${flagName}>`,
+    isBoolean,
     description: field.description || key,
     defaultValue:
       field instanceof z.ZodDefault
@@ -155,12 +163,19 @@ function generateOptionsFromSchema(
   const shape = schema.shape;
 
   Object.entries(shape).forEach(([key, field]) => {
-    const { flags, description, defaultValue } = getOptionConfigFromZodForCommander(key, field);
+    const { flags, aliasFlags, isBoolean, description, defaultValue } =
+      getOptionConfigFromZodForCommander(key, field);
 
-    if (isBooleanField(field)) {
-      command.option(flags, description);
-    } else {
-      command.option(flags, description, defaultValue as string | undefined);
+    // Commander derives the attribute name from the flag ("--fail-on-delete" and
+    // "--failOnDelete" both map to "failOnDelete"), so both spellings share one key.
+    const option = new Option(flags, description);
+    if (!isBoolean && defaultValue !== undefined) {
+      option.default(defaultValue as string);
+    }
+    command.addOption(option);
+
+    if (aliasFlags) {
+      command.addOption(new Option(aliasFlags, description).hideHelp());
     }
   });
 }

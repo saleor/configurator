@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { deployCommandSchema } from "../commands/deploy";
-import { createCommand, isBooleanField, mergeEnvArgs, shouldOutputJson } from "./command";
+import { diffCommandSchema } from "../commands/diff";
+import {
+  createCommand,
+  isBooleanField,
+  mergeEnvArgs,
+  shouldOutputJson,
+  toKebabCase,
+} from "./command";
 
 const VALID_ARGS = ["--url", "https://example.saleor.cloud/graphql/", "--token", "test-token"];
 
@@ -125,5 +132,59 @@ describe("createCommand boolean options", () => {
   it("defaults deploy verbose to false", async () => {
     const args = await parseWithCommand(deployCommandSchema, VALID_ARGS);
     expect(args.verbose).toBe(false);
+  });
+});
+
+describe("createCommand flag naming", () => {
+  it("converts camelCase schema keys to kebab-case flags", () => {
+    expect(toKebabCase("failOnDelete")).toBe("fail-on-delete");
+    expect(toKebabCase("url")).toBe("url");
+  });
+
+  it("shows only kebab-case flags in help", () => {
+    const command = createCommand({
+      name: "diff",
+      description: "test",
+      schema: diffCommandSchema,
+      handler: vi.fn(),
+    });
+    const help = command.helpInformation();
+    expect(help).toContain("--fail-on-delete");
+    expect(help).toContain("--output-file <output-file>");
+    expect(help).not.toContain("--failOnDelete");
+  });
+
+  it.each([
+    ["kebab-case", ["--fail-on-delete", "--skip-media", "--report-path", "r.json"]],
+    ["camelCase", ["--failOnDelete", "--skipMedia", "--reportPath", "r.json"]],
+  ])("accepts %s deploy flags", async (_label, flags) => {
+    const args = await parseWithCommand(deployCommandSchema, [...flags, ...VALID_ARGS]);
+    expect(args.failOnDelete).toBe(true);
+    expect(args.skipMedia).toBe(true);
+    expect(args.reportPath).toBe("r.json");
+  });
+
+  it.each([
+    [
+      "kebab-case",
+      [
+        "--github-comment",
+        "--fail-on-breaking",
+        "--output-file",
+        "o.md",
+        "--entity-type",
+        "Categories",
+      ],
+    ],
+    [
+      "camelCase",
+      ["--githubComment", "--failOnBreaking", "--outputFile", "o.md", "--entityType", "Categories"],
+    ],
+  ])("accepts %s diff flags", async (_label, flags) => {
+    const args = await parseWithCommand(diffCommandSchema, [...flags, ...VALID_ARGS]);
+    expect(args.githubComment).toBe(true);
+    expect(args.failOnBreaking).toBe(true);
+    expect(args.outputFile).toBe("o.md");
+    expect(args.entityType).toBe("Categories");
   });
 });
