@@ -75,16 +75,21 @@ export async function promptForMissingArgs<T extends Partial<BaseCommandArgs>>(
 export async function confirmAction(
   message: string,
   details?: string,
-  defaultValue = false
+  defaultValue = false,
+  useStderr = false
 ): Promise<boolean> {
   if (details) {
-    cliConsole.warn(`\n⚠️  ${details}\n`);
+    if (useStderr) {
+      process.stderr.write(`\n⚠️  ${details}\n`);
+    } else {
+      cliConsole.warn(`\n⚠️  ${details}\n`);
+    }
   }
 
-  return confirm({
-    message,
-    default: defaultValue,
-  });
+  return confirm(
+    { message, default: defaultValue },
+    useStderr ? { output: process.stderr } : undefined
+  );
 }
 
 /**

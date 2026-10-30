@@ -413,6 +413,42 @@ describe("Deploy Command", () => {
     });
   });
 
+  describe("interactive JSON confirmation", () => {
+    it.each([false, true])("preserves confirmation with destructive=%s", async (destructive) => {
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValueOnce(false);
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValue(false);
+      if (destructive) {
+        const configurator = createMockConfigurator(mockDiffService);
+        configurator.diff.mockResolvedValue({
+          summary: {
+            totalChanges: 1,
+            creates: 0,
+            updates: 0,
+            deletes: 1,
+            results: [{ operation: "DELETE", entityType: "Categories", entityName: "old" }],
+          },
+          output: "",
+        });
+        mockCreateConfigurator.mockReturnValue(configurator);
+      }
+      const output = vi.spyOn(console, "log").mockImplementation(() => {});
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+      expect(confirmAction).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        !destructive,
+        true
+      );
+      expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+      expect(output).toHaveBeenCalledOnce();
+      expect(JSON.parse(output.mock.calls[0][0] as string).result.status).toBe("cancelled");
+    });
+  });
+
   describe("deploy --json", () => {
     let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 

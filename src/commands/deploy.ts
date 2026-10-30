@@ -180,13 +180,14 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     process.exit(deploymentError.getExitCode());
   }
 
-  private async confirmSafeOperations(summary: DiffSummary): Promise<boolean> {
+  private async confirmSafeOperations(summary: DiffSummary, useJson: boolean): Promise<boolean> {
     const changeText = summary.totalChanges === 1 ? "change" : "changes";
 
     return await confirmAction(
       `Deploy ${summary.totalChanges} ${changeText} to your Saleor instance?`,
       "This will modify your production environment.",
-      true
+      true,
+      useJson
     );
   }
 
@@ -221,20 +222,24 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   private async confirmDeployment(
     summary: DiffSummary,
-    hasDestructiveOperations: boolean
+    hasDestructiveOperations: boolean,
+    useJson: boolean
   ): Promise<boolean> {
     if (isNonInteractiveEnvironment()) return true;
 
     if (hasDestructiveOperations) {
       const warningMessage = this.formatDestructiveOperationsWarning(summary);
-      this.console.warn(warningMessage);
+      if (!useJson) this.console.warn(warningMessage);
 
       return await confirmAction(
-        "Are you sure you want to continue? This action cannot be undone."
+        "Are you sure you want to continue? This action cannot be undone.",
+        useJson ? warningMessage || "This will modify your production environment." : undefined,
+        false,
+        useJson
       );
     }
 
-    return this.confirmSafeOperations(summary);
+    return this.confirmSafeOperations(summary, useJson);
   }
 
   private formatDeploymentPreview(summary: DiffSummary): string {
@@ -629,7 +634,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       const shouldDeploy = await this.confirmDeployment(
         diffAnalysis.summary,
-        diffAnalysis.hasDestructiveOperations
+        diffAnalysis.hasDestructiveOperations,
+        useJson
       );
 
       if (!shouldDeploy) {

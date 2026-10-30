@@ -1,10 +1,11 @@
-import { password } from "@inquirer/prompts";
+import { confirm, password } from "@inquirer/prompts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { deployCommandSchema } from "../commands/deploy";
 import { diffCommandSchema } from "../commands/diff";
 import { introspectCommandSchema } from "../commands/introspect";
 import {
+  confirmAction,
   createCommand,
   isBooleanField,
   mergeEnvArgs,
@@ -320,5 +321,22 @@ describe("introspect backup flags", () => {
   ])("parses $flags with backup=$backup", async ({ flags, backup }) => {
     const args = await parseWithCommand(introspectCommandSchema, [...VALID_ARGS, ...flags]);
     expect(args.backup).toBe(backup);
+  });
+});
+
+describe("confirmation output", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("routes the prompt and warning to stderr when requested", async () => {
+    const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const stdout = vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.mocked(confirm).mockResolvedValueOnce(false);
+    expect(await confirmAction("Deploy?", "Production changes", true, true)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith(
+      { message: "Deploy?", default: true },
+      { output: process.stderr }
+    );
+    expect(stderr).toHaveBeenCalledWith(expect.stringContaining("Production changes"));
+    expect(stdout).not.toHaveBeenCalled();
   });
 });
