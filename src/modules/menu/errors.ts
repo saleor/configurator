@@ -30,19 +30,3 @@ export class MenuError extends BaseError {
     super(message, "MENU_ERROR");
   }
 }
-
-export class MenuItemError extends BaseError {
-  constructor(
-    message: string,
-    public menu: string,
-    public itemName?: string,
-    public operation?: "create" | "update" | "delete" | "move"
-  ) {
-    super(
-      `Menu item error for menu "${menu}"${itemName ? ` (item: "${itemName}")` : ""}${
-        operation ? ` during ${operation}` : ""
-      }: ${message}`,
-      "MENU_ITEM_ERROR"
-    );
-  }
-}

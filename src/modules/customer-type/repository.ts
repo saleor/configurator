@@ -91,7 +91,7 @@ export type CustomerType = NonNullable<
   NonNullable<ResultOf<typeof getCustomerTypesQuery>["customerTypes"]>["edges"][number]["node"]
 >;
 
-export type CustomerTypeCreateInput = VariablesOf<typeof createCustomerTypeMutation>["input"];
+type CustomerTypeCreateInput = VariablesOf<typeof createCustomerTypeMutation>["input"];
 export type CustomerTypeUpdateInput = VariablesOf<typeof updateCustomerTypeMutation>["input"];
 
 export interface CustomerTypeOperations {

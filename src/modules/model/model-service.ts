@@ -8,7 +8,7 @@ import { ModelOperationError, ModelTypeError, ModelValidationError } from "./err
 import { ModelAttributeResolver } from "./model-attribute-resolver";
 import type { ModelOperations, Page, PageCreateInput, PageInput } from "./repository";
 
-export interface ModelInputConfig {
+interface ModelInputConfig {
   title: string;
   slug: string;
   modelType: string; // Reference to page type name (model type)

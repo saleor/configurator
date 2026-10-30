@@ -6,7 +6,7 @@ import { FORMATTER_LIMITS } from "./constants";
 /**
  * Options for GitHub comment formatting
  */
-export interface GitHubCommentFormatOptions {
+interface GitHubCommentFormatOptions {
   /** Saleor URL for context */
   readonly saleorUrl?: string;
   /** Config file path for context */

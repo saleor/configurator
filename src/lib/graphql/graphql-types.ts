@@ -15,7 +15,7 @@ export type PublishableChannelListingInput = {
   publishedAt?: string | null;
 };
 
-export type AttributeValueSelectableTypeInput = {
+type AttributeValueSelectableTypeInput = {
   id?: string | null;
   name?: string | null;
   value?: string | null;

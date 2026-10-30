@@ -176,7 +176,7 @@ const updateTaxCountryConfigurationDocument = graphql(`
   }
 `);
 
-export interface TaxClassCountryRate {
+interface TaxClassCountryRate {
   countryCode: CountryCode;
   rate: number;
 }
@@ -199,7 +199,7 @@ export interface TaxConfiguration {
   taxAppId?: string | null;
 }
 
-export interface CreateTaxClassInput {
+interface CreateTaxClassInput {
   name: string;
   createCountryRates?: Array<{
     countryCode: CountryCode;
@@ -207,7 +207,7 @@ export interface CreateTaxClassInput {
   }>;
 }
 
-export interface UpdateTaxClassInput {
+interface UpdateTaxClassInput {
   name?: string;
   updateCountryRates?: Array<{
     countryCode: CountryCode;
@@ -216,7 +216,7 @@ export interface UpdateTaxClassInput {
   removeCountryRates?: CountryCode[];
 }
 
-export interface UpdateTaxConfigurationInput {
+interface UpdateTaxConfigurationInput {
   chargeTaxes?: boolean;
   taxCalculationStrategy?: "FLAT_RATES" | "TAX_APP";
   displayGrossPrices?: boolean;

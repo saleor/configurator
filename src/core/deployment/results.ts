@@ -13,7 +13,7 @@ export interface EntityResult {
   readonly suggestions?: readonly string[];
 }
 
-export interface StageResult {
+interface StageResult {
   readonly name: string;
   readonly status: StageStatus;
   readonly startTime: Date;

@@ -15,7 +15,7 @@ import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/
 import { COMMAND_NAME } from "../meta";
 
 // CLI Command result types
-export const commandResultSchema = z.discriminatedUnion("type", [
+const commandResultSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("success"),
     exitCode: z.literal(0),
@@ -55,7 +55,7 @@ const CommandResult = {
 };
 
 // Constants for magic strings
-export const INTROSPECT_MESSAGES = {
+const INTROSPECT_MESSAGES = {
   HEADER: "🔍 Saleor Configuration Introspect\n",
   DRY_RUN_NO_CHANGES: "✅ DRY RUN: No changes would be made to local configuration",
   DRY_RUN_CHANGES: (count: number) => `\n🔍 DRY RUN: ${count} changes would be made`,
@@ -77,14 +77,14 @@ export const INTROSPECT_MESSAGES = {
   FILE_EXISTS: (path: string) => `Local configuration file "${path}" already exists.\n`,
 } as const;
 
-export const ERROR_ADVICE = {
+const ERROR_ADVICE = {
   ECONNREFUSED: "Check that the Saleor URL is correct and the server is running",
   UNAUTHORIZED: "Check that your authentication token is valid",
   ENOENT: "Check that the configuration file path is correct",
   TIMEOUT: "The operation timed out. Try again or check your network connection",
 } as const;
 
-export const ERROR_PATTERNS = [
+const ERROR_PATTERNS = [
   { pattern: "ECONNREFUSED", advice: ERROR_ADVICE.ECONNREFUSED },
   { pattern: "401", advice: ERROR_ADVICE.UNAUTHORIZED },
   { pattern: "Unauthorized", advice: ERROR_ADVICE.UNAUTHORIZED },
@@ -112,7 +112,7 @@ export const introspectCommandSchema = baseCommandArgsSchema.extend({
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
 
 // Context object to avoid passing multiple parameters
-export interface IntrospectContext {
+interface IntrospectContext {
   args: IntrospectCommandArgs;
   isQuiet: boolean;
   configurator: SaleorConfigurator;
@@ -120,9 +120,7 @@ export interface IntrospectContext {
   selectiveOptions: ParsedSelectiveOptions;
 }
 
-export class IntrospectCommandHandler
-  implements CommandHandler<IntrospectCommandArgs, CommandResult>
-{
+class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, CommandResult> {
   readonly console: Console = new Console();
 
   private setupConsole(isQuiet: boolean): void {
@@ -431,7 +429,7 @@ export class IntrospectCommandHandler
   }
 }
 
-export async function introspectHandler(args: IntrospectCommandArgs): Promise<void> {
+async function introspectHandler(args: IntrospectCommandArgs): Promise<void> {
   globalLogCollector.reset();
   const handler = new IntrospectCommandHandler();
   const result = await handler.execute(args);

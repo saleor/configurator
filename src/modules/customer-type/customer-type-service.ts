@@ -7,7 +7,7 @@ import type { CustomerTypeInput } from "../config/schema/schema";
 import { CustomerTypeOperationError, CustomerTypeValidationError } from "./errors";
 import type { CustomerType, CustomerTypeOperations, CustomerTypeUpdateInput } from "./repository";
 
-export interface BootstrapCustomerTypeOptions {
+interface BootstrapCustomerTypeOptions {
   attributeCache?: AttributeCache;
 }
 

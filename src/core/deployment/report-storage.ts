@@ -21,7 +21,7 @@ export function extractStoreIdentifier(url: string): string {
   }
 }
 
-export function formatReadableTimestamp(): string {
+function formatReadableTimestamp(): string {
   const now = new Date();
   const date = now.toISOString().split("T")[0];
   const hours = String(now.getHours()).padStart(2, "0");

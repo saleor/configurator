@@ -5,8 +5,6 @@ import type {
 } from "../../core/deployment/types";
 import { logger } from "../logger";
 
-export type { StageResilienceMetrics };
-
 interface MutableResilienceMetrics {
   rateLimitHits: number;
   retryAttempts: number;

@@ -5,7 +5,7 @@ import { isTransientError } from "./error-classification";
 /**
  * Options for chunked processing
  */
-export interface ChunkedProcessorOptions {
+interface ChunkedProcessorOptions {
   /**
    * Number of items to process in each chunk
    * @default 10
@@ -27,7 +27,7 @@ export interface ChunkedProcessorOptions {
 /**
  * Result of chunked processing
  */
-export interface ChunkedProcessorResult<T, R> {
+interface ChunkedProcessorResult<T, R> {
   /**
    * Successfully processed items with their results
    */
@@ -393,7 +393,7 @@ export async function processInChunks<T, R>(
  * @param chunkSize - Size of each chunk
  * @returns Array of chunks
  */
-export function splitIntoChunks<T>(items: T[], chunkSize: number): T[][] {
+function splitIntoChunks<T>(items: T[], chunkSize: number): T[][] {
   const splitter = new ChunkSplitter<T>({ chunkSize });
   return splitter.split(items);
 }

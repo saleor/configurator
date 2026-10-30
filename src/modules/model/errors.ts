@@ -25,19 +25,6 @@ export class ModelValidationError extends BaseError {
   }
 }
 
-export class ModelAttributeError extends BaseError {
-  constructor(
-    message: string,
-    public model: string,
-    public attribute?: string
-  ) {
-    super(
-      `Model attribute error for "${model}"${attribute ? ` (attribute: "${attribute}")` : ""}: ${message}`,
-      "MODEL_ATTRIBUTE_ERROR"
-    );
-  }
-}
-
 export class ModelTypeError extends BaseError {
   constructor(
     message: string,

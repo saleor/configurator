@@ -18,7 +18,7 @@ import {
 import type { AttributeAssignmentInput, ProductType, ProductTypeOperations } from "./repository";
 
 /** Options for product type bootstrap operations */
-export interface BootstrapProductTypeOptions {
+interface BootstrapProductTypeOptions {
   /** Optional attribute cache for fast reference resolution */
   attributeCache?: AttributeCache;
 }

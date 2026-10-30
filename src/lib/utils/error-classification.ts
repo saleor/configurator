@@ -1,4 +1,4 @@
-export interface ErrorWithResponse {
+interface ErrorWithResponse {
   readonly response: {
     readonly status: number;
     readonly headers?: {
@@ -15,16 +15,16 @@ function clampRetryAfter(ms: number): number {
   return ms;
 }
 
-export interface ErrorWithNetworkError {
+interface ErrorWithNetworkError {
   readonly networkError: unknown;
 }
 
-export interface GraphQLErrorItem {
+interface GraphQLErrorItem {
   readonly message?: string;
   readonly extensions?: { readonly code?: string };
 }
 
-export interface ErrorWithGraphQLErrors {
+interface ErrorWithGraphQLErrors {
   readonly graphQLErrors: readonly GraphQLErrorItem[];
 }
 
@@ -38,7 +38,7 @@ export function hasExtensionCode(obj: unknown, code: string): boolean {
   return obj.extensions.code === code;
 }
 
-export const NETWORK_ERROR_PATTERNS = [
+const NETWORK_ERROR_PATTERNS = [
   "network",
   "econnrefused",
   "etimedout",

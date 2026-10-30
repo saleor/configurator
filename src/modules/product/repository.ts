@@ -146,21 +146,21 @@ const createProductVariantMutation = graphql(`
   }
 `);
 
-export type ProductVariantCreateInput = VariablesOf<typeof createProductVariantMutation>["input"];
-export type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantMutation>["input"];
+type ProductVariantCreateInput = VariablesOf<typeof createProductVariantMutation>["input"];
+type ProductVariantUpdateInput = VariablesOf<typeof updateProductVariantMutation>["input"];
 
 // Bulk operation types
-export type ProductBulkCreateInput = VariablesOf<typeof productBulkCreateMutation>;
-export type ProductVariantBulkCreateInput = VariablesOf<typeof productVariantBulkCreateMutation>;
-export type ProductVariantBulkUpdateInput = VariablesOf<typeof productVariantBulkUpdateMutation>;
+type ProductBulkCreateInput = VariablesOf<typeof productBulkCreateMutation>;
+type ProductVariantBulkCreateInput = VariablesOf<typeof productVariantBulkCreateMutation>;
+type ProductVariantBulkUpdateInput = VariablesOf<typeof productVariantBulkUpdateMutation>;
 
-export type ProductBulkCreateResult = NonNullable<
+type ProductBulkCreateResult = NonNullable<
   NonNullable<ResultOf<typeof productBulkCreateMutation>>["productBulkCreate"]
 >;
-export type ProductVariantBulkCreateResult = NonNullable<
+type ProductVariantBulkCreateResult = NonNullable<
   NonNullable<ResultOf<typeof productVariantBulkCreateMutation>>["productVariantBulkCreate"]
 >;
-export type ProductVariantBulkUpdateResult = NonNullable<
+type ProductVariantBulkUpdateResult = NonNullable<
   NonNullable<ResultOf<typeof productVariantBulkUpdateMutation>>["productVariantBulkUpdate"]
 >;
 
@@ -700,10 +700,6 @@ export type Product = NonNullable<
   NonNullable<ResultOf<typeof getProductByNameQuery>["products"]>["edges"]
 >[number]["node"];
 
-export type ProductWithSlug = NonNullable<
-  NonNullable<ResultOf<typeof getProductBySlugQuery>["products"]>["edges"]
->[number]["node"];
-
 export type ProductVariant = NonNullable<
   NonNullable<
     ResultOf<typeof createProductVariantMutation>["productVariantCreate"]
@@ -716,9 +712,7 @@ export type ProductMedia = NonNullable<
 
 export type ProductMediaCreateInput = VariablesOf<typeof createProductMediaMutation>["input"];
 
-export type ProductMediaUpdateInput = VariablesOf<typeof updateProductMediaMutation>["input"];
-
-export type ProductMediaDeleteInput = VariablesOf<typeof deleteProductMediaMutation>["id"];
+type ProductMediaUpdateInput = VariablesOf<typeof updateProductMediaMutation>["input"];
 
 export type ProductVariantWithChannelListings = NonNullable<
   NonNullable<
@@ -728,16 +722,16 @@ export type ProductVariantWithChannelListings = NonNullable<
   >["variant"]
 >;
 
-export type ProductChannelListingUpdateInput = VariablesOf<
+type ProductChannelListingUpdateInput = VariablesOf<
   typeof productChannelListingUpdateMutation
 >["input"];
 
-export type ProductVariantChannelListingAddInput = VariablesOf<
+type ProductVariantChannelListingAddInput = VariablesOf<
   typeof productVariantChannelListingUpdateMutation
 >["input"][number];
 
 // Extract Channel type from query result using any to bypass type issues
-export type Channel = {
+type Channel = {
   id: string;
   name: string;
   slug: string;

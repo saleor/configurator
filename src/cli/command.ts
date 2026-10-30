@@ -123,7 +123,7 @@ export function mergeEnvArgs<T extends Record<string, unknown>>(args: T): T {
  * (e.g. SALEOR_CONFIG) can take precedence over them. The schema re-applies the
  * same defaults during validation.
  */
-export function omitDefaultOptionValues(
+function omitDefaultOptionValues(
   options: Record<string, unknown>,
   command: Pick<Command, "getOptionValueSource">
 ): Record<string, unknown> {

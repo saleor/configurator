@@ -147,7 +147,7 @@ export function validateNoDuplicateIdentifiers(config: SaleorConfig, filePath: s
   );
 }
 
-export function validateNoInlineAttributeDefinitions(config: SaleorConfig, filePath: string): void {
+function validateNoInlineAttributeDefinitions(config: SaleorConfig, filePath: string): void {
   const errors = validateNoInlineDefinitions(config);
   if (errors.length === 0) return;
 

@@ -7,7 +7,7 @@ export interface EnvelopeError {
   readonly message: string;
 }
 
-export interface JsonEnvelope<T = unknown> {
+interface JsonEnvelope<T = unknown> {
   readonly command: string;
   readonly version: string;
   readonly exitCode: number;

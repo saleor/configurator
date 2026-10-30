@@ -1,6 +1,6 @@
 export { AttributesComparator } from "./attributes-comparator";
-export type { ComparatorOptions, EntityComparator } from "./base-comparator";
-export { BaseEntityComparator } from "./base-comparator";
+export type { EntityComparator } from "./base-comparator";
+
 export { CategoryComparator } from "./category-comparator";
 export { ChannelComparator } from "./channel-comparator";
 export { CollectionComparator } from "./collection-comparator";

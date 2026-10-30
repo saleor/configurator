@@ -5,12 +5,12 @@ import { confirmAction, promptForMissingArgs, selectOption } from "../cli/comman
 import { cliConsole } from "../cli/console";
 import { DEFAULT_CONFIG_PATH } from "../modules/config/yaml-manager";
 
-export const startCommandSchema = z.object({
+const startCommandSchema = z.object({
   config: z.string().default(DEFAULT_CONFIG_PATH).describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
 
-export type StartCommandArgs = z.infer<typeof startCommandSchema>;
+type StartCommandArgs = z.infer<typeof startCommandSchema>;
 
 const RETURNING_USER_CHOICES = [
   {
@@ -174,7 +174,7 @@ async function runInteractiveSetup(configPath: string): Promise<void> {
   }
 }
 
-export async function startHandler(args: StartCommandArgs): Promise<void> {
+async function startHandler(args: StartCommandArgs): Promise<void> {
   cliConsole.setOptions({ quiet: args.quiet });
   await runInteractiveSetup(args.config);
 }

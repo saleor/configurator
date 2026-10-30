@@ -20,7 +20,7 @@ const createPageTypeMutation = graphql(`
 
 type PageTypeCreateInput = VariablesOf<typeof createPageTypeMutation>["input"];
 
-export type PageType = NonNullable<
+type PageType = NonNullable<
   NonNullable<ResultOf<typeof createPageTypeMutation>["pageTypeCreate"]>["pageType"]
 >;
 

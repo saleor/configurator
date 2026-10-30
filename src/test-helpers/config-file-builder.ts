@@ -12,15 +12,6 @@ import type {
 } from "../modules/config/schema/schema";
 import type { TempDirectory } from "./filesystem";
 
-// Re-export for convenience in tests
-export type ChannelConfig = ChannelInput;
-export type ProductTypeConfig = ProductTypeInput;
-export type ProductConfig = ProductInput;
-export type PageTypeConfig = PageTypeInput;
-export type CategoryConfig = CategoryInput;
-export type ShopConfig = ShopInput;
-export type ConfigFileContent = SaleorConfig;
-
 /**
  * A builder class for creating configuration files in tests.
  * Provides a fluent API for building various types of config files
@@ -462,32 +453,6 @@ export function createComplexConfig(): ConfigFileBuilder {
         slug: "gadgets",
       },
     ]);
-}
-
-/**
- * Configuration that matches current mock server state (for no-changes scenarios)
- */
-export function createMatchingCurrentStateConfig(): ConfigFileBuilder {
-  return new ConfigFileBuilder()
-    .withShop({
-      defaultMailSenderName: "Current Shop Name",
-      defaultMailSenderAddress: "noreply@test.com",
-      displayGrossPrices: true,
-      enableAccountConfirmationByEmail: true,
-      limitQuantityPerCheckout: undefined,
-      trackInventoryByDefault: true,
-      reserveStockDurationAnonymousUser: 10,
-      reserveStockDurationAuthenticatedUser: 10,
-      defaultWeightUnit: "KG",
-      allowLoginWithoutConfirmation: false,
-    })
-    .withChannel({
-      name: "Default Channel",
-      slug: "default-channel",
-      currencyCode: "USD",
-      defaultCountry: "US",
-      isActive: true,
-    });
 }
 
 /**

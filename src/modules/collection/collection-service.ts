@@ -17,7 +17,7 @@ import type {
   CollectionOperations,
 } from "./repository";
 
-export interface CollectionInputConfig {
+interface CollectionInputConfig {
   name: string;
   slug: string;
   description?: string;

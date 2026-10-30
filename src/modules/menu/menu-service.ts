@@ -15,7 +15,7 @@ import type {
   MenuOperations,
 } from "./repository";
 
-export interface MenuItemInputConfig {
+interface MenuItemInputConfig {
   name: string;
   url?: string;
   category?: string; // Category slug
@@ -24,7 +24,7 @@ export interface MenuItemInputConfig {
   children?: MenuItemInputConfig[];
 }
 
-export interface MenuInputConfig {
+interface MenuInputConfig {
   name: string;
   slug: string;
   items?: MenuItemInputConfig[];

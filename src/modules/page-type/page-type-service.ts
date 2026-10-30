@@ -19,7 +19,7 @@ function isSimpleAttribute(attr: SimpleAttribute | { attribute: string }): attr 
   return "name" in attr;
 }
 
-export interface BootstrapPageTypeOptions {
+interface BootstrapPageTypeOptions {
   attributeCache?: AttributeCache;
   referencingEntityType?: "pageTypes" | "modelTypes";
 }

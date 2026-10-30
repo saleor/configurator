@@ -14,13 +14,13 @@ const VALIDATE_EXIT = {
   INVALID: 2,
 } as const;
 
-export const validateCommandSchema = z.object({
+const validateCommandSchema = z.object({
   config: z.string().default("config.yml").describe("Configuration file path"),
   json: z.boolean().default(false).describe("Output validation results as JSON"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
 
-export type ValidateCommandArgs = z.infer<typeof validateCommandSchema>;
+type ValidateCommandArgs = z.infer<typeof validateCommandSchema>;
 
 interface ValidationError {
   path: string;

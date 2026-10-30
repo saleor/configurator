@@ -1,14 +1,8 @@
 import { BaseError } from "../../lib/errors/shared";
 
-export class WarehouseError extends BaseError {
+class WarehouseError extends BaseError {
   constructor(message: string, recoverySuggestions?: string[]) {
     super(message, "WAREHOUSE_ERROR", recoverySuggestions);
-  }
-}
-
-export class WarehouseNotFoundError extends WarehouseError {
-  constructor(identifier: string) {
-    super(`Warehouse not found: ${identifier}`);
   }
 }
 

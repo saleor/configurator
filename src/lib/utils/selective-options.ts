@@ -24,7 +24,7 @@ export const AVAILABLE_SECTIONS = [
   "taxClasses",
 ] as const satisfies readonly ConfigurationSection[];
 
-export const selectiveOptionsSchema = z.object({
+const selectiveOptionsSchema = z.object({
   only: z
     .string()
     .optional()
@@ -36,9 +36,7 @@ export const selectiveOptionsSchema = z.object({
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
 });
 
-export type SelectiveOptions = z.infer<typeof selectiveOptionsSchema>;
-
-export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
+const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
   z.object({
     only: z.string().optional(),
     include: z.string().optional(),
@@ -46,7 +44,7 @@ export const selectiveOptionsWithOnlySchema = selectiveOptionsSchema.or(
   })
 );
 
-export type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
+type SelectiveOptionsWithOnly = z.infer<typeof selectiveOptionsWithOnlySchema>;
 
 const parseSectionString = (sectionString: string): string[] => {
   return sectionString
@@ -152,7 +150,7 @@ export const shouldIncludeSection = (
   return true;
 };
 
-export const hasSelectiveOptions = (options: ParsedSelectiveOptions): boolean =>
+const hasSelectiveOptions = (options: ParsedSelectiveOptions): boolean =>
   options.includeSections.length > 0 || options.excludeSections.length > 0;
 
 export const scopeConfig = (

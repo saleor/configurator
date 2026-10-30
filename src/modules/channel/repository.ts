@@ -16,7 +16,7 @@ const createChannelMutation = graphql(`
   }
 `);
 
-export type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
+type ChannelCreateInput = VariablesOf<typeof createChannelMutation>["input"];
 
 const getChannelsQuery = graphql(`
   query GetChannels {
@@ -28,7 +28,7 @@ const getChannelsQuery = graphql(`
   }
 `);
 
-export type Channel = NonNullable<ResultOf<typeof getChannelsQuery>["channels"]>[number];
+type Channel = NonNullable<ResultOf<typeof getChannelsQuery>["channels"]>[number];
 
 const updateChannelMutation = graphql(`
   mutation UpdateChannel($id: ID!, $input: ChannelUpdateInput!) {

@@ -37,7 +37,7 @@ import type {
 /**
  * Configuration for the diff service
  */
-export interface DiffServiceConfig {
+interface DiffServiceConfig {
   /** Whether to include debug logging */
   readonly enableDebugLogging?: boolean;
   /** Timeout for remote configuration retrieval in milliseconds */
