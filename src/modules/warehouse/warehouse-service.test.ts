@@ -120,6 +120,26 @@ describe("WarehouseService", () => {
   });
 
   describe("getOrCreateWarehouse", () => {
+    it.each([true, false])("handles an addressless warehouse (existing: %s)", async (exists) => {
+      const operations = {
+        getWarehouses: vi.fn().mockResolvedValue(exists ? [mockWarehouse] : []),
+        getWarehouse: vi.fn(),
+        createWarehouse: vi.fn(),
+        updateWarehouse: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
+      };
+      const input = {
+        ...mockWarehouseInput,
+        address: { ...mockWarehouseInput.address, streetAddress1: "" },
+      };
+      const result = new WarehouseService(operations).getOrCreateWarehouse(input);
+      if (exists) expect(await result).toEqual(mockWarehouse);
+      else await expect(result).rejects.toThrow(WarehouseValidationError);
+      expect(operations.createWarehouse).not.toHaveBeenCalled();
+      expect(operations.updateWarehouse).not.toHaveBeenCalled();
+    });
+
     it("should not create a warehouse that already exists", async () => {
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([mockWarehouse]),

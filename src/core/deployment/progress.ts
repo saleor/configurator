@@ -1,10 +1,10 @@
-import { OraProgressReporter } from "../../cli/progress";
+import { OraProgressReporter, type ProgressReporter } from "../../cli/progress";
 
 /**
  * Progress indicator for deployment pipeline
  */
 export class ProgressIndicator {
-  private reporter = new OraProgressReporter();
+  constructor(private readonly reporter: ProgressReporter = new OraProgressReporter()) {}
 
   startSpinner(text: string): () => void {
     this.reporter.start(text);

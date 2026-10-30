@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// Loads .env before anything reads the environment. The engine (src/engine.ts) does not.
+import "dotenv/config";
 import { config as loadDotenv } from "dotenv";
 
 loadDotenv({ path: ".env.local", override: false });

@@ -622,3 +622,8 @@ See [docs/DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md) for detailed 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## Library usage
+
+Import `createConfigurator` from `@saleor/configurator` to validate, introspect, diff, and deploy in-process.
+See [the library API and stability policy](docs/library.md).

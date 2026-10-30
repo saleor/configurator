@@ -1117,56 +1117,69 @@ describe("ConfigurationService", () => {
   });
 
   describe("CXE-1197: SKU mapping preserves empty values", () => {
-    it("should preserve empty SKU instead of defaulting to variant ID", () => {
-      const rawConfig: RawSaleorConfig = {
-        shop: mockRawShopData,
-        channels: [],
-        productTypes: { edges: [] },
-        pageTypes: { edges: [] },
-        categories: { edges: [] },
-        warehouses: { edges: [] },
-        shippingZones: { edges: [] },
-        taxClasses: { edges: [] },
-        collections: { edges: [] },
-        pages: { edges: [] },
-        menus: { edges: [] },
-        products: {
-          edges: [
-            {
-              node: {
-                id: "prod-123",
-                name: "Test Product",
-                slug: "test-product",
-                description: null,
-                productType: { id: "pt-1", name: "Book" },
-                category: { id: "cat-1", name: "Fiction", slug: "fiction" },
-                taxClass: null,
-                attributes: [],
-                variants: [
-                  {
-                    id: "variant-456",
-                    name: "Test Variant",
-                    sku: null, // Empty SKU
-                    weight: null,
-                    attributes: [],
-                    channelListings: [],
-                  },
-                ],
-                channelListings: [],
-                media: [],
+    it.each(["", null, "Stored text"])(
+      "preserves empty SKU and plain text (value: %s)",
+      (textValue) => {
+        const rawConfig: RawSaleorConfig = {
+          shop: mockRawShopData,
+          channels: [],
+          productTypes: { edges: [] },
+          pageTypes: { edges: [] },
+          categories: { edges: [] },
+          warehouses: { edges: [] },
+          shippingZones: { edges: [] },
+          taxClasses: { edges: [] },
+          collections: { edges: [] },
+          pages: { edges: [] },
+          menus: { edges: [] },
+          products: {
+            edges: [
+              {
+                node: {
+                  id: "prod-123",
+                  name: "Test Product",
+                  slug: "test-product",
+                  description: null,
+                  productType: { id: "pt-1", name: "Book" },
+                  category: { id: "cat-1", name: "Fiction", slug: "fiction" },
+                  taxClass: null,
+                  attributes: [
+                    {
+                      attribute: { id: "text", name: "Text", inputType: "PLAIN_TEXT" },
+                      values: [{ name: "Text from Saleor", value: textValue }],
+                    },
+                  ],
+                  variants: [
+                    {
+                      id: "variant-456",
+                      name: "Test Variant",
+                      sku: null, // Empty SKU
+                      weight: null,
+                      attributes: [],
+                      channelListings: [],
+                    },
+                  ],
+                  channelListings: [],
+                  media: [],
+                },
               },
-            },
-          ],
-        },
-      };
+            ],
+          },
+        };
 
-      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
-      const result = service.mapConfig(rawConfig);
+        const service = new ConfigurationService(
+          new MockRepository(rawConfig),
+          createMockStorage()
+        );
+        const result = service.mapConfig(rawConfig);
 
-      // SKU should be empty string, NOT the variant ID
-      expect(result.products?.[0]?.variants?.[0]?.sku).toBe("");
-      expect(result.products?.[0]?.variants?.[0]?.sku).not.toBe("variant-456");
-    });
+        expect(result.products?.[0]?.attributes?.Text).toBe(textValue || "Text from Saleor");
+
+        // SKU should be empty string, NOT the variant ID
+        expect(result.products?.[0]?.variants?.[0]?.sku).toBe("");
+        expect(result.products?.[0]?.variants?.[0]?.sku).not.toBe("variant-456");
+      }
+    );
 
     it("should preserve actual SKU values when present", () => {
       const rawConfig: RawSaleorConfig = {

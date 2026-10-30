@@ -1051,7 +1051,8 @@ export class ConfigurationService {
         .map((value) => {
           const selectedValue = this.isMultipleChoiceAttribute(typedAttr.attribute.inputType)
             ? value.name
-            : (value.value ?? value.name);
+            : // Plain text answers `value: ""` with the text as its name.
+              value.value || value.name;
           return selectedValue?.trim();
         })
         .filter((value): value is string => Boolean(value));

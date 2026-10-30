@@ -11,7 +11,10 @@ import { CollectionService } from "../modules/collection/collection-service";
 import { CollectionRepository } from "../modules/collection/repository";
 import { ConfigurationService } from "../modules/config/config-service";
 import { ConfigurationRepository } from "../modules/config/repository";
-import { YamlConfigurationManager } from "../modules/config/yaml-manager";
+import {
+  type ConfigurationStorage,
+  YamlConfigurationManager,
+} from "../modules/config/yaml-manager";
 import { CustomerTypeService } from "../modules/customer-type/customer-type-service";
 import { CustomerTypeRepository } from "../modules/customer-type/repository";
 import { MenuService } from "../modules/menu/menu-service";
@@ -42,7 +45,7 @@ export interface ServiceContainer {
   readonly productType: ProductTypeService;
   readonly shop: ShopService;
   readonly configuration: ConfigurationService;
-  readonly configStorage: YamlConfigurationManager;
+  readonly configStorage: ConfigurationStorage;
   readonly category: CategoryService;
   readonly product: ProductService;
   readonly warehouse: WarehouseService;
@@ -56,7 +59,7 @@ export interface ServiceContainer {
 
 // biome-ignore lint/complexity/noStaticOnlyClass: ServiceComposer is a factory pattern that groups related static methods
 export class ServiceComposer {
-  static compose(client: Client, configPath?: string): ServiceContainer {
+  static compose(client: Client, source?: string | ConfigurationStorage): ServiceContainer {
     logger.debug("Creating repositories");
     const repositories = {
       attribute: new AttributeRepository(client),
@@ -78,7 +81,8 @@ export class ServiceComposer {
 
     logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
-    const configStorage = new YamlConfigurationManager(configPath);
+    const configStorage =
+      typeof source === "object" ? source : new YamlConfigurationManager(source);
     const configurationService = new ConfigurationService(
       repositories.configuration,
       configStorage

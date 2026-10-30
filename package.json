@@ -3,7 +3,7 @@
   "version": "3.23.2",
   "type": "module",
   "packageManager": "pnpm@10.28.1",
-  "main": "dist/main.js",
+  "main": "dist/index.js",
   "bin": {
     "@saleor/configurator": "./bin/cli.mjs",
     "configurator": "./bin/cli.mjs"
@@ -15,7 +15,8 @@
     "README.md",
     "LICENSE",
     "schema.json",
-    "SCHEMA.md"
+    "SCHEMA.md",
+    "docs/library.md"
   ],
   "publishConfig": {
     "access": "public"
@@ -39,7 +40,7 @@
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
     "copy-recipes": "cp -r src/recipes dist/recipes",
-    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims && pnpm copy-recipes",
+    "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims && pnpm build:library && pnpm copy-recipes",
     "prepublishOnly": "pnpm schema:check && pnpm build",
     "generate-json-schema": "node --import tsx scripts/generate-json-schema.ts",
     "schema:sync": "pnpm generate-json-schema",
@@ -59,7 +60,9 @@
     "format:fix": "biome format --write .",
     "check": "biome check .",
     "check:fix": "biome check --write .",
-    "check:ci": "biome lint . --diagnostic-level=error"
+    "check:ci": "biome lint . --diagnostic-level=error",
+    "build:engine": "pnpm build:library",
+    "build:library": "tsup src/index.ts src/engine.ts --format esm --target node20 --dts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
@@ -96,5 +99,17 @@
     "tslog": "^4.9.3",
     "yaml": "^2.8.0",
     "zod": "^4.0.0"
-  }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./engine": {
+      "types": "./dist/engine.d.ts",
+      "import": "./dist/engine.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "dist/index.d.ts"
 }

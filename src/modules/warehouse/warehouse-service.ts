@@ -197,9 +197,17 @@ export class WarehouseService {
 
   async getOrCreateWarehouse(input: WarehouseInput): Promise<Warehouse> {
     logger.debug("Getting or creating warehouse", { name: input.name, slug: input.slug });
-    this.validateWarehouseInput(input);
 
     const existingWarehouse = await this.getExistingWarehouse(input.slug);
+
+    // A new store's own default warehouse has no street address, so a pulled
+    // configuration holds it without one; Saleor refuses to save it that way. Leave it
+    // as it is instead of failing every warehouse processed with it.
+    if (existingWarehouse && !input.address?.streetAddress1?.trim()) {
+      return existingWarehouse;
+    }
+
+    this.validateWarehouseInput(input);
 
     if (existingWarehouse) {
       logger.debug("Updating existing warehouse", {
