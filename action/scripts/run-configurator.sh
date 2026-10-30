@@ -13,6 +13,45 @@ supports_boolean_flag() {
   configurator "$1" --help 2>&1 | grep -Eq -- "^[[:space:]]*--$2([[:space:]]+[^<[:space:]]|[[:space:]]*\$)"
 }
 
+# Prints "total creates updates deletes" (tab-separated) from a CLI JSON
+# envelope ({command, version, exitCode, result, logs, errors}). Handles diff
+# results (result.summary.totalChanges/creates/updates/deletes), deploy plan
+# results (result.summary.creates/updates/deletes) and deploy "no-changes".
+# Prints nothing when the envelope carries no counts.
+counts_from_envelope() {
+  jq -r '
+    if (.result.summary | type) == "object" then
+      .result.summary
+      | [(.totalChanges // ((.creates // 0) + (.updates // 0) + (.deletes // 0))),
+         (.creates // 0), (.updates // 0), (.deletes // 0)]
+    elif .result.status == "no-changes" then [0, 0, 0, 0]
+    else empty end
+    | @tsv' "$1" 2>/dev/null || true
+}
+
+# Prints "total creates updates deletes" from a deployment report file.
+counts_from_report() {
+  jq -r '.summary.changes // empty | [.total, .created, .updated, .deleted] | @tsv' "$1" 2>/dev/null || true
+}
+
+# Writes the count outputs and has-changes from "total creates updates deletes".
+write_count_outputs() {
+  local total creates updates deletes
+  read -r total creates updates deletes <<< "$1"
+  [[ "$total" =~ ^[0-9]+$ ]] || return 0
+  {
+    echo "changes-count=$total"
+    echo "creates-count=$creates"
+    echo "updates-count=$updates"
+    echo "deletes-count=$deletes"
+    if (( total > 0 )); then
+      echo "has-changes=true"
+    else
+      echo "has-changes=false"
+    fi
+  } >> "$GITHUB_OUTPUT"
+}
+
 # Build command arguments
 ARGS=()
 
@@ -82,6 +121,9 @@ fi
 # Create temp file for output capture
 OUTPUT_FILE=$(mktemp)
 JSON_OUTPUT_FILE=$(mktemp)
+RUN_MARKER=$(mktemp)
+DEFAULT_REPORTS_DIR=".configurator/reports"
+COUNTS=""
 
 # Execute configurator and capture output
 echo "Running: configurator ${ARGS[*]}"
@@ -100,28 +142,11 @@ if [[ "$COMMAND" == "diff" && "$POST_PR_COMMENT" == "true" ]]; then
   cat "$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
   echo "EOF" >> "$GITHUB_OUTPUT"
 elif [[ "$JSON_OUTPUT" == "true" ]]; then
-  # JSON output mode - capture JSON for parsing
-  configurator "${ARGS[@]}" > "$JSON_OUTPUT_FILE" 2>&1 || EXIT_CODE=$?
+  # JSON output mode - capture stdout only; stderr carries logs that would
+  # corrupt the JSON envelope.
+  configurator "${ARGS[@]}" > "$JSON_OUTPUT_FILE" || EXIT_CODE=$?
   cat "$JSON_OUTPUT_FILE"
-
-  # Parse JSON output for GitHub outputs
-  if [[ -s "$JSON_OUTPUT_FILE" ]]; then
-    CHANGES_COUNT=$(jq -r '.summary.totalChanges // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    CREATES_COUNT=$(jq -r '.summary.creates // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    UPDATES_COUNT=$(jq -r '.summary.updates // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    DELETES_COUNT=$(jq -r '.summary.deletes // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-
-    echo "changes-count=$CHANGES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "creates-count=$CREATES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "updates-count=$UPDATES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "deletes-count=$DELETES_COUNT" >> "$GITHUB_OUTPUT"
-
-    if [[ "$CHANGES_COUNT" -gt 0 ]]; then
-      echo "has-changes=true" >> "$GITHUB_OUTPUT"
-    else
-      echo "has-changes=false" >> "$GITHUB_OUTPUT"
-    fi
-  fi
+  COUNTS=$(counts_from_envelope "$JSON_OUTPUT_FILE")
 else
   # Standard output mode
   configurator "${ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE" || EXIT_CODE=$?
@@ -133,10 +158,24 @@ echo "Exit code: $EXIT_CODE"
 # Set exit code output
 echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
-# Set report path if specified
+# Locate the deployment report: the requested path, or the newest report the
+# CLI wrote to its default directory during this run.
+DEPLOY_REPORT=""
 if [[ -n "$REPORT_PATH" && -f "$REPORT_PATH" ]]; then
-  echo "report-path=$REPORT_PATH" >> "$GITHUB_OUTPUT"
+  DEPLOY_REPORT="$REPORT_PATH"
+elif [[ "$COMMAND" == "deploy" && -d "$DEFAULT_REPORTS_DIR" ]]; then
+  DEPLOY_REPORT=$(find "$DEFAULT_REPORTS_DIR" -type f -name '*.json' -newer "$RUN_MARKER" | sort | tail -n 1)
 fi
+
+if [[ -n "$DEPLOY_REPORT" ]]; then
+  echo "report-path=$DEPLOY_REPORT" >> "$GITHUB_OUTPUT"
+  # An executed deployment prints no JSON summary; take the counts from the report.
+  if [[ -z "$COUNTS" ]]; then
+    COUNTS=$(counts_from_report "$DEPLOY_REPORT")
+  fi
+fi
+
+write_count_outputs "$COUNTS"
 
 # Generate summary based on exit code
 case $EXIT_CODE in
@@ -174,7 +213,7 @@ case $EXIT_CODE in
 esac
 
 # Cleanup temp files
-rm -f "$OUTPUT_FILE" "$JSON_OUTPUT_FILE"
+rm -f "$OUTPUT_FILE" "$JSON_OUTPUT_FILE" "$RUN_MARKER"
 
 # Handle exit code based on fail-on-diff flag
 if [[ "$COMMAND" == "diff" && "$FAIL_ON_DIFF" == "true" && "$EXIT_CODE" -eq 1 ]]; then
