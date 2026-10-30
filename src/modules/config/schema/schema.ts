@@ -802,7 +802,7 @@ const collectionSchema = z.object({
 export type CollectionInput = z.infer<typeof collectionSchema>;
 
 // Menu Schema
-interface MenuItemInputSchema {
+export interface MenuItemInputSchema {
   name: string;
   url?: string;
   category?: string;

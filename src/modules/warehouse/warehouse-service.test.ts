@@ -120,6 +120,59 @@ describe("WarehouseService", () => {
   });
 
   describe("getOrCreateWarehouse", () => {
+    it.each([true, false])("handles an addressless warehouse (existing: %s)", async (exists) => {
+      const operations = {
+        getWarehouses: vi
+          .fn()
+          .mockResolvedValue(
+            exists
+              ? [{ ...mockWarehouse, address: { ...mockWarehouse.address, streetAddress1: "" } }]
+              : []
+          ),
+        getWarehouse: vi.fn(),
+        createWarehouse: vi.fn(),
+        updateWarehouse: vi.fn().mockResolvedValue(mockWarehouse),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
+      };
+      const input = {
+        ...mockWarehouseInput,
+        name: "Renamed warehouse",
+        email: "new@example.com",
+        isPrivate: true,
+        clickAndCollectOption: "LOCAL" as const,
+        address: { ...mockWarehouseInput.address, streetAddress1: "" },
+      };
+      const result = new WarehouseService(operations).getOrCreateWarehouse(input);
+      if (exists) expect(await result).toEqual(mockWarehouse);
+      else await expect(result).rejects.toThrow(WarehouseValidationError);
+      expect(operations.createWarehouse).not.toHaveBeenCalled();
+      if (exists) {
+        const { address: _address, shippingZones: _zones, ...expected } = input;
+        expect(operations.updateWarehouse).toHaveBeenCalledWith(mockWarehouse.id, expected);
+      } else {
+        expect(operations.updateWarehouse).not.toHaveBeenCalled();
+      }
+    });
+
+    it("rejects changed addresses without a street address", async () => {
+      const operations = {
+        getWarehouses: vi.fn().mockResolvedValue([mockWarehouse]),
+        getWarehouse: vi.fn(),
+        createWarehouse: vi.fn(),
+        updateWarehouse: vi.fn(),
+        assignShippingZones: vi.fn(),
+        unassignShippingZones: vi.fn(),
+      };
+      await expect(
+        new WarehouseService(operations).getOrCreateWarehouse({
+          ...mockWarehouseInput,
+          address: { ...mockWarehouseInput.address, streetAddress1: "", city: "Changed" },
+        })
+      ).rejects.toThrow(WarehouseValidationError);
+      expect(operations.updateWarehouse).not.toHaveBeenCalled();
+    });
+
     it("should not create a warehouse that already exists", async () => {
       const mockOperations = {
         getWarehouses: vi.fn().mockResolvedValue([mockWarehouse]),

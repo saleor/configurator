@@ -1,10 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
-import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
-import { COMMAND_NAME } from "../../meta";
 import { EntityNotFoundError } from "./errors";
-import { configSchema, type SaleorConfig } from "./schema/schema";
+import { parseConfiguration } from "./parse-configuration";
+import type { SaleorConfig } from "./schema/schema";
 
 export interface FileSystem {
   readFile(path: string, encoding: string): Promise<string>;
@@ -58,30 +57,8 @@ export class YamlConfigurationManager implements ConfigurationStorage {
       const rawConfig = parse(yml);
       logger.debug("Raw YAML configuration", { rawConfig });
 
-      if (rawConfig && typeof rawConfig === "object" && "attributes" in rawConfig) {
-        throw new Error(
-          `The 'attributes' section is no longer supported. ` +
-            `Use 'productAttributes' and 'contentAttributes' instead. ` +
-            `Run '${COMMAND_NAME} introspect' to migrate your config.`
-        );
-      }
-
-      const { success, data, error } = configSchema.safeParse(rawConfig);
-
+      const data = parseConfiguration(rawConfig);
       logger.debug("Parsed configuration", { data });
-
-      if (!success) {
-        const validationError = ZodValidationError.fromZodError(
-          error,
-          "Configuration file doesn't match the expected schema"
-        );
-
-        logger.error("Configuration validation failed", {
-          errors: error.issues,
-          path: this.configPath,
-        });
-        throw validationError;
-      }
 
       logger.info(`Loaded configuration from ${this.configPath}`);
       logger.debug("Validated configuration", { config: data });

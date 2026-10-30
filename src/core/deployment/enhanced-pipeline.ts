@@ -15,9 +15,10 @@ import type { DeploymentContext, DeploymentMetrics, DeploymentStage } from "./ty
 
 export class EnhancedDeploymentPipeline {
   private readonly stages: DeploymentStage[] = [];
-  private readonly progress = new ProgressIndicator();
   private readonly metrics = new MetricsCollector();
   private readonly resultCollector = new DeploymentResultCollector();
+
+  constructor(private readonly progress: ProgressIndicator = new ProgressIndicator()) {}
 
   addStage(stage: DeploymentStage): this {
     this.stages.push(stage);
@@ -143,7 +144,8 @@ export class EnhancedDeploymentPipeline {
  */
 export async function executeEnhancedDeployment(
   stages: DeploymentStage[],
-  context: DeploymentContext
+  context: DeploymentContext,
+  progress?: ProgressIndicator
 ): Promise<{
   metrics: DeploymentMetrics;
   result: DeploymentResult;
@@ -152,7 +154,7 @@ export async function executeEnhancedDeployment(
 }> {
   resilienceTracker.reset();
 
-  const pipeline = new EnhancedDeploymentPipeline();
+  const pipeline = new EnhancedDeploymentPipeline(progress);
   stages.forEach((stage) => pipeline.addStage(stage));
 
   const { metrics, result } = await pipeline.execute(context);
