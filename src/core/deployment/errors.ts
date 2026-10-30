@@ -1,4 +1,5 @@
 import { ErrorRecoveryGuide } from "../../lib/errors/recovery-guide";
+import { COMMAND_NAME } from "../../meta";
 
 /**
  * Exit codes for different error types
@@ -146,7 +147,7 @@ export class ValidationDeploymentError extends DeploymentError {
       "Review the validation errors above",
       "Check your configuration file for syntax errors",
       "Ensure all required fields are present",
-      "Validate your configuration with 'saleor-configurator diff'",
+      `Validate your configuration with '${COMMAND_NAME} diff'`,
     ];
 
     // Add validation errors to context
@@ -185,7 +186,7 @@ export class StageAggregateError extends DeploymentError {
       "Review the individual errors below",
       "Fix the issues and run deploy again",
       "Use --include flag to deploy only specific entities",
-      "Run 'saleor-configurator diff' to check current state",
+      `Run '${COMMAND_NAME} diff' to check current state`,
     ];
 
     super(summary, suggestions, {
@@ -242,7 +243,7 @@ export class StageAggregateError extends DeploymentError {
       );
     }
 
-    lines.push("", "Run 'saleor-configurator deploy --verbose' for detailed error traces");
+    lines.push("", `Run '${COMMAND_NAME} deploy --verbose' for detailed error traces`);
 
     return lines.join("\n");
   }
@@ -263,7 +264,7 @@ export class PartialDeploymentError extends DeploymentError {
       "Review the failed operations above",
       "Fix the issues and run deploy again to retry failed operations",
       "Check Saleor logs for more details",
-      "Consider running 'saleor-configurator diff' to see current state",
+      `Consider running '${COMMAND_NAME} diff' to see current state`,
     ];
 
     // Add operation details to context

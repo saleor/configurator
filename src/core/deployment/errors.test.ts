@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { COMMAND_NAME } from "../../meta";
 import {
   AuthenticationDeploymentError,
   NetworkDeploymentError,
@@ -244,13 +245,13 @@ describe("DeploymentError Classes", () => {
         "→ Fix: Create the attribute 'size' first or reference an existing one"
       );
       expect(message).toContain("→ Check: View available attributes");
-      expect(message).toContain("→ Run: saleor-configurator introspect --include=attributes");
+      expect(message).toContain(`→ Run: ${COMMAND_NAME} introspect --include=attributes`);
 
       expect(message).toContain(
         "→ Fix: Create the channel 'default-channel' in the channels section first"
       );
       expect(message).toContain("→ Check: View existing channels");
-      expect(message).toContain("→ Run: saleor-configurator introspect --include=channels");
+      expect(message).toContain(`→ Run: ${COMMAND_NAME} introspect --include=channels`);
     });
 
     it("should handle permission errors with appropriate suggestions", () => {
@@ -267,7 +268,7 @@ describe("DeploymentError Classes", () => {
       expect(message).toContain(
         "→ Check: Ensure you have admin permissions for the operations you're trying to perform"
       );
-      expect(message).toContain("→ Run: saleor-configurator introspect --include=shop");
+      expect(message).toContain(`→ Run: ${COMMAND_NAME} introspect --include=shop`);
     });
 
     it("should handle network errors with appropriate suggestions", () => {
@@ -303,7 +304,7 @@ describe("DeploymentError Classes", () => {
       expect(message).toContain(
         "→ Check: Check your configuration against the current Saleor state"
       );
-      expect(message).toContain("→ Run: saleor-configurator diff --verbose");
+      expect(message).toContain(`→ Run: ${COMMAND_NAME} diff --verbose`);
     });
 
     it("should handle verbose mode hint", () => {
@@ -315,10 +316,10 @@ describe("DeploymentError Classes", () => {
       const verboseMessage = error.getUserMessage(true);
 
       expect(normalMessage).toContain(
-        "Run 'saleor-configurator deploy --verbose' for detailed error traces"
+        `Run '${COMMAND_NAME} deploy --verbose' for detailed error traces`
       );
       expect(verboseMessage).toContain(
-        "Run 'saleor-configurator deploy --verbose' for detailed error traces"
+        `Run '${COMMAND_NAME} deploy --verbose' for detailed error traces`
       );
     });
 
@@ -376,7 +377,7 @@ describe("DeploymentError Classes", () => {
       expect(message).toContain("1. Review the individual errors below");
       expect(message).toContain("2. Fix the issues and run deploy again");
       expect(message).toContain("3. Use --include flag to deploy only specific entities");
-      expect(message).toContain("4. Run 'saleor-configurator diff' to check current state");
+      expect(message).toContain(`4. Run '${COMMAND_NAME} diff' to check current state`);
     });
 
     it("should handle mixed error types with appropriate recovery suggestions", () => {
