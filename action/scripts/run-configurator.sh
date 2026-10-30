@@ -4,6 +4,12 @@
 
 set -e
 
+# Returns success when `configurator <command> --help` lists the given flag as a
+# boolean switch (i.e. not followed by a `<value>` placeholder).
+supports_boolean_flag() {
+  configurator "$1" --help 2>&1 | grep -Eq -- "^[[:space:]]*--$2([[:space:]]+[^<[:space:]]|[[:space:]]*\$)"
+}
+
 # Build command arguments
 ARGS=()
 
@@ -16,16 +22,15 @@ ARGS+=("--config" "$CONFIG_PATH")
 # Optional arguments based on command type
 if [[ "$COMMAND" == "deploy" ]]; then
   # Deploy-specific flags
-  if [[ "$CI_MODE" == "true" ]]; then
-    ARGS+=("--ci")
-  fi
+  # Note: CI_MODE is deprecated and intentionally unused - the CLI detects
+  # non-interactive (non-TTY) environments automatically and skips prompts.
 
   if [[ "$PLAN_ONLY" == "true" ]]; then
     ARGS+=("--plan")
   fi
 
   if [[ -n "$REPORT_PATH" ]]; then
-    ARGS+=("--report-path" "$REPORT_PATH")
+    ARGS+=("--reportPath" "$REPORT_PATH")
   fi
 
   if [[ "$JSON_OUTPUT" == "true" ]]; then
@@ -33,7 +38,7 @@ if [[ "$COMMAND" == "deploy" ]]; then
   fi
 
   if [[ "$FAIL_ON_DELETE" == "true" ]]; then
-    ARGS+=("--fail-on-delete")
+    ARGS+=("--failOnDelete")
   fi
 fi
 
@@ -42,20 +47,26 @@ if [[ "$COMMAND" == "diff" ]]; then
   if [[ "$JSON_OUTPUT" == "true" ]]; then
     ARGS+=("--json")
   elif [[ "$POST_PR_COMMENT" == "true" ]]; then
-    ARGS+=("--github-comment")
+    ARGS+=("--githubComment")
   fi
 
   if [[ "$FAIL_ON_DELETE" == "true" ]]; then
-    ARGS+=("--fail-on-delete")
+    ARGS+=("--failOnDelete")
   fi
 
   if [[ "$FAIL_ON_BREAKING" == "true" ]]; then
-    ARGS+=("--fail-on-breaking")
+    ARGS+=("--failOnBreaking")
   fi
 fi
 
 if [[ "$VERBOSE" == "true" ]]; then
-  ARGS+=("--verbose")
+  # Verbose logging works for every command via LOG_LEVEL. The --verbose flag is
+  # only passed where the installed CLI accepts it as a boolean switch (it is
+  # missing on diff and expects a value on deploy in some CLI versions).
+  export LOG_LEVEL="${LOG_LEVEL:-debug}"
+  if supports_boolean_flag "$COMMAND" verbose; then
+    ARGS+=("--verbose")
+  fi
 fi
 
 # Create temp file for output capture

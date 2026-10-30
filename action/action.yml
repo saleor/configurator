@@ -54,7 +54,7 @@ inputs:
     required: false
     default: 'false'
   ci-mode:
-    description: 'Enable CI mode to skip interactive prompts'
+    description: 'Deprecated: no effect. The CLI detects non-interactive (CI) environments automatically and skips prompts.'
     required: false
     default: 'true'
   json-output:
