@@ -11,7 +11,7 @@ export const schemaCommandSchema = z.object({
 export type SchemaCommandArgs = z.infer<typeof schemaCommandSchema>;
 
 function buildDocumentationSchema(): Record<string, unknown> {
-  const jsonSchema = z.toJSONSchema(configSchema);
+  const jsonSchema = z.toJSONSchema(configSchema, { io: "input" });
 
   return {
     ...jsonSchema,

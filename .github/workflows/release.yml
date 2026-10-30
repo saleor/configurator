@@ -41,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check schema sync
+        run: pnpm run schema:check
+
       - name: Run tests
         run: pnpm run test:ci
 

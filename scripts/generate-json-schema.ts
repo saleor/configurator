@@ -50,7 +50,7 @@ function generateJsonSchema(): void {
 
   try {
     // Convert Zod schema to JSON Schema using Zod v4's native toJSONSchema
-    const jsonSchema = z.toJSONSchema(configSchema) as JsonSchemaObject;
+    const jsonSchema = z.toJSONSchema(configSchema, { io: "input" }) as JsonSchemaObject;
     stripRemovedFieldDiagnostics(jsonSchema);
 
     // Add additional metadata for documentation
