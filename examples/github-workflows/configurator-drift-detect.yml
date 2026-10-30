@@ -125,10 +125,14 @@ jobs:
     steps:
       - name: Create Issue
         uses: actions/github-script@v7
+        env:
+          # Pass job outputs via env - never interpolate ${{ }} into the script
+          STAGING_DRIFT: ${{ needs.detect-drift-staging.outputs.has-drift }}
+          PRODUCTION_DRIFT: ${{ needs.detect-drift-production.outputs.has-drift }}
         with:
           script: |
-            const stagingDrift = '${{ needs.detect-drift-staging.outputs.has-drift }}' === 'true';
-            const productionDrift = '${{ needs.detect-drift-production.outputs.has-drift }}' === 'true';
+            const stagingDrift = process.env.STAGING_DRIFT === 'true';
+            const productionDrift = process.env.PRODUCTION_DRIFT === 'true';
 
             const environments = [];
             if (stagingDrift) environments.push('staging');
