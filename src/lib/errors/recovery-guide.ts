@@ -1,3 +1,5 @@
+import { COMMAND_NAME } from "../../meta";
+
 /**
  * Error recovery guide system for providing actionable suggestions to users
  */
@@ -18,7 +20,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Add entityType field to the '${match[1]}' reference attribute in your config`,
       check: "Valid values are: PAGE, PRODUCT, or PRODUCT_VARIANT",
-      command: "saleor-configurator diff --include=attributes",
+      command: `${COMMAND_NAME} diff --include=attributes`,
     }),
   ],
   [
@@ -26,7 +28,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the attribute '${match[1]}' first or reference an existing one`,
       check: "View available attributes",
-      command: "saleor-configurator introspect --include=attributes",
+      command: `${COMMAND_NAME} introspect --include=attributes`,
     }),
   ],
   [
@@ -34,7 +36,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)",
       check: "List all available attributes",
-      command: "saleor-configurator introspect --include=attributes",
+      command: `${COMMAND_NAME} introspect --include=attributes`,
     }),
   ],
 
@@ -44,7 +46,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Ensure category '${match[1]}' exists or will be created earlier in deployment`,
       check: "View existing categories",
-      command: "saleor-configurator introspect --include=categories",
+      command: `${COMMAND_NAME} introspect --include=categories`,
     }),
   ],
   [
@@ -52,7 +54,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Ensure collection '${match[1]}' exists or will be created earlier in deployment`,
       check: "View existing collections",
-      command: "saleor-configurator introspect --include=collections",
+      command: `${COMMAND_NAME} introspect --include=collections`,
     }),
   ],
   [
@@ -60,7 +62,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the product type '${match[1]}' in the productTypes section first`,
       check: "View existing product types",
-      command: "saleor-configurator introspect --include=productTypes",
+      command: `${COMMAND_NAME} introspect --include=productTypes`,
     }),
   ],
   [
@@ -68,7 +70,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the page type '${match[1]}' in the pageTypes section first`,
       check: "View existing page types",
-      command: "saleor-configurator introspect --include=pageTypes",
+      command: `${COMMAND_NAME} introspect --include=pageTypes`,
     }),
   ],
 
@@ -78,7 +80,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Remove duplicate '${match[1]}' from your configuration`,
       check: "Search for the duplicate entity name",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -88,7 +90,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Check your Saleor API token has the required permissions",
       check: "Ensure you have admin permissions for the operations you're trying to perform",
-      command: "saleor-configurator introspect --include=shop",
+      command: `${COMMAND_NAME} introspect --include=shop`,
     }),
   ],
 
@@ -108,7 +110,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Check your Saleor API token is valid and not expired",
       check: "Verify the SALEOR_BEARER_TOKEN environment variable is set correctly",
-      command: "saleor-configurator introspect --include=shop",
+      command: `${COMMAND_NAME} introspect --include=shop`,
     }),
   ],
 
@@ -118,7 +120,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Add the required field to your configuration",
       check: "Review the configuration schema documentation",
-      command: "saleor-configurator --help",
+      command: `${COMMAND_NAME} --help`,
     }),
   ],
   [
@@ -126,7 +128,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Ensure all entity names/slugs are unique within their type",
       check: "Review your configuration for duplicate names or slugs",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -136,7 +138,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Fix the validation error in your configuration",
       check: "Review the entity definition and ensure all required fields are present",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -146,7 +148,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Use a valid ISO 4217 currency code instead of '${match[1]}'`,
       check: "Common codes: USD, EUR, GBP, JPY, etc.",
-      command: "saleor-configurator introspect --include=channels",
+      command: `${COMMAND_NAME} introspect --include=channels`,
     }),
   ],
   [
@@ -154,7 +156,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Use a valid ISO 3166-1 alpha-2 country code instead of '${match[1]}'`,
       check: "Common codes: US, GB, DE, FR, etc.",
-      command: "saleor-configurator introspect --include=channels",
+      command: `${COMMAND_NAME} introspect --include=channels`,
     }),
   ],
 
@@ -164,7 +166,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the tax class '${match[1]}' in the taxClasses section first`,
       check: "View existing tax classes",
-      command: "saleor-configurator introspect --include=taxClasses",
+      command: `${COMMAND_NAME} introspect --include=taxClasses`,
     }),
   ],
 
@@ -174,7 +176,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the warehouse '${match[1]}' in the warehouses section first`,
       check: "View existing warehouses",
-      command: "saleor-configurator introspect --include=warehouses",
+      command: `${COMMAND_NAME} introspect --include=warehouses`,
     }),
   ],
 
@@ -184,7 +186,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the shipping zone '${match[1]}' in the shippingZones section first`,
       check: "View existing shipping zones",
-      command: "saleor-configurator introspect --include=shippingZones",
+      command: `${COMMAND_NAME} introspect --include=shippingZones`,
     }),
   ],
 
@@ -194,7 +196,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     (match) => ({
       fix: `Create the channel '${match[1]}' in the channels section first`,
       check: "View existing channels",
-      command: "saleor-configurator introspect --include=channels",
+      command: `${COMMAND_NAME} introspect --include=channels`,
     }),
   ],
 
@@ -204,7 +206,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Review your YAML configuration for syntax errors",
       check: "Ensure proper YAML formatting and indentation",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -214,7 +216,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Create a config.yml file in your project directory",
       check: "Run the start command to generate a sample configuration",
-      command: "saleor-configurator start",
+      command: `${COMMAND_NAME} start`,
     }),
   ],
 
@@ -224,7 +226,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Review the GraphQL error details for specific field issues",
       check: "Verify your configuration matches the current Saleor schema",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     }),
   ],
 
@@ -244,7 +246,7 @@ const patterns: Map<RegExp, (match: RegExpMatchArray) => RecoverySuggestion> = n
     () => ({
       fix: "Wait a few seconds and retry the operation",
       check: "Consider batching large operations or adding delays",
-      command: "saleor-configurator deploy --verbose",
+      command: `${COMMAND_NAME} deploy --verbose`,
     }),
   ],
 ]);
@@ -257,7 +259,7 @@ export function getSuggestions(errorMessage: string | undefined | null): Recover
     return [
       {
         fix: "Review the error for details",
-        command: "saleor-configurator diff --verbose",
+        command: `${COMMAND_NAME} diff`,
       },
     ];
   }
@@ -276,7 +278,7 @@ export function getSuggestions(errorMessage: string | undefined | null): Recover
     suggestions.push({
       fix: "Review the error message for details",
       check: "Check your configuration against the current Saleor state",
-      command: "saleor-configurator diff --verbose",
+      command: `${COMMAND_NAME} diff`,
     });
   }
 

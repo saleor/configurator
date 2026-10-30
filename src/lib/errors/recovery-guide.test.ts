@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { COMMAND_NAME } from "../../meta";
 import { ErrorRecoveryGuide, type RecoverySuggestion } from "./recovery-guide";
 
 describe("ErrorRecoveryGuide", () => {
@@ -17,7 +18,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(entityTypeSuggestion?.check).toBe(
           "Valid values are: PAGE, PRODUCT, or PRODUCT_VARIANT"
         );
-        expect(entityTypeSuggestion?.command).toBe("saleor-configurator diff --include=attributes");
+        expect(entityTypeSuggestion?.command).toBe(`${COMMAND_NAME} diff --include=attributes`);
       });
 
       it("should match attribute not found error", () => {
@@ -29,7 +30,7 @@ describe("ErrorRecoveryGuide", () => {
           "Create the attribute 'color' first or reference an existing one"
         );
         expect(suggestions[0].check).toBe("View available attributes");
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=attributes");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=attributes`);
       });
 
       it("should match quoted attribute names", () => {
@@ -51,7 +52,7 @@ describe("ErrorRecoveryGuide", () => {
           "Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)"
         );
         expect(suggestions[0].check).toBe("List all available attributes");
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=attributes");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=attributes`);
       });
     });
 
@@ -65,7 +66,7 @@ describe("ErrorRecoveryGuide", () => {
           "Ensure category 'Electronics/Phones' exists or will be created earlier in deployment"
         );
         expect(suggestions[0].check).toBe("View existing categories");
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=categories");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=categories`);
       });
 
       it("should match channel not found error", () => {
@@ -77,7 +78,7 @@ describe("ErrorRecoveryGuide", () => {
           "Create the channel 'default-channel' in the channels section first"
         );
         expect(suggestions[0].check).toBe("View existing channels");
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=channels");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=channels`);
       });
 
       it("should match product type not found error", () => {
@@ -89,9 +90,7 @@ describe("ErrorRecoveryGuide", () => {
           "Create the product type 'T-Shirt' in the productTypes section first"
         );
         expect(suggestions[0].check).toBe("View existing product types");
-        expect(suggestions[0].command).toBe(
-          "saleor-configurator introspect --include=productTypes"
-        );
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=productTypes`);
       });
     });
 
@@ -105,7 +104,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match entity already exists error", () => {
@@ -117,7 +116,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -129,7 +128,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions).toHaveLength(1);
         expect(suggestions[0].fix).toBe("Add the required field to your configuration");
         expect(suggestions[0].check).toBe("Review the configuration schema documentation");
-        expect(suggestions[0].command).toBe("saleor-configurator --help");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} --help`);
       });
 
       it("should match invalid value error", () => {
@@ -141,7 +140,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -155,7 +154,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Ensure you have admin permissions for the operations you're trying to perform"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=shop");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=shop`);
       });
 
       it("should match unauthorized error", () => {
@@ -167,7 +166,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Verify the SALEOR_BEARER_TOKEN environment variable is set correctly"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator introspect --include=shop");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=shop`);
       });
 
       it("should match forbidden error", () => {
@@ -179,7 +178,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -205,7 +204,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match ENOTFOUND error", () => {
@@ -217,7 +216,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
 
@@ -231,7 +230,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
 
       it("should match GraphQL variable with quotes", () => {
@@ -244,7 +243,7 @@ describe("ErrorRecoveryGuide", () => {
         expect(suggestions[0].check).toBe(
           "Check your configuration against the current Saleor state"
         );
-        expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+        expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
       });
     });
   });
@@ -282,7 +281,7 @@ describe("ErrorRecoveryGuide", () => {
       expect(suggestions[0].check).toBe(
         "Check your configuration against the current Saleor state"
       );
-      expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
     });
 
     it("should provide generic suggestion for empty error message", () => {
@@ -299,7 +298,7 @@ describe("ErrorRecoveryGuide", () => {
         {
           fix: "Create the missing attribute",
           check: "View existing attributes",
-          command: "saleor-configurator introspect --include=attributes",
+          command: `${COMMAND_NAME} introspect --include=attributes`,
         },
       ];
 
@@ -308,7 +307,7 @@ describe("ErrorRecoveryGuide", () => {
       expect(formatted).toEqual([
         "→ Fix: Create the missing attribute",
         "→ Check: View existing attributes",
-        "→ Run: saleor-configurator introspect --include=attributes",
+        `→ Run: ${COMMAND_NAME} introspect --include=attributes`,
       ]);
     });
 
@@ -328,13 +327,13 @@ describe("ErrorRecoveryGuide", () => {
       const suggestions: RecoverySuggestion[] = [
         {
           fix: "Fix the issue",
-          command: "saleor-configurator diff",
+          command: `${COMMAND_NAME} diff`,
         },
       ];
 
       const formatted = ErrorRecoveryGuide.formatSuggestions(suggestions);
 
-      expect(formatted).toEqual(["→ Fix: Fix the issue", "→ Run: saleor-configurator diff"]);
+      expect(formatted).toEqual(["→ Fix: Fix the issue", `→ Run: ${COMMAND_NAME} diff`]);
     });
 
     it("should format multiple suggestions", () => {
@@ -398,7 +397,7 @@ describe("ErrorRecoveryGuide", () => {
       const getSuggestion = (match: RegExpMatchArray): RecoverySuggestion => ({
         fix: `Fix ${match[1]} validation: ${match[2]}`,
         check: `Review ${match[1]} schema requirements`,
-        command: `saleor-configurator introspect --include=${match[1].toLowerCase()}`,
+        command: `${COMMAND_NAME} introspect --include=${match[1].toLowerCase()}`,
       });
 
       ErrorRecoveryGuide.registerPattern(complexPattern, getSuggestion);
@@ -411,7 +410,7 @@ describe("ErrorRecoveryGuide", () => {
       expect(customSuggestion).toBeDefined();
       expect(customSuggestion?.fix).toBe("Fix Product validation: slug is required");
       expect(customSuggestion?.check).toBe("Review Product schema requirements");
-      expect(customSuggestion?.command).toBe("saleor-configurator introspect --include=product");
+      expect(customSuggestion?.command).toBe(`${COMMAND_NAME} introspect --include=product`);
     });
   });
 
@@ -439,7 +438,7 @@ describe("ErrorRecoveryGuide", () => {
       expect(suggestions[0].fix).toBe(
         "Ensure category 'Electronics/Smartphones/iPhone' exists or will be created earlier in deployment"
       );
-      expect(suggestions[0].command).toBe("saleor-configurator introspect --include=categories");
+      expect(suggestions[0].command).toBe(`${COMMAND_NAME} introspect --include=categories`);
     });
 
     it("should provide network troubleshooting for connection issues", () => {

@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { parse, stringify } from "yaml";
 import { ZodValidationError } from "../../lib/errors/zod";
 import { logger } from "../../lib/logger";
+import { COMMAND_NAME } from "../../meta";
 import { EntityNotFoundError } from "./errors";
 import { configSchema, type SaleorConfig } from "./schema/schema";
 
@@ -61,7 +62,7 @@ export class YamlConfigurationManager implements ConfigurationStorage {
         throw new Error(
           `The 'attributes' section is no longer supported. ` +
             `Use 'productAttributes' and 'contentAttributes' instead. ` +
-            `Run 'saleor-configurator introspect' to migrate your config.`
+            `Run '${COMMAND_NAME} introspect' to migrate your config.`
         );
       }
 

@@ -413,6 +413,116 @@ describe("Deploy Command", () => {
     });
   });
 
+  describe("interactive JSON confirmation", () => {
+    it.each([false, true])("preserves confirmation with destructive=%s", async (destructive) => {
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValueOnce(false);
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValue(false);
+      if (destructive) {
+        const configurator = createMockConfigurator(mockDiffService);
+        configurator.diff.mockResolvedValue({
+          summary: {
+            totalChanges: 1,
+            creates: 0,
+            updates: 0,
+            deletes: 1,
+            results: [{ operation: "DELETE", entityType: "Categories", entityName: "old" }],
+          },
+          output: "",
+        });
+        mockCreateConfigurator.mockReturnValue(configurator);
+      }
+      const output = vi.spyOn(console, "log").mockImplementation(() => {});
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+      expect(confirmAction).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        !destructive,
+        true
+      );
+      expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+      expect(output).toHaveBeenCalledOnce();
+      expect(JSON.parse(output.mock.calls[0][0] as string).result.status).toBe("cancelled");
+    });
+  });
+
+  describe("deploy --json", () => {
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+    });
+
+    function parseSingleEnvelope() {
+      expect(consoleLogSpy).toHaveBeenCalledOnce();
+      return JSON.parse(consoleLogSpy.mock.calls[0][0] as string);
+    }
+
+    it("outputs an error envelope when the deployment fails", async () => {
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("fetch failed"))
+      );
+
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(3)"
+      );
+
+      const envelope = parseSingleEnvelope();
+      expect(envelope.command).toBe("deploy");
+      expect(envelope.exitCode).toBe(3);
+      expect(envelope.result).toEqual({ status: "error" });
+      expect(envelope.errors).toHaveLength(1);
+      expect(envelope.errors[0].message).toBeTruthy();
+    });
+
+    it("outputs an error envelope when the local configuration cannot be loaded", async () => {
+      const configurator = createMockConfigurator(mockDiffService);
+      configurator.services.configStorage.load = vi
+        .fn()
+        .mockRejectedValue(new Error("Configuration file not found: missing.yml"));
+      mockCreateConfigurator.mockReturnValue(configurator);
+
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(4)"
+      );
+
+      const envelope = parseSingleEnvelope();
+      expect(envelope.exitCode).toBe(4);
+      expect(envelope.errors[0].message).toContain("missing.yml");
+    });
+
+    it("outputs a result envelope after a successful deployment", async () => {
+      const display = vi.fn();
+      vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(() =>
+        createPartialMock<InstanceType<typeof deploymentModule.DeploymentSummaryReport>>({
+          display,
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+
+      const envelope = parseSingleEnvelope();
+      expect(envelope.command).toBe("deploy");
+      expect(envelope.exitCode).toBe(0);
+      expect(envelope.result).toMatchObject({
+        status: "success",
+        summary: { totalChanges: 1, creates: 1, updates: 0, deletes: 0 },
+        reportPath: ".configurator/reports/deployment-report-mock.json",
+      });
+      expect(envelope.errors).toEqual([]);
+      expect(display).not.toHaveBeenCalled();
+    });
+  });
+
   describe("deploy --plan --json", () => {
     let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 

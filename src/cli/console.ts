@@ -2,6 +2,17 @@ import chalk from "chalk";
 import { isCiOutputMode } from "../lib/ci-mode";
 import { OraProgressReporter, type ProgressReporter, SilentProgressReporter } from "./progress";
 
+/**
+ * Pure text formatters: return styled text without printing it.
+ * Use these when composing strings (e.g. help text) instead of the Console
+ * methods of the same name, which also print.
+ */
+export const textStyle = {
+  important: (message: string) => chalk.bold(message),
+  hint: (message: string) => chalk.gray(message),
+  code: (message: string) => chalk.cyan(message),
+} as const;
+
 export class Console {
   private options: { quiet: boolean } = { quiet: false };
   progress: ProgressReporter = isCiOutputMode()
@@ -13,7 +24,7 @@ export class Console {
   }
 
   hint(message: string) {
-    const text = chalk.gray(message);
+    const text = textStyle.hint(message);
     if (!this.options.quiet) {
       global.console.log(text);
     }
@@ -89,7 +100,7 @@ export class Console {
   }
 
   important(path: string) {
-    const text = chalk.bold(path);
+    const text = textStyle.important(path);
     if (!this.options.quiet) {
       global.console.log(text);
     }
@@ -98,7 +109,7 @@ export class Console {
   }
 
   code(message: string) {
-    const text = chalk.cyan(message);
+    const text = textStyle.code(message);
     if (!this.options.quiet) {
       global.console.log(text);
     }

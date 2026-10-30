@@ -1,10 +1,10 @@
-import { Command } from "@commander-js/extra-typings";
+import { Command, Option } from "@commander-js/extra-typings";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { ZodValidationError } from "../lib/errors/zod";
 import { safePath, safeToken, saleorUrl } from "../lib/validation";
-import { type Console, cliConsole } from "./console";
+import { type Console, cliConsole, textStyle } from "./console";
 
 export interface CommandHandler<T extends Record<string, unknown>, R> {
   console: Console;
@@ -27,13 +27,14 @@ export function shouldOutputJson(args: { json?: boolean; text?: boolean }): bool
 export type BaseCommandArgs = z.infer<typeof baseCommandArgsSchema>;
 
 /**
- * Prompts for missing required arguments interactively
+ * Prompts for missing required arguments interactively.
+ * Command-specific args (anything outside the base schema) are passed through untouched.
  */
-export async function promptForMissingArgs(
-  args: Partial<BaseCommandArgs>,
+export async function promptForMissingArgs<T extends Partial<BaseCommandArgs>>(
+  args: T,
   requiredFields: Array<keyof BaseCommandArgs> = ["url", "token"]
-): Promise<BaseCommandArgs> {
-  const result = { ...args };
+): Promise<Omit<T, keyof BaseCommandArgs> & BaseCommandArgs> {
+  const result: Partial<BaseCommandArgs> = { ...args };
 
   // Prompt for URL if missing
   if (requiredFields.includes("url") && !result.url) {
@@ -65,7 +66,7 @@ export async function promptForMissingArgs(
     });
   }
 
-  return baseCommandArgsSchema.parse(result);
+  return { ...args, ...baseCommandArgsSchema.parse(result) };
 }
 
 /**
@@ -74,16 +75,21 @@ export async function promptForMissingArgs(
 export async function confirmAction(
   message: string,
   details?: string,
-  defaultValue = false
+  defaultValue = false,
+  useStderr = false
 ): Promise<boolean> {
   if (details) {
-    cliConsole.warn(`\n⚠️  ${details}\n`);
+    if (useStderr) {
+      process.stderr.write(`\n⚠️  ${details}\n`);
+    } else {
+      cliConsole.warn(`\n⚠️  ${details}\n`);
+    }
   }
 
-  return confirm({
-    message,
-    default: defaultValue,
-  });
+  return confirm(
+    { message, default: defaultValue },
+    useStderr ? { output: process.stderr } : undefined
+  );
 }
 
 /**
@@ -112,6 +118,20 @@ export function mergeEnvArgs<T extends Record<string, unknown>>(args: T): T {
   } as T;
 }
 
+/**
+ * Removes option values that Commander filled in from defaults, so env vars
+ * (e.g. SALEOR_CONFIG) can take precedence over them. The schema re-applies the
+ * same defaults during validation.
+ */
+export function omitDefaultOptionValues(
+  options: Record<string, unknown>,
+  command: Pick<Command, "getOptionValueSource">
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(options).filter(([key]) => command.getOptionValueSource(key) !== "default")
+  );
+}
+
 export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny>>> {
   name: string;
   description: string;
@@ -121,13 +141,31 @@ export interface CommandConfig<T extends z.ZodObject<Record<string, z.ZodTypeAny
   requiresInteractive?: boolean;
 }
 
+function unwrapOptionalAndDefault(field: z.ZodTypeAny): z.ZodTypeAny {
+  let current = field;
+  while (current instanceof z.ZodOptional || current instanceof z.ZodDefault) {
+    current = current._def.innerType as z.ZodTypeAny;
+  }
+  return current;
+}
+
+export function isBooleanField(field: z.ZodTypeAny): boolean {
+  return unwrapOptionalAndDefault(field) instanceof z.ZodBoolean;
+}
+
+export function toKebabCase(key: string): string {
+  return key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
+}
+
 function getOptionConfigFromZodForCommander(key: string, field: z.ZodTypeAny) {
-  const isBoolean =
-    field instanceof z.ZodBoolean ||
-    (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
+  const isBoolean = isBooleanField(field);
+  const flagName = toKebabCase(key);
 
   return {
-    flags: isBoolean ? `--${key}` : `--${key} <${key}>`,
+    flags: isBoolean ? `--${flagName}` : `--${flagName} <${flagName}>`,
+    // camelCase spelling kept as a hidden alias for backwards compatibility
+    aliasFlags: flagName === key ? undefined : isBoolean ? `--${key}` : `--${key} <${flagName}>`,
+    isBoolean,
     description: field.description || key,
     defaultValue:
       field instanceof z.ZodDefault
@@ -145,16 +183,28 @@ function generateOptionsFromSchema(
   const shape = schema.shape;
 
   Object.entries(shape).forEach(([key, field]) => {
-    const { flags, description, defaultValue } = getOptionConfigFromZodForCommander(key, field);
+    const { flags, aliasFlags, isBoolean, description, defaultValue } =
+      getOptionConfigFromZodForCommander(key, field);
 
-    const isBoolean =
-      field instanceof z.ZodBoolean ||
-      (field instanceof z.ZodDefault && field._def.innerType instanceof z.ZodBoolean);
+    // Commander derives the attribute name from the flag ("--fail-on-delete" and
+    // "--failOnDelete" both map to "failOnDelete"), so both spellings share one key.
+    const option = new Option(flags, description);
+    if (!isBoolean && defaultValue !== undefined) {
+      option.default(defaultValue as string);
+    }
+    command.addOption(option);
 
-    if (isBoolean) {
-      command.option(flags, description);
-    } else {
-      command.option(flags, description, defaultValue as string | undefined);
+    if (isBoolean && defaultValue === true) {
+      command.addOption(
+        new Option(
+          `--no-${toKebabCase(key)}`,
+          `Do not ${description[0].toLowerCase()}${description.slice(1)}`
+        )
+      );
+    }
+
+    if (aliasFlags) {
+      command.addOption(new Option(aliasFlags, description).hideHelp());
     }
   });
 }
@@ -176,9 +226,9 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
     const originalHelp = command.helpInformation.bind(command);
     command.helpInformation = () => {
       let help = originalHelp();
-      help += `\n${cliConsole.important("Examples:")}\n`;
+      help += `\n${textStyle.important("Examples:")}\n`;
       for (const example of config.examples ?? []) {
-        help += `${cliConsole.hint(`  ${example}`)}\n`;
+        help += `${textStyle.hint(`  ${example}`)}\n`;
       }
       return help;
     };
@@ -190,7 +240,9 @@ export function createCommand<T extends z.ZodObject<Record<string, z.ZodTypeAny>
       // Handle interactive mode for missing arguments
       let validatedArgs: z.infer<T>;
 
-      const args = mergeEnvArgs(options as Partial<z.infer<T>>);
+      const args = mergeEnvArgs(
+        omitDefaultOptionValues(options as Record<string, unknown>, command) as Partial<z.infer<T>>
+      );
       if (config.requiresInteractive && (!args.url || !args.token)) {
         cliConsole.info("🔧 Interactive mode: Let's set up your configuration\n");
         const interactiveArgs = await promptForMissingArgs(args);

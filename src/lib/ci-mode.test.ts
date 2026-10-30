@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isNonInteractiveEnvironment } from "./ci-mode";
+import { isCiOutputMode, isNonInteractiveEnvironment } from "./ci-mode";
 
 describe("isNonInteractiveEnvironment", () => {
   const originalStdoutIsTTY = process.stdout.isTTY;
@@ -54,5 +54,23 @@ describe("isNonInteractiveEnvironment", () => {
   it("returns true when both are false (CI / full redirect)", () => {
     setTTY(false, false);
     expect(isNonInteractiveEnvironment()).toBe(true);
+  });
+});
+
+describe("isCiOutputMode", () => {
+  const originalArgv = process.argv;
+
+  afterEach(() => {
+    process.argv = originalArgv;
+  });
+
+  it.each(["--json", "--github-comment", "--githubComment"])("detects %s", (flag) => {
+    process.argv = ["node", "cli", "diff", flag];
+    expect(isCiOutputMode()).toBe(true);
+  });
+
+  it("returns false without CI output flags", () => {
+    process.argv = ["node", "cli", "diff", "--fail-on-delete"];
+    expect(isCiOutputMode()).toBe(false);
   });
 });

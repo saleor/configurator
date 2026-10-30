@@ -12,6 +12,7 @@ import { GraphQLError } from "../lib/errors/graphql";
 import { ErrorRecoveryGuide } from "../lib/errors/recovery-guide";
 import { logger } from "../lib/logger";
 import { ServiceErrorWrapper } from "../lib/utils/error-wrapper";
+import { COMMAND_NAME } from "../meta";
 
 // Extended error interfaces for tests
 interface MockGraphQLError extends Error {
@@ -281,7 +282,7 @@ describe("Error Handling Integration", () => {
         // Verify recovery suggestions
         expect(userMessage).toContain("→ Fix: Add the required field to your configuration");
         expect(userMessage).toContain("→ Check: Review the configuration schema documentation");
-        expect(userMessage).toContain("→ Run: saleor-configurator --help");
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} --help`);
       }
     });
 
@@ -312,16 +313,14 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain(
           "→ Fix: Create the product type 'NonexistentType' in the productTypes section first"
         );
-        expect(userMessage).toContain(
-          "→ Run: saleor-configurator introspect --include=productTypes"
-        );
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} introspect --include=productTypes`);
 
         // Check category error suggestions
         expect(userMessage).toContain("• Bad Category");
         expect(userMessage).toContain(
           "→ Fix: Ensure category 'NonexistentCategory' exists or will be created earlier in deployment"
         );
-        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=categories");
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} introspect --include=categories`);
       }
     });
 
@@ -347,7 +346,7 @@ describe("Error Handling Integration", () => {
           "→ Fix: Create the attribute 'color' first or reference an existing one"
         );
         expect(userMessage).toContain("→ Check: View available attributes");
-        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=attributes");
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} introspect --include=attributes`);
       }
     });
 
@@ -369,7 +368,7 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain(
           "→ Check: Ensure you have admin permissions for the operations you're trying to perform"
         );
-        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=shop");
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} introspect --include=shop`);
       }
     });
 
@@ -497,7 +496,7 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain(
           "→ Fix: Ensure referenced attributes exist and match the correct type (PRODUCT_TYPE or PAGE_TYPE)"
         );
-        expect(userMessage).toContain("→ Run: saleor-configurator introspect --include=attributes");
+        expect(userMessage).toContain(`→ Run: ${COMMAND_NAME} introspect --include=attributes`);
 
         // Check entity type required error
         expect(userMessage).toContain("• RequiresEntityType");
@@ -616,7 +615,7 @@ describe("Error Handling Integration", () => {
         expect(userMessage).toContain("1. Review the individual errors below");
         expect(userMessage).toContain("2. Fix the issues and run deploy again");
         expect(userMessage).toContain("3. Use --include flag to deploy only specific entities");
-        expect(userMessage).toContain("4. Run 'saleor-configurator diff' to check current state");
+        expect(userMessage).toContain(`4. Run '${COMMAND_NAME} diff' to check current state`);
 
         // Verify logging was called appropriately
         expect(mockedLogger.warn).toHaveBeenCalledWith(
@@ -681,7 +680,7 @@ describe("Error Handling Integration", () => {
       expect(suggestions[0].check).toBe(
         "Check your configuration against the current Saleor state"
       );
-      expect(suggestions[0].command).toBe("saleor-configurator diff --verbose");
+      expect(suggestions[0].command).toBe(`${COMMAND_NAME} diff`);
 
       console.log(`\nUnknown Error: "${unknownError}"`);
       console.log("Fallback Recovery Suggestions:");
