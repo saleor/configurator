@@ -133,14 +133,18 @@ EXIT_CODE=0
 
 # For diff with github-comment format, capture output for PR comment
 if [[ "$COMMAND" == "diff" && "$POST_PR_COMMENT" == "true" ]]; then
-  configurator "${ARGS[@]}" > "$OUTPUT_FILE" 2>&1 || EXIT_CODE=$?
+  # Capture stdout only so stderr logs do not end up in the PR comment
+  configurator "${ARGS[@]}" > "$OUTPUT_FILE" || EXIT_CODE=$?
   cat "$OUTPUT_FILE"
 
-  # Set output for PR comment (escape newlines for GitHub Actions)
-  DIFF_OUTPUT=$(cat "$OUTPUT_FILE" | jq -Rs .)
-  echo "diff-output<<EOF" >> "$GITHUB_OUTPUT"
-  cat "$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
-  echo "EOF" >> "$GITHUB_OUTPUT"
+  # Multiline output; a random delimiter cannot collide with the diff content
+  DELIMITER="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+  {
+    echo "diff-output<<$DELIMITER"
+    cat "$OUTPUT_FILE"
+    echo ""
+    echo "$DELIMITER"
+  } >> "$GITHUB_OUTPUT"
 elif [[ "$JSON_OUTPUT" == "true" ]]; then
   # JSON output mode - capture stdout only; stderr carries logs that would
   # corrupt the JSON envelope.
