@@ -253,6 +253,23 @@ describe("ProductComparator", () => {
       expect(results).toHaveLength(0);
     });
 
+    it("detects description changes inside list blocks", () => {
+      const listDescription = (items: string[]) =>
+        JSON.stringify({ time: 1, blocks: [{ type: "list", data: { items } }] });
+      const remote = [{ ...sampleProduct, description: listDescription(["Fast", "Light"]) }];
+      const local = [{ ...sampleProduct, description: listDescription(["Fast", "Heavy"]) }];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results[0].changes).toContainEqual(
+        expect.objectContaining({
+          field: "description",
+          currentValue: "Fast Light",
+          desiredValue: "Fast Heavy",
+        })
+      );
+    });
+
     it("should detect product media differences", () => {
       const remote = [
         {

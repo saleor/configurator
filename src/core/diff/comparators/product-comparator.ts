@@ -1,6 +1,7 @@
 import type { ProductVariantInput, SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange, DiffOptions } from "../types";
 import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
+import { descriptionsEqual, normalizeDescription } from "./editorjs-description";
 
 /**
  * Product entity type for type safety
@@ -86,48 +87,25 @@ export class ProductComparator extends BaseEntityComparator<
       changes.push(this.createFieldChange("name", remote.name, local.name));
     }
 
-    // Compare description by text content only (EditorJS JSON → plain text)
-    const extractText = (value: unknown): string | undefined => {
-      if (!value || typeof value !== "string") return undefined;
-      const raw = value.trim();
-      const decodeEntities = (s: string) =>
-        s
-          .replace(/&nbsp;/gi, " ")
-          .replace(/&amp;/gi, "&")
-          .replace(/&lt;/gi, "<")
-          .replace(/&gt;/gi, ">")
-          .replace(/&quot;/gi, '"')
-          .replace(/&#39;/gi, "'");
-      const stripTags = (s: string) => s.replace(/<[^>]*>/g, "");
-      try {
-        const json = JSON.parse(raw);
-        if (json && Array.isArray(json.blocks)) {
-          type EditorJsBlock = { data?: { text?: string } } | null | undefined;
-          const parts = json.blocks
-            .map((b: EditorJsBlock) =>
-              b?.data?.text && typeof b.data.text === "string" ? b.data.text : ""
-            )
-            .filter((t: string) => t.length > 0);
-          const joined = parts.join(" ");
-          return stripTags(decodeEntities(joined)).replace(/\s+/g, " ").trim();
-        }
-        // If not EditorJS-like, fall back to raw
-        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
-      } catch {
-        return stripTags(decodeEntities(raw)).replace(/\s+/g, " ").trim();
-      }
-    };
-
-    const localDesc = extractText(local.description);
-    const remoteDesc = extractText(remote.description);
-    if (localDesc !== remoteDesc) {
+    // Compare description by visible content (EditorJS JSON or plain text)
+    if (!descriptionsEqual(local.description, remote.description)) {
+      const remoteDesc = normalizeDescription(remote.description);
+      const localDesc = normalizeDescription(local.description);
+      const isTextChange = (remoteDesc?.text ?? "") !== (localDesc?.text ?? "");
       changes.push(
-        this.createFieldChange(
-          "description",
-          remoteDesc ?? "",
-          localDesc ?? "",
-          "Description text changed"
-        )
+        isTextChange
+          ? this.createFieldChange(
+              "description",
+              remoteDesc?.text ?? "",
+              localDesc?.text ?? "",
+              "Description text changed"
+            )
+          : this.createFieldChange(
+              "description",
+              remoteDesc?.blocks,
+              localDesc?.blocks,
+              "Description block structure changed"
+            )
       );
     }
 
