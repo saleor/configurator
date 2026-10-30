@@ -108,6 +108,7 @@ export class DiffService {
       const results = await this.performSelectiveComparisons(localConfig, remoteConfig, {
         ...selectiveOptions,
         diffOptions: options,
+        skipUnmanagedSections: true,
       });
 
       // Calculate summary statistics
@@ -441,9 +442,17 @@ export class DiffService {
   private async performSelectiveComparisons(
     localConfig: SaleorConfig,
     remoteConfig: SaleorConfig,
-    options: DiffServiceIntrospectOptions & { diffOptions?: DiffOptions }
+    options: DiffServiceIntrospectOptions & {
+      diffOptions?: DiffOptions;
+      /**
+       * Skip sections absent from the desired config instead of comparing them against `[]`,
+       * which would report every remote entity as a deletion. Used for deploy-direction diffs;
+       * introspect writes the full remote state, so it keeps comparing every section.
+       */
+      skipUnmanagedSections?: boolean;
+    }
   ): Promise<readonly DiffResult[]> {
-    const { includeSections, excludeSections } = options;
+    const { includeSections, excludeSections, skipUnmanagedSections = false } = options;
     const comparisons: Promise<readonly DiffResult[]>[] = [];
 
     // Helper function to check if section should be included
@@ -454,8 +463,12 @@ export class DiffService {
       });
     };
 
+    // An explicit empty list still means "none of these"; only an absent section is unmanaged.
+    const isManaged = (section: keyof SaleorConfig): boolean =>
+      !skipUnmanagedSections || localConfig[section] !== undefined;
+
     // Shop settings comparison
-    if (shouldInclude("shop") && this.comparators.has("shop")) {
+    if (shouldInclude("shop") && isManaged("shop") && this.comparators.has("shop")) {
       comparisons.push(
         this.performComparison("shop", localConfig.shop, remoteConfig.shop, options.diffOptions)
       );
@@ -482,7 +495,11 @@ export class DiffService {
     };
 
     for (const [entityType, section] of Object.entries(entityTypeMappings)) {
-      if (shouldInclude(section) && this.comparators.has(entityType)) {
+      if (
+        shouldInclude(section) &&
+        isManaged(entityType as keyof SaleorConfig) &&
+        this.comparators.has(entityType)
+      ) {
         comparisons.push(
           this.performComparison(
             entityType,

@@ -618,7 +618,7 @@ describe("DiffService", () => {
       expect(summary.results).toHaveLength(0);
     });
 
-    it("should handle partial configurations", async () => {
+    it("should treat sections absent from local config as unmanaged", async () => {
       // Arrange: Different sections in each config
       const localConfig: SaleorConfig = {
         shop: {
@@ -645,9 +645,33 @@ describe("DiffService", () => {
       const summary = await diffService.compare();
 
       // Assert
-      expect(summary.totalChanges).toBe(2); // 1 create + 1 delete
+      // channels are not in local config, so they are not managed and not reported as deletions
+      expect(summary.totalChanges).toBe(1);
       expect(summary.creates).toBe(1); // Shop settings
-      expect(summary.deletes).toBe(1); // Channel
+      expect(summary.deletes).toBe(0);
+    });
+
+    it("should still report deletions for an explicitly empty section", async () => {
+      const localConfig: SaleorConfig = { channels: [] };
+      const remoteConfig: SaleorConfig = {
+        channels: [
+          {
+            name: "Remote Channel",
+            currencyCode: "USD",
+            defaultCountry: "US",
+            slug: "remote",
+            isActive: true,
+          },
+        ],
+      };
+
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(localConfig);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(remoteConfig);
+
+      const summary = await diffService.compare();
+
+      expect(summary.deletes).toBe(1);
+      expect(summary.results[0]).toMatchObject({ operation: "DELETE", entityName: "remote" });
     });
   });
 
