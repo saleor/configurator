@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { globalLogCollector } from "../../lib/json-log-collector";
 import { logger } from "../../lib/logger";
 import { ConfigurationService } from "./config-service";
+import { EntityNotFoundError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { ProductInput, SaleorConfig } from "./schema/schema";
 
@@ -100,6 +101,77 @@ describe("ConfigurationService", () => {
       expect(result.productTypes).toEqual([]);
       expect(result.pageTypes).toEqual([]);
       expect(storage.save).toHaveBeenCalledWith(result);
+    });
+
+    describe("with selective options", () => {
+      const existingConfig = {
+        shop: { defaultMailSenderName: "Local Shop" },
+        categories: [{ name: "Local Category", slug: "local-category" }],
+        products: [],
+      } as unknown as SaleorConfig;
+
+      it("replaces only the included sections and keeps the rest of the file", async () => {
+        const storage = createMockStorage();
+        storage.load.mockResolvedValue(existingConfig);
+        const service = new ConfigurationService(
+          new MockRepository(createBaseRawConfig({ shop: mockRawShopData })),
+          storage
+        );
+
+        const result = await service.retrieve({ includeSections: ["shop"], excludeSections: [] });
+
+        expect(result.shop).toEqual(mockMappedShopData);
+        expect(result.categories).toEqual(existingConfig.categories);
+        expect(result.products).toEqual([]);
+        expect(result.channels).toBeUndefined();
+        expect(storage.save).toHaveBeenCalledWith(result);
+      });
+
+      it("keeps excluded sections from the existing file", async () => {
+        const storage = createMockStorage();
+        storage.load.mockResolvedValue(existingConfig);
+        const service = new ConfigurationService(
+          new MockRepository(createBaseRawConfig({ shop: mockRawShopData })),
+          storage
+        );
+
+        const result = await service.retrieve({
+          includeSections: [],
+          excludeSections: ["categories"],
+        });
+
+        expect(result.categories).toEqual(existingConfig.categories);
+        expect(result.shop).toEqual(mockMappedShopData);
+      });
+
+      it("writes only the fetched sections when no config file exists yet", async () => {
+        const storage = createMockStorage();
+        storage.load.mockRejectedValue(new EntityNotFoundError("Configuration file not found"));
+        const service = new ConfigurationService(
+          new MockRepository(createBaseRawConfig({ shop: mockRawShopData })),
+          storage
+        );
+
+        const result = await service.retrieve({ includeSections: ["shop"], excludeSections: [] });
+
+        expect(result.shop).toEqual(mockMappedShopData);
+        expect(result.categories).toBeUndefined();
+        expect(storage.save).toHaveBeenCalledWith(result);
+      });
+
+      it("refuses to overwrite an invalid existing config", async () => {
+        const storage = createMockStorage();
+        storage.load.mockRejectedValue(new Error("Configuration file doesn't match the schema"));
+        const service = new ConfigurationService(
+          new MockRepository(createBaseRawConfig({ shop: mockRawShopData })),
+          storage
+        );
+
+        await expect(
+          service.retrieve({ includeSections: ["shop"], excludeSections: [] })
+        ).rejects.toThrow("existing configuration file is invalid");
+        expect(storage.save).not.toHaveBeenCalled();
+      });
     });
 
     it("should not warn when Saleor patch version differs within the supported minor", async () => {

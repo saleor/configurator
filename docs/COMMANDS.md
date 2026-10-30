@@ -47,6 +47,8 @@ pnpm dev introspect --url=$URL --token=$TOKEN --include=shop,channels
 pnpm dev introspect --url=$URL --token=$TOKEN --exclude=products,categories
 ```
 
+With `--include`/`--exclude` and an existing config file, only the selected sections are replaced; all other sections in the file are kept as they are.
+
 **Common Introspect Patterns:**
 ```bash
 # Quick shop settings check
