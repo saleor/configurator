@@ -15,6 +15,18 @@ export function safePath() {
     );
 }
 
+// Plain HTTP is only allowed for local development instances
+const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function usesAllowedProtocol(u: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(u);
+    return protocol === "https:" || (protocol === "http:" && LOOPBACK_HOSTNAMES.has(hostname));
+  } catch {
+    return false;
+  }
+}
+
 export function saleorUrl() {
   return z
     .string()
@@ -26,7 +38,7 @@ export function saleorUrl() {
         return false;
       }
     }, "Must be a valid URL")
-    .refine((u) => u.startsWith("https://"), "Must use HTTPS")
+    .refine(usesAllowedProtocol, "Must use HTTPS (HTTP is only allowed for localhost)")
     .refine((u) => {
       const withoutQuery = u.split("?")[0].split("#")[0];
       return withoutQuery.endsWith("/graphql/") || withoutQuery.endsWith("/graphql");

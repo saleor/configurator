@@ -36,6 +36,22 @@ describe("saleorUrl", () => {
     expect(() => saleorUrl().parse("http://store.saleor.cloud/graphql/")).toThrow();
   });
 
+  it.each([
+    "http://localhost:8000/graphql/",
+    "http://127.0.0.1:8000/graphql/",
+    "http://[::1]:8000/graphql/",
+  ])("accepts plain HTTP for loopback host %s", (url) => {
+    expect(saleorUrl().parse(url)).toBe(url);
+  });
+
+  it.each([
+    "http://localhost.evil.com/graphql/",
+    "http://127.0.0.2/graphql/",
+    "ftp://localhost/graphql/",
+  ])("rejects non-HTTPS URL %s on non-loopback hosts or protocols", (url) => {
+    expect(() => saleorUrl().parse(url)).toThrow();
+  });
+
   it("rejects URLs without /graphql endpoint", () => {
     expect(() => saleorUrl().parse("https://store.saleor.cloud/")).toThrow();
   });
