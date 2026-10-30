@@ -175,56 +175,88 @@ if [[ -n "$DEPLOY_REPORT" ]]; then
   fi
 fi
 
+# diff and deploy --plan report pending changes. diff exits 0 whether or not
+# changes exist and deploy --plan exits 1 when changes exist, so neither exit
+# code says whether there are changes - the JSON summary does.
+REPORTS_CHANGES=false
+if [[ "$COMMAND" == "diff" || ( "$COMMAND" == "deploy" && "$PLAN_ONLY" == "true" ) ]]; then
+  REPORTS_CHANGES=true
+fi
+
+# In human-readable modes nothing parseable was printed; run the same command
+# again with --json to collect the change summary.
+if [[ -z "$COUNTS" && "$REPORTS_CHANGES" == "true" ]] && (( EXIT_CODE <= 1 )); then
+  META_ARGS=("$COMMAND" "--url" "$SALEOR_URL" "--token" "$SALEOR_TOKEN" "--config" "$CONFIG_PATH" "--json")
+  if [[ "$COMMAND" == "deploy" ]]; then
+    META_ARGS+=("--plan")
+  fi
+  echo "Collecting change summary (configurator $COMMAND --json)..."
+  configurator "${META_ARGS[@]}" > "$JSON_OUTPUT_FILE" 2>/dev/null || true
+  COUNTS=$(counts_from_envelope "$JSON_OUTPUT_FILE")
+  if [[ -z "$COUNTS" ]]; then
+    echo "::warning::Could not determine change counts from configurator $COMMAND --json"
+  fi
+fi
+
 write_count_outputs "$COUNTS"
 
+TOTAL_CHANGES=""
+read -r TOTAL_CHANGES _ <<< "$COUNTS"
+
+# Changes reported by diff (exit 0) or deploy --plan (exit 1) are informational.
+CHANGES_DETECTED=false
+if [[ "$REPORTS_CHANGES" == "true" && "$TOTAL_CHANGES" =~ ^[0-9]+$ ]] && (( TOTAL_CHANGES > 0 )); then
+  if [[ "$EXIT_CODE" -eq 0 || ( "$COMMAND" == "deploy" && "$EXIT_CODE" -eq 1 ) ]]; then
+    CHANGES_DETECTED=true
+  fi
+fi
+
 # Generate summary based on exit code
-case $EXIT_CODE in
-  0)
-    if [[ "$COMMAND" == "diff" ]]; then
-      echo "summary=No changes detected - configurations are in sync" >> "$GITHUB_OUTPUT"
-    else
-      echo "summary=Operation completed successfully" >> "$GITHUB_OUTPUT"
-    fi
-    ;;
-  1)
-    echo "summary=Changes detected" >> "$GITHUB_OUTPUT"
-    ;;
-  2)
-    echo "summary=Authentication error" >> "$GITHUB_OUTPUT"
-    ;;
-  3)
-    echo "summary=Network error" >> "$GITHUB_OUTPUT"
-    ;;
-  4)
-    echo "summary=Validation error" >> "$GITHUB_OUTPUT"
-    ;;
-  5)
-    echo "summary=Partial failure - some operations succeeded" >> "$GITHUB_OUTPUT"
-    ;;
-  6)
-    echo "summary=Blocked - deletions detected (--fail-on-delete)" >> "$GITHUB_OUTPUT"
-    ;;
-  7)
-    echo "summary=Blocked - breaking changes detected (--fail-on-breaking)" >> "$GITHUB_OUTPUT"
-    ;;
-  *)
-    echo "summary=Unexpected error occurred" >> "$GITHUB_OUTPUT"
-    ;;
-esac
+if [[ "$CHANGES_DETECTED" == "true" ]]; then
+  echo "summary=Changes detected ($TOTAL_CHANGES)" >> "$GITHUB_OUTPUT"
+else
+  case $EXIT_CODE in
+    0)
+      if [[ "$REPORTS_CHANGES" == "true" && "$TOTAL_CHANGES" == "0" ]]; then
+        echo "summary=No changes detected - configurations are in sync" >> "$GITHUB_OUTPUT"
+      else
+        echo "summary=Operation completed successfully" >> "$GITHUB_OUTPUT"
+      fi
+      ;;
+    2)
+      echo "summary=Authentication error" >> "$GITHUB_OUTPUT"
+      ;;
+    3)
+      echo "summary=Network error" >> "$GITHUB_OUTPUT"
+      ;;
+    4)
+      echo "summary=Validation error" >> "$GITHUB_OUTPUT"
+      ;;
+    5)
+      echo "summary=Partial failure - some operations succeeded" >> "$GITHUB_OUTPUT"
+      ;;
+    6)
+      echo "summary=Blocked - deletions detected (--fail-on-delete)" >> "$GITHUB_OUTPUT"
+      ;;
+    7)
+      echo "summary=Blocked - breaking changes detected (--fail-on-breaking)" >> "$GITHUB_OUTPUT"
+      ;;
+    *)
+      echo "summary=Unexpected error occurred" >> "$GITHUB_OUTPUT"
+      ;;
+  esac
+fi
 
 # Cleanup temp files
 rm -f "$OUTPUT_FILE" "$JSON_OUTPUT_FILE" "$RUN_MARKER"
 
-# Handle exit code based on fail-on-diff flag
-if [[ "$COMMAND" == "diff" && "$FAIL_ON_DIFF" == "true" && "$EXIT_CODE" -eq 1 ]]; then
-  echo "Failing because changes were detected and fail-on-diff is enabled"
-  exit 1
-fi
-
-# Exit with the original exit code (except for expected diff exit code 1 when not using fail-on-diff)
-if [[ "$COMMAND" == "diff" && "$EXIT_CODE" -eq 1 && "$FAIL_ON_DIFF" != "true" ]]; then
-  # Diff found changes but fail-on-diff is not set - this is informational, not an error
+if [[ "$CHANGES_DETECTED" == "true" ]]; then
+  if [[ "$FAIL_ON_DIFF" == "true" ]]; then
+    echo "Failing because changes were detected and fail-on-diff is enabled"
+    exit 1
+  fi
+  # Pending changes are informational unless fail-on-diff is set
   exit 0
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"
