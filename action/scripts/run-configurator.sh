@@ -72,6 +72,13 @@ if [[ "$VERBOSE" == "true" ]]; then
   fi
 fi
 
+# The CLI switches to JSON output automatically when stdout is not a TTY (as on
+# GitHub runners). Unless JSON was requested, force human-readable output so the
+# log and the PR comment markdown are not replaced by a JSON envelope.
+if [[ "$JSON_OUTPUT" != "true" ]] && supports_boolean_flag "$COMMAND" text; then
+  ARGS+=("--text")
+fi
+
 # Create temp file for output capture
 OUTPUT_FILE=$(mktemp)
 JSON_OUTPUT_FILE=$(mktemp)
