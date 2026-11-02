@@ -378,7 +378,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       config,
     };
 
-    const { metrics, result, exitCode } = await executeEnhancedDeployment(getAllStages(), context);
+    const { metrics, result, exitCode, abortError } = await executeEnhancedDeployment(
+      getAllStages(),
+      context
+    );
 
     this.console.text("");
 
@@ -397,6 +400,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
 
     const reportPath = await this.saveAndPruneReport(args, metrics, summary);
+
+    // A rate limit or network error stopped the pipeline: results and report are shown above,
+    // then fail with the same error handling (and exit code) as before
+    if (abortError !== undefined) throw abortError;
 
     return {
       metrics,
