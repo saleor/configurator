@@ -6,10 +6,14 @@ import { logger } from "../../lib/logger";
 import { getSupportedSaleorMinor } from "../../lib/package-info";
 import { isSaleorMinorMismatch } from "../../lib/saleor-version";
 import { object } from "../../lib/utils/object";
-import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { AVAILABLE_SECTIONS, shouldIncludeSection } from "../../lib/utils/selective-options";
 import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
-import { UnsupportedInputTypeError } from "./errors";
+import {
+  EntityNotFoundError,
+  InvalidExistingConfigError,
+  UnsupportedInputTypeError,
+} from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import {
   type AttributeInput,
@@ -44,6 +48,31 @@ import type {
   TaxClassInput,
   WarehouseInput,
 } from "./schema/schema";
+
+/**
+ * `pageTypes` and `modelTypes` are two config sections for the same Saleor entity (page types).
+ * Introspect fetches both, so writing both would duplicate every page type in the file.
+ * `pageTypes` is the canonical section; `modelTypes` is only kept when the local file already
+ * uses it, so existing configs keep their shape.
+ */
+export function withoutDuplicateModelTypes(
+  remote: SaleorConfig,
+  local: SaleorConfig | undefined,
+  selectiveOptions?: ParsedSelectiveOptions
+): SaleorConfig {
+  const isExplicitlyRequested = selectiveOptions?.includeSections.includes("modelTypes") ?? false;
+  if (isExplicitlyRequested || local?.modelTypes !== undefined || remote.pageTypes === undefined) {
+    return remote;
+  }
+  const { modelTypes: _duplicate, ...rest } = remote;
+  return rest;
+}
+
+function isSelective(
+  options: ParsedSelectiveOptions | undefined
+): options is ParsedSelectiveOptions {
+  return Boolean(options && (options.includeSections.length || options.excludeSections.length));
+}
 
 interface TaxClassType {
   node: {
@@ -101,9 +130,58 @@ export class ConfigurationService {
   ) {}
 
   async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
-    const config = await this.buildConfig(selectiveOptions);
-    await this.storage.save(config);
+    const fetched = await this.buildConfig(selectiveOptions);
+    const configToSave = isSelective(selectiveOptions)
+      ? await this.mergeIntoExistingConfig(fetched, selectiveOptions)
+      : withoutDuplicateModelTypes(fetched, await this.loadExistingConfigTolerant());
+    await this.storage.save(configToSave);
+    return configToSave;
+  }
+
+  private async loadExistingConfigTolerant(): Promise<SaleorConfig | undefined> {
+    try {
+      return await this.storage.load();
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * With --include/--exclude only the selected sections are fetched, so they replace the
+   * matching sections of the existing file and every other section is kept as is.
+   */
+  private async mergeIntoExistingConfig(
+    fetched: SaleorConfig,
+    selectiveOptions: ParsedSelectiveOptions
+  ): Promise<SaleorConfig> {
+    const existing = await this.loadExistingConfig();
+    const source = withoutDuplicateModelTypes(fetched, existing, selectiveOptions);
+    if (!existing) return source;
+
+    const merged: Record<string, unknown> = { ...existing };
+    const fetchedRecord = source as Record<string, unknown>;
+    for (const section of AVAILABLE_SECTIONS) {
+      if (!shouldIncludeSection(section, selectiveOptions)) continue;
+      // Undefined means the section could not be read (e.g. missing permission) - keep local.
+      if (fetchedRecord[section] !== undefined) merged[section] = fetchedRecord[section];
+    }
+
+    const config = merged as SaleorConfig;
+    this.reorderConfigKeys(config);
     return config;
+  }
+
+  private async loadExistingConfig(): Promise<SaleorConfig | undefined> {
+    try {
+      return await this.storage.load();
+    } catch (error) {
+      if (error instanceof EntityNotFoundError) return undefined;
+      throw new InvalidExistingConfigError(
+        `Cannot update only the selected sections because the existing configuration file is invalid: ${
+          error instanceof Error ? error.message : String(error)
+        }\nFix the file, or run introspect without --include/--exclude to overwrite it.`
+      );
+    }
   }
 
   async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {

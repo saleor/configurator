@@ -13,3 +13,9 @@ export class EntityNotFoundError extends ConfigError {
     super(message, "ENTITY_NOT_FOUND_ERROR");
   }
 }
+
+export class InvalidExistingConfigError extends ConfigError {
+  constructor(message: string) {
+    super(message, "INVALID_EXISTING_CONFIG_ERROR");
+  }
+}
