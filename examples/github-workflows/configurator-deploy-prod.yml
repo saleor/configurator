@@ -64,15 +64,20 @@ jobs:
           json-output: true
 
       - name: Show Preview
+        env:
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.diff.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.diff.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.diff.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.diff.outputs.deletes-count }}
         run: |
-          echo "## Production Deployment Preview" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "## Production Deployment Preview" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
 
   # Deploy with manual approval
   deploy:
@@ -84,9 +89,9 @@ jobs:
       (github.event.inputs.dry-run != 'true')
 
     # Production environment requires manual approval
+    # (`secrets` is not available in environment.url, so no URL is set here)
     environment:
       name: production
-      url: ${{ secrets.PROD_SALEOR_URL }}
 
     permissions:
       contents: read
@@ -118,12 +123,15 @@ jobs:
 
       - name: Add Summary
         if: always()
+        env:
+          CONFIGURATOR_SUMMARY: ${{ steps.deploy.outputs.summary }}
+          CONFIGURATOR_EXIT_CODE: ${{ steps.deploy.outputs.exit-code }}
         run: |
-          echo "## Production Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ steps.deploy.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Exit code: ${{ steps.deploy.outputs.exit-code }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Production Deployment Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** ${CONFIGURATOR_SUMMARY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Exit code: ${CONFIGURATOR_EXIT_CODE}" >> "$GITHUB_STEP_SUMMARY"
 
   # Dry run job (when dry-run is enabled)
   dry-run:
