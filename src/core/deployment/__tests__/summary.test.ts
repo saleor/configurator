@@ -80,7 +80,7 @@ describe("DeploymentSummaryReport", () => {
       expect(lines).toContain("Changes Applied:");
       expect(lines).toContain("• Created: 5 entities");
       expect(lines).toContain("• Updated: 3 entities");
-      expect(lines).toContain("• Deleted: 1 entities");
+      expect(lines.some((line: string) => line.includes("Deleted"))).toBe(false);
     });
 
     it("displays entity breakdown", () => {
@@ -90,7 +90,7 @@ describe("DeploymentSummaryReport", () => {
       const [lines] = vi.mocked(cliConsole.box).mock.calls[0];
       expect(lines).toContain("By Entity Type:");
       expect(lines).toContain("• Product: 5 created, 2 updated");
-      expect(lines).toContain("• Category: 1 updated, 1 deleted");
+      expect(lines).toContain("• Category: 1 updated, 1 only in Saleor");
     });
 
     it("handles no changes", () => {

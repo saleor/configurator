@@ -1,5 +1,5 @@
 import { cliConsole } from "../../cli/console";
-import type { DiffSummary } from "../diff";
+import { countAppliedChanges, type DiffSummary } from "../diff";
 import type { DeploymentMetrics } from "./types";
 import { formatDuration, getTopOperationResilienceHotspots } from "./utils";
 
@@ -50,16 +50,13 @@ export class DeploymentSummaryReport {
     }
 
     // Changes applied
-    if (this.summary.totalChanges > 0) {
+    if (countAppliedChanges(this.summary) > 0) {
       lines.push("Changes Applied:");
       if (this.summary.creates > 0) {
         lines.push(`• Created: ${this.summary.creates} entities`);
       }
       if (this.summary.updates > 0) {
         lines.push(`• Updated: ${this.summary.updates} entities`);
-      }
-      if (this.summary.deletes > 0) {
-        lines.push(`• Deleted: ${this.summary.deletes} entities`);
       }
     } else {
       lines.push("No changes were applied");
@@ -110,7 +107,7 @@ export class DeploymentSummaryReport {
         const parts: string[] = [];
         if (counts.created > 0) parts.push(`${counts.created} created`);
         if (counts.updated > 0) parts.push(`${counts.updated} updated`);
-        if (counts.deleted > 0) parts.push(`${counts.deleted} deleted`);
+        if (counts.deleted > 0) parts.push(`${counts.deleted} only in Saleor`);
 
         if (parts.length > 0) {
           const line = `• ${type}: ${parts.join(", ")}`;

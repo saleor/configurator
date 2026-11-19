@@ -1,6 +1,7 @@
 // Diff operations
 export {
   calculateDiffStatistics,
+  countAppliedChanges,
   filterDiffByEntityType,
   filterDiffByOperation,
   hasDiffChanges,
