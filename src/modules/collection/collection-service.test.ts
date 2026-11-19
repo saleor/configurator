@@ -45,6 +45,51 @@ describe("CollectionService", () => {
     ],
   };
 
+  describe("unresolved references", () => {
+    const createService = (existingProducts: string[], existingChannels: string[]) => {
+      const operations = createMockOperations();
+      operations.createCollection.mockResolvedValue({ ...mockCollection, id: "new-col" });
+      const productService = {
+        getProductBySlug: vi.fn(async (slug: string) =>
+          existingProducts.includes(slug) ? { id: `id-${slug}`, slug } : null
+        ),
+      } as unknown as ProductService;
+      const channelService = {
+        getChannelBySlug: vi.fn(async (slug: string) =>
+          existingChannels.includes(slug) ? { id: `id-${slug}`, slug } : null
+        ),
+      } as unknown as ChannelService;
+      return {
+        operations,
+        service: new CollectionService(operations, productService, channelService),
+      };
+    };
+
+    it("assigns the products it finds, then fails naming the missing ones", async () => {
+      const { operations, service } = createService(["product-1"], ["default-channel"]);
+
+      await expect(service.createCollection(mockCollectionInput)).rejects.toThrow(
+        'Referenced entities not found: product "product-2"'
+      );
+      expect(operations.assignProducts).toHaveBeenCalledWith("new-col", ["id-product-1"]);
+      expect(operations.updateChannelListings).toHaveBeenCalled();
+    });
+
+    it("fails when a listed channel doesn't exist", async () => {
+      const { service } = createService(["product-1", "product-2"], []);
+
+      await expect(service.createCollection(mockCollectionInput)).rejects.toThrow(
+        'channel "default-channel"'
+      );
+    });
+
+    it("succeeds when every reference resolves", async () => {
+      const { service } = createService(["product-1", "product-2"], ["default-channel"]);
+
+      await expect(service.createCollection(mockCollectionInput)).resolves.toBeDefined();
+    });
+  });
+
   describe("validateCollectionInput", () => {
     it("should throw error when collection name is missing", async () => {
       const invalidInput = { ...mockCollectionInput, name: "" };

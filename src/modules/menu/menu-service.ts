@@ -4,6 +4,7 @@ import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { CategoryService } from "../category/category-service";
 import type { CollectionService } from "../collection/collection-service";
+import { EntityNotFoundError } from "../config/errors";
 import type { ModelService } from "../model/model-service";
 import { MenuError, MenuOperationError, MenuValidationError } from "./errors";
 import type {
@@ -271,44 +272,33 @@ export class MenuService {
       url: item.url,
     };
 
-    // Resolve references
+    // Resolve references; an item linked to nothing would be wrong, so a missing one fails the menu
     if (item.category && this.categoryService) {
-      try {
-        const category = await this.categoryService.getCategoryBySlug(item.category);
-        if (category) {
-          input.category = category.id;
-        } else {
-          logger.warn(`Category with slug "${item.category}" not found`);
-        }
-      } catch (error) {
-        logger.warn(`Failed to resolve category slug "${item.category}": ${error}`);
+      const category = await this.categoryService.getCategoryBySlug(item.category);
+      if (!category) {
+        throw new EntityNotFoundError(
+          `Category "${item.category}" for menu item "${item.name}" not found`
+        );
       }
+      input.category = category.id;
     }
 
     if (item.collection && this.collectionService) {
-      try {
-        const collection = await this.collectionService.getCollectionBySlug(item.collection);
-        if (collection) {
-          input.collection = collection.id;
-        } else {
-          logger.warn(`Collection with slug "${item.collection}" not found`);
-        }
-      } catch (error) {
-        logger.warn(`Failed to resolve collection slug "${item.collection}": ${error}`);
+      const collection = await this.collectionService.getCollectionBySlug(item.collection);
+      if (!collection) {
+        throw new EntityNotFoundError(
+          `Collection "${item.collection}" for menu item "${item.name}" not found`
+        );
       }
+      input.collection = collection.id;
     }
 
     if (item.page && this.modelService) {
-      try {
-        const page = await this.modelService.getModelBySlug(item.page);
-        if (page) {
-          input.page = page.id;
-        } else {
-          logger.warn(`Page with slug "${item.page}" not found`);
-        }
-      } catch (error) {
-        logger.warn(`Failed to resolve page slug "${item.page}": ${error}`);
+      const page = await this.modelService.getModelBySlug(item.page);
+      if (!page) {
+        throw new EntityNotFoundError(`Page "${item.page}" for menu item "${item.name}" not found`);
       }
+      input.page = page.id;
     }
 
     return input;

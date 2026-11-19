@@ -527,6 +527,24 @@ describe("MenuService", () => {
       );
     });
 
+    it("fails the menu instead of creating an unlinked item when a category is missing", async () => {
+      const mockOperations = createMockOperations();
+      mockOperations.createMenu.mockResolvedValue(mockMenu);
+      const mockCategoryService = {
+        getCategoryBySlug: vi.fn().mockResolvedValue(null),
+      } as unknown as CategoryService;
+      const service = new MenuService(mockOperations, mockCategoryService);
+
+      await expect(
+        service.createMenu({
+          name: "navbar",
+          slug: "navbar",
+          items: [{ name: "Photobook", category: "photobooks" }],
+        })
+      ).rejects.toThrow('Category "photobooks" for menu item "Photobook" not found');
+      expect(mockOperations.createMenuItem).not.toHaveBeenCalled();
+    });
+
     it("should handle missing category services gracefully", async () => {
       const mockOperations = createMockOperations();
       mockOperations.createMenu.mockResolvedValue(mockMenu);
