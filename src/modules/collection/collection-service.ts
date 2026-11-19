@@ -8,6 +8,7 @@ import { processEachInChunks } from "../../lib/utils/chunked-processor";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { object } from "../../lib/utils/object";
 import type { ChannelService } from "../channel/channel-service";
+import { EntityNotFoundError } from "../config/errors";
 import type { ProductService } from "../product/product-service";
 import { CollectionOperationError, CollectionValidationError } from "./errors";
 import type {
@@ -93,6 +94,20 @@ export class CollectionService {
     });
   }
 
+  /**
+   * Fails the collection when the config references products or channels that don't exist,
+   * after everything that could be resolved was applied.
+   */
+  private assertReferencesResolved(missingProducts: string[], missingChannels: string[]): void {
+    const missing = [
+      ...missingProducts.map((slug) => `product "${slug}"`),
+      ...missingChannels.map((slug) => `channel "${slug}"`),
+    ];
+    if (missing.length > 0) {
+      throw new EntityNotFoundError(`Referenced entities not found: ${missing.join(", ")}`);
+    }
+  }
+
   async createCollection(input: CollectionInputConfig): Promise<Collection> {
     logger.debug("Creating new collection", { name: input.name, slug: input.slug });
 
@@ -102,15 +117,15 @@ export class CollectionService {
       const createInput = this.mapInputToCreateInput(input);
       const collection = await this.repository.createCollection(createInput);
 
-      // Handle product assignments
-      if (input.products && input.products.length > 0) {
-        await this.syncCollectionProducts(collection.id, input.products, []);
-      }
-
-      // Handle channel listings
-      if (input.channelListings && input.channelListings.length > 0) {
-        await this.updateChannelListings(collection.id, input.channelListings);
-      }
+      const missingProducts =
+        input.products && input.products.length > 0
+          ? await this.syncCollectionProducts(collection.id, input.products, [])
+          : [];
+      const missingChannels = await this.updateChannelListings(
+        collection.id,
+        input.channelListings
+      );
+      this.assertReferencesResolved(missingProducts, missingChannels);
 
       logger.debug("Successfully created collection", {
         id: collection.id,
@@ -137,7 +152,7 @@ export class CollectionService {
       const updateInput = this.mapInputToUpdateInput(input);
       const collection = await this.repository.updateCollection(id, updateInput);
 
-      // Handle product updates if provided
+      let missingProducts: string[] = [];
       if (input.products !== undefined) {
         const existingCollection = await this.repository.getCollectionBySlug(input.slug);
         const currentProductSlugs =
@@ -145,13 +160,14 @@ export class CollectionService {
             ?.map((edge) => edge.node.slug)
             .filter((slug): slug is string => !!slug) ?? [];
 
-        await this.syncCollectionProducts(id, input.products, currentProductSlugs);
+        missingProducts = await this.syncCollectionProducts(
+          id,
+          input.products,
+          currentProductSlugs
+        );
       }
-
-      // Handle channel listing updates
-      if (input.channelListings && input.channelListings.length > 0) {
-        await this.updateChannelListings(id, input.channelListings);
-      }
+      const missingChannels = await this.updateChannelListings(id, input.channelListings);
+      this.assertReferencesResolved(missingProducts, missingChannels);
 
       logger.debug("Successfully updated collection", {
         id: collection.id,
@@ -249,7 +265,8 @@ export class CollectionService {
     collectionId: string,
     desiredProductSlugs: string[],
     currentProductSlugs: string[]
-  ): Promise<void> {
+  ): Promise<string[]> {
+    const missingSlugs: string[] = [];
     const toAdd = desiredProductSlugs.filter((slug) => !currentProductSlugs.includes(slug));
     const toRemove = currentProductSlugs.filter((slug) => !desiredProductSlugs.includes(slug));
 
@@ -262,18 +279,11 @@ export class CollectionService {
       // Resolve product slugs to IDs
       const productIds: string[] = [];
       for (const slug of toAdd) {
-        try {
-          const product = await this.productService.getProductBySlug(slug);
-          if (product) {
-            productIds.push(product.id);
-          } else {
-            logger.warn(`Product with slug "${slug}" not found, skipping`);
-          }
-        } catch (error) {
-          if (isTransientError(error)) {
-            throw error;
-          }
-          logger.warn(`Failed to resolve product slug "${slug}": ${error}`);
+        const product = await this.productService.getProductBySlug(slug);
+        if (product) {
+          productIds.push(product.id);
+        } else {
+          missingSlugs.push(slug);
         }
       }
 
@@ -308,14 +318,16 @@ export class CollectionService {
         await this.repository.removeProducts(collectionId, productIds);
       }
     }
+
+    return missingSlugs;
   }
 
   private async updateChannelListings(
     collectionId: string,
     channelListings: CollectionInputConfig["channelListings"]
-  ): Promise<void> {
+  ): Promise<string[]> {
     if (!channelListings || channelListings.length === 0) {
-      return;
+      return [];
     }
 
     logger.debug("Updating collection channel listings", {
@@ -324,24 +336,18 @@ export class CollectionService {
     });
 
     const addChannels: PublishableChannelListingInput[] = [];
+    const missingChannels: string[] = [];
 
     for (const listing of channelListings) {
-      try {
-        const channel = await this.channelService.getChannelBySlug(listing.channelSlug);
-        if (channel) {
-          addChannels.push({
-            channelId: channel.id,
-            isPublished: listing.isPublished,
-            publishedAt: listing.publishedAt,
-          });
-        } else {
-          logger.warn(`Channel with slug "${listing.channelSlug}" not found, skipping`);
-        }
-      } catch (error) {
-        if (isTransientError(error)) {
-          throw error;
-        }
-        logger.warn(`Failed to resolve channel slug "${listing.channelSlug}": ${error}`);
+      const channel = await this.channelService.getChannelBySlug(listing.channelSlug);
+      if (channel) {
+        addChannels.push({
+          channelId: channel.id,
+          isPublished: listing.isPublished,
+          publishedAt: listing.publishedAt,
+        });
+      } else {
+        missingChannels.push(listing.channelSlug);
       }
     }
 
@@ -352,6 +358,8 @@ export class CollectionService {
       };
       await this.repository.updateChannelListings(collectionId, input);
     }
+
+    return missingChannels;
   }
 
   async getAllCollections(): Promise<Collection[]> {
