@@ -2,6 +2,7 @@ import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import { EntityValidationError } from "../errors";
 import type { DiffChange } from "../types";
 import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
+import { findChangedFields } from "./field-comparison";
 
 /**
  * Channel entity type for type safety
@@ -148,13 +149,8 @@ export class ChannelComparator extends BaseEntityComparator<
     const changes: DiffChange[] = [];
 
     // Compare basic channel fields
-    for (const field of CHANNEL_FIELDS) {
-      const localValue = local[field];
-      const remoteValue = remote[field];
-
-      if (localValue !== remoteValue) {
-        changes.push(this.createFieldChange(field, remoteValue, localValue));
-      }
+    for (const field of findChangedFields(local, remote, CHANNEL_FIELDS)) {
+      changes.push(this.createFieldChange(field, remote[field], local[field]));
     }
 
     // Compare channel settings if they exist
@@ -197,13 +193,10 @@ export class ChannelComparator extends BaseEntityComparator<
     const localSettings = local || {};
     const remoteSettings = remote || {};
 
-    for (const field of CHANNEL_SETTINGS_FIELDS) {
-      const localValue = localSettings[field];
-      const remoteValue = remoteSettings[field];
-
-      if (localValue !== remoteValue) {
-        changes.push(this.createFieldChange(`settings.${field}`, remoteValue, localValue));
-      }
+    for (const field of findChangedFields(localSettings, remoteSettings, CHANNEL_SETTINGS_FIELDS)) {
+      changes.push(
+        this.createFieldChange(`settings.${field}`, remoteSettings[field], localSettings[field])
+      );
     }
 
     return changes;
@@ -230,13 +223,18 @@ export class ChannelComparator extends BaseEntityComparator<
     const localTaxConfig = local || {};
     const remoteTaxConfig = remote || {};
 
-    for (const field of TAX_CONFIGURATION_FIELDS) {
-      const localValue = localTaxConfig[field];
-      const remoteValue = remoteTaxConfig[field];
-
-      if (localValue !== remoteValue) {
-        changes.push(this.createFieldChange(`taxConfiguration.${field}`, remoteValue, localValue));
-      }
+    for (const field of findChangedFields(
+      localTaxConfig,
+      remoteTaxConfig,
+      TAX_CONFIGURATION_FIELDS
+    )) {
+      changes.push(
+        this.createFieldChange(
+          `taxConfiguration.${field}`,
+          remoteTaxConfig[field],
+          localTaxConfig[field]
+        )
+      );
     }
 
     return changes;
