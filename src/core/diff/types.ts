@@ -1,3 +1,5 @@
+import type { MetadataKeyFilter } from "../../modules/metadata/metadata";
+
 /**
  * Represents the type of diff operation that needs to be performed
  */
@@ -92,6 +94,12 @@ export interface DiffOptions {
    * Media differences will not be reported in diff results.
    */
   readonly skipMedia?: boolean;
+  /**
+   * When true, metadata keys present only on the compared-against side are reported as removals.
+   * Introspect sets it because it rewrites the file with the full (filtered) remote metadata;
+   * deploy leaves it off so keys not listed in config stay unmanaged.
+   */
+  readonly compareAllMetadataKeys?: boolean;
   /** Sections to include (empty array means include all) */
   readonly includeSections?: readonly ConfigurationSection[];
   /** Sections to exclude */
@@ -140,6 +148,8 @@ export interface IntrospectDiffOptions {
   readonly includeSections?: readonly ConfigurationSection[];
   /** Sections to exclude */
   readonly excludeSections?: readonly ConfigurationSection[];
+  /** Metadata keys to bring into the config file */
+  readonly metadataKeyFilter?: MetadataKeyFilter;
 }
 
 /**
@@ -160,6 +170,8 @@ export interface DiffServiceIntrospectOptions {
   readonly includeSections?: readonly ConfigurationSection[];
   /** Sections to exclude */
   readonly excludeSections?: readonly ConfigurationSection[];
+  /** Metadata keys to bring into the config file */
+  readonly metadataKeyFilter?: MetadataKeyFilter;
 }
 
 /**

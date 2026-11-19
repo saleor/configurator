@@ -13,6 +13,7 @@ import { logger } from "../lib/logger";
 import { createBackup, fileExists } from "../lib/utils/file";
 import { getSelectiveOptionsSummary, parseSelectiveOptions } from "../lib/utils/selective-options";
 import { COMMAND_NAME } from "../meta";
+import { type MetadataKeyFilter, parseMetadataKeyFilter } from "../modules/metadata/metadata";
 
 // CLI Command result types
 const commandResultSchema = z.discriminatedUnion("type", [
@@ -105,6 +106,14 @@ export const introspectCommandSchema = baseCommandArgsSchema.extend({
     .optional()
     .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
+  metadataInclude: z
+    .string()
+    .optional()
+    .describe("Comma-separated metadata key patterns to bring into config (e.g., 'erp.*,seo')"),
+  metadataExclude: z
+    .string()
+    .optional()
+    .describe("Comma-separated metadata key patterns to leave out of config (e.g., 'stripe.*')"),
   verbose: z.boolean().default(false).describe("Show detailed changes for all items"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
 });
@@ -118,6 +127,7 @@ interface IntrospectContext {
   configurator: SaleorConfigurator;
   startTime: number;
   selectiveOptions: ParsedSelectiveOptions;
+  metadataKeyFilter: MetadataKeyFilter;
 }
 
 class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, CommandResult> {
@@ -132,6 +142,7 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
     const isQuiet = args.quiet || shouldOutputJson(args);
 
     const selectiveOptions = parseSelectiveOptions(args);
+    const metadataKeyFilter = parseMetadataKeyFilter(args);
 
     try {
       // Initialize
@@ -146,7 +157,12 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
 
       if (!configExists) {
         // Handle case where no config exists - just create it without diff analysis
-        return await this.handleNoExistingConfig(args, startTime, selectiveOptions);
+        return await this.handleNoExistingConfig(
+          args,
+          startTime,
+          selectiveOptions,
+          metadataKeyFilter
+        );
       }
 
       // Create context for existing config flow
@@ -157,6 +173,7 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
         configurator,
         startTime,
         selectiveOptions,
+        metadataKeyFilter,
       };
 
       // Execute main flow
@@ -183,7 +200,8 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
   private async handleNoExistingConfig(
     args: IntrospectCommandArgs,
     startTime: number,
-    selectiveOptions: ParsedSelectiveOptions
+    selectiveOptions: ParsedSelectiveOptions,
+    metadataKeyFilter: MetadataKeyFilter
   ): Promise<CommandResult> {
     // Create configurator
     const configurator = createConfigurator(args);
@@ -192,7 +210,7 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
       // Fetch and save configuration directly - no diff, no confirmation needed
       this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
-      await configurator.introspect(selectiveOptions);
+      await configurator.introspect(selectiveOptions, metadataKeyFilter);
 
       this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(args.config));
 
@@ -250,6 +268,7 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
       quiet: true,
       includeSections,
       excludeSections,
+      metadataKeyFilter: context.metadataKeyFilter,
     });
   }
 
@@ -395,7 +414,7 @@ class IntrospectCommandHandler implements CommandHandler<IntrospectCommandArgs, 
   private async executeIntrospection(context: IntrospectContext): Promise<void> {
     this.console.muted(INTROSPECT_MESSAGES.PROCESSING_FETCH);
 
-    await context.configurator.introspect(context.selectiveOptions);
+    await context.configurator.introspect(context.selectiveOptions, context.metadataKeyFilter);
 
     const configPath = this.console.important(context.args.config);
     this.console.success(INTROSPECT_MESSAGES.SUCCESS_SAVE(configPath));
@@ -471,6 +490,7 @@ export const introspectCommandConfig: CommandConfig<typeof introspectCommandSche
     `${COMMAND_NAME} introspect --drift-check # Exit 1 if remote differs from local`,
     `${COMMAND_NAME} introspect --include channels,shop`,
     `${COMMAND_NAME} introspect --exclude products`,
+    `${COMMAND_NAME} introspect --metadata-exclude 'stripe.*,avatax.*'`,
     `${COMMAND_NAME} introspect --format json --quiet`,
     `${COMMAND_NAME} introspect --no-backup`,
     `${COMMAND_NAME} introspect --verbose`,

@@ -57,6 +57,12 @@ pnpm dev introspect --url=$URL --token=$TOKEN --exclude=products
 
 # Configuration structure only
 pnpm dev introspect --url=$URL --token=$TOKEN --include=channels,productTypes,pageTypes
+
+# Leave integration-owned metadata keys out of the file
+pnpm dev introspect --url=$URL --token=$TOKEN --metadata-exclude='erp.*,stripe.*'
+
+# Bring in only selected metadata keys
+pnpm dev introspect --url=$URL --token=$TOKEN --metadata-include='seo*,region'
 ```
 
 ### Diff Commands

@@ -1,11 +1,12 @@
 import { logger } from "../../../lib/logger";
+import { diffMetadata, readConfigMetadata } from "../../../modules/metadata/metadata";
 import { EntityValidationError } from "../errors";
 import type { DiffChange, DiffOptions, DiffResult, EntityType } from "../types";
 
 /**
  * Options for comparator operations. Uses Pick to avoid redundant type definitions.
  */
-export type ComparatorOptions = Pick<DiffOptions, "skipMedia">;
+export type ComparatorOptions = Pick<DiffOptions, "skipMedia" | "compareAllMetadataKeys">;
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle
@@ -217,5 +218,32 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
       return JSON.stringify(value);
     }
     return String(value);
+  }
+
+  /**
+   * Compares metadata keys listed in the desired entity. Keys only present on the other side are
+   * not reported (the configurator manages only the keys it is given) unless
+   * `compareAllMetadataKeys` is set.
+   */
+  protected compareMetadata(
+    desired: unknown,
+    current: unknown,
+    options?: ComparatorOptions,
+    fieldPrefix = "metadata"
+  ): DiffChange[] {
+    const changes = diffMetadata(readConfigMetadata(desired), readConfigMetadata(current), {
+      includeUnlistedKeys: options?.compareAllMetadataKeys ?? false,
+    });
+    const label = (value: string | undefined) => (value === undefined ? "(not set)" : `"${value}"`);
+
+    return changes.map((change) => {
+      const field = `${fieldPrefix}.${change.key}`;
+      return this.createFieldChange(
+        field,
+        change.current ?? null,
+        change.desired ?? null,
+        `${field}: ${label(change.current)} → ${label(change.desired)}`
+      );
+    });
   }
 }

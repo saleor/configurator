@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
+import { MetadataService } from "../metadata/metadata-service";
 import type { WarehouseOperations } from "../warehouse/repository";
 import {
   ShippingMethodValidationError,
@@ -71,6 +72,7 @@ describe("ShippingZoneService", () => {
 
   const mockShippingMethod: ShippingMethod = {
     id: "m1",
+    metadata: [],
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
@@ -92,6 +94,7 @@ describe("ShippingZoneService", () => {
 
   const mockShippingZone: ShippingZone = {
     id: "1",
+    metadata: [],
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
@@ -118,7 +121,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
@@ -142,7 +146,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
@@ -170,7 +175,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
@@ -205,7 +211,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.createShippingZone(invalidInput)).rejects.toThrow(
@@ -230,7 +237,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const result = await service.getOrCreateShippingZone(mockShippingZoneInput);
@@ -255,7 +263,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const result = await service.getOrCreateShippingZone(mockShippingZoneInput);
@@ -282,7 +291,8 @@ describe("ShippingZoneService", () => {
       const service = new TestShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await service.testSyncShippingMethods("zone-1", [mockShippingMethodInput], []);
@@ -306,7 +316,8 @@ describe("ShippingZoneService", () => {
       const service = new TestShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await service.testSyncShippingMethods(
@@ -334,7 +345,8 @@ describe("ShippingZoneService", () => {
       const service = new TestShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await service.testSyncShippingMethods("zone-1", [], [mockShippingMethod]);
@@ -364,7 +376,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.bootstrapShippingZones(duplicateZones)).rejects.toThrow(
@@ -396,7 +409,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const results = await service.bootstrapShippingZones(zones);
@@ -422,7 +436,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.createShippingZone(mockShippingZoneInput)).rejects.toThrow(
@@ -445,7 +460,8 @@ describe("ShippingZoneService", () => {
       const service = new ShippingZoneService(
         mockOperations,
         createMockWarehouseOperations(),
-        createMockChannelOperations()
+        createMockChannelOperations(),
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       await expect(service.updateShippingZone("1", mockShippingZoneInput)).rejects.toThrow(

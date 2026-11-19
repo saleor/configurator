@@ -12,6 +12,10 @@ const getShippingZonesQuery = graphql(`
           name
           default
           description
+          metadata {
+            key
+            value
+          }
           countries {
             code
             country
@@ -31,6 +35,10 @@ const getShippingZonesQuery = graphql(`
             name
             description
             type
+            metadata {
+              key
+              value
+            }
             maximumDeliveryDays
             minimumDeliveryDays
             maximumOrderWeight {
@@ -86,6 +94,10 @@ const getShippingZoneQuery = graphql(`
       name
       default
       description
+      metadata {
+        key
+        value
+      }
       countries {
         code
         country
@@ -105,6 +117,10 @@ const getShippingZoneQuery = graphql(`
         name
         description
         type
+        metadata {
+          key
+          value
+        }
         maximumDeliveryDays
         minimumDeliveryDays
         maximumOrderWeight {
@@ -159,6 +175,10 @@ const createShippingZoneMutation = graphql(`
         name
         default
         description
+        metadata {
+          key
+          value
+        }
         countries {
           code
           country
@@ -178,6 +198,10 @@ const createShippingZoneMutation = graphql(`
           name
           description
           type
+          metadata {
+            key
+            value
+          }
           maximumDeliveryDays
           minimumDeliveryDays
           maximumOrderWeight {
@@ -224,6 +248,10 @@ const updateShippingZoneMutation = graphql(`
         name
         default
         description
+        metadata {
+          key
+          value
+        }
         countries {
           code
           country
@@ -243,6 +271,10 @@ const updateShippingZoneMutation = graphql(`
           name
           description
           type
+          metadata {
+            key
+            value
+          }
           maximumDeliveryDays
           minimumDeliveryDays
           maximumOrderWeight {

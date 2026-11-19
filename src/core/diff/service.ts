@@ -3,6 +3,7 @@ import { cliConsole } from "../../cli/console";
 import { logger } from "../../lib/logger";
 import { scopeConfig, shouldIncludeSection } from "../../lib/utils/selective-options";
 import type { SaleorConfig } from "../../modules/config/schema/schema";
+import type { MetadataKeyFilter } from "../../modules/metadata/metadata";
 import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
 import {
@@ -166,7 +167,7 @@ export class DiffService {
       // Load configurations concurrently for better performance
       const [loadedLocalConfig, remoteConfig] = await Promise.all([
         this.loadLocalConfigurationTolerant(),
-        this.loadRemoteConfiguration(selectiveOptions),
+        this.loadRemoteConfiguration(selectiveOptions, options.metadataKeyFilter),
       ]);
       const localConfig = scopeConfig(loadedLocalConfig, selectiveOptions);
 
@@ -182,6 +183,7 @@ export class DiffService {
       const results = await this.performSelectiveComparisons(remoteConfig, localConfig, {
         includeSections: selectiveOptions.includeSections,
         excludeSections: selectiveOptions.excludeSections,
+        diffOptions: { compareAllMetadataKeys: true },
       });
 
       // Calculate summary statistics
@@ -245,7 +247,13 @@ export class DiffService {
   async diffForIntrospectWithFormatting(
     options: IntrospectDiffOptions = {}
   ): Promise<IntrospectDiffResult> {
-    const { format = "table", quiet = false, includeSections, excludeSections } = options;
+    const {
+      format = "table",
+      quiet = false,
+      includeSections,
+      excludeSections,
+      metadataKeyFilter,
+    } = options;
 
     logger.info("Starting diff process for introspect");
 
@@ -261,6 +269,7 @@ export class DiffService {
       const summary = await this.compareForIntrospect({
         includeSections,
         excludeSections,
+        metadataKeyFilter,
       });
 
       if (!quiet) {
@@ -352,7 +361,8 @@ export class DiffService {
    * Loads remote configuration with error handling and timeout
    */
   private async loadRemoteConfiguration(
-    selectiveOptions?: DiffServiceIntrospectOptions
+    selectiveOptions?: DiffServiceIntrospectOptions,
+    metadataKeyFilter?: MetadataKeyFilter
   ): Promise<SaleorConfig> {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     try {
@@ -367,7 +377,8 @@ export class DiffService {
       });
 
       const configPromise = this.services.configuration.retrieveWithoutSaving(
-        selectiveOptions ? this.toSelectiveOptions(selectiveOptions) : undefined
+        selectiveOptions ? this.toSelectiveOptions(selectiveOptions) : undefined,
+        metadataKeyFilter
       );
       const config = await Promise.race([configPromise, timeoutPromise]);
 

@@ -31,7 +31,8 @@ export class CategoryComparator extends BaseEntityComparator<
    */
   compare(
     local: readonly CategoryEntity[],
-    remote: readonly CategoryEntity[]
+    remote: readonly CategoryEntity[],
+    options?: ComparatorOptions
   ): readonly import("../types").DiffResult[] {
     // Validate unique identifiers (slugs for categories)
     this.validateUniqueIdentifiers(local);
@@ -49,7 +50,7 @@ export class CategoryComparator extends BaseEntityComparator<
         results.push(this.createCreateResult(localCat));
       } else {
         // Check for updates
-        const changes = this.compareEntityFields(localCat, remoteCat);
+        const changes = this.compareEntityFields(localCat, remoteCat, options);
         if (changes.length > 0) {
           results.push(this.createUpdateResult(localCat, remoteCat, changes));
         }
@@ -80,7 +81,7 @@ export class CategoryComparator extends BaseEntityComparator<
   protected compareEntityFields(
     local: CategoryEntity,
     remote: CategoryEntity,
-    _options?: ComparatorOptions
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
@@ -97,8 +98,10 @@ export class CategoryComparator extends BaseEntityComparator<
     const remoteSubcats = this.getSubcategories(remote);
 
     if (localSubcats.length > 0 || remoteSubcats.length > 0) {
-      changes.push(...this.compareSubcategories(localSubcats, remoteSubcats));
+      changes.push(...this.compareSubcategories(localSubcats, remoteSubcats, options));
     }
+
+    changes.push(...this.compareMetadata(local, remote, options));
 
     return changes;
   }
@@ -125,7 +128,8 @@ export class CategoryComparator extends BaseEntityComparator<
    */
   private compareSubcategories(
     local: readonly Subcategory[],
-    remote: readonly Subcategory[]
+    remote: readonly Subcategory[],
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
@@ -147,7 +151,11 @@ export class CategoryComparator extends BaseEntityComparator<
         // Compare existing subcategories recursively
         const remoteSubcat = remoteSubcatMap.get(localSubcat.slug);
         if (remoteSubcat) {
-          const nestedChanges = this.compareSubcategoryStructure(localSubcat, remoteSubcat);
+          const nestedChanges = this.compareSubcategoryStructure(
+            localSubcat,
+            remoteSubcat,
+            options
+          );
           changes.push(...nestedChanges);
         }
       }
@@ -173,8 +181,15 @@ export class CategoryComparator extends BaseEntityComparator<
   /**
    * Compares the structure of individual subcategories recursively
    */
-  private compareSubcategoryStructure(local: Subcategory, remote: Subcategory): DiffChange[] {
-    const changes: DiffChange[] = [];
+  private compareSubcategoryStructure(
+    local: Subcategory,
+    remote: Subcategory,
+    options?: ComparatorOptions
+  ): DiffChange[] {
+    const changes: DiffChange[] = this.compareMetadata(local, remote, options).map((change) => ({
+      ...change,
+      description: `In "${local.name}": ${change.description}`,
+    }));
 
     // Get nested subcategories
     const localNested = local.subcategories ?? [];
@@ -182,7 +197,7 @@ export class CategoryComparator extends BaseEntityComparator<
 
     // If there are nested subcategories, compare them recursively
     if (localNested.length > 0 || remoteNested.length > 0) {
-      const nestedChanges = this.compareSubcategories(localNested, remoteNested);
+      const nestedChanges = this.compareSubcategories(localNested, remoteNested, options);
 
       // Prefix the nested changes with the parent subcategory name for clarity
       for (const change of nestedChanges) {

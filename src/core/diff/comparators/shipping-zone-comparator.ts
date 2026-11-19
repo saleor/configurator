@@ -75,7 +75,8 @@ export class ShippingZoneComparator extends BaseEntityComparator<
 
   compare(
     local: readonly ShippingZoneInput[],
-    remote: readonly ShippingZone[]
+    remote: readonly ShippingZone[],
+    options?: ComparatorOptions
   ): readonly DiffResult[] {
     // Validate and deduplicate local shipping zones
     this.validateUniqueIdentifiers(local);
@@ -96,7 +97,8 @@ export class ShippingZoneComparator extends BaseEntityComparator<
         // Shipping zone exists, check for updates
         const changes = this.compareEntityFields(
           localZone as ShippingZoneInput,
-          remoteZone as ShippingZone
+          remoteZone as ShippingZone,
+          options
         );
         if (changes.length > 0) {
           results.push(
@@ -319,7 +321,7 @@ export class ShippingZoneComparator extends BaseEntityComparator<
   protected compareEntityFields(
     local: ShippingZoneInput,
     remote: ShippingZone,
-    _options?: ComparatorOptions
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
@@ -384,7 +386,30 @@ export class ShippingZoneComparator extends BaseEntityComparator<
       remote.shippingMethods || undefined
     );
     changes.push(...methodChanges);
+    changes.push(...this.compareMetadata(local, remote, options));
+    changes.push(
+      ...this.compareShippingMethodMetadata(local.shippingMethods, remote.shippingMethods, options)
+    );
 
     return changes;
+  }
+
+  private compareShippingMethodMetadata(
+    localMethods: readonly ShippingMethodInput[] | undefined,
+    remoteMethods: readonly ShippingMethod[] | null | undefined,
+    options?: ComparatorOptions
+  ): DiffChange[] {
+    const remoteByName = new Map((remoteMethods ?? []).map((method) => [method.name, method]));
+    return (localMethods ?? []).flatMap((method) => {
+      const remoteMethod = remoteByName.get(method.name);
+      return remoteMethod
+        ? this.compareMetadata(
+            method,
+            remoteMethod,
+            options,
+            `shippingMethods.${method.name}.metadata`
+          )
+        : [];
+    });
   }
 }

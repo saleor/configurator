@@ -4,6 +4,7 @@ import { BulkOperationProgress } from "../cli/progress";
 import { createClient } from "../lib/graphql/client";
 import { logger } from "../lib/logger";
 import type { SaleorConfig } from "../modules/config/schema/schema";
+import type { MetadataKeyFilter } from "../modules/metadata/metadata";
 import { formatDiff } from "./diff";
 import type { DiffOptions, ParsedSelectiveOptions } from "./diff/types";
 import { ServiceComposer, type ServiceContainer } from "./service-container";
@@ -148,10 +149,16 @@ export class SaleorConfigurator {
     cliConsole.progress.info("Push operation completed successfully");
   }
 
-  async introspect(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
+  async introspect(
+    selectiveOptions?: ParsedSelectiveOptions,
+    metadataKeyFilter?: MetadataKeyFilter
+  ): Promise<SaleorConfig> {
     cliConsole.progress.start("Retrieving configuration from Saleor");
     try {
-      const config = await this.services.configuration.retrieve(selectiveOptions);
+      const config = await this.services.configuration.retrieve(
+        selectiveOptions,
+        metadataKeyFilter
+      );
       cliConsole.progress.succeed("Configuration retrieved successfully");
       return config;
     } catch (error) {
