@@ -7,7 +7,7 @@ export interface UnknownConfigKey {
   key: string;
 }
 
-export type ConfigurationCheck =
+type ConfigurationCheck =
   | { success: true; data: SaleorConfig; unknownKeys: UnknownConfigKey[] }
   | { success: false; error: z.ZodError };
 
@@ -28,7 +28,7 @@ export function checkConfiguration(rawConfig: unknown): ConfigurationCheck {
   };
 }
 
-export interface UnknownKeyWarning {
+interface UnknownKeyWarning {
   /** Exact location for a single occurrence, e.g. `products.3.foo`; a pattern such as `products[].foo` when repeated. */
   location: string;
   occurrences: number;
