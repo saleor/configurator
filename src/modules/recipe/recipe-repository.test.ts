@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ManifestLoadError,
   RecipeLoadError,
@@ -6,12 +6,16 @@ import {
   RecipeValidationError,
 } from "./errors";
 
-vi.mock("node:fs", () => ({
+vi.mock("node:fs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("node:fs")>()),
   readFileSync: vi.fn(),
 }));
 
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
+  findRecipesDir,
   getRecipesDir,
   loadManifest,
   loadRecipe,
@@ -25,11 +29,60 @@ describe("Recipe Repository", () => {
   });
 
   describe("getRecipesDir", () => {
-    it("should return a valid path", () => {
-      const recipesDir = getRecipesDir();
-      expect(recipesDir).toBeDefined();
-      expect(typeof recipesDir).toBe("string");
-      expect(recipesDir).toContain("recipes");
+    it("finds the source recipes when running from src", () => {
+      expect(getRecipesDir()).toBe(path.resolve(__dirname, "..", "..", "recipes"));
+    });
+  });
+
+  describe("findRecipesDir", () => {
+    const createPackage = (files: string[]) => {
+      const root = mkdtempSync(path.join(tmpdir(), "configurator-recipes-"));
+      for (const file of files) {
+        mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
+        writeFileSync(path.join(root, file), "{}");
+      }
+      return root;
+    };
+    let root: string | undefined;
+
+    afterEach(() => {
+      if (root) rmSync(root, { recursive: true, force: true });
+      root = undefined;
+    });
+
+    it("finds the recipes next to a bundled chunk in dist", () => {
+      root = createPackage([
+        "dist/chunk-ABC.js",
+        "dist/recipes/manifest.json",
+        "recipes/README.md",
+      ]);
+
+      expect(findRecipesDir(path.join(root, "dist"))).toBe(path.join(root, "dist", "recipes"));
+    });
+
+    it("finds src/recipes from a source module", () => {
+      root = createPackage([
+        "src/modules/recipe/recipe-repository.ts",
+        "src/recipes/manifest.json",
+      ]);
+
+      expect(findRecipesDir(path.join(root, "src", "modules", "recipe"))).toBe(
+        path.join(root, "src", "recipes")
+      );
+    });
+
+    it("skips a recipes directory without a manifest", () => {
+      root = createPackage(["dist/recipes/manifest.json", "dist/nested/recipes/README.md"]);
+
+      expect(findRecipesDir(path.join(root, "dist", "nested"))).toBe(
+        path.join(root, "dist", "recipes")
+      );
+    });
+
+    it("throws ManifestLoadError when no manifest exists", () => {
+      root = createPackage(["dist/chunk-ABC.js"]);
+
+      expect(() => findRecipesDir(path.join(root as string, "dist"))).toThrow(ManifestLoadError);
     });
   });
 
