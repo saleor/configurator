@@ -31,6 +31,13 @@ interface MenuInputConfig {
   items?: MenuItemInputConfig[];
 }
 
+const MENU_ITEM_REFERENCE_KINDS = ["category", "collection", "page"] as const;
+type MenuItemReferenceKind = (typeof MENU_ITEM_REFERENCE_KINDS)[number];
+/** Resolved entity IDs keyed by `<kind>:<slug>`. */
+type ResolvedItemReferences = Map<string, string>;
+type ReferenceResolver = (slug: string) => Promise<{ id: string } | null | undefined>;
+const referenceKey = (kind: MenuItemReferenceKind, slug: string) => `${kind}:${slug}`;
+
 export class MenuService {
   constructor(
     private repository: MenuOperations,
@@ -130,12 +137,13 @@ export class MenuService {
       "menu",
       input.slug,
       async () => {
+        const references = await this.resolveItemReferences(input.items ?? []);
         const createInput = this.mapInputToCreateInput(input);
         const menu = await this.repository.createMenu(createInput);
 
         // Create menu items if provided
         if (input.items && input.items.length > 0) {
-          await this.createMenuItems(menu.id, input.items);
+          await this.createMenuItems(menu.id, input.items, references);
         }
 
         logger.debug("Successfully created menu", {
@@ -157,12 +165,13 @@ export class MenuService {
       async () => {
         logger.debug("Updating menu", { id, name: input.name, slug: input.slug });
 
+        const references = await this.resolveItemReferences(input.items ?? []);
         const updateInput = this.mapInputToUpdateInput(input);
         const menu = await this.repository.updateMenu(id, updateInput);
 
         // Handle menu item updates if provided
         if (input.items !== undefined) {
-          await this.syncMenuItems(menu.id, input.items, menu.items ?? []);
+          await this.syncMenuItems(menu.id, input.items, menu.items ?? [], references);
         }
 
         logger.debug("Successfully updated menu", {
@@ -245,69 +254,96 @@ export class MenuService {
   private async createMenuItems(
     menuId: string,
     items: MenuItemInputConfig[],
+    references: ResolvedItemReferences,
     parentId?: string
   ): Promise<void> {
     for (const item of items) {
       this.validateMenuItemInput(item);
 
-      const createInput = await this.buildMenuItemCreateInput(menuId, item, parentId);
+      const createInput = this.buildMenuItemCreateInput(menuId, item, references, parentId);
       const createdItem = await this.repository.createMenuItem(createInput);
 
       // Recursively create children
       if (item.children && item.children.length > 0) {
-        await this.createMenuItems(menuId, item.children, createdItem.id);
+        await this.createMenuItems(menuId, item.children, references, createdItem.id);
       }
     }
   }
 
-  private async buildMenuItemCreateInput(
+  /**
+   * Resolves every category, collection and page the items link to before the menu is touched,
+   * so a reference that doesn't exist fails the menu without leaving it half rebuilt.
+   */
+  private async resolveItemReferences(
+    items: readonly MenuItemInputConfig[]
+  ): Promise<ResolvedItemReferences> {
+    const { categoryService, collectionService, modelService } = this;
+    const resolvers: Record<MenuItemReferenceKind, ReferenceResolver | undefined> = {
+      category: categoryService && ((slug) => categoryService.getCategoryBySlug(slug)),
+      collection: collectionService && ((slug) => collectionService.getCollectionBySlug(slug)),
+      page: modelService && ((slug) => modelService.getModelBySlug(slug)),
+    };
+
+    const references: ResolvedItemReferences = new Map();
+    const missing: string[] = [];
+
+    const visit = async (item: MenuItemInputConfig): Promise<void> => {
+      for (const kind of MENU_ITEM_REFERENCE_KINDS) {
+        const slug = item[kind];
+        const resolve = resolvers[kind];
+        const key = referenceKey(kind, slug ?? "");
+        if (!slug || !resolve || references.has(key)) continue;
+
+        const entity = await resolve(slug);
+        if (entity) {
+          references.set(key, entity.id);
+        } else {
+          missing.push(`${kind} "${slug}" (item "${item.name}")`);
+        }
+      }
+      for (const child of item.children ?? []) {
+        await visit(child);
+      }
+    };
+
+    for (const item of items) {
+      await visit(item);
+    }
+
+    if (missing.length > 0) {
+      throw new EntityNotFoundError(
+        `Menu items link to entities that don't exist: ${missing.join(", ")}`
+      );
+    }
+    return references;
+  }
+
+  private buildMenuItemCreateInput(
     menuId: string,
     item: MenuItemInputConfig,
+    references: ResolvedItemReferences,
     parentId?: string
-  ): Promise<MenuItemCreateInput> {
-    const input: MenuItemCreateInput = {
+  ): MenuItemCreateInput {
+    const category = item.category && references.get(referenceKey("category", item.category));
+    const collection =
+      item.collection && references.get(referenceKey("collection", item.collection));
+    const page = item.page && references.get(referenceKey("page", item.page));
+    return {
       name: item.name,
       menu: menuId,
       parent: parentId,
       url: item.url,
+      ...(category && { category }),
+      ...(collection && { collection }),
+      ...(page && { page }),
     };
-
-    // Resolve references; an item linked to nothing would be wrong, so a missing one fails the menu
-    if (item.category && this.categoryService) {
-      const category = await this.categoryService.getCategoryBySlug(item.category);
-      if (!category) {
-        throw new EntityNotFoundError(
-          `Category "${item.category}" for menu item "${item.name}" not found`
-        );
-      }
-      input.category = category.id;
-    }
-
-    if (item.collection && this.collectionService) {
-      const collection = await this.collectionService.getCollectionBySlug(item.collection);
-      if (!collection) {
-        throw new EntityNotFoundError(
-          `Collection "${item.collection}" for menu item "${item.name}" not found`
-        );
-      }
-      input.collection = collection.id;
-    }
-
-    if (item.page && this.modelService) {
-      const page = await this.modelService.getModelBySlug(item.page);
-      if (!page) {
-        throw new EntityNotFoundError(`Page "${item.page}" for menu item "${item.name}" not found`);
-      }
-      input.page = page.id;
-    }
-
-    return input;
   }
 
   private async syncMenuItems(
     menuId: string,
     desiredItems: MenuItemInputConfig[],
-    currentItems: MenuItem[]
+    currentItems: MenuItem[],
+    references: ResolvedItemReferences
   ): Promise<void> {
     // For simplicity, we'll delete all existing items and recreate them
     // This ensures the hierarchy is correct
@@ -326,7 +362,7 @@ export class MenuService {
 
     // Create new menu items
     if (desiredItems.length > 0) {
-      await this.createMenuItems(menuId, desiredItems);
+      await this.createMenuItems(menuId, desiredItems, references);
     }
   }
 
