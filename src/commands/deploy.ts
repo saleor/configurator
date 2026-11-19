@@ -486,6 +486,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
   }
 
+  /** Only entities that stay in Saleor differ: list them, without asking to deploy nothing. */
+  private handleNothingToApply(summary: DiffSummary): never {
+    this.console.status(`\n${new DeployDiffFormatter().format(summary)}`);
+    this.console.status(
+      "\n✅ No changes to apply - deploy leaves entities only in Saleor in place"
+    );
+    process.exit(EXIT_CODES.SUCCESS);
+  }
+
   private handleNoChanges(summary: DiffSummary, useJson: boolean): never {
     if (useJson) {
       outputEnvelope(
@@ -610,6 +619,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
       if (args.plan) {
         return this.handlePlanMode(diffAnalysis, args, useJson);
+      }
+
+      if (!useJson && countAppliedChanges(diffAnalysis.summary) === 0) {
+        return this.handleNothingToApply(diffAnalysis.summary);
       }
 
       if (!useJson) {

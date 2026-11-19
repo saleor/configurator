@@ -455,6 +455,30 @@ describe("Deploy Command", () => {
       expect(JSON.parse(output.mock.calls[0][0] as string).result.status).toBe("cancelled");
     });
 
+    it("exits without asking when the only differences are entities left in Saleor", async () => {
+      const { confirmAction } = await import("../cli/command");
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValue(false);
+      const configurator = createMockConfigurator(mockDiffService);
+      configurator.diff.mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 0,
+          updates: 0,
+          deletes: 1,
+          results: [{ operation: "DELETE", entityType: "Categories", entityName: "old" }],
+        },
+        output: "",
+      });
+      mockCreateConfigurator.mockReturnValue(configurator);
+
+      await expect(deployHandler(createDefaultArgs({ json: false, text: true }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+      expect(confirmAction).not.toHaveBeenCalled();
+      expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+    });
+
     it("asks the regular confirmation when the only deletes are entities left in Saleor", async () => {
       const { confirmAction } = await import("../cli/command");
       vi.mocked(confirmAction).mockResolvedValueOnce(false);

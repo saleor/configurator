@@ -5,7 +5,7 @@ import { Console } from "../cli/console";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
 import { EXIT_CODES } from "../core/deployment/errors";
-import type { DiffSummary } from "../core/diff";
+import { countAppliedChanges, type DiffSummary } from "../core/diff";
 import { type EntityFilterOptions, filterDiffResults } from "../core/diff/entity-filter";
 import {
   classifyChangeSeverity,
@@ -66,13 +66,20 @@ export type DiffCommandArgs = z.infer<typeof diffCommandSchema>;
 class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
   console = new Console();
 
-  private formatDiffSummaryMessage(totalChanges: number): string {
-    if (totalChanges === 0) {
+  private formatDiffSummaryMessage(summary: DiffSummary): string {
+    if (summary.totalChanges === 0) {
       return "\n✅ No differences found - configurations are in sync";
     }
 
-    const changeText = totalChanges === 1 ? "difference" : "differences";
-    return `\n⚠️  Found ${totalChanges} ${changeText} that would be applied by 'deploy'`;
+    const applied = countAppliedChanges(summary);
+    const onlyInSaleor = `${summary.deletes} only in Saleor, which deploy leaves in place`;
+    if (applied === 0) {
+      return `\n✅ Nothing for 'deploy' to apply; ${onlyInSaleor}`;
+    }
+
+    const changeText = applied === 1 ? "difference" : "differences";
+    const found = `\n⚠️  Found ${applied} ${changeText} that would be applied by 'deploy'`;
+    return summary.deletes > 0 ? `${found}; ${onlyInSaleor}` : found;
   }
 
   private logDiffCompletion(summary: DiffSummary): void {
@@ -258,7 +265,7 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
           console.log(output);
         } else {
           this.console.status(output);
-          const summaryMessage = this.formatDiffSummaryMessage(summary.totalChanges);
+          const summaryMessage = this.formatDiffSummaryMessage(summary);
           this.console.status(summaryMessage);
         }
       }
