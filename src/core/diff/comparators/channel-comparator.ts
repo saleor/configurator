@@ -91,7 +91,8 @@ export class ChannelComparator extends BaseEntityComparator<
    */
   compare(
     local: readonly ChannelEntity[],
-    remote: readonly ChannelEntity[]
+    remote: readonly ChannelEntity[],
+    options?: ComparatorOptions
   ): readonly import("../types").DiffResult[] {
     // Validate unique identifiers (slugs for channels)
     this.validateUniqueIdentifiers(local);
@@ -110,7 +111,7 @@ export class ChannelComparator extends BaseEntityComparator<
         results.push(this.createCreateResult(localChannel));
       } else {
         // Check for updates
-        const changes = this.compareEntityFields(localChannel, remoteChannel);
+        const changes = this.compareEntityFields(localChannel, remoteChannel, options);
         if (changes.length > 0) {
           results.push(this.createUpdateResult(localChannel, remoteChannel, changes));
         }
@@ -144,12 +145,12 @@ export class ChannelComparator extends BaseEntityComparator<
   protected compareEntityFields(
     local: ChannelEntity,
     remote: ChannelEntity,
-    _options?: ComparatorOptions
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Compare basic channel fields
-    for (const field of findChangedFields(local, remote, CHANNEL_FIELDS)) {
+    for (const field of findChangedFields(local, remote, CHANNEL_FIELDS, options)) {
       changes.push(this.createFieldChange(field, remote[field], local[field]));
     }
 
@@ -158,7 +159,7 @@ export class ChannelComparator extends BaseEntityComparator<
     const remoteSettings = this.getChannelSettings(remote);
 
     if (localSettings || remoteSettings) {
-      changes.push(...this.compareChannelSettings(localSettings, remoteSettings));
+      changes.push(...this.compareChannelSettings(localSettings, remoteSettings, options));
     }
 
     // Compare tax configuration if it exists
@@ -166,7 +167,7 @@ export class ChannelComparator extends BaseEntityComparator<
     const remoteTaxConfig = this.getTaxConfiguration(remote);
 
     if (localTaxConfig || remoteTaxConfig) {
-      changes.push(...this.compareTaxConfiguration(localTaxConfig, remoteTaxConfig));
+      changes.push(...this.compareTaxConfiguration(localTaxConfig, remoteTaxConfig, options));
     }
 
     return changes;
@@ -187,13 +188,19 @@ export class ChannelComparator extends BaseEntityComparator<
    */
   private compareChannelSettings(
     local: ChannelSettings | undefined,
-    remote: ChannelSettings | undefined
+    remote: ChannelSettings | undefined,
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
     const localSettings = local || {};
     const remoteSettings = remote || {};
 
-    for (const field of findChangedFields(localSettings, remoteSettings, CHANNEL_SETTINGS_FIELDS)) {
+    for (const field of findChangedFields(
+      localSettings,
+      remoteSettings,
+      CHANNEL_SETTINGS_FIELDS,
+      options
+    )) {
       changes.push(
         this.createFieldChange(`settings.${field}`, remoteSettings[field], localSettings[field])
       );
@@ -217,7 +224,8 @@ export class ChannelComparator extends BaseEntityComparator<
    */
   private compareTaxConfiguration(
     local: TaxConfiguration | undefined,
-    remote: TaxConfiguration | undefined
+    remote: TaxConfiguration | undefined,
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
     const localTaxConfig = local || {};
@@ -226,7 +234,8 @@ export class ChannelComparator extends BaseEntityComparator<
     for (const field of findChangedFields(
       localTaxConfig,
       remoteTaxConfig,
-      TAX_CONFIGURATION_FIELDS
+      TAX_CONFIGURATION_FIELDS,
+      options
     )) {
       changes.push(
         this.createFieldChange(

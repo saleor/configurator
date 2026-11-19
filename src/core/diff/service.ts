@@ -10,6 +10,7 @@ import {
   CategoryComparator,
   ChannelComparator,
   CollectionComparator,
+  type ComparatorOptions,
   CustomerTypeComparator,
   type EntityComparator,
   MenuComparator,
@@ -109,7 +110,7 @@ export class DiffService {
       // Perform comparisons with options
       const results = await this.performSelectiveComparisons(localConfig, remoteConfig, {
         ...selectiveOptions,
-        diffOptions: options,
+        diffOptions: { ...options, skipUnmanagedFields: true },
         skipUnmanagedSections: true,
       });
 
@@ -390,7 +391,7 @@ export class DiffService {
     localConfig: SaleorConfig,
     remoteConfig: SaleorConfig,
     options: DiffServiceIntrospectOptions & {
-      diffOptions?: DiffOptions;
+      diffOptions?: DiffOptions & ComparatorOptions;
       /**
        * Skip sections absent from the desired config instead of comparing them against `[]`,
        * which would report every remote entity as a deletion. Used for deploy-direction diffs;
@@ -479,7 +480,7 @@ export class DiffService {
     entityType: string,
     local: unknown,
     remote: unknown,
-    options?: DiffOptions
+    options?: DiffOptions & ComparatorOptions
   ): Promise<readonly DiffResult[]> {
     try {
       const comparator = this.comparators.get(entityType);
