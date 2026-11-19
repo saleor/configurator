@@ -2,7 +2,6 @@
 # Multi-vendor marketplace with commission tracking and vendor management
 
 shop:
-  customerAllowedToSetExternalReference: false
   defaultMailSenderName: "Marketplace Platform"
   defaultMailSenderAddress: "marketplace@example.com"
   displayGrossPrices: true
@@ -30,220 +29,166 @@ channels:
       includeDraftOrderInVoucherUsage: false
       defaultTransactionFlowStrategy: AUTHORIZATION
 
+productAttributes:
+  - name: Vendor Name
+    inputType: PLAIN_TEXT
+  - name: Vendor ID
+    inputType: PLAIN_TEXT
+  - name: Commission Rate
+    inputType: NUMERIC
+  - name: Fulfillment Type
+    inputType: DROPDOWN
+    values:
+      - name: Vendor Fulfilled
+      - name: Platform Fulfilled
+      - name: Dropship
+  - name: Return Policy
+    inputType: DROPDOWN
+    values:
+      - name: 14 days
+      - name: 30 days
+      - name: 60 days
+      - name: No returns
+  - name: Shipping Time
+    inputType: DROPDOWN
+    values:
+      - name: 1-2 business days
+      - name: 3-5 business days
+      - name: 1-2 weeks
+  - name: Product Condition
+    inputType: DROPDOWN
+    values:
+      - name: New
+      - name: Refurbished
+      - name: Used - Like New
+      - name: Used - Good
+  - name: Vendor SKU
+    inputType: PLAIN_TEXT
+  - name: Variant Option
+    inputType: DROPDOWN
+    values:
+      - name: Default
+  - name: License Type
+    inputType: DROPDOWN
+    values:
+      - name: Single User
+      - name: Team (up to 5)
+      - name: Business (unlimited)
+  - name: Delivery Method
+    inputType: DROPDOWN
+    values:
+      - name: Instant Download
+      - name: Email Delivery
+      - name: Account Access
+
 productTypes:
   - name: "Marketplace Product"
-    slug: marketplace-product
     isShippingRequired: true
     productAttributes:
-      - name: "Vendor Name"
-        slug: vendor-name
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Vendor ID"
-        slug: vendor-id
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Commission Rate"
-        slug: commission-rate
-        inputType: NUMERIC
-        unit: "%"
-        metadata:
-          min: "0"
-          max: "100"
-          default: "15"
-      - name: "Fulfillment Type"
-        slug: fulfillment-type
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Vendor Fulfilled"
-            slug: vendor-fulfilled
-          - name: "Platform Fulfilled"
-            slug: platform-fulfilled
-          - name: "Dropship"
-            slug: dropship
-      - name: "Return Policy"
-        slug: return-policy
-        inputType: DROPDOWN
-        values:
-          - name: "14 days"
-            slug: 14-days
-          - name: "30 days"
-            slug: 30-days
-          - name: "60 days"
-            slug: 60-days
-          - name: "No returns"
-            slug: no-returns
-      - name: "Shipping Time"
-        slug: shipping-time
-        inputType: DROPDOWN
-        values:
-          - name: "1-2 business days"
-            slug: 1-2-days
-          - name: "3-5 business days"
-            slug: 3-5-days
-          - name: "1-2 weeks"
-            slug: 1-2-weeks
-      - name: "Product Condition"
-        slug: product-condition
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "New"
-            slug: new
-          - name: "Refurbished"
-            slug: refurbished
-          - name: "Used - Like New"
-            slug: used-like-new
-          - name: "Used - Good"
-            slug: used-good
-      - name: "Vendor SKU"
-        slug: vendor-sku
-        inputType: PLAIN_TEXT
+      - attribute: Vendor Name
+      - attribute: Vendor ID
+      - attribute: Commission Rate
+      - attribute: Fulfillment Type
+      - attribute: Return Policy
+      - attribute: Shipping Time
+      - attribute: Product Condition
+      - attribute: Vendor SKU
     variantAttributes:
-      - name: "Variant Option"
-        slug: variant-option
-        inputType: DROPDOWN
-        values:
-          - name: "Default"
-            slug: default
+      - attribute: Variant Option
 
   - name: "Digital Product"
-    slug: digital-product
     isShippingRequired: false
     productAttributes:
-      - attribute: vendor-name
-      - attribute: vendor-id
-      - attribute: commission-rate
-      - name: "License Type"
-        slug: license-type
-        inputType: DROPDOWN
-        values:
-          - name: "Single User"
-            slug: single-user
-          - name: "Team (up to 5)"
-            slug: team-5
-          - name: "Business (unlimited)"
-            slug: business-unlimited
-      - name: "Delivery Method"
-        slug: delivery-method
-        inputType: DROPDOWN
-        values:
-          - name: "Instant Download"
-            slug: instant-download
-          - name: "Email Delivery"
-            slug: email-delivery
-          - name: "Account Access"
-            slug: account-access
+      - attribute: Vendor Name
+      - attribute: Vendor ID
+      - attribute: Commission Rate
+      - attribute: License Type
+      - attribute: Delivery Method
+
+contentAttributes:
+  - name: Company Name
+    inputType: PLAIN_TEXT
+  - name: Business Registration Number
+    inputType: PLAIN_TEXT
+  - name: Vendor Rating
+    inputType: NUMERIC
+  - name: Total Sales
+    inputType: NUMERIC
+  - name: Member Since
+    inputType: DATE
+  - name: Vendor Logo
+    inputType: FILE
+  - name: Business Category
+    inputType: DROPDOWN
+    values:
+      - name: Electronics
+      - name: Fashion
+      - name: Home & Garden
+      - name: Sports & Outdoors
+      - name: Books & Media
+  - name: Vendor Description
+    inputType: RICH_TEXT
+  - name: Return Address
+    inputType: PLAIN_TEXT
+  - name: Support Email
+    inputType: PLAIN_TEXT
+  - name: Support Phone
+    inputType: PLAIN_TEXT
+  - name: Banking Details
+    inputType: PLAIN_TEXT
+  - name: Tax ID
+    inputType: PLAIN_TEXT
+  - name: Vendor Status
+    inputType: DROPDOWN
+    values:
+      - name: Active
+      - name: Suspended
+      - name: Under Review
+      - name: Inactive
+  - name: Agreement Date
+    inputType: DATE
+  - name: Agreement Type
+    inputType: DROPDOWN
+    values:
+      - name: Standard
+      - name: Premium
+      - name: Enterprise
+  - name: Commission Structure
+    inputType: RICH_TEXT
+  - name: Payment Terms
+    inputType: DROPDOWN
+    values:
+      - name: Weekly
+      - name: Bi-weekly
+      - name: Monthly
+  - name: Agreement Document
+    inputType: FILE
 
 pageTypes:
   - name: "Vendor Profile"
-    slug: vendor-profile
     attributes:
-      - name: "Company Name"
-        slug: company-name
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Business Registration Number"
-        slug: business-registration
-        inputType: PLAIN_TEXT
-      - name: "Vendor Rating"
-        slug: vendor-rating
-        inputType: NUMERIC
-        metadata:
-          min: "1"
-          max: "5"
-          step: "0.1"
-      - name: "Total Sales"
-        slug: total-sales
-        inputType: NUMERIC
-      - name: "Member Since"
-        slug: member-since
-        inputType: DATE
-      - name: "Vendor Logo"
-        slug: vendor-logo
-        inputType: FILE
-      - name: "Business Category"
-        slug: business-category
-        inputType: DROPDOWN
-        values:
-          - name: "Electronics"
-            slug: electronics
-          - name: "Fashion"
-            slug: fashion
-          - name: "Home & Garden"
-            slug: home-garden
-          - name: "Sports & Outdoors"
-            slug: sports-outdoors
-          - name: "Books & Media"
-            slug: books-media
-      - name: "Vendor Description"
-        slug: vendor-description
-        inputType: RICH_TEXT
-      - name: "Return Address"
-        slug: return-address
-        inputType: MULTILINE
-      - name: "Support Email"
-        slug: support-email
-        inputType: PLAIN_TEXT
-      - name: "Support Phone"
-        slug: support-phone
-        inputType: PLAIN_TEXT
-      - name: "Banking Details"
-        slug: banking-details
-        inputType: MULTILINE
-        metadata:
-          encrypted: "true"
-      - name: "Tax ID"
-        slug: tax-id
-        inputType: PLAIN_TEXT
-      - name: "Vendor Status"
-        slug: vendor-status
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Active"
-            slug: active
-          - name: "Suspended"
-            slug: suspended
-          - name: "Under Review"
-            slug: under-review
-          - name: "Inactive"
-            slug: inactive
+      - attribute: Company Name
+      - attribute: Business Registration Number
+      - attribute: Vendor Rating
+      - attribute: Total Sales
+      - attribute: Member Since
+      - attribute: Vendor Logo
+      - attribute: Business Category
+      - attribute: Vendor Description
+      - attribute: Return Address
+      - attribute: Support Email
+      - attribute: Support Phone
+      - attribute: Banking Details
+      - attribute: Tax ID
+      - attribute: Vendor Status
 
   - name: "Vendor Agreement"
-    slug: vendor-agreement
     attributes:
-      - name: "Agreement Date"
-        slug: agreement-date
-        inputType: DATE
-        required: true
-      - name: "Agreement Type"
-        slug: agreement-type
-        inputType: DROPDOWN
-        values:
-          - name: "Standard"
-            slug: standard
-          - name: "Premium"
-            slug: premium
-          - name: "Enterprise"
-            slug: enterprise
-      - name: "Commission Structure"
-        slug: commission-structure
-        inputType: RICH_TEXT
-      - name: "Payment Terms"
-        slug: payment-terms
-        inputType: DROPDOWN
-        values:
-          - name: "Weekly"
-            slug: weekly
-          - name: "Bi-weekly"
-            slug: bi-weekly
-          - name: "Monthly"
-            slug: monthly
-      - name: "Agreement Document"
-        slug: agreement-document
-        inputType: FILE
+      - attribute: Agreement Date
+      - attribute: Agreement Type
+      - attribute: Commission Structure
+      - attribute: Payment Terms
+      - attribute: Agreement Document
 
 categories:
   - name: "Electronics"

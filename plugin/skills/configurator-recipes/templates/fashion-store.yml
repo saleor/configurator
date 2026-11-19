@@ -17,7 +17,7 @@ channels:
     currencyCode: USD
     defaultCountry: US
     isActive: true
-    stockSettings:
+    settings:
       allocationStrategy: PRIORITIZE_HIGH_STOCK
 
   - name: "EU Store"
@@ -25,8 +25,87 @@ channels:
     currencyCode: EUR
     defaultCountry: DE
     isActive: true
-    stockSettings:
+    settings:
       allocationStrategy: PRIORITIZE_HIGH_STOCK
+
+# =============================================================================
+# PRODUCT ATTRIBUTES
+# =============================================================================
+# Defined once and referenced by name from product types
+productAttributes:
+  - name: Brand
+    inputType: DROPDOWN
+    values:
+      - name: House Brand
+      - name: Premium Collection
+  - name: Material
+    inputType: DROPDOWN
+    values:
+      - name: 100% Cotton
+      - name: Cotton Blend
+      - name: Organic Cotton
+      - name: Denim
+      - name: Cotton
+      - name: Chino
+      - name: Linen
+      - name: Leather
+      - name: Synthetic
+      - name: Canvas
+      - name: Suede
+  - name: Care Instructions
+    inputType: RICH_TEXT
+  - name: Size
+    inputType: DROPDOWN
+    values:
+      - name: XS
+      - name: S
+      - name: M
+      - name: L
+      - name: XL
+      - name: XXL
+      - name: "6"
+      - name: "7"
+      - name: "8"
+      - name: "9"
+      - name: "10"
+      - name: "11"
+      - name: "12"
+  - name: Color
+    inputType: SWATCH
+    values:
+      - name: Black
+      - name: White
+      - name: Navy
+      - name: Gray
+      - name: Red
+  - name: Fit
+    inputType: DROPDOWN
+    values:
+      - name: Slim
+      - name: Regular
+      - name: Relaxed
+  - name: Waist
+    inputType: DROPDOWN
+    values:
+      - name: "28"
+      - name: "30"
+      - name: "32"
+      - name: "34"
+      - name: "36"
+      - name: "38"
+  - name: Length
+    inputType: DROPDOWN
+    values:
+      - name: "30"
+      - name: "32"
+      - name: "34"
+  - name: Style
+    inputType: DROPDOWN
+    values:
+      - name: Casual
+      - name: Formal
+      - name: Party
+      - name: Summer
 
 # =============================================================================
 # PRODUCT TYPES
@@ -36,162 +115,55 @@ productTypes:
   # T-Shirt with size and color variants
   - name: "T-Shirt"
     isShippingRequired: true
-    weight:
-      value: 200
-      unit: G
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-        values:
-          - name: "House Brand"
-          - name: "Premium Collection"
-      - name: "Material"
-        type: DROPDOWN
-        values:
-          - name: "100% Cotton"
-          - name: "Cotton Blend"
-          - name: "Organic Cotton"
-      - name: "Care Instructions"
-        type: RICH_TEXT
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Care Instructions
     variantAttributes:
-      - name: "Size"
-        type: DROPDOWN
-        values:
-          - name: "XS"
-          - name: "S"
-          - name: "M"
-          - name: "L"
-          - name: "XL"
-          - name: "XXL"
-      - name: "Color"
-        type: SWATCH
-        values:
-          - name: "Black"
-            value: "#000000"
-          - name: "White"
-            value: "#FFFFFF"
-          - name: "Navy"
-            value: "#000080"
-          - name: "Gray"
-            value: "#808080"
-          - name: "Red"
-            value: "#FF0000"
+      - attribute: Size
+      - attribute: Color
 
   # Pants with waist, length, and color variants
   - name: "Pants"
     isShippingRequired: true
-    weight:
-      value: 400
-      unit: G
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-      - name: "Material"
-        type: DROPDOWN
-        values:
-          - name: "Denim"
-          - name: "Cotton"
-          - name: "Chino"
-          - name: "Linen"
-      - name: "Fit"
-        type: DROPDOWN
-        values:
-          - name: "Slim"
-          - name: "Regular"
-          - name: "Relaxed"
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Fit
     variantAttributes:
-      - name: "Waist"
-        type: DROPDOWN
-        values:
-          - name: "28"
-          - name: "30"
-          - name: "32"
-          - name: "34"
-          - name: "36"
-          - name: "38"
-      - name: "Length"
-        type: DROPDOWN
-        values:
-          - name: "30"
-          - name: "32"
-          - name: "34"
-      - name: "Color"
-        type: SWATCH
+      - attribute: Waist
+      - attribute: Length
+      - attribute: Color
 
   # Dress with size and color variants
   - name: "Dress"
     isShippingRequired: true
-    weight:
-      value: 300
-      unit: G
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-      - name: "Material"
-        type: DROPDOWN
-      - name: "Style"
-        type: DROPDOWN
-        values:
-          - name: "Casual"
-          - name: "Formal"
-          - name: "Party"
-          - name: "Summer"
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Style
     variantAttributes:
-      - name: "Size"
-        type: DROPDOWN
-        values:
-          - name: "XS"
-          - name: "S"
-          - name: "M"
-          - name: "L"
-          - name: "XL"
-      - name: "Color"
-        type: SWATCH
+      - attribute: Size
+      - attribute: Color
 
   # Shoes with size and color variants
   - name: "Shoes"
     isShippingRequired: true
-    weight:
-      value: 800
-      unit: G
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-      - name: "Material"
-        type: DROPDOWN
-        values:
-          - name: "Leather"
-          - name: "Synthetic"
-          - name: "Canvas"
-          - name: "Suede"
+      - attribute: Brand
+      - attribute: Material
     variantAttributes:
-      - name: "Size"
-        type: DROPDOWN
-        values:
-          - name: "6"
-          - name: "7"
-          - name: "8"
-          - name: "9"
-          - name: "10"
-          - name: "11"
-          - name: "12"
-      - name: "Color"
-        type: SWATCH
+      - attribute: Size
+      - attribute: Color
 
   # Accessories (bags, jewelry, etc.)
   - name: "Accessory"
     isShippingRequired: true
-    weight:
-      value: 150
-      unit: G
     productAttributes:
-      - name: "Brand"
-        type: DROPDOWN
-      - name: "Material"
-        type: DROPDOWN
+      - attribute: Brand
+      - attribute: Material
     variantAttributes:
-      - name: "Color"
-        type: SWATCH
+      - attribute: Color
 
 # =============================================================================
 # CATEGORIES
@@ -200,51 +172,37 @@ productTypes:
 categories:
   - name: "Clothing"
     slug: "clothing"
-    description: "All clothing items"
     subcategories:
       - name: "Men's"
         slug: "mens"
-        description: "Men's clothing"
         subcategories:
           - name: "T-Shirts"
             slug: "mens-t-shirts"
-            description: "Men's t-shirts and casual tops"
           - name: "Pants"
             slug: "mens-pants"
-            description: "Men's pants and jeans"
           - name: "Shoes"
             slug: "mens-shoes"
-            description: "Men's footwear"
       - name: "Women's"
         slug: "womens"
-        description: "Women's clothing"
         subcategories:
           - name: "Dresses"
             slug: "womens-dresses"
-            description: "Women's dresses"
           - name: "Tops"
             slug: "womens-tops"
-            description: "Women's tops and blouses"
           - name: "Pants"
             slug: "womens-pants"
-            description: "Women's pants and jeans"
           - name: "Shoes"
             slug: "womens-shoes"
-            description: "Women's footwear"
 
   - name: "Accessories"
     slug: "accessories"
-    description: "Fashion accessories"
     subcategories:
       - name: "Bags"
         slug: "bags"
-        description: "Handbags, backpacks, and more"
       - name: "Jewelry"
         slug: "jewelry"
-        description: "Necklaces, bracelets, and rings"
       - name: "Belts"
         slug: "belts"
-        description: "Leather and fabric belts"
 
 # =============================================================================
 # COLLECTIONS
@@ -255,36 +213,36 @@ collections:
     slug: "new-arrivals"
     description: "Just landed - our newest styles"
     channelListings:
-      - channel: "us-store"
+      - channelSlug: "us-store"
         isPublished: true
-      - channel: "eu-store"
+      - channelSlug: "eu-store"
         isPublished: true
 
   - name: "Best Sellers"
     slug: "best-sellers"
     description: "Our most popular items"
     channelListings:
-      - channel: "us-store"
+      - channelSlug: "us-store"
         isPublished: true
-      - channel: "eu-store"
+      - channelSlug: "eu-store"
         isPublished: true
 
   - name: "Sale"
     slug: "sale"
     description: "Special offers and discounts"
     channelListings:
-      - channel: "us-store"
+      - channelSlug: "us-store"
         isPublished: true
-      - channel: "eu-store"
+      - channelSlug: "eu-store"
         isPublished: true
 
   - name: "Summer Collection"
     slug: "summer-collection"
     description: "Light and breezy styles for warm weather"
     channelListings:
-      - channel: "us-store"
+      - channelSlug: "us-store"
         isPublished: true
-      - channel: "eu-store"
+      - channelSlug: "eu-store"
         isPublished: true
 
 # =============================================================================
@@ -387,7 +345,8 @@ products:
         isAvailableForPurchase: true
         visibleInListings: true
     variants:
-      - sku: "CREW-BLK-M"
+      - name: "M / Black"
+        sku: "CREW-BLK-M"
         attributes:
           Size: "M"
           Color: "Black"
@@ -396,6 +355,3 @@ products:
             price: 29.99
           - channel: "eu-store"
             price: 24.99
-        stocks:
-          - warehouse: "main-warehouse"
-            quantity: 100
