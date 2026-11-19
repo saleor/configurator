@@ -7,7 +7,6 @@ import { getSupportedSaleorMinor } from "../../lib/package-info";
 import { isSaleorMinorMismatch } from "../../lib/saleor-version";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
-import { toSlug } from "../../lib/utils/string";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
@@ -432,7 +431,7 @@ export class ConfigurationService {
   private mapPageTypes(rawPageTypes: RawSaleorConfig["pageTypes"]) {
     const edges = rawPageTypes?.edges ?? [];
     const seen = new Set<string>();
-    const result: { name: string; slug: string; attributes: FullAttribute[] }[] = [];
+    const result: { name: string; attributes: FullAttribute[] }[] = [];
 
     for (const edge of edges) {
       const name = edge.node.name;
@@ -443,7 +442,6 @@ export class ConfigurationService {
       seen.add(name);
       result.push({
         name,
-        slug: toSlug(name),
         attributes: this.mapAttributes(edge.node.attributes ?? [], "PAGE_TYPE"),
       });
     }
