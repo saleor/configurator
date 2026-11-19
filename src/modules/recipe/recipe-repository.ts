@@ -3,8 +3,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseAllDocuments } from "yaml";
 import { ZodValidationError } from "../../lib/errors/zod";
+import { logger } from "../../lib/logger";
+import { checkConfiguration, summarizeUnknownKeys } from "../config/check-configuration";
 import type { SaleorConfig } from "../config/schema/schema";
-import { configSchema } from "../config/schema/schema";
 import {
   ManifestLoadError,
   RecipeLoadError,
@@ -93,12 +94,15 @@ function validateRecipeContent(
     );
   }
 
-  const configResult = configSchema.safeParse(parsed.config);
+  const configResult = checkConfiguration(parsed.config);
   if (!configResult.success) {
     throw new RecipeValidationError(
       `Invalid recipe configuration in "${sourceDescription}"`,
       configResult.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
     );
+  }
+  for (const warning of summarizeUnknownKeys(configResult.unknownKeys)) {
+    logger.warn(`${sourceDescription}: ${warning.message}`);
   }
 
   return {

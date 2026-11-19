@@ -53,7 +53,7 @@ describe("validate command", () => {
       const parsed = JSON.parse(logCall);
       expect(parsed.command).toBe("validate");
       expect(parsed.exitCode).toBe(0);
-      expect(parsed.result).toEqual({ valid: true, errors: [] });
+      expect(parsed.result).toEqual({ valid: true, errors: [], warnings: [] });
     });
 
     it("should accept empty config (all fields are optional)", async () => {
@@ -62,6 +62,58 @@ describe("validate command", () => {
       await expect(validateHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
 
       expect(mockExit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("unknown keys", () => {
+    const configWithUnknownKey = "shop:\n  headerText: My Shop\n  headrText: Typo\n";
+
+    it("should exit 0 and warn about the unknown key", async () => {
+      const mockConsoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.mocked(readFile).mockResolvedValue(configWithUnknownKey as never);
+
+      await expect(validateHandler(createDefaultArgs())).rejects.toThrow("process.exit(0)");
+
+      expect(mockConsoleWarn).toHaveBeenCalledWith(
+        '  Unknown key "shop.headrText" is not supported and was ignored'
+      );
+      expect(mockConsoleLog).toHaveBeenCalledWith("Configuration is valid");
+    });
+
+    it("should list the unknown key under warnings in the JSON envelope", async () => {
+      vi.mocked(readFile).mockResolvedValue(configWithUnknownKey as never);
+
+      await expect(validateHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+
+      const parsed = JSON.parse(mockConsoleLog.mock.calls[0][0]);
+      expect(parsed.result).toEqual({
+        valid: true,
+        errors: [],
+        warnings: [
+          {
+            path: "shop.headrText",
+            message: 'Unknown key "shop.headrText" is not supported and was ignored',
+          },
+        ],
+      });
+    });
+
+    it("should still fail on invalid values", async () => {
+      vi.mocked(readFile).mockResolvedValue(
+        "shop:\n  headrText: Typo\n  trackInventoryByDefault: maybe\n" as never
+      );
+
+      await expect(validateHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(2)"
+      );
+
+      const parsed = JSON.parse(mockConsoleLog.mock.calls[0][0]);
+      expect(parsed.result.valid).toBe(false);
+      expect(parsed.result.errors).toEqual([
+        expect.objectContaining({ path: "shop.trackInventoryByDefault" }),
+      ]);
     });
   });
 
