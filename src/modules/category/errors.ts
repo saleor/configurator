@@ -17,3 +17,9 @@ export class CategoryCreationError extends BaseError {
     super(message, "CATEGORY_CREATION_ERROR");
   }
 }
+
+export class CategoryUpdateError extends BaseError {
+  constructor(message: string) {
+    super(message, "CATEGORY_UPDATE_ERROR");
+  }
+}

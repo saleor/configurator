@@ -2,7 +2,12 @@ import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
-import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
+import {
+  CategoryCreationError,
+  CategoryError,
+  CategoryFetchError,
+  CategoryUpdateError,
+} from "./errors";
 import type {
   Category,
   CategoryOperations,
@@ -99,7 +104,24 @@ export class CategoryService {
     );
   }
 
-  /** Bootstraps a list of categories, creating any that don't exist yet. */
+  private async updateCategory(existing: Category, input: CategoryInput): Promise<Category> {
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update category",
+      "category",
+      input.slug,
+      async () => {
+        logger.debug("Updating category", {
+          slug: input.slug,
+          from: existing.name,
+          to: input.name,
+        });
+        return this.repository.updateCategory(existing.id, { name: input.name });
+      },
+      CategoryUpdateError
+    );
+  }
+
+  /** Bootstraps a list of categories, creating missing ones and updating changed ones. */
   async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories", { count: categories.length });
 
@@ -231,11 +253,15 @@ export class CategoryService {
     try {
       const existingCategory = await this.getExistingCategory(categoryInput);
 
-      if (existingCategory) {
-        return existingCategory;
+      if (!existingCategory) {
+        return this.createCategory(categoryInput, parentId);
       }
 
-      return this.createCategory(categoryInput, parentId);
+      if (existingCategory.name !== categoryInput.name) {
+        return this.updateCategory(existingCategory, categoryInput);
+      }
+
+      return existingCategory;
     } catch (error) {
       logger.error("Failed to get or create category", {
         name: categoryInput.name,
