@@ -50,12 +50,7 @@ shop:
   # Checkout limits
   limitQuantityPerCheckout: 50
 
-  # Digital products
-  defaultDigitalMaxDownloads: 5
-  defaultDigitalUrlValidDays: 30
-
   # Fulfillment automation
-  automaticFulfillmentDigitalProducts: true
   fulfillmentAutoApprove: false
   fulfillmentAllowUnpaid: false
 
@@ -163,6 +158,69 @@ taxClasses:
         rate: 0
 
 # ============================================================================
+# PRODUCT ATTRIBUTES
+# ============================================================================
+# Defined once and referenced by name from product types.
+
+productAttributes:
+  - name: Author
+    inputType: PLAIN_TEXT
+  - name: Publisher
+    inputType: PLAIN_TEXT
+  - name: ISBN
+    inputType: PLAIN_TEXT
+  - name: Genre
+    inputType: DROPDOWN
+    values:
+      - name: Fiction
+      - name: Non-Fiction
+      - name: Fantasy
+      - name: Science Fiction
+      - name: Mystery
+      - name: Biography
+  - name: Publication Year
+    inputType: NUMERIC
+  - name: Related Books
+    inputType: REFERENCE
+    entityType: PRODUCT
+  - name: Format
+    inputType: DROPDOWN
+    values:
+      - name: Hardcover
+      - name: Paperback
+      - name: Large Print
+  - name: File Format
+    inputType: DROPDOWN
+    values:
+      - name: PDF
+      - name: EPUB
+      - name: MOBI
+  - name: Brand
+    inputType: REFERENCE
+    entityType: PAGE
+  - name: Material
+    inputType: PLAIN_TEXT
+  - name: Care Instructions
+    inputType: RICH_TEXT
+  - name: Size
+    inputType: DROPDOWN
+    values:
+      - name: XS
+      - name: S
+      - name: M
+      - name: L
+      - name: XL
+      - name: XXL
+  - name: Color
+    inputType: SWATCH
+    values:
+      - name: Black
+      - name: White
+      - name: Navy
+      - name: Red
+      - name: Green
+
+# ============================================================================
 # PRODUCT TYPES
 # ============================================================================
 # Product types define the structure and attributes for groups of products.
@@ -174,33 +232,14 @@ productTypes:
     isShippingRequired: true
     taxClass: "Reduced Rate - Books"           # Default tax class for this type
     productAttributes:
-      - name: Author
-        inputType: PLAIN_TEXT
-      - name: Publisher
-        inputType: PLAIN_TEXT
-      - name: ISBN
-        inputType: PLAIN_TEXT
-      - name: Genre
-        inputType: DROPDOWN
-        values:
-          - name: Fiction
-          - name: Non-Fiction
-          - name: Fantasy
-          - name: Science Fiction
-          - name: Mystery
-          - name: Biography
-      - name: Publication Year
-        inputType: NUMERIC
-      - name: Related Books
-        inputType: REFERENCE
-        entityType: PRODUCT                    # Links to other products
+      - attribute: Author
+      - attribute: Publisher
+      - attribute: ISBN
+      - attribute: Genre
+      - attribute: Publication Year
+      - attribute: Related Books
     variantAttributes:
-      - name: Format
-        inputType: DROPDOWN
-        values:
-          - name: Hardcover
-          - name: Paperback
-          - name: Large Print
+      - attribute: Format
 
   # Digital product example (attribute reuse pattern)
   - name: E-Book
@@ -210,43 +249,75 @@ productTypes:
       - attribute: Author                      # Reuse "Author" from Book type
       - attribute: Genre                       # Reuse "Genre" from Book type
       - attribute: ISBN
-      - name: File Format
-        inputType: DROPDOWN
-        values:
-          - name: PDF
-          - name: EPUB
-          - name: MOBI
+      - attribute: File Format
 
   # Apparel example with variant attributes
   - name: Apparel
     isShippingRequired: true
     taxClass: "Standard Rate"
     productAttributes:
-      - name: Brand
-        inputType: REFERENCE
-        entityType: PAGE                       # Links to Brand model
-      - name: Material
-        inputType: PLAIN_TEXT
-      - name: Care Instructions
-        inputType: RICH_TEXT
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Care Instructions
     variantAttributes:
-      - name: Size
-        inputType: DROPDOWN
-        values:
-          - name: XS
-          - name: S
-          - name: M
-          - name: L
-          - name: XL
-          - name: XXL
-      - name: Color
-        inputType: SWATCH
-        values:
-          - name: Black
-          - name: White
-          - name: Navy
-          - name: Red
-          - name: Green
+      - attribute: Size
+      - attribute: Color
+
+# ============================================================================
+# CONTENT ATTRIBUTES
+# ============================================================================
+# Defined once and referenced by name from page types.
+
+contentAttributes:
+  - name: Country of Origin
+    inputType: DROPDOWN
+    values:
+      - name: USA
+      - name: UK
+      - name: France
+      - name: Italy
+      - name: Germany
+      - name: Japan
+  - name: Founded Year
+    inputType: NUMERIC
+  - name: Website
+    inputType: PLAIN_TEXT
+  - name: Logo
+    inputType: FILE
+  - name: Biography
+    inputType: RICH_TEXT
+  - name: Photo
+    inputType: FILE
+  - name: Birth Date
+    inputType: DATE
+  - name: Books Written
+    inputType: REFERENCE
+    entityType: PRODUCT
+  - name: Published Date
+    inputType: DATE
+  - name: Author Name
+    inputType: PLAIN_TEXT
+  - name: Featured Image
+    inputType: FILE
+  - name: Tags
+    inputType: MULTISELECT
+    values:
+      - name: News
+      - name: Tutorial
+      - name: Review
+      - name: Interview
+      - name: Announcement
+  - name: Related Posts
+    inputType: REFERENCE
+    entityType: PAGE
+  - name: Hero Image
+    inputType: FILE
+  - name: CTA Text
+    inputType: PLAIN_TEXT
+  - name: CTA Link
+    inputType: PLAIN_TEXT
+  - name: Is Active
+    inputType: BOOLEAN
 
 # ============================================================================
 # PAGE TYPES (Model Types)
@@ -257,64 +328,32 @@ productTypes:
 pageTypes:
   - name: Brand
     attributes:
-      - name: Country of Origin
-        inputType: DROPDOWN
-        values:
-          - name: USA
-          - name: UK
-          - name: France
-          - name: Italy
-          - name: Germany
-          - name: Japan
-      - name: Founded Year
-        inputType: NUMERIC
-      - name: Website
-        inputType: PLAIN_TEXT
-      - name: Logo
-        inputType: FILE
+      - attribute: Country of Origin
+      - attribute: Founded Year
+      - attribute: Website
+      - attribute: Logo
 
   - name: Author Profile
     attributes:
-      - name: Biography
-        inputType: RICH_TEXT
-      - name: Photo
-        inputType: FILE
-      - name: Birth Date
-        inputType: DATE
-      - name: Books Written
-        inputType: REFERENCE
-        entityType: PRODUCT                    # Links to products
+      - attribute: Biography
+      - attribute: Photo
+      - attribute: Birth Date
+      - attribute: Books Written
 
   - name: Blog Post
     attributes:
-      - name: Published Date
-        inputType: DATE
-      - name: Author Name
-        inputType: PLAIN_TEXT
-      - name: Featured Image
-        inputType: FILE
-      - name: Tags
-        inputType: MULTISELECT
-        values:
-          - name: News
-          - name: Tutorial
-          - name: Review
-          - name: Interview
-          - name: Announcement
-      - name: Related Posts
-        inputType: REFERENCE
-        entityType: PAGE                       # Links to other pages/models
+      - attribute: Published Date
+      - attribute: Author Name
+      - attribute: Featured Image
+      - attribute: Tags
+      - attribute: Related Posts
 
   - name: Landing Page
     attributes:
-      - name: Hero Image
-        inputType: FILE
-      - name: CTA Text
-        inputType: PLAIN_TEXT
-      - name: CTA Link
-        inputType: PLAIN_TEXT
-      - name: Is Active
-        inputType: BOOLEAN
+      - attribute: Hero Image
+      - attribute: CTA Text
+      - attribute: CTA Link
+      - attribute: Is Active
 
 # ============================================================================
 # CATEGORIES (Hierarchical)

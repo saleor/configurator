@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { globalLogCollector } from "../../lib/json-log-collector";
 import { logger } from "../../lib/logger";
+import { checkConfiguration } from "./check-configuration";
 import { ConfigurationService } from "./config-service";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
 import type { ProductInput, SaleorConfig } from "./schema/schema";
@@ -426,6 +427,7 @@ describe("ConfigurationService", () => {
       );
       const result = service.mapConfig(completeConfig);
 
+      expect(checkConfiguration(result)).toMatchObject({ success: true, unknownKeys: [] });
       expect(
         (result.shop as unknown as { defaultMailSenderName: string })?.defaultMailSenderName
       ).toBe("Test Store");

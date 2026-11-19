@@ -129,7 +129,7 @@ products:
   - name: "Example Product"                       # [REQUIRED] Product name
     slug: "example-product"                       # [REQUIRED] Unique identifier
     productType: "Default Product Type"           # [REQUIRED] Reference to product type name
-    # category: "all-products"                    # [OPTIONAL] Category slug or path (e.g., "parent/child")
+    category: "all-products"                      # [REQUIRED] Reference to category slug
     # description: "Product description"          # [OPTIONAL] Product description
 
     # Channel visibility and availability
@@ -145,7 +145,8 @@ products:
 
     # At least one variant is required
     variants:
-      - sku: "EXAMPLE-001"                        # [REQUIRED] Unique SKU
+      - name: "EXAMPLE-001"
+        sku: "EXAMPLE-001"                        # [REQUIRED] Unique SKU
         # name: "Variant Name"                    # [OPTIONAL] Variant display name
         # trackInventory: true                    # [OPTIONAL] Track stock
 

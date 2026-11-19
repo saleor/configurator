@@ -5,7 +5,11 @@ import type { CommandConfig } from "../cli/command";
 import { shouldOutputJson } from "../cli/command";
 import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
 import { COMMAND_NAME } from "../meta";
-import { configSchema } from "../modules/config/schema/schema";
+import {
+  checkConfiguration,
+  summarizeUnknownKeys,
+  type UnknownConfigKey,
+} from "../modules/config/check-configuration";
 
 const VALIDATE_EXIT = {
   SUCCESS: 0,
@@ -30,6 +34,7 @@ interface ValidationError {
 interface ValidationResult {
   valid: boolean;
   errors: ValidationError[];
+  warnings: ValidationError[];
 }
 
 function formatZodErrors(zodError: z.ZodError): ValidationError[] {
@@ -37,6 +42,22 @@ function formatZodErrors(zodError: z.ZodError): ValidationError[] {
     path: issue.path.join("."),
     message: issue.message,
   }));
+}
+
+function formatUnknownKeys(unknownKeys: readonly UnknownConfigKey[]): ValidationError[] {
+  return summarizeUnknownKeys(unknownKeys).map(({ location, message }) => ({
+    path: location,
+    message,
+  }));
+}
+
+function printTextWarnings(warnings: ValidationError[]): void {
+  if (warnings.length === 0) return;
+  console.warn("Warnings:\n");
+  for (const warning of warnings) {
+    console.warn(`  ${warning.message}`);
+  }
+  console.warn("");
 }
 
 function printTextSuccess(): void {
@@ -64,6 +85,7 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     const validationResult: ValidationResult = {
       valid: false,
       errors: [{ path: "", message }],
+      warnings: [],
     };
 
     if (useJson) {
@@ -90,6 +112,7 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     const validationResult: ValidationResult = {
       valid: false,
       errors: [{ path: "", message: `Invalid YAML: ${message}` }],
+      warnings: [],
     };
 
     if (useJson) {
@@ -107,10 +130,11 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     process.exit(VALIDATE_EXIT.PARSE_ERROR);
   }
 
-  const result = configSchema.safeParse(rawConfig);
+  const result = checkConfiguration(rawConfig);
 
   if (result.success) {
-    const validationResult: ValidationResult = { valid: true, errors: [] };
+    const warnings = formatUnknownKeys(result.unknownKeys);
+    const validationResult: ValidationResult = { valid: true, errors: [], warnings };
 
     if (useJson) {
       outputEnvelope(
@@ -121,13 +145,14 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
         })
       );
     } else {
+      printTextWarnings(warnings);
       printTextSuccess();
     }
     process.exit(VALIDATE_EXIT.SUCCESS);
   }
 
   const errors = formatZodErrors(result.error);
-  const validationResult: ValidationResult = { valid: false, errors };
+  const validationResult: ValidationResult = { valid: false, errors, warnings: [] };
 
   if (useJson) {
     outputEnvelope(

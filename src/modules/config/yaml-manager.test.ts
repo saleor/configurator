@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import { logger } from "../../lib/logger";
 import type { SaleorConfig } from "./schema/schema";
 import { type FileSystem, YamlConfigurationManager } from "./yaml-manager";
 
@@ -46,6 +47,47 @@ describe("YamlConfigurationManager", () => {
         defaultMailSenderName: "Test Store",
         defaultMailSenderAddress: "test@example.com",
       },
+    });
+  });
+
+  describe("unknown keys", () => {
+    const withUnknownKey = "shop:\n  headerText: Shop\n  headrText: Typo\n";
+
+    it("warns once when the same file is loaded repeatedly", async () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+      (mockFs.readFile as unknown as Mock).mockResolvedValue(withUnknownKey);
+
+      await manager.load();
+      await manager.load();
+
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(
+        'Unknown key "shop.headrText" is not supported and was ignored'
+      );
+      warn.mockRestore();
+    });
+
+    it("warns again after the file changes", async () => {
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+      (mockFs.readFile as unknown as Mock)
+        .mockResolvedValueOnce(withUnknownKey)
+        .mockResolvedValueOnce(`${withUnknownKey}  footrText: Typo\n`);
+
+      await manager.load();
+      await manager.load();
+
+      expect(warn).toHaveBeenCalledTimes(3);
+      warn.mockRestore();
+    });
+
+    it("returns an independent copy on every load", async () => {
+      (mockFs.readFile as unknown as Mock).mockResolvedValue("shop:\n  headerText: Shop\n");
+
+      const first = await manager.load();
+      if (first.shop) first.shop.headerText = "Changed";
+      const second = await manager.load();
+
+      expect(second.shop?.headerText).toBe("Shop");
     });
   });
 

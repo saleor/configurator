@@ -2,7 +2,6 @@
 # Business-to-business setup with volume pricing, approval workflows, and payment terms
 
 shop:
-  customerAllowedToSetExternalReference: true
   defaultMailSenderName: "B2B Sales Team"
   defaultMailSenderAddress: "sales@b2b-wholesale.com"
   displayGrossPrices: false  # B2B typically shows net prices
@@ -29,7 +28,6 @@ channels:
       allowUnpaidOrders: true  # NET payment terms
       includeDraftOrderInVoucherUsage: true
       defaultTransactionFlowStrategy: AUTHORIZATION
-      minimumOrderValue: 500  # $500 minimum order
 
   - name: "VIP Partners"
     currencyCode: USD
@@ -42,365 +40,260 @@ channels:
       expireOrdersAfter: 60  # Extended quote validity
       markAsPaidStrategy: TRANSACTION_FLOW
       allowUnpaidOrders: true
-      minimumOrderValue: 250  # Lower minimum for VIP
+
+productAttributes:
+  - name: Manufacturer
+    inputType: PLAIN_TEXT
+  - name: Manufacturer SKU
+    inputType: PLAIN_TEXT
+  - name: Minimum Order Quantity
+    inputType: NUMERIC
+  - name: Case Pack Quantity
+    inputType: NUMERIC
+  - name: Lead Time
+    inputType: DROPDOWN
+    values:
+      - name: In Stock
+      - name: 1-3 business days
+      - name: 1 week
+      - name: 2 weeks
+      - name: 3-4 weeks
+      - name: 6-8 weeks
+      - name: Made to Order
+  - name: Volume Pricing Tiers
+    inputType: RICH_TEXT
+  - name: Payment Terms
+    inputType: DROPDOWN
+    values:
+      - name: Prepaid
+      - name: NET 15
+      - name: NET 30
+      - name: NET 45
+      - name: NET 60
+      - name: 2/10 NET 30
+  - name: Country of Origin
+    inputType: DROPDOWN
+    values:
+      - name: United States
+      - name: China
+      - name: Germany
+      - name: Italy
+      - name: India
+      - name: Vietnam
+      - name: Mexico
+  - name: Certifications
+    inputType: MULTISELECT
+    values:
+      - name: ISO 9001
+      - name: ISO 14001
+      - name: CE Marking
+      - name: UL Listed
+      - name: RoHS Compliant
+      - name: Fair Trade
+      - name: Organic
+  - name: Warranty
+    inputType: DROPDOWN
+    values:
+      - name: No Warranty
+      - name: 30 days
+      - name: 90 days
+      - name: 1 year
+      - name: 2 years
+      - name: Lifetime
+  - name: Product Specifications
+    inputType: RICH_TEXT
+  - name: Technical Data Sheet
+    inputType: FILE
+  - name: Safety Data Sheet
+    inputType: FILE
+  - name: Bulk Discount Available
+    inputType: BOOLEAN
+  - name: Sample Available
+    inputType: BOOLEAN
+  - name: Private Label Available
+    inputType: BOOLEAN
+  - name: Drop Ship Available
+    inputType: BOOLEAN
+  - name: Pack Size
+    inputType: DROPDOWN
+    values:
+      - name: Single Unit
+      - name: Pack of 6
+      - name: Pack of 12
+      - name: Pack of 24
+      - name: Case (48)
+      - name: Pallet
+  - name: Grade
+    inputType: DROPDOWN
+    values:
+      - name: Premium
+      - name: Standard
+      - name: Economy
+  - name: Power Requirements
+    inputType: DROPDOWN
+    values:
+      - name: 110V
+      - name: 220V
+      - name: 380V 3-Phase
+      - name: Battery Powered
+      - name: Pneumatic
+      - name: Hydraulic
+  - name: Dimensions (LxWxH)
+    inputType: PLAIN_TEXT
+  - name: Weight
+    inputType: NUMERIC
+  - name: Installation Required
+    inputType: BOOLEAN
+  - name: Training Available
+    inputType: BOOLEAN
+  - name: Service Contract Available
+    inputType: BOOLEAN
 
 productTypes:
   - name: "Wholesale Product"
-    slug: wholesale-product
     isShippingRequired: true
     productAttributes:
-      - name: "Manufacturer"
-        slug: manufacturer
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Manufacturer SKU"
-        slug: manufacturer-sku
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Minimum Order Quantity"
-        slug: moq
-        inputType: NUMERIC
-        required: true
-        unit: "units"
-        metadata:
-          min: "1"
-          default: "10"
-      - name: "Case Pack Quantity"
-        slug: case-pack
-        inputType: NUMERIC
-        required: true
-        unit: "units"
-        metadata:
-          help: "Number of units per case"
-      - name: "Lead Time"
-        slug: lead-time
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "In Stock"
-            slug: in-stock
-          - name: "1-3 business days"
-            slug: 1-3-days
-          - name: "1 week"
-            slug: 1-week
-          - name: "2 weeks"
-            slug: 2-weeks
-          - name: "3-4 weeks"
-            slug: 3-4-weeks
-          - name: "6-8 weeks"
-            slug: 6-8-weeks
-          - name: "Made to Order"
-            slug: made-to-order
-      - name: "Volume Pricing Tiers"
-        slug: volume-pricing
-        inputType: RICH_TEXT
-        metadata:
-          help: "Define quantity breaks and discount percentages"
-          example: "10-49: 5%, 50-99: 10%, 100-499: 15%, 500+: 20%"
-      - name: "Payment Terms"
-        slug: payment-terms
-        inputType: DROPDOWN
-        values:
-          - name: "Prepaid"
-            slug: prepaid
-          - name: "NET 15"
-            slug: net-15
-          - name: "NET 30"
-            slug: net-30
-          - name: "NET 45"
-            slug: net-45
-          - name: "NET 60"
-            slug: net-60
-          - name: "2/10 NET 30"
-            slug: 2-10-net-30
-      - name: "Country of Origin"
-        slug: country-of-origin
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "United States"
-            slug: usa
-          - name: "China"
-            slug: china
-          - name: "Germany"
-            slug: germany
-          - name: "Italy"
-            slug: italy
-          - name: "India"
-            slug: india
-          - name: "Vietnam"
-            slug: vietnam
-          - name: "Mexico"
-            slug: mexico
-      - name: "Certifications"
-        slug: certifications
-        inputType: MULTISELECT
-        values:
-          - name: "ISO 9001"
-            slug: iso-9001
-          - name: "ISO 14001"
-            slug: iso-14001
-          - name: "CE Marking"
-            slug: ce-marking
-          - name: "UL Listed"
-            slug: ul-listed
-          - name: "RoHS Compliant"
-            slug: rohs
-          - name: "Fair Trade"
-            slug: fair-trade
-          - name: "Organic"
-            slug: organic
-      - name: "Warranty"
-        slug: warranty
-        inputType: DROPDOWN
-        values:
-          - name: "No Warranty"
-            slug: no-warranty
-          - name: "30 days"
-            slug: 30-days
-          - name: "90 days"
-            slug: 90-days
-          - name: "1 year"
-            slug: 1-year
-          - name: "2 years"
-            slug: 2-years
-          - name: "Lifetime"
-            slug: lifetime
-      - name: "Product Specifications"
-        slug: specifications
-        inputType: RICH_TEXT
-      - name: "Technical Data Sheet"
-        slug: tech-data-sheet
-        inputType: FILE
-      - name: "Safety Data Sheet"
-        slug: safety-data-sheet
-        inputType: FILE
-      - name: "Bulk Discount Available"
-        slug: bulk-discount
-        inputType: BOOLEAN
-        metadata:
-          default: "true"
-      - name: "Sample Available"
-        slug: sample-available
-        inputType: BOOLEAN
-      - name: "Private Label Available"
-        slug: private-label
-        inputType: BOOLEAN
-      - name: "Drop Ship Available"
-        slug: drop-ship
-        inputType: BOOLEAN
+      - attribute: Manufacturer
+      - attribute: Manufacturer SKU
+      - attribute: Minimum Order Quantity
+      - attribute: Case Pack Quantity
+      - attribute: Lead Time
+      - attribute: Volume Pricing Tiers
+      - attribute: Payment Terms
+      - attribute: Country of Origin
+      - attribute: Certifications
+      - attribute: Warranty
+      - attribute: Product Specifications
+      - attribute: Technical Data Sheet
+      - attribute: Safety Data Sheet
+      - attribute: Bulk Discount Available
+      - attribute: Sample Available
+      - attribute: Private Label Available
+      - attribute: Drop Ship Available
     variantAttributes:
-      - name: "Pack Size"
-        slug: pack-size
-        inputType: DROPDOWN
-        values:
-          - name: "Single Unit"
-            slug: single
-          - name: "Pack of 6"
-            slug: pack-6
-          - name: "Pack of 12"
-            slug: pack-12
-          - name: "Pack of 24"
-            slug: pack-24
-          - name: "Case (48)"
-            slug: case-48
-          - name: "Pallet"
-            slug: pallet
-      - name: "Grade"
-        slug: grade
-        inputType: DROPDOWN
-        values:
-          - name: "Premium"
-            slug: premium
-          - name: "Standard"
-            slug: standard
-          - name: "Economy"
-            slug: economy
+      - attribute: Pack Size
+      - attribute: Grade
 
   - name: "Industrial Equipment"
-    slug: industrial-equipment
     isShippingRequired: true
     productAttributes:
-      - attribute: manufacturer
-      - attribute: manufacturer-sku
-      - attribute: moq
-      - attribute: lead-time
-      - attribute: country-of-origin
-      - attribute: certifications
-      - attribute: warranty
-      - attribute: specifications
-      - attribute: tech-data-sheet
-      - name: "Power Requirements"
-        slug: power-requirements
-        inputType: DROPDOWN
-        values:
-          - name: "110V"
-            slug: 110v
-          - name: "220V"
-            slug: 220v
-          - name: "380V 3-Phase"
-            slug: 380v-3phase
-          - name: "Battery Powered"
-            slug: battery
-          - name: "Pneumatic"
-            slug: pneumatic
-          - name: "Hydraulic"
-            slug: hydraulic
-      - name: "Dimensions (LxWxH)"
-        slug: dimensions
-        inputType: PLAIN_TEXT
-        unit: "cm"
-      - name: "Weight"
-        slug: equipment-weight
-        inputType: NUMERIC
-        unit: "kg"
-      - name: "Installation Required"
-        slug: installation-required
-        inputType: BOOLEAN
-      - name: "Training Available"
-        slug: training-available
-        inputType: BOOLEAN
-      - name: "Service Contract Available"
-        slug: service-contract
-        inputType: BOOLEAN
+      - attribute: Manufacturer
+      - attribute: Manufacturer SKU
+      - attribute: Minimum Order Quantity
+      - attribute: Lead Time
+      - attribute: Country of Origin
+      - attribute: Certifications
+      - attribute: Warranty
+      - attribute: Product Specifications
+      - attribute: Technical Data Sheet
+      - attribute: Power Requirements
+      - attribute: Dimensions (LxWxH)
+      - attribute: Weight
+      - attribute: Installation Required
+      - attribute: Training Available
+      - attribute: Service Contract Available
+
+contentAttributes:
+  - name: Company Name
+    inputType: PLAIN_TEXT
+  - name: Business Type
+    inputType: DROPDOWN
+    values:
+      - name: Manufacturer
+      - name: Distributor
+      - name: Retailer
+      - name: Service Provider
+      - name: Government
+  - name: Tax ID / EIN
+    inputType: PLAIN_TEXT
+  - name: D-U-N-S Number
+    inputType: PLAIN_TEXT
+  - name: Annual Revenue
+    inputType: DROPDOWN
+    values:
+      - name: Under $1M
+      - name: $1M - $5M
+      - name: $5M - $25M
+      - name: $25M - $100M
+      - name: Over $100M
+  - name: Number of Employees
+    inputType: DROPDOWN
+    values:
+      - name: 1-10
+      - name: 11-50
+      - name: 51-200
+      - name: 201-500
+      - name: 500+
+  - name: Credit Limit
+    inputType: NUMERIC
+  - name: Payment Terms Approved
+    inputType: DROPDOWN
+    values:
+      - name: Prepaid Only
+      - name: NET 15
+      - name: NET 30
+      - name: NET 45
+      - name: NET 60
+  - name: Account Status
+    inputType: DROPDOWN
+    values:
+      - name: Pending Approval
+      - name: Approved
+      - name: On Hold
+      - name: Suspended
+  - name: Account Manager
+    inputType: PLAIN_TEXT
+  - name: Resale Certificate
+    inputType: FILE
+  - name: Credit Application
+    inputType: FILE
+  - name: W9 Form
+    inputType: FILE
+  - name: Quote Number
+    inputType: PLAIN_TEXT
+  - name: Valid Until
+    inputType: DATE
+  - name: Requested Products
+    inputType: REFERENCE
+    entityType: PRODUCT
+  - name: Special Requirements
+    inputType: PLAIN_TEXT
+  - name: Requested Delivery Date
+    inputType: DATE
+  - name: Quote Status
+    inputType: DROPDOWN
+    values:
+      - name: Draft
+      - name: Pending Review
+      - name: Approved
+      - name: Rejected
+      - name: Expired
 
 pageTypes:
   - name: "Company Profile"
-    slug: company-profile
     attributes:
-      - name: "Company Name"
-        slug: company-name
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Business Type"
-        slug: business-type
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Manufacturer"
-            slug: manufacturer
-          - name: "Distributor"
-            slug: distributor
-          - name: "Retailer"
-            slug: retailer
-          - name: "Service Provider"
-            slug: service-provider
-          - name: "Government"
-            slug: government
-      - name: "Tax ID / EIN"
-        slug: tax-id
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "D-U-N-S Number"
-        slug: duns-number
-        inputType: PLAIN_TEXT
-      - name: "Annual Revenue"
-        slug: annual-revenue
-        inputType: DROPDOWN
-        values:
-          - name: "Under $1M"
-            slug: under-1m
-          - name: "$1M - $5M"
-            slug: 1m-5m
-          - name: "$5M - $25M"
-            slug: 5m-25m
-          - name: "$25M - $100M"
-            slug: 25m-100m
-          - name: "Over $100M"
-            slug: over-100m
-      - name: "Number of Employees"
-        slug: num-employees
-        inputType: DROPDOWN
-        values:
-          - name: "1-10"
-            slug: 1-10
-          - name: "11-50"
-            slug: 11-50
-          - name: "51-200"
-            slug: 51-200
-          - name: "201-500"
-            slug: 201-500
-          - name: "500+"
-            slug: 500-plus
-      - name: "Credit Limit"
-        slug: credit-limit
-        inputType: NUMERIC
-        unit: "USD"
-      - name: "Payment Terms Approved"
-        slug: payment-terms-approved
-        inputType: DROPDOWN
-        values:
-          - name: "Prepaid Only"
-            slug: prepaid-only
-          - name: "NET 15"
-            slug: net-15
-          - name: "NET 30"
-            slug: net-30
-          - name: "NET 45"
-            slug: net-45
-          - name: "NET 60"
-            slug: net-60
-      - name: "Account Status"
-        slug: account-status
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Pending Approval"
-            slug: pending
-          - name: "Approved"
-            slug: approved
-          - name: "On Hold"
-            slug: on-hold
-          - name: "Suspended"
-            slug: suspended
-      - name: "Account Manager"
-        slug: account-manager
-        inputType: PLAIN_TEXT
-      - name: "Resale Certificate"
-        slug: resale-certificate
-        inputType: FILE
-      - name: "Credit Application"
-        slug: credit-application
-        inputType: FILE
-      - name: "W9 Form"
-        slug: w9-form
-        inputType: FILE
+      - attribute: Company Name
+      - attribute: Business Type
+      - attribute: Tax ID / EIN
+      - attribute: D-U-N-S Number
+      - attribute: Annual Revenue
+      - attribute: Number of Employees
+      - attribute: Credit Limit
+      - attribute: Payment Terms Approved
+      - attribute: Account Status
+      - attribute: Account Manager
+      - attribute: Resale Certificate
+      - attribute: Credit Application
+      - attribute: W9 Form
 
   - name: "Quote Request"
-    slug: quote-request
     attributes:
-      - name: "Quote Number"
-        slug: quote-number
-        inputType: PLAIN_TEXT
-        required: true
-      - name: "Valid Until"
-        slug: valid-until
-        inputType: DATE
-        required: true
-      - name: "Requested Products"
-        slug: requested-products
-        inputType: REFERENCE
-        entityType: PRODUCT
-      - name: "Special Requirements"
-        slug: special-requirements
-        inputType: MULTILINE
-      - name: "Requested Delivery Date"
-        slug: requested-delivery
-        inputType: DATE
-      - name: "Quote Status"
-        slug: quote-status
-        inputType: DROPDOWN
-        values:
-          - name: "Draft"
-            slug: draft
-          - name: "Pending Review"
-            slug: pending-review
-          - name: "Approved"
-            slug: approved
-          - name: "Rejected"
-            slug: rejected
-          - name: "Expired"
-            slug: expired
+      - attribute: Quote Number
+      - attribute: Valid Until
+      - attribute: Requested Products
+      - attribute: Special Requirements
+      - attribute: Requested Delivery Date
+      - attribute: Quote Status
 
 categories:
   - name: "Industrial Supplies"
@@ -449,6 +342,3 @@ categories:
 
   - name: "Clearance"
     slug: "clearance"
-    metadata:
-      discount: "40"
-      note: "End of line products"

@@ -28,6 +28,9 @@ export interface ConfigurationStorage {
 export const DEFAULT_CONFIG_PATH = "config.yml";
 
 export class YamlConfigurationManager implements ConfigurationStorage {
+  // Commands load the same file several times; parsing once keeps warnings to one per change.
+  private lastParsed?: { yml: string; config: SaleorConfig };
+
   constructor(
     private readonly configPath: string = DEFAULT_CONFIG_PATH,
     private readonly fs: FileSystem = new NodeFileSystem()
@@ -54,10 +57,12 @@ export class YamlConfigurationManager implements ConfigurationStorage {
     logger.debug("Loading configuration");
     try {
       const yml = await this.fs.readFile(this.configPath, "utf-8");
-      const rawConfig = parse(yml);
-      logger.debug("Raw YAML configuration", { rawConfig });
-
-      const data = parseConfiguration(rawConfig);
+      if (this.lastParsed?.yml !== yml) {
+        const rawConfig = parse(yml);
+        logger.debug("Raw YAML configuration", { rawConfig });
+        this.lastParsed = { yml, config: parseConfiguration(rawConfig) };
+      }
+      const data = structuredClone(this.lastParsed.config);
       logger.debug("Parsed configuration", { data });
 
       logger.info(`Loaded configuration from ${this.configPath}`);

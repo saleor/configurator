@@ -2,7 +2,6 @@
 # Complete setup for clothing, footwear, and accessories stores
 
 shop:
-  customerAllowedToSetExternalReference: false
   defaultMailSenderName: "Fashion Store"
   defaultMailSenderAddress: "shop@fashion-store.com"
   displayGrossPrices: true
@@ -40,439 +39,268 @@ channels:
       expireOrdersAfter: 3
       deleteExpiredOrdersAfter: 14
 
+productAttributes:
+  - name: Brand
+    inputType: DROPDOWN
+    values:
+      - name: Nike
+      - name: Adidas
+      - name: Puma
+      - name: Under Armour
+      - name: Levi's
+      - name: Gap
+      - name: H&M
+      - name: Zara
+      - name: Uniqlo
+  - name: Material
+    inputType: MULTISELECT
+    values:
+      - name: Cotton
+      - name: Polyester
+      - name: Wool
+      - name: Silk
+      - name: Linen
+      - name: Denim
+      - name: Leather
+      - name: Synthetic
+  - name: Season
+    inputType: DROPDOWN
+    values:
+      - name: Spring/Summer
+      - name: Fall/Winter
+      - name: All Season
+  - name: Collection
+    inputType: DROPDOWN
+    values:
+      - name: Spring 2024
+      - name: Summer 2024
+      - name: Fall 2024
+      - name: Winter 2024
+      - name: Resort 2024
+      - name: Classics
+  - name: Gender
+    inputType: DROPDOWN
+    values:
+      - name: Men
+      - name: Women
+      - name: Unisex
+      - name: Boys
+      - name: Girls
+  - name: Care Instructions
+    inputType: MULTISELECT
+    values:
+      - name: Machine Wash Cold
+      - name: Hand Wash Only
+      - name: Dry Clean Only
+      - name: Do Not Bleach
+      - name: Tumble Dry Low
+      - name: Hang Dry
+      - name: Iron Low Heat
+      - name: Do Not Iron
+  - name: Style
+    inputType: DROPDOWN
+    values:
+      - name: Casual
+      - name: Formal
+      - name: Business
+      - name: Sport
+      - name: Evening
+      - name: Streetwear
+  - name: Fit Type
+    inputType: DROPDOWN
+    values:
+      - name: Regular Fit
+      - name: Slim Fit
+      - name: Relaxed Fit
+      - name: Athletic Fit
+      - name: Oversized
+  - name: Pattern
+    inputType: DROPDOWN
+    values:
+      - name: Solid
+      - name: Striped
+      - name: Plaid
+      - name: Floral
+      - name: Geometric
+      - name: Abstract
+      - name: Camouflage
+  - name: Sustainability
+    inputType: MULTISELECT
+    values:
+      - name: Organic
+      - name: Recycled Materials
+      - name: Fair Trade
+      - name: Vegan
+      - name: Eco-Friendly
+  - name: Size
+    inputType: DROPDOWN
+    values:
+      - name: XS
+      - name: S
+      - name: M
+      - name: L
+      - name: XL
+      - name: XXL
+      - name: One Size
+      - name: Small
+      - name: Medium
+      - name: Large
+      - name: Adjustable
+  - name: Color
+    inputType: SWATCH
+    values:
+      - name: Black
+      - name: White
+      - name: Navy
+      - name: Gray
+      - name: Charcoal
+      - name: Red
+      - name: Blue
+      - name: Green
+      - name: Beige
+      - name: Brown
+  - name: Shoe Type
+    inputType: DROPDOWN
+    values:
+      - name: Sneakers
+      - name: Boots
+      - name: Sandals
+      - name: Loafers
+      - name: Oxfords
+      - name: Heels
+      - name: Flats
+      - name: Athletic
+  - name: Closure Type
+    inputType: DROPDOWN
+    values:
+      - name: Lace-up
+      - name: Slip-on
+      - name: Velcro
+      - name: Zipper
+      - name: Buckle
+  - name: Heel Height
+    inputType: DROPDOWN
+    values:
+      - name: Flat (0-1 inch)
+      - name: Low (1-2 inches)
+      - name: Mid (2-3 inches)
+      - name: High (3-4 inches)
+      - name: Very High (4+ inches)
+  - name: Water Resistant
+    inputType: BOOLEAN
+  - name: Shoe Size
+    inputType: DROPDOWN
+    values:
+      - name: US 5 / EU 35
+      - name: US 6 / EU 36
+      - name: US 7 / EU 37
+      - name: US 8 / EU 38
+      - name: US 9 / EU 39
+      - name: US 10 / EU 40
+      - name: US 11 / EU 41
+      - name: US 12 / EU 42
+      - name: US 13 / EU 43
+  - name: Accessory Type
+    inputType: DROPDOWN
+    values:
+      - name: Bags
+      - name: Belts
+      - name: Hats
+      - name: Scarves
+      - name: Sunglasses
+      - name: Watches
+      - name: Jewelry
+      - name: Wallets
+
 productTypes:
   - name: "Apparel"
-    slug: apparel
     isShippingRequired: true
     productAttributes:
-      - name: "Brand"
-        slug: brand
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Nike"
-            slug: nike
-          - name: "Adidas"
-            slug: adidas
-          - name: "Puma"
-            slug: puma
-          - name: "Under Armour"
-            slug: under-armour
-          - name: "Levi's"
-            slug: levis
-          - name: "Gap"
-            slug: gap
-          - name: "H&M"
-            slug: hm
-          - name: "Zara"
-            slug: zara
-          - name: "Uniqlo"
-            slug: uniqlo
-      - name: "Material"
-        slug: material
-        inputType: MULTISELECT
-        values:
-          - name: "Cotton"
-            slug: cotton
-          - name: "Polyester"
-            slug: polyester
-          - name: "Wool"
-            slug: wool
-          - name: "Silk"
-            slug: silk
-          - name: "Linen"
-            slug: linen
-          - name: "Denim"
-            slug: denim
-          - name: "Leather"
-            slug: leather
-          - name: "Synthetic"
-            slug: synthetic
-      - name: "Season"
-        slug: season
-        inputType: DROPDOWN
-        values:
-          - name: "Spring/Summer"
-            slug: spring-summer
-          - name: "Fall/Winter"
-            slug: fall-winter
-          - name: "All Season"
-            slug: all-season
-      - name: "Collection"
-        slug: collection
-        inputType: DROPDOWN
-        values:
-          - name: "Spring 2024"
-            slug: spring-2024
-          - name: "Summer 2024"
-            slug: summer-2024
-          - name: "Fall 2024"
-            slug: fall-2024
-          - name: "Winter 2024"
-            slug: winter-2024
-          - name: "Resort 2024"
-            slug: resort-2024
-          - name: "Classics"
-            slug: classics
-      - name: "Gender"
-        slug: gender
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Men"
-            slug: men
-          - name: "Women"
-            slug: women
-          - name: "Unisex"
-            slug: unisex
-          - name: "Boys"
-            slug: boys
-          - name: "Girls"
-            slug: girls
-      - name: "Care Instructions"
-        slug: care-instructions
-        inputType: MULTISELECT
-        values:
-          - name: "Machine Wash Cold"
-            slug: machine-wash-cold
-          - name: "Hand Wash Only"
-            slug: hand-wash-only
-          - name: "Dry Clean Only"
-            slug: dry-clean-only
-          - name: "Do Not Bleach"
-            slug: do-not-bleach
-          - name: "Tumble Dry Low"
-            slug: tumble-dry-low
-          - name: "Hang Dry"
-            slug: hang-dry
-          - name: "Iron Low Heat"
-            slug: iron-low-heat
-          - name: "Do Not Iron"
-            slug: do-not-iron
-      - name: "Style"
-        slug: style
-        inputType: DROPDOWN
-        values:
-          - name: "Casual"
-            slug: casual
-          - name: "Formal"
-            slug: formal
-          - name: "Business"
-            slug: business
-          - name: "Sport"
-            slug: sport
-          - name: "Evening"
-            slug: evening
-          - name: "Streetwear"
-            slug: streetwear
-      - name: "Fit Type"
-        slug: fit-type
-        inputType: DROPDOWN
-        values:
-          - name: "Regular Fit"
-            slug: regular-fit
-          - name: "Slim Fit"
-            slug: slim-fit
-          - name: "Relaxed Fit"
-            slug: relaxed-fit
-          - name: "Athletic Fit"
-            slug: athletic-fit
-          - name: "Oversized"
-            slug: oversized
-      - name: "Pattern"
-        slug: pattern
-        inputType: DROPDOWN
-        values:
-          - name: "Solid"
-            slug: solid
-          - name: "Striped"
-            slug: striped
-          - name: "Plaid"
-            slug: plaid
-          - name: "Floral"
-            slug: floral
-          - name: "Geometric"
-            slug: geometric
-          - name: "Abstract"
-            slug: abstract
-          - name: "Camouflage"
-            slug: camouflage
-      - name: "Sustainability"
-        slug: sustainability
-        inputType: MULTISELECT
-        values:
-          - name: "Organic"
-            slug: organic
-          - name: "Recycled Materials"
-            slug: recycled-materials
-          - name: "Fair Trade"
-            slug: fair-trade
-          - name: "Vegan"
-            slug: vegan
-          - name: "Eco-Friendly"
-            slug: eco-friendly
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Season
+      - attribute: Collection
+      - attribute: Gender
+      - attribute: Care Instructions
+      - attribute: Style
+      - attribute: Fit Type
+      - attribute: Pattern
+      - attribute: Sustainability
     variantAttributes:
-      - name: "Size"
-        slug: size
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "XS"
-            slug: xs
-            metadata:
-              us: "0-2"
-              eu: "32-34"
-              uk: "4-6"
-          - name: "S"
-            slug: s
-            metadata:
-              us: "4-6"
-              eu: "36-38"
-              uk: "8-10"
-          - name: "M"
-            slug: m
-            metadata:
-              us: "8-10"
-              eu: "40-42"
-              uk: "12-14"
-          - name: "L"
-            slug: l
-            metadata:
-              us: "12-14"
-              eu: "44-46"
-              uk: "16-18"
-          - name: "XL"
-            slug: xl
-            metadata:
-              us: "16-18"
-              eu: "48-50"
-              uk: "20-22"
-          - name: "XXL"
-            slug: xxl
-            metadata:
-              us: "20-22"
-              eu: "52-54"
-              uk: "24-26"
-      - name: "Color"
-        slug: color
-        inputType: SWATCH
-        required: true
-        values:
-          - name: "Black"
-            slug: black
-            value: "#000000"
-          - name: "White"
-            slug: white
-            value: "#FFFFFF"
-          - name: "Navy"
-            slug: navy
-            value: "#000080"
-          - name: "Gray"
-            slug: gray
-            value: "#808080"
-          - name: "Charcoal"
-            slug: charcoal
-            value: "#36454F"
-          - name: "Red"
-            slug: red
-            value: "#FF0000"
-          - name: "Blue"
-            slug: blue
-            value: "#0000FF"
-          - name: "Green"
-            slug: green
-            value: "#008000"
-          - name: "Beige"
-            slug: beige
-            value: "#F5F5DC"
-          - name: "Brown"
-            slug: brown
-            value: "#964B00"
+      - attribute: Size
+      - attribute: Color
 
   - name: "Footwear"
-    slug: footwear
     isShippingRequired: true
     productAttributes:
-      - attribute: brand
-      - attribute: material
-      - attribute: season
-      - attribute: gender
-      - attribute: style
-      - name: "Shoe Type"
-        slug: shoe-type
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Sneakers"
-            slug: sneakers
-          - name: "Boots"
-            slug: boots
-          - name: "Sandals"
-            slug: sandals
-          - name: "Loafers"
-            slug: loafers
-          - name: "Oxfords"
-            slug: oxfords
-          - name: "Heels"
-            slug: heels
-          - name: "Flats"
-            slug: flats
-          - name: "Athletic"
-            slug: athletic
-      - name: "Closure Type"
-        slug: closure-type
-        inputType: DROPDOWN
-        values:
-          - name: "Lace-up"
-            slug: lace-up
-          - name: "Slip-on"
-            slug: slip-on
-          - name: "Velcro"
-            slug: velcro
-          - name: "Zipper"
-            slug: zipper
-          - name: "Buckle"
-            slug: buckle
-      - name: "Heel Height"
-        slug: heel-height
-        inputType: DROPDOWN
-        values:
-          - name: "Flat (0-1 inch)"
-            slug: flat
-          - name: "Low (1-2 inches)"
-            slug: low
-          - name: "Mid (2-3 inches)"
-            slug: mid
-          - name: "High (3-4 inches)"
-            slug: high
-          - name: "Very High (4+ inches)"
-            slug: very-high
-      - name: "Water Resistant"
-        slug: water-resistant
-        inputType: BOOLEAN
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Season
+      - attribute: Gender
+      - attribute: Style
+      - attribute: Shoe Type
+      - attribute: Closure Type
+      - attribute: Heel Height
+      - attribute: Water Resistant
     variantAttributes:
-      - name: "Shoe Size"
-        slug: shoe-size
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "US 5 / EU 35"
-            slug: us5-eu35
-          - name: "US 6 / EU 36"
-            slug: us6-eu36
-          - name: "US 7 / EU 37"
-            slug: us7-eu37
-          - name: "US 8 / EU 38"
-            slug: us8-eu38
-          - name: "US 9 / EU 39"
-            slug: us9-eu39
-          - name: "US 10 / EU 40"
-            slug: us10-eu40
-          - name: "US 11 / EU 41"
-            slug: us11-eu41
-          - name: "US 12 / EU 42"
-            slug: us12-eu42
-          - name: "US 13 / EU 43"
-            slug: us13-eu43
-      - attribute: color
+      - attribute: Shoe Size
+      - attribute: Color
 
   - name: "Accessories"
-    slug: accessories
     isShippingRequired: true
     productAttributes:
-      - attribute: brand
-      - attribute: material
-      - attribute: gender
-      - attribute: style
-      - name: "Accessory Type"
-        slug: accessory-type
-        inputType: DROPDOWN
-        required: true
-        values:
-          - name: "Bags"
-            slug: bags
-          - name: "Belts"
-            slug: belts
-          - name: "Hats"
-            slug: hats
-          - name: "Scarves"
-            slug: scarves
-          - name: "Sunglasses"
-            slug: sunglasses
-          - name: "Watches"
-            slug: watches
-          - name: "Jewelry"
-            slug: jewelry
-          - name: "Wallets"
-            slug: wallets
+      - attribute: Brand
+      - attribute: Material
+      - attribute: Gender
+      - attribute: Style
+      - attribute: Accessory Type
     variantAttributes:
-      - name: "Size"
-        slug: accessory-size
-        inputType: DROPDOWN
-        values:
-          - name: "One Size"
-            slug: one-size
-          - name: "Small"
-            slug: small
-          - name: "Medium"
-            slug: medium
-          - name: "Large"
-            slug: large
-          - name: "Adjustable"
-            slug: adjustable
-      - attribute: color
+      - attribute: Size
+      - attribute: Color
+
+contentAttributes:
+  - name: Product Category
+    inputType: DROPDOWN
+    values:
+      - name: Tops
+      - name: Bottoms
+      - name: Dresses
+      - name: Footwear
+  - name: Size Chart
+    inputType: RICH_TEXT
+  - name: Measurement Guide
+    inputType: RICH_TEXT
+  - name: Fit Notes
+    inputType: PLAIN_TEXT
+  - name: Season
+    inputType: DROPDOWN
+    values:
+      - name: Spring 2024
+      - name: Summer 2024
+      - name: Fall 2024
+      - name: Winter 2024
+  - name: Featured Products
+    inputType: REFERENCE
+    entityType: PRODUCT
+  - name: Styling Tips
+    inputType: RICH_TEXT
+  - name: Gallery Images
+    inputType: FILE
 
 pageTypes:
   - name: "Size Guide"
-    slug: size-guide
     attributes:
-      - name: "Product Category"
-        slug: product-category
-        inputType: DROPDOWN
-        values:
-          - name: "Tops"
-            slug: tops
-          - name: "Bottoms"
-            slug: bottoms
-          - name: "Dresses"
-            slug: dresses
-          - name: "Footwear"
-            slug: footwear
-      - name: "Size Chart"
-        slug: size-chart
-        inputType: RICH_TEXT
-      - name: "Measurement Guide"
-        slug: measurement-guide
-        inputType: RICH_TEXT
-      - name: "Fit Notes"
-        slug: fit-notes
-        inputType: MULTILINE
+      - attribute: Product Category
+      - attribute: Size Chart
+      - attribute: Measurement Guide
+      - attribute: Fit Notes
 
   - name: "Lookbook"
-    slug: lookbook
     attributes:
-      - name: "Season"
-        slug: lookbook-season
-        inputType: DROPDOWN
-        values:
-          - name: "Spring 2024"
-            slug: spring-2024
-          - name: "Summer 2024"
-            slug: summer-2024
-          - name: "Fall 2024"
-            slug: fall-2024
-          - name: "Winter 2024"
-            slug: winter-2024
-      - name: "Featured Products"
-        slug: featured-products
-        inputType: REFERENCE
-        entityType: PRODUCT
-      - name: "Styling Tips"
-        slug: styling-tips
-        inputType: RICH_TEXT
-      - name: "Gallery Images"
-        slug: gallery-images
-        inputType: FILE
+      - attribute: Season
+      - attribute: Featured Products
+      - attribute: Styling Tips
+      - attribute: Gallery Images
 
 categories:
   - name: "Women"
