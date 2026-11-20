@@ -1,11 +1,12 @@
 import { logger } from "../../../lib/logger";
 import { EntityValidationError } from "../errors";
 import type { DiffChange, DiffOptions, DiffResult, EntityType } from "../types";
+import type { FieldComparisonOptions } from "./field-comparison";
 
 /**
  * Options for comparator operations. Uses Pick to avoid redundant type definitions.
  */
-export type ComparatorOptions = Pick<DiffOptions, "skipMedia">;
+export type ComparatorOptions = Pick<DiffOptions, "skipMedia"> & FieldComparisonOptions;
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle

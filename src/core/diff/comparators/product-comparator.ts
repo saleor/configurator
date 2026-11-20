@@ -2,6 +2,7 @@ import type { ProductVariantInput, SaleorConfig } from "../../../modules/config/
 import type { DiffChange, DiffOptions } from "../types";
 import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
 import { descriptionsEqual, normalizeDescription } from "./editorjs-description";
+import { isUnmanagedField, withoutUnmanagedFields } from "./field-comparison";
 
 /**
  * Product entity type for type safety
@@ -77,7 +78,7 @@ export class ProductComparator extends BaseEntityComparator<
   protected compareEntityFields(
     local: ProductEntity,
     remote: ProductEntity,
-    options?: ComparatorOptions | DiffOptions
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
     const skipMedia = options?.skipMedia ?? false;
@@ -187,12 +188,18 @@ export class ProductComparator extends BaseEntityComparator<
         );
       } else if (localChannelListing && remoteChannelListing) {
         // Compare channel properties with stable normalization (order-agnostic, undefineds dropped)
-        if (!this.equalsChannelListing(localChannelListing, remoteChannelListing)) {
+        const localListing = this.normalizeChannelListing(localChannelListing);
+        const remoteListing = withoutUnmanagedFields(
+          this.normalizeChannelListing(remoteChannelListing),
+          localListing,
+          options
+        );
+        if (JSON.stringify(localListing) !== JSON.stringify(remoteListing)) {
           changes.push(
             this.createFieldChange(
               `channels.${channel}`,
-              this.normalizeChannelListing(remoteChannelListing),
-              this.normalizeChannelListing(localChannelListing),
+              remoteListing,
+              localListing,
               `Channel "${channel}" settings changed`
             )
           );
@@ -250,7 +257,7 @@ export class ProductComparator extends BaseEntityComparator<
         );
       } else if (localVariant && remoteVariant) {
         // Compare variant properties
-        const variantChanges = this.compareVariants(localVariant, remoteVariant, sku);
+        const variantChanges = this.compareVariants(localVariant, remoteVariant, sku, options);
         changes.push(...variantChanges);
       }
     }
@@ -302,14 +309,15 @@ export class ProductComparator extends BaseEntityComparator<
   private compareVariants(
     local: ProductVariantInput,
     remote: ProductVariantInput,
-    sku: string
+    sku: string,
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
     // Skip name comparison to prevent cosmetic diffs
 
     // Compare weight
-    if (local.weight !== remote.weight) {
+    if (!isUnmanagedField(local.weight, options) && local.weight !== remote.weight) {
       changes.push(
         this.createFieldChange(
           `variants.${sku}.weight`,
@@ -354,7 +362,11 @@ export class ProductComparator extends BaseEntityComparator<
         diffs.push(`+${ch}`);
       } else if (l && !r) {
         diffs.push(`-${ch}`);
-      } else if (l && r && JSON.stringify(l) !== JSON.stringify(r)) {
+      } else if (
+        l &&
+        r &&
+        JSON.stringify(l) !== JSON.stringify(withoutUnmanagedFields(r, l, options))
+      ) {
         diffs.push(`~${ch}`);
       }
     }
@@ -402,15 +414,6 @@ export class ProductComparator extends BaseEntityComparator<
       normalized.availableForPurchase = normalizeDateTime(afp);
     }
     return normalized;
-  }
-
-  private equalsChannelListing(
-    a: NonNullable<ProductEntity["channelListings"]>[number],
-    b: NonNullable<ProductEntity["channelListings"]>[number]
-  ): boolean {
-    const na = this.normalizeChannelListing(a);
-    const nb = this.normalizeChannelListing(b);
-    return JSON.stringify(na) === JSON.stringify(nb);
   }
 
   private normalizeVariantChannelListing(

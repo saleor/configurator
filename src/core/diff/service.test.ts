@@ -675,6 +675,44 @@ describe("DiffService", () => {
     });
   });
 
+  describe("fields absent from local config", () => {
+    const handWritten: SaleorConfig = {
+      channels: [
+        { name: "Main", currencyCode: "USD", defaultCountry: "US", slug: "main", isActive: true },
+      ],
+    };
+    const withSettings: SaleorConfig = {
+      channels: [
+        {
+          name: "Main",
+          currencyCode: "USD",
+          defaultCountry: "US",
+          slug: "main",
+          isActive: true,
+          settings: { automaticallyConfirmAllNewOrders: true, expireOrdersAfter: 60 },
+        },
+      ],
+    };
+
+    it("treats them as unmanaged in deploy-direction diffs", async () => {
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(handWritten);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(withSettings);
+
+      const summary = await diffService.compare();
+
+      expect(summary.totalChanges).toBe(0);
+    });
+
+    it("keeps reporting them in introspect diffs, which write the full remote state", async () => {
+      mockServices.configStorage.load = vi.fn().mockResolvedValue(handWritten);
+      mockServices.configuration.retrieveWithoutSaving = vi.fn().mockResolvedValue(withSettings);
+
+      const summary = await diffService.compareForIntrospect();
+
+      expect(summary.updates).toBe(1);
+    });
+  });
+
   describe("compareForIntrospect", () => {
     it("should detect entities to add to local from remote", async () => {
       // Arrange: Remote has entities that local doesn't have
