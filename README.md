@@ -517,6 +517,10 @@ See [docs/ci-cd/README.md](docs/ci-cd/README.md) for workflow templates, exit co
 - Validate enum values match the schema
 - See [SCHEMA.md](SCHEMA.md) for field requirements
 
+### Known Limitations
+
+Some reads from Saleor are capped, for example the shipping zones listed under each warehouse. See [docs/LIMITS.md](docs/LIMITS.md) for every cap, request pacing default and batch size.
+
 ### Diagnostic Commands
 
 ```bash
@@ -609,6 +613,7 @@ See [docs/DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md) for detailed 
 |----------|-------------|
 | [SCHEMA.md](SCHEMA.md) | Complete configuration field reference |
 | [example.yml](example.yml) | Working example with all entity types |
+| [docs/LIMITS.md](docs/LIMITS.md) | Read caps, request pacing, retries and batch sizes |
 | [recipes/README.md](recipes/README.md) | Pre-built recipe templates |
 | [docs/COMMANDS.md](docs/COMMANDS.md) | Complete CLI reference |
 | [docs/ci-cd/README.md](docs/ci-cd/README.md) | CI/CD integration guide |
