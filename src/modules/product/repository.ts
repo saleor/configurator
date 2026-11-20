@@ -774,6 +774,8 @@ export interface ProductOperations {
     productId: string,
     mediaInputs: ProductMediaCreateInput[]
   ): Promise<ProductMedia[]>;
+  /** Stores the configured source URL on a media item, so introspect can return it. */
+  setProductMediaSourceUrl(mediaId: string, mediaUrl: string): Promise<void>;
 
   // Bulk operations
   bulkCreateProducts(input: ProductBulkCreateInput): Promise<ProductBulkCreateResult>;
@@ -1289,7 +1291,7 @@ export class ProductRepository implements ProductOperations {
     return payload.media as ProductMedia;
   }
 
-  private async setProductMediaSourceUrlMetadata(
+  async setProductMediaSourceUrl(
     mediaId: string,
     mediaUrl: string | null | undefined
   ): Promise<void> {
@@ -1438,7 +1440,7 @@ export class ProductRepository implements ProductOperations {
         for (const mediaInput of mediaInputs) {
           try {
             const createdMediaItem = await this.createProductMedia(mediaInput);
-            await this.setProductMediaSourceUrlMetadata(createdMediaItem.id, mediaInput.mediaUrl);
+            await this.setProductMediaSourceUrl(createdMediaItem.id, mediaInput.mediaUrl);
             createdMedia.push(createdMediaItem);
           } catch (error) {
             if (isTransientError(error)) {
