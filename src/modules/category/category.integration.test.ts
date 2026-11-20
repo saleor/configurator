@@ -3,6 +3,7 @@ import { ConfigurationService } from "../config/config-service";
 import type { ConfigurationOperations } from "../config/repository";
 import type { CategoryInput } from "../config/schema/schema";
 import type { ConfigurationStorage } from "../config/yaml-manager";
+import { MetadataService } from "../metadata/metadata-service";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
 
@@ -85,7 +86,10 @@ describe("Category Round-Trip Integrity", () => {
       getAllCategories: vi.fn().mockResolvedValue(deployedCategories),
     };
 
-    const categoryService = new CategoryService(mockCategoryRepository);
+    const categoryService = new CategoryService(
+      mockCategoryRepository,
+      new MetadataService({ updateMetadata: vi.fn() })
+    );
 
     // Deploy the categories
     await categoryService.bootstrapCategories(initialConfig.categories);

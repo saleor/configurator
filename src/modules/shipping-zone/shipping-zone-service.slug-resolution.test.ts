@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingZoneInput } from "../config/schema/schema";
+import { MetadataService } from "../metadata/metadata-service";
 import type { WarehouseOperations } from "../warehouse/repository";
 import { ShippingZoneValidationError } from "./errors";
 import { ShippingZoneService } from "./shipping-zone-service";
@@ -58,7 +59,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -89,7 +91,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -115,7 +118,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -170,7 +174,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -199,7 +204,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -232,7 +238,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {
@@ -266,7 +273,8 @@ describe("ShippingZoneService - Slug Resolution", () => {
       const service = new ShippingZoneService(
         mockOperations,
         warehouseOperations,
-        channelOperations
+        channelOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
       );
 
       const input: ShippingZoneInput = {

@@ -394,6 +394,25 @@ products:
     collections: ["featured"]  # Reference by slug (Collection)
 ```
 
+### Metadata
+
+Categories, warehouses, shipping zones and shipping methods accept public `metadata` as a key → value map:
+
+```yaml
+warehouses:
+  - slug: main
+    metadata:
+      region: eu-west
+```
+
+Only the keys listed in config are managed. `deploy` adds or overwrites them and leaves every other key on Saleor as it is, so integration settings stored in metadata are not touched. Removing a key from config stops managing it; it does not delete it from Saleor. Leaving out `metadata` entirely leaves the entity's metadata unmanaged.
+
+`introspect` brings in every public key, including keys written by apps and integrations. Once a key is in the file, `deploy` writes the file's value back, so leave integration-owned keys out of the file. Use `--metadata-include` and `--metadata-exclude` (comma-separated patterns, `*` as wildcard) to choose which keys land in the file:
+
+```bash
+npx @saleor/configurator introspect --metadata-exclude 'erp.*,stripe.*'
+```
+
 ### Complete Reference
 
 - **[SCHEMA.md](SCHEMA.md)** — Full field documentation and validation rules

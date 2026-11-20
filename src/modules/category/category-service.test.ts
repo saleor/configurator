@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CategoryInput } from "../config/schema/schema";
+import { MetadataService } from "../metadata/metadata-service";
 import { CategoryService } from "./category-service";
 import type { CategoryOperations } from "./repository";
 
@@ -12,7 +13,10 @@ const mockRepository: CategoryOperations = {
 };
 
 describe("CategoryService - Nested Categories", () => {
-  const categoryService = new CategoryService(mockRepository);
+  const categoryService = new CategoryService(
+    mockRepository,
+    new MetadataService({ updateMetadata: vi.fn() })
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -197,7 +201,10 @@ describe("CategoryService - Nested Categories", () => {
 });
 
 describe("CategoryService - Optimized Processing", () => {
-  const categoryService = new CategoryService(mockRepository);
+  const categoryService = new CategoryService(
+    mockRepository,
+    new MetadataService({ updateMetadata: vi.fn() })
+  );
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -377,5 +384,49 @@ describe("CategoryService - Optimized Processing", () => {
       // Should not call createCategory for existing category
       expect(mockCreateCategory).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe("CategoryService - metadata", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("writes changed metadata keys on an existing category and keeps unlisted keys", async () => {
+    const updateMetadata = vi.fn().mockResolvedValue(undefined);
+    const service = new CategoryService(mockRepository, new MetadataService({ updateMetadata }));
+    (mockRepository.getAllCategories as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (mockRepository.getCategoryBySlug as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "cat-1",
+      name: "Shoes",
+      slug: "shoes",
+      metadata: [
+        { key: "seoGroup", value: "old" },
+        { key: "erp.syncedAt", value: "2026-11-19" },
+      ],
+    });
+
+    await service.bootstrapCategories([
+      { name: "Shoes", slug: "shoes", metadata: { seoGroup: "footwear" } },
+    ]);
+
+    expect(mockRepository.createCategory).not.toHaveBeenCalled();
+    expect(updateMetadata).toHaveBeenCalledWith("cat-1", [{ key: "seoGroup", value: "footwear" }]);
+  });
+
+  it("writes metadata on a newly created category", async () => {
+    const updateMetadata = vi.fn().mockResolvedValue(undefined);
+    const service = new CategoryService(mockRepository, new MetadataService({ updateMetadata }));
+    (mockRepository.getAllCategories as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (mockRepository.getCategoryBySlug as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (mockRepository.createCategory as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "cat-2",
+      name: "Bags",
+      slug: "bags",
+    });
+
+    await service.bootstrapCategories([{ name: "Bags", slug: "bags", metadata: { erpId: "B1" } }]);
+
+    expect(updateMetadata).toHaveBeenCalledWith("cat-2", [{ key: "erpId", value: "B1" }]);
   });
 });

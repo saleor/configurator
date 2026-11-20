@@ -877,6 +877,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "metadata": {
+            "description": "Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -1341,12 +1352,34 @@
                       "price"
                     ]
                   }
+                },
+                "metadata": {
+                  "description": "Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.",
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 }
               },
               "required": [
                 "name",
                 "type"
               ]
+            }
+          },
+          "metadata": {
+            "description": "Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.",
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1
+            },
+            "additionalProperties": {
+              "type": "string"
             }
           }
         },
@@ -3107,6 +3140,17 @@
               "slug": {
                 "description": "URL-friendly identifier (used in URLs and API calls)",
                 "type": "string"
+              },
+              "metadata": {
+                "description": "Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
             },
             "required": [
@@ -3473,6 +3517,17 @@
         "slug": {
           "description": "URL-friendly identifier (used in URLs and API calls)",
           "type": "string"
+        },
+        "metadata": {
+          "description": "Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.",
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "subcategories": {
           "description": "Child categories nested under this category",

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
+import { MetadataService } from "../metadata/metadata-service";
 import type { WarehouseOperations } from "./repository";
 import { WarehouseService } from "./warehouse-service";
 
@@ -30,7 +31,10 @@ describe("WarehouseService - Two-Step Creation", () => {
       unassignShippingZones: vi.fn(),
     };
 
-    const service = new WarehouseService(mockRepository);
+    const service = new WarehouseService(
+      mockRepository,
+      new MetadataService({ updateMetadata: vi.fn() })
+    );
 
     const input: WarehouseInput = {
       name: "Test Warehouse",
@@ -82,7 +86,10 @@ describe("WarehouseService - Two-Step Creation", () => {
       unassignShippingZones: vi.fn(),
     };
 
-    const service = new WarehouseService(mockRepository);
+    const service = new WarehouseService(
+      mockRepository,
+      new MetadataService({ updateMetadata: vi.fn() })
+    );
 
     const input: WarehouseInput = {
       name: "Test Warehouse",
@@ -122,7 +129,10 @@ describe("WarehouseService - Two-Step Creation", () => {
       unassignShippingZones: vi.fn(),
     };
 
-    const service = new WarehouseService(mockRepository);
+    const service = new WarehouseService(
+      mockRepository,
+      new MetadataService({ updateMetadata: vi.fn() })
+    );
 
     const input: WarehouseInput = {
       name: "Test Warehouse",

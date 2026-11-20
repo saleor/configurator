@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { metadataSchema } from "../../metadata/schema";
 import {
   attributeInputSchema,
   referencedAttributeSchema,
@@ -530,12 +531,14 @@ export type ShopInput = z.infer<typeof shopSchema>;
 const categoryCreateSchema = z.object({
   name: z.string().describe("Display name of the category"),
   slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
+  metadata: metadataSchema.optional(),
 });
 
 // Category Update Schema - full state representation with subcategories
 const baseCategoryUpdateSchema = z.object({
   name: z.string().describe("Display name of the category"),
   slug: z.string().describe("URL-friendly identifier (used in URLs and API calls)"),
+  metadata: metadataSchema.optional(),
 });
 
 type CategoryUpdate = z.infer<typeof baseCategoryUpdateSchema> & {
@@ -673,6 +676,7 @@ const warehouseSchema = z.object({
     .default("DISABLED")
     .describe("Warehouse.clickAndCollectOption"),
   shippingZones: z.array(z.string()).optional().describe("Warehouse.shippingZones"), // References to shipping zone names
+  metadata: metadataSchema.optional(),
 });
 
 export type WarehouseInput = z.infer<typeof warehouseSchema>;
@@ -726,6 +730,7 @@ const shippingMethodSchema = z.object({
     .array(shippingMethodChannelListingSchema)
     .optional()
     .describe("ShippingMethod.channelListings"),
+  metadata: metadataSchema.optional(),
 });
 
 const shippingZoneSchema = z.object({
@@ -739,6 +744,7 @@ const shippingZoneSchema = z.object({
     .array(shippingMethodSchema)
     .optional()
     .describe("ShippingZone.shippingMethods"),
+  metadata: metadataSchema.optional(),
 });
 
 export type ShippingZoneInput = z.infer<typeof shippingZoneSchema>;

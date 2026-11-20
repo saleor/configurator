@@ -43,6 +43,7 @@ describe("WarehouseComparator", () => {
 
   const mockRemoteWarehouse: Warehouse = {
     id: "1",
+    metadata: [],
     name: "Main Warehouse",
     slug: "main-warehouse",
     email: "warehouse@example.com",
@@ -247,6 +248,63 @@ describe("WarehouseComparator", () => {
           description: "Shipping zones: [zone-1, zone-2] → [zone-1, zone-3]",
         })
       );
+    });
+  });
+
+  describe("metadata", () => {
+    // Remote warehouses reach comparators as introspected config, with metadata as a key → value map
+    const remoteWithMetadata = (metadata: Record<string, string>) =>
+      ({ ...mockLocalWarehouse, metadata }) as unknown as Warehouse;
+
+    it("reports changed and added keys listed in config", () => {
+      const local = [{ ...mockLocalWarehouse, metadata: { region: "eu", tier: "gold" } }];
+      const remote = [remoteWithMetadata({ region: "us" })];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].changes).toEqual([
+        expect.objectContaining({
+          field: "metadata.region",
+          currentValue: "us",
+          desiredValue: "eu",
+        }),
+        expect.objectContaining({
+          field: "metadata.tier",
+          currentValue: null,
+          desiredValue: "gold",
+        }),
+      ]);
+    });
+
+    it("ignores keys that exist only on Saleor", () => {
+      const local = [{ ...mockLocalWarehouse, metadata: { region: "eu" } }];
+      const remote = [remoteWithMetadata({ region: "eu", "erp.apiUrl": "https://erp.dev" })];
+
+      expect(comparator.compare(local, remote)).toEqual([]);
+    });
+
+    it("reports keys missing from the source as removals when comparing all keys (introspect)", () => {
+      // Introspect compares Saleor (source) against the file (target)
+      const saleor = [{ ...mockLocalWarehouse, metadata: { region: "eu" } }];
+      const file = [remoteWithMetadata({ region: "eu", dock: "3" })];
+
+      const results = comparator.compare(saleor, file, { compareAllMetadataKeys: true });
+
+      expect(results[0].changes).toEqual([
+        expect.objectContaining({
+          field: "metadata.dock",
+          currentValue: "3",
+          desiredValue: null,
+          description: 'metadata.dock: "3" → (not set)',
+        }),
+      ]);
+    });
+
+    it("ignores remote metadata when config has no metadata field", () => {
+      const remote = [remoteWithMetadata({ region: "us" })];
+
+      expect(comparator.compare([mockLocalWarehouse], remote)).toEqual([]);
     });
   });
 

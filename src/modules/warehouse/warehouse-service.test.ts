@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { WarehouseInput } from "../config/schema/schema";
+import { MetadataService } from "../metadata/metadata-service";
 import { WarehouseValidationError } from "./errors";
 import type { Warehouse } from "./repository";
 import { WarehouseService } from "./warehouse-service";
@@ -27,6 +28,7 @@ describe("WarehouseService", () => {
 
   const mockWarehouse: Warehouse = {
     id: "1",
+    metadata: [],
     name: "Main Warehouse",
     slug: "main-warehouse",
     email: "warehouse@example.com",
@@ -61,7 +63,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await expect(service.createWarehouse(invalidInput)).rejects.toThrow(WarehouseValidationError);
     });
@@ -77,7 +82,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await expect(service.createWarehouse(invalidInput)).rejects.toThrow(WarehouseValidationError);
     });
@@ -93,7 +101,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       const result = await service.createWarehouse(inputWithoutEmail);
       expect(result).toBeDefined();
@@ -111,7 +122,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       const result = await service.createWarehouse(inputWithEmptyEmail);
       expect(result).toBeDefined();
@@ -143,7 +157,10 @@ describe("WarehouseService", () => {
         clickAndCollectOption: "LOCAL" as const,
         address: { ...mockWarehouseInput.address, streetAddress1: "" },
       };
-      const result = new WarehouseService(operations).getOrCreateWarehouse(input);
+      const result = new WarehouseService(
+        operations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      ).getOrCreateWarehouse(input);
       if (exists) expect(await result).toEqual(mockWarehouse);
       else await expect(result).rejects.toThrow(WarehouseValidationError);
       expect(operations.createWarehouse).not.toHaveBeenCalled();
@@ -165,7 +182,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
       await expect(
-        new WarehouseService(operations).getOrCreateWarehouse({
+        new WarehouseService(
+          operations,
+          new MetadataService({ updateMetadata: vi.fn() })
+        ).getOrCreateWarehouse({
           ...mockWarehouseInput,
           address: { ...mockWarehouseInput.address, streetAddress1: "", city: "Changed" },
         })
@@ -183,7 +203,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       const result = await service.getOrCreateWarehouse(mockWarehouseInput);
 
@@ -202,7 +225,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       const result = await service.getOrCreateWarehouse(mockWarehouseInput);
 
@@ -228,7 +254,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await expect(service.bootstrapWarehouses(duplicateWarehouses)).rejects.toThrow(
         WarehouseValidationError
@@ -250,7 +279,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       const results = await service.bootstrapWarehouses(warehouses);
 
@@ -270,7 +302,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await service.syncWarehouseShippingZones("warehouse-1", ["zone-1", "zone-2"], []);
 
@@ -290,7 +325,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await service.syncWarehouseShippingZones("warehouse-1", [], []);
 
@@ -309,7 +347,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await expect(service.createWarehouse(mockWarehouseInput)).rejects.toThrow(
         /Failed to create warehouse.*API Error/
@@ -326,7 +367,10 @@ describe("WarehouseService", () => {
         unassignShippingZones: vi.fn(),
       };
 
-      const service = new WarehouseService(mockOperations);
+      const service = new WarehouseService(
+        mockOperations,
+        new MetadataService({ updateMetadata: vi.fn() })
+      );
 
       await expect(service.updateWarehouse("1", mockWarehouseInput)).rejects.toThrow(
         /Failed to update warehouse.*API Error/

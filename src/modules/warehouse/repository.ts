@@ -29,6 +29,10 @@ const getWarehousesQuery = graphql(`
           }
           companyName
           clickAndCollectOption
+          metadata {
+            key
+            value
+          }
           shippingZones(first: 100) {
             edges {
               node {
@@ -67,6 +71,10 @@ const getWarehouseQuery = graphql(`
       }
       companyName
       clickAndCollectOption
+      metadata {
+        key
+        value
+      }
       shippingZones(first: 100) {
         edges {
           node {
@@ -104,6 +112,10 @@ const createWarehouseMutation = graphql(`
         }
         companyName
         clickAndCollectOption
+        metadata {
+          key
+          value
+        }
         shippingZones(first: 100) {
           edges {
             node {
@@ -147,6 +159,10 @@ const updateWarehouseMutation = graphql(`
         }
         companyName
         clickAndCollectOption
+        metadata {
+          key
+          value
+        }
         shippingZones(first: 100) {
           edges {
             node {
@@ -190,6 +206,10 @@ const warehouseShippingZoneAssignMutation = graphql(`
         }
         companyName
         clickAndCollectOption
+        metadata {
+          key
+          value
+        }
         shippingZones(first: 100) {
           edges {
             node {
@@ -233,6 +253,10 @@ const warehouseShippingZoneUnassignMutation = graphql(`
         }
         companyName
         clickAndCollectOption
+        metadata {
+          key
+          value
+        }
         shippingZones(first: 100) {
           edges {
             node {

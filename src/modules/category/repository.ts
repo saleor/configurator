@@ -12,6 +12,10 @@ const createCategoryMutation = graphql(`
         name
         slug
         level
+        metadata {
+          key
+          value
+        }
         parent {
           id
           slug
@@ -36,6 +40,10 @@ const getCategoryByNameQuery = graphql(`
           name
           slug
           level
+          metadata {
+            key
+            value
+          }
           parent {
             id
             slug
@@ -53,6 +61,10 @@ const getCategoryBySlugQuery = graphql(`
       name
       slug
       level
+      metadata {
+        key
+        value
+      }
       parent {
         id
         slug
@@ -70,6 +82,10 @@ const getAllCategoriesQuery = graphql(`
           name
           slug
           level
+          metadata {
+            key
+            value
+          }
           parent {
             id
             slug

@@ -2,6 +2,7 @@ import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
+import type { MetadataService } from "../metadata/metadata-service";
 import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
 import type {
   Category,
@@ -12,7 +13,10 @@ import type {
 type CategoryInputWithSubcategories = CategoryInput & { subcategories: CategoryInput[] };
 
 export class CategoryService {
-  constructor(private repository: CategoryOperations) {}
+  constructor(
+    private repository: CategoryOperations,
+    private metadataService: MetadataService
+  ) {}
 
   private hasSubcategories(input: CategoryInput): input is CategoryInputWithSubcategories {
     return (
@@ -230,12 +234,15 @@ export class CategoryService {
   ): Promise<Category> {
     try {
       const existingCategory = await this.getExistingCategory(categoryInput);
+      const category = existingCategory ?? (await this.createCategory(categoryInput, parentId));
 
-      if (existingCategory) {
-        return existingCategory;
-      }
+      await this.metadataService.syncMetadata(
+        category.id,
+        categoryInput.metadata,
+        existingCategory?.metadata
+      );
 
-      return this.createCategory(categoryInput, parentId);
+      return category;
     } catch (error) {
       logger.error("Failed to get or create category", {
         name: categoryInput.name,

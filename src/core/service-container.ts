@@ -19,6 +19,8 @@ import { CustomerTypeService } from "../modules/customer-type/customer-type-serv
 import { CustomerTypeRepository } from "../modules/customer-type/repository";
 import { MenuService } from "../modules/menu/menu-service";
 import { MenuRepository } from "../modules/menu/repository";
+import { MetadataService } from "../modules/metadata/metadata-service";
+import { MetadataRepository } from "../modules/metadata/repository";
 import { ModelService } from "../modules/model/model-service";
 import { ModelRepository } from "../modules/model/repository";
 import { PageTypeService } from "../modules/page-type/page-type-service";
@@ -77,10 +79,12 @@ export class ServiceComposer {
       collection: new CollectionRepository(client),
       menu: new MenuRepository(client),
       model: new ModelRepository(client),
+      metadata: new MetadataRepository(client),
     } as const;
 
     logger.debug("Creating services");
     const attributeService = new AttributeService(repositories.attribute);
+    const metadataService = new MetadataService(repositories.metadata);
     const configStorage =
       typeof source === "object" ? source : new YamlConfigurationManager(source);
     const configurationService = new ConfigurationService(
@@ -103,7 +107,7 @@ export class ServiceComposer {
     const pageTypeService = new PageTypeService(repositories.pageType, attributeService);
 
     // Create services that MenuService depends on
-    const categoryService = new CategoryService(repositories.category);
+    const categoryService = new CategoryService(repositories.category, metadataService);
     const attributeCache = new AttributeCache();
     const modelService = new ModelService(repositories.model, pageTypeService, attributeCache);
     const collectionService = new CollectionService(
@@ -124,11 +128,12 @@ export class ServiceComposer {
       configStorage,
       category: categoryService,
       product: productService,
-      warehouse: new WarehouseService(repositories.warehouse),
+      warehouse: new WarehouseService(repositories.warehouse, metadataService),
       shippingZone: new ShippingZoneService(
         repositories.shippingZone,
         repositories.warehouse,
-        repositories.channel
+        repositories.channel,
+        metadataService
       ),
       tax: new TaxService({
         repository: repositories.tax,
