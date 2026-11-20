@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import ora, { type Ora } from "ora";
+import { trackSpinner } from "../lib/terminal-output";
 
 export interface ProgressReporter {
   start(text: string): void;
@@ -8,6 +9,15 @@ export interface ProgressReporter {
   fail(text?: string): void;
   info(text: string): void;
   warn(text: string): void;
+}
+
+/**
+ * Starts a spinner that log output knows to write above instead of into.
+ */
+export function startSpinner(text: string): Ora {
+  const spinner = ora({ text, spinner: "dots" }).start();
+  trackSpinner(spinner);
+  return spinner;
 }
 
 /**
@@ -30,10 +40,7 @@ export class OraProgressReporter implements ProgressReporter {
   private spinner: Ora | null = null;
 
   start(text: string): void {
-    this.spinner = ora({
-      text,
-      spinner: "dots",
-    }).start();
+    this.spinner = startSpinner(text);
   }
 
   update(text: string): void {

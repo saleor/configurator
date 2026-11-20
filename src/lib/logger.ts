@@ -1,9 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { formatWithOptions } from "node:util";
 import { Logger } from "tslog";
 import { isCiOutputMode, isNonInteractiveEnvironment } from "./ci-mode";
 import { LOG_LEVEL } from "./env";
 import { EnvironmentVariableError } from "./errors/shared";
 import { globalLogCollector } from "./json-log-collector";
+import { writeAboveSpinner } from "./terminal-output";
 
 const silentScope = new AsyncLocalStorage<boolean>();
 
@@ -64,6 +66,20 @@ function createLogger() {
     prettyErrorLoggerNameDelimiter: " ",
     prettyErrorParentNamesSeparator: ":",
     hideLogPositionForProduction: process.env.NODE_ENV === "production",
+    overwrite: {
+      // tslog's own Node transport, written above a running spinner instead of into its line
+      transportFormatted: (logMetaMarkup, logArgs, logErrors, settings) => {
+        const errors =
+          (logErrors.length > 0 && logArgs.length > 0 ? "\n" : "") + logErrors.join("\n");
+        const inspectOptions = {
+          ...settings.prettyInspectOptions,
+          colors: settings.stylePrettyLogs,
+        };
+        writeAboveSpinner(() =>
+          console.log(logMetaMarkup + formatWithOptions(inspectOptions, ...logArgs) + errors)
+        );
+      },
+    },
   });
 
   // In non-interactive mode, also collect logs for JSON envelope embedding
