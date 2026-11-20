@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Runs the verify-configurator helper with the repo's own tsx, from any directory.
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo="$(git -C "$here" rev-parse --show-toplevel)"
+tsx="$repo/node_modules/.bin/tsx"
+if [[ ! -x "$tsx" ]]; then
+  echo "verify-configurator: $tsx is missing. Run \`pnpm install\` at $repo first." >&2
+  exit 1
+fi
+exec "$tsx" "$here/verify-configurator.mts" "$@"
