@@ -134,7 +134,3 @@ The project has Husky pre-push hooks (`.husky/pre-push`) that auto-generate sche
 - **Code standards**: See `reviewing-typescript-code` for quality criteria
 - **CI integration**: See `managing-github-ci` for workflow troubleshooting
 - **Test failures**: See `analyzing-test-coverage` for test debugging
-
-## Quick Reference Rule
-
-For a condensed quick reference, see `.claude/rules/deployment-safety.md` (always loaded - applies to all files).

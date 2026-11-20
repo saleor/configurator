@@ -1045,7 +1045,6 @@ export class CategoryTestBuilder {
 ---
 
 **Related Documentation:**
-- [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Development processes using these patterns
 - [TESTING_PROTOCOLS.md](TESTING_PROTOCOLS.md) - Testing strategies for this architecture
 - [COMMANDS.md](COMMANDS.md) - CLI commands including recipe and CI/CD flags
 - [ci-cd/README.md](ci-cd/README.md) - CI/CD integration guide

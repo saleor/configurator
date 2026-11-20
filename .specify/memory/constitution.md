@@ -346,6 +346,6 @@ Required after completing feature implementation:
 - This constitution supersedes all other conventions
 - All PRs MUST verify compliance with relevant principles
 - Complexity deviations MUST be justified in PR description
-- Use `.claude/rules/deployment-safety.md` for runtime validation guidance
+- Use `.claude/CLAUDE.md` for pre-push checks and the end-to-end round trip
 
 **Version**: 1.2.0 | **Ratified**: 2026-01-16 | **Last Amended**: 2026-01-16

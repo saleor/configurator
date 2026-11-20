@@ -356,6 +356,5 @@ LOG_LEVEL=debug pnpm dev diff --url=$URL --token=$TOKEN --include=entityType
 
 **Related Documentation:**
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Complete troubleshooting procedures
-- [DEVELOPMENT_WORKFLOWS.md](DEVELOPMENT_WORKFLOWS.md) - Entity development workflows
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Service architecture details
 - [CLAUDE.md](CLAUDE.md) - Main navigation hub
