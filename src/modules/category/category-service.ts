@@ -1,5 +1,4 @@
 import { logger } from "../../lib/logger";
-import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
 import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
@@ -111,10 +110,7 @@ export class CategoryService {
       "Bootstrap categories",
       (cat) => cat.name,
       (category) => this.bootstrapCategory(category),
-      {
-        sequential: true,
-        delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
-      }
+      { sequential: true }
     );
 
     if (results.failures.length > 0) {
@@ -166,10 +162,7 @@ export class CategoryService {
           categoryIdBySlug.set(item.input.slug, category.id);
           return category;
         },
-        {
-          sequential: true,
-          delayMs: DelayConfig.CATEGORY_ITEM_DELAY_MS,
-        }
+        { sequential: true }
       );
 
       if (results.failures.length > 0) {
@@ -274,10 +267,7 @@ export class CategoryService {
             "Bootstrap subcategories",
             (sub) => sub.name,
             (subcategory) => this.bootstrapCategory(subcategory, category.id),
-            {
-              sequential: true,
-              delayMs: DelayConfig.CATEGORY_SEQUENTIAL_DELAY_MS,
-            }
+            { sequential: true }
           );
 
           if (subcategoryResults.failures.length > 0) {

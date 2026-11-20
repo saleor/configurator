@@ -83,11 +83,9 @@ describe("ChunkedProcessor", () => {
 
         const promise = processInChunks(items, processFn, {
           chunkSize: 10,
-          delayMs: 100,
           entityType: "products",
         });
 
-        // Fast-forward through all delays
         await vi.runAllTimersAsync();
         const result = await promise;
 
@@ -109,61 +107,17 @@ describe("ChunkedProcessor", () => {
         );
       });
 
-      it("should process single chunk without delay", async () => {
+      it("should process a single chunk", async () => {
         const items = [1, 2, 3, 4, 5];
         const processFn = vi.fn().mockResolvedValue(items.map((i) => i * 2));
 
         const result = await processInChunks(items, processFn, {
           chunkSize: 10,
-          delayMs: 500,
         });
 
         expect(result.successes).toHaveLength(5);
         expect(result.chunksProcessed).toBe(1);
         expect(processFn).toHaveBeenCalledTimes(1);
-
-        // No delay should happen for single chunk
-        expect(mockedLogger.debug).not.toHaveBeenCalledWith(
-          expect.stringContaining("Waiting"),
-          expect.anything()
-        );
-      });
-
-      it("should add delays between chunks", async () => {
-        const items = [1, 2, 3, 4, 5, 6];
-        const processFn = vi.fn().mockResolvedValue([]);
-
-        const promise = processInChunks(items, processFn, {
-          chunkSize: 2,
-          delayMs: 300,
-        });
-
-        // First chunk processes immediately
-        await vi.advanceTimersByTimeAsync(0);
-        expect(processFn).toHaveBeenCalledTimes(1);
-
-        // Wait for delay and second chunk
-        await vi.advanceTimersByTimeAsync(300);
-        expect(processFn).toHaveBeenCalledTimes(2);
-
-        // Wait for delay and third chunk
-        await vi.advanceTimersByTimeAsync(300);
-        expect(processFn).toHaveBeenCalledTimes(3);
-
-        await promise;
-
-        expect(mockedLogger.debug).toHaveBeenCalledWith(
-          expect.stringContaining("Waiting 300ms before next chunk"),
-          expect.objectContaining({
-            nextChunk: 2,
-          })
-        );
-        expect(mockedLogger.debug).toHaveBeenCalledWith(
-          expect.stringContaining("Waiting 300ms before next chunk"),
-          expect.objectContaining({
-            nextChunk: 3,
-          })
-        );
       });
 
       it("should use default options when not specified", async () => {
@@ -197,7 +151,6 @@ describe("ChunkedProcessor", () => {
 
         const result = await processInChunks(items, processFn, {
           chunkSize: 2,
-          delayMs: 0,
         });
 
         expect(result.successes).toHaveLength(4); // 2 from first + 2 from third
@@ -246,7 +199,6 @@ describe("ChunkedProcessor", () => {
 
         const result = await processInChunks(items, processFn, {
           chunkSize: 5,
-          delayMs: 0,
         });
 
         expect(result.chunksProcessed).toBe(3);
@@ -261,7 +213,6 @@ describe("ChunkedProcessor", () => {
 
         const result = await processInChunks(items, processFn, {
           chunkSize: 2,
-          delayMs: 0,
         });
 
         expect(result.successes).toHaveLength(0);
@@ -346,7 +297,6 @@ describe("ChunkedProcessor", () => {
 
         const promise = processInChunks(productTypes, processFn, {
           chunkSize: 10,
-          delayMs: 500,
           entityType: "product types",
         });
 
@@ -363,7 +313,7 @@ describe("ChunkedProcessor", () => {
         expect(processFn).toHaveBeenNthCalledWith(3, productTypes.slice(20, 25));
       });
 
-      it("should handle warehouse stock updates with rate limiting", async () => {
+      it("should handle warehouse stock updates", async () => {
         interface StockUpdate {
           warehouse: string;
           sku: string;
@@ -383,7 +333,6 @@ describe("ChunkedProcessor", () => {
 
         const promise = processInChunks(stockUpdates, processFn, {
           chunkSize: 10,
-          delayMs: 1000,
           entityType: "stock updates",
         });
 
@@ -393,14 +342,6 @@ describe("ChunkedProcessor", () => {
         expect(result.successes).toHaveLength(50);
         expect(result.chunksProcessed).toBe(5);
         expect(processFn).toHaveBeenCalledTimes(5);
-
-        // Verify delays between chunks
-        expect(mockedLogger.debug).toHaveBeenCalledWith(
-          expect.stringContaining("Waiting 1000ms before next chunk"),
-          expect.objectContaining({
-            nextChunk: 2,
-          })
-        );
       });
 
       it("should handle mixed success and failure in product collection updates", async () => {
@@ -424,7 +365,6 @@ describe("ChunkedProcessor", () => {
 
         const promise = processInChunks(collections, processFn, {
           chunkSize: 2,
-          delayMs: 100,
           entityType: "collections",
         });
 
@@ -441,53 +381,6 @@ describe("ChunkedProcessor", () => {
     });
 
     describe("Performance and Timing", () => {
-      it("should respect delay timing between chunks", async () => {
-        const items = [1, 2, 3, 4, 5, 6];
-        const processFn = vi.fn().mockResolvedValue([]);
-        const delayMs = 250;
-
-        const promise = processInChunks(items, processFn, {
-          chunkSize: 2,
-          delayMs,
-        });
-
-        // Initial chunk processes immediately
-        await vi.advanceTimersByTimeAsync(0);
-        expect(processFn).toHaveBeenCalledTimes(1);
-
-        // After first delay, second chunk should process
-        await vi.advanceTimersByTimeAsync(delayMs);
-        expect(processFn).toHaveBeenCalledTimes(2);
-
-        // After second delay, third chunk should process
-        await vi.advanceTimersByTimeAsync(delayMs);
-        expect(processFn).toHaveBeenCalledTimes(3);
-
-        await promise;
-
-        const result = await promise;
-        expect(result.chunksProcessed).toBe(3);
-      });
-
-      it("should not add delay after the last chunk", async () => {
-        const items = [1, 2, 3, 4];
-        const processFn = vi.fn().mockResolvedValue([]);
-
-        const promise = processInChunks(items, processFn, {
-          chunkSize: 2,
-          delayMs: 100,
-        });
-
-        await vi.runAllTimersAsync();
-        await promise;
-
-        // Should only log waiting for chunks 1->2, not after chunk 2
-        const waitingCalls = mockedLogger.debug.mock.calls.filter(
-          (call) => typeof call[0] === "string" && call[0].includes("Waiting")
-        );
-        expect(waitingCalls).toHaveLength(1);
-      });
-
       it("should process chunks sequentially not concurrently", async () => {
         const items = [1, 2, 3, 4, 5, 6];
         const processingOrder: number[] = [];
@@ -499,7 +392,6 @@ describe("ChunkedProcessor", () => {
 
         await processInChunks(items, processFn, {
           chunkSize: 2,
-          delayMs: 0,
         });
 
         // Verify chunks were processed in order

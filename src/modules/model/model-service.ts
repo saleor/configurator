@@ -235,14 +235,10 @@ export class ModelService {
   }
 
   /**
-   * Bootstrap models sequentially with delays to avoid rate limiting
-   * Used for larger deployments where parallel processing causes 429 errors
+   * Bootstrap models one at a time, used for larger deployments
    */
-  async bootstrapModelsSequentially(
-    inputs: ModelInputConfig[],
-    delayMs: number = 100
-  ): Promise<Page[]> {
-    logger.info(`Bootstrapping ${inputs.length} models/pages sequentially with ${delayMs}ms delay`);
+  async bootstrapModelsSequentially(inputs: ModelInputConfig[]): Promise<Page[]> {
+    logger.info(`Bootstrapping ${inputs.length} models/pages sequentially`);
 
     // Validate unique slugs
     const slugs = new Set<string>();
@@ -264,7 +260,6 @@ export class ModelService {
     const results: Page[] = [];
     const failures: Array<{ model: string; error: Error }> = [];
 
-    // Process models sequentially with delay
     for (let i = 0; i < inputs.length; i++) {
       const input = inputs[i];
 
@@ -272,11 +267,6 @@ export class ModelService {
         logger.debug(`Processing model ${i + 1}/${inputs.length}: ${input.slug}`);
         const page = await this.getOrCreateModel(input);
         results.push(page);
-
-        // Add delay between operations to avoid rate limiting (except for the last one)
-        if (i < inputs.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
-        }
       } catch (error) {
         failures.push({
           model: input.slug,

@@ -3,7 +3,6 @@ import type {
   PublishableChannelListingInput,
 } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
-import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { object } from "../../lib/utils/object";
@@ -216,7 +215,6 @@ export class CollectionService {
       },
       {
         chunkSize: 10,
-        delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
         entityType: "collections",
       }
     );

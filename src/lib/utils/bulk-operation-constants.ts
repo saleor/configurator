@@ -41,46 +41,6 @@ export const BulkOperationThresholds = {
 } as const;
 
 /**
- * Delay configurations for rate limiting protection
- */
-export const DelayConfig = {
-  /**
-   * Default delay in milliseconds between processing chunks
-   * Used to prevent rate limiting when processing large batches
-   */
-  DEFAULT_CHUNK_DELAY_MS: 500,
-
-  /**
-   * Delay in milliseconds between processing individual models
-   * Lower than chunk delay as models are processed one at a time
-   */
-  MODEL_PROCESSING_DELAY_MS: 100,
-
-  /**
-   * Delay in milliseconds between processing category tree levels
-   * Applied between levels (not items) to minimize total wait time
-   */
-  CATEGORY_LEVEL_DELAY_MS: 200,
-
-  /**
-   * Delay in milliseconds between individual category items within a level
-   * Small delay to avoid rate limits during sequential category processing
-   */
-  CATEGORY_ITEM_DELAY_MS: 50,
-
-  /**
-   * Delay in milliseconds between sequential category bootstrap operations
-   */
-  CATEGORY_SEQUENTIAL_DELAY_MS: 100,
-
-  /**
-   * Delay in milliseconds after shipping method channel listing updates
-   * Prevents rate limiting when updating multiple shipping methods
-   */
-  SHIPPING_CHANNEL_LISTING_DELAY_MS: 200,
-} as const;
-
-/**
  * Chunk size configurations for batch processing
  */
 export const ChunkSizeConfig = {
@@ -137,16 +97,12 @@ export const BulkOperationMessages = {
     `Processing ${count} ${entityType} sequentially (small config)`,
   BULK_PROCESSING: (count: number, entityType: string) =>
     `Processing ${count} ${entityType} via bulk operations`,
-  SEQUENTIAL_WITH_DELAY: (count: number, entityType: string, delayMs: number) =>
-    `Processing ${count} ${entityType} sequentially with ${delayMs}ms delay to avoid rate limiting`,
   CHUNK_PROCESSING_START: (
     itemCount: number,
     entityType: string,
     chunkCount: number,
-    chunkSize: number,
-    delayMs: number
-  ) =>
-    `Processing ${itemCount} ${entityType} in ${chunkCount} chunks of ${chunkSize} with ${delayMs}ms delay`,
+    chunkSize: number
+  ) => `Processing ${itemCount} ${entityType} in ${chunkCount} chunks of ${chunkSize}`,
   CHUNK_COMPLETE: (chunkNumber: number, totalChunks: number, successCount: number) =>
     `Completed chunk ${chunkNumber}/${totalChunks} with ${successCount} successes`,
   PROCESSING_COMPLETE: (itemsProcessed: number, chunksProcessed: number) =>
