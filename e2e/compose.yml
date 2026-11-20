@@ -1,0 +1,69 @@
+# A throwaway Saleor for the e2e suite: a trimmed saleor-platform (api, worker, Postgres,
+# Valkey). The suite's global setup starts it, migrates, creates the admin and removes it
+# again with its volumes, so every run starts from an empty store.
+
+services:
+  api:
+    image: ghcr.io/saleor/saleor:${SALEOR_VERSION:-3.23}
+    ports: ["127.0.0.1:${E2E_SALEOR_PORT:-18700}:8000"]
+    environment: &backend
+      DATABASE_URL: postgres://saleor:saleor@db/saleor
+      CACHE_URL: redis://cache:6379/0
+      CELERY_BROKER_URL: redis://cache:6379/1
+      SECRET_KEY: configurator-e2e-only
+      EMAIL_URL: console://
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      ALLOWED_HOSTS: "*"
+      PUBLIC_URL: http://localhost:${E2E_SALEOR_PORT:-18700}
+      # The suite holds one admin token for the whole run.
+      JWT_TTL_ACCESS: "1 day"
+      # Product media is served by the suite from the host, which the IP filter would refuse.
+      HTTP_IP_FILTER_ENABLED: "False"
+      HTTP_IP_FILTER_ALLOW_LOOPBACK_IPS: "True"
+      OTEL_TRACES_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - saleor-media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      cache: { condition: service_started }
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health/")
+      interval: 3s
+      timeout: 5s
+      retries: 60
+
+  worker:
+    image: ghcr.io/saleor/saleor:${SALEOR_VERSION:-3.23}
+    command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info --concurrency=2
+    environment: *backend
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - saleor-media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      cache: { condition: service_started }
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: saleor
+      POSTGRES_PASSWORD: saleor
+      POSTGRES_DB: saleor
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saleor"]
+      interval: 1s
+      timeout: 3s
+      retries: 60
+
+  cache:
+    image: valkey/valkey:8.1-alpine
+
+volumes:
+  saleor-media:
