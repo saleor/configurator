@@ -1,5 +1,11 @@
 # saleor-configurator
 
+## 3.23.5
+
+### Patch Changes
+
+- a7758fe: Log lines printed while a spinner is running, such as warnings during `introspect`, now appear on their own line above the spinner instead of being written into it.
+
 ## 3.23.4
 
 ### Patch Changes
