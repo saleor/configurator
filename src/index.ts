@@ -157,7 +157,7 @@ export function createConfigurator({ url, token }: ConfiguratorOptions) {
           url,
           verbose: false,
         };
-        const { result, exitCode } = await executeEnhancedDeployment(
+        const { result, exitCode, abortError } = await executeEnhancedDeployment(
           getAllStages(),
           {
             args,
@@ -169,6 +169,7 @@ export function createConfigurator({ url, token }: ConfiguratorOptions) {
           },
           new ProgressIndicator(new SilentProgressReporter())
         );
+        if (abortError !== undefined) throw abortError;
         return { exitCode, result };
       });
     },

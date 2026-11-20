@@ -13,6 +13,8 @@ import {
 } from "./results";
 import type { DeploymentContext, DeploymentMetrics, DeploymentStage } from "./types";
 
+const ABORTED_STAGE_MESSAGE = "Not run: deployment stopped after a rate limit or network error";
+
 export class EnhancedDeploymentPipeline {
   private readonly stages: DeploymentStage[] = [];
   private readonly metrics = new MetricsCollector();
@@ -25,35 +27,53 @@ export class EnhancedDeploymentPipeline {
     return this;
   }
 
-  async execute(
-    context: DeploymentContext
-  ): Promise<{ metrics: DeploymentMetrics; result: DeploymentResult }> {
+  async execute(context: DeploymentContext): Promise<{
+    metrics: DeploymentMetrics;
+    result: DeploymentResult;
+    /** Transient error (rate limit, network) that stopped the pipeline early, if any */
+    abortError?: unknown;
+  }> {
     logger.info("Starting enhanced deployment pipeline", {
       stageCount: this.stages.length,
     });
 
+    let abortError: unknown;
+
     for (const stage of this.stages) {
+      if (abortError !== undefined) {
+        this.handleSkippedStage(stage, ABORTED_STAGE_MESSAGE);
+        continue;
+      }
+
       if (stage.skip?.(context)) {
         logger.debug(`Skipping stage: ${stage.name}`);
         this.handleSkippedStage(stage);
         continue;
       }
 
-      await this.executeStageWithResultCollection(stage, context);
+      try {
+        await this.executeStageWithResultCollection(stage, context);
+      } catch (error) {
+        // Transient errors stop the pipeline; keep what was collected so the caller can
+        // still show the summary and save the report before failing.
+        abortError = error;
+      }
     }
 
     const metrics = this.metrics.complete();
     const result = this.resultCollector.getResult();
 
-    return { metrics, result };
+    return { metrics, result, abortError };
   }
 
-  private handleSkippedStage(stage: DeploymentStage): void {
+  private handleSkippedStage(stage: DeploymentStage, reason?: string): void {
     const stageResult = this.resultCollector.createStageResult(
       stage.name,
       "skipped",
       new Date(),
-      new Date()
+      new Date(),
+      undefined,
+      reason
     );
     this.resultCollector.addStageResult(stageResult);
   }
@@ -87,9 +107,22 @@ export class EnhancedDeploymentPipeline {
 
       logger.debug(`Stage completed: ${stage.name}`, { duration });
     } catch (error) {
-      // Let transient errors (rate limit, network) abort the pipeline for caller-level retry
+      // Transient errors (rate limit, network) persisted through client retries: record the
+      // stage as failed and stop the pipeline (see execute)
       if (isTransientError(error)) {
         stopSpinner();
+        this.progress.fail(`${stage.name} - Failed`);
+        this.resultCollector.addStageResult(
+          this.resultCollector.createStageResult(
+            stage.name,
+            "failed",
+            startTime,
+            new Date(),
+            undefined,
+            error instanceof Error ? error.message : String(error)
+          )
+        );
+        logger.error(`Stage aborted by transient error: ${stage.name}`, { error });
         throw error;
       }
 
@@ -151,17 +184,18 @@ export async function executeEnhancedDeployment(
   result: DeploymentResult;
   shouldExit: boolean;
   exitCode: number;
+  abortError?: unknown;
 }> {
   resilienceTracker.reset();
 
   const pipeline = new EnhancedDeploymentPipeline(progress);
   stages.forEach((stage) => pipeline.addStage(stage));
 
-  const { metrics, result } = await pipeline.execute(context);
+  const { metrics, result, abortError } = await pipeline.execute(context);
 
   const formatter = new DeploymentResultFormatter();
   const exitCode = formatter.getExitCode(result.overallStatus);
   const shouldExit = result.overallStatus === "failed";
 
-  return { metrics, result, shouldExit, exitCode };
+  return { metrics, result, shouldExit, exitCode, abortError };
 }

@@ -153,6 +153,39 @@ describe("EnhancedDeploymentPipeline", () => {
       expect(result.summary.completedStages).toBe(0);
     });
 
+    it("should stop on a transient error but keep collected results", async () => {
+      const networkError = Object.assign(new Error("[Network] fetch failed"), {
+        networkError: new Error("fetch failed"),
+      });
+      const done: DeploymentStage = {
+        name: "Done",
+        execute: vi.fn().mockResolvedValue(undefined),
+      };
+      const aborted: DeploymentStage = {
+        name: "Aborted",
+        execute: vi.fn().mockRejectedValue(networkError),
+      };
+      const notRun: DeploymentStage = {
+        name: "Not run",
+        execute: vi.fn().mockResolvedValue(undefined),
+      };
+
+      pipeline.addStage(done).addStage(aborted).addStage(notRun);
+
+      const { result, abortError } = await pipeline.execute(mockContext);
+
+      expect(abortError).toBe(networkError);
+      expect(notRun.execute).not.toHaveBeenCalled();
+      expect(result.stages.map((s) => [s.name, s.status])).toEqual([
+        ["Done", "success"],
+        ["Aborted", "failed"],
+        ["Not run", "skipped"],
+      ]);
+      expect(result.stages[1].error).toBe("[Network] fetch failed");
+      expect(result.stages[2].error).toMatch(/Not run/);
+      expect(result.overallStatus).toBe("partial");
+    });
+
     it("should calculate correct duration for stages", async () => {
       const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

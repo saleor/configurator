@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, type MockedFunction, vi } from "vitest";
 import { logger } from "../logger";
-import { ChunkedProcessor, processInChunks } from "./chunked-processor";
+import { ChunkedProcessor, processEachInChunks, processInChunks } from "./chunked-processor";
 
 // Mock dependencies
 vi.mock("../logger");
@@ -507,5 +507,71 @@ describe("ChunkedProcessor", () => {
         expect(processFn).toHaveBeenCalledTimes(3);
       });
     });
+  });
+});
+
+describe("processEachInChunks", () => {
+  it("reports failures per item instead of failing the whole chunk", async () => {
+    const result = await processEachInChunks(
+      ["a", "b", "c"],
+      async (item) => {
+        if (item === "b") throw new Error("b failed");
+        return item.toUpperCase();
+      },
+      { chunkSize: 3, delayMs: 0 }
+    );
+
+    expect(result.successes).toEqual([
+      { item: "a", result: "A" },
+      { item: "c", result: "C" },
+    ]);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0].item).toBe("b");
+    expect(result.failures[0].error.message).toBe("b failed");
+  });
+
+  it("processes every chunk", async () => {
+    const processed: number[] = [];
+    const result = await processEachInChunks(
+      [1, 2, 3, 4, 5],
+      async (item) => {
+        processed.push(item);
+        return item;
+      },
+      { chunkSize: 2, delayMs: 0 }
+    );
+
+    expect(processed).toEqual([1, 2, 3, 4, 5]);
+    expect(result.chunksProcessed).toBe(3);
+  });
+
+  it("rethrows transient errors", async () => {
+    const networkError = Object.assign(new Error("[Network] fetch failed"), {
+      networkError: new Error("fetch failed"),
+    });
+
+    await expect(
+      processEachInChunks(
+        ["a", "b"],
+        async (item) => {
+          if (item === "b") throw networkError;
+          return item;
+        },
+        { chunkSize: 2, delayMs: 0 }
+      )
+    ).rejects.toBe(networkError);
+  });
+
+  it("wraps non-Error rejections", async () => {
+    const result = await processEachInChunks(
+      ["a"],
+      async () => {
+        throw "boom";
+      },
+      { chunkSize: 1, delayMs: 0 }
+    );
+
+    expect(result.failures[0].error).toBeInstanceOf(Error);
+    expect(result.failures[0].error.message).toBe("boom");
   });
 });

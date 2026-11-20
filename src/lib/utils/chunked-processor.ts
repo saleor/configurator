@@ -237,6 +237,71 @@ class ChunkedOperationProcessor<T, R> {
   }
 
   /**
+   * Processes items in chunks, running each item independently so one failing item
+   * doesn't mark the rest of its chunk as failed.
+   */
+  async processEach(
+    items: T[],
+    processItem: (item: T) => Promise<R>
+  ): Promise<ChunkedProcessorResult<T, R>> {
+    if (items.length === 0) {
+      logger.debug(BulkOperationMessages.NO_ITEMS);
+      return this.createEmptyResult();
+    }
+
+    const chunks = this.splitter.split(items);
+    this.logProcessingStart(items.length, chunks.length);
+
+    const successes: Array<{ item: T; result: R }> = [];
+    const failures: Array<{ item: T; error: Error }> = [];
+
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const chunkNumber = i + 1;
+      this.logChunkStart(chunkNumber, chunks.length, chunk.length);
+
+      const settled = await Promise.allSettled(chunk.map((item) => processItem(item)));
+
+      // Transient errors (rate limit, network) abort processing, same as process()
+      const transient = settled.find(
+        (outcome): outcome is PromiseRejectedResult =>
+          outcome.status === "rejected" && isTransientError(outcome.reason)
+      );
+      if (transient) throw transient.reason;
+
+      const chunkFailures = settled.flatMap((outcome, index) =>
+        outcome.status === "rejected"
+          ? [{ item: chunk[index], error: this.normalizeError(outcome.reason) }]
+          : []
+      );
+      successes.push(
+        ...settled.flatMap((outcome, index) =>
+          outcome.status === "fulfilled" ? [{ item: chunk[index], result: outcome.value }] : []
+        )
+      );
+      failures.push(...chunkFailures);
+
+      if (chunkFailures.length > 0) {
+        this.logChunkFailure(
+          chunkNumber,
+          chunks.length,
+          chunkFailures.length,
+          chunkFailures[0].error
+        );
+      } else {
+        this.logChunkSuccess(chunkNumber, chunks.length, chunk.length);
+      }
+
+      if (i < chunks.length - 1) {
+        this.delayManager.logDelay(chunkNumber, chunkNumber + 1);
+        await this.delayManager.delay();
+      }
+    }
+
+    return this.createResult(successes, failures, chunks.length);
+  }
+
+  /**
    * Normalizes any thrown value to an Error instance
    */
   private normalizeError(error: unknown): Error {
@@ -386,6 +451,27 @@ export async function processInChunks<T, R>(
 }
 
 /**
+ * Like {@link processInChunks}, but processes every item of a chunk independently and
+ * reports success or failure per item. Use this instead of `Promise.all(chunk.map(...))`
+ * inside `processInChunks`, which marks a whole chunk as failed when one item fails.
+ * Transient errors (rate limit, network) still abort processing.
+ */
+export async function processEachInChunks<T, R>(
+  items: T[],
+  processItem: (item: T) => Promise<R>,
+  options: ChunkedProcessorOptions = {}
+): Promise<ChunkedProcessorResult<T, R>> {
+  const defaultedOptions: Required<ChunkedProcessorOptions> = {
+    chunkSize: options.chunkSize ?? ChunkSizeConfig.DEFAULT_CHUNK_SIZE,
+    delayMs: options.delayMs ?? DelayConfig.DEFAULT_CHUNK_DELAY_MS,
+    entityType: options.entityType ?? "items",
+  };
+
+  const processor = new ChunkedOperationProcessor<T, R>(defaultedOptions);
+  return processor.processEach(items, processItem);
+}
+
+/**
  * Splits an array into chunks of a specified size
  * Exported for use in other modules that need chunk splitting without processing
  *
@@ -404,5 +490,6 @@ function splitIntoChunks<T>(items: T[], chunkSize: number): T[][] {
  */
 export const ChunkedProcessor = {
   processInChunks,
+  processEachInChunks,
   splitIntoChunks,
 };
