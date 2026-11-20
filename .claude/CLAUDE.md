@@ -52,6 +52,7 @@ The `verify-configurator` skill runs this round trip and the other commands agai
 
 - GraphQL operations are typed with gql.tada against `src/lib/graphql/schema.graphql`. `pnpm fetch-schema` refreshes the schema; `pnpm exec gql.tada generate-output` then regenerates `graphql-env.d.ts`.
 - Errors extend `BaseError` (`src/lib/errors/shared.ts`). Convert urql errors with `GraphQLError.fromCombinedError` and Zod errors with `ZodValidationError.fromZodError`. Services wrap repository calls with `ServiceErrorWrapper` (`src/lib/utils/error-wrapper.ts`).
+- One Saleor minor is supported at a time (`package.json#saleor.schemaVersion`); there are no per-version schemas or operations. When Saleor removes a config field, mark it with `removedInSaleor("<version>")` in the schema so validation tells users to delete it, and drop the marker after the migration window.
 - `any` is a lint error outside `*.test.ts` files. Prefer small single-purpose functions and `map`/`filter`/`flatMap` over loops.
 - Tests are Vitest files next to the code (`*.test.ts`, `*.integration.test.ts`), with `vi.fn` mocks. `src/test-helpers` has a config file builder, a GraphQL fetch mock and temporary directories.
 
