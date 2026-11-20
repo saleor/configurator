@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseAllDocuments } from "yaml";
@@ -25,13 +25,33 @@ interface ParsedRecipeYaml {
   config: unknown;
 }
 
+const MANIFEST_FILE = "manifest.json";
+
+/**
+ * Finds the bundled recipes directory: the nearest `recipes/` holding a manifest,
+ * searching upward from `startDir`. The bundle keeps it next to its chunks in
+ * `dist/`; running from source finds `src/recipes`.
+ */
+export function findRecipesDir(startDir: string): string {
+  let dir = path.resolve(startDir);
+  while (true) {
+    const candidate = path.join(dir, "recipes");
+    if (existsSync(path.join(candidate, MANIFEST_FILE))) {
+      return candidate;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      throw new ManifestLoadError(`no recipes/${MANIFEST_FILE} found above ${startDir}`);
+    }
+    dir = parent;
+  }
+}
+
 /**
  * Gets the path to the recipes directory in the package.
  */
 export function getRecipesDir(): string {
-  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-  const distDir = path.resolve(moduleDir, "..", "..");
-  return path.join(distDir, "recipes");
+  return findRecipesDir(path.dirname(fileURLToPath(import.meta.url)));
 }
 
 /**
@@ -113,7 +133,7 @@ function validateRecipeContent(
 
 export function loadManifest(): RecipeManifest {
   const recipesDir = getRecipesDir();
-  const manifestPath = path.join(recipesDir, "manifest.json");
+  const manifestPath = path.join(recipesDir, MANIFEST_FILE);
 
   try {
     const content = readFileSync(manifestPath, "utf-8");
