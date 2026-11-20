@@ -144,7 +144,6 @@ See `references/commands-reference.md` for advanced options and coverage configu
 ### Project Resources
 - `{baseDir}/src/test-helpers/` - Test utilities
 - `{baseDir}/vitest.config.ts` - Test configuration
-- `{baseDir}/docs/TESTING_PROTOCOLS.md` - Testing protocols
 
 ### External Documentation
 - Vitest docs: https://vitest.dev

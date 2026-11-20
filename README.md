@@ -619,7 +619,6 @@ See [`.claude/CLAUDE.md`](.claude/CLAUDE.md) for the checks CI runs and the end-
 | [docs/ENTITY_REFERENCE.md](docs/ENTITY_REFERENCE.md) | Entity types and identification |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problem diagnosis and fixes |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and internals |
-| [docs/TESTING_PROTOCOLS.md](docs/TESTING_PROTOCOLS.md) | Testing guidelines |
 
 ## License
 

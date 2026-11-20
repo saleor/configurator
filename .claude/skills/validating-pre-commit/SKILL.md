@@ -126,7 +126,7 @@ The project has Husky pre-push hooks (`.husky/pre-push`) that auto-generate sche
 ## References
 
 - `scripts/validate-all.sh` - One-command validation script
-- `docs/TESTING_PROTOCOLS.md` - E2E testing details
+- `.claude/CLAUDE.md` - E2E round trip
 - `biome.json` - Linting configuration
 
 ## Related Skills
