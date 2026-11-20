@@ -31,6 +31,16 @@ describe("fetchAllPages", () => {
     await expect(fetchAllPages(async () => null)).resolves.toEqual([]);
   });
 
+  it("fails when a page returns a cursor it already returned", async () => {
+    const fetchPage = vi.fn(async (after: string | null) => {
+      if (fetchPage.mock.calls.length > 5) throw new Error("kept paging");
+      return { pageInfo: { endCursor: after ?? "c1", hasNextPage: true }, edges: [1] };
+    });
+
+    await expect(fetchAllPages(fetchPage)).rejects.toThrow('returned cursor "c1" again');
+    expect(fetchPage).toHaveBeenCalledTimes(2);
+  });
+
   it("stops when a page reports more results but no cursor", async () => {
     const fetchPage = vi.fn(async () => ({
       pageInfo: { endCursor: null, hasNextPage: true },

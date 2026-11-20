@@ -1196,14 +1196,13 @@ export class ConfigurationRepository implements ConfigurationOperations {
    * MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES, so the rest of introspect still works.
    */
   private async fetchCustomerTypes(): Promise<RawCustomerTypeEdges | undefined> {
-    const edges: RawCustomerTypeEdges = [];
-    let after: string | null = null;
+    let isForbidden = false;
 
-    for (;;) {
+    const edges = await fetchAllPages(async (after) => {
       const result: {
         error?: CombinedError;
         data?: RawCustomerTypesResult;
-      } = await this.client.query(getCustomerTypesQuery, { first: 100, after });
+      } = await this.client.query(getCustomerTypesQuery, { first: MAX_PAGE_SIZE, after });
 
       if (result.error) {
         if (GraphQLError.isForbiddenError(result.error)) {
@@ -1211,28 +1210,20 @@ export class ConfigurationRepository implements ConfigurationOperations {
             "Skipping customer types: the token lacks MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES",
             { error: result.error.message }
           );
-          return undefined;
+          isForbidden = true;
+          return null;
         }
         throw GraphQLError.fromCombinedError("Failed to fetch customer types", result.error);
       }
 
-      const page = result.data?.customerTypes;
-      edges.push(...(page?.edges ?? []));
+      return result.data?.customerTypes;
+    });
 
-      if (!page?.pageInfo?.hasNextPage) break;
-      after = page.pageInfo.endCursor ?? null;
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-
-    return edges;
+    return isForbidden ? undefined : edges;
   }
 
   private async fetchAllProducts() {
     type ProductsEdges = NonNullable<RawSaleorConfig["products"]>["edges"];
-    const edges: ProductsEdges = [] as unknown as ProductsEdges;
-    let after: string | null = null;
-    // Use page size 100 (Saleor default max) and paginate
     // Define the page query inline to share product node selection with main query
     const pageQuery = graphql(`
       query GetProductsPage($first: Int!, $after: String) {
@@ -1340,42 +1331,31 @@ export class ConfigurationRepository implements ConfigurationOperations {
       }
     `);
 
-    // Loop
     type ProductsPageResult = {
       data?: {
         products?: {
           pageInfo?: { endCursor: string | null; hasNextPage: boolean } | null;
-          edges?: NonNullable<RawSaleorConfig["products"]>["edges"];
+          edges?: ProductsEdges;
         } | null;
       };
       error?: CombinedError;
     };
-    for (;;) {
-      const res: ProductsPageResult = await this.client.query(pageQuery, { first: 100, after });
+    return fetchAllPages(async (after) => {
+      const res: ProductsPageResult = await this.client.query(pageQuery, {
+        first: MAX_PAGE_SIZE,
+        after,
+      });
       if (res.error) {
         throw GraphQLError.fromCombinedError("Failed to fetch products page", res.error);
       }
-      const page = res.data?.products;
-      if (!page) break;
-      const pageEdges = (page.edges || []) as unknown as ProductsEdges;
-      edges.push(...(pageEdges || []));
-      if (!page.pageInfo?.hasNextPage) break;
-      after = page.pageInfo.endCursor || null;
-
-      // Add a delay between pagination requests to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-
-    return edges;
+      return res.data?.products;
+    });
   }
 
   /**
    * Fetch all attributes with complete choice lists (no 100-item cap)
    */
   private async fetchAllAttributes(): Promise<NonNullable<RawSaleorConfig["attributes"]>> {
-    const edges: RawAttributeEdge[] = [];
-    let after: string | null = null;
-
     const attributesPageQuery = graphql(`
       query GetAttributesPage($first: Int!, $after: String) {
         attributes(first: $first, after: $after) {
@@ -1394,51 +1374,40 @@ export class ConfigurationRepository implements ConfigurationOperations {
       }
     `);
 
-    // Loop over attributes pages
-    for (;;) {
-      type AttributesPageResult = {
-        error?: CombinedError;
-        data?: {
-          attributes?: {
-            pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
-            edges?: RawAttributeEdge[] | null;
-          } | null;
-        };
+    type AttributesPageResult = {
+      error?: CombinedError;
+      data?: {
+        attributes?: {
+          pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
+          edges?: RawAttributeEdge[] | null;
+        } | null;
       };
+    };
+    const pageEdges = await fetchAllPages(async (after) => {
       const res: AttributesPageResult = await this.client.query(attributesPageQuery, {
-        first: 100,
+        first: MAX_PAGE_SIZE,
         after,
       });
       if (res.error) {
         throw GraphQLError.fromCombinedError("Failed to fetch attributes page", res.error);
       }
-      const page = res.data?.attributes;
-      const pageEdges = page?.edges ?? [];
+      return res.data?.attributes;
+    });
 
-      for (const edge of pageEdges) {
-        if (!edge?.node?.id) {
-          edges.push(edge as RawAttributeEdge);
-          continue;
-        }
-        const { node } = edge;
-        const normalizedEdge = {
-          ...edge,
-          node: {
-            ...node,
-            choices: {
-              ...(node.choices ?? {}),
-              edges: [] as RawAttributeChoiceEdge[],
+    const edges: RawAttributeEdge[] = pageEdges.map((edge) =>
+      edge?.node?.id
+        ? ({
+            ...edge,
+            node: {
+              ...edge.node,
+              choices: {
+                ...(edge.node.choices ?? {}),
+                edges: [] as RawAttributeChoiceEdge[],
+              },
             },
-          },
-        } as RawAttributeEdge;
-        edges.push(normalizedEdge);
-      }
-      if (!page?.pageInfo?.hasNextPage) break;
-      after = page.pageInfo?.endCursor ?? null;
-
-      // Add a delay between attribute pagination requests to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
+          } as RawAttributeEdge)
+        : (edge as RawAttributeEdge)
+    );
 
     // Hydrate choices per attribute with pagination
     const attributeNodes = edges
@@ -1486,9 +1455,6 @@ export class ConfigurationRepository implements ConfigurationOperations {
   private async fetchAllChoicesForAttribute(
     attributeId: string
   ): Promise<RawAttributeChoiceEdge[]> {
-    const choices: RawAttributeChoiceEdge[] = [];
-    let after: string | null = null;
-
     const choicesPageQuery = graphql(`
       query GetAttributeChoices($id: ID!, $first: Int!, $after: String) {
         attribute(id: $id) {
@@ -1500,33 +1466,27 @@ export class ConfigurationRepository implements ConfigurationOperations {
       }
     `);
 
-    for (;;) {
-      type ChoicesPageResult = {
-        error?: CombinedError;
-        data?: {
-          attribute?: {
-            choices?: {
-              pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
-              edges?: RawAttributeChoiceEdge[] | null;
-            } | null;
+    type ChoicesPageResult = {
+      error?: CombinedError;
+      data?: {
+        attribute?: {
+          choices?: {
+            pageInfo?: { endCursor?: string | null; hasNextPage: boolean } | null;
+            edges?: RawAttributeChoiceEdge[] | null;
           } | null;
-        };
+        } | null;
       };
+    };
+    return fetchAllPages(async (after) => {
       const res: ChoicesPageResult = await this.client.query(choicesPageQuery, {
         id: attributeId,
-        first: 100,
+        first: MAX_PAGE_SIZE,
         after,
       });
       if (res.error) {
         throw GraphQLError.fromCombinedError("Failed to fetch attribute choices", res.error);
       }
-      const page = res.data?.attribute?.choices;
-      const pageEdges = page?.edges ?? [];
-      choices.push(...pageEdges);
-      if (!page?.pageInfo?.hasNextPage) break;
-      after = page.pageInfo?.endCursor ?? null;
-    }
-
-    return choices;
+      return res.data?.attribute?.choices;
+    });
   }
 }
