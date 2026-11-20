@@ -58,7 +58,7 @@ The `verify-configurator` skill runs this round trip and the other commands agai
 ## Reference
 
 - `docs/ARCHITECTURE.md`: read before changing the diff engine or the deployment pipeline.
-- `docs/ENTITY_REFERENCE.md`: per-entity fields and cross-entity references.
+- `docs/ENTITY_REFERENCE.md`: identifiers and cross-entity references.
 - `docs/COMMANDS.md`: every command and flag; `--help` is authoritative.
 - `docs/LIMITS.md`: read caps, request pacing, retries, deploy batching.
 - `docs/TROUBLESHOOTING.md`: known errors and their fixes.
