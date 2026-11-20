@@ -49,6 +49,7 @@
     "prepare": "husky",
     "test": "vitest",
     "test:ci": "CI=true vitest --silent",
+    "test:e2e": "vitest run --config e2e/vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "changeset": "changeset",
     "version": "changeset version",
