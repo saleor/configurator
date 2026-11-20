@@ -175,7 +175,6 @@ For up-to-date library docs, use Context7 MCP:
 ### Project Resources
 - `src/lib/graphql/client.ts` - Client configuration
 - `src/lib/graphql/operations/` - Existing operations
-- `docs/CODE_QUALITY.md#graphql--external-integrations` - Quality standards
 
 ## Related Skills
 
@@ -202,7 +201,3 @@ For up-to-date library docs, use Context7 MCP:
 3. **Add error context**: Include operation name in all error wrapping calls
 4. **Check MSW handlers**: Ensure test mocks match updated operation signatures
 5. **Verify type inference**: Hover over `ResultOf<typeof Query>` in IDE to confirm types
-
-## Quick Reference Rule
-
-For a condensed quick reference, see `.claude/rules/graphql-patterns.md` (automatically loaded when editing GraphQL operations and repository files).

@@ -126,7 +126,7 @@ The project has Husky pre-push hooks (`.husky/pre-push`) that auto-generate sche
 ## References
 
 - `scripts/validate-all.sh` - One-command validation script
-- `docs/TESTING_PROTOCOLS.md` - E2E testing details
+- `.claude/CLAUDE.md` - E2E round trip
 - `biome.json` - Linting configuration
 
 ## Related Skills
@@ -134,7 +134,3 @@ The project has Husky pre-push hooks (`.husky/pre-push`) that auto-generate sche
 - **Code standards**: See `reviewing-typescript-code` for quality criteria
 - **CI integration**: See `managing-github-ci` for workflow troubleshooting
 - **Test failures**: See `analyzing-test-coverage` for test debugging
-
-## Quick Reference Rule
-
-For a condensed quick reference, see `.claude/rules/deployment-safety.md` (always loaded - applies to all files).

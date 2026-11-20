@@ -1,89 +1,95 @@
-# CI/CD Integration Guide
+# CI/CD
 
-Saleor Configurator provides comprehensive CI/CD support for automating configuration management in your development workflow.
+In CI the CLI skips prompts and prints a JSON envelope. Store the URL and token as secrets and pass them as `SALEOR_URL` and `SALEOR_TOKEN`. Exit codes are listed in [COMMANDS.md](../COMMANDS.md#exit-codes); `diff` exits 0 whether or not it finds changes.
 
-## Overview
+## Preview changes on a pull request
 
-With Saleor Configurator CI/CD integration, you can:
-
-- **Preview changes** on pull requests before merging
-- **Auto-deploy** configuration when PRs are merged
-- **Detect drift** between your repository and live Saleor instances
-- **Enforce policies** like blocking deletions or breaking changes
-- **Multi-environment** deployments (staging → production)
-
-## Quick Links
-
-- [5-Minute Quick Start](./QUICKSTART.md)
-- [GitHub Action Reference](./GITHUB_ACTION.md)
-- [Workflow Templates](./WORKFLOWS.md)
-- [Common Patterns & Cookbook](./COOKBOOK.md)
-- [Troubleshooting](./TROUBLESHOOTING.md)
-
-## Architecture
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Pull Request   │────▶│   GitHub        │────▶│   Saleor        │
-│  (config.yml)   │     │   Action        │     │   Instance      │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                              │
-                              ▼
-                        ┌─────────────────┐
-                        │  PR Comment     │
-                        │  (diff preview) │
-                        └─────────────────┘
+```yaml
+name: Configurator diff
+on:
+  pull_request:
+    paths: [config.yml]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    env:
+      SALEOR_URL: ${{ secrets.SALEOR_URL }}
+      SALEOR_TOKEN: ${{ secrets.SALEOR_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx @saleor/configurator diff --github-comment --text --output-file diff.md
+      - run: gh pr comment ${{ github.event.pull_request.number }} --body-file diff.md --edit-last --create-if-none
+      - run: npx @saleor/configurator diff --fail-on-delete --text
 ```
 
-## CLI Flags for CI/CD
+`--text` is needed for Markdown; without it the comment would contain the JSON envelope. The last step fails the job with exit code 6 when the file would leave entities in the store that it no longer lists.
 
-### Diff Command
+## Deploy on merge
 
-| Flag | Description |
-|------|-------------|
-| `--json` | Output in JSON format for machine parsing |
-| `--github-comment` | Output as GitHub PR comment markdown |
-| `--fail-on-delete` | Exit code 6 if deletions detected |
-| `--fail-on-breaking` | Exit code 7 if breaking changes |
-| `--output-file <path>` | Write output to file |
-| `--summary` | Show only counts, no details |
+```yaml
+name: Configurator deploy
+on:
+  push:
+    branches: [main]
+    paths: [config.yml]
+concurrency: configurator-deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SALEOR_URL: ${{ secrets.SALEOR_URL }}
+      SALEOR_TOKEN: ${{ secrets.SALEOR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx @saleor/configurator deploy --fail-on-delete
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deploy-report
+          path: .configurator/reports/deploy/
+```
 
-### Deploy Command
+`concurrency` keeps two deploys from running against the store at once. For several environments, run the same job per environment with that environment's secrets and config file (`--config`).
 
-| Flag | Description |
-|------|-------------|
-| `--json` | Output in JSON format |
-| `--plan` | Preview changes without applying (dry-run) |
-| `--fail-on-delete` | Exit code 6 if deletions detected |
-| `--ci` | Skip interactive prompts |
+## Detect changes made in the Dashboard
 
-## Exit Codes
+```yaml
+name: Configurator drift
+on:
+  schedule:
+    - cron: "0 6 * * *"
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    env:
+      SALEOR_URL: ${{ secrets.SALEOR_URL }}
+      SALEOR_TOKEN: ${{ secrets.SALEOR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx @saleor/configurator introspect --drift-check
+```
 
-| Code | Meaning | Use Case |
-|------|---------|----------|
-| 0 | Success | All operations completed |
-| 1 | Changes detected | Diff found differences (informational) |
-| 2 | Auth error | Invalid or expired token |
-| 3 | Network error | Connection issues |
-| 4 | Validation error | Invalid configuration |
-| 5 | Partial failure | Some operations failed |
-| 6 | Deletion blocked | `--fail-on-delete` triggered |
-| 7 | Breaking blocked | `--fail-on-breaking` triggered |
+`introspect --drift-check` exits 1 when the store differs from `config.yml` and does not write the file.
 
-## Recommended Workflows
+## Reading results in scripts
 
-### Basic Setup (Single Environment)
+```bash
+npx @saleor/configurator diff > diff.json
+jq '.result.summary.totalChanges' diff.json
+jq -r '.result.operations[] | "\(.action) \(.entity) \(.name)"' diff.json
+```
 
-1. **PR Preview**: Run diff on PRs, post as comment
-2. **Deploy on Merge**: Auto-deploy when merged to main
-
-### Advanced Setup (Multi-Environment)
-
-1. **PR Preview against Staging**: Show what would change
-2. **Deploy to Staging**: Auto-deploy on merge to main
-3. **Deploy to Production**: Manual approval required
-4. **Drift Detection**: Daily check for configuration drift
-
-## Getting Started
-
-See [QUICKSTART.md](./QUICKSTART.md) for a 5-minute setup guide.
+Every command's envelope has `command`, `version`, `exitCode`, `result`, `logs` and `errors`.
