@@ -1,6 +1,11 @@
 import type { Client, CombinedError } from "@urql/core";
-import { graphql, type ResultOf } from "gql.tada";
+import { graphql, type ResultOf, type TadaDocumentNode } from "gql.tada";
 import { GraphQLError } from "../../lib/errors/graphql";
+import {
+  type ConnectionPage,
+  fetchAllPages,
+  MAX_PAGE_SIZE,
+} from "../../lib/graphql/fetch-all-pages";
 import { logger } from "../../lib/logger";
 
 // @ts-ignore - Large query type can exceed TS instantiation limits; runtime types remain intact
@@ -50,6 +55,10 @@ const getConfigQuery = graphql(`
       }
     }
     productTypes(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -90,6 +99,10 @@ const getConfigQuery = graphql(`
       }
     }
     pageTypes(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -112,6 +125,10 @@ const getConfigQuery = graphql(`
       }
     }
     categories(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -126,6 +143,10 @@ const getConfigQuery = graphql(`
       }
     }
     warehouses(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -159,6 +180,10 @@ const getConfigQuery = graphql(`
       }
     }
     shippingZones(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -213,6 +238,10 @@ const getConfigQuery = graphql(`
       }
     }
     taxClasses(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -231,6 +260,10 @@ const getConfigQuery = graphql(`
       }
     }
     collections(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -242,6 +275,10 @@ const getConfigQuery = graphql(`
             alt
           }
           products(first: 20) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
             edges {
               node {
                 id
@@ -264,6 +301,10 @@ const getConfigQuery = graphql(`
       }
     }
     menus(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -340,6 +381,10 @@ const getConfigQuery = graphql(`
       }
     }
     pages(first: 50) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -484,6 +529,427 @@ const getConfigQuery = graphql(`
 `);
 
 /**
+ * Follow-up pages for the lists in the main query. Their selections must match
+ * the main query's (enforced by a test), so every page yields the same shape.
+ */
+const getProductTypesPageQuery = graphql(`
+  query GetConfigProductTypesPage($first: Int!, $after: String) {
+    productTypes(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          isShippingRequired
+          productAttributes {
+            id
+            name
+            type
+            inputType
+            entityType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
+          }
+          assignedVariantAttributes {
+            variantSelection
+            attribute {
+              id
+              name
+              type
+              inputType
+              entityType
+              choices(first: 100) {
+                edges {
+                  node {
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getPageTypesPageQuery = graphql(`
+  query GetConfigPageTypesPage($first: Int!, $after: String) {
+    pageTypes(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          attributes {
+            id
+            name
+            type
+            inputType
+            entityType
+            choices(first: 100) {
+              edges {
+                node {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getCategoriesPageQuery = graphql(`
+  query GetConfigCategoriesPage($first: Int!, $after: String) {
+    categories(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          slug
+          level
+          parent {
+            id
+            slug
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getWarehousesPageQuery = graphql(`
+  query GetConfigWarehousesPage($first: Int!, $after: String) {
+    warehouses(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          slug
+          email
+          isPrivate
+          clickAndCollectOption
+          address {
+            streetAddress1
+            streetAddress2
+            city
+            cityArea
+            postalCode
+            country {
+              code
+            }
+            countryArea
+            companyName
+            phone
+          }
+          shippingZones(first: 50) {
+            edges {
+              node {
+                id
+                name
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getShippingZonesPageQuery = graphql(`
+  query GetConfigShippingZonesPage($first: Int!, $after: String) {
+    shippingZones(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          default
+          description
+          countries {
+            code
+          }
+          channels {
+            id
+            slug
+          }
+          warehouses {
+            id
+            slug
+          }
+          shippingMethods {
+            id
+            name
+            description
+            type
+            maximumDeliveryDays
+            minimumDeliveryDays
+            maximumOrderWeight {
+              unit
+              value
+            }
+            minimumOrderWeight {
+              unit
+              value
+            }
+            channelListings {
+              channel {
+                slug
+              }
+              price {
+                amount
+                currency
+              }
+              maximumOrderPrice {
+                amount
+                currency
+              }
+              minimumOrderPrice {
+                amount
+                currency
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getTaxClassesPageQuery = graphql(`
+  query GetConfigTaxClassesPage($first: Int!, $after: String) {
+    taxClasses(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          countries {
+            country {
+              code
+            }
+            rate
+            taxClass {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getCollectionsPageQuery = graphql(`
+  query GetConfigCollectionsPage($first: Int!, $after: String) {
+    collections(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          slug
+          description
+          backgroundImage {
+            url
+            alt
+          }
+          products(first: 20) {
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            edges {
+              node {
+                id
+                slug
+                name
+              }
+            }
+          }
+          channelListings {
+            id
+            isPublished
+            publishedAt
+            channel {
+              id
+              slug
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getMenusPageQuery = graphql(`
+  query GetConfigMenusPage($first: Int!, $after: String) {
+    menus(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          name
+          slug
+          items {
+            id
+            name
+            menu {
+              id
+            }
+            parent {
+              id
+              name
+            }
+            category {
+              id
+              slug
+              name
+            }
+            collection {
+              id
+              slug
+              name
+            }
+            page {
+              id
+              slug
+              title
+            }
+            level
+            children {
+              id
+              name
+              url
+              category {
+                id
+                slug
+              }
+              collection {
+                id
+                slug
+              }
+              page {
+                id
+                slug
+              }
+            }
+            url
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getPagesPageQuery = graphql(`
+  query GetConfigPagesPage($first: Int!, $after: String) {
+    pages(first: $first, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      edges {
+        node {
+          id
+          title
+          slug
+          content
+          isPublished
+          publishedAt
+          pageType {
+            id
+            name
+            attributes {
+              id
+              name
+              type
+              inputType
+              choices(first: 10) {
+                edges {
+                  node {
+                    name
+                  }
+                }
+              }
+            }
+          }
+          attributes {
+            attribute {
+              id
+              slug
+              name
+              type
+              inputType
+            }
+            values {
+              id
+              name
+              slug
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+`);
+
+const getCollectionProductsPageQuery = graphql(`
+  query GetConfigCollectionProductsPage($id: ID!, $first: Int!, $after: String) {
+    collection(id: $id) {
+      products(first: $first, after: $after) {
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+        edges {
+          node {
+            id
+            slug
+            name
+          }
+        }
+      }
+    }
+  }
+`);
+
+/**
  * Customer types are fetched separately from the main config query: they require
  * MANAGE_CUSTOMER_TYPES_AND_ATTRIBUTES, and a permission error inside the main
  * query would fail the whole introspect for tokens that predate Saleor 3.23.
@@ -530,6 +996,16 @@ export type RawSaleorConfig = ResultOf<typeof getConfigQuery> & {
   customerTypes?: RawCustomerTypeEdges;
 };
 
+type PageVariables = { first: number; after?: string | null };
+
+/** A first page from the main query; `edges` holds every entry once completed. */
+type RawListPage<TEdge> = { pageInfo?: ConnectionPage<TEdge>["pageInfo"]; edges: TEdge[] };
+
+type RawCollectionEdge = NonNullable<RawSaleorConfig["collections"]>["edges"][number];
+type RawCollectionProductEdge = NonNullable<
+  NonNullable<RawCollectionEdge["node"]>["products"]
+>["edges"][number];
+
 type RawAttributeConnection = NonNullable<RawSaleorConfig["attributes"]>;
 type RawAttributeEdge = NonNullable<RawAttributeConnection["edges"]>[number];
 type RawAttributeNode = NonNullable<RawAttributeEdge>["node"];
@@ -554,6 +1030,10 @@ export class ConfigurationRepository implements ConfigurationOperations {
       throw new GraphQLError("Failed to fetch config: No data returned from GraphQL query");
     }
 
+    // Outside the fallback below: a failure here must stop introspect rather than
+    // produce a config that silently misses entities.
+    const config = await this.completeLists(result.data as RawSaleorConfig);
+
     // Fetch all products with pagination to avoid first: N truncation
     // Fetch sequentially with delays to avoid rate limiting
     try {
@@ -572,7 +1052,7 @@ export class ConfigurationRepository implements ConfigurationOperations {
       const customerTypes = await this.fetchCustomerTypes();
 
       const data: RawSaleorConfig = {
-        ...(result.data as RawSaleorConfig),
+        ...config,
         products: {
           edges: allProductEdges,
         },
@@ -589,8 +1069,126 @@ export class ConfigurationRepository implements ConfigurationOperations {
             "Attributes limited to first 100, products limited to first 100. Run introspect again if data appears incomplete.",
         }
       );
-      return result.data as RawSaleorConfig;
+      return config;
     }
+  }
+
+  /** Replaces each first-page list from the main query with every entry. */
+  private async completeLists(config: RawSaleorConfig): Promise<RawSaleorConfig> {
+    // Sequential on purpose: keeps request bursts low, like the product and attribute fetches.
+    const productTypes = await this.completeList(
+      config.productTypes,
+      getProductTypesPageQuery,
+      "productTypes"
+    );
+    const pageTypes = await this.completeList(config.pageTypes, getPageTypesPageQuery, "pageTypes");
+    const categories = await this.completeList(
+      config.categories,
+      getCategoriesPageQuery,
+      "categories"
+    );
+    const warehouses = await this.completeList(
+      config.warehouses,
+      getWarehousesPageQuery,
+      "warehouses"
+    );
+    const shippingZones = await this.completeList(
+      config.shippingZones,
+      getShippingZonesPageQuery,
+      "shippingZones"
+    );
+    const taxClasses = await this.completeList(
+      config.taxClasses,
+      getTaxClassesPageQuery,
+      "taxClasses"
+    );
+    const collections = await this.completeList(
+      config.collections,
+      getCollectionsPageQuery,
+      "collections"
+    );
+    const menus = await this.completeList(config.menus, getMenusPageQuery, "menus");
+    const pages = await this.completeList(config.pages, getPagesPageQuery, "pages");
+
+    return {
+      ...config,
+      productTypes,
+      pageTypes,
+      categories,
+      warehouses,
+      shippingZones,
+      taxClasses,
+      collections: collections && {
+        ...collections,
+        edges: await this.withAllCollectionProducts(collections.edges),
+      },
+      menus,
+      pages,
+    };
+  }
+
+  /** Appends the pages after `firstPage`, read with the matching page query. */
+  private async completeList<TEdge, TData>(
+    firstPage: RawListPage<TEdge> | null | undefined,
+    document: TadaDocumentNode<TData, PageVariables>,
+    field: keyof TData & string
+  ): Promise<RawListPage<TEdge> | null | undefined> {
+    const pageInfo = firstPage?.pageInfo;
+    if (!firstPage || !pageInfo?.hasNextPage || !pageInfo.endCursor) {
+      return firstPage;
+    }
+
+    const remaining = await fetchAllPages(async (after) => {
+      const result = await this.client.query(document, { first: MAX_PAGE_SIZE, after });
+      if (result.error) {
+        throw GraphQLError.fromCombinedError(`Failed to fetch ${field}`, result.error);
+      }
+      // The page query selects the same fields as the main query, so edges share a shape.
+      return result.data?.[field] as ConnectionPage<TEdge> | null | undefined;
+    }, pageInfo.endCursor);
+
+    return { ...firstPage, edges: [...firstPage.edges, ...remaining] };
+  }
+
+  /** Collections come with their first 20 products; this reads the rest. */
+  private async withAllCollectionProducts(
+    collections: RawCollectionEdge[]
+  ): Promise<RawCollectionEdge[]> {
+    const complete: RawCollectionEdge[] = [];
+    for (const edge of collections) {
+      const products = edge.node?.products;
+      const pageInfo = products?.pageInfo;
+      if (!edge.node || !products || !pageInfo?.hasNextPage || !pageInfo.endCursor) {
+        complete.push(edge);
+        continue;
+      }
+      const remaining = await this.fetchCollectionProducts(edge.node.id, pageInfo.endCursor);
+      complete.push({
+        ...edge,
+        node: {
+          ...edge.node,
+          products: { ...products, edges: [...products.edges, ...remaining] },
+        },
+      });
+    }
+    return complete;
+  }
+
+  private async fetchCollectionProducts(
+    collectionId: string,
+    after: string
+  ): Promise<RawCollectionProductEdge[]> {
+    return fetchAllPages(async (cursor) => {
+      const result = await this.client.query(getCollectionProductsPageQuery, {
+        id: collectionId,
+        first: MAX_PAGE_SIZE,
+        after: cursor,
+      });
+      if (result.error) {
+        throw GraphQLError.fromCombinedError("Failed to fetch collection products", result.error);
+      }
+      return result.data?.collection?.products;
+    }, after);
   }
 
   /**
