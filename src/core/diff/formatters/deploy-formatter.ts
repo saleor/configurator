@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
+import { countAppliedChanges } from "../diff-operations";
 import type { DiffChange, DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
@@ -87,15 +88,6 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     // Add creation details
     if (result.operation === "CREATE" && result.desired) {
       this.addCreationDetails(lines, result.desired);
-    }
-
-    // Add deletion warning
-    if (result.operation === "DELETE") {
-      lines.push(
-        `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.red(
-          "⚠️  This will be permanently deleted"
-        )}`
-      );
     }
 
     lines.push("");
@@ -296,11 +288,15 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     if (summary.updates > 0) {
       changes.push(chalk.yellow(`${summary.updates} to update`));
     }
+    const applied = countAppliedChanges(summary);
+    lines.push(
+      changes.length > 0
+        ? `Total: ${applied} ${applied === 1 ? "change" : "changes"} (${changes.join(", ")})`
+        : "Total: no changes to apply"
+    );
     if (summary.deletes > 0) {
-      changes.push(chalk.red(`${summary.deletes} to delete`));
+      lines.push(chalk.gray(`${summary.deletes} only in Saleor: deploy leaves them in place`));
     }
-
-    lines.push(`Total: ${summary.totalChanges} changes (${changes.join(", ")})`);
 
     // Add note about attribute value removals
     const hasAttributeValueRemovals = summary.results.some(

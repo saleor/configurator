@@ -54,9 +54,8 @@ async function runFirstTimeSetup(configPath: string): Promise<void> {
 
   cliConsole.subtitle("🎯 Let's get you started!\n");
   cliConsole.info(
-    "Since you don't have an existing configuration, we'll download your store's current one."
+    `You don't have a configuration yet, so we'll download your store's current one into ${cliConsole.path(configPath)}.\n`
   );
-  cliConsole.info(`configuration to create a local ${cliConsole.path(configPath)} file.\n`);
 
   const shouldContinue = await confirmAction(
     "Ready to connect to your Saleor store and download your configuration?",
