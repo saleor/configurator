@@ -53,14 +53,20 @@ jobs:
           # fail-on-breaking: true  # Uncomment to also fail on breaking changes
 
       - name: Add Summary
+        env:
+          CONFIGURATOR_CHANGES_COUNT: ${{ steps.diff.outputs.changes-count }}
+          CONFIGURATOR_CREATES_COUNT: ${{ steps.diff.outputs.creates-count }}
+          CONFIGURATOR_UPDATES_COUNT: ${{ steps.diff.outputs.updates-count }}
+          CONFIGURATOR_DELETES_COUNT: ${{ steps.diff.outputs.deletes-count }}
+          CONFIGURATOR_SUMMARY: ${{ steps.diff.outputs.summary }}
         run: |
-          echo "## Configuration Diff Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Changes | ${{ steps.diff.outputs.changes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Creates | ${{ steps.diff.outputs.creates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Updates | ${{ steps.diff.outputs.updates-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Deletes | ${{ steps.diff.outputs.deletes-count }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ steps.diff.outputs.summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Configuration Diff Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Total Changes | ${CONFIGURATOR_CHANGES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Creates | ${CONFIGURATOR_CREATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Updates | ${CONFIGURATOR_UPDATES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deletes | ${CONFIGURATOR_DELETES_COUNT} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** ${CONFIGURATOR_SUMMARY}" >> "$GITHUB_STEP_SUMMARY"

@@ -27,6 +27,10 @@ inputs:
     description: 'Node.js version to use'
     required: false
     default: '20'
+  configurator-version:
+    description: 'Version (or npm dist-tag) of @saleor/configurator to install, e.g. 3.23.2'
+    required: false
+    default: 'latest'
   report-path:
     description: 'Path to save deployment report (deploy command only)'
     required: false
@@ -42,7 +46,7 @@ inputs:
     description: 'GitHub token for posting PR comments'
     required: false
   fail-on-diff:
-    description: 'Exit with error if any changes detected (diff command)'
+    description: 'Exit with error if any changes detected (diff command, or deploy with plan-only)'
     required: false
     default: 'false'
   fail-on-delete:
@@ -54,7 +58,7 @@ inputs:
     required: false
     default: 'false'
   ci-mode:
-    description: 'Enable CI mode to skip interactive prompts'
+    description: 'Deprecated: no effect. The CLI detects non-interactive (CI) environments automatically and skips prompts.'
     required: false
     default: 'true'
   json-output:
@@ -113,7 +117,9 @@ runs:
 
     - name: Install Saleor Configurator
       shell: bash
-      run: npm install -g @saleor/configurator@latest
+      env:
+        CONFIGURATOR_VERSION: ${{ inputs.configurator-version }}
+      run: npm install -g "@saleor/configurator@${CONFIGURATOR_VERSION:-latest}"
 
     - name: Run Configurator
       id: run-configurator
@@ -136,13 +142,18 @@ runs:
       run: ${{ github.action_path }}/scripts/run-configurator.sh
 
     - name: Post PR Comment
-      if: inputs.post-pr-comment == 'true' && github.event_name == 'pull_request'
+      # Also post when a policy check (fail-on-delete/-breaking/-diff) failed the
+      # previous step - that is when reviewers most need to see the diff.
+      if: ${{ !cancelled() && inputs.post-pr-comment == 'true' && github.event_name == 'pull_request' }}
       uses: actions/github-script@v7
+      env:
+        # Passed via env, never interpolated into the script: the diff contains
+        # entity names from the config and the remote instance.
+        DIFF_OUTPUT: ${{ steps.run-configurator.outputs.diff-output }}
       with:
         github-token: ${{ inputs.github-token || github.token }}
         script: |
-          const fs = require('fs');
-          const diffOutput = '${{ steps.run-configurator.outputs.diff-output }}';
+          const diffOutput = (process.env.DIFF_OUTPUT || '').trim();
 
           if (!diffOutput) {
             console.log('No diff output to post');
