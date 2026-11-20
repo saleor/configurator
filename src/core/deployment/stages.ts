@@ -3,7 +3,6 @@ import {
   BulkOperationMessages,
   BulkOperationThresholds,
   ChunkSizeConfig,
-  DelayConfig,
   StageNames,
 } from "../../lib/utils/bulk-operation-constants";
 import { processInChunks } from "../../lib/utils/chunked-processor";
@@ -107,7 +106,6 @@ export const productTypesStage: DeploymentStage = {
         },
         {
           chunkSize: ChunkSizeConfig.PRODUCT_TYPES_CHUNK_SIZE,
-          delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
           entityType: "product types",
         }
       );
@@ -782,17 +780,7 @@ const modelsStage: DeploymentStage = {
         logger.debug(BulkOperationMessages.SEQUENTIAL_PROCESSING(config.models.length, "models"));
         await context.configurator.services.model.bootstrapModels(config.models);
       } else {
-        logger.info(
-          BulkOperationMessages.SEQUENTIAL_WITH_DELAY(
-            config.models.length,
-            "models",
-            DelayConfig.MODEL_PROCESSING_DELAY_MS
-          )
-        );
-        await context.configurator.services.model.bootstrapModelsSequentially(
-          config.models,
-          DelayConfig.MODEL_PROCESSING_DELAY_MS
-        );
+        await context.configurator.services.model.bootstrapModelsSequentially(config.models);
       }
     } catch (error) {
       if (isTransientError(error)) {

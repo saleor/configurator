@@ -8,8 +8,6 @@ export interface ConnectionPage<TEdge> {
   edges?: readonly TEdge[] | null;
 }
 
-const PAGE_DELAY_MS = 50;
-
 /**
  * Follows a GraphQL connection's cursor until the last page and returns every edge.
  * `fetchPage` receives the cursor to continue from (`null` for the first page) and
@@ -36,8 +34,5 @@ export async function fetchAllPages<TEdge>(
       throw new GraphQLError(`Stopped paging: Saleor returned cursor "${after}" again`);
     }
     seenCursors.add(after);
-
-    // Spaces out page requests to avoid rate limiting, like the other paginated fetches.
-    await new Promise((resolve) => setTimeout(resolve, PAGE_DELAY_MS));
   }
 }

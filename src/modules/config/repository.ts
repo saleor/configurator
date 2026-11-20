@@ -1035,20 +1035,9 @@ export class ConfigurationRepository implements ConfigurationOperations {
     const config = await this.completeLists(result.data as RawSaleorConfig);
 
     // Fetch all products with pagination to avoid first: N truncation
-    // Fetch sequentially with delays to avoid rate limiting
     try {
-      // Add a small delay between major queries to avoid rate limiting
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const allProductEdges = await this.fetchAllProducts();
-
-      // Another small delay before fetching attributes
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const fullAttributes = await this.fetchAllAttributes();
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
       const customerTypes = await this.fetchCustomerTypes();
 
       const data: RawSaleorConfig = {
@@ -1422,9 +1411,7 @@ export class ConfigurationRepository implements ConfigurationOperations {
           !!item.node?.id
       );
 
-    // Process attributes sequentially with delays to avoid rate limiting
-    for (let i = 0; i < attributeNodes.length; i++) {
-      const { index, node } = attributeNodes[i];
+    for (const { index, node } of attributeNodes) {
       const choices = await this.fetchAllChoicesForAttribute(node.id);
       const currentEdge = edges[index];
       if (!currentEdge?.node) continue;
@@ -1439,11 +1426,6 @@ export class ConfigurationRepository implements ConfigurationOperations {
           },
         },
       } as RawAttributeEdge;
-
-      // Add delay between attribute choice fetches to avoid rate limiting
-      if (i < attributeNodes.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 25));
-      }
     }
 
     return { edges } as NonNullable<RawSaleorConfig["attributes"]>;

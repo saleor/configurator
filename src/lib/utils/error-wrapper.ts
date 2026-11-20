@@ -85,13 +85,12 @@ async function wrapBatch<T, R>(
   processFn: (item: T) => Promise<R>,
   options?: {
     sequential?: boolean;
-    delayMs?: number;
   }
 ): Promise<{
   successes: Array<{ item: T; result: R }>;
   failures: Array<{ item: T; error: Error }>;
 }> {
-  const { sequential = false, delayMs = 0 } = options ?? {};
+  const { sequential = false } = options ?? {};
 
   let results: PromiseSettledResult<
     { item: T; success: true; result: R } | { item: T; success: false; error: Error }
@@ -99,11 +98,7 @@ async function wrapBatch<T, R>(
 
   if (sequential) {
     results = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (i > 0 && delayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
+    for (const item of items) {
       try {
         const result = await processFn(item);
         results.push({

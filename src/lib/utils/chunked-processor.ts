@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { BulkOperationMessages, ChunkSizeConfig, DelayConfig } from "./bulk-operation-constants";
+import { BulkOperationMessages, ChunkSizeConfig } from "./bulk-operation-constants";
 import { isTransientError } from "./error-classification";
 
 /**
@@ -11,12 +11,6 @@ interface ChunkedProcessorOptions {
    * @default 10
    */
   chunkSize?: number;
-
-  /**
-   * Delay in milliseconds between processing chunks
-   * @default 500
-   */
-  delayMs?: number;
 
   /**
    * Entity type for logging context (e.g., "product types", "warehouses")
@@ -52,13 +46,6 @@ interface ChunkSplitConfig {
 }
 
 /**
- * Configuration for delay between chunk processing
- */
-interface DelayBetweenChunksConfig {
-  readonly delayMs: number;
-}
-
-/**
  * Splits an array into chunks of a specified size
  * Follows Single Responsibility Principle - only handles array splitting logic
  */
@@ -79,38 +66,6 @@ class ChunkSplitter<T> {
     }
 
     return chunks;
-  }
-}
-
-/**
- * Handles delay between processing operations
- * Follows Single Responsibility Principle - only handles timing logic
- */
-class ChunkDelayManager {
-  constructor(private readonly config: DelayBetweenChunksConfig) {}
-
-  /**
-   * Creates a delay promise
-   * @returns Promise that resolves after the configured delay
-   */
-  async delay(): Promise<void> {
-    if (this.config.delayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, this.config.delayMs));
-    }
-  }
-
-  /**
-   * Logs delay information
-   * @param currentChunk - Current chunk number (1-indexed)
-   * @param nextChunk - Next chunk number (1-indexed)
-   */
-  logDelay(currentChunk: number, nextChunk: number): void {
-    if (this.config.delayMs > 0) {
-      logger.debug(`Waiting ${this.config.delayMs}ms before next chunk`, {
-        currentChunk,
-        nextChunk,
-      });
-    }
   }
 }
 
@@ -159,13 +114,11 @@ class ChunkResultMapper<T, R> {
  */
 class ChunkedOperationProcessor<T, R> {
   private readonly splitter: ChunkSplitter<T>;
-  private readonly delayManager: ChunkDelayManager;
   private readonly resultMapper: ChunkResultMapper<T, R>;
   private readonly entityType: string;
 
   constructor(private readonly options: Required<ChunkedProcessorOptions>) {
     this.splitter = new ChunkSplitter({ chunkSize: options.chunkSize });
-    this.delayManager = new ChunkDelayManager({ delayMs: options.delayMs });
     this.resultMapper = new ChunkResultMapper();
     this.entityType = options.entityType;
   }
@@ -192,17 +145,8 @@ class ChunkedOperationProcessor<T, R> {
     const successes: Array<{ item: T; result: R }> = [];
     const failures: Array<{ item: T; error: Error }> = [];
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      const chunkNumber = i + 1;
-
-      await this.processChunk(chunk, chunkNumber, chunks.length, processFn, successes, failures);
-
-      // Add delay between chunks (but not after the last chunk)
-      if (i < chunks.length - 1) {
-        this.delayManager.logDelay(chunkNumber, chunkNumber + 1);
-        await this.delayManager.delay();
-      }
+    for (const [i, chunk] of chunks.entries()) {
+      await this.processChunk(chunk, i + 1, chunks.length, processFn, successes, failures);
     }
 
     return this.createResult(successes, failures, chunks.length);
@@ -272,8 +216,7 @@ class ChunkedOperationProcessor<T, R> {
         itemCount,
         this.entityType,
         chunkCount,
-        this.options.chunkSize,
-        this.options.delayMs
+        this.options.chunkSize
       )
     );
   }
@@ -329,12 +272,10 @@ class ChunkedOperationProcessor<T, R> {
 }
 
 /**
- * Processes items in chunks with configurable delay between chunks
+ * Processes items in chunks, one chunk at a time
  *
- * This utility is designed to prevent rate limiting by:
- * - Splitting large arrays into smaller batches
- * - Adding delays between batch processing
- * - Handling errors gracefully without stopping the entire process
+ * - Splits large arrays into smaller batches
+ * - Handles errors gracefully without stopping the entire process
  *
  * Follows SOLID principles:
  * - Single Responsibility: Each class has one clear purpose
@@ -348,7 +289,7 @@ class ChunkedOperationProcessor<T, R> {
  *
  * @param items - Array of items to process
  * @param processFn - Async function that processes a chunk of items
- * @param options - Configuration options for chunk size, delay, and logging
+ * @param options - Configuration options for chunk size and logging
  *
  * @returns Promise resolving to results with successes, failures, and metrics
  *
@@ -361,7 +302,6 @@ class ChunkedOperationProcessor<T, R> {
  *   async (chunk) => await createProductTypes(chunk),
  *   {
  *     chunkSize: 10,
- *     delayMs: 500,
  *     entityType: "product types"
  *   }
  * );
@@ -377,7 +317,6 @@ export async function processInChunks<T, R>(
 ): Promise<ChunkedProcessorResult<T, R>> {
   const defaultedOptions: Required<ChunkedProcessorOptions> = {
     chunkSize: options.chunkSize ?? ChunkSizeConfig.DEFAULT_CHUNK_SIZE,
-    delayMs: options.delayMs ?? DelayConfig.DEFAULT_CHUNK_DELAY_MS,
     entityType: options.entityType ?? "items",
   };
 
@@ -400,7 +339,7 @@ function splitIntoChunks<T>(items: T[], chunkSize: number): T[][] {
 
 /**
  * Chunked processor utility
- * Provides consistent chunked processing with rate limiting protection
+ * Provides consistent chunked processing
  */
 export const ChunkedProcessor = {
   processInChunks,

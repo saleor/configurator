@@ -21,7 +21,7 @@ These reads are capped:
 
 ## Request pacing
 
-All GraphQL requests go through one queue. Its defaults keep within the Saleor Cloud sandbox limit of 120 requests per minute.
+All GraphQL requests go through one queue. Apart from retries, Configurator adds no other waits between requests. The defaults keep within the Saleor Cloud free sandbox limit of 120 requests per minute. Raise them for paid sandboxes (2,000 per minute) and production, which has no fixed rate limit.
 
 | Setting | Default | Environment variable |
 |---|---|---|
@@ -36,7 +36,7 @@ Fixed values:
 
 - A `Retry-After` value longer than 5 minutes counts as 5 minutes.
 - If rate limiting keeps the queue paused for more than 10 minutes, the command fails.
-- `introspect` and `diff` wait 50 ms between pages of a list, and 100 ms between reading products, attributes and customer types.
+- `introspect` and `diff` stop paging with an error if Saleor returns the same cursor twice.
 
 ## Retries
 
@@ -54,11 +54,11 @@ Queries are retried. Mutations are retried only when repeating them is safe: upd
 | Entity | Below the threshold | Above the threshold |
 |---|---|---|
 | Attributes (threshold 10) | One request each | Bulk mutations |
-| Categories (threshold 10) | One at a time, 100 ms apart | Level by level, one at a time, 50 ms apart |
-| Models (threshold 5) | Together | One at a time, 100 ms apart |
-| Shipping zones (threshold 3) | Together | One at a time, 500 ms apart |
+| Categories (threshold 10) | One at a time | Level by level, one at a time |
+| Models (threshold 5) | Together | One at a time |
+| Shipping zones (threshold 3) | Together | One at a time |
 
-Product types, collections, warehouses and customer types are sent in batches of 10, 500 ms apart. Each shipping method channel listing update is followed by a 200 ms pause.
+Product types, collections, warehouses and customer types are sent in batches of 10, one batch at a time.
 
 ## Output
 

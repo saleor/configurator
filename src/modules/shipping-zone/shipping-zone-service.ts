@@ -1,9 +1,8 @@
 import { logger } from "../../lib/logger";
-import { BulkOperationThresholds, DelayConfig } from "../../lib/utils/bulk-operation-constants";
+import { BulkOperationThresholds } from "../../lib/utils/bulk-operation-constants";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
-import { delay } from "../../lib/utils/resilience";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
 import type { WarehouseOperations } from "../warehouse/repository";
@@ -422,15 +421,6 @@ export class ShippingZoneService {
       const createInput = this.mapShippingMethodToCreateInput(method, shippingZoneId);
       const createdMethod = await this.repository.createShippingMethod(createInput);
       await this.applyShippingMethodChannelListings(createdMethod.id, method.channelListings);
-      await this.delayAfterChannelListingUpdate(method.channelListings);
-    }
-  }
-
-  private async delayAfterChannelListingUpdate(
-    channelListings: ShippingMethodInput["channelListings"]
-  ): Promise<void> {
-    if (channelListings && Array.isArray(channelListings) && channelListings.length > 0) {
-      await delay(DelayConfig.SHIPPING_CHANNEL_LISTING_DELAY_MS);
     }
   }
 
@@ -486,7 +476,6 @@ export class ShippingZoneService {
       }
 
       await this.applyShippingMethodChannelListings(methodId, desiredMethod.channelListings);
-      await this.delayAfterChannelListingUpdate(desiredMethod.channelListings);
     }
   }
 
@@ -510,7 +499,7 @@ export class ShippingZoneService {
       );
     }
 
-    // Use sequential mode with delays for more than 3 zones to prevent rate limiting
+    // Create zones one at a time when there are more than 3
     const useSequential = inputs.length > BulkOperationThresholds.SHIPPING_ZONES_SEQUENTIAL;
 
     const results = await ServiceErrorWrapper.wrapBatch(
@@ -518,17 +507,8 @@ export class ShippingZoneService {
       "Bootstrap shipping zones",
       (zone) => zone.name,
       (input) => this.getOrCreateShippingZone(input),
-      {
-        sequential: useSequential,
-        delayMs: useSequential ? DelayConfig.DEFAULT_CHUNK_DELAY_MS : 0,
-      }
+      { sequential: useSequential }
     );
-
-    if (useSequential) {
-      logger.info(
-        `Processed ${inputs.length} shipping zones sequentially with fixed ${DelayConfig.DEFAULT_CHUNK_DELAY_MS}ms delay`
-      );
-    }
 
     if (results.failures.length > 0) {
       const errorMessage = `Failed to bootstrap ${results.failures.length} of ${inputs.length} shipping zones`;
