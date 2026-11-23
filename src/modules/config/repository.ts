@@ -646,6 +646,10 @@ const getCategoriesPageQuery = graphql(`
             id
             slug
           }
+          metadata {
+            key
+            value
+          }
         }
       }
     }
@@ -667,6 +671,10 @@ const getWarehousesPageQuery = graphql(`
           email
           isPrivate
           clickAndCollectOption
+          metadata {
+            key
+            value
+          }
           address {
             streetAddress1
             streetAddress2
@@ -707,6 +715,10 @@ const getShippingZonesPageQuery = graphql(`
           name
           default
           description
+          metadata {
+            key
+            value
+          }
           countries {
             code
           }
@@ -723,6 +735,11 @@ const getShippingZonesPageQuery = graphql(`
             name
             description
             type
+            metadata {
+              key
+              value
+            }
+
             maximumDeliveryDays
             minimumDeliveryDays
             maximumOrderWeight {
