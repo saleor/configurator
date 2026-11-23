@@ -46,18 +46,24 @@ export default async function setup(project: TestProject) {
     );
   }
   const ownsStack = !externalUrl;
-  if (ownsStack) startStack();
+  try {
+    if (ownsStack) startStack();
 
-  const apiUrl = externalUrl ?? `http://localhost:${saleorPort()}/graphql/`;
-  const token = process.env.E2E_SALEOR_TOKEN ?? (await createAppToken(apiUrl));
-  const media = await serveMediaFixtures();
-  const { port } = media.address() as AddressInfo;
+    const apiUrl = externalUrl ?? `http://localhost:${saleorPort()}/graphql/`;
+    const token = process.env.E2E_SALEOR_TOKEN ?? (await createAppToken(apiUrl));
+    const media = await serveMediaFixtures();
+    const { port } = media.address() as AddressInfo;
 
-  project.provide("saleor", { apiUrl, token });
-  project.provide("mediaBaseUrl", `http://host.docker.internal:${port}`);
+    project.provide("saleor", { apiUrl, token });
+    project.provide("mediaBaseUrl", `http://host.docker.internal:${port}`);
 
-  return () => {
-    media.close();
+    return () => {
+      media.close();
+      if (ownsStack) stopStack(RESULTS_DIR);
+    };
+  } catch (error) {
+    // Vitest only runs the teardown we return, so a failed setup saves the logs itself.
     if (ownsStack) stopStack(RESULTS_DIR);
-  };
+    throw error;
+  }
 }
