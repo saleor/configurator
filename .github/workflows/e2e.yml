@@ -1,7 +1,7 @@
 name: E2E
 
 # Runs the built CLI against a throwaway Saleor started in Docker inside the job
-# (e2e/compose.yml). No Saleor Cloud and no secrets, so it also runs on fork PRs.
+# (e2e/compose.yml).
 
 permissions:
   contents: read
