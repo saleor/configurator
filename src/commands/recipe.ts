@@ -2,11 +2,11 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Command, Option } from "@commander-js/extra-typings";
-import ora from "ora";
 import { stringify } from "yaml";
 import { z } from "zod";
 import { baseCommandArgsSchema, confirmAction } from "../cli/command";
 import { Console, cliConsole } from "../cli/console";
+import { startSpinner } from "../cli/progress";
 import { createConfigurator } from "../core/configurator";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
@@ -175,7 +175,7 @@ async function applyHandler(args: z.infer<typeof recipeApplyArgsSchema>): Promis
     if (!args.json) console.header("🍳 Recipe Apply\n");
     logger.info("Applying recipe", { name: args.name });
 
-    const spinner = args.json ? null : ora("Loading recipe...").start();
+    const spinner = args.json ? null : startSpinner("Loading recipe...");
     const recipe = loadRecipeConfig(args.name);
     spinner?.succeed(`Loaded recipe: ${recipe.metadata.name}`);
     if (!args.json) console.muted(`Recipe requires Saleor ${recipe.metadata.saleorVersion}`);
@@ -183,7 +183,7 @@ async function applyHandler(args: z.infer<typeof recipeApplyArgsSchema>): Promis
     tempConfigPath = writeTempConfig(recipe.config);
     const configurator = createConfigurator({ ...args, config: tempConfigPath });
 
-    const diffSpinner = args.json ? null : ora("Analyzing configuration differences...").start();
+    const diffSpinner = args.json ? null : startSpinner("Analyzing configuration differences...");
     const { summary } = await configurator.diff({ skipMedia: false });
     diffSpinner?.succeed(`Found ${summary.totalChanges} changes`);
 
@@ -233,7 +233,7 @@ async function applyHandler(args: z.infer<typeof recipeApplyArgsSchema>): Promis
       }
     }
 
-    const deploySpinner = args.json ? null : ora("Applying recipe configuration...").start();
+    const deploySpinner = args.json ? null : startSpinner("Applying recipe configuration...");
     try {
       await configurator.push();
       deploySpinner?.succeed("Recipe applied successfully!");

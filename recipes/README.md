@@ -1,184 +1,49 @@
-# Saleor Configurator Recipes
+# Recipes and example stores
 
-Pre-built YAML configuration templates for common e-commerce scenarios. Each recipe provides a tested, production-ready configuration that you can deploy immediately or customize to your needs.
+## Bundled recipes
 
-These recipes complement the [Saleor Recipes documentation](https://docs.saleor.io/recipes/overview), which provides conceptual guides and implementation details. Use the docs to understand the concepts, then use these templates to quickly deploy the configuration.
+The `recipe` command ships four small configurations that each set up one part of a store:
 
-## Quick Start
+| Recipe | Creates |
+|---|---|
+| `multi-region` | 3 channels (US, EU, UK), 3 warehouses, 3 shipping zones |
+| `digital-products` | 3 product types without shipping |
+| `click-and-collect` | 2 warehouses set up as pickup points, 1 shipping zone |
+| `custom-shipping` | 3 shipping zones with methods and rates |
 
 ```bash
-# List available recipes
 npx @saleor/configurator recipe list
-
-# Preview a recipe's configuration
 npx @saleor/configurator recipe show multi-region
-
-# Apply a recipe to your Saleor instance
-npx @saleor/configurator recipe apply multi-region --url <URL> --token <TOKEN>
-
-# Export a recipe for customization
-npx @saleor/configurator recipe export multi-region --output my-config.yml
+npx @saleor/configurator recipe apply multi-region --plan
+npx @saleor/configurator recipe apply multi-region
 ```
 
-## Available Recipes
-
-### Multi-Region (`multi-region`)
-
-Configure channels for US, EU, and UK markets with regional warehouses and shipping zones.
-
-**Use cases:**
-- International stores
-- Multi-country operations
-- Regional pricing strategies
-
-**Entities created:**
-- 3 Channels (US, EU, UK)
-- 3 Warehouses (regional fulfillment centers)
-- 3 Shipping Zones (per region)
-
-```bash
-npx @saleor/configurator recipe apply multi-region --url <URL> --token <TOKEN>
-```
-
-### Digital Products (`digital-products`)
-
-Configure product types for selling non-physical goods without shipping requirements.
-
-**Use cases:**
-- Software licenses
-- Digital downloads
-- Online courses
-- Subscription services
-
-**Entities created:**
-- 3 Product Types (configured for digital delivery)
-
-```bash
-npx @saleor/configurator recipe apply digital-products --url <URL> --token <TOKEN>
-```
-
-### Click & Collect (`click-and-collect`)
-
-Configure warehouses as pickup points with local collection shipping options.
-
-**Use cases:**
-- Retail chains with BOPIS (Buy Online, Pick Up In Store)
-- Grocery stores
-- Quick service restaurants
-- Hybrid retail models
-
-**Entities created:**
-- 2 Warehouses (configured as pickup locations)
-- 1 Shipping Zone (local pickup)
-
-```bash
-npx @saleor/configurator recipe apply click-and-collect --url <URL> --token <TOKEN>
-```
-
-### Custom Shipping (`custom-shipping`)
-
-Configure shipping zones with methods and rate structures for common regions.
-
-**Use cases:**
-- Complex logistics requirements
-- Multi-carrier strategies
-- Zone-based pricing
-- Special delivery services
-
-**Entities created:**
-- 3 Shipping Zones (with methods and rates)
-
-```bash
-npx @saleor/configurator recipe apply custom-shipping --url <URL> --token <TOKEN>
-```
-
-## Choosing the Right Recipe
-
-| Recipe | Best For | Key Benefit |
-|--------|----------|-------------|
-| **multi-region** | Global operations | Multi-currency, regional fulfillment |
-| **digital-products** | Software & media | No shipping complexity |
-| **click-and-collect** | Omnichannel retail | Store pickup integration |
-| **custom-shipping** | Complex logistics | Flexible rate structures |
-
-## Customization Workflow
-
-Recipes are starting points. Here's how to customize:
-
-### 1. Export the Recipe
+To change a recipe before applying it, export it, edit the file, and apply the file:
 
 ```bash
 npx @saleor/configurator recipe export multi-region --output my-store.yml
+npx @saleor/configurator recipe apply my-store.yml
 ```
 
-### 2. Customize the Configuration
+Recipes live in `src/recipes`. To add one, add its YAML file there and regenerate `manifest.json` with `pnpm exec tsx scripts/generate-recipe-manifest.ts`.
 
-Edit `my-store.yml` to:
-- Adjust channel settings (currencies, countries)
-- Modify warehouse addresses
-- Configure shipping rates
-- Add product types and categories
+## Example stores
 
-### 3. Preview Changes
+The folders in this directory hold larger example configurations for a whole store type. They are not available through `recipe`; copy one and deploy it with `--config`:
 
 ```bash
-npx @saleor/configurator diff --url <URL> --token <TOKEN> --config my-store.yml
+npx @saleor/configurator diff --config recipes/fashion/fashion.yml
+npx @saleor/configurator deploy --config recipes/fashion/fashion.yml
 ```
 
-### 4. Deploy
+| File | Store type | Contents |
+|---|---|---|
+| [`b2b/b2b.yml`](b2b/b2b.yml) | B2B wholesale | 2 channels, 2 product types, 2 page types, 5 categories |
+| [`click-collect/click-collect.yml`](click-collect/click-collect.yml) | Buy online, pick up in store | 3 channels, 2 product types, 2 page types, 5 categories |
+| [`custom-shipping/custom-shipping.yml`](custom-shipping/custom-shipping.yml) | Shipping-heavy catalog | 3 channels, 2 product types, 3 page types, 5 categories |
+| [`digital-products/digital.yml`](digital-products/digital.yml) | Software, ebooks, courses | 1 channel, 5 product types, 2 page types, 5 categories |
+| [`fashion/fashion.yml`](fashion/fashion.yml) | Clothing, footwear, accessories | 2 channels, 3 product types, 2 page types, 5 categories |
+| [`marketplace/marketplace.yml`](marketplace/marketplace.yml) | Multi-vendor marketplace | 1 channel, 2 product types, 2 page types, 5 categories |
+| [`multi-region/multi-region.yml`](multi-region/multi-region.yml) | International store | 5 channels, 1 product type, 3 page types, 4 categories |
 
-```bash
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --config my-store.yml
-```
-
-## Recipe Command Reference
-
-| Command | Description |
-|---------|-------------|
-| `recipe list` | List all available recipes with descriptions |
-| `recipe list --category <cat>` | Filter recipes by category |
-| `recipe list --json` | Output in JSON format |
-| `recipe show <name>` | Display a recipe's full configuration |
-| `recipe show <name> --json` | Output configuration as JSON |
-| `recipe apply <name>` | Deploy a recipe to your Saleor instance |
-| `recipe apply <name> --plan` | Preview without applying |
-| `recipe apply <name> --ci` | Skip confirmation prompts |
-| `recipe export <name>` | Save a recipe to a local file |
-| `recipe export <name> --output <path>` | Specify output file path |
-
-## Combining Recipes
-
-You can combine multiple recipes by exporting and merging:
-
-```bash
-# Export recipes
-npx @saleor/configurator recipe export multi-region --output base.yml
-npx @saleor/configurator recipe export digital-products --output digital.yml
-
-# Manually merge the YAML files, then deploy
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --config merged.yml
-```
-
-## Contributing Recipes
-
-We welcome community contributions. To add a new recipe:
-
-1. Create a YAML file in `src/recipes/` following existing patterns
-2. Update `src/recipes/manifest.json` with recipe metadata
-3. Test the recipe against a Saleor instance
-4. Submit a pull request
-
-### Recipe Guidelines
-
-- **Production-ready**: Recipes should be deployable without modification
-- **Well-documented**: Include clear descriptions in the manifest
-- **Tested**: Verify with the latest supported Saleor version (3.15+)
-- **Focused**: Each recipe should solve a specific use case
-
-## Related Resources
-
-- [Saleor Recipes](https://docs.saleor.io/recipes/overview) — Conceptual guides for e-commerce patterns
-- [Saleor Documentation](https://docs.saleor.io) — Official Saleor documentation
-- [Configuration Schema](../SCHEMA.md) — Full field documentation
-- [CLI Reference](../docs/COMMANDS.md) — Complete command reference
-- [Examples](../docs/EXAMPLES.md) — Additional configuration examples
+Each file also defines shop settings and the product and content attributes its types use. CI checks that every file passes validation with no unknown keys.

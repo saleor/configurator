@@ -1,145 +1,38 @@
-# Saleor Configurator - Claude Code Guide
+# Saleor Configurator
 
-Declarative "commerce as code" CLI for Saleor e-commerce. Define your store configuration in YAML, sync with your Saleor instance.
+## Running the CLI
 
-## Quick Reference
+`pnpm dev <command>` runs the CLI from source and reads `SALEOR_URL` and `SALEOR_TOKEN` from `.env.local`. Without a TTY (agent shells, pipes, CI) it skips prompts and prints a JSON envelope; pass `--text` for human-readable output.
 
-### Essential Commands
+Requests are paced to the Saleor Cloud sandbox limit of 120 per minute, so large deploys are slow by design (`docs/LIMITS.md`).
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm dev <cmd>` | Run CLI in development (introspect, deploy, diff, start) |
-| `pnpm build` | Compile TypeScript |
-| `pnpm test` | Run test suite |
-| `pnpm check:fix` | Auto-fix lint and formatting |
-| `pnpm check:ci` | CI validation mode |
+`deploy` never deletes top-level entities; entities missing from `config.yml` are only reported as deletions by `diff` and `deploy --plan`.
 
-### Running CLI Commands (Important)
-
-**Non-interactive mode is auto-detected** in non-TTY environments (pipes, CI, subprocesses). No special flag needed — confirmations are skipped automatically.
+## Before pushing
 
 ```bash
-# Credentials come from .env.local (see .env.example for template)
-# source .env.local or set SALEOR_URL and SALEOR_TOKEN
-
-# Deploy
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
-
-# Introspect
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
-
-# Diff
-pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN
+pnpm schema:check   # after config schema changes, run `pnpm schema:sync`
+pnpm check:ci
+pnpm knip           # unused exports fail CI
+pnpm test:ci        # `pnpm test` starts watch mode
+pnpm typecheck      # not in CI
 ```
 
-**Outputs to check after deploy:**
-- **Console**: Deployment summary box with timing, changes, and resilience stats
-- **Report**: Auto-saved as `deployment-report-YYYY-MM-DD_HH-MM-SS.json` in CWD (or `--report-path=custom.json`)
-- **Logs**: Set `LOG_LEVEL=debug` for verbose logging (default: `info`)
+The `pre-push` hook regenerates `SCHEMA.md`; commit it when it changes. Every PR needs a changeset, or the `skip changeset` label if it touches nothing under `src/`, the schema files, the lockfile or dependencies.
 
-**Governor tuning (env vars):**
-- `GRAPHQL_GOVERNOR_ENABLED=true|false` — enable/disable request governor
-- `GRAPHQL_MAX_CONCURRENCY=4` — max concurrent GraphQL requests
-- `GRAPHQL_INTERVAL_CAP=20` — max requests per interval
-- `GRAPHQL_INTERVAL_MS=1000` — interval window in ms
+## Checking against a real store
 
-### Entity Identification
-
-| Entity Type | Identifier | Examples |
-|-------------|------------|----------|
-| Slug-based | `slug` | Categories, Products, Channels, Collections, Menus, Warehouses |
-| Name-based | `name` | ProductTypes, PageTypes, Attributes, TaxClasses, ShippingZones |
-| Singleton | N/A | Shop settings |
-
-## Skills
-
-Skills provide domain-specific guidance. When your task matches a skill's domain, invoke it for comprehensive patterns.
-
-| Domain | Skill | Invoke When |
-|--------|-------|-------------|
-| Code Quality | `reviewing-typescript-code` | Writing/modifying TypeScript code |
-| Testing | `analyzing-test-coverage` | Writing tests, Vitest, MSW mocks |
-| GraphQL | `writing-graphql-operations` | Creating GraphQL queries/mutations |
-| CLI | `implementing-cli-patterns` | Working on CLI output, spinners, prompts |
-| Entities | `adding-entity-types` | Implementing new Saleor entity support |
-| Domain | `understanding-saleor-domain` | Working with entity rules, config schema |
-| Schemas | `designing-zod-schemas` | Creating validation schemas |
-| Validation | `validating-pre-commit` | Preparing to commit or push |
-| Releases | `creating-changesets` | Preparing version bumps, changelogs |
-| CI/CD | `managing-github-ci` | Working on GitHub Actions workflows |
-
-## Code Quality Standards
-
-### Function Design
-- Ideal: 10-50 lines
-- Maximum: ~100 lines for complex logic
-- Single responsibility per function
-
-### Type Safety
-- No `any` except in test mocks (Biome enforced)
-- Use branded types for domain values
-- Prefer discriminated unions over inheritance
-
-### Style
-- Functional patterns: `map`/`filter`/`flatMap` over loops
-- Extend `BaseError` for custom errors
-- Use `ServiceErrorWrapper` for error handling
-
-## Pre-Commit Checklist
-
-Run in order before pushing:
+For changes to introspect, diff or deploy:
 
 ```bash
-pnpm check:fix && pnpm build && pnpm test && pnpm check:ci
+rm -f config.yml && pnpm dev introspect
+# edit config.yml
+pnpm dev deploy
+pnpm dev deploy   # must report no changes
+rm config.yml && pnpm dev introspect
+pnpm dev diff     # must report no differences
 ```
 
-## E2E Testing (Core Changes)
+## Saleor versions
 
-```bash
-# Credentials from .env.local (see .env.example for template)
-# source .env.local
-
-# Validation workflow (non-interactive auto-detected in non-TTY)
-rm -rf config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
-# Make test changes to config.yml
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN
-pnpm dev deploy --url=$SALEOR_URL --token=$SALEOR_TOKEN  # Should show no changes (idempotent)
-rm config.yml
-pnpm dev introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
-pnpm dev diff --url=$SALEOR_URL --token=$SALEOR_TOKEN    # Should show no diff
-```
-
-## Documentation
-
-| Need | Location |
-|------|----------|
-| Architecture | `docs/ARCHITECTURE.md` |
-| Code Quality | `docs/CODE_QUALITY.md` |
-| Testing | `docs/TESTING_PROTOCOLS.md` |
-| Commands | `docs/COMMANDS.md` |
-| Entities | `docs/ENTITY_REFERENCE.md` |
-| Troubleshooting | `docs/TROUBLESHOOTING.md` |
-
-## Rules
-
-Path-targeted rules in `.claude/rules/` provide contextual guidance when editing specific file types:
-
-| Rule | Applies To |
-|------|------------|
-| `code-quality.md` | `src/**/*.ts` |
-| `graphql-patterns.md` | GraphQL operations, repositories |
-| `testing-standards.md` | `*.test.ts` files |
-| `entity-development.md` | Entity modules |
-| `cli-development.md` | CLI and command files |
-| `config-schema.md` | Config and schema files |
-| `diff-engine.md` | Diff comparators and formatters |
-| `deployment-safety.md` | Always (quality gates) |
-
-## Principles
-
-1. **Read before writing** - Explore with skills and rules before implementing
-2. **Small iterations** - Small functions, frequent validation
-3. **Lint always** - Run `pnpm check:fix` after changes
-4. **Skills first** - Invoke relevant skill before starting work
-5. **Test early** - Write tests alongside implementation
+One Saleor minor is supported at a time (`package.json#saleor.schemaVersion`), with no per-version schemas or operations. When Saleor removes a config field, mark it `removedInSaleor("<version>")` so validation tells users to delete it, and drop the marker after the migration window.

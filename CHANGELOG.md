@@ -1,5 +1,18 @@
 # saleor-configurator
 
+## 3.23.4
+
+### Patch Changes
+
+- 77d7ed7: Product description changes in lists, tables, quotes and code blocks are now detected by `diff` and applied by `deploy`. Previously only paragraph and header text was compared, so these edits were silently skipped. When both sides are EditorJS JSON, changing a block's type (e.g. paragraph to header) is detected too.
+- 141949f: The bundled example configurations (`example.yml`, `recipes/`, and the plugin's recipe templates) now pass validation and deploy checks: attributes are declared in `productAttributes`/`contentAttributes` and referenced by name, and fields Saleor doesn't support were removed.
+- 7576aee: `introspect` and `diff` now read every category, product type, page type, warehouse, shipping zone, tax class, collection, menu and model. Previously each list stopped at the first 50, so larger stores got an incomplete config file. Collections now list all their products instead of the first 20.
+- 583e07a: Fix product diff reporting channel listings and variants in the wrong direction. A listing or variant that exists only in your config is now reported as "will be added" (it used to say "will be removed"), and one that exists only in Saleor is reported as "only in Saleor (deploy does not remove it)". Current and desired values in diff output are no longer swapped for these changes.
+- d8cdcdc: `diff` and `deploy` no longer report every remote entity of a section as a deletion when that section is absent from your config. An absent section is now treated as unmanaged; an explicitly empty list (e.g. `channels: []`) still reports remote entities as missing from config. This also stops `--fail-on-delete` from blocking deploys of partial configs and recipes.
+- f28a51d: Unknown config keys are now reported instead of silently ignored. `validate`, `diff`, `deploy` and `recipe` print a warning for each key the schema doesn't define, at any level of the file, for example `Unknown key "shop.headrText" is not supported and was ignored`. A key repeated across many entries is reported once with a count. The key is still ignored, so configs that worked before keep working; `validate --json` lists them under `result.warnings`. Unknown keys on channels and channel tax settings now warn too, instead of failing validation.
+
+  `introspect` no longer writes a `slug` on page types; the field was derived from the name and was never read.
+
 ## 3.23.3
 
 ### Patch Changes

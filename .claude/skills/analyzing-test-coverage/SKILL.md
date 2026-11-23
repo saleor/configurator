@@ -144,7 +144,6 @@ See `references/commands-reference.md` for advanced options and coverage configu
 ### Project Resources
 - `{baseDir}/src/test-helpers/` - Test utilities
 - `{baseDir}/vitest.config.ts` - Test configuration
-- `{baseDir}/docs/TESTING_PROTOCOLS.md` - Testing protocols
 
 ### External Documentation
 - Vitest docs: https://vitest.dev
@@ -155,7 +154,3 @@ See `references/commands-reference.md` for advanced options and coverage configu
 - **Complete entity workflow**: See `adding-entity-types` for E2E implementation including tests
 - **Zod test patterns**: See `designing-zod-schemas` for schema validation tests
 - **GraphQL mocking**: See `writing-graphql-operations` for MSW handlers
-
-## Quick Reference Rule
-
-For a condensed quick reference, see `.claude/rules/testing-standards.md` (automatically loaded when editing `*.test.ts` files).

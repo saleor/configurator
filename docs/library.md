@@ -60,10 +60,6 @@ Keep the configuration unchanged between reviewing its diff and deploying it. Ea
 
 `@saleor/configurator` is the supported library entry. Its documented functions, error codes, and data contracts follow semantic versioning: breaking library changes require a major package version. Configuration fields track the supported Saleor schema and are described by `schema.json`. Internal source paths, service classes, diagnostic wording, timing, and undocumented result fields are not public contracts. Future Effect-based internals will preserve this Promise-based boundary or introduce a separately versioned API.
 
-## Next extraction seams
-
-Start with pure preflight validators and diff comparison/selection functions. Next isolate YAML storage and GraphQL transport behind injected interfaces, then move per-entity operations and deployment orchestration onto those services. Progress is already injectable; scoped logging can become a host-provided service. Remove the remaining global resilience tracker before offering concurrent deployments. Keep Effect at these internal seams while retaining the public Promise facade for non-Effect hosts.
-
 ## Prototype compatibility
 
 `@saleor/configurator/engine` retains `createEngine`, `Engine`, `EngineOptions`, `EngineError`, `EngineErrorCode`, and `EngineOperationError` for the existing CLI prototype. Its `pull()` maps to `introspect()`. New integrations should import `createConfigurator` and types from the package root. The CLI binary and command names are unchanged.

@@ -1,398 +1,82 @@
 # Saleor Configurator
 
-> Commerce as Code — Define your Saleor store in YAML, sync with your instance
-
 [![npm version](https://img.shields.io/npm/v/@saleor/configurator.svg)](https://www.npmjs.com/package/@saleor/configurator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Declarative configuration management for [Saleor](https://saleor.io) e-commerce stores.
+Define a [Saleor](https://saleor.io) store's configuration in YAML, keep it in Git, and sync it with the store. `introspect` writes the store to `config.yml`, `diff` shows what would change, and `deploy` applies the file.
 
-## What is Saleor Configurator?
+## Compatibility
 
-Saleor Configurator brings **infrastructure-as-code** principles to e-commerce. Instead of manually configuring your store through the dashboard, you define everything in version-controlled YAML files and sync them to your Saleor instance.
+Configurator versions follow Saleor versions: configurator `3.23.x` targets Saleor `3.23.x`. The target is declared in `package.json#saleor.schemaVersion`. Other Saleor minors may work; `introspect`, `diff` and `deploy` print a warning when the connected store reports a different minor.
 
-**Key Benefits:**
+Requires Node.js 20 or later.
 
-- **Version Control** — Track all store changes in Git with full history
-- **Reproducibility** — Spin up identical configurations across environments
-- **Multi-Environment** — Manage dev, staging, and production from the same codebase
-- **Review Process** — Use pull requests to review configuration changes
-- **Automation** — Integrate with CI/CD for automated deployments
+## Getting started
 
-```
-┌─────────────┐     introspect     ┌─────────────┐
-│   Saleor    │ ─────────────────► │  config.yml │
-│  Instance   │                    │   (local)   │
-└─────────────┘                    └─────────────┘
-       ▲                                  │
-       │                                  │
-       │         deploy                   │ modify
-       └──────────────────────────────────┘
-```
+### 1. Create a token
 
-## Quick Start
+In the Saleor Dashboard, go to **Extensions**, add an extension with **Provide details manually**, grant it all permissions, and create a token on its page. The token is shown once.
 
-**Prerequisites:** Node.js 20+
+### 2. Point the CLI at your store
 
-### Compatibility
-
-Configurator releases follow the supported Saleor major and minor version. Configurator `3.23.x` targets Saleor `3.23.x`.
-
-The supported Saleor minor is declared in `package.json#saleor.schemaVersion`. Patch versions within that Saleor minor are treated as compatible. Older Saleor minors may still work, but they are not active support targets for the latest configurator line.
-
-### Installation
+Pass `--url` and `--token` to each command, or set them once:
 
 ```bash
-# Run directly (recommended)
-npx @saleor/configurator start
-pnpm dlx @saleor/configurator start
-
-# Or install globally
-npm install -g @saleor/configurator
-pnpm add -g @saleor/configurator
-```
-
-### Getting Your API Token
-
-Before using Saleor Configurator, you need an API token from your Saleor instance. This token allows the CLI to read and modify your store configuration.
-
-#### Step 1: Access Your Saleor Dashboard
-
-Go to your Saleor Dashboard:
-- **Saleor Cloud**: `https://your-store.saleor.cloud/dashboard/`
-- **Self-hosted**: `https://your-domain.com/dashboard/`
-
-#### Step 2: Create a New App
-
-1. Navigate to **Extensions** → **Installed** in the sidebar
-2. Click **Add Extension** → **Provide details manually**
-3. Enter a name like `Configurator` or `Configuration Manager`
-
-#### Step 3: Assign Permissions
-
-Grant the app **all permissions** needed for configuration management:
-
-| Permission Category | Required For |
-|---------------------|--------------|
-| **Products** | Product types, categories, products, variants |
-| **Channels** | Sales channels, currency settings |
-| **Shipping** | Shipping zones, methods, warehouses |
-| **Pages** | Page types (model types), pages (models) |
-| **Menus** | Navigation structures |
-| **Discounts** | Vouchers and sales (if using) |
-| **Settings** | Shop settings, tax configuration |
-
-> **Tip:** For full configuration management, select all available permissions. You can restrict permissions later for specific environments.
-
-#### Step 4: Generate the Token
-
-1. After creating the app, go to the app's detail page
-2. Find the **Tokens** section
-3. Click **Create Token**
-4. Copy the token immediately — it won't be shown again
-
-Your token will look like: `eyJhbGciOiJSUzI1NiIsInR5cCI6...` (JWT format) or a shorter alphanumeric string.
-
-#### Step 5: Store Your Credentials
-
-For repeated use, store your credentials as environment variables:
-
-```bash
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
 export SALEOR_URL="https://your-store.saleor.cloud/graphql/"
-export SALEOR_TOKEN="your-token-here"
-
-# Then use in commands
-npx @saleor/configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN
+export SALEOR_TOKEN="your-token"
 ```
 
-> **Security Note:** Never commit tokens to version control. Use environment variables or a secrets manager.
+The CLI also reads these from `.env` and `.env.local` in the current directory. Keep tokens out of version control.
 
-#### Verify Your Setup
-
-Test that your token works:
+### 3. Sync
 
 ```bash
-npx @saleor/configurator introspect --url=$SALEOR_URL --token=$SALEOR_TOKEN --include shop
+npx @saleor/configurator introspect   # write the store to config.yml
+# edit config.yml
+npx @saleor/configurator diff         # preview the changes
+npx @saleor/configurator deploy       # apply them
 ```
 
-If successful, you'll see your shop settings downloaded. If you get an authentication error, verify your token and URL (ensure the URL ends with `/graphql/`).
-
-### First-Time Setup
-
-The easiest way to get started is with the interactive wizard:
-
-```bash
-npx @saleor/configurator start
-```
-
-### Core Workflow
-
-```bash
-# 1. Download your current store configuration
-npx @saleor/configurator introspect \
-  --url https://your-store.saleor.cloud/graphql/ \
-  --token your-app-token
-
-# 2. Modify config.yml to define your desired state
-
-# 3. Preview changes before applying
-npx @saleor/configurator diff \
-  --url https://your-store.saleor.cloud/graphql/ \
-  --token your-app-token
-
-# 4. Deploy your configuration
-npx @saleor/configurator deploy \
-  --url https://your-store.saleor.cloud/graphql/ \
-  --token your-app-token
-```
-
-> **Need a token?** See [Getting Your API Token](#getting-your-api-token) above for step-by-step instructions.
-
-### Quick Reference
-
-| Task | Command |
-|------|---------|
-| Download config | `npx @saleor/configurator introspect --url <URL> --token <TOKEN>` |
-| Preview changes | `npx @saleor/configurator diff --url <URL> --token <TOKEN>` |
-| Deploy changes | `npx @saleor/configurator deploy --url <URL> --token <TOKEN>` |
-| Apply recipe | `npx @saleor/configurator recipe apply <name> --url <URL> --token <TOKEN>` |
-| CI deployment | `npx @saleor/configurator deploy --url <URL> --token <TOKEN> --fail-on-delete` |
-
-## Commands
-
-All commands support `--help` for detailed usage information.
-
-### `start` — Interactive Wizard
-
-Guided setup for exploring features and connecting to your Saleor instance.
-
-```bash
-npx @saleor/configurator start
-```
-
-### `introspect` — Download Remote Config
-
-Fetches the current configuration from your Saleor instance and saves it locally.
-
-```bash
-npx @saleor/configurator introspect --url <URL> --token <TOKEN>
-
-# With custom output file
-npx @saleor/configurator introspect --url <URL> --token <TOKEN> --config production.yml
-```
-
-### `diff` — Preview Changes
-
-Shows what would change if you deployed, without making any modifications.
-
-```bash
-npx @saleor/configurator diff --url <URL> --token <TOKEN>
-```
-
-### `deploy` — Apply Configuration
-
-Syncs your local configuration to the remote Saleor instance.
-
-```bash
-# Interactive mode with confirmation prompts
-npx @saleor/configurator deploy --url <URL> --token <TOKEN>
-
-# Custom config file
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --config production.yml
-```
-
-### `recipe` — Pre-Built Templates
-
-Apply ready-to-use configuration templates for common e-commerce scenarios.
-
-```bash
-# List available recipes
-npx @saleor/configurator recipe list
-
-# Preview a recipe's configuration
-npx @saleor/configurator recipe show multi-region
-
-# Apply a recipe to your instance
-npx @saleor/configurator recipe apply multi-region --url <URL> --token <TOKEN>
-
-# Export for customization
-npx @saleor/configurator recipe export multi-region --output my-config.yml
-```
+`npx @saleor/configurator start` runs the same steps as an interactive wizard. Every command and flag is listed in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 ## Configuration
 
-Define your store configuration in YAML (default: `config.yml`).
-
-### Structure Overview
-
 ```yaml
-# Global store settings
 shop:
   defaultMailSenderName: "My Store"
-  displayGrossPrices: true
 
-# Sales channels (multi-currency, multi-region)
 channels:
   - name: "United States"
     slug: us
     currencyCode: USD
     defaultCountry: US
 
-# Product catalog structure
 productTypes:
-  - name: "Book"
+  - name: Book
     isShippingRequired: true
     productAttributes:
-      - name: "Author"
+      - name: Author
         inputType: PLAIN_TEXT
 
 categories:
-  - name: "Fiction"
+  - name: Fiction
     slug: fiction
-    subcategories:
-      - name: "Fantasy"
-        slug: fantasy
 
 products:
   - name: "Sample Book"
     slug: sample-book
-    productType: "Book"
+    productType: Book
     category: fiction
     variants:
-      - name: "Hardcover"
-        sku: "BOOK-001"
-
-# Fulfillment
-warehouses:
-  - name: "Main Warehouse"
-    slug: main-warehouse
-    address:
-      streetAddress1: "123 Commerce St"
-      city: "New York"
-      country: US
-
-shippingZones:
-  - name: "US Zone"
-    countries: ["US"]
-    warehouses: ["main-warehouse"]
+      - name: Hardcover
+        sku: BOOK-001
 ```
 
-### Domain Modeling
+- [SCHEMA.md](SCHEMA.md) documents every field. `npx @saleor/configurator schema` prints the JSON Schema for editor autocompletion.
+- [docs/ENTITY_REFERENCE.md](docs/ENTITY_REFERENCE.md) explains how entries are matched to the store and how they refer to each other.
+- [example.yml](example.yml) is a complete store with every section.
 
-Saleor's domain model consists of interconnected entity types that you can configure declaratively.
-
-#### Core Entities
-
-| Entity | Purpose | Configured Via |
-|--------|---------|----------------|
-| **Products** | Sellable items with variants, pricing, stock | `products` |
-| **Product Types** | Templates defining product structure and attributes | `productTypes` |
-| **Categories** | Hierarchical product taxonomy (one category per product) | `categories` |
-| **Collections** | Flexible product groupings for merchandising | `collections` |
-| **Models** | Custom entities extending beyond products (e.g., Brands, Ingredients) | `models` |
-| **Model Types** | Templates defining model structure | `pageTypes` |
-| **Structures** | Hierarchical navigation linking categories, collections, models, URLs | `menus` |
-
-#### Attributes
-
-Attributes are reusable typed fields assigned to products or models:
-
-| Type | Description | Example |
-|------|-------------|---------|
-| `DROPDOWN` | Single-select from predefined values | Color: Red, Blue, Green |
-| `MULTISELECT` | Multi-select from predefined values | Tags: Sale, New, Featured |
-| `PLAIN_TEXT` | Unformatted text | Material: "100% Cotton" |
-| `RICH_TEXT` | Formatted content blocks | Product description |
-| `NUMERIC` | Numbers with optional units | Weight: 500g |
-| `BOOLEAN` | Yes/no values | Fair trade certified |
-| `DATE` / `DATE_TIME` | Date values | Release date |
-| `FILE` | File attachments | Product manual PDF |
-| `SWATCH` | Color codes or images | Visual color picker |
-| `REFERENCE` | Links to other entities | Related products |
-
-#### Linking Entities with REFERENCE Attributes
-
-Connect products to other products, models, or variants:
-
-```yaml
-productTypes:
-  - name: "Perfume"
-    productAttributes:
-      - name: "Scent Profiles"
-        inputType: REFERENCE
-        entityType: PAGE          # Links to Models
-      - name: "Related Products"
-        inputType: REFERENCE
-        entityType: PRODUCT       # Links to other Products
-```
-
-#### Custom Entities with Models
-
-Extend your domain beyond products using Models (internally called Pages):
-
-```yaml
-# Define structure with pageTypes
-pageTypes:
-  - name: "Brand"
-    attributes:
-      - name: "Country"
-        inputType: DROPDOWN
-        values: [{ name: "France" }, { name: "Italy" }, { name: "USA" }]
-      - name: "Founded"
-        inputType: NUMERIC
-
-# Create instances with models
-models:
-  - title: "Maison Lumière"
-    slug: "maison-lumiere"
-    modelType: "Brand"
-    attributes:
-      country: "France"
-      founded: 1925
-```
-
-#### Structures (Navigation)
-
-Organize entities hierarchically using menus:
-
-```yaml
-menus:
-  - name: "Main Navigation"
-    slug: "main-nav"
-    items:
-      - name: "Shop"
-        category: "all-products"      # Link to Category
-      - name: "Collections"
-        children:
-          - name: "Summer Sale"
-            collection: "summer-sale" # Link to Collection
-      - name: "Our Brands"
-        page: "maison-lumiere"        # Link to Model
-      - name: "Help"
-        url: "https://help.example.com"  # External URL
-```
-
-**Learn more:** [Saleor Modeling](https://docs.saleor.io/developer/modeling) · [Attributes](https://docs.saleor.io/developer/attributes/overview) · [Products](https://docs.saleor.io/developer/products/overview)
-
-### Entity Identification
-
-Entities are identified by either `slug` or `name` depending on their type:
-
-| Identifier | Entity Types |
-|------------|--------------|
-| **slug** | Channels, Categories, Collections, Menus, Pages, Products, Warehouses |
-| **name** | ProductTypes, PageTypes, TaxClasses, ShippingZones, Attributes |
-
-When referencing entities, use the appropriate identifier:
-
-```yaml
-products:
-  - name: "Sample Book"
-    productType: "Book"        # Reference by name (ProductType)
-    category: "fiction"        # Reference by slug (Category)
-    collections: ["featured"]  # Reference by slug (Collection)
-```
+Sections you leave out of the file are not touched. `deploy` creates and updates entities but does not delete them; `diff` lists entities that exist only in the store.
 
 ### Metadata
 
@@ -413,236 +97,47 @@ Only the keys listed in config are managed. `deploy` adds or overwrites them and
 npx @saleor/configurator introspect --metadata-exclude 'erp.*,stripe.*'
 ```
 
-### Complete Reference
-
-- **[SCHEMA.md](SCHEMA.md)** — Full field documentation and validation rules
-- **[example.yml](example.yml)** — Comprehensive working example
-
 ## Recipes
 
-Recipes are pre-built YAML configuration templates for common e-commerce scenarios. They complement the [Saleor Recipes documentation](https://docs.saleor.io/recipes/overview) by providing ready-to-deploy configurations you can apply directly or customize.
-
-### Available Recipes
-
-| Recipe | Description | Entities |
-|--------|-------------|----------|
-| **multi-region** | US, EU, UK markets with regional warehouses | Channels, Warehouses, ShippingZones |
-| **digital-products** | Product types for non-physical goods | ProductTypes |
-| **click-and-collect** | Warehouse pickup points with local collection | Warehouses, ShippingZones |
-| **custom-shipping** | Complex shipping zones and rate structures | ShippingZones |
-
-### Quick Start with Recipes
+Recipes are starter configurations bundled with the CLI: `multi-region`, `digital-products`, `click-and-collect` and `custom-shipping`.
 
 ```bash
-# List all recipes with descriptions
 npx @saleor/configurator recipe list
-
-# Preview what a recipe contains
 npx @saleor/configurator recipe show multi-region
-
-# Apply directly to your instance
-npx @saleor/configurator recipe apply multi-region --url <URL> --token <TOKEN>
-
-# Export and customize before applying
 npx @saleor/configurator recipe export multi-region --output my-store.yml
-# Edit my-store.yml...
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --config my-store.yml
+npx @saleor/configurator recipe apply multi-region
 ```
 
-> **Note:** More recipes are planned. Check `recipe list` for the current catalog.
+See [recipes/README.md](recipes/README.md).
 
-See [recipes/README.md](recipes/README.md) for detailed recipe documentation and customization guides.
+## CI/CD
 
-## CI/CD Integration
+In non-interactive environments the CLI skips prompts and prints JSON. Useful flags: `diff --github-comment --text` for pull request comments, `--fail-on-delete` to stop when deletions are found, and `introspect --drift-check` to detect changes made in the Dashboard. A GitHub Action is in [action/](action/README.md); workflow examples are in [docs/ci-cd/README.md](docs/ci-cd/README.md).
 
-Automate configuration deployments with GitHub Actions or other CI systems.
+Requests are paced to stay under the Saleor Cloud sandbox limit. Caps, pacing and batch sizes are in [docs/LIMITS.md](docs/LIMITS.md). For errors, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-### GitHub Actions Example
+## Library
 
-```yaml
-name: Deploy Saleor Configuration
+Import `createConfigurator` from `@saleor/configurator` to validate, introspect, diff and deploy in-process. See [docs/library.md](docs/library.md).
 
-on:
-  push:
-    branches: [main]
-    paths: ['config.yml']
+## AI agents
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Preview changes
-        run: |
-          npx @saleor/configurator diff \
-            --url ${{ secrets.SALEOR_URL }} \
-            --token ${{ secrets.SALEOR_TOKEN }}
-
-      - name: Deploy configuration
-        run: |
-          npx @saleor/configurator deploy \
-            --url ${{ secrets.SALEOR_URL }} \
-            --token ${{ secrets.SALEOR_TOKEN }} \
-```
-
-### Key Flags for Automation
-
-| Flag | Description |
-|------|-------------|
-| `--json` | Output machine-readable JSON |
-| `--fail-on-delete` | Exit code 6 if deletions detected |
-| `--fail-on-breaking` | Exit code 7 if breaking changes detected |
-| `--quiet` | Suppress non-essential output |
-
-Non-interactive mode is auto-detected in non-TTY environments (pipes, CI, subprocesses).
-
-### Multi-Environment Pattern
-
-```bash
-# Production deployment
-npx @saleor/configurator deploy \
-  --url $PROD_URL --token $PROD_TOKEN \
-  --config config.yml --fail-on-delete
-
-# Staging deployment
-npx @saleor/configurator deploy \
-  --url $STAGING_URL --token $STAGING_TOKEN \
-  --config config.yml
-```
-
-See [docs/ci-cd/README.md](docs/ci-cd/README.md) for workflow templates, exit codes, and advanced patterns.
-
-## Troubleshooting
-
-### Common Issues
-
-**Authentication Failed**
-- Verify your token in the Saleor dashboard
-- Ensure the app has all required permissions
-- Check that the URL ends with `/graphql/`
-
-**Entity Reference Errors**
-- Verify referenced entities exist (e.g., categories before products)
-- Check identifier types: use `slug` for categories, `name` for product types
-- Run `diff` to see what's missing
-
-**Validation Errors**
-- Check required fields are present
-- Validate enum values match the schema
-- See [SCHEMA.md](SCHEMA.md) for field requirements
-
-### Diagnostic Commands
-
-```bash
-# Test connectivity
-npx @saleor/configurator introspect --url <URL> --token <TOKEN> --include shop
-
-# Preview without changes (show plan only)
-npx @saleor/configurator deploy --url <URL> --token <TOKEN> --plan
-
-# Debug mode
-LOG_LEVEL=debug npx @saleor/configurator diff --url <URL> --token <TOKEN>
-```
-
-See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for detailed troubleshooting procedures.
-
-## AI Agent Integration
-
-Saleor Configurator provides first-class support for AI coding tools through two mechanisms:
-
-### Portable Skills (`skills/`)
-
-Nine portable skills usable by any AI coding tool (Codex, Cursor, Copilot, Gemini CLI, etc.):
-
-```bash
-# Install via skills.sh
-npx skills add saleor/configurator
-```
-
-Skills cover CLI usage, config schema, Saleor domain modeling, product design, recipes, data import, output parsing, deployment workflows, and troubleshooting.
-
-### Claude Code Plugin (`plugin/`)
-
-Full-featured Claude Code plugin with slash commands, autonomous agents, hooks, and MCP integrations:
-
-```bash
-claude --plugin-dir ./plugin
-```
-
-See [`AGENTS.md`](AGENTS.md) for the complete AI agent integration guide.
+- **Skills** in [`skills/`](skills/) teach any coding agent the CLI, the config schema and Saleor's domain model: `npx skills add saleor/configurator`.
+- **Claude Code plugin** in [`plugin/`](plugin/README.md) adds slash commands, agents and hooks: `claude --plugin-dir ./plugin`.
 
 ## Contributing
 
-### Development Setup
-
 ```bash
-# Clone and install
 git clone https://github.com/saleor/configurator.git
 cd configurator
 pnpm install
-
-# Run in development mode
-pnpm dev start
-pnpm dev introspect --url <URL> --token <TOKEN>
-
-# Build and test
-pnpm build
-pnpm test
+pnpm dev introspect
 ```
 
-### Quality Standards
+[`.claude/CLAUDE.md`](.claude/CLAUDE.md) lists the checks CI runs and the end-to-end round trip against a sandbox. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) maps the code.
 
-```bash
-# Before committing
-pnpm check:fix && pnpm build && pnpm test
-```
-
-### Versioning
-
-This project uses [Changesets](https://github.com/changesets/changesets) for release notes and publishing, with one repository-specific rule: configurator package major and minor versions follow the supported Saleor major and minor.
-
-```bash
-# Document your changes
-pnpm changeset
-```
-
-Release rules:
-
-- Patch fixes for the current Saleor target use a patch changeset.
-- Moving support to the next Saleor minor updates `package.json#saleor.schemaVersion` and uses a minor changeset.
-- The first Saleor-bound release from `1.x` to `3.23.0` requires manually editing the generated release PR version.
-- Releases are published from `main` by the GitHub Actions release workflow.
-
-For example, configurator `3.23.x` targets Saleor `3.23.x`; configurator `3.24.0` starts the Saleor `3.24.x` line.
-
-See [docs/DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md) for detailed contribution guidelines.
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [SCHEMA.md](SCHEMA.md) | Complete configuration field reference |
-| [example.yml](example.yml) | Working example with all entity types |
-| [recipes/README.md](recipes/README.md) | Pre-built recipe templates |
-| [docs/COMMANDS.md](docs/COMMANDS.md) | Complete CLI reference |
-| [docs/ci-cd/README.md](docs/ci-cd/README.md) | CI/CD integration guide |
-| [docs/ENTITY_REFERENCE.md](docs/ENTITY_REFERENCE.md) | Entity types and identification |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Problem diagnosis and fixes |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design and internals |
-| [docs/DEVELOPMENT_WORKFLOWS.md](docs/DEVELOPMENT_WORKFLOWS.md) | Contributor guide |
-| [docs/CODE_QUALITY.md](docs/CODE_QUALITY.md) | Coding standards |
-| [docs/TESTING_PROTOCOLS.md](docs/TESTING_PROTOCOLS.md) | Testing guidelines |
+Every pull request needs a changeset (`pnpm changeset`) or the `skip changeset` label. Fixes for the current Saleor target are patch changesets. Moving to the next Saleor minor updates `package.json#saleor.schemaVersion` and is a minor changeset. Releases are published from `main` by the release workflow; see [PUBLISHING.md](PUBLISHING.md).
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Library usage
-
-Import `createConfigurator` from `@saleor/configurator` to validate, introspect, diff, and deploy in-process.
-See [the library API and stability policy](docs/library.md).
+MIT, see [LICENSE](LICENSE).
