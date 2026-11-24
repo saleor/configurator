@@ -27,9 +27,10 @@ export const jsonFileArg = z
 export function envelopeTarget(args: {
   json?: boolean;
   text?: boolean;
+  quiet?: boolean;
   jsonFile?: string;
 }): EnvelopeTarget {
-  return { print: shouldOutputJson(args), file: args.jsonFile };
+  return { print: shouldOutputJson(args), file: args.jsonFile, quiet: args.quiet };
 }
 
 export function shouldOutputJson(args: { json?: boolean; text?: boolean }): boolean {

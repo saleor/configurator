@@ -70,16 +70,32 @@ describe("outputEnvelope", () => {
     }
   }
 
-  it("writes the envelope to the file without printing it", () => {
+  it("writes the envelope to the file, says so on stderr and prints nothing on stdout", () => {
     withTempDir((dir) => {
       const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
       const file = join(dir, "result.json");
 
       outputEnvelope(envelope, { print: false, file });
 
       expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual(envelope);
       expect(log).not.toHaveBeenCalled();
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining(`Result written to ${file}`));
       log.mockRestore();
+      stderr.mockRestore();
+    });
+  });
+
+  it("writes the file without the note when quiet", () => {
+    withTempDir((dir) => {
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const file = join(dir, "result.json");
+
+      outputEnvelope(envelope, { print: false, file, quiet: true });
+
+      expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual(envelope);
+      expect(stderr).not.toHaveBeenCalled();
+      stderr.mockRestore();
     });
   });
 

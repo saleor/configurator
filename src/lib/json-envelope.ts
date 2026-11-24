@@ -1,4 +1,5 @@
 import { writeFileSync } from "node:fs";
+import chalk from "chalk";
 import { globalLogCollector, type LogEntry } from "./json-log-collector";
 import { getPackageVersion } from "./package-info";
 
@@ -38,6 +39,8 @@ export function buildEnvelope<T>(options: {
 export interface EnvelopeTarget {
   readonly print: boolean;
   readonly file?: string;
+  /** Suppresses the stderr note that the file was written. */
+  readonly quiet?: boolean;
 }
 
 export function outputEnvelope<T>(
@@ -47,6 +50,10 @@ export function outputEnvelope<T>(
   const json = JSON.stringify(envelope, null, 2);
   if (target.file) {
     writeFileSync(target.file, `${json}\n`, "utf-8");
+    // stderr, so the note never mixes into JSON or a captured PR comment on stdout
+    if (!target.quiet) {
+      process.stderr.write(`${chalk.gray(`📄 Result written to ${target.file}`)}\n`);
+    }
   }
   if (target.print) {
     console.log(json);
