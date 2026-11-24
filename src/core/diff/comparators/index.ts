@@ -2,7 +2,7 @@ export { attributesComparator } from "./attributes-comparator";
 export { CategoryComparator } from "./category-comparator";
 export type { ComparatorOptions } from "./change-set";
 export { channelComparator } from "./channel-comparator";
-export { CollectionComparator } from "./collection-comparator";
+export { collectionComparator } from "./collection-comparator";
 export { customerTypeComparator } from "./customer-type-comparator";
 export type { EntityComparator } from "./entity-comparator";
 export { MenuComparator } from "./menu-comparator";
