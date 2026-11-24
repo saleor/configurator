@@ -1,0 +1,89 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".changeset/**"
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  qa:
+    name: QA
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - name: Check schema sync
+        run: pnpm run schema:check
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run check:ci
+
+      - name: Check unused files, dependencies, and exports
+        run: pnpm run knip
+
+      - name: Run tests
+        env:
+          APP_TOKEN: test-token
+          SALEOR_API_URL: http://test.example.com
+          LOG_LEVEL: error
+        run: pnpm run test:ci
+
+  # Runs the built CLI against a throwaway Saleor started in Docker inside the job
+  # (e2e/compose.yml).
+  e2e:
+    name: E2E
+    needs: qa
+    if: >-
+      success() && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' &&
+          !github.event.pull_request.draft &&
+          !startsWith(github.head_ref, 'changeset-release/'))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - name: Build and pull E2E images
+        run: |
+          docker compose -f e2e/compose.yml pull --quiet &
+          pull_pid=$!
+          trap 'kill "$pull_pid" 2>/dev/null || true' EXIT
+
+          pnpm build
+          wait "$pull_pid"
+
+      - name: Run E2E
+        run: pnpm test:e2e
+
+      - name: Upload Saleor logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-saleor-logs
+          path: e2e/results
+          retention-days: 7
