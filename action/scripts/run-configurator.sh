@@ -3,48 +3,8 @@
 # This script is executed by the composite action to run configurator commands
 
 set -e
-# Without pipefail, `configurator ... | tee` reports tee's status and a failed
-# command would be treated as a success.
+# Without pipefail, a failing command in a pipeline would be treated as a success.
 set -o pipefail
-
-# Prints "total creates updates deletes" (tab-separated) from a CLI JSON
-# envelope ({command, version, exitCode, result, logs, errors}). Handles diff
-# results (result.summary.totalChanges/creates/updates/deletes), deploy plan
-# results (result.summary.creates/updates/deletes) and deploy "no-changes".
-# Prints nothing when the envelope carries no counts.
-counts_from_envelope() {
-  jq -r '
-    if (.result.summary | type) == "object" then
-      .result.summary
-      | [(.totalChanges // ((.creates // 0) + (.updates // 0) + (.deletes // 0))),
-         (.creates // 0), (.updates // 0), (.deletes // 0)]
-    elif .result.status == "no-changes" then [0, 0, 0, 0]
-    else empty end
-    | @tsv' "$1" 2>/dev/null || true
-}
-
-# Prints "total creates updates deletes" from a deployment report file.
-counts_from_report() {
-  jq -r '.summary.changes // empty | [.total, .created, .updated, .deleted] | @tsv' "$1" 2>/dev/null || true
-}
-
-# Writes the count outputs and has-changes from "total creates updates deletes".
-write_count_outputs() {
-  local total creates updates deletes
-  read -r total creates updates deletes <<< "$1"
-  [[ "$total" =~ ^[0-9]+$ ]] || return 0
-  {
-    echo "changes-count=$total"
-    echo "creates-count=$creates"
-    echo "updates-count=$updates"
-    echo "deletes-count=$deletes"
-    if (( total > 0 )); then
-      echo "has-changes=true"
-    else
-      echo "has-changes=false"
-    fi
-  } >> "$GITHUB_OUTPUT"
-}
 
 # GitHub masks the token in logs only when it comes from a secret.
 if [[ -n "$SALEOR_TOKEN" ]]; then
@@ -55,16 +15,22 @@ fi
 # token never appears in the process arguments.
 export SALEOR_URL SALEOR_TOKEN
 
+# The CLI writes its JSON result here whatever it prints, so the action runs
+# each command once and reads its outputs from this file.
+RESULT_FILE=$(mktemp)
+OUTPUT_FILE=$(mktemp)
+trap 'rm -f "$RESULT_FILE" "$OUTPUT_FILE"' EXIT
+
 # Build command arguments
 ARGS=()
 
 # Required arguments
 ARGS+=("$COMMAND")
 ARGS+=("--config" "$CONFIG_PATH")
+ARGS+=("--json-file" "$RESULT_FILE")
 
 # Optional arguments based on command type
 if [[ "$COMMAND" == "deploy" ]]; then
-  # Deploy-specific flags
   # Note: CI_MODE is deprecated and intentionally unused - the CLI detects
   # non-interactive (non-TTY) environments automatically and skips prompts.
 
@@ -73,7 +39,7 @@ if [[ "$COMMAND" == "deploy" ]]; then
   fi
 
   if [[ -n "$REPORT_PATH" ]]; then
-    ARGS+=("--reportPath" "$REPORT_PATH")
+    ARGS+=("--report-path" "$REPORT_PATH")
   fi
 
   if [[ "$JSON_OUTPUT" == "true" ]]; then
@@ -81,24 +47,23 @@ if [[ "$COMMAND" == "deploy" ]]; then
   fi
 
   if [[ "$FAIL_ON_DELETE" == "true" ]]; then
-    ARGS+=("--failOnDelete")
+    ARGS+=("--fail-on-delete")
   fi
 fi
 
 if [[ "$COMMAND" == "diff" ]]; then
-  # Diff-specific flags
   if [[ "$JSON_OUTPUT" == "true" ]]; then
     ARGS+=("--json")
   elif [[ "$POST_PR_COMMENT" == "true" ]]; then
-    ARGS+=("--githubComment")
+    ARGS+=("--github-comment")
   fi
 
   if [[ "$FAIL_ON_DELETE" == "true" ]]; then
-    ARGS+=("--failOnDelete")
+    ARGS+=("--fail-on-delete")
   fi
 
   if [[ "$FAIL_ON_BREAKING" == "true" ]]; then
-    ARGS+=("--failOnBreaking")
+    ARGS+=("--fail-on-breaking")
   fi
 fi
 
@@ -116,19 +81,11 @@ if [[ "$JSON_OUTPUT" != "true" ]]; then
   ARGS+=("--text")
 fi
 
-# Create temp file for output capture
-OUTPUT_FILE=$(mktemp)
-JSON_OUTPUT_FILE=$(mktemp)
-RUN_MARKER=$(mktemp)
-DEFAULT_REPORTS_DIR=".configurator/reports"
-COUNTS=""
-
 echo "Running: configurator ${ARGS[*]}"
 echo "---"
 
 EXIT_CODE=0
 
-# For diff with github-comment format, capture output for PR comment
 if [[ "$COMMAND" == "diff" && "$POST_PR_COMMENT" == "true" ]]; then
   # Capture stdout only so stderr logs do not end up in the PR comment
   configurator "${ARGS[@]}" > "$OUTPUT_FILE" || EXIT_CODE=$?
@@ -142,72 +99,45 @@ if [[ "$COMMAND" == "diff" && "$POST_PR_COMMENT" == "true" ]]; then
     echo ""
     echo "$DELIMITER"
   } >> "$GITHUB_OUTPUT"
-elif [[ "$JSON_OUTPUT" == "true" ]]; then
-  # JSON output mode - capture stdout only; stderr carries logs that would
-  # corrupt the JSON envelope.
-  configurator "${ARGS[@]}" > "$JSON_OUTPUT_FILE" || EXIT_CODE=$?
-  cat "$JSON_OUTPUT_FILE"
-  COUNTS=$(counts_from_envelope "$JSON_OUTPUT_FILE")
 else
-  # Standard output mode
-  configurator "${ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE" || EXIT_CODE=$?
+  configurator "${ARGS[@]}" || EXIT_CODE=$?
 fi
 
 echo "---"
 echo "Exit code: $EXIT_CODE"
-
-# Set exit code output
 echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
-# Locate the deployment report: the requested path, or the newest report the
-# CLI wrote to its default directory during this run.
-DEPLOY_REPORT=""
-if [[ -n "$REPORT_PATH" && -f "$REPORT_PATH" ]]; then
-  DEPLOY_REPORT="$REPORT_PATH"
-elif [[ "$COMMAND" == "deploy" && -d "$DEFAULT_REPORTS_DIR" ]]; then
-  DEPLOY_REPORT=$(find "$DEFAULT_REPORTS_DIR" -type f -name '*.json' -newer "$RUN_MARKER" | sort | tail -n 1)
-fi
-
-if [[ -n "$DEPLOY_REPORT" ]]; then
-  echo "report-path=$DEPLOY_REPORT" >> "$GITHUB_OUTPUT"
-  # An executed deployment prints no JSON summary; take the counts from the report.
-  if [[ -z "$COUNTS" ]]; then
-    COUNTS=$(counts_from_report "$DEPLOY_REPORT")
-  fi
-fi
-
-# diff and deploy --plan report pending changes. diff exits 0 whether or not
-# changes exist and deploy --plan exits 1 when changes exist, so neither exit
-# code says whether there are changes - the JSON summary does.
-REPORTS_CHANGES=false
-if [[ "$COMMAND" == "diff" || ( "$COMMAND" == "deploy" && "$PLAN_ONLY" == "true" ) ]]; then
-  REPORTS_CHANGES=true
-fi
-
-# In human-readable modes nothing parseable was printed; run the same command
-# again with --json to collect the change summary.
-if [[ -z "$COUNTS" && "$REPORTS_CHANGES" == "true" ]] && (( EXIT_CODE <= 1 )); then
-  META_ARGS=("$COMMAND" "--config" "$CONFIG_PATH" "--json")
-  if [[ "$COMMAND" == "deploy" ]]; then
-    META_ARGS+=("--plan")
-  fi
-  echo "Collecting change summary (configurator $COMMAND --json)..."
-  configurator "${META_ARGS[@]}" > "$JSON_OUTPUT_FILE" 2>/dev/null || true
-  COUNTS=$(counts_from_envelope "$JSON_OUTPUT_FILE")
-  if [[ -z "$COUNTS" ]]; then
-    echo "::warning::Could not determine change counts from configurator $COMMAND --json"
-  fi
-fi
-
-write_count_outputs "$COUNTS"
-
+# Counts come from result.summary (diff, deploy --plan, executed deploy); a
+# deploy with nothing to do reports status "no-changes" and no summary. Error
+# results have neither, so no counts are written.
 TOTAL_CHANGES=""
-read -r TOTAL_CHANGES _ <<< "$COUNTS"
+if [[ -s "$RESULT_FILE" ]]; then
+  jq -r '
+    .result as $r
+    | ($r.summary // (if $r.status == "no-changes" then {totalChanges: 0} else null end)) as $s
+    | (if $s then
+        "changes-count=\($s.totalChanges // 0)",
+        "creates-count=\($s.creates // 0)",
+        "updates-count=\($s.updates // 0)",
+        "deletes-count=\($s.deletes // 0)",
+        "has-changes=\(($s.totalChanges // 0) > 0)"
+      else empty end),
+      ($r.reportPath // empty | "report-path=\(.)")
+  ' "$RESULT_FILE" >> "$GITHUB_OUTPUT"
+  TOTAL_CHANGES=$(jq -r '
+    .result.summary.totalChanges // (if .result.status == "no-changes" then 0 else empty end)
+  ' "$RESULT_FILE")
+else
+  echo "::warning::configurator $COMMAND wrote no result file"
+fi
 
-# Changes reported by diff (exit 0) or deploy --plan (exit 1) are informational.
+# diff and deploy --plan report pending changes: diff exits 0 and deploy --plan
+# exits 1 when there are changes. Those changes are informational unless
+# fail-on-diff is set.
 CHANGES_DETECTED=false
-if [[ "$REPORTS_CHANGES" == "true" && "$TOTAL_CHANGES" =~ ^[0-9]+$ ]] && (( TOTAL_CHANGES > 0 )); then
-  if [[ "$EXIT_CODE" -eq 0 || ( "$COMMAND" == "deploy" && "$EXIT_CODE" -eq 1 ) ]]; then
+if [[ -n "$TOTAL_CHANGES" && "$TOTAL_CHANGES" != "0" ]]; then
+  if [[ "$COMMAND" == "diff" && "$EXIT_CODE" -eq 0 ]] ||
+    [[ "$COMMAND" == "deploy" && "$PLAN_ONLY" == "true" && "$EXIT_CODE" -eq 1 ]]; then
     CHANGES_DETECTED=true
   fi
 fi
@@ -218,7 +148,7 @@ if [[ "$CHANGES_DETECTED" == "true" ]]; then
 else
   case $EXIT_CODE in
     0)
-      if [[ "$REPORTS_CHANGES" == "true" && "$TOTAL_CHANGES" == "0" ]]; then
+      if [[ "$TOTAL_CHANGES" == "0" ]]; then
         echo "summary=No changes detected - configurations are in sync" >> "$GITHUB_OUTPUT"
       else
         echo "summary=Operation completed successfully" >> "$GITHUB_OUTPUT"
@@ -248,15 +178,11 @@ else
   esac
 fi
 
-# Cleanup temp files
-rm -f "$OUTPUT_FILE" "$JSON_OUTPUT_FILE" "$RUN_MARKER"
-
 if [[ "$CHANGES_DETECTED" == "true" ]]; then
   if [[ "$FAIL_ON_DIFF" == "true" ]]; then
     echo "Failing because changes were detected and fail-on-diff is enabled"
     exit 1
   fi
-  # Pending changes are informational unless fail-on-diff is set
   exit 0
 fi
 
