@@ -23,22 +23,18 @@ export const customerTypeComparator = entityComparator<CustomerTypeInput>({
     for (const name of desiredNames) {
       if (!currentNames.has(name)) {
         changes.record(["attributes", name], {
-          field: "attributes",
           kind: "added",
           current: null,
           desired: name,
-          description: `Attribute "${name}" added (in config, not on Saleor)`,
         });
       }
     }
     for (const name of currentNames) {
       if (!desiredNames.has(name)) {
         changes.record(["attributes", name], {
-          field: "attributes",
           kind: "removed",
           current: name,
           desired: null,
-          description: `Attribute "${name}" removed (on Saleor, not in config)`,
         });
       }
     }

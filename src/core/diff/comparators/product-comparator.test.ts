@@ -96,7 +96,8 @@ describe("ProductComparator", () => {
           field: "attributes.color",
           currentValue: "red",
           desiredValue: "blue",
-          description: 'Attribute "color": "red" → "blue"',
+          path: ["attributes", "color"],
+          kind: "changed",
         })
       );
     });
@@ -121,7 +122,8 @@ describe("ProductComparator", () => {
         (change) => change.field === "variants.BLUE-M"
       );
       expect(blueVariantChange).toBeDefined();
-      expect(blueVariantChange?.description).toBe('Variant "BLUE-M" will be added');
+      expect(blueVariantChange?.kind).toBe("added");
+      expect(blueVariantChange?.description).toBe("variants.BLUE-M: added");
       expect(blueVariantChange?.currentValue).toBeUndefined();
       expect(blueVariantChange?.desiredValue).toEqual({ name: "Blue M", sku: "BLUE-M" });
     });
@@ -142,14 +144,16 @@ describe("ProductComparator", () => {
       expect(variantChange).toMatchObject({
         currentValue: { name: "Old", sku: "OLD-1" },
         desiredValue: undefined,
-        description: 'Variant "OLD-1" is only in Saleor (deploy does not remove it)',
+        kind: "removed",
+        description: "variants.OLD-1: only in Saleor",
       });
 
       const channelChange = results[0].changes?.find((c) => c.field === "channels.legacy-channel");
       expect(channelChange).toMatchObject({
         currentValue: { channel: "legacy-channel", isPublished: true, visibleInListings: true },
         desiredValue: undefined,
-        description: 'Channel "legacy-channel" is only in Saleor (deploy does not remove it)',
+        kind: "removed",
+        description: "channels.legacy-channel: only in Saleor",
       });
     });
 

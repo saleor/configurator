@@ -33,18 +33,6 @@ type ChannelListing = InputChannelListing | RemoteChannelListing;
 
 type ShippingZoneEntity = ShippingZoneInput | ShippingZone;
 
-/** A readable summary of shipping methods for display. */
-function serializeShippingMethods(
-  methods: readonly (ShippingMethodInput | ShippingMethod)[] | null | undefined
-): string {
-  if (!methods || methods.length === 0) {
-    return "[]";
-  }
-  return methods
-    .map((method) => `${method.name || "Unnamed"} (${method.type || "Unknown"})`)
-    .join(", ");
-}
-
 function normalizeCountries(countries: ShippingZoneEntity["countries"]): string[] {
   if (!countries || !Array.isArray(countries)) return [];
   // Saleor's shape lists `{ code }` objects; the config lists codes.
@@ -77,7 +65,6 @@ function normalizeShippingMethod(
 ): Record<string, unknown> {
   const normalized: Record<string, unknown> = {
     name: method.name,
-    description: method.description || "",
     type: method.type,
     minimumDeliveryDays: method.minimumDeliveryDays || null,
     maximumDeliveryDays: method.maximumDeliveryDays || null,
@@ -155,36 +142,28 @@ function normalizeShippingMethod(
 
 function compareShippingMethods(
   changes: ChangeSet,
-  desiredMethods: ShippingMethodInput[] | undefined,
-  currentMethods: ShippingMethod[] | undefined
+  desiredMethods: readonly ShippingMethodInput[] | undefined,
+  currentMethods: readonly ShippingMethod[] | null | undefined
 ): void {
-  const desiredNormalized = (desiredMethods || []).map((m) => normalizeShippingMethod(m));
-  const currentNormalized = (currentMethods || []).map((m) => normalizeShippingMethod(m));
-  const desiredByName = new Map(desiredNormalized.map((m) => [m.name as string, m]));
-  const currentByName = new Map(currentNormalized.map((m) => [m.name as string, m]));
-
-  const toAdd = desiredNormalized.filter((m) => !currentByName.has(m.name as string));
-  const toRemove = currentNormalized.filter((m) => !desiredByName.has(m.name as string));
-  const toUpdate: string[] = [];
-  for (const [name, method] of desiredByName) {
-    const currentMethod = currentByName.get(name);
-    if (currentMethod && JSON.stringify(method) !== JSON.stringify(currentMethod)) {
-      toUpdate.push(name);
+  changes.members(
+    "shippingMethods",
+    (desiredMethods ?? []).map(normalizeShippingMethod),
+    (currentMethods ?? []).map(normalizeShippingMethod),
+    (method) => method.name as string,
+    (methodChanges, desired, current) => {
+      const { channelListings: desiredListings, ...desiredFields } = desired;
+      const { channelListings: currentListings, ...currentFields } = current;
+      methodChanges.fields(desiredFields, currentFields);
+      methodChanges.members(
+        "channelListings",
+        (desiredListings as NormalizedChannelListing[] | undefined) ?? [],
+        (currentListings as NormalizedChannelListing[] | undefined) ?? [],
+        (listing) => listing.channel,
+        (listingChanges, desiredListing, currentListing) =>
+          listingChanges.fields({ ...desiredListing }, { ...currentListing })
+      );
     }
-  }
-
-  if (toAdd.length === 0 && toRemove.length === 0 && toUpdate.length === 0) return;
-
-  const description = [];
-  if (toAdd.length > 0) description.push(`Add: ${toAdd.map((m) => m.name).join(", ")}`);
-  if (toRemove.length > 0) description.push(`Remove: ${toRemove.map((m) => m.name).join(", ")}`);
-  if (toUpdate.length > 0) description.push(`Update: ${toUpdate.join(", ")}`);
-
-  changes.record(["shippingMethods"], {
-    current: serializeShippingMethods(currentMethods),
-    desired: serializeShippingMethods(desiredMethods),
-    description: description.join("; "),
-  });
+  );
 }
 
 /** Compares shipping zones by name, including their shipping methods. */
@@ -205,27 +184,15 @@ export const shippingZoneComparator = entityComparator<ShippingZoneEntity>({
     changes.value("description", desired.description, current.description);
     changes.value("default", desired.default ?? false, current.default);
 
-    const lists = [
-      [
-        "countries",
-        "Countries",
-        normalizeCountries(desired.countries),
-        normalizeCountries(current.countries),
-      ],
-      ["warehouses", "Warehouses", slugList(desired.warehouses), slugList(current.warehouses)],
-      ["channels", "Channels", slugList(desired.channels), slugList(current.channels)],
-    ] as const;
-    for (const [field, label, desiredList, currentList] of lists) {
-      if (JSON.stringify(desiredList) !== JSON.stringify(currentList)) {
-        changes.record([field], {
-          current: currentList,
-          desired: desiredList,
-          description: `${label}: [${currentList.join(", ")}] → [${desiredList.join(", ")}]`,
-        });
-      }
-    }
+    changes.set(
+      "countries",
+      normalizeCountries(desired.countries),
+      normalizeCountries(current.countries)
+    );
+    changes.set("warehouses", slugList(desired.warehouses), slugList(current.warehouses));
+    changes.set("channels", slugList(desired.channels), slugList(current.channels));
 
-    compareShippingMethods(changes, desired.shippingMethods, current.shippingMethods || undefined);
+    compareShippingMethods(changes, desired.shippingMethods, current.shippingMethods);
     changes.metadata(desired, current);
 
     const currentMethods = new Map((current.shippingMethods ?? []).map((m) => [m.name, m]));

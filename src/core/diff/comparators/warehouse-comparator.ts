@@ -127,15 +127,7 @@ export const warehouseComparator = entityComparator<WarehouseEntity>({
 
     compareAddresses(changes, desired.address, current.address);
 
-    const desiredZones = shippingZoneNames(desired);
-    const currentZones = shippingZoneNames(current);
-    if (JSON.stringify(desiredZones) !== JSON.stringify(currentZones)) {
-      changes.record(["shippingZones"], {
-        current: currentZones,
-        desired: desiredZones,
-        description: `Shipping zones: [${currentZones.join(", ")}] → [${desiredZones.join(", ")}]`,
-      });
-    }
+    changes.set("shippingZones", shippingZoneNames(desired), shippingZoneNames(current));
 
     changes.metadata(desired, current);
   },

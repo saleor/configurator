@@ -24,7 +24,7 @@
 
 ## diff
 
-`DiffService.compare` loads the local file and the remote config, then runs the comparator for each selected section. A comparator matches entries by identifier ([ENTITY_REFERENCE.md](ENTITY_REFERENCE.md)) and returns `CREATE`, `UPDATE` or `DELETE` results with field-level changes. Formatters turn the summary into a table, JSON or a GitHub comment.
+`DiffService.compare` loads the local file and the remote config, then runs the comparator for each selected section. Each comparator is a spec for `entityComparator`, which matches entries by identifier ([ENTITY_REFERENCE.md](ENTITY_REFERENCE.md)) and returns one `CREATE`, `UPDATE` or `DELETE` result per object deploy writes; a category tree yields one result per category. Each change carries the path from its entity to the changed value. Formatters render changes through `render-change.ts` and turn the summary into a table, JSON or a GitHub comment.
 
 ## deploy
 

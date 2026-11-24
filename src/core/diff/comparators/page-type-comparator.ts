@@ -28,22 +28,18 @@ export const pageTypeComparator = entityComparator<PageTypeEntity>({
     for (const name of desiredNames) {
       if (!currentSet.has(name)) {
         changes.record(["attributes", name], {
-          field: "attributes",
           kind: "added",
           current: null,
           desired: name,
-          description: `Attribute "${name}" added (in config, not on Saleor)`,
         });
       }
     }
     for (const name of currentNames) {
       if (!desiredSet.has(name)) {
         changes.record(["attributes", name], {
-          field: "attributes",
           kind: "removed",
           current: name,
           desired: null,
-          description: `Attribute "${name}" removed (on Saleor, not in config)`,
         });
       }
     }

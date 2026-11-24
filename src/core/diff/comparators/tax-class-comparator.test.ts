@@ -125,7 +125,11 @@ describe("TaxClassComparator", () => {
       const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
-      expect(changes[0].description).toContain("Tax rate for GB added: 20%");
+      expect(changes[0]).toMatchObject({
+        path: ["countryRates", "GB"],
+        kind: "added",
+        desiredValue: 20,
+      });
     });
 
     it("should detect country rate removals", () => {
@@ -144,7 +148,11 @@ describe("TaxClassComparator", () => {
       const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
-      expect(changes[0].description).toContain("Tax rate for GB removed (was 20%)");
+      expect(changes[0]).toMatchObject({
+        path: ["countryRates", "GB"],
+        kind: "removed",
+        currentValue: 20,
+      });
     });
 
     it("should detect country rate changes", () => {
@@ -160,7 +168,12 @@ describe("TaxClassComparator", () => {
       const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
-      expect(changes[0].description).toContain("Tax rate for US: 8.5% → 9%");
+      expect(changes[0]).toMatchObject({
+        path: ["countryRates", "US"],
+        kind: "changed",
+        currentValue: 8.5,
+        desiredValue: 9,
+      });
     });
 
     it("should handle empty country rates", () => {
@@ -176,7 +189,7 @@ describe("TaxClassComparator", () => {
       const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
-      expect(changes[0].description).toContain("Tax rate for US removed");
+      expect(changes[0]).toMatchObject({ path: ["countryRates", "US"], kind: "removed" });
     });
 
     it("should handle missing country rates", () => {
@@ -191,7 +204,7 @@ describe("TaxClassComparator", () => {
       const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
-      expect(changes[0].description).toContain("Tax rate for US removed");
+      expect(changes[0]).toMatchObject({ path: ["countryRates", "US"], kind: "removed" });
     });
   });
 

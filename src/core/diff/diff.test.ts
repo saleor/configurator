@@ -68,10 +68,11 @@ describe("DiffFormatter", () => {
             entityName: "ProductTypeA",
             changes: [
               {
-                field: "attributes",
-                currentValue: [],
-                desiredValue: ["Color"],
-                description: 'Attribute "Color" added (in config, not on Saleor)',
+                field: "attributes.Color",
+                path: ["attributes", "Color"],
+                kind: "added",
+                currentValue: undefined,
+                desiredValue: "Color",
               },
             ],
           },
@@ -85,7 +86,7 @@ describe("DiffFormatter", () => {
       expect(output).toContain("📊 Configuration Diff Results");
       expect(output).toContain("📦 Product Types");
       expect(output).toContain('🔄 Update: "ProductTypeA"');
-      expect(output).toContain('Attribute "Color" added (in config, not on Saleor)');
+      expect(output).toContain("attributes.Color: added");
       expect(output).toContain("Total Changes: 1");
       expect(output).toContain("• 0 Creations");
       expect(output).toContain("• 1 Update");
@@ -201,6 +202,8 @@ describe("DetailedDiffFormatter", () => {
           changes: [
             {
               field: "name",
+              path: ["name"],
+              kind: "changed",
               currentValue: "OldName",
               desiredValue: "NewName",
             },
@@ -587,16 +590,20 @@ describe("IntrospectDiffFormatter", () => {
             entityType: "Shop Settings",
             entityName: "Shop Settings",
             changes: [
+              // Introspect compares Saleor (desired) against the file (current).
               {
                 field: "defaultMailSenderName",
-                currentValue: "Remote Shop",
-                desiredValue: "Local Shop",
-                description: "Will be updated from local to remote value",
+                path: ["defaultMailSenderName"],
+                kind: "changed",
+                currentValue: "Local Shop",
+                desiredValue: "Remote Shop",
               },
               {
                 field: "displayGrossPrices",
-                currentValue: true,
-                desiredValue: false,
+                path: ["displayGrossPrices"],
+                kind: "changed",
+                currentValue: false,
+                desiredValue: true,
               },
             ],
           },
@@ -609,7 +616,7 @@ describe("IntrospectDiffFormatter", () => {
       // Assert
       expect(output).toContain('Will be updated: "Shop Settings"');
       expect(output).toContain('defaultMailSenderName: "Local Shop" → "Remote Shop"');
-      expect(output).toContain('displayGrossPrices: "false" → "true"');
+      expect(output).toContain("displayGrossPrices: false → true");
       expect(output).toContain("1 modified");
     });
 
@@ -680,7 +687,15 @@ describe("IntrospectDiffFormatter", () => {
             operation: "UPDATE",
             entityType: "Shop Settings",
             entityName: "Shop Settings",
-            changes: [{ field: "name", currentValue: "Remote", desiredValue: "Local" }],
+            changes: [
+              {
+                field: "name",
+                path: ["name"],
+                kind: "changed",
+                currentValue: "Remote",
+                desiredValue: "Local",
+              },
+            ],
           },
           {
             operation: "DELETE",

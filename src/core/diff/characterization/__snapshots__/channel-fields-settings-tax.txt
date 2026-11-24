@@ -4,7 +4,7 @@ UPDATE Channels "default-channel"
   {"field":"name","currentValue":"Default","desiredValue":"Default EU","description":"name: \"Default\" → \"Default EU\""}
   {"field":"currencyCode","currentValue":"USD","desiredValue":"EUR","description":"currencyCode: \"USD\" → \"EUR\""}
   {"field":"settings.allocationStrategy","currentValue":"PRIORITIZE_SORTING_ORDER","desiredValue":"PRIORITIZE_HIGH_STOCK","description":"settings.allocationStrategy: \"PRIORITIZE_SORTING_ORDER\" → \"PRIORITIZE_HIGH_STOCK\""}
-  {"field":"taxConfiguration.chargeTaxes","currentValue":true,"desiredValue":false,"description":"taxConfiguration.chargeTaxes: \"true\" → \"false\""}
+  {"field":"taxConfiguration.chargeTaxes","currentValue":true,"desiredValue":false,"description":"taxConfiguration.chargeTaxes: true → false"}
 CREATE Channels "b2b"
 
 ===== deploy preview =====
@@ -40,7 +40,7 @@ The following changes would be applied to reconcile Saleor with your local confi
     │ name: "Default" → "Default EU"
     │ currencyCode: "USD" → "EUR"
     │ settings.allocationStrategy: "PRIORITIZE_SORTING_ORDER" → "PRIORITIZE_HIGH_STOCK"
-    │ taxConfiguration.chargeTaxes: "true" → "false"
+    │ taxConfiguration.chargeTaxes: true → false
 
   ➕ Create: "b2b"
     │ Currency: USD
@@ -83,9 +83,9 @@ By entity type:
 
 #### Updates
 - :pencil2: `default-channel`
-  - `name`: `Default` -> `Default EU`
-  - `currencyCode`: `USD` -> `EUR`
-  - `settings.allocationStrategy`: `PRIORITIZE_SORTING_ORDER` -> `PRIORITIZE_HIGH_STOCK`
+  - `name`: "Default" → "Default EU"
+  - `currencyCode`: "USD" → "EUR"
+  - `settings.allocationStrategy`: "PRIORITIZE_SORTING_ORDER" → "PRIORITIZE_HIGH_STOCK"
   - _...and 1 more changes_
 
 </details>
@@ -99,7 +99,7 @@ UPDATE Channels "default-channel"
   {"field":"name","currentValue":"Default EU","desiredValue":"Default","description":"name: \"Default EU\" → \"Default\""}
   {"field":"currencyCode","currentValue":"EUR","desiredValue":"USD","description":"currencyCode: \"EUR\" → \"USD\""}
   {"field":"settings.allocationStrategy","currentValue":"PRIORITIZE_HIGH_STOCK","desiredValue":"PRIORITIZE_SORTING_ORDER","description":"settings.allocationStrategy: \"PRIORITIZE_HIGH_STOCK\" → \"PRIORITIZE_SORTING_ORDER\""}
-  {"field":"taxConfiguration.chargeTaxes","currentValue":false,"desiredValue":true,"description":"taxConfiguration.chargeTaxes: \"false\" → \"true\""}
+  {"field":"taxConfiguration.chargeTaxes","currentValue":false,"desiredValue":true,"description":"taxConfiguration.chargeTaxes: false → true"}
 DELETE Channels "b2b"
 
 ===== introspect preview =====
@@ -112,10 +112,10 @@ when pulling the current state from Saleor:
 🌐 Channels
 ──────────
   🔄 Will be updated: "default-channel"
-    │ name: "Default" → "Default EU"
-    │ currencyCode: "USD" → "EUR"
-    │ settings.allocationStrategy: "PRIORITIZE_SORTING_ORDER" → "PRIORITIZE_HIGH_STOCK"
-    │ taxConfiguration.chargeTaxes: "true" → "false"
+    │ name: "Default EU" → "Default"
+    │ currencyCode: "EUR" → "USD"
+    │ settings.allocationStrategy: "PRIORITIZE_HIGH_STOCK" → "PRIORITIZE_SORTING_ORDER"
+    │ taxConfiguration.chargeTaxes: false → true
 
   ➖ Will be removed: "b2b" (not present on Saleor)
 

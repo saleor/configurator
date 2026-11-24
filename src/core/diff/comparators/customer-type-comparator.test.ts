@@ -65,8 +65,8 @@ describe("CustomerTypeComparator", () => {
     );
 
     expect(results[0].changes).toEqual([
-      expect.objectContaining({ field: "attributes", desiredValue: "Loyalty Tier" }),
-      expect.objectContaining({ field: "attributes", currentValue: "Segment" }),
+      expect.objectContaining({ path: ["attributes", "Loyalty Tier"], kind: "added" }),
+      expect.objectContaining({ path: ["attributes", "Segment"], kind: "removed" }),
     ]);
   });
 

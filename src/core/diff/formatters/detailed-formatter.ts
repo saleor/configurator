@@ -1,6 +1,7 @@
 import chalk from "chalk";
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
-import type { DiffChange, DiffResult, DiffSummary, EntityType } from "../types";
+import { renderChanges } from "../render-change";
+import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
 /**
@@ -98,27 +99,9 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
   private addChangeDetails(lines: string[], result: DiffResult): void {
     if (!result.changes || result.changes.length === 0) return;
 
-    for (const change of result.changes) {
-      const description = change.description || this.formatFieldChange(change);
-      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${description}`);
+    for (const { label, summary } of renderChanges(result.changes, "deploy")) {
+      lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${label}: ${summary}`);
     }
-  }
-
-  /**
-   * Formats a field change with proper value handling and colors
-   */
-  private formatFieldChange(change: DiffChange): string {
-    const formatValue = (value: unknown): string => {
-      if (value === null || value === undefined) {
-        return chalk.white("(not set)");
-      }
-      return chalk.white(`"${String(value)}"`);
-    };
-
-    const currentValue = formatValue(change.currentValue);
-    const desiredValue = formatValue(change.desiredValue);
-
-    return `${change.field}: ${currentValue} → ${desiredValue}`;
   }
 
   /**

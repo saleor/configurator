@@ -23,18 +23,14 @@ export const taxClassComparator = entityComparator<TaxClassInput>({
       const currentRate = currentByCountry.get(countryCode);
       if (currentRate === undefined) {
         changes.record(["countryRates", countryCode], {
-          field: "countryRates",
           kind: "added",
           current: null,
-          desired: `${countryCode}: ${rate}%`,
-          description: `Tax rate for ${countryCode} added: ${rate}%`,
+          desired: rate,
         });
       } else if (currentRate !== rate) {
         changes.record(["countryRates", countryCode], {
-          field: "countryRates",
-          current: `${countryCode}: ${currentRate}%`,
-          desired: `${countryCode}: ${rate}%`,
-          description: `Tax rate for ${countryCode}: ${currentRate}% → ${rate}%`,
+          current: currentRate,
+          desired: rate,
         });
       }
     }
@@ -42,11 +38,9 @@ export const taxClassComparator = entityComparator<TaxClassInput>({
     for (const { countryCode, rate } of currentRates) {
       if (!desiredCountries.has(countryCode)) {
         changes.record(["countryRates", countryCode], {
-          field: "countryRates",
           kind: "removed",
-          current: `${countryCode}: ${rate}%`,
+          current: rate,
           desired: null,
-          description: `Tax rate for ${countryCode} removed (was ${rate}%)`,
         });
       }
     }

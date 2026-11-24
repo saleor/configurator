@@ -764,7 +764,7 @@ const taxClassSchema = z.object({
     .describe("TaxClass.countries - Tax rates per country for this tax class"),
 });
 
-export type TaxClassCountryRateInput = z.infer<typeof taxClassCountryRateSchema>;
+type TaxClassCountryRateInput = z.infer<typeof taxClassCountryRateSchema>;
 export type TaxClassInput = z.infer<typeof taxClassSchema>;
 
 // Collection Schema

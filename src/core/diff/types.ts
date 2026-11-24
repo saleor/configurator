@@ -40,14 +40,14 @@ export type DiffChangeKind = "changed" | "added" | "removed";
  * Represents a single field change in a diff operation
  */
 export interface DiffChange {
-  /** The field name that changed */
+  /** The path joined with dots, e.g. `variants.TEE-S.weight`. */
   readonly field: string;
   /**
    * Path from the entity to the changed value, one segment per key, e.g.
    * `["variants", "TEE-S", "weight"]`. Unlike `field`, segments may contain dots.
    */
-  readonly path?: readonly string[];
-  readonly kind?: DiffChangeKind;
+  readonly path: readonly string[];
+  readonly kind: DiffChangeKind;
   /** The current value in the remote system */
   readonly currentValue: unknown;
   /** The desired value from the local configuration */

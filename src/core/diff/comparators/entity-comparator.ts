@@ -12,7 +12,7 @@ export interface EntityComparator {
  * How one entity type is diffed. The comparator built from it owns matching, duplicates and
  * result order; the spec only says how entities are identified and how two of them differ.
  */
-export interface EntitySpec<T> {
+interface EntitySpec<T> {
   readonly entityType: EntityType;
   /** The identifier deploy uses to find the entity in Saleor (a slug, or a name). */
   identify(entity: T): string;

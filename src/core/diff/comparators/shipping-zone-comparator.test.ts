@@ -184,12 +184,9 @@ describe("ShippingZoneComparator", () => {
       const results = comparator.compare(local, remote);
 
       expect(results).toHaveLength(1);
-      expect(results[0].changes).toContainEqual(
-        expect.objectContaining({
-          field: "countries",
-          description: "Countries: [US] → [CA, US]",
-        })
-      );
+      expect(results[0].changes).toEqual([
+        expect.objectContaining({ path: ["countries", "CA"], kind: "added", desiredValue: "CA" }),
+      ]);
     });
 
     it("should detect warehouse changes", () => {
@@ -204,12 +201,13 @@ describe("ShippingZoneComparator", () => {
       const results = comparator.compare(local, remote);
 
       expect(results).toHaveLength(1);
-      expect(results[0].changes).toContainEqual(
+      expect(results[0].changes).toEqual([
         expect.objectContaining({
-          field: "warehouses",
-          description: "Warehouses: [main-warehouse] → [main-warehouse, secondary-warehouse]",
-        })
-      );
+          path: ["warehouses", "secondary-warehouse"],
+          kind: "added",
+          desiredValue: "secondary-warehouse",
+        }),
+      ]);
     });
 
     it("should detect shipping method changes", () => {
@@ -232,10 +230,7 @@ describe("ShippingZoneComparator", () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].changes).toContainEqual(
-        expect.objectContaining({
-          field: "shippingMethods",
-          description: expect.stringContaining("Add: Express Shipping"),
-        })
+        expect.objectContaining({ path: ["shippingMethods", "Express Shipping"], kind: "added" })
       );
     });
 
@@ -252,10 +247,7 @@ describe("ShippingZoneComparator", () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].changes).toContainEqual(
-        expect.objectContaining({
-          field: "shippingMethods",
-          description: expect.stringContaining("Remove: Standard Shipping"),
-        })
+        expect.objectContaining({ path: ["shippingMethods", "Standard Shipping"], kind: "removed" })
       );
     });
 
@@ -284,12 +276,19 @@ describe("ShippingZoneComparator", () => {
       const results = comparator.compare(local, remote);
 
       expect(results).toHaveLength(1);
-      expect(results[0].changes).toContainEqual(
+      expect(results[0].changes).toEqual([
         expect.objectContaining({
-          field: "shippingMethods",
-          description: expect.stringContaining("Update: Standard Shipping"),
-        })
-      );
+          path: [
+            "shippingMethods",
+            "Standard Shipping",
+            "channelListings",
+            "default-channel",
+            "price",
+          ],
+          currentValue: 10,
+          desiredValue: 15,
+        }),
+      ]);
     });
   });
 

@@ -27,8 +27,8 @@ The following changes would be applied to reconcile Saleor with your local confi
 🏷️ Categories
 ────────────
   🔄 Update: "tyres"
-    │ In "Summer tyres": Subcategory "Van" added (in config, not on Saleor)
-    │ Subcategory "Winter tyres" removed (on Saleor, not in config)
+    │ subcategories: (not set) → "Van"
+    │ subcategories: "Winter tyres" → (not set)
 
 📈 Summary
 ──────────
@@ -63,8 +63,8 @@ By entity type:
 
 #### Updates
 - :pencil2: `tyres`
-  - `subcategories`: _null_ -> `Van`
-  - `subcategories`: `Winter tyres` -> _null_
+  - `subcategories`: (not set) → "Van"
+  - `subcategories`: "Winter tyres" → (not set)
 
 </details>
 
@@ -87,8 +87,8 @@ when pulling the current state from Saleor:
 🏷️ Categories
 ────────────
   🔄 Will be updated: "tyres"
-    │ subcategories: "null" → "Van"
-    │ subcategories: "Winter tyres" → "null"
+    │ subcategories: "Van" → (not set)
+    │ subcategories: (not set) → "Winter tyres"
 
 
 ══════════════════════════════════════════════════

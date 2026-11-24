@@ -124,11 +124,13 @@ describe("fields the config leaves out (deploy direction)", () => {
     );
 
     expect(results).toHaveLength(1);
-    expect(results[0].changes?.[0]).toMatchObject({
-      field: "channels.main",
-      currentValue: { channel: "main", isPublished: true, visibleInListings: true },
-      desiredValue: { channel: "main", isPublished: false, visibleInListings: true },
-    });
+    expect(results[0].changes).toEqual([
+      expect.objectContaining({
+        path: ["channels", "main", "isPublished"],
+        currentValue: true,
+        desiredValue: false,
+      }),
+    ]);
   });
 });
 

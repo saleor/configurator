@@ -35,6 +35,7 @@ import { type ConfigurationStorage, YamlConfigurationManager } from "./modules/c
 export type { DeploymentResult, DiffSummary, SaleorConfig };
 export type {
   DiffChange,
+  DiffChangeKind,
   DiffOperation,
   DiffResult,
   Json,

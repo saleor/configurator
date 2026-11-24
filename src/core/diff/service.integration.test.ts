@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ServiceContainer } from "../service-container";
-import { type DiffChange, type DiffSummary, formatDiff, formatDiffSummary } from ".";
+import { type DiffSummary, formatDiff, formatDiffSummary } from ".";
 import { DiffService } from "./service";
 
 /**
@@ -235,9 +235,11 @@ productTypes:
             changes: [
               {
                 field: "defaultMailSenderName",
+                path: ["defaultMailSenderName"],
+                kind: "changed",
                 currentValue: "Old Store",
                 desiredValue: "New Store",
-              } as DiffChange,
+              },
             ],
           },
           {
@@ -253,6 +255,7 @@ productTypes:
 
       expect(output).toContain("Configuration Diff Results");
       expect(output).toContain("Shop Settings");
+      expect(output).toContain('defaultMailSenderName: "Old Store" → "New Store"');
       expect(output).toContain("Channels");
       expect(output).toContain("Update");
       expect(output).toContain("Create");

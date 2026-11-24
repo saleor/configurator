@@ -43,18 +43,6 @@ function channelListings(entity: CollectionEntity): Array<{
   return [];
 }
 
-type Listings = ReturnType<typeof channelListings>;
-
-const listingsKey = (listings: Listings) =>
-  listings.map((listing) => `${listing.channelSlug}:${listing.isPublished}`).join(",");
-
-const describeListings = (listings: Listings) =>
-  listings
-    .map(
-      (listing) => `${listing.channelSlug}(${listing.isPublished ? "published" : "unpublished"})`
-    )
-    .join(", ");
-
 /** Compares collections by slug. */
 export const collectionComparator = entityComparator<CollectionEntity>({
   entityType: "Collections",
@@ -74,24 +62,14 @@ export const collectionComparator = entityComparator<CollectionEntity>({
     changes.value("description", description(desired), description(current));
 
     // isPublished is handled via channelListings, not as a top-level field.
-    const desiredProducts = productSlugs(desired);
-    const currentProducts = productSlugs(current);
-    if (JSON.stringify(desiredProducts) !== JSON.stringify(currentProducts)) {
-      changes.record(["products"], {
-        current: currentProducts,
-        desired: desiredProducts,
-        description: `Products: [${currentProducts.join(", ")}] → [${desiredProducts.join(", ")}]`,
-      });
-    }
-
-    const desiredListings = channelListings(desired);
-    const currentListings = channelListings(current);
-    if (listingsKey(desiredListings) !== listingsKey(currentListings)) {
-      changes.record(["channelListings"], {
-        current: currentListings,
-        desired: desiredListings,
-        description: `Channel listings: [${describeListings(currentListings)}] → [${describeListings(desiredListings)}]`,
-      });
-    }
+    changes.set("products", productSlugs(desired), productSlugs(current));
+    changes.members(
+      "channelListings",
+      channelListings(desired),
+      channelListings(current),
+      (listing) => listing.channelSlug,
+      (listingChanges, desiredListing, currentListing) =>
+        listingChanges.value("isPublished", desiredListing.isPublished, currentListing.isPublished)
+    );
   },
 });

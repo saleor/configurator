@@ -37,15 +37,11 @@ function normalizeMenuItems(items: MenuItemInput[] | MenuItem[]): MenuItemInput[
   }));
 }
 
-/**
- * Compares a list of menu items matched by name. `field` is the legacy slash-separated
- * location of the list (e.g. `items/Shop/children`); `changes` is scoped to the same list.
- */
+/** Compares a list of menu items matched by name; `changes` is scoped to the list. */
 function compareMenuItems(
   changes: ChangeSet,
   desired: MenuItemInput[],
-  current: MenuItemInput[],
-  field: string
+  current: MenuItemInput[]
 ): void {
   const desiredByName = new Map(desired.map((item) => [item.name, item]));
   const currentByName = new Map(current.map((item) => [item.name, item]));
@@ -54,25 +50,21 @@ function compareMenuItems(
     const currentItem = currentByName.get(item.name);
     if (!currentItem) {
       changes.record([item.name], {
-        field,
         kind: "added",
         current: null,
         desired: item.name,
-        description: `Menu item "${item.name}" added`,
       });
     } else {
-      compareMenuItem(changes.at(item.name), item, currentItem, `${field}/${item.name}`);
+      compareMenuItem(changes.at(item.name), item, currentItem);
     }
   }
 
   for (const item of current) {
     if (!desiredByName.has(item.name)) {
       changes.record([item.name], {
-        field,
         kind: "removed",
         current: item.name,
         desired: null,
-        description: `Menu item "${item.name}" removed`,
       });
     }
   }
@@ -85,24 +77,16 @@ function compareMenuItems(
     desiredNames.every((name) => currentNames.includes(name))
   ) {
     changes.record(["order"], {
-      field: `${field}.order`,
       current: currentNames,
       desired: desiredNames,
-      description: `Menu items reordered: [${currentNames.join(", ")}] → [${desiredNames.join(", ")}]`,
     });
   }
 }
 
-function compareMenuItem(
-  changes: ChangeSet,
-  desired: MenuItemInput,
-  current: MenuItemInput,
-  field: string
-): void {
+function compareMenuItem(changes: ChangeSet, desired: MenuItemInput, current: MenuItemInput): void {
   for (const key of ["url", "category", "collection", "page"] as const) {
     if (desired[key] !== current[key]) {
       changes.record([key], {
-        field: `${field}.${key}`,
         current: current[key] || null,
         desired: desired[key] || null,
       });
@@ -110,12 +94,7 @@ function compareMenuItem(
   }
 
   if (desired.children || current.children) {
-    compareMenuItems(
-      changes.at("children"),
-      desired.children ?? [],
-      current.children ?? [],
-      `${field}/children`
-    );
+    compareMenuItems(changes.at("children"), desired.children ?? [], current.children ?? []);
   }
 }
 
@@ -135,8 +114,7 @@ export const menuComparator = entityComparator<MenuEntity>({
     compareMenuItems(
       changes.at("items"),
       normalizeMenuItems(desired.items ?? []),
-      normalizeMenuItems(current.items ? current.items : []),
-      "items"
+      normalizeMenuItems(current.items ? current.items : [])
     );
   },
 });

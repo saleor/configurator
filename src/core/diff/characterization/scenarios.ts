@@ -5,7 +5,7 @@
  *
  * `config` is what config.yml holds; `store` is what introspect reads back from Saleor.
  */
-export interface DiffScenario {
+interface DiffScenario {
   readonly name: string;
   readonly config: Record<string, unknown>;
   readonly store: Record<string, unknown>;

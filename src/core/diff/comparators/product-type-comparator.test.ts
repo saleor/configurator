@@ -45,7 +45,11 @@ describe("ProductTypeComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("attributes.Color.variantSelection");
+      expect(results[0].changes?.[0].path).toEqual([
+        "variantAttributes",
+        "Color",
+        "variantSelection",
+      ]);
       expect(results[0].changes?.[0].currentValue).toBe(false);
       expect(results[0].changes?.[0].desiredValue).toBe(true);
     });
@@ -92,7 +96,11 @@ describe("ProductTypeComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("attributes.Size.variantSelection");
+      expect(results[0].changes?.[0].path).toEqual([
+        "variantAttributes",
+        "Size",
+        "variantSelection",
+      ]);
       expect(results[0].changes?.[0].currentValue).toBe(true);
       expect(results[0].changes?.[0].desiredValue).toBe(false);
     });
@@ -225,7 +233,11 @@ describe("ProductTypeComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("attributes.Color.variantSelection");
+      expect(results[0].changes?.[0].path).toEqual([
+        "variantAttributes",
+        "Color",
+        "variantSelection",
+      ]);
       expect(results[0].changes?.[0].currentValue).toBe(false);
       expect(results[0].changes?.[0].desiredValue).toBe(true);
     });
@@ -268,7 +280,11 @@ describe("ProductTypeComparator", () => {
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].changes).toHaveLength(1);
-      expect(results[0].changes?.[0].field).toBe("attributes.Color.variantSelection");
+      expect(results[0].changes?.[0].path).toEqual([
+        "variantAttributes",
+        "Color",
+        "variantSelection",
+      ]);
       expect(results[0].changes?.[0].currentValue).toBe(false);
       expect(results[0].changes?.[0].desiredValue).toBe(true);
     });

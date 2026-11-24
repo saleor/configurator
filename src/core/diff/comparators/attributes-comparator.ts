@@ -43,26 +43,21 @@ export function attributesComparator(
       if (isChoiceType(desired.inputType) || isChoiceType(current.inputType)) {
         const desiredValues = new Set(valueNames(desired));
         const currentValues = new Set(valueNames(current));
-        const field = `attributes.${desired.name}.values`;
         for (const name of desiredValues) {
           if (!currentValues.has(name)) {
             changes.record(["values", name], {
-              field,
               kind: "added",
               current: null,
               desired: name,
-              description: `Attribute "${desired.name}" value "${name}" added`,
             });
           }
         }
         for (const name of currentValues) {
           if (!desiredValues.has(name)) {
             changes.record(["values", name], {
-              field,
               kind: "removed",
               current: name,
               desired: null,
-              description: `Attribute "${desired.name}" value "${name}" removed`,
             });
           }
         }

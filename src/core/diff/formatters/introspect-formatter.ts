@@ -1,4 +1,5 @@
 import { DIFF_ICONS, FORMAT_CONFIG } from "../constants";
+import { renderChanges } from "../render-change";
 import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
@@ -112,13 +113,9 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
   private addChangeDetails(lines: string[], result: DiffResult): void {
     if (!result.changes || result.changes.length === 0) return;
 
-    for (const change of result.changes) {
-      // For introspect, current = remote value, desired = local value
-      // We're showing what the local value will become (current/remote value)
-      const description = `${change.field}: "${this.formatValue(
-        change.desiredValue
-      )}" → "${this.formatValue(change.currentValue)}"`;
-      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} ${description}`);
+    // Introspect compares with Saleor as the desired side, so changes read file → Saleor.
+    for (const { label, summary } of renderChanges(result.changes, "introspect")) {
+      lines.push(`    ${FORMAT_CONFIG.TREE_BRANCH} ${label}: ${summary}`);
     }
   }
 
@@ -190,17 +187,5 @@ export class IntrospectDiffFormatter extends BaseDiffFormatter {
     if (parts.length > 0) {
       lines.push(`  ${parts.join(", ")}`);
     }
-  }
-
-  private formatValue(value: unknown): string {
-    if (value === null || value === undefined) return String(value);
-    if (typeof value === "object") {
-      try {
-        return JSON.stringify(value);
-      } catch {
-        return "[object]";
-      }
-    }
-    return String(value);
   }
 }

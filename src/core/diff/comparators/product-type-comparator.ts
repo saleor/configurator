@@ -33,11 +33,9 @@ export const productTypeComparator = entityComparator<ProductTypeEntity>({
     for (const list of ATTRIBUTE_LISTS) {
       for (const name of new Set(attributesOf(desired, list).map(getAttributeName))) {
         changes.record([list, name], {
-          field: "attributes",
           kind: "added",
           current: null,
           desired: name,
-          description: `Attribute "${name}" will be created`,
         });
       }
     }
@@ -62,11 +60,9 @@ function compareAttributes(
     const currentAttribute = currentByName.get(name);
     if (!currentAttribute) {
       changes.record([name], {
-        field: "attributes",
         kind: "added",
         current: null,
         desired: name,
-        description: `Attribute "${name}" added`,
       });
       continue;
     }
@@ -75,10 +71,8 @@ function compareAttributes(
     const currentSelection = getVariantSelection(currentAttribute);
     if (desiredSelection !== currentSelection) {
       changes.record([name, "variantSelection"], {
-        field: `attributes.${name}.variantSelection`,
         current: currentSelection,
         desired: desiredSelection,
-        description: `Attribute "${name}" variantSelection: ${currentSelection} → ${desiredSelection}`,
       });
     }
   }
@@ -86,11 +80,9 @@ function compareAttributes(
   for (const name of currentByName.keys()) {
     if (!desiredByName.has(name)) {
       changes.record([name], {
-        field: "attributes",
         kind: "removed",
         current: name,
         desired: null,
-        description: `Attribute "${name}" removed`,
       });
     }
   }

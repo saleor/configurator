@@ -11,7 +11,7 @@ export type { ComparatorOptions };
  * @template TLocal The type of the local entity
  * @template TRemote The type of the remote entity
  */
-export interface EntityComparator<TLocal = unknown, TRemote = unknown> {
+interface EntityComparator<TLocal = unknown, TRemote = unknown> {
   /**
    * Compares local and remote entities and returns diff results
    * @param local Local entities from configuration
@@ -200,6 +200,8 @@ export abstract class BaseEntityComparator<TLocal, TRemote, TEntity extends Reco
   ): DiffChange {
     return {
       field,
+      path: [field],
+      kind: "changed",
       currentValue,
       desiredValue,
       description:

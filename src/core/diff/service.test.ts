@@ -189,7 +189,10 @@ describe("DiffService", () => {
         entityName: "ProductTypeA",
       });
       expect(summary.results[0].changes).toHaveLength(1);
-      expect(summary.results[0].changes?.[0].description).toContain('Attribute "Color" added');
+      expect(summary.results[0].changes?.[0]).toMatchObject({
+        path: ["productAttributes", "Color"],
+        kind: "added",
+      });
     });
 
     it("should detect product type creation with attributes", async () => {
@@ -241,15 +244,11 @@ describe("DiffService", () => {
 
       // Should have changes array with all 3 attributes
       expect(summary.results[0].changes).toHaveLength(3);
-      expect(summary.results[0].changes?.[0].description).toContain(
-        'Attribute "Author" will be created'
-      );
-      expect(summary.results[0].changes?.[1].description).toContain(
-        'Attribute "Genre" will be created'
-      );
-      expect(summary.results[0].changes?.[2].description).toContain(
-        'Attribute "Related Books" will be created'
-      );
+      expect(summary.results[0].changes?.map((change) => [change.path, change.kind])).toEqual([
+        [["productAttributes", "Author"], "added"],
+        [["productAttributes", "Genre"], "added"],
+        [["productAttributes", "Related Books"], "added"],
+      ]);
     });
   });
 

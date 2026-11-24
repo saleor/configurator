@@ -1,3 +1,4 @@
+import { renderChanges } from "../render-change";
 import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 import { type ChangeSeverity, classifyChangeSeverity } from "./ci-types";
@@ -223,49 +224,24 @@ export class GitHubCommentFormatter extends BaseDiffFormatter {
 
     const lines = [`- :pencil2: \`${result.entityName}\``];
 
-    for (const change of changes.slice(0, FORMATTER_LIMITS.MAX_FIELD_CHANGES)) {
-      const oldVal = this.formatValue(change.currentValue);
-      const newVal = this.formatValue(change.desiredValue);
-      lines.push(`  - \`${change.field}\`: ${oldVal} -> ${newVal}`);
+    const rendered = renderChanges(changes, "deploy");
+    for (const { label, summary } of rendered.slice(0, FORMATTER_LIMITS.MAX_FIELD_CHANGES)) {
+      lines.push(`  - \`${label}\`: ${this.truncate(summary)}`);
     }
 
-    if (changes.length > FORMATTER_LIMITS.MAX_FIELD_CHANGES) {
+    if (rendered.length > FORMATTER_LIMITS.MAX_FIELD_CHANGES) {
       lines.push(
-        `  - _...and ${changes.length - FORMATTER_LIMITS.MAX_FIELD_CHANGES} more changes_`
+        `  - _...and ${rendered.length - FORMATTER_LIMITS.MAX_FIELD_CHANGES} more changes_`
       );
     }
 
     return lines.join("\n");
   }
 
-  /**
-   * Formats a value for display (truncated if too long)
-   */
-  private formatValue(value: unknown): string {
-    if (value === null || value === undefined) {
-      return "_null_";
-    }
-
-    if (typeof value === "string") {
-      if (value.length > FORMATTER_LIMITS.MAX_VALUE_LENGTH) {
-        return `\`${value.slice(0, FORMATTER_LIMITS.MAX_VALUE_LENGTH - 3)}...\``;
-      }
-      return `\`${value}\``;
-    }
-
-    if (typeof value === "boolean" || typeof value === "number") {
-      return `\`${value}\``;
-    }
-
-    if (Array.isArray(value)) {
-      return `_[${value.length} items]_`;
-    }
-
-    if (typeof value === "object") {
-      return "_[object]_";
-    }
-
-    return String(value);
+  /** Keeps long values from flooding the comment. */
+  private truncate(text: string): string {
+    const max = FORMATTER_LIMITS.MAX_VALUE_LENGTH * 2;
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
   }
 
   /**

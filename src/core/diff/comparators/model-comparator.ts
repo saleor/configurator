@@ -37,12 +37,6 @@ function modelTypeName(entity: ModelEntity): string | undefined {
   return (entity as Page).pageType?.name;
 }
 
-function describeAttributeValue(value: unknown): string {
-  if (value === undefined) return "not set";
-  if (Array.isArray(value)) return `[${value.join(", ")}]`;
-  return String(value);
-}
-
 /** Compares models (Saleor pages) by slug. */
 export const modelComparator = entityComparator<ModelEntity>({
   entityType: "Models",
@@ -56,9 +50,7 @@ export const modelComparator = entityComparator<ModelEntity>({
 
   compareFields(changes, desired, current) {
     changes.value("title", desired.title, current.title);
-    changes.value("content", desired.content || undefined, current.content || undefined, {
-      description: "Content changed",
-    });
+    changes.value("content", desired.content || undefined, current.content || undefined, {});
     changes.value("isPublished", desired.isPublished ?? false, current.isPublished ?? false);
     changes.value(
       "publishedAt",
@@ -82,7 +74,6 @@ export const modelComparator = entityComparator<ModelEntity>({
         changes.record(["attributes", key], {
           current: currentValue,
           desired: desiredValue,
-          description: `Attribute "${key}": ${describeAttributeValue(currentValue)} → ${describeAttributeValue(desiredValue)}`,
         });
       }
     }

@@ -14,7 +14,15 @@ describe("DeployDiffFormatter", () => {
         operation: "UPDATE",
         entityType: "Categories",
         entityName: "shirts",
-        changes: [{ field: "name", currentValue: "Shirts", desiredValue: "Tees" }],
+        changes: [
+          {
+            field: "name",
+            path: ["name"],
+            kind: "changed",
+            currentValue: "Shirts",
+            desiredValue: "Tees",
+          },
+        ],
       },
       { operation: "DELETE", entityType: "Categories", entityName: "old-a" },
       { operation: "DELETE", entityType: "Categories", entityName: "old-b" },

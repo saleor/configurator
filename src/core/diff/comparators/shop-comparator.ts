@@ -53,9 +53,7 @@ export const shopComparator: EntityComparator = {
 
     const changes = ChangeSet.create(options);
     for (const field of SHOP_SETTINGS_FIELDS) {
-      changes.managedValue(field, desired[field], current[field], {
-        description: `${field} changed from "${current[field]}" to "${desired[field]}"`,
-      });
+      changes.managedValue(field, desired[field], current[field], {});
     }
 
     if (changes.changes().length === 0) return [];

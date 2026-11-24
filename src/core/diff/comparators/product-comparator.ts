@@ -106,12 +106,10 @@ function compareDescription(changes: ChangeSet, desired: ProductEntity, current:
       ? {
           current: currentDescription?.text ?? "",
           desired: desiredDescription?.text ?? "",
-          description: "Description text changed",
         }
       : {
           current: currentDescription?.blocks,
           desired: desiredDescription?.blocks,
-          description: "Description block structure changed",
         }
   );
 }
@@ -128,23 +126,18 @@ function compareChannelListings(
   for (const channel of channels) {
     const desiredListing = desiredByChannel.get(channel);
     const currentListing = currentByChannel.get(channel);
-    const field = `channels.${channel}`;
 
     if (!desiredListing && currentListing) {
       changes.record(["channels", channel], {
-        field,
         kind: "removed",
         current: currentListing,
         desired: undefined,
-        description: `Channel "${channel}" is only in Saleor (deploy does not remove it)`,
       });
     } else if (desiredListing && !currentListing) {
       changes.record(["channels", channel], {
-        field,
         kind: "added",
         current: undefined,
         desired: desiredListing,
-        description: `Channel "${channel}" will be added`,
       });
     } else if (desiredListing && currentListing) {
       // Order-agnostic, undefined values dropped; fields the config omits are unmanaged.
@@ -154,14 +147,7 @@ function compareChannelListings(
         desiredNormalized,
         changes.options
       );
-      if (JSON.stringify(desiredNormalized) !== JSON.stringify(currentNormalized)) {
-        changes.record(["channels", channel], {
-          field,
-          current: currentNormalized,
-          desired: desiredNormalized,
-          description: `Channel "${channel}" settings changed`,
-        });
-      }
+      changes.at("channels", channel).fields(desiredNormalized, currentNormalized);
     }
   }
 }
@@ -174,26 +160,21 @@ function compareVariants(changes: ChangeSet, desired: ProductEntity, current: Pr
   for (const sku of skus) {
     const desiredVariant = desiredBySku.get(sku);
     const currentVariant = currentBySku.get(sku);
-    const field = `variants.${sku}`;
 
     if (!desiredVariant && currentVariant) {
       changes.record(["variants", sku], {
-        field,
         kind: "removed",
         current: currentVariant,
         desired: undefined,
-        description: `Variant "${sku}" is only in Saleor (deploy does not remove it)`,
       });
     } else if (desiredVariant && !currentVariant) {
       changes.record(["variants", sku], {
-        field,
         kind: "added",
         current: undefined,
         desired: desiredVariant,
-        description: `Variant "${sku}" will be added`,
       });
     } else if (desiredVariant && currentVariant) {
-      compareVariant(changes.at("variants", sku), desiredVariant, currentVariant, sku);
+      compareVariant(changes.at("variants", sku), desiredVariant, currentVariant);
     }
   }
 }
@@ -202,26 +183,16 @@ function compareVariants(changes: ChangeSet, desired: ProductEntity, current: Pr
 function compareVariant(
   changes: ChangeSet,
   desired: ProductVariantInput,
-  current: ProductVariantInput,
-  sku: string
+  current: ProductVariantInput
 ): void {
   if (!isUnmanagedField(desired.weight, changes.options) && desired.weight !== current.weight) {
     changes.record(["weight"], {
-      field: `variants.${sku}.weight`,
       current: current.weight,
       desired: desired.weight,
-      description: `Variant "${sku}" weight changed`,
     });
   }
 
-  if (JSON.stringify(desired.attributes) !== JSON.stringify(current.attributes)) {
-    changes.record(["attributes"], {
-      field: `variants.${sku}.attributes`,
-      current: current.attributes,
-      desired: desired.attributes,
-      description: `Variant "${sku}" attributes changed`,
-    });
-  }
+  changes.at("attributes").fields(desired.attributes ?? {}, current.attributes ?? {});
 
   const listingsByChannel = (listings: ProductVariantInput["channelListings"]) =>
     new Map(
@@ -231,33 +202,24 @@ function compareVariant(
     );
   const desiredListings = listingsByChannel(desired.channelListings);
   const currentListings = listingsByChannel(current.channelListings);
-  const channels = new Set([...desiredListings.keys(), ...currentListings.keys()]);
-  const diffs: string[] = [];
 
-  for (const channel of channels) {
+  for (const channel of new Set([...desiredListings.keys(), ...currentListings.keys()])) {
     const desiredListing = desiredListings.get(channel);
     const currentListing = currentListings.get(channel);
-    if (!desiredListing && currentListing) {
-      diffs.push(`+${channel}`);
-    } else if (desiredListing && !currentListing) {
-      diffs.push(`-${channel}`);
-    } else if (
-      desiredListing &&
-      currentListing &&
-      JSON.stringify(desiredListing) !==
-        JSON.stringify(withoutUnmanagedFields(currentListing, desiredListing, changes.options))
-    ) {
-      diffs.push(`~${channel}`);
+    if (desiredListing && currentListing) {
+      changes
+        .at("channelListings", channel)
+        .fields(
+          desiredListing,
+          withoutUnmanagedFields(currentListing, desiredListing, changes.options)
+        );
+    } else {
+      changes.record(["channelListings", channel], {
+        kind: desiredListing ? "added" : "removed",
+        current: currentListing,
+        desired: desiredListing,
+      });
     }
-  }
-
-  if (diffs.length > 0) {
-    changes.record(["channelListings"], {
-      field: `variants.${sku}.channelListings`,
-      current: current.channelListings,
-      desired: desired.channelListings,
-      description: `Variant "${sku}" channel listings changed (${diffs.join(", ")})`,
-    });
   }
 }
 
@@ -290,7 +252,6 @@ export const productComparator = entityComparator<ProductEntity>({
         changes.record(["attributes", key], {
           current: currentValue,
           desired: desiredValue,
-          description: `Attribute "${key}": ${JSON.stringify(currentValue)} → ${JSON.stringify(desiredValue)}`,
         });
       }
     }
@@ -305,7 +266,6 @@ export const productComparator = entityComparator<ProductEntity>({
         changes.record(["media"], {
           current: currentMedia,
           desired: desiredMedia,
-          description: "Product media entries changed",
         });
       }
     }

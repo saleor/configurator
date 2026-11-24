@@ -1,16 +1,9 @@
 import chalk from "chalk";
 import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
 import { countAppliedChanges } from "../diff-operations";
-import type { DiffChange, DiffResult, DiffSummary, EntityType } from "../types";
+import { renderChanges } from "../render-change";
+import type { DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
-
-interface ArrayChangeGroup {
-  field: string;
-  isArrayChange: true;
-  added: string[];
-  removed: string[];
-  entityName: string;
-}
 
 /**
  * Formatter for deploy command with enhanced change visualization
@@ -74,14 +67,11 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
 
     lines.push(`  ${opIcon} ${operation}: ${entityName}`);
 
-    // Add detailed changes for updates
     if (result.operation === "UPDATE" && result.changes && result.changes.length > 0) {
-      // Group changes by field for array values
-      const groupedChanges = this.groupArrayChanges(result.changes);
-
-      for (const change of groupedChanges) {
-        const changeDescription = this.formatFieldChange(change);
-        lines.push(`    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${changeDescription}`);
+      for (const { label, summary } of renderChanges(result.changes, "deploy")) {
+        lines.push(
+          `    ${chalk.gray(FORMAT_CONFIG.TREE_BRANCH)} ${chalk.yellow(label)}: ${summary}`
+        );
       }
     }
 
@@ -91,106 +81,6 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
     }
 
     lines.push("");
-  }
-
-  private groupArrayChanges(changes: readonly DiffChange[]): (DiffChange | ArrayChangeGroup)[] {
-    // Group changes by field name
-    const fieldGroups = new Map<string, DiffChange[]>();
-    const nonArrayChanges: DiffChange[] = [];
-
-    for (const change of changes) {
-      // Check if this is an array value change (ends with .values)
-      if (change.field.endsWith(".values")) {
-        const existingChanges = fieldGroups.get(change.field) || [];
-        existingChanges.push(change);
-        fieldGroups.set(change.field, existingChanges);
-      } else {
-        nonArrayChanges.push(change);
-      }
-    }
-
-    // Convert grouped array changes into single entries
-    const consolidatedChanges: (DiffChange | ArrayChangeGroup)[] = [...nonArrayChanges];
-
-    for (const [field, fieldChanges] of fieldGroups) {
-      const added: string[] = [];
-      const removed: string[] = [];
-
-      for (const change of fieldChanges) {
-        if (change.currentValue === null && change.desiredValue !== null) {
-          added.push(String(change.desiredValue));
-        } else if (change.currentValue !== null && change.desiredValue === null) {
-          removed.push(String(change.currentValue));
-        }
-      }
-
-      // Create a consolidated change entry
-      if (added.length > 0 || removed.length > 0) {
-        consolidatedChanges.push({
-          field,
-          currentValue: removed.length > 0 ? removed : null,
-          desiredValue: added.length > 0 ? added : null,
-          isArrayChange: true,
-          added,
-          removed,
-        });
-      }
-    }
-
-    return consolidatedChanges;
-  }
-
-  private formatFieldChange(change: DiffChange | ArrayChangeGroup): string {
-    // Handle array changes specially
-    if ("isArrayChange" in change && change.isArrayChange) {
-      return this.formatArrayChange(change);
-    }
-
-    // Now TypeScript knows change is DiffChange
-    const diffChange = change as DiffChange;
-
-    const formatValue = (value: unknown): string => {
-      if (value === null || value === undefined) {
-        return chalk.gray("(not set)");
-      }
-      if (typeof value === "boolean") {
-        return value ? chalk.green("true") : chalk.red("false");
-      }
-      if (typeof value === "number") {
-        return chalk.cyan(String(value));
-      }
-      if (Array.isArray(value) || typeof value === "object") {
-        try {
-          return chalk.white(JSON.stringify(value));
-        } catch {
-          return chalk.white(String(value));
-        }
-      }
-      return chalk.white(`"${String(value)}"`);
-    };
-
-    const field = chalk.yellow(diffChange.field);
-    const oldValue = formatValue(diffChange.currentValue);
-    const newValue = formatValue(diffChange.desiredValue);
-
-    return `${field}: ${oldValue} ${chalk.gray("→")} ${newValue}`;
-  }
-
-  private formatArrayChange(change: ArrayChangeGroup): string {
-    const field = chalk.yellow(change.field);
-    const parts: string[] = [];
-
-    if (change.removed.length > 0) {
-      const removedStr = change.removed.map((v: string) => chalk.red(`-${v}`)).join(", ");
-      parts.push(removedStr);
-    }
-
-    if (change.added.length > 0) {
-      const addedStr = change.added.map((v: string) => chalk.green(`+${v}`)).join(", ");
-      parts.push(addedStr);
-    }
-
-    return `${field}: [${parts.join(", ")}]`;
   }
 
   private addCreationDetails(lines: string[], entity: Record<string, unknown>): void {

@@ -13,8 +13,18 @@ export type SaleorConfig = { readonly [key: string]: Json };
 
 export type DiffOperation = "CREATE" | "UPDATE" | "DELETE";
 
+/**
+ * `changed`: the value differs on both sides. `added`: only the side being written has it (the
+ * config on deploy). `removed`: only the other side has it.
+ */
+export type DiffChangeKind = "changed" | "added" | "removed";
+
 export interface DiffChange {
+  /** `path` joined with dots. */
   readonly field: string;
+  /** Path from the entity to the changed value, e.g. `["variants", "TEE-S", "weight"]`. */
+  readonly path: readonly string[];
+  readonly kind: DiffChangeKind;
   readonly currentValue: Json | undefined;
   readonly desiredValue: Json | undefined;
   readonly description?: string;

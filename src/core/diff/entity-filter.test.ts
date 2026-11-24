@@ -18,7 +18,15 @@ const mockSummary: DiffSummary = {
       operation: "UPDATE",
       entityType: "Product Types",
       entityName: "T-Shirt",
-      changes: [{ field: "name", currentValue: "Old", desiredValue: "New" }],
+      changes: [
+        {
+          field: "name",
+          path: ["name"],
+          kind: "changed",
+          currentValue: "Old",
+          desiredValue: "New",
+        },
+      ],
     },
     {
       operation: "DELETE",

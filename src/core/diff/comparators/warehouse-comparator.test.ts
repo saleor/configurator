@@ -227,12 +227,18 @@ describe("WarehouseComparator", () => {
       const results = comparator.compare(local, remote);
 
       expect(results).toHaveLength(1);
-      expect(results[0].changes).toContainEqual(
+      expect(results[0].changes).toEqual([
         expect.objectContaining({
-          field: "shippingZones",
-          description: "Shipping zones: [zone-1, zone-2] → [zone-1, zone-3]",
-        })
-      );
+          path: ["shippingZones", "zone-3"],
+          kind: "added",
+          desiredValue: "zone-3",
+        }),
+        expect.objectContaining({
+          path: ["shippingZones", "zone-2"],
+          kind: "removed",
+          currentValue: "zone-2",
+        }),
+      ]);
     });
   });
 
@@ -256,7 +262,7 @@ describe("WarehouseComparator", () => {
         }),
         expect.objectContaining({
           field: "metadata.tier",
-          currentValue: null,
+          currentValue: undefined,
           desiredValue: "gold",
         }),
       ]);
@@ -280,7 +286,7 @@ describe("WarehouseComparator", () => {
         expect.objectContaining({
           field: "metadata.dock",
           currentValue: "3",
-          desiredValue: null,
+          desiredValue: undefined,
           description: 'metadata.dock: "3" → (not set)',
         }),
       ]);

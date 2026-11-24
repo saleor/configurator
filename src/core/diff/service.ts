@@ -184,7 +184,7 @@ export class DiffService {
       const results = await this.performSelectiveComparisons(remoteConfig, localConfig, {
         includeSections: selectiveOptions.includeSections,
         excludeSections: selectiveOptions.excludeSections,
-        diffOptions: { compareAllMetadataKeys: true },
+        diffOptions: { compareAllMetadataKeys: true, direction: "introspect" },
       });
 
       // Calculate summary statistics

@@ -36,9 +36,9 @@ The following changes would be applied to reconcile Saleor with your local confi
 🏷️ Categories
 ────────────
   🔄 Update: "tyres"
-    │ In "Summer tyres": metadata.erpid: (not set) → "41"
-    │ In "Summer tyres": metadata.season: (not set) → "summer"
-    │ In "Summer tyres": In "Car": metadata.erpid: (not set) → "411"
+    │ metadata.erpid: (not set) → "41"
+    │ metadata.season: (not set) → "summer"
+    │ metadata.erpid: (not set) → "411"
     │ metadata.erpid: (not set) → "4"
 
   🔄 Update: "accessories"
@@ -77,12 +77,12 @@ By entity type:
 
 #### Updates
 - :pencil2: `tyres`
-  - `metadata.erpid`: _null_ -> `41`
-  - `metadata.season`: _null_ -> `summer`
-  - `metadata.erpid`: _null_ -> `411`
+  - `metadata.erpid`: (not set) → "41"
+  - `metadata.season`: (not set) → "summer"
+  - `metadata.erpid`: (not set) → "411"
   - _...and 1 more changes_
 - :pencil2: `accessories`
-  - `metadata.erpid`: _null_ -> `5`
+  - `metadata.erpid`: (not set) → "5"
 
 </details>
 
@@ -109,13 +109,13 @@ when pulling the current state from Saleor:
 🏷️ Categories
 ────────────
   🔄 Will be updated: "tyres"
-    │ metadata.erpid: "null" → "41"
-    │ metadata.season: "null" → "summer"
-    │ metadata.erpid: "null" → "411"
-    │ metadata.erpid: "null" → "4"
+    │ metadata.erpid: "41" → (not set)
+    │ metadata.season: "summer" → (not set)
+    │ metadata.erpid: "411" → (not set)
+    │ metadata.erpid: "4" → (not set)
 
   🔄 Will be updated: "accessories"
-    │ metadata.erpid: "null" → "5"
+    │ metadata.erpid: "5" → (not set)
 
 
 ══════════════════════════════════════════════════
