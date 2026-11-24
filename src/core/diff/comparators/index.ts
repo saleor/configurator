@@ -1,10 +1,10 @@
 export { AttributesComparator } from "./attributes-comparator";
-export type { ComparatorOptions, EntityComparator } from "./base-comparator";
-
 export { CategoryComparator } from "./category-comparator";
+export type { ComparatorOptions } from "./change-set";
 export { ChannelComparator } from "./channel-comparator";
 export { CollectionComparator } from "./collection-comparator";
 export { CustomerTypeComparator } from "./customer-type-comparator";
+export type { EntityComparator } from "./entity-comparator";
 export { MenuComparator } from "./menu-comparator";
 export { ModelComparator } from "./model-comparator";
 export { PageTypeComparator } from "./page-type-comparator";
@@ -12,5 +12,5 @@ export { ProductComparator } from "./product-comparator";
 export { ProductTypeComparator } from "./product-type-comparator";
 export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { ShopComparator } from "./shop-comparator";
-export { TaxClassComparator } from "./tax-class-comparator";
+export { taxClassComparator } from "./tax-class-comparator";
 export { WarehouseComparator } from "./warehouse-comparator";

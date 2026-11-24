@@ -21,7 +21,7 @@ import {
   ProductTypeComparator,
   ShippingZoneComparator,
   ShopComparator,
-  TaxClassComparator,
+  taxClassComparator,
   WarehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
@@ -337,7 +337,7 @@ export class DiffService {
       ["models", new ModelComparator() as EntityComparator],
       ["warehouses", new WarehouseComparator() as EntityComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
-      ["taxClasses", new TaxClassComparator() as EntityComparator],
+      ["taxClasses", taxClassComparator],
     ]);
   }
 

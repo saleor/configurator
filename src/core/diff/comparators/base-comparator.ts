@@ -2,13 +2,9 @@ import { logger } from "../../../lib/logger";
 import { diffMetadata, readConfigMetadata } from "../../../modules/metadata/metadata";
 import { EntityValidationError } from "../errors";
 import type { DiffChange, DiffOptions, DiffResult, EntityType } from "../types";
-import type { FieldComparisonOptions } from "./field-comparison";
+import type { ComparatorOptions } from "./change-set";
 
-/**
- * Options for comparator operations. Uses Pick to avoid redundant type definitions.
- */
-export type ComparatorOptions = Pick<DiffOptions, "skipMedia" | "compareAllMetadataKeys"> &
-  FieldComparisonOptions;
+export type { ComparatorOptions };
 
 /**
  * Base interface for entity comparators following Single Responsibility Principle

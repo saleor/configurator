@@ -28,7 +28,8 @@ function describeSummary(summary: DiffSummary): string {
   for (const result of results) {
     lines.push(`${result.operation} ${result.entityType} "${result.entityName}"`);
     for (const change of result.changes ?? []) {
-      lines.push(`  ${JSON.stringify(change)}`);
+      const { field, currentValue, desiredValue, description } = change;
+      lines.push(`  ${JSON.stringify({ field, currentValue, desiredValue, description })}`);
     }
   }
   return lines.join("\n");

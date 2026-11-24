@@ -1,20 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { TaxClassInput } from "../../../modules/config/schema/schema";
-import type { DiffChange } from "../types";
-import { TaxClassComparator } from "./tax-class-comparator";
+import { taxClassComparator } from "./tax-class-comparator";
 
 interface TaxClassEntity extends TaxClassInput, Record<string, unknown> {
   id?: string;
 }
 
-// Test type for accessing private methods
-type TestComparator = TaxClassComparator & {
-  compareEntityFields: (local: TaxClassEntity, remote: TaxClassEntity) => DiffChange[];
-  getEntityName: (entity: TaxClassEntity) => string;
-};
-
 describe("TaxClassComparator", () => {
-  const comparator = new TaxClassComparator();
+  const comparator = taxClassComparator;
+  const changesBetween = (local: TaxClassEntity, remote: TaxClassEntity) =>
+    comparator.compare([local], [remote])[0]?.changes ?? [];
 
   describe("compare", () => {
     it("should detect new tax classes", () => {
@@ -113,7 +108,7 @@ describe("TaxClassComparator", () => {
     });
   });
 
-  describe("compareEntityFields", () => {
+  describe("field changes", () => {
     it("should detect country rate additions", () => {
       const local: TaxClassEntity = {
         name: "Standard Rate",
@@ -127,8 +122,7 @@ describe("TaxClassComparator", () => {
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
-      // Access private method for testing
-      const changes = (comparator as TestComparator).compareEntityFields(local, remote);
+      const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
       expect(changes[0].description).toContain("Tax rate for GB added: 20%");
@@ -147,8 +141,7 @@ describe("TaxClassComparator", () => {
         ],
       };
 
-      // Access private method for testing
-      const changes = (comparator as TestComparator).compareEntityFields(local, remote);
+      const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
       expect(changes[0].description).toContain("Tax rate for GB removed (was 20%)");
@@ -164,8 +157,7 @@ describe("TaxClassComparator", () => {
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
-      // Access private method for testing
-      const changes = (comparator as TestComparator).compareEntityFields(local, remote);
+      const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
       expect(changes[0].description).toContain("Tax rate for US: 8.5% → 9%");
@@ -181,8 +173,7 @@ describe("TaxClassComparator", () => {
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
-      // Access private method for testing
-      const changes = (comparator as TestComparator).compareEntityFields(local, remote);
+      const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
       expect(changes[0].description).toContain("Tax rate for US removed");
@@ -197,28 +188,22 @@ describe("TaxClassComparator", () => {
         countryRates: [{ countryCode: "US", rate: 8.5 }],
       };
 
-      // Access private method for testing
-      const changes = (comparator as TestComparator).compareEntityFields(local, remote);
+      const changes = changesBetween(local, remote);
 
       expect(changes).toHaveLength(1);
       expect(changes[0].description).toContain("Tax rate for US removed");
     });
   });
 
-  describe("getEntityName", () => {
+  describe("identifier", () => {
     it("should return the tax class name", () => {
       const entity: TaxClassEntity = { name: "Standard Rate" };
-      // Access private method for testing
-      const name = (comparator as TestComparator).getEntityName(entity);
-      expect(name).toBe("Standard Rate");
+      expect(comparator.compare([entity], [])[0].entityName).toBe("Standard Rate");
     });
 
     it("should throw error for tax class without name", () => {
       const entity = { name: "", countryRates: [] } as unknown as TaxClassEntity;
-      // Access private method for testing
-      expect(() => (comparator as TestComparator).getEntityName(entity)).toThrow(
-        "Tax class must have a valid name"
-      );
+      expect(() => comparator.compare([entity], [])).toThrow("Tax class must have a valid name");
     });
   });
 });
