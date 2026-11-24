@@ -52,13 +52,20 @@ write_count_outputs() {
   } >> "$GITHUB_OUTPUT"
 }
 
+# GitHub masks the token in logs only when it comes from a secret.
+if [[ -n "$SALEOR_TOKEN" ]]; then
+  echo "::add-mask::$SALEOR_TOKEN"
+fi
+
+# The CLI reads SALEOR_URL and SALEOR_TOKEN from the environment, so the
+# token never appears in the process arguments.
+export SALEOR_URL SALEOR_TOKEN
+
 # Build command arguments
 ARGS=()
 
 # Required arguments
 ARGS+=("$COMMAND")
-ARGS+=("--url" "$SALEOR_URL")
-ARGS+=("--token" "$SALEOR_TOKEN")
 ARGS+=("--config" "$CONFIG_PATH")
 
 # Optional arguments based on command type
@@ -125,17 +132,7 @@ RUN_MARKER=$(mktemp)
 DEFAULT_REPORTS_DIR=".configurator/reports"
 COUNTS=""
 
-# Execute configurator and capture output
-# Never print the token: it is only masked when it comes from a registered secret
-DISPLAY_ARGS=()
-for arg in "${ARGS[@]}"; do
-  if [[ -n "$SALEOR_TOKEN" && "$arg" == "$SALEOR_TOKEN" ]]; then
-    DISPLAY_ARGS+=("***")
-  else
-    DISPLAY_ARGS+=("$arg")
-  fi
-done
-echo "Running: configurator ${DISPLAY_ARGS[*]}"
+echo "Running: configurator ${ARGS[*]}"
 echo "---"
 
 EXIT_CODE=0
@@ -199,7 +196,7 @@ fi
 # In human-readable modes nothing parseable was printed; run the same command
 # again with --json to collect the change summary.
 if [[ -z "$COUNTS" && "$REPORTS_CHANGES" == "true" ]] && (( EXIT_CODE <= 1 )); then
-  META_ARGS=("$COMMAND" "--url" "$SALEOR_URL" "--token" "$SALEOR_TOKEN" "--config" "$CONFIG_PATH" "--json")
+  META_ARGS=("$COMMAND" "--config" "$CONFIG_PATH" "--json")
   if [[ "$COMMAND" == "deploy" ]]; then
     META_ARGS+=("--plan")
   fi
