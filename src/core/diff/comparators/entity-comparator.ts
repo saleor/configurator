@@ -16,6 +16,11 @@ interface EntitySpec<T> {
   readonly entityType: EntityType;
   /** The identifier deploy uses to find the entity in Saleor (a slug, or a name). */
   identify(entity: T): string;
+  /**
+   * Splits a config section into the objects deploy creates and updates one by one, e.g. a
+   * category tree into its categories. Defaults to the section's own entries.
+   */
+  entities?(section: readonly unknown[]): readonly T[];
   /** Records how `desired` (the config) differs from `current` (Saleor). */
   compareFields(changes: ChangeSet, desired: T, current: T): void;
   /** Records details worth showing for an entity that will be created. */
@@ -30,8 +35,12 @@ interface EntitySpec<T> {
 export function entityComparator<T>(spec: EntitySpec<T>): EntityComparator {
   return {
     compare(desiredSection, currentSection, options = {}) {
-      const desired = asList<T>(desiredSection);
-      const current = firstOfEach(spec, asList<T>(currentSection));
+      const entitiesOf = (section: unknown): readonly T[] => {
+        const list = Array.isArray(section) ? section : [];
+        return spec.entities ? spec.entities(list) : (list as T[]);
+      };
+      const desired = entitiesOf(desiredSection);
+      const current = firstOfEach(spec, entitiesOf(currentSection));
       rejectDuplicates(spec, desired);
 
       const currentById = new Map(current.map((entity) => [spec.identify(entity), entity]));
@@ -83,10 +92,6 @@ export function entityComparator<T>(spec: EntitySpec<T>): EntityComparator {
       return results;
     },
   };
-}
-
-function asList<T>(section: unknown): readonly T[] {
-  return Array.isArray(section) ? (section as T[]) : [];
 }
 
 function rejectDuplicates<T>(spec: EntitySpec<T>, entities: readonly T[]): void {

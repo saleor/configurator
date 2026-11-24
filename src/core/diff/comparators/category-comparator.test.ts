@@ -1,230 +1,137 @@
 import { describe, expect, it } from "vitest";
-import { CategoryComparator } from "./category-comparator";
+import { categoryComparator } from "./category-comparator";
 
-describe("CategoryComparator", () => {
-  const comparator = new CategoryComparator();
-
-  it("should detect parent-child relationship changes", () => {
-    const local = [
+const tree = [
+  {
+    name: "Tyres",
+    slug: "tyres",
+    subcategories: [
       {
-        name: "Electronics",
-        slug: "electronics",
-        subcategories: [
-          { name: "Phones", slug: "phones" },
-          { name: "Laptops", slug: "laptops" },
-        ],
+        name: "Summer",
+        slug: "summer",
+        subcategories: [{ name: "Car", slug: "summer-car" }],
       },
-    ];
+    ],
+  },
+  { name: "Rims", slug: "rims" },
+];
 
-    const remote = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-        subcategories: [
-          { name: "Phones", slug: "phones" },
-          // Laptops removed
-        ],
-      },
-    ];
+const summarize = (desired: unknown, current: unknown) =>
+  categoryComparator.compare(desired, current).map((result) => ({
+    operation: result.operation,
+    entityName: result.entityName,
+    changes: result.changes?.map(({ path, currentValue, desiredValue }) => ({
+      path,
+      currentValue,
+      desiredValue,
+    })),
+  }));
 
-    const results = comparator.compare(local, remote);
-
-    expect(results).toHaveLength(1);
-    expect(results[0].operation).toBe("UPDATE");
-    expect(results[0].entityName).toBe("electronics");
-
-    // Should detect the subcategory difference
-    const changes = results[0].changes;
-    expect(changes).toBeDefined();
-    expect(changes).toHaveLength(1);
-    expect(changes?.[0]?.field).toBe("subcategories");
-    expect(changes?.[0]?.description).toContain("Laptops");
+describe("categoryComparator", () => {
+  it("reports nothing for an unchanged tree", () => {
+    expect(summarize(tree, tree)).toEqual([]);
   });
 
-  it("should detect nested parent-child relationships", () => {
-    const local = [
+  it("reports each subcategory's changes on that subcategory", () => {
+    const desired = [
       {
-        name: "Electronics",
-        slug: "electronics",
+        ...tree[0],
         subcategories: [
           {
-            name: "Laptops",
-            slug: "laptops",
+            name: "Summer",
+            slug: "summer",
             subcategories: [
-              { name: "Gaming Laptops", slug: "gaming-laptops" },
-              { name: "Business Laptops", slug: "business-laptops" },
+              { name: "Passenger car", slug: "summer-car", metadata: { erpid: "411" } },
             ],
           },
         ],
       },
+      tree[1],
     ];
 
-    const remote = [
+    expect(summarize(desired, tree)).toEqual([
       {
-        name: "Electronics",
-        slug: "electronics",
-        subcategories: [
-          {
-            name: "Laptops",
-            slug: "laptops",
-            subcategories: [
-              { name: "Gaming Laptops", slug: "gaming-laptops" },
-              // Business Laptops removed
-            ],
-          },
+        operation: "UPDATE",
+        entityName: "summer-car",
+        changes: [
+          { path: ["name"], currentValue: "Car", desiredValue: "Passenger car" },
+          { path: ["metadata", "erpid"], currentValue: undefined, desiredValue: "411" },
         ],
       },
+    ]);
+  });
+
+  it("reports a move to another parent on the moved category", () => {
+    const desired = [
+      { name: "Tyres", slug: "tyres", subcategories: [] },
+      { name: "Rims", slug: "rims", subcategories: tree[0].subcategories },
     ];
 
-    const results = comparator.compare(local, remote);
+    expect(summarize(desired, tree)).toEqual([
+      {
+        operation: "UPDATE",
+        entityName: "summer",
+        changes: [{ path: ["parent"], currentValue: "tyres", desiredValue: "rims" }],
+      },
+    ]);
+  });
 
-    expect(results).toHaveLength(1);
-    expect(results[0].operation).toBe("UPDATE");
-    expect(results[0].entityName).toBe("electronics");
+  it("creates a new subcategory under its parent and lists subcategories only in Saleor", () => {
+    const desired = [
+      {
+        name: "Tyres",
+        slug: "tyres",
+        subcategories: [{ name: "Winter", slug: "winter" }],
+      },
+      { name: "Rims", slug: "rims" },
+    ];
 
-    // Should detect nested subcategory differences
-    const changes = results[0].changes;
-    expect(changes).toBeDefined();
-    expect(changes?.length).toBeGreaterThan(0);
+    const results = categoryComparator.compare(desired, tree);
+
+    expect(results.map((r) => [r.operation, r.entityName])).toEqual([
+      ["CREATE", "winter"],
+      ["DELETE", "summer"],
+      ["DELETE", "summer-car"],
+    ]);
+    expect(results[0].desired).toEqual({ name: "Winter", slug: "winter", parent: "tyres" });
+  });
+
+  it("treats categories with the same name but different slugs as different categories", () => {
+    const desired = [
+      { name: "Accessories", slug: "car-accessories" },
+      { name: "Accessories", slug: "bike-accessories" },
+    ];
+
+    expect(summarize(desired, [{ name: "Accessories", slug: "car-accessories" }])).toEqual([
+      { operation: "CREATE", entityName: "bike-accessories", changes: undefined },
+    ]);
+  });
+
+  it("rejects a slug used twice anywhere in the tree", () => {
+    const desired = [
+      { name: "Tyres", slug: "tyres", subcategories: [{ name: "Rims", slug: "rims" }] },
+      { name: "Rims", slug: "rims" },
+    ];
+
+    expect(() => categoryComparator.compare(desired, [])).toThrow(
+      /Duplicate entity identifiers found in Categories: rims/
+    );
+  });
+
+  it("compares only the metadata keys the config lists, unless asked for every key", () => {
+    const store = [{ name: "Tyres", slug: "tyres", metadata: { erpid: "1", legacy: "x" } }];
+    const config = [{ name: "Tyres", slug: "tyres", metadata: { erpid: "2" } }];
+
+    expect(summarize(config, store)[0].changes).toEqual([
+      { path: ["metadata", "erpid"], currentValue: "1", desiredValue: "2" },
+    ]);
     expect(
-      changes?.some(
-        (change) =>
-          change.field === "subcategories" && change.description?.includes("Business Laptops")
-      )
-    ).toBe(true);
-  });
-
-  it("should properly show parent context in nested changes", () => {
-    const local = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-        subcategories: [
-          {
-            name: "Laptops",
-            slug: "laptops",
-            subcategories: [
-              { name: "Gaming Laptops", slug: "gaming-laptops" },
-              { name: "Business Laptops", slug: "business-laptops" },
-            ],
-          },
-        ],
-      },
-    ];
-
-    const remote = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-        subcategories: [
-          {
-            name: "Laptops",
-            slug: "laptops",
-            subcategories: [{ name: "Gaming Laptops", slug: "gaming-laptops" }],
-          },
-        ],
-      },
-    ];
-
-    const results = comparator.compare(local, remote);
-    const changes = results[0].changes;
-    expect(changes).toBeDefined();
-
-    // Should show parent context in the description
-    const changeWithContext = changes?.find(
-      (change) =>
-        change.description?.includes('In "Laptops"') &&
-        change.description?.includes("Business Laptops")
-    );
-
-    expect(changeWithContext).toBeDefined();
-    expect(changeWithContext?.description).toContain(
-      'In "Laptops": Subcategory "Business Laptops" added'
-    );
-  });
-
-  it("should handle duplicate category names with different slugs correctly", () => {
-    // This test case reproduces the "Accessories" duplicate issue
-    const local = [
-      {
-        name: "Accessories",
-        slug: "accessories",
-      },
-    ];
-
-    const remote = [
-      {
-        name: "Accessories",
-        slug: "accessories",
-      },
-      {
-        name: "Accessories",
-        slug: "accessories-2",
-      },
-    ];
-
-    // Should not throw an error as slugs are different
-    const results = comparator.compare(local, remote);
-
-    // Should detect the extra remote category as a DELETE
-    expect(results).toBeDefined();
-    expect(Array.isArray(results)).toBe(true);
-    expect(results.length).toBe(1);
-    expect(results[0].operation).toBe("DELETE");
-    expect(results[0].entityName).toBe("accessories-2");
-  });
-
-  it("should handle categories with same names but different slugs as different entities", () => {
-    const categoriesWithDuplicateNames = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-      },
-      {
-        name: "Electronics",
-        slug: "electronics-2",
-      },
-    ];
-
-    // Should not throw - validates based on slug, not name
-    const results = comparator.compare(categoriesWithDuplicateNames, []);
-
-    // Should create both categories since they have different slugs
-    expect(results).toHaveLength(2);
-    expect(results[0].operation).toBe("CREATE");
-    expect(results[1].operation).toBe("CREATE");
-    expect(results[0].entityName).toBe("electronics");
-    expect(results[1].entityName).toBe("electronics-2");
-  });
-
-  it("compares metadata of categories and nested subcategories by listed key", () => {
-    const local = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-        metadata: { seoGroup: "tech" },
-        subcategories: [{ name: "Phones", slug: "phones", metadata: { erpId: "P2" } }],
-      },
-    ];
-    const remote = [
-      {
-        name: "Electronics",
-        slug: "electronics",
-        metadata: { seoGroup: "tech", syncedAt: "2026-11-19" },
-        subcategories: [{ name: "Phones", slug: "phones", metadata: { erpId: "P1" } }],
-      },
-    ];
-
-    const results = comparator.compare(local, remote);
-
-    expect(results).toHaveLength(1);
-    expect(results[0].changes).toEqual([
-      expect.objectContaining({
-        field: "metadata.erpId",
-        currentValue: "P1",
-        desiredValue: "P2",
-        description: expect.stringContaining('In "Phones"'),
-      }),
+      categoryComparator
+        .compare(config, store, { compareAllMetadataKeys: true })[0]
+        .changes?.map((change) => change.path)
+    ).toEqual([
+      ["metadata", "erpid"],
+      ["metadata", "legacy"],
     ]);
   });
 });

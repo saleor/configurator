@@ -170,8 +170,7 @@ describe("changing a category tree", () => {
       });
     });
 
-    // Known bug: the preview lists every subcategory's metadata under the top-level category.
-    it.fails("previews each category's metadata on that category", () => {
+    it("previews each category's metadata on that category", () => {
       for (const slug of [slugs.root, slugs.mid, slugs.leaf]) {
         expect(operationFor(run.plan, slug)?.fields).toEqual(["metadata.erpid"]);
       }
@@ -199,12 +198,11 @@ describe("changing a category tree", () => {
       });
     });
 
-    // Known bug: the diff never compares subcategory names, so deploy reports no changes.
-    it.fails("previews the rename on the subcategory", () => {
+    it("previews the rename on the subcategory", () => {
       expect(operationFor(run.plan, slugs.leaf)?.fields).toEqual(["name"]);
     });
 
-    it.fails("applies the new name in Saleor", async () => {
+    it("applies the new name in Saleor", async () => {
       expect((await readCategory(slugs.leaf))?.name).toBe(renamed);
     });
   });
@@ -222,8 +220,7 @@ describe("changing a category tree", () => {
       });
     });
 
-    // Known bug: the move shows up as changes to the two parents, not to the moved category.
-    it.fails("previews the move on the moved category", () => {
+    it("previews the move on the moved category", () => {
       expect(operationFor(run.plan, slugs.leaf)?.fields).toContain("parent");
     });
 
@@ -242,8 +239,7 @@ describe("changing a category tree", () => {
       });
     });
 
-    // Known bug: it shows up as a change to its parent instead of as its own entry.
-    it.fails("previews it as only in Saleor", () => {
+    it("previews it as only in Saleor", () => {
       expect(operationFor(run.plan, slugs.leaf)?.action).toBe("delete");
     });
 

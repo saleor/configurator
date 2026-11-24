@@ -101,6 +101,7 @@ export class DeployDiffFormatter extends BaseDiffFormatter {
       "currencyCode",
       "defaultCountry",
       "slug",
+      "parent",
       "isShippingRequired",
     ] as const;
 

@@ -8,8 +8,8 @@ import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/conf
 import type { ServiceContainer } from "../service-container";
 import {
   attributesComparator,
-  CategoryComparator,
   type ComparatorOptions,
+  categoryComparator,
   channelComparator,
   collectionComparator,
   customerTypeComparator,
@@ -330,7 +330,7 @@ export class DiffService {
       ["modelTypes", pageTypeComparator], // ModelTypes use PageType comparator
       ["customerAttributes", attributesComparator("Customer Attributes")],
       ["customerTypes", customerTypeComparator],
-      ["categories", new CategoryComparator() as EntityComparator],
+      ["categories", categoryComparator],
       ["products", productComparator],
       ["collections", collectionComparator],
       ["menus", menuComparator],

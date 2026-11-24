@@ -1,5 +1,5 @@
 export { attributesComparator } from "./attributes-comparator";
-export { CategoryComparator } from "./category-comparator";
+export { categoryComparator } from "./category-comparator";
 export type { ComparatorOptions } from "./change-set";
 export { channelComparator } from "./channel-comparator";
 export { collectionComparator } from "./collection-comparator";

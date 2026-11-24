@@ -1,12 +1,12 @@
 import { logger } from "../../lib/logger";
 import { findSimilarNames } from "../../lib/utils/string";
+import { type FlatCategory, flattenCategories } from "../../modules/category/category-tree";
 import type {
   ContentAttribute,
   CustomerAttribute,
   ProductAttribute,
 } from "../../modules/config/schema/global-attributes.schema";
 import type {
-  CategoryInput,
   ChannelInput,
   CollectionInput,
   CustomerTypeInput,
@@ -95,7 +95,12 @@ export function scanForDuplicateIdentifiers(config: SaleorConfig): DuplicateIssu
     "product type name"
   );
   checkDuplicates<PageTypeInput>("pageTypes", config.pageTypes, (t) => t.name, "page type name");
-  checkDuplicates<CategoryInput>("categories", config.categories, (c) => c.slug, "category slug");
+  checkDuplicates<FlatCategory>(
+    "categories",
+    flattenCategories(config.categories ?? []),
+    (c) => c.slug,
+    "category slug"
+  );
   checkDuplicates<ProductInput>("products", config.products, (p) => p.slug, "product slug");
   checkDuplicates<MenuInput>("menus", config.menus, (m) => m.slug, "menu slug");
   checkDuplicates<CollectionInput>(

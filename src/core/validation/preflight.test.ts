@@ -32,6 +32,19 @@ describe("Duplicate preflight validation", () => {
     );
   });
 
+  it("finds a category slug repeated anywhere in the tree", () => {
+    const cfg = {
+      categories: [
+        { name: "Tyres", slug: "tyres", subcategories: [{ name: "Rims", slug: "rims" }] },
+        { name: "Wheels", slug: "wheels", subcategories: [{ name: "Rims", slug: "rims" }] },
+      ],
+    } as unknown as SaleorConfig;
+
+    expect(scanForDuplicateIdentifiers(cfg)).toEqual([
+      expect.objectContaining({ section: "categories", identifier: "rims", count: 2 }),
+    ]);
+  });
+
   it("throws a validation error when duplicates exist", () => {
     const cfg = {
       products: [
