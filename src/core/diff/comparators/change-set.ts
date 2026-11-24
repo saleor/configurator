@@ -58,7 +58,7 @@ export class ChangeSet {
     current: unknown,
     options: { readonly equals?: (a: unknown, b: unknown) => boolean; field?: string } = {}
   ): void {
-    const equals = options.equals ?? Object.is;
+    const equals = options.equals ?? ((a: unknown, b: unknown) => a === b);
     if (!equals(desired, current)) {
       this.record([segment], { field: options.field, current, desired });
     }

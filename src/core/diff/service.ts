@@ -9,10 +9,10 @@ import type { ServiceContainer } from "../service-container";
 import {
   AttributesComparator,
   CategoryComparator,
-  ChannelComparator,
   CollectionComparator,
   type ComparatorOptions,
   CustomerTypeComparator,
+  channelComparator,
   type EntityComparator,
   MenuComparator,
   ModelComparator,
@@ -322,7 +322,7 @@ export class DiffService {
   private createComparators(): ReadonlyMap<string, EntityComparator> {
     return new Map([
       ["shop", new ShopComparator() as EntityComparator],
-      ["channels", new ChannelComparator() as EntityComparator],
+      ["channels", channelComparator],
       ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
       ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
       ["productTypes", new ProductTypeComparator() as EntityComparator],

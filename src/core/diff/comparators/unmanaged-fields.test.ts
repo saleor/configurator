@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
-import { ChannelComparator } from "./channel-comparator";
+import { channelComparator } from "./channel-comparator";
 import { ProductComparator } from "./product-comparator";
 import { ShopComparator } from "./shop-comparator";
 
@@ -67,7 +67,7 @@ const introspectedProduct: Product = {
 
 describe("fields the config leaves out (deploy direction)", () => {
   it("ignores channel settings and tax configuration the config omits", () => {
-    const results = new ChannelComparator().compare(
+    const results = channelComparator.compare(
       [handWrittenChannel],
       [introspectedChannel],
       deployDirection
@@ -77,7 +77,7 @@ describe("fields the config leaves out (deploy direction)", () => {
   });
 
   it("still reports a channel setting the config declares", () => {
-    const results = new ChannelComparator().compare(
+    const results = channelComparator.compare(
       [{ ...handWrittenChannel, settings: { expireOrdersAfter: 30 } }],
       [introspectedChannel],
       deployDirection
@@ -134,10 +134,7 @@ describe("fields the config leaves out (deploy direction)", () => {
 
 describe("fields the config leaves out (introspect direction)", () => {
   it("keeps comparing every field when the flag is not set", () => {
-    const channelResults = new ChannelComparator().compare(
-      [introspectedChannel],
-      [handWrittenChannel]
-    );
+    const channelResults = channelComparator.compare([introspectedChannel], [handWrittenChannel]);
     const productResults = new ProductComparator().compare(
       [introspectedProduct],
       [handWrittenProduct]

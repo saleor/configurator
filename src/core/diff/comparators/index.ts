@@ -1,7 +1,7 @@
 export { AttributesComparator } from "./attributes-comparator";
 export { CategoryComparator } from "./category-comparator";
 export type { ComparatorOptions } from "./change-set";
-export { ChannelComparator } from "./channel-comparator";
+export { channelComparator } from "./channel-comparator";
 export { CollectionComparator } from "./collection-comparator";
 export { CustomerTypeComparator } from "./customer-type-comparator";
 export type { EntityComparator } from "./entity-comparator";

@@ -1,8 +1,6 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import { EntityValidationError } from "../errors";
-import type { DiffChange } from "../types";
-import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
-import { findChangedFields } from "./field-comparison";
+import { entityComparator } from "./entity-comparator";
 
 /**
  * Channel entity type for type safety
@@ -77,175 +75,42 @@ const TAX_CONFIGURATION_FIELDS: ReadonlyArray<keyof TaxConfiguration> = [
 ] as const;
 
 /**
- * Comparator for channel entities
+ * Compares channels by slug: top-level fields, settings and tax configuration. Fields the
+ * config leaves out are unmanaged in the deploy direction.
  */
-export class ChannelComparator extends BaseEntityComparator<
-  readonly ChannelEntity[],
-  readonly ChannelEntity[],
-  ChannelEntity
-> {
-  protected readonly entityType = "Channels";
+export const channelComparator = entityComparator<ChannelEntity>({
+  entityType: "Channels",
 
-  /**
-   * Compares local and remote channel arrays
-   */
-  compare(
-    local: readonly ChannelEntity[],
-    remote: readonly ChannelEntity[],
-    options?: ComparatorOptions
-  ): readonly import("../types").DiffResult[] {
-    // Validate unique identifiers (slugs for channels)
-    this.validateUniqueIdentifiers(local);
-    this.validateUniqueIdentifiers(remote);
-
-    const results: import("../types").DiffResult[] = [];
-    const remoteByName = this.createEntityMap(remote);
-    const localByName = this.createEntityMap(local);
-
-    // Check for creates and updates
-    for (const localChannel of local) {
-      const remoteChannel = remoteByName.get(this.getEntityName(localChannel));
-
-      if (!remoteChannel) {
-        // Channel needs to be created
-        results.push(this.createCreateResult(localChannel));
-      } else {
-        // Check for updates
-        const changes = this.compareEntityFields(localChannel, remoteChannel, options);
-        if (changes.length > 0) {
-          results.push(this.createUpdateResult(localChannel, remoteChannel, changes));
-        }
-      }
-    }
-
-    // Check for deletes
-    for (const remoteChannel of remote) {
-      if (!localByName.has(this.getEntityName(remoteChannel))) {
-        results.push(this.createDeleteResult(remoteChannel));
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Gets the unique identifier of a channel entity (using slug)
-   * Channels in Saleor are uniquely identified by slug, not name
-   */
-  protected getEntityName(entity: ChannelEntity): string {
-    if (!entity.slug || typeof entity.slug !== "string") {
+  identify(channel) {
+    if (!channel.slug || typeof channel.slug !== "string") {
       throw new EntityValidationError("Channel entity must have a valid slug");
     }
-    return entity.slug;
-  }
+    return channel.slug;
+  },
 
-  /**
-   * Compares fields between local and remote channel entities
-   */
-  protected compareEntityFields(
-    local: ChannelEntity,
-    remote: ChannelEntity,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-
-    // Compare basic channel fields
-    for (const field of findChangedFields(local, remote, CHANNEL_FIELDS, options)) {
-      changes.push(this.createFieldChange(field, remote[field], local[field]));
+  compareFields(changes, desired, current) {
+    for (const field of CHANNEL_FIELDS) {
+      changes.managedValue(field, desired[field], current[field]);
     }
 
-    // Compare channel settings if they exist
-    const localSettings = this.getChannelSettings(local);
-    const remoteSettings = this.getChannelSettings(remote);
-
-    if (localSettings || remoteSettings) {
-      changes.push(...this.compareChannelSettings(localSettings, remoteSettings, options));
+    const desiredSettings = settingsOf(desired);
+    const currentSettings = settingsOf(current);
+    for (const field of CHANNEL_SETTINGS_FIELDS) {
+      changes.at("settings").managedValue(field, desiredSettings[field], currentSettings[field]);
     }
 
-    // Compare tax configuration if it exists
-    const localTaxConfig = this.getTaxConfiguration(local);
-    const remoteTaxConfig = this.getTaxConfiguration(remote);
-
-    if (localTaxConfig || remoteTaxConfig) {
-      changes.push(...this.compareTaxConfiguration(localTaxConfig, remoteTaxConfig, options));
+    const desiredTax = taxConfigurationOf(desired);
+    const currentTax = taxConfigurationOf(current);
+    for (const field of TAX_CONFIGURATION_FIELDS) {
+      changes.at("taxConfiguration").managedValue(field, desiredTax[field], currentTax[field]);
     }
+  },
+});
 
-    return changes;
-  }
+function settingsOf(channel: ChannelEntity): ChannelSettings {
+  return ("settings" in channel ? channel.settings : undefined) ?? {};
+}
 
-  /**
-   * Safely extracts channel settings from a channel entity
-   */
-  private getChannelSettings(channel: ChannelEntity): ChannelSettings | undefined {
-    if (typeof channel === "object" && channel !== null && "settings" in channel) {
-      return channel.settings ?? undefined;
-    }
-    return undefined;
-  }
-
-  /**
-   * Compares channel settings objects
-   */
-  private compareChannelSettings(
-    local: ChannelSettings | undefined,
-    remote: ChannelSettings | undefined,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-    const localSettings = local || {};
-    const remoteSettings = remote || {};
-
-    for (const field of findChangedFields(
-      localSettings,
-      remoteSettings,
-      CHANNEL_SETTINGS_FIELDS,
-      options
-    )) {
-      changes.push(
-        this.createFieldChange(`settings.${field}`, remoteSettings[field], localSettings[field])
-      );
-    }
-
-    return changes;
-  }
-
-  /**
-   * Safely extracts tax configuration from a channel entity
-   */
-  private getTaxConfiguration(channel: ChannelEntity): TaxConfiguration | undefined {
-    if (typeof channel === "object" && channel !== null && "taxConfiguration" in channel) {
-      return channel.taxConfiguration ?? undefined;
-    }
-    return undefined;
-  }
-
-  /**
-   * Compares tax configuration objects
-   */
-  private compareTaxConfiguration(
-    local: TaxConfiguration | undefined,
-    remote: TaxConfiguration | undefined,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-    const localTaxConfig = local || {};
-    const remoteTaxConfig = remote || {};
-
-    for (const field of findChangedFields(
-      localTaxConfig,
-      remoteTaxConfig,
-      TAX_CONFIGURATION_FIELDS,
-      options
-    )) {
-      changes.push(
-        this.createFieldChange(
-          `taxConfiguration.${field}`,
-          remoteTaxConfig[field],
-          localTaxConfig[field]
-        )
-      );
-    }
-
-    return changes;
-  }
+function taxConfigurationOf(channel: ChannelEntity): TaxConfiguration {
+  return ("taxConfiguration" in channel ? channel.taxConfiguration : undefined) ?? {};
 }
