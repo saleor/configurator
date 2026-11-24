@@ -493,7 +493,7 @@ describe("ProductService Integration", () => {
         product: "prod-1",
         name: "Default",
         sku: "TEST-001",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 0.5,
         attributes: [{ id: "attr-material", plainText: "Cotton" }],
       });
@@ -858,7 +858,7 @@ describe("ProductService Integration", () => {
         product: "prod-clean-coder",
         name: "Hardcover",
         sku: "CLEAN-CODER-HC",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 1.2,
         attributes: expect.arrayContaining([
           { id: "attr-format", plainText: "Hardcover" },
@@ -870,7 +870,7 @@ describe("ProductService Integration", () => {
         product: "prod-clean-coder",
         name: "Paperback",
         sku: "CLEAN-CODER-PB",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 0.8,
         attributes: expect.arrayContaining([
           { id: "attr-format", plainText: "Paperback" },
@@ -967,7 +967,7 @@ describe("ProductService Integration", () => {
       expect(mockRepository.updateProductVariant).toHaveBeenCalledWith("existing-var", {
         name: "Updated Variant",
         sku: "EXISTING-001",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 2.0,
         attributes: [],
       });

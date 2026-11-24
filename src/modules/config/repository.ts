@@ -466,6 +466,7 @@ const getConfigQuery = graphql(`
             id
             name
             sku
+            trackInventory
             weight {
               unit
               value
@@ -1278,6 +1279,7 @@ export class ConfigurationRepository implements ConfigurationOperations {
                 id
                 name
                 sku
+                trackInventory
                 weight {
                   unit
                   value

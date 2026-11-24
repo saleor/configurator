@@ -593,6 +593,12 @@ const productVariantSchema = z.object({
   name: z.string().describe("Variant name (e.g., 'Size M', 'Red Color')"),
   sku: z.string().describe("Stock keeping unit - unique identifier for this variant"),
   weight: z.number().optional().describe("Product weight (in the shop's default unit)"),
+  trackInventory: z
+    .boolean()
+    .optional()
+    .describe(
+      "Whether orders decrease this variant's stock. New variants without it use the shop's trackInventoryByDefault"
+    ),
   digital: z
     .boolean()
     .optional()

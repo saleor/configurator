@@ -602,7 +602,7 @@ export class ProductService {
               this.repository.updateProductVariant(existingVariant.id, {
                 name: variantInput.name,
                 sku: variantInput.sku,
-                trackInventory: true,
+                trackInventory: variantInput.trackInventory,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
               }),
@@ -626,7 +626,7 @@ export class ProductService {
                 product: product.id,
                 name: variantInput.name,
                 sku: variantInput.sku,
-                trackInventory: true,
+                trackInventory: variantInput.trackInventory,
                 weight: variantInput.weight,
                 attributes: variantAttributes,
               }),
@@ -1242,7 +1242,7 @@ export class ProductService {
     return {
       name: variantInput.name,
       sku: variantInput.sku,
-      trackInventory: true,
+      trackInventory: variantInput.trackInventory,
       weight: variantInput.weight,
       attributes: variantAttributes,
     };
@@ -1455,7 +1455,7 @@ export class ProductService {
         return {
           name: variantInput.name,
           sku: variantInput.sku,
-          trackInventory: true,
+          trackInventory: variantInput.trackInventory,
           weight: variantInput.weight,
           attributes: variantAttributes,
           channelListings,

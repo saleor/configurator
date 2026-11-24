@@ -60,6 +60,7 @@ const introspectedProduct: Product = {
       sku: "TEE-M",
       attributes: {},
       weight: 0.3,
+      trackInventory: false,
       channelListings: [{ channel: "main", price: 20, costPrice: 8 }],
     },
   ],
@@ -101,7 +102,7 @@ describe("fields the config leaves out (deploy direction)", () => {
     expect(results).toEqual([]);
   });
 
-  it("ignores listing dates, variant weight and cost price the config omits", () => {
+  it("ignores listing dates, variant weight, inventory tracking and cost price the config omits", () => {
     const results = new ProductComparator().compare(
       [handWrittenProduct],
       [introspectedProduct],
@@ -128,6 +129,26 @@ describe("fields the config leaves out (deploy direction)", () => {
       field: "channels.main",
       currentValue: { channel: "main", isPublished: true, visibleInListings: true },
       desiredValue: { channel: "main", isPublished: false, visibleInListings: true },
+    });
+  });
+
+  it("still reports variant inventory tracking the config declares", () => {
+    const results = new ProductComparator().compare(
+      [
+        {
+          ...handWrittenProduct,
+          variants: [{ ...handWrittenProduct.variants[0], trackInventory: true }],
+        },
+      ],
+      [introspectedProduct],
+      deployDirection
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0].changes?.[0]).toMatchObject({
+      field: "variants.TEE-M.trackInventory",
+      currentValue: false,
+      desiredValue: true,
     });
   });
 });

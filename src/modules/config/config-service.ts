@@ -948,6 +948,7 @@ export class ConfigurationService {
               name?: string | null;
               sku?: string | null;
               id?: string | null;
+              trackInventory?: boolean | null;
               weight?: { value?: number | null } | null;
               attributes?: readonly unknown[];
               channelListings?: Array<{
@@ -960,6 +961,7 @@ export class ConfigurationService {
               // Preserve empty SKU as empty string (don't default to variant ID)
               sku: variant.sku ?? "",
               weight: variant.weight?.value || undefined,
+              trackInventory: variant.trackInventory ?? undefined,
               attributes: this.mapProductAttributes(variant.attributes || []),
               channelListings:
                 variant.channelListings

@@ -328,6 +328,20 @@ export class ProductComparator extends BaseEntityComparator<
       );
     }
 
+    if (
+      !isUnmanagedField(local.trackInventory, options) &&
+      local.trackInventory !== remote.trackInventory
+    ) {
+      changes.push(
+        this.createFieldChange(
+          `variants.${sku}.trackInventory`,
+          remote.trackInventory,
+          local.trackInventory,
+          `Variant "${sku}" inventory tracking changed`
+        )
+      );
+    }
+
     // Compare variant attributes
     if (JSON.stringify(local.attributes) !== JSON.stringify(remote.attributes)) {
       changes.push(
