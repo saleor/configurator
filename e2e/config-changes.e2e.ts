@@ -67,8 +67,7 @@ describe("changing a deployed config", () => {
       expect(deploy.exitCode).toBe(0);
     });
 
-    // Known bug: deploy reports the update, but Saleor keeps the old name.
-    it.fails("applies the new name in Saleor", async () => {
+    it("applies the new name in Saleor", async () => {
       expect((await readCategory(category.slug))?.name).toBe(renamed);
     });
   });
@@ -83,8 +82,7 @@ describe("changing a deployed config", () => {
       });
     });
 
-    // Known bug: the rename isn't detected at all; deploy reports no changes.
-    it.fails("applies the new name in Saleor", async () => {
+    it("applies the new name in Saleor", async () => {
       expect((await readCategory(subcategory.slug))?.name).toBe(renamed);
     });
   });
