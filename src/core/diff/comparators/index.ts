@@ -9,7 +9,7 @@ export { MenuComparator } from "./menu-comparator";
 export { ModelComparator } from "./model-comparator";
 export { pageTypeComparator } from "./page-type-comparator";
 export { ProductComparator } from "./product-comparator";
-export { ProductTypeComparator } from "./product-type-comparator";
+export { productTypeComparator } from "./product-type-comparator";
 export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { shopComparator } from "./shop-comparator";
 export { taxClassComparator } from "./tax-class-comparator";

@@ -17,8 +17,8 @@ import {
   MenuComparator,
   ModelComparator,
   ProductComparator,
-  ProductTypeComparator,
   pageTypeComparator,
+  productTypeComparator,
   ShippingZoneComparator,
   shopComparator,
   taxClassComparator,
@@ -325,7 +325,7 @@ export class DiffService {
       ["channels", channelComparator],
       ["productAttributes", attributesComparator("Product Attributes")],
       ["contentAttributes", attributesComparator("Content Attributes")],
-      ["productTypes", new ProductTypeComparator() as EntityComparator],
+      ["productTypes", productTypeComparator],
       ["pageTypes", pageTypeComparator],
       ["modelTypes", pageTypeComparator], // ModelTypes use PageType comparator
       ["customerAttributes", attributesComparator("Customer Attributes")],

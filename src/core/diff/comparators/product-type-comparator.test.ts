@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ProductTypeComparator } from "./product-type-comparator";
+import { productTypeComparator } from "./product-type-comparator";
 
 describe("ProductTypeComparator", () => {
   describe("variantSelection changes", () => {
     it("should detect variantSelection change from false to true", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       const local = [
         {
@@ -51,7 +51,7 @@ describe("ProductTypeComparator", () => {
     });
 
     it("should detect variantSelection change from true to false", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       const local = [
         {
@@ -98,7 +98,7 @@ describe("ProductTypeComparator", () => {
     });
 
     it("should not report change when variantSelection is the same", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       const local = [
         {
@@ -141,7 +141,7 @@ describe("ProductTypeComparator", () => {
     });
 
     it("should treat undefined as false when comparing variantSelection", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       const local = [
         {
@@ -184,7 +184,7 @@ describe("ProductTypeComparator", () => {
     });
 
     it("should detect variantSelection: true when remote has undefined", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       const local = [
         {
@@ -231,7 +231,7 @@ describe("ProductTypeComparator", () => {
     });
 
     it("should detect variantSelection change with referenced attribute format", () => {
-      const comparator = new ProductTypeComparator();
+      const comparator = productTypeComparator;
 
       // Local config uses referenced attribute format { attribute: "Color", variantSelection: true }
       const local = [
