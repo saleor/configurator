@@ -1,6 +1,11 @@
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
-import { baseCommandArgsSchema, shouldOutputJson } from "../cli/command";
+import {
+  baseCommandArgsSchema,
+  envelopeTarget,
+  jsonFileArg,
+  shouldOutputJson,
+} from "../cli/command";
 import { Console } from "../cli/console";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
 import { createConfigurator } from "../core/configurator";
@@ -45,6 +50,7 @@ export const diffCommandSchema = baseCommandArgsSchema.extend({
   skipMedia: z.boolean().default(false).describe("Exclude media fields from diff comparison"),
   /** Force human-readable output even in non-TTY mode */
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
+  jsonFile: jsonFileArg,
   /** Filter diff results by entity type */
   entityType: z.string().optional().describe("Filter results by entity type (e.g., Categories)"),
   /** Filter diff results to a specific entity */
@@ -164,6 +170,7 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
 
   private async performDiffOperation(args: DiffCommandArgs): Promise<void> {
     const useJson = shouldOutputJson(args);
+    const envelope = envelopeTarget(args);
     const configurator = createConfigurator(args);
 
     try {
@@ -184,18 +191,18 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
         const cfg = await configurator.services.configStorage.load();
         const dupes = scanForDuplicateIdentifiers(scopeConfig(cfg, selectiveOptions));
         if (dupes.length > 0) {
-          if (useJson) {
-            outputEnvelope(
-              buildEnvelope({
-                command: "diff",
-                exitCode: EXIT_CODES.VALIDATION,
-                result: { status: "validation_error" as const },
-                errors: dupes.map((d) => ({
-                  message: `Duplicate ${d.label} '${d.identifier}' found ${d.count} times in ${d.section}`,
-                })),
-              })
-            );
-          } else {
+          outputEnvelope(
+            buildEnvelope({
+              command: "diff",
+              exitCode: EXIT_CODES.VALIDATION,
+              result: { status: "validation_error" as const },
+              errors: dupes.map((d) => ({
+                message: `Duplicate ${d.label} '${d.identifier}' found ${d.count} times in ${d.section}`,
+              })),
+            }),
+            envelope
+          );
+          if (!useJson) {
             printDuplicateIssues(dupes, this.console, args.config);
             this.console.cancelled("\nDiff is blocked until duplicates are resolved.");
           }
@@ -224,31 +231,32 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
       // Check policy violations once
       const exitCode = this.checkPolicyViolations(summary, args);
 
-      // JSON envelope output
-      if (useJson) {
-        const operations = summary.results.map((result) => ({
-          entity: result.entityType,
-          name: result.entityName,
-          action: result.operation.toLowerCase(),
-          fields: result.changes?.map((c) => c.field) ?? [],
-        }));
+      const operations = summary.results.map((result) => ({
+        entity: result.entityType,
+        name: result.entityName,
+        action: result.operation.toLowerCase(),
+        fields: result.changes?.map((c) => c.field) ?? [],
+      }));
 
-        outputEnvelope(
-          buildEnvelope({
-            command: "diff",
-            exitCode,
-            result: {
-              summary: {
-                totalChanges: summary.totalChanges,
-                creates: summary.creates,
-                updates: summary.updates,
-                deletes: summary.deletes,
-              },
-              operations,
-              hasDestructiveOperations: summary.deletes > 0,
+      outputEnvelope(
+        buildEnvelope({
+          command: "diff",
+          exitCode,
+          result: {
+            summary: {
+              totalChanges: summary.totalChanges,
+              creates: summary.creates,
+              updates: summary.updates,
+              deletes: summary.deletes,
             },
-          })
-        );
+            operations,
+            hasDestructiveOperations: summary.deletes > 0,
+          },
+        }),
+        envelope
+      );
+
+      if (useJson) {
         this.logDiffCompletion(summary);
         process.exit(exitCode);
       }
@@ -280,16 +288,16 @@ class DiffCommandHandler implements CommandHandler<DiffCommandArgs, void> {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error("Diff failed", { error: errorMessage });
 
-      if (useJson) {
-        outputEnvelope(
-          buildEnvelope({
-            command: "diff",
-            exitCode: EXIT_CODES.UNEXPECTED,
-            result: { status: "error" as const },
-            errors: [{ message: errorMessage }],
-          })
-        );
-      } else {
+      outputEnvelope(
+        buildEnvelope({
+          command: "diff",
+          exitCode: EXIT_CODES.UNEXPECTED,
+          result: { status: "error" as const },
+          errors: [{ message: errorMessage }],
+        }),
+        envelope
+      );
+      if (!useJson) {
         this.console.error(`❌ Diff failed: ${errorMessage}`);
       }
       process.exit(EXIT_CODES.UNEXPECTED);

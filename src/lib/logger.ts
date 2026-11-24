@@ -82,8 +82,15 @@ function createLogger() {
     },
   });
 
-  // In non-interactive mode, also collect logs for JSON envelope embedding
-  if (machineReadableOutput || isNonInteractiveEnvironment()) {
+  const jsonFileOutput = process.argv.some(
+    (arg) =>
+      ["--json-file", "--jsonFile"].includes(arg) ||
+      arg.startsWith("--json-file=") ||
+      arg.startsWith("--jsonFile=")
+  );
+
+  // Collect logs for the JSON envelope whenever one may be written
+  if (machineReadableOutput || jsonFileOutput || isNonInteractiveEnvironment()) {
     const levelMap: Record<number, "debug" | "info" | "warn" | "error"> = {
       2: "debug",
       3: "info",

@@ -1,3 +1,4 @@
+import { writeFileSync } from "node:fs";
 import { globalLogCollector, type LogEntry } from "./json-log-collector";
 import { getPackageVersion } from "./package-info";
 
@@ -33,6 +34,21 @@ export function buildEnvelope<T>(options: {
   };
 }
 
-export function outputEnvelope<T>(envelope: JsonEnvelope<T>): void {
-  console.log(JSON.stringify(envelope, null, 2));
+/** Where a command's JSON envelope goes: stdout, a file, both or neither. */
+export interface EnvelopeTarget {
+  readonly print: boolean;
+  readonly file?: string;
+}
+
+export function outputEnvelope<T>(
+  envelope: JsonEnvelope<T>,
+  target: EnvelopeTarget = { print: true }
+): void {
+  const json = JSON.stringify(envelope, null, 2);
+  if (target.file) {
+    writeFileSync(target.file, `${json}\n`, "utf-8");
+  }
+  if (target.print) {
+    console.log(json);
+  }
 }

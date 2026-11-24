@@ -1,7 +1,13 @@
 import yaml from "yaml";
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
-import { baseCommandArgsSchema, confirmAction, shouldOutputJson } from "../cli/command";
+import {
+  baseCommandArgsSchema,
+  confirmAction,
+  envelopeTarget,
+  jsonFileArg,
+  shouldOutputJson,
+} from "../cli/command";
 import { Console } from "../cli/console";
 import { createConfigurator, type SaleorConfigurator } from "../core/configurator";
 import { DiffService } from "../core/diff";
@@ -107,6 +113,7 @@ export const introspectCommandSchema = baseCommandArgsSchema.extend({
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
   verbose: z.boolean().default(false).describe("Show detailed changes for all items"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
+  jsonFile: jsonFileArg,
 });
 
 export type IntrospectCommandArgs = z.infer<typeof introspectCommandSchema>;
@@ -434,22 +441,22 @@ async function introspectHandler(args: IntrospectCommandArgs): Promise<void> {
   const handler = new IntrospectCommandHandler();
   const result = await handler.execute(args);
 
-  if (shouldOutputJson(args)) {
-    const envelopeResult: Record<string, unknown> = {
-      status: result.type,
-      configPath: args.config,
-    };
-    if (result.type === "error" && result.message) {
-      envelopeResult.message = result.message;
-    }
-    outputEnvelope(
-      buildEnvelope({
-        command: "introspect",
-        exitCode: result.exitCode,
-        result: envelopeResult,
-      })
-    );
-  } else {
+  const envelopeResult: Record<string, unknown> = {
+    status: result.type,
+    configPath: args.config,
+  };
+  if (result.type === "error" && result.message) {
+    envelopeResult.message = result.message;
+  }
+  outputEnvelope(
+    buildEnvelope({
+      command: "introspect",
+      exitCode: result.exitCode,
+      result: envelopeResult,
+    }),
+    envelopeTarget(args)
+  );
+  if (!shouldOutputJson(args)) {
     if (result.type === "error" && result.message) {
       handler.console.error(`❌ ${result.message}`);
     }

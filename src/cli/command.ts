@@ -3,6 +3,7 @@ import { confirm, input, password, select } from "@inquirer/prompts";
 import { z } from "zod";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
 import { ZodValidationError } from "../lib/errors/zod";
+import type { EnvelopeTarget } from "../lib/json-envelope";
 import { safePath, safeToken, saleorUrl } from "../lib/validation";
 import { type Console, cliConsole, textStyle } from "./console";
 
@@ -17,6 +18,19 @@ export const baseCommandArgsSchema = z.object({
   config: safePath().default("config.yml").describe("Configuration file path"),
   quiet: z.boolean().default(false).describe("Suppress output"),
 });
+
+export const jsonFileArg = z
+  .string()
+  .optional()
+  .describe("Also write the JSON result to this file, whatever the output mode");
+
+export function envelopeTarget(args: {
+  json?: boolean;
+  text?: boolean;
+  jsonFile?: string;
+}): EnvelopeTarget {
+  return { print: shouldOutputJson(args), file: args.jsonFile };
+}
 
 export function shouldOutputJson(args: { json?: boolean; text?: boolean }): boolean {
   if (args.text === true) return false;
