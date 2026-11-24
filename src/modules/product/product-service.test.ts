@@ -33,6 +33,7 @@ const mockRepository: ProductOperations = {
   deleteProductMedia: vi.fn(),
   replaceAllProductMedia: vi.fn(),
   bulkCreateProducts: vi.fn(),
+  setProductMediaSourceUrl: vi.fn(),
   bulkCreateVariants: vi.fn(),
   bulkUpdateVariants: vi.fn(),
 };
@@ -1212,6 +1213,88 @@ describe("ProductService", () => {
           "Failed to fetch existing media"
         );
       });
+    });
+  });
+
+  describe("bulk create stores media source URLs", () => {
+    const productInput = {
+      name: "Tee",
+      slug: "tee",
+      productType: "Book",
+      category: "Fiction",
+      variants: [{ name: "Tee M", sku: "TEE-M" }],
+      media: [
+        { externalUrl: "https://example.com/front.png", alt: "Front" },
+        { externalUrl: "https://example.com/back.png" },
+      ],
+    };
+
+    const mockCreatedProduct = (media: Array<{ id: string }>) => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [
+          {
+            product: {
+              id: "product-1",
+              name: "Tee",
+              slug: "tee",
+              description: null,
+              productType: { id: "pt-1", name: "Book" },
+              category: { id: "cat-1", name: "Fiction" },
+              channelListings: [],
+              media: media.map((m) => ({
+                ...m,
+                alt: "",
+                type: "IMAGE" as const,
+                url: `https://store.saleor.cloud/thumbnail/${m.id}/4096/`,
+                metadata: [],
+              })),
+            },
+            errors: [],
+          },
+        ],
+        errors: [],
+      });
+    };
+
+    beforeEach(() => {
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+    });
+
+    it("writes each configured externalUrl to the media created in the same position", async () => {
+      mockCreatedProduct([{ id: "media-1" }, { id: "media-2" }]);
+
+      await service.bootstrapProductsBulk([productInput]);
+
+      expect(vi.mocked(mockRepository.setProductMediaSourceUrl).mock.calls).toEqual([
+        ["media-1", "https://example.com/front.png"],
+        ["media-2", "https://example.com/back.png"],
+      ]);
+    });
+
+    it("skips the metadata write with skipMedia", async () => {
+      mockCreatedProduct([]);
+
+      await service.bootstrapProductsBulk([productInput], { skipMedia: true });
+
+      expect(mockRepository.setProductMediaSourceUrl).not.toHaveBeenCalled();
+    });
+
+    it("fails the product when Saleor created a different number of media items", async () => {
+      mockCreatedProduct([{ id: "media-1" }]);
+
+      await expect(service.bootstrapProductsBulk([productInput])).rejects.toThrow(
+        "Failed to bootstrap 1 of 1 products"
+      );
+      expect(mockRepository.setProductMediaSourceUrl).not.toHaveBeenCalled();
     });
   });
 

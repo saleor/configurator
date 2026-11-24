@@ -997,6 +997,7 @@ export class ProductService {
 
     logger.info(`Creating ${toCreate.length} new products via nested bulk mutation`);
     const createdProducts: Product[] = [];
+    const createdWithInput: Array<{ input: ProductInput; product: Product }> = [];
 
     try {
       const createInputs = await Promise.all(
@@ -1051,6 +1052,7 @@ export class ProductService {
             logger.warn(`Failed to create product: ${toCreate[index].name}`, { errors });
           } else if (product) {
             createdProducts.push(product);
+            createdWithInput.push({ input: toCreate[index], product });
           }
         });
       }
@@ -1078,7 +1080,50 @@ export class ProductService {
       });
     }
 
+    if (!options?.skipMedia) {
+      await this.persistCreatedMediaSourceUrls(createdWithInput, allFailures);
+    }
+
     return createdProducts;
+  }
+
+  /**
+   * Stores each created media item's configured source URL, as syncProductMedia does for
+   * existing products. productBulkCreate can't set media metadata, and without the URL
+   * introspect returns Saleor's thumbnail instead of the configured `externalUrl`.
+   * Saleor returns a product's media in the order they were sent.
+   */
+  private async persistCreatedMediaSourceUrls(
+    created: ReadonlyArray<{ input: ProductInput; product: Product }>,
+    allFailures: Array<{ entity: string; error: Error }>
+  ): Promise<void> {
+    for (const { input, product } of created) {
+      const sourceUrls = (input.media ?? []).map((media) => media.externalUrl);
+      if (sourceUrls.length === 0) continue;
+
+      const createdMedia = product.media ?? [];
+      if (createdMedia.length !== sourceUrls.length) {
+        allFailures.push({
+          entity: input.name,
+          error: new Error(
+            `Saleor created ${createdMedia.length} of ${sourceUrls.length} media items, so their source URLs were not stored`
+          ),
+        });
+        continue;
+      }
+
+      try {
+        for (const [index, media] of createdMedia.entries()) {
+          await this.repository.setProductMediaSourceUrl(media.id, sourceUrls[index]);
+        }
+      } catch (error) {
+        if (isTransientError(error)) throw error;
+        allFailures.push({
+          entity: input.name,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+    }
   }
 
   /**

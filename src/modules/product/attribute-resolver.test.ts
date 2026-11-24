@@ -25,6 +25,7 @@ const mockRepository: ProductOperations = {
   deleteProductMedia: vi.fn(),
   replaceAllProductMedia: vi.fn(),
   bulkCreateProducts: vi.fn(),
+  setProductMediaSourceUrl: vi.fn(),
   bulkCreateVariants: vi.fn(),
   bulkUpdateVariants: vi.fn(),
 };
