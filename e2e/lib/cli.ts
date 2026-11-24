@@ -72,6 +72,7 @@ export function saleorCli(
     );
   return {
     deploy: (configPath: string) => run<DeployResult>("deploy", configPath),
+    plan: (configPath: string) => run<PlanResult>("deploy", configPath, ["--plan"]),
     introspect: (configPath: string) => run<{ status: string }>("introspect", configPath),
     diff: (configPath: string) => run<DiffResult>("diff", configPath),
   };
@@ -87,6 +88,11 @@ interface ChangeSummary {
 export interface DeployResult {
   status: string;
   summary?: ChangeSummary;
+}
+
+export interface PlanResult {
+  summary: Omit<ChangeSummary, "totalChanges">;
+  operations: { entity: string; name: string; action: string; fields: string[] }[];
 }
 
 interface DiffResult {
