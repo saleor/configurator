@@ -1607,7 +1607,7 @@ describe("ProductService", () => {
       expect(mockRepository.listProductMedia).toHaveBeenCalledWith("product-existing-1");
     });
 
-    it("should update existing variants by sku and bulk-create only missing variants", async () => {
+    it("should bulk-update existing variants by sku and bulk-create only missing variants", async () => {
       vi.mocked(mockRepository.getProductVariantBySku)
         .mockResolvedValueOnce({
           id: "variant-existing-1",
@@ -1618,19 +1618,10 @@ describe("ProductService", () => {
         } as any)
         .mockResolvedValueOnce(null);
 
-      vi.mocked(mockRepository.updateProductVariant).mockResolvedValue({
-        id: "variant-existing-1",
-        name: "Updated Existing",
-        sku: "EXISTING-1",
-        weight: { value: 1.5 },
-        channelListings: [],
-      } as any);
-
-      vi.mocked(mockRepository.updateProductVariantChannelListings).mockResolvedValue({
-        id: "variant-existing-1",
-        name: "Updated Existing",
-        sku: "EXISTING-1",
-        channelListings: [],
+      vi.mocked(mockRepository.bulkUpdateVariants).mockResolvedValue({
+        count: 1,
+        results: [{ productVariant: { id: "variant-existing-1", sku: "EXISTING-1" }, errors: [] }],
+        errors: [],
       } as any);
 
       vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
@@ -1664,22 +1655,227 @@ describe("ProductService", () => {
         ])
       ).resolves.toBeUndefined();
 
-      expect(mockRepository.updateProductVariant).toHaveBeenCalledWith("variant-existing-1", {
-        name: "Updated Existing",
-        sku: "EXISTING-1",
-        trackInventory: false,
-        weight: 1.5,
-        attributes: [],
+      expect(mockRepository.updateProductVariant).not.toHaveBeenCalled();
+      expect(mockRepository.updateProductVariantChannelListings).not.toHaveBeenCalled();
+      expect(mockRepository.bulkUpdateVariants).toHaveBeenCalledWith({
+        product: "product-existing-1",
+        errorPolicy: "IGNORE_FAILED",
+        variants: [
+          {
+            id: "variant-existing-1",
+            name: "Updated Existing",
+            sku: "EXISTING-1",
+            trackInventory: false,
+            weight: 1.5,
+            attributes: [],
+            channelListings: {
+              create: [{ channelId: "channel-1", price: 10, costPrice: undefined }],
+            },
+          },
+        ],
       });
-      expect(mockRepository.updateProductVariantChannelListings).toHaveBeenCalledWith(
-        "variant-existing-1",
-        [{ channelId: "channel-1", price: 10, costPrice: undefined }]
-      );
 
       const bulkCreateCall = vi.mocked(mockRepository.bulkCreateVariants).mock.calls[0][0];
       expect(bulkCreateCall.variants).toHaveLength(1);
       expect(bulkCreateCall.variants[0].sku).toBe("NEW-1");
       expect(bulkCreateCall.variants[0].trackInventory).toBeUndefined();
+    });
+
+    it("uses preloaded product variants to skip per-SKU lookups and splits channel listing updates vs creates", async () => {
+      vi.mocked(mockRepository.getChannelBySlug).mockImplementation(async (slug) =>
+        slug === "default-channel"
+          ? ({
+              id: "channel-1",
+              slug: "default-channel",
+              name: "Default",
+              currencyCode: "USD",
+            } as any)
+          : ({ id: "channel-2", slug: "eu-channel", name: "EU", currencyCode: "EUR" } as any)
+      );
+
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([
+        {
+          id: "product-existing-1",
+          name: "Existing Product",
+          slug: "existing-product",
+          description: null,
+          productType: { id: "pt-1", name: "Book" },
+          category: { id: "cat-1", name: "Fiction" },
+          channelListings: [],
+          media: [],
+          variants: [
+            {
+              id: "var-1",
+              sku: "SKU-1",
+              channelListings: [
+                { id: "vcl-1", channel: { id: "channel-1", slug: "default-channel" } },
+              ],
+            },
+          ],
+        } as any,
+      ]);
+
+      vi.mocked(mockRepository.bulkUpdateVariants).mockResolvedValue({
+        count: 1,
+        results: [{ productVariant: { id: "var-1", sku: "SKU-1" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        count: 1,
+        results: [{ productVariant: { id: "var-2", sku: "SKU-2" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      await service.bootstrapProductsBulk([
+        {
+          name: "Existing Product",
+          slug: "existing-product",
+          productType: "Book",
+          category: "fiction",
+          variants: [
+            {
+              name: "Variant 1",
+              sku: "SKU-1",
+              channelListings: [
+                { channel: "default-channel", price: 12, costPrice: 6 },
+                { channel: "eu-channel", price: 11 },
+              ],
+            },
+            { name: "Variant 2", sku: "SKU-2" },
+          ],
+        },
+      ]);
+
+      expect(mockRepository.getProductVariantBySku).not.toHaveBeenCalled();
+      expect(mockRepository.bulkUpdateVariants).toHaveBeenCalledWith({
+        product: "product-existing-1",
+        errorPolicy: "IGNORE_FAILED",
+        variants: [
+          {
+            id: "var-1",
+            name: "Variant 1",
+            sku: "SKU-1",
+            trackInventory: undefined,
+            weight: undefined,
+            attributes: [],
+            channelListings: {
+              update: [{ channelListing: "vcl-1", price: 12, costPrice: 6 }],
+              create: [{ channelId: "channel-2", price: 11, costPrice: undefined }],
+            },
+          },
+        ],
+      });
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledTimes(1);
+    });
+
+    it("batches bulkUpdateVariants and bulkCreateVariants and reports per-variant errors", async () => {
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([
+        {
+          id: "product-existing-1",
+          name: "Existing Product",
+          slug: "existing-product",
+          description: null,
+          productType: { id: "pt-1", name: "Book" },
+          category: { id: "cat-1", name: "Fiction" },
+          channelListings: [],
+          media: [],
+          variants: [
+            { id: "v-1", sku: "U-1", channelListings: [] },
+            { id: "v-2", sku: "U-2", channelListings: [] },
+            { id: "v-3", sku: "U-3", channelListings: [] },
+          ],
+        } as any,
+      ]);
+
+      vi.mocked(mockRepository.bulkUpdateVariants)
+        .mockResolvedValueOnce({
+          count: 1,
+          results: [
+            { productVariant: { id: "v-1", sku: "U-1" }, errors: [] },
+            { productVariant: null, errors: [{ path: "sku", message: "Duplicate SKU" }] },
+          ],
+          errors: [],
+        } as any)
+        .mockResolvedValueOnce({
+          count: 1,
+          results: [{ productVariant: { id: "v-3", sku: "U-3" }, errors: [] }],
+          errors: [],
+        } as any);
+
+      vi.mocked(mockRepository.bulkCreateVariants).mockResolvedValue({
+        count: 1,
+        results: [{ productVariant: { id: "v-new", sku: "C-1" }, errors: [] }],
+        errors: [],
+      } as any);
+
+      await expect(
+        service.bootstrapProductsBulk(
+          [
+            {
+              name: "Existing Product",
+              slug: "existing-product",
+              productType: "Book",
+              category: "fiction",
+              variants: [
+                { name: "Update 1", sku: "U-1" },
+                { name: "Update 2", sku: "U-2" },
+                { name: "Update 3", sku: "U-3" },
+                { name: "Create 1", sku: "C-1" },
+                { name: "Create 2", sku: "C-2" },
+                { name: "Create 3", sku: "C-3" },
+              ],
+            },
+          ],
+          { batching: { batchSize: 2 } }
+        )
+      ).rejects.toThrow("Failed to bootstrap 1 of 1 products");
+
+      expect(mockRepository.bulkUpdateVariants).toHaveBeenCalledTimes(2);
+      expect(
+        vi
+          .mocked(mockRepository.bulkUpdateVariants)
+          .mock.calls.map(([req]) => req.variants.map((v) => v.sku))
+      ).toEqual([["U-1", "U-2"], ["U-3"]]);
+
+      expect(mockRepository.bulkCreateVariants).toHaveBeenCalledTimes(2);
+      expect(
+        vi
+          .mocked(mockRepository.bulkCreateVariants)
+          .mock.calls.map(([req]) => req.variants.map((v) => v.sku))
+      ).toEqual([["C-1", "C-2"], ["C-3"]]);
+    });
+
+    it("propagates transient errors from bulkUpdateVariants", async () => {
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([
+        {
+          id: "product-existing-1",
+          name: "Existing Product",
+          slug: "existing-product",
+          description: null,
+          productType: { id: "pt-1", name: "Book" },
+          category: { id: "cat-1", name: "Fiction" },
+          channelListings: [],
+          media: [],
+          variants: [{ id: "v-1", sku: "U-1", channelListings: [] }],
+        } as any,
+      ]);
+
+      vi.mocked(mockRepository.bulkUpdateVariants).mockRejectedValue(
+        new Error("429 Too Many Requests")
+      );
+
+      await expect(
+        service.bootstrapProductsBulk([
+          {
+            name: "Existing Product",
+            slug: "existing-product",
+            productType: "Book",
+            category: "fiction",
+            variants: [{ name: "Update 1", sku: "U-1" }],
+          },
+        ])
+      ).rejects.toThrow("429 Too Many Requests");
     });
   });
 

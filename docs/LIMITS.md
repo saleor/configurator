@@ -67,10 +67,13 @@ New products are sent in fixed batches of 25 per `productBulkCreate` request, in
 | Setting | Default | Environment variable |
 |---|---|---|
 | New products per `productBulkCreate` batch | 25 | `SALEOR_PRODUCT_BATCH_SIZE` |
+| Variants per `productVariantBulkUpdate` / `productVariantBulkCreate` batch | 25 | `SALEOR_PRODUCT_BATCH_SIZE` |
 | Slug check interval after a 504 / network error | 5,000 ms | — |
 | Slug check deadline after a 504 / network error | 60,000 ms | — |
 
 Saleor Cloud's gateway cuts off requests after 30 seconds with a `504 Gateway Time-out`, while Saleor keeps running and commits the batch's single database transaction in the background. When a batch hits a 504 or network error, `deploy` does not immediately resend: it polls the batch's slugs until they appear or the 60-second deadline passes, and resends only missing products once. If a deploy still finishes with failures, re-running `deploy` is safe and resumes from what is missing.
+
+Existing products still take one `productUpdate` request each (Saleor has no `productBulkUpdate`), while their variants and variant channel listings are synced in batches via `productVariantBulkUpdate` and `productVariantBulkCreate`.
 
 Fast production stores with light products can raise `SALEOR_PRODUCT_BATCH_SIZE`, though products with many variants or slow external image hosts (Saleor probes every image URL synchronously) can still push larger batches past 30 seconds.
 

@@ -22,6 +22,7 @@ import {
 import { ProductError } from "./errors";
 import { extractSourceUrlFromMetadata } from "./media-metadata";
 import type {
+  ExistingProductVariantSummary,
   Product,
   ProductCreateInput,
   ProductMedia,
@@ -1456,14 +1457,14 @@ export class ProductService {
     toUpdate: Array<{ existing: Product; input: ProductInput }>,
     updatedProducts: Product[],
     allFailures: Array<{ entity: string; error: Error }>,
-    options?: { skipMedia?: boolean }
+    options?: { skipMedia?: boolean; batching?: ProductBulkCreateBatchOptions }
   ): Promise<void> {
     if (toUpdate.length === 0) return;
 
     const updateProductInputs = toUpdate.map((u) => u.input);
 
     await this.syncUpdatedProductChannelListings(updateProductInputs, updatedProducts);
-    await this.syncUpdatedProductVariants(updateProductInputs, updatedProducts, allFailures);
+    await this.syncUpdatedProductVariants(toUpdate, updatedProducts, allFailures, options);
 
     if (!options?.skipMedia) {
       await this.syncUpdatedProductMedia(updateProductInputs, updatedProducts);
@@ -1511,151 +1512,261 @@ export class ProductService {
   }
 
   /**
-   * Resolves a single variant input for update operations.
+   * Resolves an existing variant and its channel listings for `productVariantBulkUpdate`.
    */
-  private async resolveVariantForUpdate(variantInput: ProductVariantInput) {
+  private async resolveVariantForBulkUpdate(
+    existingVariant: ExistingProductVariantSummary,
+    variantInput: ProductVariantInput
+  ) {
     const variantAttributes = variantInput.attributes
       ? await this.resolveAttributeValues(variantInput.attributes)
       : [];
 
+    let channelListings:
+      | {
+          create?: Array<{
+            channelId: string;
+            price: number | undefined;
+            costPrice?: number;
+          }>;
+          update?: Array<{
+            channelListing: string;
+            price?: number;
+            costPrice?: number;
+          }>;
+        }
+      | undefined;
+
+    if (variantInput.channelListings && variantInput.channelListings.length > 0) {
+      const existingByChannelId = new Map<string, string>();
+      for (const cl of existingVariant.channelListings ?? []) {
+        if (cl?.id && cl.channel?.id) {
+          existingByChannelId.set(cl.channel.id, cl.id);
+        }
+      }
+
+      const toCreate: Array<{
+        channelId: string;
+        price: number | undefined;
+        costPrice?: number;
+      }> = [];
+      const toUpdate: Array<{
+        channelListing: string;
+        price?: number;
+        costPrice?: number;
+      }> = [];
+
+      for (const listing of variantInput.channelListings) {
+        const channelId = await this.resolveChannelReference(listing.channel);
+        const existingListingId = existingByChannelId.get(channelId);
+        if (existingListingId) {
+          toUpdate.push({
+            channelListing: existingListingId,
+            price: listing.price,
+            costPrice: listing.costPrice,
+          });
+        } else {
+          toCreate.push({
+            channelId,
+            price: listing.price,
+            costPrice: listing.costPrice,
+          });
+        }
+      }
+
+      channelListings = {
+        ...(toCreate.length > 0 ? { create: toCreate } : {}),
+        ...(toUpdate.length > 0 ? { update: toUpdate } : {}),
+      };
+    }
+
     return {
+      id: existingVariant.id,
       name: variantInput.name,
       sku: variantInput.sku,
       trackInventory: variantInput.trackInventory,
       weight: variantInput.weight,
       attributes: variantAttributes,
+      ...(channelListings ? { channelListings } : {}),
     };
   }
 
   /**
-   * Creates/updates variants for existing products.
-   * Existing variants are updated by SKU; only missing variants are bulk created.
+   * Creates/updates variants for existing products using bulk mutations in fixed
+   * batches. Uses the variants already fetched by `getProductsBySlugs` when
+   * available so SKU lookups do not issue per-variant queries.
    */
   private async syncUpdatedProductVariants(
-    productInputs: ProductInput[],
+    toUpdate: Array<{ existing: Product; input: ProductInput }>,
     updatedProducts: Product[],
-    allFailures: Array<{ entity: string; error: Error }>
+    allFailures: Array<{ entity: string; error: Error }>,
+    options?: { batching?: ProductBulkCreateBatchOptions }
   ): Promise<void> {
-    const variantsForSync: Array<{
+    const productsWithVariants: Array<{
       productId: string;
+      existing: Product;
       productInput: ProductInput;
-      variantInput: ProductVariantInput;
+      variants: ProductVariantInput[];
     }> = [];
 
-    for (const productInput of productInputs) {
+    for (const { existing, input: productInput } of toUpdate) {
       const product = updatedProducts.find((p) => p.slug === productInput.slug);
       if (product?.id && productInput.variants && productInput.variants.length > 0) {
-        for (const variantInput of productInput.variants) {
-          variantsForSync.push({ productId: product.id, productInput, variantInput });
-        }
+        productsWithVariants.push({
+          productId: product.id,
+          existing,
+          productInput,
+          variants: productInput.variants,
+        });
       }
     }
 
-    if (variantsForSync.length === 0) return;
+    if (productsWithVariants.length === 0) return;
 
-    logger.info(`Syncing ${variantsForSync.length} variants for existing products`);
+    const totalVariants = productsWithVariants.reduce((sum, p) => sum + p.variants.length, 0);
+    const batchSize = options?.batching?.batchSize ?? getProductBulkBatchSize();
 
-    const variantsByProduct = new Map<
-      string,
-      Array<{ productInput: ProductInput; variantInput: ProductVariantInput }>
-    >();
-    for (const { productId, productInput, variantInput } of variantsForSync) {
-      const existing = variantsByProduct.get(productId);
-      if (existing) {
-        existing.push({ productInput, variantInput });
-      } else {
-        variantsByProduct.set(productId, [{ productInput, variantInput }]);
-      }
-    }
+    logger.info(
+      `Syncing ${totalVariants} variants for existing products in batches of up to ${batchSize}`
+    );
 
-    for (const [productId, variants] of variantsByProduct) {
+    for (const { productId, existing, productInput, variants } of productsWithVariants) {
+      const variantsToUpdate: Array<{
+        existingVariant: ExistingProductVariantSummary;
+        productInput: ProductInput;
+        variantInput: ProductVariantInput;
+      }> = [];
       const variantsToCreate: Array<{
         productInput: ProductInput;
         variantInput: ProductVariantInput;
       }> = [];
 
-      for (const variant of variants) {
+      const preloadedVariantsBySku = Array.isArray(existing.variants)
+        ? new Map(
+            existing.variants
+              .filter((v): v is ExistingProductVariantSummary & { sku: string } => Boolean(v?.sku))
+              .map((v) => [v.sku, v])
+          )
+        : null;
+
+      for (const variantInput of variants) {
         try {
-          const existingVariant = await this.repository.getProductVariantBySku(
-            variant.variantInput.sku
-          );
+          const existingVariant = preloadedVariantsBySku
+            ? (preloadedVariantsBySku.get(variantInput.sku) ?? null)
+            : await this.repository.getProductVariantBySku(variantInput.sku);
+
           if (existingVariant) {
-            const updateInput = await this.resolveVariantForUpdate(variant.variantInput);
-            await this.repository.updateProductVariant(existingVariant.id, updateInput);
-
-            if (
-              variant.variantInput.channelListings &&
-              variant.variantInput.channelListings.length > 0
-            ) {
-              const channelListingInput = await this.resolveVariantChannelListings(
-                variant.variantInput.channelListings
-              );
-              await this.repository.updateProductVariantChannelListings(
-                existingVariant.id,
-                channelListingInput
-              );
-            }
-
-            continue;
+            variantsToUpdate.push({ existingVariant, productInput, variantInput });
+          } else {
+            variantsToCreate.push({ productInput, variantInput });
           }
-
-          variantsToCreate.push(variant);
         } catch (error) {
           if (isTransientError(error)) {
             throw error;
           }
           allFailures.push({
-            entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
+            entity: `${productInput.name} - ${variantInput.sku}`,
             error: error instanceof Error ? error : new Error(String(error)),
           });
           logger.warn(
-            `Failed to sync existing variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+            `Failed to look up existing variant ${variantInput.sku} for product ${productInput.name}`,
             { error }
           );
         }
       }
 
-      if (variantsToCreate.length === 0) {
-        continue;
+      for (const chunk of splitIntoBatches(variantsToUpdate, batchSize)) {
+        try {
+          const variantInputs = await Promise.all(
+            chunk.map(({ existingVariant, variantInput }) =>
+              this.resolveVariantForBulkUpdate(existingVariant, variantInput)
+            )
+          );
+
+          const updateResult = await this.repository.bulkUpdateVariants({
+            product: productId,
+            variants: variantInputs,
+            errorPolicy: "IGNORE_FAILED",
+          });
+
+          if (updateResult.results) {
+            updateResult.results.forEach(({ errors }, index) => {
+              if (errors && errors.length > 0) {
+                const variant = chunk[index];
+                allFailures.push({
+                  entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
+                  error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
+                });
+                logger.warn(
+                  `Failed to update variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+                  { errors }
+                );
+              }
+            });
+          }
+
+          if (updateResult.errors && updateResult.errors.length > 0) {
+            logger.warn(`Global errors during bulk variant update for product ${productId}`, {
+              errors: updateResult.errors,
+            });
+            allFailures.push({
+              entity: `bulk variant update (${productInput.name})`,
+              error: new Error(
+                updateResult.errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")
+              ),
+            });
+          }
+        } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
+          logger.error(`Failed to bulk update variants for product ${productId}`, { error });
+          for (const v of chunk) {
+            allFailures.push({
+              entity: `${v.productInput.name} - ${v.variantInput.sku}`,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        }
       }
 
-      try {
-        const variantInputs = await this.resolveVariantsForBulk(
-          variantsToCreate.map((v) => v.variantInput)
-        );
+      for (const chunk of splitIntoBatches(variantsToCreate, batchSize)) {
+        try {
+          const variantInputs = await this.resolveVariantsForBulk(chunk.map((v) => v.variantInput));
 
-        const variantResult = await this.repository.bulkCreateVariants({
-          product: productId,
-          variants: variantInputs,
-          errorPolicy: "IGNORE_FAILED",
-        });
+          const variantResult = await this.repository.bulkCreateVariants({
+            product: productId,
+            variants: variantInputs,
+            errorPolicy: "IGNORE_FAILED",
+          });
 
-        if (variantResult.results) {
-          variantResult.results.forEach(({ errors }, index) => {
-            if (errors && errors.length > 0) {
-              const variant = variantsToCreate[index];
-              allFailures.push({
-                entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
-                error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
-              });
-              logger.warn(
-                `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
-                { errors }
-              );
-            }
-          });
+          if (variantResult.results) {
+            variantResult.results.forEach(({ errors }, index) => {
+              if (errors && errors.length > 0) {
+                const variant = chunk[index];
+                allFailures.push({
+                  entity: `${variant.productInput.name} - ${variant.variantInput.sku}`,
+                  error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
+                });
+                logger.warn(
+                  `Failed to create variant ${variant.variantInput.sku} for product ${variant.productInput.name}`,
+                  { errors }
+                );
+              }
+            });
+          }
+        } catch (error) {
+          if (isTransientError(error)) {
+            throw error;
+          }
+          logger.error(`Failed to bulk create variants for product ${productId}`, { error });
+          for (const v of chunk) {
+            allFailures.push({
+              entity: `${v.productInput.name} - ${v.variantInput.sku}`,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
         }
-      } catch (error) {
-        if (isTransientError(error)) {
-          throw error;
-        }
-        logger.error(`Failed to bulk create variants for product ${productId}`, { error });
-        variantsToCreate.forEach((v) => {
-          allFailures.push({
-            entity: `${v.productInput.name} - ${v.variantInput.sku}`,
-            error: error instanceof Error ? error : new Error(String(error)),
-          });
-        });
       }
     }
   }
