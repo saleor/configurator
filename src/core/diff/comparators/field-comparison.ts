@@ -13,20 +13,6 @@ export function isUnmanagedField(localValue: unknown, options?: FieldComparisonO
 }
 
 /**
- * Lists the fields whose local and remote values differ, in the order given.
- */
-export function findChangedFields<T extends object>(
-  local: T,
-  remote: T,
-  fields: ReadonlyArray<keyof T>,
-  options?: FieldComparisonOptions
-): Array<keyof T> {
-  return fields.filter(
-    (field) => !isUnmanagedField(local[field], options) && local[field] !== remote[field]
-  );
-}
-
-/**
  * Keeps only the remote fields the local side manages, so whole-record comparisons
  * (normalized listings) ignore fields the config leaves out.
  */
