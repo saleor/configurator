@@ -1,6 +1,7 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import type { DiffChange, DiffResult } from "../types";
-import type { EntityComparator } from "./base-comparator";
+import type { ComparatorOptions, EntityComparator } from "./base-comparator";
+import { findChangedFields } from "./field-comparison";
 
 /**
  * Shop settings that can be compared
@@ -47,7 +48,8 @@ export class ShopComparator
    */
   compare(
     local: SaleorConfig["shop"] | undefined,
-    remote: SaleorConfig["shop"] | undefined
+    remote: SaleorConfig["shop"] | undefined,
+    options?: ComparatorOptions
   ): readonly DiffResult[] {
     // Both undefined - no changes
     if (!local && !remote) {
@@ -83,7 +85,7 @@ export class ShopComparator
       return [];
     }
 
-    const changes = this.compareShopFields(local, remote);
+    const changes = this.compareShopFields(local, remote, options);
 
     if (changes.length === 0) {
       return [];
@@ -109,24 +111,14 @@ export class ShopComparator
    */
   private compareShopFields(
     local: NonNullable<SaleorConfig["shop"]>,
-    remote: NonNullable<SaleorConfig["shop"]>
+    remote: NonNullable<SaleorConfig["shop"]>,
+    options?: ComparatorOptions
   ): DiffChange[] {
-    const changes: DiffChange[] = [];
-
-    for (const field of SHOP_SETTINGS_FIELDS) {
-      const localValue = local[field];
-      const remoteValue = remote[field];
-
-      if (localValue !== remoteValue) {
-        changes.push({
-          field,
-          currentValue: remoteValue,
-          desiredValue: localValue,
-          description: `${field} changed from "${remoteValue}" to "${localValue}"`,
-        });
-      }
-    }
-
-    return changes;
+    return findChangedFields(local, remote, SHOP_SETTINGS_FIELDS, options).map((field) => ({
+      field,
+      currentValue: remote[field],
+      desiredValue: local[field],
+      description: `${field} changed from "${remote[field]}" to "${local[field]}"`,
+    }));
   }
 }

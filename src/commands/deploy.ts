@@ -26,7 +26,7 @@ import {
   resolveReportPath,
 } from "../core/deployment/report-storage";
 import { type DeploymentResult, DeploymentResultFormatter } from "../core/deployment/results";
-import type { DiffSummary } from "../core/diff";
+import { countAppliedChanges, type DiffSummary } from "../core/diff";
 import { DeployDiffFormatter } from "../core/diff/formatters";
 import {
   ConfigurationLoadError,
@@ -181,10 +181,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   private async confirmSafeOperations(summary: DiffSummary, useJson: boolean): Promise<boolean> {
-    const changeText = summary.totalChanges === 1 ? "change" : "changes";
+    const applied = countAppliedChanges(summary);
+    const changeText = applied === 1 ? "change" : "changes";
 
     return await confirmAction(
-      `Deploy ${summary.totalChanges} ${changeText} to your Saleor instance?`,
+      `Deploy ${applied} ${changeText} to your Saleor instance?`,
       "This will modify your production environment.",
       true,
       useJson
@@ -220,15 +221,13 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return lines.join("\n");
   }
 
-  private async confirmDeployment(
-    summary: DiffSummary,
-    hasDestructiveOperations: boolean,
-    useJson: boolean
-  ): Promise<boolean> {
+  private async confirmDeployment(summary: DiffSummary, useJson: boolean): Promise<boolean> {
     if (isNonInteractiveEnvironment()) return true;
 
-    if (hasDestructiveOperations) {
-      const warningMessage = this.formatDestructiveOperationsWarning(summary);
+    // Entities only in Saleor are never removed; removing attribute values is the only
+    // destructive change deploy makes.
+    const warningMessage = this.formatDestructiveOperationsWarning(summary);
+    if (warningMessage) {
       if (!useJson) this.console.warn(warningMessage);
 
       return await confirmAction(
@@ -247,26 +246,23 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       return "✅ No changes detected - configuration is already in sync";
     }
 
+    const applied = countAppliedChanges(summary);
     const lines = [
       "📊 Deployment Preview:",
-      "╭─────────────────────────────────────────────────────────╮",
-      `│ 🔄 ${summary.totalChanges} changes will be applied to your Saleor instance │`,
-      "├─────────────────────────────────────────────────────────┤",
+      `🔄 ${applied} ${applied === 1 ? "change" : "changes"} will be applied to your Saleor instance`,
     ];
 
     if (summary.creates > 0) {
-      lines.push(`│ ✅ ${summary.creates} items to create                           │`);
+      lines.push(`  ✅ ${summary.creates} to create`);
     }
 
     if (summary.updates > 0) {
-      lines.push(`│ 📝 ${summary.updates} items to update                           │`);
+      lines.push(`  📝 ${summary.updates} to update`);
     }
 
     if (summary.deletes > 0) {
-      lines.push(`│ ⚠️  ${summary.deletes} items to delete                           │`);
+      lines.push(`  ➖ ${summary.deletes} only in Saleor (left in place)`);
     }
-
-    lines.push("╰─────────────────────────────────────────────────────────╯");
 
     return lines.join("\n");
   }
@@ -304,17 +300,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       }
     } catch (error) {
       logger.warn("Failed to generate cleanup suggestions", { error });
-    }
-  }
-
-  private displayPendingDeletionWarnings(summary: DiffSummary): void {
-    const pendingDeletes = summary.results.filter((r) => r.operation === "DELETE");
-    if (pendingDeletes.length > 0) {
-      this.console.warn("\n⚠️  Note: Some items marked for deletion may not have been removed:");
-      this.console.warn("  • Attribute values cannot be deleted if they're used by products");
-      this.console.warn("  • Product types cannot be deleted if they have associated products");
-      this.console.warn("\n  Running deploy again will show remaining differences.");
-      this.console.text("");
     }
   }
 
@@ -389,7 +374,6 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     this.console.text("");
 
     await this.displayCleanupSuggestions(context, summary);
-    this.displayPendingDeletionWarnings(summary);
 
     if (!useJson) {
       const summaryReport = new DeploymentSummaryReport(metrics, summary);
@@ -500,6 +484,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       }
       process.exit(EXIT_CODES.DELETION_BLOCKED);
     }
+  }
+
+  /** Only entities that stay in Saleor differ: list them, without asking to deploy nothing. */
+  private handleNothingToApply(summary: DiffSummary): never {
+    this.console.status(`\n${new DeployDiffFormatter().format(summary)}`);
+    this.console.status(
+      "\n✅ No changes to apply - deploy leaves entities only in Saleor in place"
+    );
+    process.exit(EXIT_CODES.SUCCESS);
   }
 
   private handleNoChanges(summary: DiffSummary, useJson: boolean): never {
@@ -628,15 +621,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         return this.handlePlanMode(diffAnalysis, args, useJson);
       }
 
+      if (!useJson && countAppliedChanges(diffAnalysis.summary) === 0) {
+        return this.handleNothingToApply(diffAnalysis.summary);
+      }
+
       if (!useJson) {
         this.displayDeploymentPreview(diffAnalysis.summary);
       }
 
-      const shouldDeploy = await this.confirmDeployment(
-        diffAnalysis.summary,
-        diffAnalysis.hasDestructiveOperations,
-        useJson
-      );
+      const shouldDeploy = await this.confirmDeployment(diffAnalysis.summary, useJson);
 
       if (!shouldDeploy) {
         if (useJson) {
