@@ -30,10 +30,14 @@ on:
           - production
           - all
 
+permissions: {}
+
 jobs:
   detect-drift-staging:
     name: Check Staging Drift
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: |
       github.event_name == 'schedule' ||
       github.event.inputs.environment == 'staging' ||
@@ -45,7 +49,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Check for Drift
         uses: saleor/configurator/action@v3.24.0
@@ -78,6 +84,8 @@ jobs:
   detect-drift-production:
     name: Check Production Drift
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: |
       github.event_name == 'schedule' ||
       github.event.inputs.environment == 'production' ||
@@ -89,7 +97,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Check for Drift
         uses: saleor/configurator/action@v3.24.0
@@ -134,7 +144,7 @@ jobs:
 
     steps:
       - name: Create Issue
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           # Pass job outputs via env - never interpolate ${{ }} into the script
           STAGING_DRIFT: ${{ needs.detect-drift-staging.outputs.has-drift }}

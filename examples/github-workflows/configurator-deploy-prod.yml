@@ -20,8 +20,9 @@ on:
         default: 'false'
         type: boolean
 
-  # Also trigger after successful staging deployment
-  workflow_run:
+  # Also trigger after successful staging deployment. Only runs of the staging
+  # workflow on main start it, and it checks out main, never pull request code.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: ["Deploy to Staging"]
     types:
       - completed
@@ -33,11 +34,15 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+permissions: {}
+
 jobs:
   # Preview changes first
   preview:
     name: Preview Changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
@@ -49,8 +54,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Preview Production Changes
@@ -98,8 +104,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Deploy to Production
@@ -114,7 +121,7 @@ jobs:
           report-path: deployment-report-prod.json
 
       - name: Upload Deployment Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: deployment-report-production
@@ -137,12 +144,16 @@ jobs:
   dry-run:
     name: Dry Run Preview
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     needs: preview
     if: github.event.inputs.dry-run == 'true'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Preview (Dry Run)
         uses: saleor/configurator/action@v3.24.0
