@@ -6,6 +6,7 @@ import { object } from "../../lib/utils/object";
 import { delay } from "../../lib/utils/resilience";
 import type { ChannelOperations } from "../channel/repository";
 import type { ShippingMethodInput, ShippingZoneInput } from "../config/schema/schema";
+import type { MetadataService } from "../metadata/metadata-service";
 import type { WarehouseOperations } from "../warehouse/repository";
 import {
   ShippingMethodValidationError,
@@ -28,7 +29,8 @@ export class ShippingZoneService {
   constructor(
     private repository: ShippingZoneOperations,
     private warehouseRepository: WarehouseOperations,
-    private channelRepository: ChannelOperations
+    private channelRepository: ChannelOperations,
+    private metadataService: MetadataService
   ) {}
 
   private async getExistingShippingZone(name: string): Promise<ShippingZone | undefined> {
@@ -279,6 +281,7 @@ export class ShippingZoneService {
 
       const createInput = await this.mapInputToCreateInput(input);
       const shippingZone = await this.repository.createShippingZone(createInput);
+      await this.metadataService.syncMetadata(shippingZone.id, input.metadata);
 
       // Create shipping methods if provided
       if (input.shippingMethods && input.shippingMethods.length > 0) {
@@ -325,6 +328,11 @@ export class ShippingZoneService {
       const currentZone = await this.repository.getShippingZone(id);
       const updateInput = await this.mapInputToUpdateInput(input, currentZone ?? undefined);
       const shippingZone = await this.repository.updateShippingZone(id, updateInput);
+      await this.metadataService.syncMetadata(
+        shippingZone.id,
+        input.metadata,
+        shippingZone.metadata
+      );
 
       // Update shipping methods if provided
       if (input.shippingMethods !== undefined) {
@@ -421,6 +429,7 @@ export class ShippingZoneService {
     for (const method of methods) {
       const createInput = this.mapShippingMethodToCreateInput(method, shippingZoneId);
       const createdMethod = await this.repository.createShippingMethod(createInput);
+      await this.metadataService.syncMetadata(createdMethod.id, method.metadata);
       await this.applyShippingMethodChannelListings(createdMethod.id, method.channelListings);
       await this.delayAfterChannelListingUpdate(method.channelListings);
     }
@@ -484,6 +493,12 @@ export class ShippingZoneService {
         const createdMethod = await this.repository.createShippingMethod(createInput);
         methodId = createdMethod.id;
       }
+
+      await this.metadataService.syncMetadata(
+        methodId,
+        desiredMethod.metadata,
+        currentMethod?.metadata
+      );
 
       await this.applyShippingMethodChannelListings(methodId, desiredMethod.channelListings);
       await this.delayAfterChannelListingUpdate(desiredMethod.channelListings);

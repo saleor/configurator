@@ -7,6 +7,7 @@ import { getSupportedSaleorMinor } from "../../lib/package-info";
 import { isSaleorMinorMismatch } from "../../lib/saleor-version";
 import { object } from "../../lib/utils/object";
 import { shouldIncludeSection } from "../../lib/utils/selective-options";
+import { type MetadataKeyFilter, toMetadataInput } from "../metadata/metadata";
 import { extractSourceUrlFromMetadata } from "../product/media-metadata";
 import { UnsupportedInputTypeError } from "./errors";
 import type { ConfigurationOperations, RawSaleorConfig } from "./repository";
@@ -99,21 +100,30 @@ export class ConfigurationService {
     private storage: ConfigurationStorage
   ) {}
 
-  async retrieve(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
-    const config = await this.buildConfig(selectiveOptions);
+  async retrieve(
+    selectiveOptions?: ParsedSelectiveOptions,
+    metadataKeyFilter?: MetadataKeyFilter
+  ): Promise<SaleorConfig> {
+    const config = await this.buildConfig(selectiveOptions, metadataKeyFilter);
     await this.storage.save(config);
     return config;
   }
 
-  async retrieveWithoutSaving(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
-    return this.buildConfig(selectiveOptions);
+  async retrieveWithoutSaving(
+    selectiveOptions?: ParsedSelectiveOptions,
+    metadataKeyFilter?: MetadataKeyFilter
+  ): Promise<SaleorConfig> {
+    return this.buildConfig(selectiveOptions, metadataKeyFilter);
   }
 
-  private async buildConfig(selectiveOptions?: ParsedSelectiveOptions): Promise<SaleorConfig> {
+  private async buildConfig(
+    selectiveOptions?: ParsedSelectiveOptions,
+    metadataKeyFilter?: MetadataKeyFilter
+  ): Promise<SaleorConfig> {
     const rawConfig = await this.repository.fetchConfig();
     this.warnOnSaleorVersionMismatch(rawConfig.shop?.schemaVersion);
 
-    const config = this.mapConfig(rawConfig, selectiveOptions);
+    const config = this.mapConfig(rawConfig, selectiveOptions, metadataKeyFilter);
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
 
     const includedAttributeTypes = ATTRIBUTE_TYPES.filter((type) =>
@@ -492,7 +502,10 @@ export class ConfigurationService {
     });
   }
 
-  private mapCategories(rawCategories: RawSaleorConfig["categories"]): SaleorConfig["categories"] {
+  private mapCategories(
+    rawCategories: RawSaleorConfig["categories"],
+    metadataKeyFilter: MetadataKeyFilter
+  ): SaleorConfig["categories"] {
     if (!rawCategories?.edges) {
       return [];
     }
@@ -514,9 +527,11 @@ export class ConfigurationService {
 
     // Initialize all categories in the map
     categories.forEach((category: NonNullable<CategoryEdge["node"]>) => {
+      const metadata = toMetadataInput(category.metadata, metadataKeyFilter);
       categoryMap[category.slug] = {
         name: category.name,
         slug: category.slug,
+        ...(metadata && { metadata }),
       };
     });
 
@@ -547,7 +562,10 @@ export class ConfigurationService {
     return tree;
   }
 
-  private mapWarehouses(rawWarehouses: RawSaleorConfig["warehouses"]): WarehouseInput[] {
+  private mapWarehouses(
+    rawWarehouses: RawSaleorConfig["warehouses"],
+    metadataKeyFilter: MetadataKeyFilter
+  ): WarehouseInput[] {
     if (!rawWarehouses?.edges) {
       return [];
     }
@@ -579,6 +597,7 @@ export class ConfigurationService {
           warehouse.shippingZones?.edges
             .map((edge: { node: { name: string | null | undefined } }) => edge.node.name)
             .filter(Boolean) || undefined,
+        metadata: toMetadataInput(warehouse.metadata, metadataKeyFilter),
       }));
   }
 
@@ -602,7 +621,8 @@ export class ConfigurationService {
   }
 
   private mapShippingZones(
-    rawShippingZones: RawSaleorConfig["shippingZones"]
+    rawShippingZones: RawSaleorConfig["shippingZones"],
+    metadataKeyFilter: MetadataKeyFilter
   ): ShippingZoneInput[] {
     if (!rawShippingZones?.edges) {
       return [];
@@ -635,6 +655,7 @@ export class ConfigurationService {
                   name: string;
                   description?: string | null;
                   type: string;
+                  metadata: ReadonlyArray<{ key: string; value: string }>;
                   minimumDeliveryDays?: number | null;
                   maximumDeliveryDays?: number | null;
                   minimumOrderWeight?: { unit: string; value: number } | null;
@@ -683,9 +704,11 @@ export class ConfigurationService {
                           })
                         )
                       : undefined,
+                  metadata: toMetadataInput(method.metadata, metadataKeyFilter),
                 })
               )
             : undefined,
+        metadata: toMetadataInput(zone.metadata, metadataKeyFilter),
       }));
   }
 
@@ -725,7 +748,11 @@ export class ConfigurationService {
     });
   }
 
-  mapConfig(rawConfig: RawSaleorConfig, selectiveOptions?: ParsedSelectiveOptions): SaleorConfig {
+  mapConfig(
+    rawConfig: RawSaleorConfig,
+    selectiveOptions?: ParsedSelectiveOptions,
+    metadataKeyFilter: MetadataKeyFilter = {}
+  ): SaleorConfig {
     // Default to include all sections if no selective options provided
     const options = selectiveOptions ?? { includeSections: [], excludeSections: [] };
 
@@ -748,15 +775,15 @@ export class ConfigurationService {
     }
 
     if (shouldIncludeSection("categories", options)) {
-      config.categories = this.mapCategories(rawConfig.categories);
+      config.categories = this.mapCategories(rawConfig.categories, metadataKeyFilter);
     }
 
     if (shouldIncludeSection("warehouses", options)) {
-      config.warehouses = this.mapWarehouses(rawConfig.warehouses);
+      config.warehouses = this.mapWarehouses(rawConfig.warehouses, metadataKeyFilter);
     }
 
     if (shouldIncludeSection("shippingZones", options)) {
-      config.shippingZones = this.mapShippingZones(rawConfig.shippingZones);
+      config.shippingZones = this.mapShippingZones(rawConfig.shippingZones, metadataKeyFilter);
     }
 
     if (shouldIncludeSection("taxClasses", options)) {

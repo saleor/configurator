@@ -4,6 +4,7 @@ import { processInChunks } from "../../lib/utils/chunked-processor";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
+import type { MetadataService } from "../metadata/metadata-service";
 import { WarehouseOperationError, WarehouseValidationError } from "./errors";
 import type {
   Warehouse,
@@ -13,7 +14,10 @@ import type {
 } from "./repository";
 
 export class WarehouseService {
-  constructor(private repository: WarehouseOperations) {}
+  constructor(
+    private repository: WarehouseOperations,
+    private metadataService: MetadataService
+  ) {}
 
   private async getExistingWarehouse(slug: string): Promise<Warehouse | undefined> {
     return ServiceErrorWrapper.wrapServiceCall(
@@ -147,6 +151,8 @@ export class WarehouseService {
           warehouse = await this.repository.updateWarehouse(warehouse.id, updateInput);
         }
 
+        await this.metadataService.syncMetadata(warehouse.id, input.metadata);
+
         logger.debug("Successfully created warehouse", {
           id: warehouse.id,
           name: warehouse.name,
@@ -182,6 +188,7 @@ export class WarehouseService {
         });
 
         const warehouse = await this.repository.updateWarehouse(id, updateInput);
+        await this.metadataService.syncMetadata(warehouse.id, input.metadata, warehouse.metadata);
 
         logger.debug("Successfully updated warehouse", {
           id: warehouse.id,

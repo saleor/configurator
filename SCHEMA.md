@@ -143,6 +143,7 @@ Each item is of type: `object`
 - **clickAndCollectOption** (`string (enum)`): Warehouse.clickAndCollectOption
   - **Allowed values:** `DISABLED` | `LOCAL` | `ALL`
 - **shippingZones** (`array<string>`): Warehouse.shippingZones
+- **metadata** (`object`): Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.
 
 ## shippingZones
 
@@ -163,6 +164,7 @@ Each item is of type: `object`
 - **warehouses** (`array<string>`): ShippingZone.warehouses
 - **channels** (`array<string>`): ShippingZone.channels
 - **shippingMethods** (`array<object>`): ShippingZone.shippingMethods
+- **metadata** (`object`): Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.
 
 ## taxClasses
 
@@ -313,6 +315,7 @@ Each item is of type: `object`
 
 - **name** (`string`) *required*: Display name of the category
 - **slug** (`string`) *required*: URL-friendly identifier (used in URLs and API calls)
+- **metadata** (`object`): Public metadata managed by the configurator. Only listed keys are written; other keys on Saleor are left untouched.
 - **subcategories** (`array<object>`): Child categories nested under this category
 
 ## collections

@@ -2,6 +2,7 @@ import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
+import type { MetadataService } from "../metadata/metadata-service";
 import {
   CategoryCreationError,
   CategoryError,
@@ -17,7 +18,10 @@ import type {
 type CategoryInputWithSubcategories = CategoryInput & { subcategories: CategoryInput[] };
 
 export class CategoryService {
-  constructor(private repository: CategoryOperations) {}
+  constructor(
+    private repository: CategoryOperations,
+    private metadataService: MetadataService
+  ) {}
 
   private hasSubcategories(input: CategoryInput): input is CategoryInputWithSubcategories {
     return (
@@ -252,16 +256,22 @@ export class CategoryService {
   ): Promise<Category> {
     try {
       const existingCategory = await this.getExistingCategory(categoryInput);
-
+      let category: Category;
       if (!existingCategory) {
-        return this.createCategory(categoryInput, parentId);
+        category = await this.createCategory(categoryInput, parentId);
+      } else if (existingCategory.name !== categoryInput.name) {
+        category = await this.updateCategory(existingCategory, categoryInput);
+      } else {
+        category = existingCategory;
       }
 
-      if (existingCategory.name !== categoryInput.name) {
-        return this.updateCategory(existingCategory, categoryInput);
-      }
+      await this.metadataService.syncMetadata(
+        category.id,
+        categoryInput.metadata,
+        existingCategory?.metadata
+      );
 
-      return existingCategory;
+      return category;
     } catch (error) {
       logger.error("Failed to get or create category", {
         name: categoryInput.name,

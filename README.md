@@ -78,6 +78,25 @@ products:
 
 Sections you leave out of the file are not touched. `deploy` creates and updates entities but does not delete them; `diff` lists entities that exist only in the store.
 
+### Metadata
+
+Categories, warehouses, shipping zones and shipping methods accept public `metadata` as a key → value map:
+
+```yaml
+warehouses:
+  - slug: main
+    metadata:
+      region: eu-west
+```
+
+Only the keys listed in config are managed. `deploy` adds or overwrites them and leaves every other key on Saleor as it is, so integration settings stored in metadata are not touched. Removing a key from config stops managing it; it does not delete it from Saleor. Leaving out `metadata` entirely leaves the entity's metadata unmanaged.
+
+`introspect` brings in every public key, including keys written by apps and integrations. Once a key is in the file, `deploy` writes the file's value back, so leave integration-owned keys out of the file. Use `--metadata-include` and `--metadata-exclude` (comma-separated patterns, `*` as wildcard) to choose which keys land in the file:
+
+```bash
+npx @saleor/configurator introspect --metadata-exclude 'erp.*,stripe.*'
+```
+
 ## Recipes
 
 Recipes are starter configurations bundled with the CLI: `multi-region`, `digital-products`, `click-and-collect` and `custom-shipping`.

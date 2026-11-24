@@ -805,6 +805,57 @@ describe("ConfigurationService", () => {
     });
   });
 
+  describe("metadata mapping", () => {
+    const rawConfig = createBaseRawConfig({
+      categories: {
+        edges: [
+          {
+            node: {
+              id: "1",
+              name: "Shoes",
+              slug: "shoes",
+              level: 0,
+              parent: null,
+              metadata: [
+                { key: "seoGroup", value: "footwear" },
+                { key: "erp.categoryId", value: "C-12" },
+                { key: "configurator.externalUrl", value: "https://example.com" },
+              ],
+            },
+          },
+          {
+            node: { id: "2", name: "Bags", slug: "bags", level: 0, parent: null, metadata: [] },
+          },
+        ],
+      },
+    } as Partial<RawSaleorConfig>);
+
+    it("maps metadata to a key → value map without configurator-internal keys", () => {
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+
+      expect(service.mapConfig(rawConfig).categories).toEqual([
+        {
+          name: "Shoes",
+          slug: "shoes",
+          metadata: { seoGroup: "footwear", "erp.categoryId": "C-12" },
+        },
+        { name: "Bags", slug: "bags" },
+      ]);
+    });
+
+    it("applies the metadata key filter", () => {
+      const service = new ConfigurationService(new MockRepository(rawConfig), createMockStorage());
+
+      const result = service.mapConfig(rawConfig, undefined, { exclude: ["erp.*"] });
+
+      expect(result.categories?.[0]).toEqual({
+        name: "Shoes",
+        slug: "shoes",
+        metadata: { seoGroup: "footwear" },
+      });
+    });
+  });
+
   describe("mapCategories - nested category support", () => {
     it("should map flat categories correctly", () => {
       const rawConfig: RawSaleorConfig = {

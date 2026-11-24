@@ -38,7 +38,7 @@ When stdin or stdout is not a terminal (CI, pipes, scripts), prompts are skipped
 
 ## introspect
 
-Compares the store with the existing `config.yml`, shows the changes and asks before overwriting. `--dry-run` shows the changes without writing. A backup of the old file is kept unless you pass `--no-backup`. `--drift-check` exits with code 1 when the store and the file differ, without writing.
+Compares the store with the existing `config.yml`, shows the changes and asks before overwriting. `--dry-run` shows the changes without writing. A backup of the old file is kept unless you pass `--no-backup`. `--drift-check` exits with code 1 when the store and the file differ, without writing. `--metadata-include` and `--metadata-exclude` take comma-separated key patterns (`*` as wildcard) that choose which public metadata keys are written to the file, for example `--metadata-exclude='erp.*,stripe.*'`.
 
 ## deploy
 

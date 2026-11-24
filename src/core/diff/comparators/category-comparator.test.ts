@@ -196,4 +196,35 @@ describe("CategoryComparator", () => {
     expect(results[0].entityName).toBe("electronics");
     expect(results[1].entityName).toBe("electronics-2");
   });
+
+  it("compares metadata of categories and nested subcategories by listed key", () => {
+    const local = [
+      {
+        name: "Electronics",
+        slug: "electronics",
+        metadata: { seoGroup: "tech" },
+        subcategories: [{ name: "Phones", slug: "phones", metadata: { erpId: "P2" } }],
+      },
+    ];
+    const remote = [
+      {
+        name: "Electronics",
+        slug: "electronics",
+        metadata: { seoGroup: "tech", syncedAt: "2026-11-19" },
+        subcategories: [{ name: "Phones", slug: "phones", metadata: { erpId: "P1" } }],
+      },
+    ];
+
+    const results = comparator.compare(local, remote);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].changes).toEqual([
+      expect.objectContaining({
+        field: "metadata.erpId",
+        currentValue: "P1",
+        desiredValue: "P2",
+        description: expect.stringContaining('In "Phones"'),
+      }),
+    ]);
+  });
 });

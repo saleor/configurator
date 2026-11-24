@@ -47,6 +47,7 @@ describe("ShippingZoneComparator", () => {
 
   const mockShippingMethod: ShippingMethod = {
     id: "m1",
+    metadata: [],
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
@@ -68,6 +69,7 @@ describe("ShippingZoneComparator", () => {
 
   const mockRemoteZone: ShippingZone = {
     id: "1",
+    metadata: [],
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
@@ -76,6 +78,36 @@ describe("ShippingZoneComparator", () => {
     channels: [{ id: "c1", name: "Default Channel", slug: "default-channel" }],
     shippingMethods: [mockShippingMethod],
   };
+
+  describe("metadata", () => {
+    it("compares zone and shipping method metadata by listed key", () => {
+      const local = [
+        {
+          ...mockLocalZone,
+          metadata: { region: "eu" },
+          shippingMethods: [{ ...mockShippingMethodInput, metadata: { carrier: "dhl" } }],
+        },
+      ];
+      const remote = [
+        {
+          ...mockRemoteZone,
+          metadata: { region: "eu", "erp.apiUrl": "https://erp.dev" },
+          shippingMethods: [{ ...mockShippingMethod, metadata: { carrier: "ups" } }],
+        } as unknown as ShippingZone,
+      ];
+
+      const results = comparator.compare(local, remote);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].changes).toEqual([
+        expect.objectContaining({
+          field: "shippingMethods.Standard Shipping.metadata.carrier",
+          currentValue: "ups",
+          desiredValue: "dhl",
+        }),
+      ]);
+    });
+  });
 
   describe("compare", () => {
     it("should detect no changes when local and remote are identical", () => {

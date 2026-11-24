@@ -31,7 +31,11 @@ export class WarehouseComparator extends BaseEntityComparator<
 > {
   protected readonly entityType: EntityType = "Warehouses";
 
-  compare(local: readonly WarehouseInput[], remote: readonly Warehouse[]): readonly DiffResult[] {
+  compare(
+    local: readonly WarehouseInput[],
+    remote: readonly Warehouse[],
+    options?: ComparatorOptions
+  ): readonly DiffResult[] {
     // Validate and deduplicate local warehouses
     this.validateUniqueIdentifiers(local);
     const deduplicatedLocal = this.deduplicateEntities(local);
@@ -56,7 +60,8 @@ export class WarehouseComparator extends BaseEntityComparator<
         // Warehouse exists, check for updates
         const changes = this.compareEntityFields(
           localWarehouse as WarehouseInput,
-          remoteWarehouse as Warehouse
+          remoteWarehouse as Warehouse,
+          options
         );
         if (changes.length > 0) {
           results.push({
@@ -189,7 +194,7 @@ export class WarehouseComparator extends BaseEntityComparator<
   protected compareEntityFields(
     local: WarehouseInput,
     remote: Warehouse,
-    _options?: ComparatorOptions
+    options?: ComparatorOptions
   ): DiffChange[] {
     const changes: DiffChange[] = [];
 
@@ -239,6 +244,8 @@ export class WarehouseComparator extends BaseEntityComparator<
         )
       );
     }
+
+    changes.push(...this.compareMetadata(local, remote, options));
 
     return changes;
   }
