@@ -2,4 +2,4 @@
 "@saleor/configurator": patch
 ---
 
-Fix the GitHub Action (`action/`): pass only CLI flags the configurator accepts (camelCase, no `--ci`), preserve the CLI exit code, read change counts and `has-changes` from the real JSON envelope, make `fail-on-diff` work, stop interpolating diff output into the PR comment script (script injection), redact the token from logs, post the PR comment when a policy check fails, and add an optional `configurator-version` input (defaults to `latest`). `ci-mode` is now a documented no-op.
+Fix the GitHub Action (`action/`). It installs the CLI version released with the action's tag, passes the Saleor URL and token through the environment, runs each command once and reads its outputs from `--json-file`, keeps the CLI's exit code, makes `fail-on-diff` work, stops interpolating diff output into the PR comment script, and posts the PR comment when a policy check fails. `ci-mode` has no effect.
