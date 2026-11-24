@@ -3304,6 +3304,10 @@
                   "description": "Product weight (in the shop's default unit)",
                   "type": "number"
                 },
+                "trackInventory": {
+                  "description": "Whether orders decrease this variant's stock. New variants without it use the shop's trackInventoryByDefault",
+                  "type": "boolean"
+                },
                 "digital": {
                   "description": "Whether this is a digital product (no shipping required)",
                   "type": "boolean"

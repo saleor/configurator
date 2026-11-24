@@ -356,7 +356,7 @@ describe("ProductService", () => {
       expect(mockRepository.updateProductVariant).toHaveBeenCalledWith("existing-var-1", {
         name: "Updated Hardcover",
         sku: "BOOK-HC-001",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 1.5,
         attributes: [{ id: "attr-1", plainText: "hardcover-deluxe" }],
       });
@@ -540,7 +540,7 @@ describe("ProductService", () => {
         product: "prod-1",
         name: "Hardcover",
         sku: "BOOK-001-HC",
-        trackInventory: true,
+        trackInventory: undefined,
         weight: 1.2,
         attributes: [],
       });
@@ -1650,6 +1650,7 @@ describe("ProductService", () => {
                 name: "Updated Existing",
                 sku: "EXISTING-1",
                 weight: 1.5,
+                trackInventory: false,
                 channelListings: [{ channel: "default-channel", price: 10 }],
               },
               {
@@ -1665,7 +1666,7 @@ describe("ProductService", () => {
       expect(mockRepository.updateProductVariant).toHaveBeenCalledWith("variant-existing-1", {
         name: "Updated Existing",
         sku: "EXISTING-1",
-        trackInventory: true,
+        trackInventory: false,
         weight: 1.5,
         attributes: [],
       });
@@ -1677,6 +1678,7 @@ describe("ProductService", () => {
       const bulkCreateCall = vi.mocked(mockRepository.bulkCreateVariants).mock.calls[0][0];
       expect(bulkCreateCall.variants).toHaveLength(1);
       expect(bulkCreateCall.variants[0].sku).toBe("NEW-1");
+      expect(bulkCreateCall.variants[0].trackInventory).toBeUndefined();
     });
   });
 
