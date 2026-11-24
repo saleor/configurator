@@ -21,13 +21,14 @@ RESULT_FILE=$(mktemp)
 OUTPUT_FILE=$(mktemp)
 trap 'rm -f "$RESULT_FILE" "$OUTPUT_FILE"' EXIT
 
-# Build command arguments
+# Values are joined to their flag with "=", so a value starting with "-" is
+# never read as a separate option.
 ARGS=()
 
 # Required arguments
 ARGS+=("$COMMAND")
-ARGS+=("--config" "$CONFIG_PATH")
-ARGS+=("--json-file" "$RESULT_FILE")
+ARGS+=("--config=$CONFIG_PATH")
+ARGS+=("--json-file=$RESULT_FILE")
 
 # Optional arguments based on command type
 if [[ "$COMMAND" == "deploy" ]]; then
@@ -39,7 +40,7 @@ if [[ "$COMMAND" == "deploy" ]]; then
   fi
 
   if [[ -n "$REPORT_PATH" ]]; then
-    ARGS+=("--report-path" "$REPORT_PATH")
+    ARGS+=("--report-path=$REPORT_PATH")
   fi
 
   if [[ "$JSON_OUTPUT" == "true" ]]; then
