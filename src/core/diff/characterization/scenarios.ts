@@ -304,6 +304,26 @@ export const DIFF_SCENARIOS: readonly DiffScenario[] = [
     },
   },
   {
+    // An attribute defined inline in config.yml is read back from Saleor as a reference.
+    name: "page-type-inline-attribute",
+    config: {
+      pageTypes: [
+        {
+          name: "Blog post",
+          attributes: [{ name: "Author", inputType: "PLAIN_TEXT" }, { attribute: "Summary" }],
+        },
+        // No `attributes` key: deploy leaves the assigned attributes alone.
+        { name: "Landing page" },
+      ],
+    },
+    store: {
+      pageTypes: [
+        { name: "Blog post", attributes: [{ attribute: "Author" }] },
+        { name: "Landing page", attributes: [{ attribute: "Hero" }] },
+      ],
+    },
+  },
+  {
     name: "customer-types",
     config: {
       customerTypes: [
