@@ -425,9 +425,16 @@ describe("Deploy Command", () => {
           summary: {
             totalChanges: 1,
             creates: 0,
-            updates: 0,
-            deletes: 1,
-            results: [{ operation: "DELETE", entityType: "Categories", entityName: "old" }],
+            updates: 1,
+            deletes: 0,
+            results: [
+              {
+                operation: "UPDATE",
+                entityType: "Product Attributes",
+                entityName: "Color",
+                changes: [{ field: "values", currentValue: "Red", desiredValue: undefined }],
+              },
+            ],
           },
           output: "",
         });
@@ -446,6 +453,63 @@ describe("Deploy Command", () => {
       expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
       expect(output).toHaveBeenCalledOnce();
       expect(JSON.parse(output.mock.calls[0][0] as string).result.status).toBe("cancelled");
+    });
+
+    it("exits without asking when the only differences are entities left in Saleor", async () => {
+      const { confirmAction } = await import("../cli/command");
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValue(false);
+      const configurator = createMockConfigurator(mockDiffService);
+      configurator.diff.mockResolvedValue({
+        summary: {
+          totalChanges: 1,
+          creates: 0,
+          updates: 0,
+          deletes: 1,
+          results: [{ operation: "DELETE", entityType: "Categories", entityName: "old" }],
+        },
+        output: "",
+      });
+      mockCreateConfigurator.mockReturnValue(configurator);
+
+      await expect(deployHandler(createDefaultArgs({ json: false, text: true }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+      expect(confirmAction).not.toHaveBeenCalled();
+      expect(mockExecuteEnhancedDeployment).not.toHaveBeenCalled();
+    });
+
+    it("asks the regular confirmation when the only deletes are entities left in Saleor", async () => {
+      const { confirmAction } = await import("../cli/command");
+      vi.mocked(confirmAction).mockResolvedValueOnce(false);
+      const ciModeModule = await import("../lib/ci-mode");
+      vi.spyOn(ciModeModule, "isNonInteractiveEnvironment").mockReturnValue(false);
+      const configurator = createMockConfigurator(mockDiffService);
+      configurator.diff.mockResolvedValue({
+        summary: {
+          totalChanges: 2,
+          creates: 0,
+          updates: 1,
+          deletes: 1,
+          results: [
+            { operation: "UPDATE", entityType: "Categories", entityName: "kept" },
+            { operation: "DELETE", entityType: "Categories", entityName: "old" },
+          ],
+        },
+        output: "",
+      });
+      mockCreateConfigurator.mockReturnValue(configurator);
+      vi.spyOn(console, "log").mockImplementation(() => {});
+
+      await expect(deployHandler(createDefaultArgs({ json: true, text: false }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+      expect(confirmAction).toHaveBeenCalledWith(
+        "Deploy 1 change to your Saleor instance?",
+        expect.any(String),
+        true,
+        true
+      );
     });
   });
 

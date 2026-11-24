@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG } from "../constants";
+import { DIFF_ICONS, DIFF_MESSAGES, FORMAT_CONFIG, OPERATION_LABELS } from "../constants";
 import type { DiffChange, DiffResult, DiffSummary, EntityType } from "../types";
 import { BaseDiffFormatter } from "./base-formatter";
 
@@ -253,8 +253,6 @@ export class DetailedDiffFormatter extends BaseDiffFormatter {
         "Update"
       )}`
     );
-    lines.push(
-      `• ${chalk.red(summary.deletes.toString())} ${this.formatPlural(summary.deletes, "Deletion")}`
-    );
+    lines.push(`• ${chalk.red(summary.deletes.toString())} ${OPERATION_LABELS.DELETE}`);
   }
 }

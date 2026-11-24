@@ -101,3 +101,11 @@ function recalculateDiffSummary(results: readonly DiffResult[]): DiffSummary {
     results,
   };
 }
+
+/**
+ * Number of changes deploy applies. Entities only in Saleor (DELETE results) are reported
+ * but never removed, so they don't count.
+ */
+export function countAppliedChanges(summary: Pick<DiffSummary, "creates" | "updates">): number {
+  return summary.creates + summary.updates;
+}

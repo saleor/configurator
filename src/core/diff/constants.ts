@@ -38,7 +38,7 @@ export const DIFF_ICONS = {
 export const OPERATION_LABELS = {
   CREATE: "Create",
   UPDATE: "Update",
-  DELETE: "Delete (not yet supported)",
+  DELETE: "Only in Saleor",
 } as const;
 
 /**

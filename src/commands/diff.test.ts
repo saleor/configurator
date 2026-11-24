@@ -221,7 +221,7 @@ describe("diff command", () => {
 
     it("should handle single difference correctly", async () => {
       mockConfigurator.diff.mockResolvedValueOnce({
-        summary: { ...mockDiffSummary, totalChanges: 1 },
+        summary: { ...mockDiffSummary, totalChanges: 1, creates: 1, updates: 0, deletes: 0 },
         output: "Single change output",
       });
 
@@ -337,6 +337,28 @@ describe("diff command", () => {
   describe("integration scenarios", () => {
     const baseArgs = { ...defaultArgs };
 
+    it("says there is nothing to apply when only entities in Saleor differ", async () => {
+      mockConfigurator.diff.mockResolvedValueOnce({
+        summary: {
+          totalChanges: 2,
+          creates: 0,
+          updates: 0,
+          deletes: 2,
+          results: [
+            { operation: "DELETE", entityType: "Warehouses", entityName: "a" },
+            { operation: "DELETE", entityType: "Warehouses", entityName: "b" },
+          ],
+        },
+        output: "",
+      });
+
+      await expect(handleDiff(baseArgs)).rejects.toThrow("process.exit");
+
+      expect(mockConsole.status).toHaveBeenCalledWith(
+        "\n✅ Nothing for 'deploy' to apply; 2 only in Saleor, which deploy leaves in place"
+      );
+    });
+
     it("should handle large diff results", async () => {
       const results = Array(100)
         .fill(null)
@@ -361,7 +383,7 @@ describe("diff command", () => {
       await expect(handleDiff(baseArgs)).rejects.toThrow("process.exit");
 
       expect(mockConsole.status).toHaveBeenCalledWith(
-        "\n⚠️  Found 100 differences that would be applied by 'deploy'"
+        "\n⚠️  Found 67 differences that would be applied by 'deploy'; 33 only in Saleor, which deploy leaves in place"
       );
     });
 
@@ -459,7 +481,11 @@ describe("diff command", () => {
       );
 
       // Should show filtered count (2 Categories), not all 3
-      expect(mockConsole.status).toHaveBeenCalledWith(expect.stringContaining("2 differences"));
+      expect(mockConsole.status).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Found 1 difference that would be applied by 'deploy'; 1 only in Saleor"
+        )
+      );
     });
 
     it("should filter results by --entity", async () => {

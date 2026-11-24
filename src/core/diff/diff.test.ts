@@ -51,7 +51,7 @@ describe("DiffFormatter", () => {
       expect(output).toContain("Total Changes: 1");
       expect(output).toContain("• 1 Creation");
       expect(output).toContain("• 0 Updates");
-      expect(output).toContain("• 0 Deletions");
+      expect(output).toContain("• 0 Only in Saleor");
     });
 
     it("should format product type updates with attributes", () => {
@@ -89,7 +89,7 @@ describe("DiffFormatter", () => {
       expect(output).toContain("Total Changes: 1");
       expect(output).toContain("• 0 Creations");
       expect(output).toContain("• 1 Update");
-      expect(output).toContain("• 0 Deletions");
+      expect(output).toContain("• 0 Only in Saleor");
     });
 
     it("should handle no changes scenario", () => {
