@@ -264,10 +264,7 @@ describe("deploying a store slice to an empty Saleor", () => {
       expect(afterSecond.product.media[0].metadata).toContainEqual(mediaSource);
     });
 
-    // Known bug: channel settings left out of the config read as changes, and the product's
-    // channel listing reports `publishedAt` as changed, on every deploy. Deploying a third time
-    // keeps this to those two; the second deploy also carries the first-deploy bugs above.
-    it.fails("reports no changes when deployed a third time", () => {
+    it("reports no changes when deployed a third time", () => {
       const third = saleorCli(inject("saleor"), dir).deploy(seedPath);
       expect(third.exitCode).toBe(0);
       expect(third.result.status).toBe("no-changes");
