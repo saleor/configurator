@@ -1,50 +1,23 @@
-import type { Collection } from "../../../modules/collection/repository";
 import type { CollectionInput } from "../../../modules/config/schema/schema";
 import { entityComparator } from "./entity-comparator";
 
-type CollectionEntity = CollectionInput | Collection;
-
-function productSlugs(entity: CollectionEntity): string[] {
-  if ("products" in entity && Array.isArray(entity.products)) {
-    return [...entity.products].sort();
-  }
-  const collection = entity as Collection;
-  if (collection.products?.edges) {
-    return collection.products.edges
-      .map((edge) => edge.node.slug)
-      .filter((slug): slug is string => !!slug)
-      .sort();
-  }
-  return [];
+function productSlugs(collection: CollectionInput): string[] {
+  return [...(collection.products ?? [])].sort();
 }
 
-function channelListings(entity: CollectionEntity): Array<{
-  channelSlug: string;
-  isPublished: boolean;
-}> {
-  if ("channelListings" in entity && Array.isArray(entity.channelListings)) {
-    const input = entity as CollectionInput;
-    return (input.channelListings ?? [])
-      .map((listing) => ({
-        channelSlug: listing.channelSlug,
-        isPublished: listing.isPublished ?? false,
-      }))
-      .sort((a, b) => a.channelSlug.localeCompare(b.channelSlug));
-  }
-  const collection = entity as Collection;
-  if (collection.channelListings) {
-    return collection.channelListings
-      .map((listing) => ({
-        channelSlug: listing.channel.slug,
-        isPublished: listing.isPublished,
-      }))
-      .sort((a, b) => a.channelSlug.localeCompare(b.channelSlug));
-  }
-  return [];
+function channelListings(
+  collection: CollectionInput
+): Array<{ channelSlug: string; isPublished: boolean }> {
+  return (collection.channelListings ?? [])
+    .map((listing) => ({
+      channelSlug: listing.channelSlug,
+      isPublished: listing.isPublished ?? false,
+    }))
+    .sort((a, b) => a.channelSlug.localeCompare(b.channelSlug));
 }
 
 /** Compares collections by slug. */
-export const collectionComparator = entityComparator<CollectionEntity>({
+export const collectionComparator = entityComparator<CollectionInput>({
   entityType: "Collections",
 
   identify(collection) {
@@ -57,7 +30,7 @@ export const collectionComparator = entityComparator<CollectionEntity>({
   compareFields(changes, desired, current) {
     changes.value("name", desired.name, current.name);
 
-    const description = (entity: CollectionEntity) =>
+    const description = (entity: CollectionInput) =>
       typeof entity.description === "string" ? entity.description : undefined;
     changes.value("description", description(desired), description(current));
 

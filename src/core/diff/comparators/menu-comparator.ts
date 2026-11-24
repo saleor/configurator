@@ -1,41 +1,8 @@
 import type { MenuInput } from "../../../modules/config/schema/schema";
-import type { Menu, MenuItem } from "../../../modules/menu/repository";
 import type { ChangeSet } from "./change-set";
 import { entityComparator } from "./entity-comparator";
 
-interface MenuItemInput {
-  name: string;
-  url?: string;
-  category?: string;
-  collection?: string;
-  page?: string;
-  children?: MenuItemInput[];
-}
-
-type MenuEntity = MenuInput | Menu;
-
-/** Reads a reference that is a slug in the config and `{ slug }` in Saleor's shape. */
-function referenceSlug(item: MenuItemInput | MenuItem, key: "category" | "collection" | "page") {
-  const value = (item as Record<string, unknown>)[key];
-  if (value && typeof value === "object" && "slug" in value) {
-    return (value as { slug: string }).slug;
-  }
-  return typeof value === "string" ? value : undefined;
-}
-
-function normalizeMenuItems(items: MenuItemInput[] | MenuItem[]): MenuItemInput[] {
-  return items.map((item: MenuItemInput | MenuItem) => ({
-    name: item.name,
-    url: item.url ?? undefined,
-    category: referenceSlug(item, "category"),
-    collection: referenceSlug(item, "collection"),
-    page: referenceSlug(item, "page"),
-    children:
-      "children" in item && item.children
-        ? normalizeMenuItems(item.children as MenuItemInput[])
-        : undefined,
-  }));
-}
+type MenuItemInput = NonNullable<MenuInput["items"]>[number];
 
 /** Compares a list of menu items matched by name; `changes` is scoped to the list. */
 function compareMenuItems(
@@ -99,7 +66,7 @@ function compareMenuItem(changes: ChangeSet, desired: MenuItemInput, current: Me
 }
 
 /** Compares menus by slug, including their item trees. */
-export const menuComparator = entityComparator<MenuEntity>({
+export const menuComparator = entityComparator<MenuInput>({
   entityType: "Menus",
 
   identify(menu) {
@@ -111,10 +78,6 @@ export const menuComparator = entityComparator<MenuEntity>({
 
   compareFields(changes, desired, current) {
     changes.value("name", desired.name, current.name);
-    compareMenuItems(
-      changes.at("items"),
-      normalizeMenuItems(desired.items ?? []),
-      normalizeMenuItems(current.items ? current.items : [])
-    );
+    compareMenuItems(changes.at("items"), desired.items ?? [], current.items ?? []);
   },
 });

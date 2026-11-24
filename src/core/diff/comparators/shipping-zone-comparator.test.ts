@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { ShippingMethodInput, ShippingZoneInput } from "../../../modules/config/schema/schema";
-import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zone/repository";
 import { shippingZoneComparator } from "./shipping-zone-comparator";
 
 describe("ShippingZoneComparator", () => {
@@ -32,37 +31,30 @@ describe("ShippingZoneComparator", () => {
     shippingMethods: [mockShippingMethodInput],
   };
 
-  const mockShippingMethod: ShippingMethod = {
-    id: "m1",
-    metadata: [],
+  // Saleor's shipping zones reach comparators as introspected config.
+  const mockShippingMethod: ShippingMethodInput = {
     name: "Standard Shipping",
     description: "Standard delivery",
     type: "PRICE",
     minimumDeliveryDays: 3,
     maximumDeliveryDays: 5,
-    maximumOrderWeight: null,
-    minimumOrderWeight: null,
     channelListings: [
       {
-        channel: { slug: "default-channel" },
-        price: { amount: 10, currency: "USD" },
-        minimumOrderPrice: null,
-        maximumOrderPrice: { amount: 1000, currency: "USD" },
+        channel: "default-channel",
+        price: 10,
+        currency: "USD",
+        maximumOrderPrice: 1000,
       },
     ],
-    postalCodeRules: [],
-    excludedProducts: { edges: [] },
   };
 
-  const mockRemoteZone: ShippingZone = {
-    id: "1",
-    metadata: [],
+  const mockRemoteZone: ShippingZoneInput = {
     name: "US Zone",
     description: "United States shipping zone",
     default: false,
-    countries: [{ code: "US", country: "United States" }],
-    warehouses: [{ id: "w1", name: "Main Warehouse", slug: "main-warehouse" }],
-    channels: [{ id: "c1", name: "Default Channel", slug: "default-channel" }],
+    countries: ["US"],
+    warehouses: ["main-warehouse"],
+    channels: ["default-channel"],
     shippingMethods: [mockShippingMethod],
   };
 
@@ -80,7 +72,7 @@ describe("ShippingZoneComparator", () => {
           ...mockRemoteZone,
           metadata: { region: "eu", "erp.apiUrl": "https://erp.dev" },
           shippingMethods: [{ ...mockShippingMethod, metadata: { carrier: "ups" } }],
-        } as unknown as ShippingZone,
+        },
       ];
 
       const results = comparator.compare(local, remote);
@@ -103,14 +95,12 @@ describe("ShippingZoneComparator", () => {
 
       const results = comparator.compare(local, remote);
 
-      // The comparator now correctly handles structural differences in channel listings
-      // and recognizes that local flat values and remote nested objects are equivalent
       expect(results).toHaveLength(0);
     });
 
     it("should detect shipping zone to create", () => {
       const local = [mockLocalZone];
-      const remote: ShippingZone[] = [];
+      const remote: ShippingZoneInput[] = [];
 
       const results = comparator.compare(local, remote);
 
