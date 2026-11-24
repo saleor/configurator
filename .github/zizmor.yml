@@ -1,0 +1,12 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # The examples reference this repository's action by release tag,
+        # which is known before its commit SHA.
+        "saleor/configurator/*": ref-pin
+        "*": hash-pin
+  adhoc-packages:
+    ignore:
+      # Installs the exact CLI version from the tagged package.json.
+      - action.yml
