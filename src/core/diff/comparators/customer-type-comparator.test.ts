@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CustomerTypeInput } from "../../../modules/config/schema/schema";
-import { CustomerTypeComparator } from "./customer-type-comparator";
+import { customerTypeComparator } from "./customer-type-comparator";
 
 const retail: CustomerTypeInput = {
   name: "Retail",
@@ -10,7 +10,7 @@ const retail: CustomerTypeInput = {
 };
 
 describe("CustomerTypeComparator", () => {
-  const comparator = new CustomerTypeComparator();
+  const comparator = customerTypeComparator;
 
   it("reports a create when the customer type is missing remotely", () => {
     const results = comparator.compare([retail], []);
