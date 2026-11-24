@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import { channelComparator } from "./channel-comparator";
 import { ProductComparator } from "./product-comparator";
-import { ShopComparator } from "./shop-comparator";
+import { shopComparator } from "./shop-comparator";
 
 const deployDirection = { skipUnmanagedFields: true } as const;
 
@@ -88,7 +88,7 @@ describe("fields the config leaves out (deploy direction)", () => {
   });
 
   it("ignores shop settings the config omits", () => {
-    const results = new ShopComparator().compare(
+    const results = shopComparator.compare(
       { defaultMailSenderName: "Store" },
       {
         defaultMailSenderName: "Store",

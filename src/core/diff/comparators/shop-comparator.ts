@@ -1,7 +1,7 @@
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
-import type { DiffChange, DiffResult } from "../types";
-import type { ComparatorOptions, EntityComparator } from "./base-comparator";
-import { findChangedFields } from "./field-comparison";
+import type { DiffResult } from "../types";
+import { ChangeSet } from "./change-set";
+import type { EntityComparator } from "./entity-comparator";
 
 /**
  * Shop settings that can be compared
@@ -37,88 +37,28 @@ const SHOP_SETTINGS_FIELDS: ReadonlyArray<keyof ShopSettings> = [
   "allowLoginWithoutConfirmation",
 ] as const;
 
-/**
- * Comparator for shop settings
- */
-export class ShopComparator
-  implements EntityComparator<SaleorConfig["shop"] | undefined, SaleorConfig["shop"] | undefined>
-{
-  /**
-   * Compares local and remote shop settings
-   */
-  compare(
-    local: SaleorConfig["shop"] | undefined,
-    remote: SaleorConfig["shop"] | undefined,
-    options?: ComparatorOptions
-  ): readonly DiffResult[] {
-    // Both undefined - no changes
-    if (!local && !remote) {
-      return [];
+type ShopEntity = NonNullable<SaleorConfig["shop"]>;
+
+const ENTITY = { entityType: "Shop Settings", entityName: "Shop Settings" } as const;
+
+/** Compares the store's single shop settings object. */
+export const shopComparator: EntityComparator = {
+  compare(desiredSection, currentSection, options = {}): readonly DiffResult[] {
+    const desired = (desiredSection ?? undefined) as ShopEntity | undefined;
+    const current = (currentSection ?? undefined) as ShopEntity | undefined;
+
+    if (!desired && !current) return [];
+    if (!desired) return [{ operation: "DELETE", ...ENTITY, current }];
+    if (!current) return [{ operation: "CREATE", ...ENTITY, desired }];
+
+    const changes = ChangeSet.create(options);
+    for (const field of SHOP_SETTINGS_FIELDS) {
+      changes.managedValue(field, desired[field], current[field], {
+        description: `${field} changed from "${current[field]}" to "${desired[field]}"`,
+      });
     }
 
-    // Only remote exists - mark for deletion
-    if (!local && remote) {
-      return [
-        {
-          operation: "DELETE",
-          entityType: "Shop Settings",
-          entityName: "Shop Settings",
-          current: remote,
-        },
-      ];
-    }
-
-    // Only local exists - mark for creation
-    if (local && !remote) {
-      return [
-        {
-          operation: "CREATE",
-          entityType: "Shop Settings",
-          entityName: "Shop Settings",
-          desired: local,
-        },
-      ];
-    }
-
-    // Both exist - compare fields
-    if (!local || !remote) {
-      return [];
-    }
-
-    const changes = this.compareShopFields(local, remote, options);
-
-    if (changes.length === 0) {
-      return [];
-    }
-
-    return [
-      {
-        operation: "UPDATE",
-        entityType: "Shop Settings",
-        entityName: "Shop Settings",
-        current: remote,
-        desired: local,
-        changes,
-      },
-    ];
-  }
-
-  /**
-   * Compares individual shop settings fields
-   * @param local Local shop settings
-   * @param remote Remote shop settings
-   * @returns Array of field changes
-   */
-  private compareShopFields(
-    local: NonNullable<SaleorConfig["shop"]>,
-    remote: NonNullable<SaleorConfig["shop"]>,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    return findChangedFields(local, remote, SHOP_SETTINGS_FIELDS, options).map((field) => ({
-      field,
-      currentValue: remote[field],
-      desiredValue: local[field],
-      description: `${field} changed from "${remote[field]}" to "${local[field]}"`,
-    }));
-  }
-}
+    if (changes.changes().length === 0) return [];
+    return [{ operation: "UPDATE", ...ENTITY, current, desired, changes: changes.changes() }];
+  },
+};

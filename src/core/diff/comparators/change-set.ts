@@ -6,6 +6,13 @@ import { type FieldComparisonOptions, isUnmanagedField } from "./field-compariso
 export type ComparatorOptions = Pick<DiffOptions, "skipMedia" | "compareAllMetadataKeys"> &
   FieldComparisonOptions;
 
+interface ValueOptions {
+  readonly equals?: (a: unknown, b: unknown) => boolean;
+  /** Legacy `field` string; defaults to the path joined with dots. */
+  readonly field?: string;
+  readonly description?: string;
+}
+
 interface RecordedChange {
   /** Legacy `field` string; defaults to the path joined with dots. */
   readonly field?: string;
@@ -52,15 +59,15 @@ export class ChangeSet {
   }
 
   /** Records a change when `desired` and `current` differ. */
-  value(
-    segment: string,
-    desired: unknown,
-    current: unknown,
-    options: { readonly equals?: (a: unknown, b: unknown) => boolean; field?: string } = {}
-  ): void {
+  value(segment: string, desired: unknown, current: unknown, options: ValueOptions = {}): void {
     const equals = options.equals ?? ((a: unknown, b: unknown) => a === b);
     if (!equals(desired, current)) {
-      this.record([segment], { field: options.field, current, desired });
+      this.record([segment], {
+        field: options.field,
+        current,
+        desired,
+        description: options.description,
+      });
     }
   }
 
@@ -68,9 +75,14 @@ export class ChangeSet {
    * Records a change when the values differ, unless the config leaves the field out and the
    * comparison treats absent fields as unmanaged (deploy direction).
    */
-  managedValue(segment: string, desired: unknown, current: unknown, field?: string): void {
+  managedValue(
+    segment: string,
+    desired: unknown,
+    current: unknown,
+    options: ValueOptions = {}
+  ): void {
     if (isUnmanagedField(desired, this.options)) return;
-    this.value(segment, desired, current, { field });
+    this.value(segment, desired, current, options);
   }
 
   /** Records metadata keys that differ; see `diffMetadata` for which keys are compared. */

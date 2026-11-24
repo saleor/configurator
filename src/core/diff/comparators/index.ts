@@ -11,6 +11,6 @@ export { PageTypeComparator } from "./page-type-comparator";
 export { ProductComparator } from "./product-comparator";
 export { ProductTypeComparator } from "./product-type-comparator";
 export { ShippingZoneComparator } from "./shipping-zone-comparator";
-export { ShopComparator } from "./shop-comparator";
+export { shopComparator } from "./shop-comparator";
 export { taxClassComparator } from "./tax-class-comparator";
 export { WarehouseComparator } from "./warehouse-comparator";

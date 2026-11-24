@@ -20,7 +20,7 @@ import {
   ProductComparator,
   ProductTypeComparator,
   ShippingZoneComparator,
-  ShopComparator,
+  shopComparator,
   taxClassComparator,
   WarehouseComparator,
 } from "./comparators";
@@ -321,7 +321,7 @@ export class DiffService {
    */
   private createComparators(): ReadonlyMap<string, EntityComparator> {
     return new Map([
-      ["shop", new ShopComparator() as EntityComparator],
+      ["shop", shopComparator],
       ["channels", channelComparator],
       ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
       ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
