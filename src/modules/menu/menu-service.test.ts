@@ -527,6 +527,44 @@ describe("MenuService", () => {
       );
     });
 
+    it("fails the menu before changing anything when a category is missing", async () => {
+      const mockOperations = createMockOperations();
+      mockOperations.createMenu.mockResolvedValue(mockMenu);
+      const mockCategoryService = {
+        getCategoryBySlug: vi.fn().mockResolvedValue(null),
+      } as unknown as CategoryService;
+      const service = new MenuService(mockOperations, mockCategoryService);
+
+      await expect(
+        service.createMenu({
+          name: "navbar",
+          slug: "navbar",
+          items: [{ name: "Photobook", category: "photobooks" }],
+        })
+      ).rejects.toThrow('category "photobooks" (item "Photobook")');
+      expect(mockOperations.createMenu).not.toHaveBeenCalled();
+      expect(mockOperations.createMenuItem).not.toHaveBeenCalled();
+    });
+
+    it("keeps the existing items when an updated menu links to a missing page", async () => {
+      const mockOperations = createMockOperations();
+      mockOperations.updateMenu.mockResolvedValue(mockMenu);
+      const mockModelService = {
+        getModelBySlug: vi.fn().mockResolvedValue(null),
+      } as unknown as ModelService;
+      const service = new MenuService(mockOperations, undefined, undefined, mockModelService);
+
+      await expect(
+        service.updateMenu("1", {
+          name: "navbar",
+          slug: "navbar",
+          items: [{ name: "About", page: "about-us" }],
+        })
+      ).rejects.toThrow('page "about-us" (item "About")');
+      expect(mockOperations.updateMenu).not.toHaveBeenCalled();
+      expect(mockOperations.deleteMenuItem).not.toHaveBeenCalled();
+    });
+
     it("should handle missing category services gracefully", async () => {
       const mockOperations = createMockOperations();
       mockOperations.createMenu.mockResolvedValue(mockMenu);
