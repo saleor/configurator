@@ -6,4 +6,4 @@
 
 Every change now reads the same in `diff`, the deploy preview, `introspect` and PR comments: the path to the changed value, then what happens there, e.g. `variants.TEE-S.weight: 1 → 2` or `countries: added SE`. Lists such as shipping methods, countries and channel listings are compared item by item. The `introspect` preview now shows values in the right order (file → Saleor); it used to show them reversed.
 
-In JSON and library output, each change has a new `path` (one segment per key) and `kind` (`changed`, `added` or `removed`), and `field` is always the path joined with dots. Some `field` values change as a result, e.g. `items/Home.url` becomes `items.Home.url` and `countryRates` becomes `countryRates.FI`.
+In JSON and library output, each change has a new `path` (one segment per key) and `kind` (`changed`, `added` or `removed`). Match on `path`: `field` is now the path joined with dots and, like `description`, is display text, so some values read differently, e.g. `items/Home.url` becomes `items.Home.url` and `countryRates` becomes `countryRates.FI`.
