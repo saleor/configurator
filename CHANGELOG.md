@@ -1,5 +1,18 @@
 # saleor-configurator
 
+## 3.23.5
+
+### Patch Changes
+
+- 8efd962: Media on newly created products now keep their configured `externalUrl`. On a product's first deploy the source URL wasn't stored, so `introspect` wrote Saleor's thumbnail URL instead and the next `diff` reported the media as changed.
+- 22a79b2: The interactive `deploy` preview no longer says entities missing from your config will be deleted. Deploy never removes them: they're now listed as "Only in Saleor", left out of the change count, and no longer trigger the "cannot be undone" confirmation or show as deleted in the summary. JSON output and `--fail-on-delete` are unchanged.
+- a7758fe: Log lines printed while a spinner is running, such as warnings during `introspect`, now appear on their own line above the spinner instead of being written into it.
+- 14515ee: Fix a broken sentence in the `start` wizard's first-run message.
+- a170fd8: `diff` and `deploy` no longer report changes for fields your config leaves out. A channel without `settings` or `taxConfiguration`, shop settings you don't list, and product or variant channel listings without dates, weight or cost price showed as updates on every deploy, and deploy never sent those fields. A field you omit is now unmanaged, as a whole omitted section already was.
+- 58f9d1c: `deploy` now applies changes to channels configured without `settings`, such as a new name, default country or active state. Previously these channels were left unchanged while `deploy` reported success.
+- 7f15436: `deploy` now renames existing categories. It reported the rename and success, but Saleor kept the old name.
+- 2a45c56: Variants have a `trackInventory` field, and `deploy` no longer turns inventory tracking on for every variant it creates or updates. `introspect` writes the store's value. A variant without the field keeps its current setting, and a new one uses the shop's `trackInventoryByDefault`.
+
 ## 3.23.4
 
 ### Patch Changes
