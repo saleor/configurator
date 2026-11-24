@@ -1,7 +1,7 @@
 import type { ShippingMethodInput, ShippingZoneInput } from "../../../modules/config/schema/schema";
 import type { ShippingMethod, ShippingZone } from "../../../modules/shipping-zone/repository";
-import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
+import type { ChangeSet } from "./change-set";
+import { entityComparator } from "./entity-comparator";
 
 // Type definitions for channel listings
 interface NormalizedChannelListing {
@@ -31,385 +31,209 @@ type RemoteChannelListing = {
 
 type ChannelListing = InputChannelListing | RemoteChannelListing;
 
-export class ShippingZoneComparator extends BaseEntityComparator<
-  readonly ShippingZoneInput[],
-  readonly ShippingZone[],
-  ShippingZoneInput | ShippingZone
-> {
-  protected readonly entityType: EntityType = "Shipping Zones";
+type ShippingZoneEntity = ShippingZoneInput | ShippingZone;
 
-  /**
-   * Creates a readable summary of shipping methods for display
-   */
-  private serializeShippingMethods(
-    methods: ShippingMethodInput[] | ShippingMethod[] | undefined
-  ): string {
-    if (!methods || methods.length === 0) {
-      return "[]";
-    }
-
-    return methods
-      .map((method) => {
-        const name = method.name || "Unnamed";
-        const type = method.type || "Unknown";
-        return `${name} (${type})`;
-      })
-      .join(", ");
+/** A readable summary of shipping methods for display. */
+function serializeShippingMethods(
+  methods: readonly (ShippingMethodInput | ShippingMethod)[] | null | undefined
+): string {
+  if (!methods || methods.length === 0) {
+    return "[]";
   }
+  return methods
+    .map((method) => `${method.name || "Unnamed"} (${method.type || "Unknown"})`)
+    .join(", ");
+}
 
-  /**
-   * Creates a field change specifically for shipping methods with proper serialization
-   */
-  private createShippingMethodsFieldChange(
-    remoteMethods: ShippingMethod[] | undefined,
-    localMethods: ShippingMethodInput[] | undefined,
-    description: string
-  ): DiffChange {
-    return {
-      field: "shippingMethods",
-      currentValue: this.serializeShippingMethods(remoteMethods),
-      desiredValue: this.serializeShippingMethods(localMethods),
-      description,
-    };
+function normalizeCountries(countries: ShippingZoneEntity["countries"]): string[] {
+  if (!countries || !Array.isArray(countries)) return [];
+  // Saleor's shape lists `{ code }` objects; the config lists codes.
+  if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
+    return (countries as { code: string }[]).map((c) => c.code).sort();
   }
+  return [...(countries as string[])].sort();
+}
 
-  compare(
-    local: readonly ShippingZoneInput[],
-    remote: readonly ShippingZone[],
-    options?: ComparatorOptions
-  ): readonly DiffResult[] {
-    // Validate and deduplicate local shipping zones
-    this.validateUniqueIdentifiers(local);
-    const deduplicatedLocal = this.deduplicateEntities(local);
-
-    const results: DiffResult[] = [];
-    const localMap = this.createEntityMap(deduplicatedLocal);
-    const remoteMap = this.createEntityMap(remote);
-
-    // Check for shipping zones to create or update
-    for (const localZone of deduplicatedLocal) {
-      const remoteZone = remoteMap.get(this.getEntityName(localZone));
-
-      if (!remoteZone) {
-        // Shipping zone doesn't exist in remote, create it
-        results.push(this.createCreateResult(localZone as ShippingZoneInput));
-      } else {
-        // Shipping zone exists, check for updates
-        const changes = this.compareEntityFields(
-          localZone as ShippingZoneInput,
-          remoteZone as ShippingZone,
-          options
-        );
-        if (changes.length > 0) {
-          results.push(
-            this.createUpdateResult(
-              localZone as ShippingZoneInput,
-              remoteZone as ShippingZone,
-              changes
-            )
-          );
+/** Slugs from a list that is slugs in the config and `{ slug }` objects in Saleor's shape. */
+function slugList(list: unknown): string[] {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  if (typeof list[0] === "object" && list[0] !== null && "slug" in list[0]) {
+    return list
+      .map((item) => {
+        if (item && typeof item === "object" && "slug" in item) {
+          const slug = (item as { slug: unknown }).slug;
+          return typeof slug === "string" ? slug : null;
         }
-      }
-    }
+        return null;
+      })
+      .filter((slug): slug is string => Boolean(slug))
+      .sort();
+  }
+  return [...(list as string[])].sort();
+}
 
-    // Check for shipping zones to delete (exists in remote but not in local)
-    for (const remoteZone of remote) {
-      if (!localMap.has(this.getEntityName(remoteZone))) {
-        results.push(this.createDeleteResult(remoteZone as ShippingZone));
-      }
-    }
+function normalizeShippingMethod(
+  method: ShippingMethodInput | ShippingMethod
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {
+    name: method.name,
+    description: method.description || "",
+    type: method.type,
+    minimumDeliveryDays: method.minimumDeliveryDays || null,
+    maximumDeliveryDays: method.maximumDeliveryDays || null,
+  };
 
-    return results;
+  // Handle weight fields
+  if ("minimumOrderWeight" in method && method.minimumOrderWeight) {
+    normalized.minimumOrderWeight = {
+      unit: method.minimumOrderWeight.unit,
+      value: method.minimumOrderWeight.value,
+    };
+  } else if ("minimumOrderWeight" in method && (method as ShippingMethod).minimumOrderWeight) {
+    const weight = (method as ShippingMethod).minimumOrderWeight;
+    normalized.minimumOrderWeight = weight
+      ? {
+          unit: weight.unit,
+          value: weight.value,
+        }
+      : null;
   }
 
-  protected getEntityName(entity: ShippingZoneInput | ShippingZone): string {
-    if (!entity.name) {
+  if ("maximumOrderWeight" in method && method.maximumOrderWeight) {
+    normalized.maximumOrderWeight = {
+      unit: method.maximumOrderWeight.unit,
+      value: method.maximumOrderWeight.value,
+    };
+  } else if ("maximumOrderWeight" in method && (method as ShippingMethod).maximumOrderWeight) {
+    const weight = (method as ShippingMethod).maximumOrderWeight;
+    normalized.maximumOrderWeight = weight
+      ? {
+          unit: weight.unit,
+          value: weight.value,
+        }
+      : null;
+  }
+
+  // Handle channel listings
+  if ("channelListings" in method && Array.isArray(method.channelListings)) {
+    // Handle both input and remote channel listings by checking the structure
+    normalized.channelListings = method.channelListings
+      .map((listing: ChannelListing): NormalizedChannelListing => {
+        // Type guard to check if this is a remote listing
+        const isRemoteListing = (l: ChannelListing): l is RemoteChannelListing => {
+          return typeof l.channel === "object" && l.channel !== null && "slug" in l.channel;
+        };
+
+        if (isRemoteListing(listing)) {
+          // Handle remote listing structure
+          return {
+            channel: listing.channel.slug || "",
+            price: listing.price?.amount || 0,
+            currency: listing.price?.currency || "USD",
+            minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
+            maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
+          };
+        } else {
+          // Handle input listing structure (already typed correctly)
+          const inputListing = listing as InputChannelListing;
+          return {
+            channel: inputListing.channel || "",
+            price: inputListing.price || 0,
+            currency: inputListing.currency || "USD",
+            minimumOrderPrice: inputListing.minimumOrderPrice || null,
+            maximumOrderPrice: inputListing.maximumOrderPrice || null,
+          };
+        }
+      })
+      .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) =>
+        a.channel.localeCompare(b.channel)
+      );
+  }
+
+  return normalized;
+}
+
+function compareShippingMethods(
+  changes: ChangeSet,
+  desiredMethods: ShippingMethodInput[] | undefined,
+  currentMethods: ShippingMethod[] | undefined
+): void {
+  const desiredNormalized = (desiredMethods || []).map((m) => normalizeShippingMethod(m));
+  const currentNormalized = (currentMethods || []).map((m) => normalizeShippingMethod(m));
+  const desiredByName = new Map(desiredNormalized.map((m) => [m.name as string, m]));
+  const currentByName = new Map(currentNormalized.map((m) => [m.name as string, m]));
+
+  const toAdd = desiredNormalized.filter((m) => !currentByName.has(m.name as string));
+  const toRemove = currentNormalized.filter((m) => !desiredByName.has(m.name as string));
+  const toUpdate: string[] = [];
+  for (const [name, method] of desiredByName) {
+    const currentMethod = currentByName.get(name);
+    if (currentMethod && JSON.stringify(method) !== JSON.stringify(currentMethod)) {
+      toUpdate.push(name);
+    }
+  }
+
+  if (toAdd.length === 0 && toRemove.length === 0 && toUpdate.length === 0) return;
+
+  const description = [];
+  if (toAdd.length > 0) description.push(`Add: ${toAdd.map((m) => m.name).join(", ")}`);
+  if (toRemove.length > 0) description.push(`Remove: ${toRemove.map((m) => m.name).join(", ")}`);
+  if (toUpdate.length > 0) description.push(`Update: ${toUpdate.join(", ")}`);
+
+  changes.record(["shippingMethods"], {
+    current: serializeShippingMethods(currentMethods),
+    desired: serializeShippingMethods(desiredMethods),
+    description: description.join("; "),
+  });
+}
+
+/** Compares shipping zones by name, including their shipping methods. */
+export const shippingZoneComparator = entityComparator<ShippingZoneEntity>({
+  entityType: "Shipping Zones",
+
+  identify(zone) {
+    if (!zone.name) {
       throw new Error("Shipping zone must have a valid name");
     }
-    return entity.name;
-  }
+    return zone.name;
+  },
 
-  private normalizeCountries(
-    countries: ShippingZoneInput["countries"] | ShippingZone["countries"]
-  ): string[] {
-    if (!countries) return [];
+  compareFields(changes, desiredEntity, currentEntity) {
+    const desired = desiredEntity as ShippingZoneInput;
+    const current = currentEntity as ShippingZone;
 
-    if (Array.isArray(countries)) {
-      // Check if it's an array of objects with code property (remote)
-      if (countries.length > 0 && typeof countries[0] === "object" && "code" in countries[0]) {
-        return (countries as { code: string }[]).map((c) => c.code).sort();
-      }
-      // Otherwise it's already an array of country codes (local)
-      return (countries as string[]).sort();
-    }
+    changes.value("description", desired.description, current.description);
+    changes.value("default", desired.default ?? false, current.default);
 
-    return [];
-  }
-
-  private getWarehouseSlugs(entity: ShippingZoneInput | ShippingZone): string[] {
-    if (
-      "warehouses" in entity &&
-      Array.isArray(entity.warehouses) &&
-      entity.warehouses.length > 0
-    ) {
-      // Check if it's an array of objects with slug property (remote)
-      if (typeof entity.warehouses[0] === "object" && "slug" in entity.warehouses[0]) {
-        return entity.warehouses
-          .map((warehouse) => {
-            // Type guard for safety
-            if (warehouse && typeof warehouse === "object" && "slug" in warehouse) {
-              const slugValue = (warehouse as { slug: unknown }).slug;
-              return typeof slugValue === "string" ? slugValue : null;
-            }
-            return null;
-          })
-          .filter((slug): slug is string => slug !== null)
-          .sort();
-      }
-      // Otherwise it's already an array of warehouse slugs (local)
-      return (entity.warehouses as string[]).sort();
-    }
-
-    return [];
-  }
-
-  private getChannelSlugs(entity: ShippingZoneInput | ShippingZone): string[] {
-    if ("channels" in entity && Array.isArray(entity.channels) && entity.channels.length > 0) {
-      // Check if it's an array of objects with slug property (remote)
-      if (typeof entity.channels[0] === "object" && "slug" in entity.channels[0]) {
-        return entity.channels
-          .map((channel) => (channel as { slug: string }).slug)
-          .filter(Boolean)
-          .sort();
-      }
-      // Otherwise it's already an array of channel slugs (local)
-      return (entity.channels as string[]).sort();
-    }
-
-    return [];
-  }
-
-  private normalizeShippingMethod(
-    method: ShippingMethodInput | ShippingMethod
-  ): Record<string, unknown> {
-    const normalized: Record<string, unknown> = {
-      name: method.name,
-      description: method.description || "",
-      type: method.type,
-      minimumDeliveryDays: method.minimumDeliveryDays || null,
-      maximumDeliveryDays: method.maximumDeliveryDays || null,
-    };
-
-    // Handle weight fields
-    if ("minimumOrderWeight" in method && method.minimumOrderWeight) {
-      normalized.minimumOrderWeight = {
-        unit: method.minimumOrderWeight.unit,
-        value: method.minimumOrderWeight.value,
-      };
-    } else if ("minimumOrderWeight" in method && (method as ShippingMethod).minimumOrderWeight) {
-      const weight = (method as ShippingMethod).minimumOrderWeight;
-      normalized.minimumOrderWeight = weight
-        ? {
-            unit: weight.unit,
-            value: weight.value,
-          }
-        : null;
-    }
-
-    if ("maximumOrderWeight" in method && method.maximumOrderWeight) {
-      normalized.maximumOrderWeight = {
-        unit: method.maximumOrderWeight.unit,
-        value: method.maximumOrderWeight.value,
-      };
-    } else if ("maximumOrderWeight" in method && (method as ShippingMethod).maximumOrderWeight) {
-      const weight = (method as ShippingMethod).maximumOrderWeight;
-      normalized.maximumOrderWeight = weight
-        ? {
-            unit: weight.unit,
-            value: weight.value,
-          }
-        : null;
-    }
-
-    // Handle channel listings
-    if ("channelListings" in method && Array.isArray(method.channelListings)) {
-      // Handle both input and remote channel listings by checking the structure
-      normalized.channelListings = method.channelListings
-        .map((listing: ChannelListing): NormalizedChannelListing => {
-          // Type guard to check if this is a remote listing
-          const isRemoteListing = (l: ChannelListing): l is RemoteChannelListing => {
-            return typeof l.channel === "object" && l.channel !== null && "slug" in l.channel;
-          };
-
-          if (isRemoteListing(listing)) {
-            // Handle remote listing structure
-            return {
-              channel: listing.channel.slug || "",
-              price: listing.price?.amount || 0,
-              currency: listing.price?.currency || "USD",
-              minimumOrderPrice: listing.minimumOrderPrice?.amount || null,
-              maximumOrderPrice: listing.maximumOrderPrice?.amount || null,
-            };
-          } else {
-            // Handle input listing structure (already typed correctly)
-            const inputListing = listing as InputChannelListing;
-            return {
-              channel: inputListing.channel || "",
-              price: inputListing.price || 0,
-              currency: inputListing.currency || "USD",
-              minimumOrderPrice: inputListing.minimumOrderPrice || null,
-              maximumOrderPrice: inputListing.maximumOrderPrice || null,
-            };
-          }
-        })
-        .sort((a: NormalizedChannelListing, b: NormalizedChannelListing) =>
-          a.channel.localeCompare(b.channel)
-        );
-    }
-
-    return normalized;
-  }
-
-  private compareShippingMethods(
-    localMethods: ShippingMethodInput[] | undefined,
-    remoteMethods: ShippingMethod[] | undefined
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-
-    const localNormalized = (localMethods || []).map((m) => this.normalizeShippingMethod(m));
-    const remoteNormalized = (remoteMethods || []).map((m) => this.normalizeShippingMethod(m));
-
-    // Create maps by name for comparison
-    const localMap = new Map(localNormalized.map((m) => [m.name as string, m]));
-    const remoteMap = new Map(remoteNormalized.map((m) => [m.name as string, m]));
-
-    // Find methods to add
-    const toAdd = localNormalized.filter((m) => !remoteMap.has(m.name as string));
-
-    // Find methods to remove
-    const toRemove = remoteNormalized.filter((m) => !localMap.has(m.name as string));
-
-    // Find methods to update
-    const toUpdate: string[] = [];
-    for (const [name, localMethod] of localMap) {
-      const remoteMethod = remoteMap.get(name);
-      if (remoteMethod && JSON.stringify(localMethod) !== JSON.stringify(remoteMethod)) {
-        toUpdate.push(name as string);
+    const lists = [
+      [
+        "countries",
+        "Countries",
+        normalizeCountries(desired.countries),
+        normalizeCountries(current.countries),
+      ],
+      ["warehouses", "Warehouses", slugList(desired.warehouses), slugList(current.warehouses)],
+      ["channels", "Channels", slugList(desired.channels), slugList(current.channels)],
+    ] as const;
+    for (const [field, label, desiredList, currentList] of lists) {
+      if (JSON.stringify(desiredList) !== JSON.stringify(currentList)) {
+        changes.record([field], {
+          current: currentList,
+          desired: desiredList,
+          description: `${label}: [${currentList.join(", ")}] → [${desiredList.join(", ")}]`,
+        });
       }
     }
 
-    if (toAdd.length > 0 || toRemove.length > 0 || toUpdate.length > 0) {
-      const description = [];
-      if (toAdd.length > 0) {
-        description.push(`Add: ${toAdd.map((m) => m.name).join(", ")}`);
+    compareShippingMethods(changes, desired.shippingMethods, current.shippingMethods || undefined);
+    changes.metadata(desired, current);
+
+    const currentMethods = new Map((current.shippingMethods ?? []).map((m) => [m.name, m]));
+    for (const method of desired.shippingMethods ?? []) {
+      const currentMethod = currentMethods.get(method.name);
+      if (currentMethod) {
+        changes.at("shippingMethods", method.name).metadata(method, currentMethod);
       }
-      if (toRemove.length > 0) {
-        description.push(`Remove: ${toRemove.map((m) => m.name).join(", ")}`);
-      }
-      if (toUpdate.length > 0) {
-        description.push(`Update: ${toUpdate.join(", ")}`);
-      }
-
-      changes.push(
-        this.createShippingMethodsFieldChange(remoteMethods, localMethods, description.join("; "))
-      );
     }
-
-    return changes;
-  }
-
-  protected compareEntityFields(
-    local: ShippingZoneInput,
-    remote: ShippingZone,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-
-    // Compare basic fields
-    if (local.description !== remote.description) {
-      changes.push(this.createFieldChange("description", remote.description, local.description));
-    }
-
-    const localDefault = local.default ?? false;
-    if (localDefault !== remote.default) {
-      changes.push(this.createFieldChange("default", remote.default, localDefault));
-    }
-
-    // Compare countries
-    const localCountries = this.normalizeCountries(local.countries);
-    const remoteCountries = this.normalizeCountries(remote.countries);
-
-    if (JSON.stringify(localCountries) !== JSON.stringify(remoteCountries)) {
-      changes.push(
-        this.createFieldChange(
-          "countries",
-          remoteCountries,
-          localCountries,
-          `Countries: [${remoteCountries.join(", ")}] → [${localCountries.join(", ")}]`
-        )
-      );
-    }
-
-    // Compare warehouses
-    const localWarehouses = this.getWarehouseSlugs(local);
-    const remoteWarehouses = this.getWarehouseSlugs(remote);
-
-    if (JSON.stringify(localWarehouses) !== JSON.stringify(remoteWarehouses)) {
-      changes.push(
-        this.createFieldChange(
-          "warehouses",
-          remoteWarehouses,
-          localWarehouses,
-          `Warehouses: [${remoteWarehouses.join(", ")}] → [${localWarehouses.join(", ")}]`
-        )
-      );
-    }
-
-    // Compare channels
-    const localChannels = this.getChannelSlugs(local);
-    const remoteChannels = this.getChannelSlugs(remote);
-
-    if (JSON.stringify(localChannels) !== JSON.stringify(remoteChannels)) {
-      changes.push(
-        this.createFieldChange(
-          "channels",
-          remoteChannels,
-          localChannels,
-          `Channels: [${remoteChannels.join(", ")}] → [${localChannels.join(", ")}]`
-        )
-      );
-    }
-
-    // Compare shipping methods
-    const methodChanges = this.compareShippingMethods(
-      local.shippingMethods,
-      remote.shippingMethods || undefined
-    );
-    changes.push(...methodChanges);
-    changes.push(...this.compareMetadata(local, remote, options));
-    changes.push(
-      ...this.compareShippingMethodMetadata(local.shippingMethods, remote.shippingMethods, options)
-    );
-
-    return changes;
-  }
-
-  private compareShippingMethodMetadata(
-    localMethods: readonly ShippingMethodInput[] | undefined,
-    remoteMethods: readonly ShippingMethod[] | null | undefined,
-    options?: ComparatorOptions
-  ): DiffChange[] {
-    const remoteByName = new Map((remoteMethods ?? []).map((method) => [method.name, method]));
-    return (localMethods ?? []).flatMap((method) => {
-      const remoteMethod = remoteByName.get(method.name);
-      return remoteMethod
-        ? this.compareMetadata(
-            method,
-            remoteMethod,
-            options,
-            `shippingMethods.${method.name}.metadata`
-          )
-        : [];
-    });
-  }
-}
+  },
+});

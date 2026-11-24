@@ -10,7 +10,7 @@ export { modelComparator } from "./model-comparator";
 export { pageTypeComparator } from "./page-type-comparator";
 export { ProductComparator } from "./product-comparator";
 export { productTypeComparator } from "./product-type-comparator";
-export { ShippingZoneComparator } from "./shipping-zone-comparator";
+export { shippingZoneComparator } from "./shipping-zone-comparator";
 export { shopComparator } from "./shop-comparator";
 export { taxClassComparator } from "./tax-class-comparator";
 export { warehouseComparator } from "./warehouse-comparator";

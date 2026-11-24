@@ -19,7 +19,7 @@ import {
   ProductComparator,
   pageTypeComparator,
   productTypeComparator,
-  ShippingZoneComparator,
+  shippingZoneComparator,
   shopComparator,
   taxClassComparator,
   warehouseComparator,
@@ -336,7 +336,7 @@ export class DiffService {
       ["menus", menuComparator],
       ["models", modelComparator],
       ["warehouses", warehouseComparator],
-      ["shippingZones", new ShippingZoneComparator() as EntityComparator],
+      ["shippingZones", shippingZoneComparator],
       ["taxClasses", taxClassComparator],
     ]);
   }
