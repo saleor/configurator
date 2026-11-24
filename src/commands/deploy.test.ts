@@ -720,6 +720,7 @@ describe("Deploy Command", () => {
       // Verify result payload
       expect(parsed.result).toMatchObject({
         summary: {
+          totalChanges: 2,
           creates: 1,
           updates: 1,
           deletes: 0,

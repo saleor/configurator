@@ -464,6 +464,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return {
       status: "plan" as const,
       summary: {
+        totalChanges: summary.totalChanges,
         creates: summary.creates,
         updates: summary.updates,
         deletes: summary.deletes,
