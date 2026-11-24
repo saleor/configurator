@@ -2,6 +2,7 @@ import type { AttributeValueInput } from "../../lib/graphql/graphql-types";
 import { logger } from "../../lib/logger";
 import { isTransientError } from "../../lib/utils/error-classification";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
+import { delay } from "../../lib/utils/resilience";
 import {
   cachedToResolverAttribute,
   type IAttributeCache,
@@ -10,6 +11,14 @@ import {
 import { EntityNotFoundError } from "../config/errors";
 import type { ProductInput, ProductMediaInput, ProductVariantInput } from "../config/schema/schema";
 import { AttributeResolver } from "./attribute-resolver";
+import {
+  DEFAULT_TIMEOUT_POLL_DEADLINE_MS,
+  DEFAULT_TIMEOUT_POLL_INTERVAL_MS,
+  getProductBulkBatchSize,
+  isUncertainBulkCreateError,
+  type ProductBulkCreateBatchOptions,
+  splitIntoBatches,
+} from "./bulk-create-batching";
 import { ProductError } from "./errors";
 import { extractSourceUrlFromMetadata } from "./media-metadata";
 import type {
@@ -905,15 +914,17 @@ export class ProductService {
   /**
    * Bootstrap multiple products using bulk mutations for improved performance
    *
-   * Uses Saleor's nested bulk mutation capabilities to create products with their
-   * channelListings, variants, and media in a single API call for NEW products.
-   * This reduces API calls from 151+ to 1-5 for 50 products, avoiding rate limiting.
+   * New products are sent in fixed-size `productBulkCreate` batches (default 25,
+   * overridable via `SALEOR_PRODUCT_BATCH_SIZE`) to stay under Saleor Cloud's
+   * 30-second gateway timeout. If a batch hits a timeout or network error, its
+   * slugs are polled before resending anything so products committed in the
+   * background are never duplicated.
    *
    * For UPDATES, separate calls are still required (no productBulkUpdate API exists).
    */
   async bootstrapProductsBulk(
     products: ProductInput[],
-    options?: { skipMedia?: boolean }
+    options?: { skipMedia?: boolean; batching?: ProductBulkCreateBatchOptions }
   ): Promise<void> {
     logger.info(`Bootstrapping ${products.length} products via nested bulk operations`, {
       skipMedia: options?.skipMedia,
@@ -930,8 +941,13 @@ export class ProductService {
     await this.syncPostUpdateOperations(toUpdate, updatedProducts, allFailures, options);
 
     if (allFailures.length > 0) {
-      const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products`;
-      logger.error(errorMessage, { failures: allFailures });
+      const errorMessage = `Failed to bootstrap ${allFailures.length} of ${products.length} products. Re-running deploy is safe and will resume from what is still missing.`;
+      logger.error(errorMessage, {
+        created: createdProducts.length,
+        updated: updatedProducts.length,
+        failed: allFailures.length,
+        failures: allFailures,
+      });
       throw new ProductError(errorMessage);
     }
 
@@ -944,8 +960,6 @@ export class ProductService {
       created: createdProducts.length,
       updated: updatedProducts.length,
       variants: totalVariants,
-      apiCallsReduced:
-        toCreate.length > 0 ? `${toCreate.length} products created in 1 API call` : "N/A",
     });
   }
 
@@ -985,106 +999,371 @@ export class ProductService {
   }
 
   /**
-   * Bulk creates new products with inline channelListings, variants, and media
-   * using Saleor's nested bulk mutation capability.
+   * Bulk creates new products in fixed-size batches with inline channelListings,
+   * variants, and media. On a gateway timeout or network error, checks Saleor
+   * by slug before resending so products committed in the background are not
+   * duplicated.
    */
   private async bulkCreateNewProducts(
     toCreate: ProductInput[],
     allFailures: Array<{ entity: string; error: Error }>,
-    options?: { skipMedia?: boolean }
+    options?: { skipMedia?: boolean; batching?: ProductBulkCreateBatchOptions }
   ): Promise<Product[]> {
     if (toCreate.length === 0) return [];
 
-    logger.info(`Creating ${toCreate.length} new products via nested bulk mutation`);
+    const batchSize = options?.batching?.batchSize ?? getProductBulkBatchSize();
+    const pollIntervalMs = options?.batching?.pollIntervalMs ?? DEFAULT_TIMEOUT_POLL_INTERVAL_MS;
+    const pollDeadlineMs = options?.batching?.pollDeadlineMs ?? DEFAULT_TIMEOUT_POLL_DEADLINE_MS;
+    const sleep = options?.batching?.sleep ?? delay;
+    const now = options?.batching?.now ?? Date.now;
+
+    const batches = splitIntoBatches(toCreate, batchSize);
+    const totalBatches = batches.length;
+
+    logger.info(
+      `Creating ${toCreate.length} new products in ${totalBatches} ${totalBatches === 1 ? "batch" : "batches"} of up to ${batchSize}`
+    );
+
     const createdProducts: Product[] = [];
-    const createdWithInput: Array<{ input: ProductInput; product: Product }> = [];
 
-    try {
-      const createInputs = await Promise.all(
-        toCreate.map(async (productInput) => {
-          const productTypeId = await this.resolveProductTypeReference(productInput.productType);
-          const categoryId = productInput.category
-            ? await this.resolveCategoryReference(productInput.category)
-            : undefined;
-          const attributes = productInput.attributes
-            ? await this.resolveAttributeValues(productInput.attributes)
-            : [];
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const batch = batches[batchIndex];
+      const batchNumber = batchIndex + 1;
+      const batchStartMs = now();
+      const batchCreatedWithInput: Array<{ input: ProductInput; product: Product }> = [];
+      const failuresBefore = allFailures.length;
 
-          const channelListings = productInput.channelListings
-            ? await this.resolveProductChannelListingsForBulk(productInput.channelListings)
-            : undefined;
-
-          const variants = productInput.variants
-            ? await this.resolveVariantsForBulk(productInput.variants)
-            : undefined;
-
-          const media =
-            !options?.skipMedia && productInput.media
-              ? productInput.media.map((m) => ({ mediaUrl: m.externalUrl, alt: m.alt }))
-              : undefined;
-
-          return {
-            name: productInput.name,
-            slug: productInput.slug,
-            description: this.wrapDescriptionAsEditorJS(productInput.description),
-            productType: productTypeId,
-            category: categoryId,
-            attributes,
-            channelListings,
-            variants,
-            media,
-          };
-        })
+      logger.info(
+        `Creating product batch ${batchNumber}/${totalBatches} (${batch.length} products)`
       );
 
-      const createResult = await this.repository.bulkCreateProducts({
-        products: createInputs,
-        errorPolicy: "IGNORE_FAILED",
-      });
-
-      if (createResult.results) {
-        createResult.results.forEach(({ product, errors }, index) => {
-          if (errors && errors.length > 0) {
-            allFailures.push({
-              entity: toCreate[index].name,
-              error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
-            });
-            logger.warn(`Failed to create product: ${toCreate[index].name}`, { errors });
-          } else if (product) {
-            createdProducts.push(product);
-            createdWithInput.push({ input: toCreate[index], product });
-          }
-        });
+      let createInputs: Awaited<ReturnType<ProductService["resolveBulkCreateInputs"]>>;
+      try {
+        createInputs = await this.resolveBulkCreateInputs(batch, options);
+      } catch (error) {
+        logger.error(`Failed to prepare product batch ${batchNumber}/${totalBatches}`, { error });
+        this.recordBatchFailure(batch, error, allFailures);
+        continue;
       }
 
-      if (createResult.errors && createResult.errors.length > 0) {
-        logger.warn("Global errors during bulk product creation", {
-          errors: createResult.errors,
+      try {
+        await this.sendBulkCreateBatch(
+          batch,
+          createInputs,
+          createdProducts,
+          batchCreatedWithInput,
+          allFailures
+        );
+
+        logger.debug("Product bulk create batch completed", {
+          batch: batchNumber,
+          totalBatches,
+          size: batch.length,
+          created: batchCreatedWithInput.length,
+          failed: allFailures.length - failuresBefore,
+          durationMs: now() - batchStartMs,
         });
-        allFailures.push({
-          entity: "bulk product creation (global)",
-          error: new Error(
-            createResult.errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")
-          ),
-        });
+      } catch (error) {
+        if (!isUncertainBulkCreateError(error)) {
+          logger.error(`Failed to bulk create product batch ${batchNumber}/${totalBatches}`, {
+            error,
+          });
+          this.recordBatchFailure(batch, error, allFailures);
+        } else {
+          await this.reconcileTimedOutBatch({
+            batch,
+            createInputs,
+            batchNumber,
+            totalBatches,
+            batchStartMs,
+            initialError: error,
+            createdProducts,
+            batchCreatedWithInput,
+            allFailures,
+            pollIntervalMs,
+            pollDeadlineMs,
+            sleep,
+            now,
+          });
+        }
       }
 
-      logger.info(`Bulk created ${createdProducts.length} products with inline variants and media`);
-    } catch (error) {
-      logger.error("Failed to bulk create products", { error });
-      toCreate.forEach((p) => {
-        allFailures.push({
-          entity: p.name,
-          error: error instanceof Error ? error : new Error(String(error)),
-        });
-      });
+      if (!options?.skipMedia && batchCreatedWithInput.length > 0) {
+        await this.persistCreatedMediaSourceUrls(batchCreatedWithInput, allFailures);
+      }
     }
 
-    if (!options?.skipMedia) {
-      await this.persistCreatedMediaSourceUrls(createdWithInput, allFailures);
-    }
+    logger.info(
+      `Bulk created ${createdProducts.length} of ${toCreate.length} new products across ${totalBatches} ${totalBatches === 1 ? "batch" : "batches"}`
+    );
 
     return createdProducts;
+  }
+
+  private async resolveBulkCreateInputs(batch: ProductInput[], options?: { skipMedia?: boolean }) {
+    return Promise.all(
+      batch.map(async (productInput) => {
+        const productTypeId = await this.resolveProductTypeReference(productInput.productType);
+        const categoryId = productInput.category
+          ? await this.resolveCategoryReference(productInput.category)
+          : undefined;
+        const attributes = productInput.attributes
+          ? await this.resolveAttributeValues(productInput.attributes)
+          : [];
+
+        const channelListings = productInput.channelListings
+          ? await this.resolveProductChannelListingsForBulk(productInput.channelListings)
+          : undefined;
+
+        const variants = productInput.variants
+          ? await this.resolveVariantsForBulk(productInput.variants)
+          : undefined;
+
+        const media =
+          !options?.skipMedia && productInput.media
+            ? productInput.media.map((m) => ({ mediaUrl: m.externalUrl, alt: m.alt }))
+            : undefined;
+
+        return {
+          name: productInput.name,
+          slug: productInput.slug,
+          description: this.wrapDescriptionAsEditorJS(productInput.description),
+          productType: productTypeId,
+          category: categoryId,
+          attributes,
+          channelListings,
+          variants,
+          media,
+        };
+      })
+    );
+  }
+
+  private async sendBulkCreateBatch(
+    batch: ProductInput[],
+    createInputs: Awaited<ReturnType<ProductService["resolveBulkCreateInputs"]>>,
+    createdProducts: Product[],
+    batchCreatedWithInput: Array<{ input: ProductInput; product: Product }>,
+    allFailures: Array<{ entity: string; error: Error }>
+  ): Promise<void> {
+    const createResult = await this.repository.bulkCreateProducts({
+      products: createInputs,
+      errorPolicy: "IGNORE_FAILED",
+    });
+
+    if (createResult.results) {
+      createResult.results.forEach(({ product, errors }, index) => {
+        if (errors && errors.length > 0) {
+          allFailures.push({
+            entity: batch[index].name,
+            error: new Error(errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")),
+          });
+          logger.warn(`Failed to create product: ${batch[index].name}`, { errors });
+        } else if (product) {
+          createdProducts.push(product);
+          batchCreatedWithInput.push({ input: batch[index], product });
+        }
+      });
+    }
+
+    if (createResult.errors && createResult.errors.length > 0) {
+      logger.warn("Global errors during bulk product creation", {
+        errors: createResult.errors,
+      });
+      allFailures.push({
+        entity: "bulk product creation (global)",
+        error: new Error(
+          createResult.errors.map((e) => `${e.path || ""}: ${e.message}`).join(", ")
+        ),
+      });
+    }
+  }
+
+  private async reconcileTimedOutBatch(params: {
+    batch: ProductInput[];
+    createInputs: Awaited<ReturnType<ProductService["resolveBulkCreateInputs"]>>;
+    batchNumber: number;
+    totalBatches: number;
+    batchStartMs: number;
+    initialError: unknown;
+    createdProducts: Product[];
+    batchCreatedWithInput: Array<{ input: ProductInput; product: Product }>;
+    allFailures: Array<{ entity: string; error: Error }>;
+    pollIntervalMs: number;
+    pollDeadlineMs: number;
+    sleep: (ms: number) => Promise<void>;
+    now: () => number;
+  }): Promise<void> {
+    const {
+      batch,
+      createInputs,
+      batchNumber,
+      totalBatches,
+      batchStartMs,
+      initialError,
+      createdProducts,
+      batchCreatedWithInput,
+      allFailures,
+      pollIntervalMs,
+      pollDeadlineMs,
+      sleep,
+      now,
+    } = params;
+
+    logger.warn(
+      `Product batch ${batchNumber}/${totalBatches} hit a timeout or network error; checking Saleor before resending`,
+      {
+        batch: batchNumber,
+        totalBatches,
+        size: batch.length,
+        error: initialError instanceof Error ? initialError.message : String(initialError),
+      }
+    );
+
+    const { verified, foundBySlug } = await this.pollBatchProductsAfterTimeout(
+      batch.map((p) => p.slug),
+      batchNumber,
+      totalBatches,
+      { pollIntervalMs, pollDeadlineMs, sleep, now }
+    );
+
+    if (!verified) {
+      logger.error(
+        `Could not verify product batch ${batchNumber}/${totalBatches} after timeout; skipping resend to avoid duplicates`,
+        { error: initialError }
+      );
+      this.recordBatchFailure(batch, initialError, allFailures);
+      return;
+    }
+
+    const missingProducts: ProductInput[] = [];
+    const missingInputs: typeof createInputs = [];
+
+    for (let i = 0; i < batch.length; i++) {
+      const input = batch[i];
+      const existing = foundBySlug.get(input.slug);
+      if (existing) {
+        createdProducts.push(existing);
+        batchCreatedWithInput.push({ input, product: existing });
+      } else {
+        missingProducts.push(input);
+        missingInputs.push(createInputs[i]);
+      }
+    }
+
+    if (missingProducts.length === 0) {
+      logger.info(
+        `Product batch ${batchNumber}/${totalBatches} confirmed created on Saleor after timeout`,
+        {
+          batch: batchNumber,
+          totalBatches,
+          confirmed: batch.length,
+          durationMs: now() - batchStartMs,
+        }
+      );
+      return;
+    }
+
+    logger.warn(
+      `Resending ${missingProducts.length} missing product(s) from batch ${batchNumber}/${totalBatches}`,
+      {
+        batch: batchNumber,
+        totalBatches,
+        confirmed: batch.length - missingProducts.length,
+        resending: missingProducts.length,
+      }
+    );
+
+    try {
+      await this.sendBulkCreateBatch(
+        missingProducts,
+        missingInputs,
+        createdProducts,
+        batchCreatedWithInput,
+        allFailures
+      );
+      logger.debug("Product bulk create batch resend completed", {
+        batch: batchNumber,
+        totalBatches,
+        resent: missingProducts.length,
+        durationMs: now() - batchStartMs,
+      });
+    } catch (resendError) {
+      logger.error(`Resend of product batch ${batchNumber}/${totalBatches} failed`, {
+        error: resendError,
+      });
+      this.recordBatchFailure(missingProducts, resendError, allFailures);
+    }
+  }
+
+  private async pollBatchProductsAfterTimeout(
+    slugs: string[],
+    batchNumber: number,
+    totalBatches: number,
+    timing: {
+      pollIntervalMs: number;
+      pollDeadlineMs: number;
+      sleep: (ms: number) => Promise<void>;
+      now: () => number;
+    }
+  ): Promise<{ verified: boolean; foundBySlug: Map<string, Product> }> {
+    const { pollIntervalMs, pollDeadlineMs, sleep, now } = timing;
+    const deadlineAt = now() + pollDeadlineMs;
+    const foundBySlug = new Map<string, Product>();
+    let verified = false;
+
+    const queryOnce = async (): Promise<boolean> => {
+      try {
+        const existing = await this.repository.getProductsBySlugs(slugs);
+        verified = true;
+        for (const product of existing) {
+          if (product?.slug) {
+            foundBySlug.set(product.slug, product);
+          }
+        }
+        // productBulkCreate commits in a single DB transaction, so once any
+        // product from this batch is visible the transaction has committed.
+        return foundBySlug.size > 0;
+      } catch (lookupError) {
+        logger.debug("Slug check after bulk create timeout failed; will retry until deadline", {
+          batch: batchNumber,
+          totalBatches,
+          error: lookupError instanceof Error ? lookupError.message : String(lookupError),
+        });
+        return false;
+      }
+    };
+
+    if (await queryOnce()) {
+      return { verified, foundBySlug };
+    }
+
+    while (now() < deadlineAt) {
+      const waitMs = Math.min(pollIntervalMs, deadlineAt - now());
+      if (waitMs <= 0) {
+        break;
+      }
+      await sleep(waitMs);
+      if (await queryOnce()) {
+        break;
+      }
+    }
+
+    return { verified, foundBySlug };
+  }
+
+  private recordBatchFailure(
+    batch: ProductInput[],
+    error: unknown,
+    allFailures: Array<{ entity: string; error: Error }>
+  ): void {
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    for (const p of batch) {
+      allFailures.push({
+        entity: p.name,
+        error: errorObj,
+      });
+    }
   }
 
   /**
