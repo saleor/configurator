@@ -393,6 +393,7 @@ describe("CategoryService - Optimized Processing", () => {
       name: "Old Name",
       slug: "existing",
       level: 0,
+      metadata: [],
       parent: null,
     };
 

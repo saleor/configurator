@@ -39,6 +39,10 @@ const updateCategoryMutation = graphql(`
         name
         slug
         level
+        metadata {
+          key
+          value
+        }
         parent {
           id
           slug
