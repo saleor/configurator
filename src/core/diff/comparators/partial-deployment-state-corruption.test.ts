@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PageTypeComparator } from "./page-type-comparator";
+import { pageTypeComparator } from "./page-type-comparator";
 import { ProductTypeComparator } from "./product-type-comparator";
 
 describe("Bug #3: Partial Deployment State Corruption", () => {
   describe("PageTypeComparator", () => {
-    const comparator = new PageTypeComparator();
+    const comparator = pageTypeComparator;
 
     it("should handle remote duplicates gracefully", () => {
       const local = [{ name: "Blog Post", attributes: [] }];
