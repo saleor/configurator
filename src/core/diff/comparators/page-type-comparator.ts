@@ -1,15 +1,9 @@
-import type { SaleorConfig } from "../../../modules/config/schema/schema";
+import type { ModelTypeInput, PageTypeInput } from "../../../modules/config/schema/schema";
+import { compareAssignedAttributes } from "./attribute-references";
 import { type EntityComparator, entityComparator } from "./entity-comparator";
+import { isUnmanagedField } from "./field-comparison";
 
-type PageTypeEntity = NonNullable<SaleorConfig["pageTypes"]>[number];
-
-/** The attributes compared on a page type: only those with a `name`. */
-function attributeNames(pageType: PageTypeEntity): string[] {
-  if (!("attributes" in pageType) || !pageType.attributes) return [];
-  return pageType.attributes.flatMap((attribute) =>
-    "name" in attribute && attribute.name ? [attribute.name] : []
-  );
-}
+type PageTypeEntity = PageTypeInput | ModelTypeInput;
 
 /** Compares page types, or model types (the same Saleor object), by name. */
 export function pageTypeComparator(entityType: "Page Types" | "Model Types"): EntityComparator {
@@ -21,29 +15,11 @@ export function pageTypeComparator(entityType: "Page Types" | "Model Types"): En
     compareFields(changes, desired, current) {
       changes.value("name", desired.name, current.name);
 
-      const desiredNames = attributeNames(desired);
-      const currentNames = attributeNames(current);
-      const desiredSet = new Set(desiredNames);
-      const currentSet = new Set(currentNames);
-
-      for (const name of desiredNames) {
-        if (!currentSet.has(name)) {
-          changes.record(["attributes", name], {
-            kind: "added",
-            current: null,
-            desired: name,
-          });
-        }
-      }
-      for (const name of currentNames) {
-        if (!desiredSet.has(name)) {
-          changes.record(["attributes", name], {
-            kind: "removed",
-            current: name,
-            desired: null,
-          });
-        }
-      }
+      const desiredAttributes = "attributes" in desired ? desired.attributes : undefined;
+      const currentAttributes = "attributes" in current ? current.attributes : undefined;
+      // Deploy leaves the attributes of a type that doesn't list any as they are.
+      if (isUnmanagedField(desiredAttributes, changes.options)) return;
+      compareAssignedAttributes(changes, desiredAttributes ?? [], currentAttributes ?? []);
     },
   });
 }
