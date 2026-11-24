@@ -71,4 +71,17 @@ describe("entityComparator", () => {
 
     expect(results).toEqual([]);
   });
+
+  it("uses the first of duplicate entities in Saleor when introspecting", () => {
+    const results = comparator.compare(
+      [
+        { slug: "a", name: "A" },
+        { slug: "a", name: "Other" },
+      ],
+      [{ slug: "a", name: "A" }],
+      { direction: "introspect" }
+    );
+
+    expect(results).toEqual([]);
+  });
 });

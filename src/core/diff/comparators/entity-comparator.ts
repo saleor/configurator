@@ -30,7 +30,8 @@ interface EntitySpec<T> {
 /**
  * Builds a comparator from a spec. Entities are matched by identifier: config-only ones are
  * created, Saleor-only ones are reported, and matched ones are updated when a field differs.
- * Duplicate identifiers in the config are an error; in Saleor the first one wins.
+ * Duplicate identifiers in a config being deployed are an error. Anywhere else (Saleor, or the
+ * file introspect is about to overwrite) the first one wins.
  */
 export function entityComparator<T>(spec: EntitySpec<T>): EntityComparator {
   return {
@@ -39,9 +40,13 @@ export function entityComparator<T>(spec: EntitySpec<T>): EntityComparator {
         const list = Array.isArray(section) ? section : [];
         return spec.entities ? spec.entities(list) : (list as T[]);
       };
-      const desired = entitiesOf(desiredSection);
+      // Deploy compares the config (desired) with Saleor; introspect compares Saleor (desired)
+      // with the file it overwrites.
+      const deploying = (options.direction ?? "deploy") === "deploy";
+      const desired = deploying
+        ? rejectDuplicates(spec, entitiesOf(desiredSection))
+        : firstOfEach(spec, entitiesOf(desiredSection));
       const current = firstOfEach(spec, entitiesOf(currentSection));
-      rejectDuplicates(spec, desired);
 
       const currentById = new Map(current.map((entity) => [spec.identify(entity), entity]));
       const desiredIds = new Set(desired.map((entity) => spec.identify(entity)));
@@ -94,7 +99,7 @@ export function entityComparator<T>(spec: EntitySpec<T>): EntityComparator {
   };
 }
 
-function rejectDuplicates<T>(spec: EntitySpec<T>, entities: readonly T[]): void {
+function rejectDuplicates<T>(spec: EntitySpec<T>, entities: readonly T[]): readonly T[] {
   const seen = new Set<string>();
   const duplicates = new Set<string>();
   for (const entity of entities) {
@@ -107,6 +112,7 @@ function rejectDuplicates<T>(spec: EntitySpec<T>, entities: readonly T[]): void 
       `Duplicate entity identifiers found in ${spec.entityType}: ${[...duplicates].join(", ")}`
     );
   }
+  return entities;
 }
 
 function firstOfEach<T>(spec: EntitySpec<T>, entities: readonly T[]): readonly T[] {
