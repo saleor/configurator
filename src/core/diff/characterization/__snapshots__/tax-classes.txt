@@ -14,7 +14,7 @@ CREATE TaxClasses "Reduced"
 ────────────
   🔄 Update: "Standard"
     │ countryRates.FI: 24 → 25.5
-    │ countryRates: added SE; only in Saleor DE
+    │ countryRates: added SE (25); only in Saleor DE (19)
 
   ➕ Create: "Reduced"
 
@@ -32,7 +32,7 @@ The following changes would be applied to reconcile Saleor with your local confi
 ────────────
   🔄 Update: "Standard"
     │ countryRates.FI: 24 → 25.5
-    │ countryRates: added SE; only in Saleor DE
+    │ countryRates: added SE (25); only in Saleor DE (19)
 
   ➕ Create: "Reduced"
 
@@ -74,7 +74,7 @@ By entity type:
 #### Updates
 - :pencil2: `Standard`
   - `countryRates.FI`: 24 → 25.5
-  - `countryRates`: added SE; only in Saleor DE
+  - `countryRates`: added SE (25); only in Saleor DE (19)
 
 </details>
 
@@ -100,7 +100,7 @@ when pulling the current state from Saleor:
 ────────────
   🔄 Will be updated: "Standard"
     │ countryRates.FI: 25.5 → 24
-    │ countryRates: added DE; removed SE
+    │ countryRates: added DE (19); removed SE (25)
 
   ➖ Will be removed: "Reduced" (not present on Saleor)
 

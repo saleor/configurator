@@ -58,7 +58,7 @@ function formatValue(value: unknown): string {
   return String(value);
 }
 
-/** Adds a scalar member's value when the label doesn't already say it, e.g. `added (25)`. */
+/** Adds a scalar member's value when its key doesn't already say it, e.g. `added (25)`. */
 function withMemberValue(word: string, value: unknown, change: DiffChange): string {
   const isScalar = value !== null && value !== undefined && typeof value !== "object";
   const key = change.path.at(-1);
@@ -93,7 +93,15 @@ export function renderChanges(
     if (folded.has(parent)) continue;
     folded.add(parent);
     const keys = (kind: DiffChange["kind"]) =>
-      siblings.filter((member) => member.kind === kind).map((member) => member.path.at(-1));
+      siblings
+        .filter((member) => member.kind === kind)
+        .map((member) =>
+          withMemberValue(
+            String(member.path.at(-1)),
+            kind === "added" ? member.desiredValue : member.currentValue,
+            member
+          )
+        );
     const groups = [
       ["added", keys("added")],
       [direction === "deploy" ? "only in Saleor" : "removed", keys("removed")],
