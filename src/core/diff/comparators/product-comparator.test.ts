@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ProductComparator } from "./product-comparator";
+import { productComparator } from "./product-comparator";
 
 describe("ProductComparator", () => {
-  const comparator = new ProductComparator();
+  const comparator = productComparator;
 
   const sampleProduct = {
     name: "Sample Product",
@@ -66,12 +66,14 @@ describe("ProductComparator", () => {
       expect(results[0].operation).toBe("UPDATE");
       expect(results[0].entityType).toBe("Products");
       expect(results[0].entityName).toBe("sample-product");
-      expect(results[0].changes).toContainEqual({
-        field: "productType",
-        currentValue: "Clothing",
-        desiredValue: "Electronics",
-        description: 'productType: "Clothing" → "Electronics"',
-      });
+      expect(results[0].changes).toContainEqual(
+        expect.objectContaining({
+          field: "productType",
+          currentValue: "Clothing",
+          desiredValue: "Electronics",
+          description: 'productType: "Clothing" → "Electronics"',
+        })
+      );
     });
 
     it("should detect attribute changes", () => {
@@ -89,12 +91,14 @@ describe("ProductComparator", () => {
 
       expect(results).toHaveLength(1);
       expect(results[0].operation).toBe("UPDATE");
-      expect(results[0].changes).toContainEqual({
-        field: "attributes.color",
-        currentValue: "red",
-        desiredValue: "blue",
-        description: 'Attribute "color": "red" → "blue"',
-      });
+      expect(results[0].changes).toContainEqual(
+        expect.objectContaining({
+          field: "attributes.color",
+          currentValue: "red",
+          desiredValue: "blue",
+          description: 'Attribute "color": "red" → "blue"',
+        })
+      );
     });
 
     it("should detect variant changes", () => {

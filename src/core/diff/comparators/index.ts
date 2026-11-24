@@ -8,7 +8,7 @@ export type { EntityComparator } from "./entity-comparator";
 export { menuComparator } from "./menu-comparator";
 export { modelComparator } from "./model-comparator";
 export { pageTypeComparator } from "./page-type-comparator";
-export { ProductComparator } from "./product-comparator";
+export { productComparator } from "./product-comparator";
 export { productTypeComparator } from "./product-type-comparator";
 export { shippingZoneComparator } from "./shipping-zone-comparator";
 export { shopComparator } from "./shop-comparator";

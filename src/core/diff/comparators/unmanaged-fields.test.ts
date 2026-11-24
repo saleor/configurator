@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { SaleorConfig } from "../../../modules/config/schema/schema";
 import { channelComparator } from "./channel-comparator";
-import { ProductComparator } from "./product-comparator";
+import { productComparator } from "./product-comparator";
 import { shopComparator } from "./shop-comparator";
 
 const deployDirection = { skipUnmanagedFields: true } as const;
@@ -102,7 +102,7 @@ describe("fields the config leaves out (deploy direction)", () => {
   });
 
   it("ignores listing dates, variant weight and cost price the config omits", () => {
-    const results = new ProductComparator().compare(
+    const results = productComparator.compare(
       [handWrittenProduct],
       [introspectedProduct],
       deployDirection
@@ -112,7 +112,7 @@ describe("fields the config leaves out (deploy direction)", () => {
   });
 
   it("still reports a listing field the config declares", () => {
-    const results = new ProductComparator().compare(
+    const results = productComparator.compare(
       [
         {
           ...handWrittenProduct,
@@ -135,10 +135,7 @@ describe("fields the config leaves out (deploy direction)", () => {
 describe("fields the config leaves out (introspect direction)", () => {
   it("keeps comparing every field when the flag is not set", () => {
     const channelResults = channelComparator.compare([introspectedChannel], [handWrittenChannel]);
-    const productResults = new ProductComparator().compare(
-      [introspectedProduct],
-      [handWrittenProduct]
-    );
+    const productResults = productComparator.compare([introspectedProduct], [handWrittenProduct]);
 
     expect(channelResults).toHaveLength(1);
     expect(productResults).toHaveLength(1);
