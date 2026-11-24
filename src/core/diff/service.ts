@@ -326,8 +326,8 @@ export class DiffService {
       ["productAttributes", attributesComparator("Product Attributes")],
       ["contentAttributes", attributesComparator("Content Attributes")],
       ["productTypes", productTypeComparator],
-      ["pageTypes", pageTypeComparator],
-      ["modelTypes", pageTypeComparator], // ModelTypes use PageType comparator
+      ["pageTypes", pageTypeComparator("Page Types")],
+      ["modelTypes", pageTypeComparator("Model Types")],
       ["customerAttributes", attributesComparator("Customer Attributes")],
       ["customerTypes", customerTypeComparator],
       ["categories", categoryComparator],

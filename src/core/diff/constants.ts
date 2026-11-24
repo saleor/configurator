@@ -12,6 +12,7 @@ export const DIFF_ICONS = {
     Products: "📦",
     Channels: "🌐",
     "Page Types": "📄",
+    "Model Types": "📄",
     Categories: "🏷️",
     Collections: "📂",
     Menus: "🧭",

@@ -14,6 +14,7 @@ export const ENTITY_TYPES = [
   "Products",
   "Channels",
   "Page Types",
+  "Model Types",
   "Categories",
   "Collections",
   "Menus",

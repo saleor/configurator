@@ -4,7 +4,7 @@ import { productTypeComparator } from "./product-type-comparator";
 
 describe("Bug #3: Partial Deployment State Corruption", () => {
   describe("PageTypeComparator", () => {
-    const comparator = pageTypeComparator;
+    const comparator = pageTypeComparator("Page Types");
 
     it("should handle remote duplicates gracefully", () => {
       const local = [{ name: "Blog Post", attributes: [] }];

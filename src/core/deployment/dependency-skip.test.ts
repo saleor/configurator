@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { StageNames } from "../../lib/utils/bulk-operation-constants";
 import { AttributeCache } from "../../modules/attribute/attribute-cache";
 import type { DiffOperation, DiffResult, EntityType } from "../diff/types";
-import { attributesStage, categoriesStage, channelsStage, productTypesStage } from "./stages";
+import {
+  attributesStage,
+  categoriesStage,
+  channelsStage,
+  getAllStages,
+  productTypesStage,
+} from "./stages";
 import type { DeploymentContext } from "./types";
 
 describe("Dependency-Aware Stage Skipping", () => {
@@ -120,7 +127,7 @@ describe("Dependency-Aware Stage Skipping", () => {
 
     it("should NOT skip when model types need the attribute cache", () => {
       const context = createMockContext([
-        { entityType: "Model Types" as EntityType, entityName: "Article", operation: "UPDATE" },
+        { entityType: "Model Types", entityName: "Article", operation: "UPDATE" },
       ]);
 
       expect(attributesStage.skip?.(context)).toBe(false);
@@ -138,6 +145,42 @@ describe("Dependency-Aware Stage Skipping", () => {
     it("should skip when diff is empty", () => {
       const context = createMockContext([]);
       expect(attributesStage.skip?.(context)).toBe(true);
+    });
+  });
+
+  describe("Page and model type stages", () => {
+    const stageNamed = (name: string) => {
+      const stage = getAllStages().find((candidate) => candidate.name === name);
+      if (!stage) throw new Error(`No stage named ${name}`);
+      return stage;
+    };
+    const pageTypesStage = stageNamed(StageNames.PAGE_TYPES);
+    const modelTypesStage = stageNamed(StageNames.MODEL_TYPES);
+
+    it("runs only the page types stage for a page type change", () => {
+      const context = createMockContext([
+        { entityType: "Page Types", entityName: "BlogPost", operation: "UPDATE" },
+      ]);
+
+      expect(pageTypesStage.skip?.(context)).toBe(false);
+      expect(modelTypesStage.skip?.(context)).toBe(true);
+    });
+
+    it("runs only the model types stage for a model type change", () => {
+      const context = createMockContext([
+        { entityType: "Model Types", entityName: "Banner", operation: "UPDATE" },
+      ]);
+
+      expect(modelTypesStage.skip?.(context)).toBe(false);
+      expect(pageTypesStage.skip?.(context)).toBe(true);
+    });
+
+    it("runs the model types stage for a model change", () => {
+      const context = createMockContext([
+        { entityType: "Models", entityName: "summer-banner", operation: "CREATE" },
+      ]);
+
+      expect(modelTypesStage.skip?.(context)).toBe(false);
     });
   });
 });

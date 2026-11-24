@@ -47,6 +47,24 @@ describe("filterDiffResults", () => {
     expect(filtered.updates).toBe(0);
   });
 
+  it("tells model types apart from page types", () => {
+    const summary: DiffSummary = {
+      totalChanges: 2,
+      creates: 0,
+      updates: 0,
+      deletes: 2,
+      results: [
+        { operation: "DELETE", entityType: "Page Types", entityName: "Blog post" },
+        { operation: "DELETE", entityType: "Model Types", entityName: "Banner" },
+      ],
+    };
+
+    const filtered = filterDiffResults(summary, { entityType: "Model Types" });
+
+    expect(filtered.results.map((r) => r.entityName)).toEqual(["Banner"]);
+    expect(filtered.deletes).toBe(1);
+  });
+
   it("filters by specific entity (Type/name)", () => {
     const filtered = filterDiffResults(mockSummary, { entity: "Categories/electronics" });
     expect(filtered.results).toHaveLength(1);
