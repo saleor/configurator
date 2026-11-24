@@ -1,0 +1,172 @@
+===== deploy direction: summary =====
+{"totalChanges":2,"creates":1,"updates":1,"deletes":0}
+UPDATE Products "tee"
+  {"field":"name","currentValue":"Tee","desiredValue":"Classic tee","description":"name: \"Tee\" → \"Classic tee\""}
+  {"field":"description","currentValue":"A plain tee","desiredValue":"A plain cotton tee","description":"Description text changed"}
+  {"field":"category","currentValue":"accessories","desiredValue":"tyres","description":"category: \"accessories\" → \"tyres\""}
+  {"field":"attributes.Color","currentValue":"Red","desiredValue":["Red","Blue"],"description":"Attribute \"Color\": \"Red\" → [\"Red\",\"Blue\"]"}
+  {"field":"channels.default-channel","currentValue":{"channel":"default-channel","isPublished":true,"visibleInListings":true},"desiredValue":{"channel":"default-channel","isPublished":false,"visibleInListings":true},"description":"Channel \"default-channel\" settings changed"}
+  {"field":"channels.b2b","desiredValue":{"channel":"b2b","isPublished":true},"description":"Channel \"b2b\" will be added"}
+  {"field":"variants.TEE-S.weight","currentValue":1,"desiredValue":2,"description":"Variant \"TEE-S\" weight changed"}
+  {"field":"variants.TEE-S.attributes","currentValue":{"Size":"S"},"desiredValue":{"Size":"Small"},"description":"Variant \"TEE-S\" attributes changed"}
+  {"field":"variants.TEE-S.channelListings","currentValue":[{"channel":"default-channel","price":10}],"desiredValue":[{"channel":"default-channel","price":12}],"description":"Variant \"TEE-S\" channel listings changed (~default-channel)"}
+  {"field":"variants.TEE-L","desiredValue":{"name":"L","sku":"TEE-L","attributes":{"Size":"L"},"channelListings":[{"channel":"default-channel","price":11}]},"description":"Variant \"TEE-L\" will be added"}
+  {"field":"variants.TEE-M","currentValue":{"name":"M","sku":"TEE-M","weight":1,"attributes":{"Size":"M"},"channelListings":[{"channel":"default-channel","price":10}]},"description":"Variant \"TEE-M\" is only in Saleor (deploy does not remove it)"}
+  {"field":"media","currentValue":[{"externalUrl":"https://example.com/tee.png","alt":"Tee"}],"desiredValue":[{"externalUrl":"https://example.com/tee-2.png"}],"description":"Product media entries changed"}
+CREATE Products "hoodie"
+
+===== deploy preview =====
+📋 Configuration Changes
+══════════════════════════════════════════════════
+
+📦 Products
+──────────
+  🔄 Update: "tee"
+    │ name: "Tee" → "Classic tee"
+    │ description: "A plain tee" → "A plain cotton tee"
+    │ category: "accessories" → "tyres"
+    │ attributes.Color: "Red" → ["Red","Blue"]
+    │ channels.default-channel: {"channel":"default-channel","isPublished":true,"visibleInListings":true} → {"channel":"default-channel","isPublished":false,"visibleInListings":true}
+    │ channels.b2b: (not set) → {"channel":"b2b","isPublished":true}
+    │ variants.TEE-S.weight: 1 → 2
+    │ variants.TEE-S.attributes: {"Size":"S"} → {"Size":"Small"}
+    │ variants.TEE-S.channelListings: [{"channel":"default-channel","price":10}] → [{"channel":"default-channel","price":12}]
+    │ variants.TEE-L: (not set) → {"name":"L","sku":"TEE-L","attributes":{"Size":"L"},"channelListings":[{"channel":"default-channel","price":11}]}
+    │ variants.TEE-M: {"name":"M","sku":"TEE-M","weight":1,"attributes":{"Size":"M"},"channelListings":[{"channel":"default-channel","price":10}]} → (not set)
+    │ media: [{"externalUrl":"https://example.com/tee.png","alt":"Tee"}] → [{"externalUrl":"https://example.com/tee-2.png"}]
+
+  ➕ Create: "hoodie"
+    │ slug: hoodie
+    │ productType: Apparel
+    │ category: accessories
+    │ attributes:
+      │ Color: Red
+
+📈 Summary
+──────────
+Total: 2 changes (1 to create, 1 to update)
+
+===== diff =====
+📊 Configuration Diff Results
+══════════════════════════════════════════════════
+
+The following changes would be applied to reconcile Saleor with your local configuration:
+
+📦 Products
+──────────
+  🔄 Update: "tee"
+    │ name: "Tee" → "Classic tee"
+    │ Description text changed
+    │ category: "accessories" → "tyres"
+    │ Attribute "Color": "Red" → ["Red","Blue"]
+    │ Channel "default-channel" settings changed
+    │ Channel "b2b" will be added
+    │ Variant "TEE-S" weight changed
+    │ Variant "TEE-S" attributes changed
+    │ Variant "TEE-S" channel listings changed (~default-channel)
+    │ Variant "TEE-L" will be added
+    │ Variant "TEE-M" is only in Saleor (deploy does not remove it)
+    │ Product media entries changed
+
+  ➕ Create: "hoodie"
+    │ productType: Apparel
+    │ category: accessories
+    │ attributes:
+      │ Color: Red
+
+📈 Summary
+──────────
+Total Changes: 2
+• 1 Creation
+• 1 Update
+• 0 Only in Saleor
+
+===== diff summary =====
+📊 Found 2 differences
+➕ 1 item to create
+🔄 1 item to update
+
+By entity type:
+• Products: 2 changes
+
+===== github comment =====
+## Saleor Configuration Changes
+
+:eyes: **Changes detected**
+
+### Summary
+
+| Operation | Count |
+|-----------|-------|
+| :heavy_plus_sign: Create | 1 |
+| :pencil2: Update | 1 |
+| :heavy_minus_sign: Delete | 0 |
+| **Total** | **2** |
+
+<details>
+<summary><strong>Products</strong> (2 changes)</summary>
+
+#### Creates
+- :heavy_plus_sign: `hoodie`
+
+#### Updates
+- :pencil2: `tee`
+  - `name`: `Tee` -> `Classic tee`
+  - `description`: `A plain tee` -> `A plain cotton tee`
+  - `category`: `accessories` -> `tyres`
+  - _...and 9 more changes_
+
+</details>
+
+---
+_Generated by [Saleor Configurator](https://github.com/saleor/configurator)_
+
+===== introspect direction: summary =====
+{"totalChanges":2,"creates":0,"updates":1,"deletes":1}
+UPDATE Products "tee"
+  {"field":"name","currentValue":"Classic tee","desiredValue":"Tee","description":"name: \"Classic tee\" → \"Tee\""}
+  {"field":"description","currentValue":"A plain cotton tee","desiredValue":"A plain tee","description":"Description text changed"}
+  {"field":"category","currentValue":"tyres","desiredValue":"accessories","description":"category: \"tyres\" → \"accessories\""}
+  {"field":"attributes.Color","currentValue":["Red","Blue"],"desiredValue":"Red","description":"Attribute \"Color\": [\"Red\",\"Blue\"] → \"Red\""}
+  {"field":"channels.default-channel","currentValue":{"channel":"default-channel","isPublished":false,"visibleInListings":true},"desiredValue":{"channel":"default-channel","isPublished":true,"visibleInListings":true},"description":"Channel \"default-channel\" settings changed"}
+  {"field":"channels.b2b","currentValue":{"channel":"b2b","isPublished":true},"description":"Channel \"b2b\" is only in Saleor (deploy does not remove it)"}
+  {"field":"variants.TEE-S.weight","currentValue":2,"desiredValue":1,"description":"Variant \"TEE-S\" weight changed"}
+  {"field":"variants.TEE-S.attributes","currentValue":{"Size":"Small"},"desiredValue":{"Size":"S"},"description":"Variant \"TEE-S\" attributes changed"}
+  {"field":"variants.TEE-S.channelListings","currentValue":[{"channel":"default-channel","price":12}],"desiredValue":[{"channel":"default-channel","price":10}],"description":"Variant \"TEE-S\" channel listings changed (~default-channel)"}
+  {"field":"variants.TEE-M","desiredValue":{"name":"M","sku":"TEE-M","weight":1,"attributes":{"Size":"M"},"channelListings":[{"channel":"default-channel","price":10}]},"description":"Variant \"TEE-M\" will be added"}
+  {"field":"variants.TEE-L","currentValue":{"name":"L","sku":"TEE-L","attributes":{"Size":"L"},"channelListings":[{"channel":"default-channel","price":11}]},"description":"Variant \"TEE-L\" is only in Saleor (deploy does not remove it)"}
+  {"field":"media","currentValue":[{"externalUrl":"https://example.com/tee-2.png"}],"desiredValue":[{"externalUrl":"https://example.com/tee.png","alt":"Tee"}],"description":"Product media entries changed"}
+DELETE Products "hoodie"
+
+===== introspect preview =====
+📊 Local Configuration Update Preview
+══════════════════════════════════════════════════
+
+The following changes will be made to your local configuration file
+when pulling the current state from Saleor:
+
+📦 Products
+──────────
+  🔄 Will be updated: "tee"
+    │ name: "Tee" → "Classic tee"
+    │ description: "A plain tee" → "A plain cotton tee"
+    │ category: "accessories" → "tyres"
+    │ attributes.Color: "Red" → "["Red","Blue"]"
+    │ channels.default-channel: "{"channel":"default-channel","isPublished":true,"visibleInListings":true}" → "{"channel":"default-channel","isPublished":false,"visibleInListings":true}"
+    │ channels.b2b: "undefined" → "{"channel":"b2b","isPublished":true}"
+    │ variants.TEE-S.weight: "1" → "2"
+    │ variants.TEE-S.attributes: "{"Size":"S"}" → "{"Size":"Small"}"
+    │ variants.TEE-S.channelListings: "[{"channel":"default-channel","price":10}]" → "[{"channel":"default-channel","price":12}]"
+    │ variants.TEE-M: "{"name":"M","sku":"TEE-M","weight":1,"attributes":{"Size":"M"},"channelListings":[{"channel":"default-channel","price":10}]}" → "undefined"
+    │ variants.TEE-L: "undefined" → "{"name":"L","sku":"TEE-L","attributes":{"Size":"L"},"channelListings":[{"channel":"default-channel","price":11}]}"
+    │ media: "[{"externalUrl":"https://example.com/tee.png","alt":"Tee"}]" → "[{"externalUrl":"https://example.com/tee-2.png"}]"
+
+  ➖ Will be removed: "hoodie" (not present on Saleor)
+
+
+══════════════════════════════════════════════════
+📈 Summary by type:
+  📦 Products: 2 changes
+
+Total changes: 2
+  🔄 1 modified, ➖ 1 removed
