@@ -13,4 +13,4 @@ export { productTypeComparator } from "./product-type-comparator";
 export { ShippingZoneComparator } from "./shipping-zone-comparator";
 export { shopComparator } from "./shop-comparator";
 export { taxClassComparator } from "./tax-class-comparator";
-export { WarehouseComparator } from "./warehouse-comparator";
+export { warehouseComparator } from "./warehouse-comparator";

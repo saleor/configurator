@@ -22,7 +22,7 @@ import {
   ShippingZoneComparator,
   shopComparator,
   taxClassComparator,
-  WarehouseComparator,
+  warehouseComparator,
 } from "./comparators";
 import { DiffComparisonError } from "./errors";
 import { IntrospectDiffFormatter } from "./formatters";
@@ -335,7 +335,7 @@ export class DiffService {
       ["collections", collectionComparator],
       ["menus", menuComparator],
       ["models", modelComparator],
-      ["warehouses", new WarehouseComparator() as EntityComparator],
+      ["warehouses", warehouseComparator],
       ["shippingZones", new ShippingZoneComparator() as EntityComparator],
       ["taxClasses", taxClassComparator],
     ]);
