@@ -2,9 +2,8 @@
 # Saleor Configurator GitHub Action Script
 # This script is executed by the composite action to run configurator commands
 
-set -e
-# Without pipefail, a failing command in a pipeline would be treated as a success.
-set -o pipefail
+# Every variable the script reads is set by action.yml, even when empty.
+set -euo pipefail
 
 # GitHub masks the token in logs only when it comes from a secret.
 if [[ -n "$SALEOR_TOKEN" ]]; then
