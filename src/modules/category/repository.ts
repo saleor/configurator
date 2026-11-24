@@ -31,6 +31,27 @@ const createCategoryMutation = graphql(`
 
 export type CategoryInput = VariablesOf<typeof createCategoryMutation>["input"];
 
+const updateCategoryMutation = graphql(`
+  mutation UpdateCategory($id: ID!, $input: CategoryInput!) {
+    categoryUpdate(id: $id, input: $input) {
+      category {
+        id
+        name
+        slug
+        level
+        parent {
+          id
+          slug
+        }
+      }
+      errors {
+        field
+        message
+      }
+    }
+  }
+`);
+
 const getCategoryByNameQuery = graphql(`
   query GetCategoryByName($name: String!) {
     categories(filter: { search: $name }, first: 100) {
@@ -106,6 +127,7 @@ export type Category = NonNullable<
 
 export interface CategoryOperations {
   createCategory(input: CategoryInput, parentId?: string): Promise<Category>;
+  updateCategory(id: string, input: CategoryInput): Promise<Category>;
   getCategoryByName(name: string): Promise<Category | null | undefined>;
   getCategoryBySlug(slug: string): Promise<Category | null | undefined>;
   getAllCategories(): Promise<Category[]>;
@@ -126,6 +148,15 @@ export class CategoryRepository implements CategoryOperations {
     this.categoryBySlugCache.set(category.slug, category);
     if (this.allCategoriesCache) {
       this.allCategoriesCache.push(category);
+    }
+  }
+
+  private replaceInCache(category: Category): void {
+    this.categoryBySlugCache.set(category.slug, category);
+    if (this.allCategoriesCache) {
+      this.allCategoriesCache = this.allCategoriesCache.map((cached) =>
+        cached.id === category.id ? category : cached
+      );
     }
   }
 
@@ -187,6 +218,34 @@ export class CategoryRepository implements CategoryOperations {
     this.addToCache(createdCategory);
 
     return createdCategory;
+  }
+
+  async updateCategory(id: string, input: CategoryInput): Promise<Category> {
+    logger.debug("Updating category", { id, name: input.name });
+
+    const result = await this.client.mutation(updateCategoryMutation, { id, input });
+
+    if (result.error) {
+      this.throwIfRateLimited(result.error, `Failed to update category ${input.name}`);
+      throw GraphQLError.fromCombinedError(`Failed to update category ${input.name}`, result.error);
+    }
+
+    const mutationResult = result.data?.categoryUpdate;
+    const dataErrors = mutationResult?.errors ?? [];
+
+    if (dataErrors.length > 0) {
+      throw GraphQLError.fromDataErrors(`Failed to update category ${input.name}`, dataErrors);
+    }
+
+    const updatedCategory = mutationResult?.category;
+    if (!updatedCategory) {
+      throw new GraphQLError(`Failed to update category ${input.name}: empty response`);
+    }
+
+    logger.info("Category updated", { category: updatedCategory });
+    this.replaceInCache(updatedCategory);
+
+    return updatedCategory;
   }
 
   async getCategoryByName(name: string): Promise<Category | null | undefined> {

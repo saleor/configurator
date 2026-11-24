@@ -3,7 +3,12 @@ import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import type { CategoryInput } from "../config/schema/schema";
 import type { MetadataService } from "../metadata/metadata-service";
-import { CategoryCreationError, CategoryError, CategoryFetchError } from "./errors";
+import {
+  CategoryCreationError,
+  CategoryError,
+  CategoryFetchError,
+  CategoryUpdateError,
+} from "./errors";
 import type {
   Category,
   CategoryOperations,
@@ -103,7 +108,24 @@ export class CategoryService {
     );
   }
 
-  /** Bootstraps a list of categories, creating any that don't exist yet. */
+  private async updateCategory(existing: Category, input: CategoryInput): Promise<Category> {
+    return ServiceErrorWrapper.wrapServiceCall(
+      "update category",
+      "category",
+      input.slug,
+      async () => {
+        logger.debug("Updating category", {
+          slug: input.slug,
+          from: existing.name,
+          to: input.name,
+        });
+        return this.repository.updateCategory(existing.id, { name: input.name });
+      },
+      CategoryUpdateError
+    );
+  }
+
+  /** Bootstraps a list of categories, creating missing ones and updating changed ones. */
   async bootstrapCategories(categories: CategoryInput[]) {
     logger.debug("Bootstrapping categories", { count: categories.length });
 
@@ -234,7 +256,14 @@ export class CategoryService {
   ): Promise<Category> {
     try {
       const existingCategory = await this.getExistingCategory(categoryInput);
-      const category = existingCategory ?? (await this.createCategory(categoryInput, parentId));
+      let category: Category;
+      if (!existingCategory) {
+        category = await this.createCategory(categoryInput, parentId);
+      } else if (existingCategory.name !== categoryInput.name) {
+        category = await this.updateCategory(existingCategory, categoryInput);
+      } else {
+        category = existingCategory;
+      }
 
       await this.metadataService.syncMetadata(
         category.id,

@@ -7,6 +7,7 @@ import type { CategoryOperations } from "./repository";
 // Mock category repository
 const mockRepository: CategoryOperations = {
   createCategory: vi.fn(),
+  updateCategory: vi.fn(),
   getCategoryByName: vi.fn(),
   getCategoryBySlug: vi.fn(),
   getAllCategories: vi.fn(),
@@ -383,6 +384,54 @@ describe("CategoryService - Optimized Processing", () => {
 
       // Should not call createCategory for existing category
       expect(mockCreateCategory).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("existing categories", () => {
+    const existingCategory = {
+      id: "existing-id",
+      name: "Old Name",
+      slug: "existing",
+      level: 0,
+      parent: null,
+    };
+
+    beforeEach(() => {
+      vi.mocked(mockRepository.getAllCategories).mockResolvedValue([existingCategory]);
+      vi.mocked(mockRepository.getCategoryBySlug).mockImplementation(async (slug) =>
+        slug === "existing" ? existingCategory : null
+      );
+      vi.mocked(mockRepository.updateCategory).mockImplementation(async (id, input) => ({
+        ...existingCategory,
+        id,
+        name: input.name ?? existingCategory.name,
+      }));
+    });
+
+    it.each([
+      [
+        "bootstrapCategories",
+        (input: CategoryInput[]) => categoryService.bootstrapCategories(input),
+      ],
+      [
+        "bootstrapCategoriesOptimized",
+        (input: CategoryInput[]) => categoryService.bootstrapCategoriesOptimized(input),
+      ],
+    ])("%s renames a category whose name changed", async (_, bootstrap) => {
+      const [renamed] = await bootstrap([{ name: "New Name", slug: "existing" }]);
+
+      expect(mockRepository.updateCategory).toHaveBeenCalledWith("existing-id", {
+        name: "New Name",
+      });
+      expect(mockRepository.createCategory).not.toHaveBeenCalled();
+      expect(renamed.name).toBe("New Name");
+    });
+
+    it("leaves an unchanged category alone", async () => {
+      await categoryService.bootstrapCategories([{ name: "Old Name", slug: "existing" }]);
+
+      expect(mockRepository.updateCategory).not.toHaveBeenCalled();
+      expect(mockRepository.createCategory).not.toHaveBeenCalled();
     });
   });
 });

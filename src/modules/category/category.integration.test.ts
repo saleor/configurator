@@ -77,6 +77,12 @@ describe("Category Round-Trip Integrity", () => {
         deployedCategories.push(category);
         return Promise.resolve(category);
       }),
+      updateCategory: vi.fn().mockImplementation((id, input) => {
+        const category = deployedCategories.find((c) => c.id === id);
+        if (!category) throw new Error(`No category ${id}`);
+        category.name = input.name;
+        return Promise.resolve(category);
+      }),
       getCategoryByName: vi.fn().mockImplementation((name) => {
         return Promise.resolve(deployedCategories.find((c) => c.name === name));
       }),
