@@ -79,21 +79,8 @@ export class ChannelService {
     const existingChannel = await this.getExistingChannel(input.slug);
 
     if (existingChannel) {
-      // Check if this is an update input (has settings)
-      if ("settings" in input) {
-        logger.debug("Updating existing channel", {
-          id: existingChannel.id,
-          name: input.name,
-        });
-        return this.updateChannel(existingChannel.id, input as ChannelUpdateInput);
-      } else {
-        // It's a create input but channel exists, return existing
-        logger.debug("Channel already exists, returning existing", {
-          id: existingChannel.id,
-          name: input.name,
-        });
-        return existingChannel;
-      }
+      logger.debug("Updating existing channel", { id: existingChannel.id, name: input.name });
+      return this.updateChannel(existingChannel.id, input);
     }
 
     // Create new channel with minimal input
