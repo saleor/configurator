@@ -54,7 +54,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Preview Production Changes
-        uses: saleor/configurator/action@v1
+        uses: saleor/configurator/action@v3.24.0
         id: diff
         with:
           command: diff
@@ -103,7 +103,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Deploy to Production
-        uses: saleor/configurator/action@v1
+        uses: saleor/configurator/action@v3.24.0
         id: deploy
         with:
           command: deploy
@@ -145,7 +145,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Preview (Dry Run)
-        uses: saleor/configurator/action@v1
+        uses: saleor/configurator/action@v3.24.0
         with:
           command: deploy
           saleor-url: ${{ secrets.PROD_SALEOR_URL }}

@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Configuration Diff
-        uses: saleor/configurator/action@v1
+        uses: saleor/configurator/action@v3.24.0
         id: diff
         with:
           command: diff

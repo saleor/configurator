@@ -27,10 +27,6 @@ inputs:
     description: 'Node.js version to use'
     required: false
     default: '20'
-  configurator-version:
-    description: 'Version (or npm dist-tag) of @saleor/configurator to install, e.g. 3.23.2'
-    required: false
-    default: 'latest'
   report-path:
     description: 'Path to save deployment report (deploy command only)'
     required: false
@@ -117,9 +113,11 @@ runs:
 
     - name: Install Saleor Configurator
       shell: bash
-      env:
-        CONFIGURATOR_VERSION: ${{ inputs.configurator-version }}
-      run: npm install -g "@saleor/configurator@${CONFIGURATOR_VERSION:-latest}"
+      # The CLI version is the one released with this action's tag, so a tag
+      # always installs the same CLI.
+      run: |
+        version=$(node -p 'require(process.argv[1]).version' "$GITHUB_ACTION_PATH/../package.json")
+        npm install -g "@saleor/configurator@${version}"
 
     - name: Run Configurator
       id: run-configurator

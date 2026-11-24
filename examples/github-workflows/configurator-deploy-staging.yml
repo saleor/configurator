@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to Staging
-        uses: saleor/configurator/action@v1
+        uses: saleor/configurator/action@v3.24.0
         id: deploy
         with:
           command: deploy
