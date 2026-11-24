@@ -1,109 +1,72 @@
 import type { FullAttribute } from "../../../modules/config/schema/attribute.schema";
-import type { DiffChange, DiffResult, EntityType } from "../types";
-import { BaseEntityComparator, type ComparatorOptions } from "./base-comparator";
+import type { EntityType } from "../types";
+import { type EntityComparator, entityComparator } from "./entity-comparator";
 
-type AttributeEntity = FullAttribute;
+const isReferenceType = (inputType: string) =>
+  inputType === "REFERENCE" || inputType === "SINGLE_REFERENCE";
 
-export class AttributesComparator extends BaseEntityComparator<
-  readonly AttributeEntity[],
-  readonly AttributeEntity[],
-  AttributeEntity
-> {
-  protected readonly entityType: EntityType;
+const isChoiceType = (inputType: string) =>
+  ["DROPDOWN", "MULTISELECT", "SWATCH"].includes(inputType);
 
-  constructor(entityType: EntityType = "Product Attributes") {
-    super();
-    this.entityType = entityType;
+function valueNames(attribute: FullAttribute): string[] {
+  if ("values" in attribute && Array.isArray(attribute.values)) {
+    return attribute.values.map((value) => value.name);
   }
+  return [];
+}
 
-  compare(local: readonly AttributeEntity[], remote: readonly AttributeEntity[]) {
-    const results: DiffResult[] = [];
-    const l = this.deduplicateEntities(local);
-    const r = this.deduplicateEntities(remote);
-    this.validateUniqueIdentifiers(l);
-    this.validateUniqueIdentifiers(r);
+/** Compares attributes of one kind (product, content or customer) by name. */
+export function attributesComparator(
+  entityType: EntityType = "Product Attributes"
+): EntityComparator {
+  return entityComparator<FullAttribute>({
+    entityType,
 
-    const rMap = this.createEntityMap(r);
-    const lMap = this.createEntityMap(l);
+    identify: (attribute) => attribute.name,
 
-    for (const a of l) {
-      const existing = rMap.get(this.getEntityName(a));
-      if (!existing) {
-        results.push(this.createCreateResult(a));
-      } else {
-        const changes = this.compareEntityFields(a, existing);
-        if (changes.length > 0) results.push(this.createUpdateResult(a, existing, changes));
+    compareFields(changes, desired, current) {
+      changes.value("inputType", desired.inputType, current.inputType);
+
+      if (isReferenceType(desired.inputType) || isReferenceType(current.inputType)) {
+        const desiredTarget =
+          isReferenceType(desired.inputType) && "entityType" in desired
+            ? desired.entityType
+            : undefined;
+        const currentTarget =
+          isReferenceType(current.inputType) && "entityType" in current
+            ? current.entityType
+            : undefined;
+        changes.value("entityType", desiredTarget, currentTarget);
       }
-    }
-    for (const a of r) {
-      if (!lMap.has(this.getEntityName(a))) results.push(this.createDeleteResult(a));
-    }
-    return results;
-  }
 
-  protected getEntityName(entity: AttributeEntity): string {
-    return entity.name;
-  }
-
-  protected compareEntityFields(
-    local: AttributeEntity,
-    remote: AttributeEntity,
-    _options?: ComparatorOptions
-  ): DiffChange[] {
-    const changes: DiffChange[] = [];
-    if (local.inputType !== remote.inputType) {
-      changes.push(this.createFieldChange("inputType", remote.inputType, local.inputType));
-    }
-    // reference entityType
-    const isRefType = (t: string) => t === "REFERENCE" || t === "SINGLE_REFERENCE";
-    if (isRefType(local.inputType) || isRefType(remote.inputType)) {
-      const l = isRefType(local.inputType) && "entityType" in local ? local.entityType : undefined;
-      const r =
-        isRefType(remote.inputType) && "entityType" in remote ? remote.entityType : undefined;
-      if (l !== r) {
-        changes.push(this.createFieldChange("entityType", r, l));
-      }
-    }
-    // values for choice-based types (granular add/remove, grouped by formatter)
-    const isChoice = (t: string) => ["DROPDOWN", "MULTISELECT", "SWATCH"].includes(t);
-    const extractValues = (attribute: AttributeEntity): string[] => {
-      if ("values" in attribute && Array.isArray(attribute.values)) {
-        return attribute.values.map((value) => value.name);
-      }
-      return [];
-    };
-    if (isChoice(local.inputType) || isChoice(remote.inputType)) {
-      const lvs = extractValues(local);
-      const rvs = extractValues(remote);
-      const lSet = new Set(lvs);
-      const rSet = new Set(rvs);
-      // additions
-      for (const name of lSet) {
-        if (!rSet.has(name)) {
-          changes.push(
-            this.createFieldChange(
-              `attributes.${local.name}.values`,
-              null,
-              name,
-              `Attribute "${local.name}" value "${name}" added`
-            )
-          );
+      // Choice values are listed one by one; the deploy preview groups them by field.
+      if (isChoiceType(desired.inputType) || isChoiceType(current.inputType)) {
+        const desiredValues = new Set(valueNames(desired));
+        const currentValues = new Set(valueNames(current));
+        const field = `attributes.${desired.name}.values`;
+        for (const name of desiredValues) {
+          if (!currentValues.has(name)) {
+            changes.record(["values", name], {
+              field,
+              kind: "added",
+              current: null,
+              desired: name,
+              description: `Attribute "${desired.name}" value "${name}" added`,
+            });
+          }
+        }
+        for (const name of currentValues) {
+          if (!desiredValues.has(name)) {
+            changes.record(["values", name], {
+              field,
+              kind: "removed",
+              current: name,
+              desired: null,
+              description: `Attribute "${desired.name}" value "${name}" removed`,
+            });
+          }
         }
       }
-      // removals
-      for (const name of rSet) {
-        if (!lSet.has(name)) {
-          changes.push(
-            this.createFieldChange(
-              `attributes.${local.name}.values`,
-              name,
-              null,
-              `Attribute "${local.name}" value "${name}" removed`
-            )
-          );
-        }
-      }
-    }
-    return changes;
-  }
+    },
+  });
 }

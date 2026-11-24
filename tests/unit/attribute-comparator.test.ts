@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { AttributesComparator } from "../../src/core/diff/comparators/attributes-comparator";
+import { attributesComparator } from "../../src/core/diff/comparators/attributes-comparator";
 import type { DiffResult } from "../../src/core/diff/types";
 import type { FullAttribute } from "../../src/modules/config/schema/attribute.schema";
 
 describe("AttributesComparator with product and content attributes", () => {
   describe("Product Attributes Comparator", () => {
-    const comparator = new AttributesComparator("Product Attributes");
+    const comparator = attributesComparator("Product Attributes");
 
     it("uses 'Product Attributes' as entity type", () => {
       const local: FullAttribute[] = [
@@ -63,7 +63,7 @@ describe("AttributesComparator with product and content attributes", () => {
   });
 
   describe("Content Attributes Comparator", () => {
-    const comparator = new AttributesComparator("Content Attributes");
+    const comparator = attributesComparator("Content Attributes");
 
     it("uses 'Content Attributes' as entity type", () => {
       const local: FullAttribute[] = [
@@ -121,7 +121,7 @@ describe("AttributesComparator with product and content attributes", () => {
   });
 
   describe("Default Attributes Comparator", () => {
-    const comparator = new AttributesComparator();
+    const comparator = attributesComparator();
 
     it("uses 'Product Attributes' as default entity type", () => {
       const local: FullAttribute[] = [

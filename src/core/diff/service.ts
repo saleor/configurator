@@ -7,7 +7,7 @@ import type { MetadataKeyFilter } from "../../modules/metadata/metadata";
 import { ConfigurationLoadError, RemoteConfigurationError } from "../errors/configuration-errors";
 import type { ServiceContainer } from "../service-container";
 import {
-  AttributesComparator,
+  attributesComparator,
   CategoryComparator,
   CollectionComparator,
   type ComparatorOptions,
@@ -323,12 +323,12 @@ export class DiffService {
     return new Map([
       ["shop", shopComparator],
       ["channels", channelComparator],
-      ["productAttributes", new AttributesComparator("Product Attributes") as EntityComparator],
-      ["contentAttributes", new AttributesComparator("Content Attributes") as EntityComparator],
+      ["productAttributes", attributesComparator("Product Attributes")],
+      ["contentAttributes", attributesComparator("Content Attributes")],
       ["productTypes", new ProductTypeComparator() as EntityComparator],
       ["pageTypes", new PageTypeComparator() as EntityComparator],
       ["modelTypes", new PageTypeComparator() as EntityComparator], // ModelTypes use PageType comparator
-      ["customerAttributes", new AttributesComparator("Customer Attributes") as EntityComparator],
+      ["customerAttributes", attributesComparator("Customer Attributes")],
       ["customerTypes", new CustomerTypeComparator() as EntityComparator],
       ["categories", new CategoryComparator() as EntityComparator],
       ["products", new ProductComparator() as EntityComparator],
