@@ -7,12 +7,6 @@ set -e
 # command would be treated as a success.
 set -o pipefail
 
-# Returns success when `configurator <command> --help` lists the given flag as a
-# boolean switch (i.e. not followed by a `<value>` placeholder).
-supports_boolean_flag() {
-  configurator "$1" --help 2>&1 | grep -Eq -- "^[[:space:]]*--$2([[:space:]]+[^<[:space:]]|[[:space:]]*\$)"
-}
-
 # Prints "total creates updates deletes" (tab-separated) from a CLI JSON
 # envelope ({command, version, exitCode, result, logs, errors}). Handles diff
 # results (result.summary.totalChanges/creates/updates/deletes), deploy plan
@@ -109,19 +103,16 @@ if [[ "$COMMAND" == "diff" ]]; then
 fi
 
 if [[ "$VERBOSE" == "true" ]]; then
-  # Verbose logging works for every command via LOG_LEVEL. The --verbose flag is
-  # only passed where the installed CLI accepts it as a boolean switch (it is
-  # missing on diff and expects a value on deploy in some CLI versions).
   export LOG_LEVEL="${LOG_LEVEL:-debug}"
-  if supports_boolean_flag "$COMMAND" verbose; then
+  # Only deploy has a --verbose flag (detailed error messages).
+  if [[ "$COMMAND" == "deploy" ]]; then
     ARGS+=("--verbose")
   fi
 fi
 
-# The CLI switches to JSON output automatically when stdout is not a TTY (as on
-# GitHub runners). Unless JSON was requested, force human-readable output so the
-# log and the PR comment markdown are not replaced by a JSON envelope.
-if [[ "$JSON_OUTPUT" != "true" ]] && supports_boolean_flag "$COMMAND" text; then
+# The CLI prints JSON when stdout is not a TTY, as on GitHub runners. Unless
+# JSON was requested, keep the log and the PR comment human-readable.
+if [[ "$JSON_OUTPUT" != "true" ]]; then
   ARGS+=("--text")
 fi
 
