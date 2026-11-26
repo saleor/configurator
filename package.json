@@ -39,7 +39,7 @@
     "diff": "tsx src/cli/main.ts diff",
     "start": "tsx src/cli/main.ts start",
     "fetch-schema": "tsx src/lib/graphql/fetch-schema.ts",
-    "copy-recipes": "cp -r src/recipes dist/recipes",
+    "copy-recipes": "rm -rf dist/recipes && cp -R src/recipes dist/recipes",
     "build": "tsup src/cli/main.ts --format esm --target node20 --clean --shims && pnpm build:library && pnpm copy-recipes",
     "prepublishOnly": "pnpm schema:check && pnpm build",
     "generate-json-schema": "node --import tsx scripts/generate-json-schema.ts",
