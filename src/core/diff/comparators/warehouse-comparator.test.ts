@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { WarehouseInput } from "../../../modules/config/schema/schema";
-import type { Warehouse } from "../../../modules/warehouse/repository";
 import { warehouseComparator } from "./warehouse-comparator";
 
 describe("WarehouseComparator", () => {
@@ -26,14 +25,12 @@ describe("WarehouseComparator", () => {
     shippingZones: ["zone-1", "zone-2"],
   };
 
-  const mockRemoteWarehouse: Warehouse = {
-    id: "1",
-    metadata: [],
+  // Saleor's warehouses reach comparators as introspected config.
+  const mockRemoteWarehouse: WarehouseInput = {
     name: "Main Warehouse",
     slug: "main-warehouse",
     email: "warehouse@example.com",
     isPrivate: false,
-    companyName: "Acme Corp",
     clickAndCollectOption: "DISABLED",
     address: {
       streetAddress1: "123 Main St",
@@ -41,14 +38,12 @@ describe("WarehouseComparator", () => {
       city: "New York",
       cityArea: "Manhattan",
       postalCode: "10001",
-      country: { code: "US", country: "United States" },
+      country: "US",
       countryArea: "NY",
       companyName: "Acme Corp",
       phone: "+1234567890",
     },
-    shippingZones: {
-      edges: [{ node: { id: "z1", name: "zone-1" } }, { node: { id: "z2", name: "zone-2" } }],
-    },
+    shippingZones: ["zone-1", "zone-2"],
   };
 
   describe("compare", () => {
@@ -63,7 +58,7 @@ describe("WarehouseComparator", () => {
 
     it("should detect warehouse to create", () => {
       const local = [mockLocalWarehouse];
-      const remote: Warehouse[] = [];
+      const remote: WarehouseInput[] = [];
 
       const results = comparator.compare(local, remote);
 
@@ -243,9 +238,10 @@ describe("WarehouseComparator", () => {
   });
 
   describe("metadata", () => {
-    // Remote warehouses reach comparators as introspected config, with metadata as a key → value map
-    const remoteWithMetadata = (metadata: Record<string, string>) =>
-      ({ ...mockLocalWarehouse, metadata }) as unknown as Warehouse;
+    const remoteWithMetadata = (metadata: Record<string, string>): WarehouseInput => ({
+      ...mockLocalWarehouse,
+      metadata,
+    });
 
     it("reports changed and added keys listed in config", () => {
       const local = [{ ...mockLocalWarehouse, metadata: { region: "eu", tier: "gold" } }];

@@ -1,8 +1,5 @@
 import type { ModelInput } from "../../../modules/config/schema/schema";
-import type { Page } from "../../../modules/model/repository";
 import { entityComparator } from "./entity-comparator";
-
-type ModelEntity = ModelInput | Page;
 
 function normalizeAttributeValue(value: unknown): unknown {
   if (value === null || value === undefined) return undefined;
@@ -10,35 +7,8 @@ function normalizeAttributeValue(value: unknown): unknown {
   return value;
 }
 
-function attributesOf(entity: ModelEntity): Record<string, unknown> {
-  if ("attributes" in entity && entity.attributes) {
-    // Local input: attributes are already a key-value record.
-    return entity.attributes as Record<string, unknown>;
-  }
-
-  // Remote page: extract values from the attribute structure.
-  const page = entity as Page;
-  const attributes: Record<string, unknown> = {};
-  for (const attr of page.attributes ?? []) {
-    const slug = attr.attribute.slug;
-    if (slug && attr.values && attr.values.length > 0) {
-      attributes[slug] = attr.values
-        .map((v) => v.name || v.slug || v.value || v.plainText || v.boolean || v.date || v.dateTime)
-        .filter(
-          (value): value is string | number | boolean => value !== null && value !== undefined
-        );
-    }
-  }
-  return attributes;
-}
-
-function modelTypeName(entity: ModelEntity): string | undefined {
-  if ("modelType" in entity) return entity.modelType;
-  return (entity as Page).pageType?.name;
-}
-
 /** Compares models (Saleor pages) by slug. */
-export const modelComparator = entityComparator<ModelEntity>({
+export const modelComparator = entityComparator<ModelInput>({
   entityType: "Models",
 
   identify(model) {
@@ -58,14 +28,14 @@ export const modelComparator = entityComparator<ModelEntity>({
       current.publishedAt || undefined
     );
 
-    const desiredType = modelTypeName(desired);
-    const currentType = modelTypeName(current);
+    const desiredType = desired.modelType;
+    const currentType = current.modelType;
     if (desiredType !== currentType) {
       changes.record(["modelType"], { current: currentType || null, desired: desiredType || null });
     }
 
-    const desiredAttributes = attributesOf(desired);
-    const currentAttributes = attributesOf(current);
+    const desiredAttributes = desired.attributes ?? {};
+    const currentAttributes = current.attributes ?? {};
     const keys = new Set([...Object.keys(desiredAttributes), ...Object.keys(currentAttributes)]);
     for (const key of keys) {
       const desiredValue = normalizeAttributeValue(desiredAttributes[key]);

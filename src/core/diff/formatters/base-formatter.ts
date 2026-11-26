@@ -33,6 +33,7 @@ export abstract class BaseDiffFormatter {
       "Customer Attributes",
       "Product Types",
       "Page Types",
+      "Model Types",
       "Models",
       "Customer Types",
       "Categories",

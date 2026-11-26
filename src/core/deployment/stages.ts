@@ -35,6 +35,7 @@ import type {
   SaleorConfig,
   TaxConfigurationInput,
 } from "../../modules/config/schema/schema";
+import type { EntityType } from "../diff/types";
 import { StageAggregateError } from "./errors";
 
 import type { DeploymentContext, DeploymentStage } from "./types";
@@ -486,7 +487,7 @@ export const attributesStage: DeploymentStage = {
     }
   },
   skip(context) {
-    const attributeEntityTypes = [
+    const attributeEntityTypes: readonly EntityType[] = [
       "Product Attributes",
       "Content Attributes",
       "Customer Attributes",
@@ -499,7 +500,7 @@ export const attributesStage: DeploymentStage = {
       return false;
     }
 
-    const downstreamEntityTypes = [
+    const downstreamEntityTypes: readonly EntityType[] = [
       "Product Types",
       "Page Types",
       "Model Types",
@@ -680,7 +681,7 @@ const modelTypesStage: DeploymentStage = {
   },
   skip(context) {
     return context.summary.results.every(
-      (r) => r.entityType !== "Models" && r.entityType !== "Page Types"
+      (r) => r.entityType !== "Models" && r.entityType !== "Model Types"
     );
   },
 };

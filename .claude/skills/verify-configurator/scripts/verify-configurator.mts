@@ -173,6 +173,34 @@ function parseFlags(argv: string[]) {
   return { flags, positional };
 }
 
+/**
+ * Splits `cli` and `record` arguments: the helper's own flags come first, and the CLI's
+ * arguments start after `--` or at the first word that isn't a flag.
+ */
+function splitHelperArgs(argv: string[], valueFlags: readonly string[]) {
+  const flags: Record<string, string | true> = {};
+  let i = 0;
+  for (; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--") {
+      i++;
+      break;
+    }
+    if (!arg.startsWith("--")) break;
+    const [key, inline] = arg.slice(2).split(/=(.*)/s);
+    if (key === "help") {
+      flags.help = true;
+      continue;
+    }
+    if (!valueFlags.includes(key))
+      die(`Unknown flag --${key}. Pass the CLI's own flags after \`--\`.`);
+    const value = inline ?? argv[++i];
+    if (value === undefined) die(`--${key} needs a value.`);
+    flags[key] = value;
+  }
+  return { flags, args: argv.slice(i) };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Target (V1) and credentials.
 
@@ -1238,18 +1266,21 @@ async function cmdDoctor() {
   if (lines.some((l) => l.startsWith("FAIL"))) process.exit(1);
 }
 
+/** The CLI build to run. A run started with `--from` serves two builds, so it must name one. */
+function pickServed(state: RunState, as: string | true | undefined): Served {
+  if (as === "checkout") return state.checkout;
+  if (as === "from") return state.from ?? die("This run serves only the checkout; drop --as from.");
+  if (as !== undefined) die("--as takes checkout or from.");
+  if (state.from)
+    die(`This run serves the checkout and ${state.from.label}. Pass --as checkout or --as from.`);
+  return state.checkout;
+}
+
 async function cmdCli(argv: string[]) {
+  const { flags, args } = splitHelperArgs(argv, ["as"]);
+  if (flags.help) return usage(0);
   const state = currentState();
-  const { flags, positional } = parseFlags(argv.slice(0, Math.max(argv.indexOf("--"), 0)));
-  const args = argv.includes("--") ? argv.slice(argv.indexOf("--") + 1) : argv;
-  const served =
-    flags.as === "checkout"
-      ? state.checkout
-      : flags.as === "release"
-        ? (state.from ?? die("No release is served in this run."))
-        : state.served;
-  void positional;
-  const result = runCli(state, args, served);
+  const result = runCli(state, args, pickServed(state, flags.as));
   console.log(result.transcript);
   log(`transcript: ${result.file}`);
   process.exit(result.status);
@@ -1281,24 +1312,43 @@ function vhsString(value: string) {
   return `${quote}${value}${quote}`;
 }
 
+/** Quotes an argument for bash unless it is safe bare. */
+const shellQuote = (arg: string) =>
+  /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replace(/'/g, `'\\''`)}'`;
+
 async function cmdRecord(argv: string[]) {
+  const { flags, args } = splitHelperArgs(argv, [
+    "name",
+    "keys",
+    "tape",
+    "wait",
+    "feature",
+    "as",
+    "line",
+  ]);
+  if (flags.help) return usage(0);
   const state = currentState();
-  const { flags } = parseFlags(argv.slice(0, Math.max(argv.indexOf("--"), 0)));
+  const served = pickServed(state, flags.as);
   const name = typeof flags.name === "string" ? flags.name : "terminal";
-  const args = argv.includes("--") ? argv.slice(argv.indexOf("--") + 1) : [];
+  if (args.length && typeof flags.line === "string")
+    die("Pass either CLI arguments or --line, not both.");
   if (sh("which", ["vhs"], { allowFail: true }).status !== 0)
     die("vhs is not installed (brew install vhs). Interactive scenarios are blocked without it.");
   const shim = path.join(state.runDir, "shim");
   fs.mkdirSync(shim, { recursive: true });
   fs.writeFileSync(
     path.join(shim, "configurator"),
-    `#!/usr/bin/env bash\nexec node ${vhsString(state.served.cli)} "$@"\n`,
+    `#!/usr/bin/env bash\nexec node ${vhsString(served.cli)} "$@"\n`,
     { mode: 0o755 }
   );
-  const remote = isRemote(args);
-  const typed = args.length
-    ? `configurator ${args.join(" ")}${remote ? " --url $SALEOR_URL --token $SALEOR_TOKEN" : ""}`
-    : "";
+  // The CLI reads SALEOR_URL and SALEOR_TOKEN from the tape's environment, so nothing is appended
+  // and --line can pipe the output.
+  const typed =
+    typeof flags.line === "string"
+      ? flags.line
+      : args.length
+        ? `configurator ${args.map(shellQuote).join(" ")}`
+        : "";
   const keys = typeof flags.keys === "string" ? flags.keys.split(",").map((k) => k.trim()) : [];
   const tapeBody = typeof flags.tape === "string" ? fs.readFileSync(flags.tape, "utf8") : "";
   const stamp = `${timestamp()}-${shortSha()}`;
@@ -1361,7 +1411,7 @@ async function cmdRecord(argv: string[]) {
     index.push({
       file: `${out}${ext}`,
       command: typed,
-      served: state.served.label,
+      served: served.label,
       target: `${state.target.kind}:${state.target.host}`,
       revision: state.checkoutSha,
       at: new Date().toISOString(),
@@ -1457,20 +1507,31 @@ const USAGE = `verify-configurator <command>
                                   lock the host, build the checkout, seed a run-prefixed store slice.
                                   --from serves the newest npm release (or npm:<v>, <semver>, a git ref)
   doctor                          read-only health checks
-  cli [--as checkout|release] -- <args>
-                                  run the served CLI; --url/--token are injected
+  cli [--as checkout|from] [--] <args>
+                                  run the CLI; --url/--token are injected. After up --from, --as is required
   upgrade                         old release's file → checkout validate, diff, deploy, introspect
   gql '<query>' [--vars json] [--feature id]
                                   independent read with the app token
-  record --name <n> [--keys a,b] [--tape file] [--wait 8s] [--feature id] -- <args>
-                                  record the CLI in a real terminal (vhs): gif + png
+  record --name <n> [--as checkout|from] [--keys a,b] [--tape file] [--wait 8s] [--feature id]
+         [--line '<shell line>' | [--] <args>]
+                                  record the CLI in a real terminal (vhs): gif + png.
+                                  --line types a shell line as is, e.g. 'configurator diff | grep -v x'
+                                  (the URL and token come from the environment)
   scenario <id> <passed|failed|blocked> --feature <f> [--note] [--evidence a,b]
   report                          scenarios, evidence, stale checks, unexercised features
   down                            remove run-prefixed objects and release the lock; evidence stays`;
 
+function usage(code: number): never {
+  console.log(USAGE);
+  process.exit(code);
+}
+
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
+  if (command === "cli") return cmdCli(rest);
+  if (command === "record") return cmdRecord(rest);
   const { flags } = parseFlags(rest);
+  if (flags.help) return usage(0);
   switch (command) {
     case "login":
       return cmdLogin(Boolean(flags.check));
@@ -1478,14 +1539,10 @@ async function main() {
       return cmdUp(flags);
     case "doctor":
       return cmdDoctor();
-    case "cli":
-      return cmdCli(rest);
     case "upgrade":
       return cmdUpgrade();
     case "gql":
       return cmdGql(rest);
-    case "record":
-      return cmdRecord(rest);
     case "scenario":
       return cmdScenario(rest);
     case "report":
@@ -1493,8 +1550,7 @@ async function main() {
     case "down":
       return cmdDown();
     default:
-      console.log(USAGE);
-      process.exit(command ? 1 : 0);
+      return usage(command ? 1 : 0);
   }
 }
 
