@@ -248,6 +248,17 @@ const getProductsBySlugsBulkQuery = graphql(`
               value
             }
           }
+          variants {
+            id
+            sku
+            channelListings {
+              id
+              channel {
+                id
+                slug
+              }
+            }
+          }
         }
       }
     }
@@ -576,10 +587,12 @@ const productVariantBulkCreateMutation = graphql(`
 
 const productVariantBulkUpdateMutation = graphql(`
   mutation ProductVariantBulkUpdate(
+    $product: ID!
     $variants: [ProductVariantBulkUpdateInput!]!
     $errorPolicy: ErrorPolicyEnum
   ) {
     productVariantBulkUpdate(
+      product: $product
       variants: $variants
       errorPolicy: $errorPolicy
     ) {
@@ -696,9 +709,20 @@ const productVariantChannelListingUpdateMutation = graphql(`
   }
 `);
 
+export type ExistingProductVariantSummary = {
+  readonly id: string;
+  readonly sku?: string | null;
+  readonly channelListings?: ReadonlyArray<{
+    readonly id: string;
+    readonly channel: { readonly id: string; readonly slug?: string | null };
+  }> | null;
+};
+
 export type Product = NonNullable<
   NonNullable<ResultOf<typeof getProductByNameQuery>["products"]>["edges"]
->[number]["node"];
+>[number]["node"] & {
+  readonly variants?: readonly ExistingProductVariantSummary[] | null;
+};
 
 export type ProductVariant = NonNullable<
   NonNullable<

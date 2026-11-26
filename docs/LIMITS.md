@@ -1,6 +1,6 @@
 # Limits
 
-Fixed numbers that change what Configurator reads, how fast it sends requests, and how much it prints. Only the request pacing values can be changed, through environment variables.
+Fixed numbers that change what Configurator reads, how fast it sends requests, and how much it prints. Only the request pacing values and the product bulk-create batch size can be changed, through environment variables.
 
 ## Reading from Saleor
 
@@ -59,6 +59,29 @@ Queries are retried. Mutations are retried only when repeating them is safe: upd
 | Shipping zones (threshold 3) | Together | One at a time, 500 ms apart |
 
 Product types, collections, warehouses and customer types are sent in batches of 10, 500 ms apart. Each shipping method channel listing update is followed by a 200 ms pause.
+
+### Products
+
+New products are sent in fixed batches of 25 per `productBulkCreate` request, in `config.yml` order.
+
+| Setting | Default | Environment variable |
+|---|---|---|
+| New products per `productBulkCreate` batch | 25 | `SALEOR_PRODUCT_BATCH_SIZE` |
+| Variants per `productVariantBulkUpdate` / `productVariantBulkCreate` batch | 25 | `SALEOR_PRODUCT_BATCH_SIZE` |
+| Slug check interval after a 504 / network error | 5,000 ms | — |
+| Slug check deadline after a 504 / network error | 60,000 ms | — |
+
+Saleor Cloud's gateway cuts off requests after 30 seconds with a `504 Gateway Time-out`, while Saleor keeps running and commits the batch's single database transaction in the background. When a batch hits a 504 or network error, `deploy` does not immediately resend: it polls the batch's slugs until they appear or the 60-second deadline passes, and resends only missing products once. If a deploy still finishes with failures, re-running `deploy` is safe and resumes from what is missing.
+
+Existing products still take one `productUpdate` request each (Saleor has no `productBulkUpdate`), while their variants and variant channel listings are synced in batches via `productVariantBulkUpdate` and `productVariantBulkCreate`.
+
+Fast production stores with light products can raise `SALEOR_PRODUCT_BATCH_SIZE`, though products with many variants or slow external image hosts (Saleor probes every image URL synchronously) can still push larger batches past 30 seconds.
+
+### Large catalogs and scope
+
+Saleor does the same server work per product regardless of batch size, so importing a few thousand products takes tens of minutes (often 10–35 minutes depending on store tier, variants, and image hosts).
+
+Configurator fits store structure (channels, attributes, product types, categories), catalogs of a few hundred products, and occasional one-off imports of a few thousand products (ideally run unattended in CI so you do not need to keep a local terminal open). Catalogs of thousands of products that change daily (such as supplier stock or price feeds) belong in a dedicated sync or Saleor app rather than `config.yml`.
 
 ## Output
 
