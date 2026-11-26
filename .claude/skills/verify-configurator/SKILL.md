@@ -44,7 +44,7 @@ Follow [`references/verification-rules.md`](references/verification-rules.md) on
 
 1. `login --check`. If it exits 2, run `login` in the background and ask the user for that one step: sign in to the sandbox Dashboard in the helper's Chrome window.
 2. `up` builds the checkout, records identity (app permissions, Saleor version, the targeted schema), and deploys the seed (`work/seed.yml`) through the served CLI. Make code changes before `up`; `doctor` fails on a stale build.
-3. `up --from` when `doctor` says the upgrade check is required (V6), or `up --from <base ref>` to show a bug red first (V12). With `--from`, the seed is deployed by the old CLI, so the store holds what that release writes.
+3. `up --from` when `doctor` says the upgrade check is required (V6), or `up --from <base ref>` to show a bug red first (V12). With `--from`, the seed is deployed by the old CLI, so the store holds what that release writes. Such a run serves two builds, so `cli` and `record` need `--as checkout` or `--as from`.
 
 ## Doctor
 
@@ -52,8 +52,8 @@ Read-only. Checks the token, the build against HEAD and source changes (V4), the
 
 ## Drive
 
-- **Non-interactive:** `cli -- <command> [flags]` runs in `work/` with `CI=true`, like a pipe or GitHub Action. In this mode the CLI prints one JSON envelope (`command`, `version`, `exitCode`, `result`, `logs`): a clean diff is `result.summary.totalChanges: 0`, an idempotent deploy is `result.status: "no-changes"`, and warnings live in `logs`. The JSON lists changed field names only; `record` the same command to see values. Every run saves a transcript under `evidence/`, token masked, and exits with the CLI's exit code. `--as checkout|release` picks the CLI when a release is also served.
-- **Interactive:** `record --name <n> -- <command> [flags]` types the command into a real terminal with vhs, with `--keys "Sleep 3s,y,Enter,{url},Enter,{token},Enter"` for prompts or `--tape <file>` for longer scripts. It saves a gif and a png (the last frame). The token appears only as `$SALEOR_TOKEN` or a masked prompt.
+- **Non-interactive:** `cli -- <command> [flags]` runs in `work/` with `CI=true`, like a pipe or GitHub Action. In this mode the CLI prints one JSON envelope (`command`, `version`, `exitCode`, `result`, `logs`): a clean diff is `result.summary.totalChanges: 0`, an idempotent deploy is `result.status: "no-changes"`, and warnings live in `logs`. The JSON lists changed field names only; `record` the same command to see values. Every run saves a transcript under `evidence/`, token masked, and exits with the CLI's exit code. Helper flags go before the command; `--` before the command is optional.
+- **Interactive:** `record --name <n> -- <command> [flags]` types the command into a real terminal with vhs, with `--keys "Sleep 3s,y,Enter,{url},Enter,{token},Enter"` for prompts or `--tape <file>` for longer scripts. `--line '<shell line>'` types a line as is instead, e.g. `--line 'configurator diff --text | grep -v Unchanged'`. The CLI reads the URL and token from the terminal's environment. It saves a gif and a png (the last frame). The token appears only as `$SALEOR_TOKEN` or a masked prompt.
 - **Own objects:** name everything a feature creates with the run prefix (printed by `up`, in `state.json`), so `down` removes it.
 - **Upgrade:** after `up --from`, `upgrade` runs V6's sequence and records `upgrade-*` scenarios. Then drive the affected features on that data before creating new data.
 - **Reads:** `gql '<query>' [--vars json] --feature <id>` reads with the app token and saves the result as evidence. It never writes what a failed CLI step should have written (V9).
