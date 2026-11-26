@@ -1,5 +1,17 @@
 # saleor-configurator
 
+## 3.24.0
+
+### Minor Changes
+
+- 266abd0: `introspect`, `validate`, `diff` and `deploy` accept `--json-file <path>`, which writes the JSON result to a file in any output mode. CI steps can keep human-readable output and still read the change counts and exit status.
+
+### Patch Changes
+
+- 1678b58: Fix the GitHub Action (`action/`). It installs the CLI version released with the action's tag, passes the Saleor URL and token through the environment, runs each command once and reads its outputs from `--json-file`, keeps the CLI's exit code, makes `fail-on-diff` work, stops interpolating diff output into the PR comment script, and posts the PR comment when a policy check fails. `ci-mode` has no effect.
+- ee9812e: `deploy` now creates new products in fixed batches of 25 (overridable with `SALEOR_PRODUCT_BATCH_SIZE`) instead of sending all new products in a single `productBulkCreate` request. When a batch hits a 504 or network error, `deploy` polls Saleor by slug before resending only missing products once, continues with remaining batches, logs per-batch progress and duration, and notes that re-running `deploy` is safe.
+- 645dd43: `deploy` now updates existing product variants and their channel listings in batches via `productVariantBulkUpdate` (using the variants already fetched by `getProductsBySlugs` instead of querying each SKU one by one) and chunks `productVariantBulkCreate` using `SALEOR_PRODUCT_BATCH_SIZE` (default 25).
+
 ## 3.23.5
 
 ### Patch Changes
