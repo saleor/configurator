@@ -42,7 +42,7 @@ inputs:
     description: 'GitHub token for posting PR comments'
     required: false
   fail-on-diff:
-    description: 'Exit with error if any changes detected (diff command)'
+    description: 'Exit with error if any changes detected (diff command, or deploy with plan-only)'
     required: false
     default: 'false'
   fail-on-delete:
@@ -54,7 +54,7 @@ inputs:
     required: false
     default: 'false'
   ci-mode:
-    description: 'Enable CI mode to skip interactive prompts'
+    description: 'Deprecated: no effect. The CLI detects non-interactive (CI) environments automatically and skips prompts.'
     required: false
     default: 'true'
   json-output:
@@ -99,12 +99,12 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Cache npm dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.npm
         key: ${{ runner.os }}-node-${{ inputs.node-version }}-npm
@@ -113,7 +113,11 @@ runs:
 
     - name: Install Saleor Configurator
       shell: bash
-      run: npm install -g @saleor/configurator@latest
+      # The CLI version is the one released with this action's tag, so a tag
+      # always installs the same CLI.
+      run: |
+        version=$(node -p 'require(process.argv[1]).version' "$GITHUB_ACTION_PATH/../package.json")
+        npm install -g "@saleor/configurator@${version}"
 
     - name: Run Configurator
       id: run-configurator
@@ -136,13 +140,18 @@ runs:
       run: ${{ github.action_path }}/scripts/run-configurator.sh
 
     - name: Post PR Comment
-      if: inputs.post-pr-comment == 'true' && github.event_name == 'pull_request'
-      uses: actions/github-script@v7
+      # Also post when a policy check (fail-on-delete/-breaking/-diff) failed the
+      # previous step - that is when reviewers most need to see the diff.
+      if: ${{ !cancelled() && inputs.post-pr-comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+      env:
+        # Passed via env, never interpolated into the script: the diff contains
+        # entity names from the config and the remote instance.
+        DIFF_OUTPUT: ${{ steps.run-configurator.outputs.diff-output }}
       with:
         github-token: ${{ inputs.github-token || github.token }}
         script: |
-          const fs = require('fs');
-          const diffOutput = '${{ steps.run-configurator.outputs.diff-output }}';
+          const diffOutput = (process.env.DIFF_OUTPUT || '').trim();
 
           if (!diffOutput) {
             console.log('No diff output to post');

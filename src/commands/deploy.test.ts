@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { cliConsole } from "../cli/console";
 import * as configuratorModule from "../core/configurator";
@@ -587,6 +590,75 @@ describe("Deploy Command", () => {
     });
   });
 
+  describe("deploy --json-file", () => {
+    let consoleLogSpy: ReturnType<typeof vi.spyOn>;
+    let dir: string;
+
+    beforeEach(() => {
+      consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      dir = mkdtempSync(join(tmpdir(), "configurator-deploy-"));
+    });
+
+    afterEach(() => {
+      consoleLogSpy.mockRestore();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("writes the result envelope in text mode without printing JSON", async () => {
+      const jsonFile = join(dir, "result.json");
+      vi.spyOn(deploymentModule, "DeploymentSummaryReport").mockImplementation(() =>
+        createPartialMock<InstanceType<typeof deploymentModule.DeploymentSummaryReport>>({
+          display: vi.fn(),
+        })
+      );
+
+      await expect(deployHandler(createDefaultArgs({ jsonFile }))).rejects.toThrow(
+        "process.exit(0)"
+      );
+
+      const envelope = JSON.parse(readFileSync(jsonFile, "utf-8"));
+      expect(envelope).toMatchObject({
+        command: "deploy",
+        exitCode: 0,
+        result: {
+          status: "success",
+          summary: { totalChanges: 1, creates: 1, updates: 0, deletes: 0 },
+        },
+      });
+      expect(consoleLogSpy).not.toHaveBeenCalledWith(expect.stringContaining('"command"'));
+    });
+
+    it("writes the plan envelope in text mode", async () => {
+      const jsonFile = join(dir, "plan.json");
+
+      await expect(deployHandler(createDefaultArgs({ plan: true, jsonFile }))).rejects.toThrow(
+        "process.exit(1)"
+      );
+
+      const envelope = JSON.parse(readFileSync(jsonFile, "utf-8"));
+      expect(envelope).toMatchObject({ command: "deploy", exitCode: 1 });
+      expect(envelope.result.summary).toMatchObject({ creates: 1, updates: 0, deletes: 0 });
+    });
+
+    it("writes an error envelope when the deployment fails", async () => {
+      const jsonFile = join(dir, "error.json");
+      mockCreateConfigurator.mockReturnValue(
+        createConfiguratorWithError(mockDiffService, new Error("fetch failed"))
+      );
+
+      await expect(deployHandler(createDefaultArgs({ jsonFile }))).rejects.toThrow(
+        "process.exit(3)"
+      );
+
+      const envelope = JSON.parse(readFileSync(jsonFile, "utf-8"));
+      expect(envelope).toMatchObject({
+        command: "deploy",
+        exitCode: 3,
+        result: { status: "error" },
+      });
+    });
+  });
+
   describe("deploy --plan --json", () => {
     let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
@@ -648,6 +720,7 @@ describe("Deploy Command", () => {
       // Verify result payload
       expect(parsed.result).toMatchObject({
         summary: {
+          totalChanges: 2,
           creates: 1,
           updates: 1,
           deletes: 0,

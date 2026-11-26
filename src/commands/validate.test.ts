@@ -1,4 +1,7 @@
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { validateHandler } from "./validate";
 
@@ -29,6 +32,28 @@ describe("validate command", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("--json-file", () => {
+    it("writes the envelope to the file and keeps human-readable output on stdout", async () => {
+      vi.mocked(readFile).mockResolvedValue("shop:\n  headerText: [unclosed\n" as never);
+      const dir = mkdtempSync(join(tmpdir(), "configurator-validate-"));
+      const jsonFile = join(dir, "result.json");
+
+      try {
+        await expect(validateHandler(createDefaultArgs({ jsonFile }))).rejects.toThrow(
+          "process.exit(1)"
+        );
+
+        const envelope = JSON.parse(readFileSync(jsonFile, "utf-8"));
+        expect(envelope).toMatchObject({ command: "validate", exitCode: 1 });
+        expect(envelope.result.valid).toBe(false);
+        expect(mockConsoleError).toHaveBeenCalledWith(expect.stringContaining("not valid YAML"));
+        expect(mockConsoleLog).not.toHaveBeenCalled();
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("valid configuration", () => {

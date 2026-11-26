@@ -32,7 +32,7 @@ The CLI reads `.env` and `.env.local` from the current directory. Options win ov
 
 ## Output
 
-When stdin or stdout is not a terminal (CI, pipes, scripts), prompts are skipped and commands print a JSON envelope. `--text` forces human-readable output; `validate`, `diff` and `deploy` also accept `--json` to force JSON in a terminal.
+When stdin or stdout is not a terminal (CI, pipes, scripts), prompts are skipped and commands print a JSON envelope. `--text` forces human-readable output; `validate`, `diff` and `deploy` also accept `--json` to force JSON in a terminal. `introspect`, `validate`, `diff` and `deploy` accept `--json-file <path>`, which writes the same envelope to a file in any output mode, so a CI step can show readable output and still read the result.
 
 `diff --github-comment --text` prints Markdown for a pull request comment; without `--text`, a non-interactive run prints JSON instead. `--summary` prints counts only, and `--output-file` writes the output to a file.
 

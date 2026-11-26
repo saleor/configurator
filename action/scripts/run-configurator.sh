@@ -2,30 +2,44 @@
 # Saleor Configurator GitHub Action Script
 # This script is executed by the composite action to run configurator commands
 
-set -e
+# Every variable the script reads is set by action.yml, even when empty.
+set -euo pipefail
 
-# Build command arguments
+# GitHub masks the token in logs only when it comes from a secret.
+if [[ -n "$SALEOR_TOKEN" ]]; then
+  echo "::add-mask::$SALEOR_TOKEN"
+fi
+
+# The CLI reads SALEOR_URL and SALEOR_TOKEN from the environment, so the
+# token never appears in the process arguments.
+export SALEOR_URL SALEOR_TOKEN
+
+# The CLI writes its JSON result here whatever it prints, so the action runs
+# each command once and reads its outputs from this file.
+RESULT_FILE=$(mktemp)
+OUTPUT_FILE=$(mktemp)
+trap 'rm -f "$RESULT_FILE" "$OUTPUT_FILE"' EXIT
+
+# Values are joined to their flag with "=", so a value starting with "-" is
+# never read as a separate option.
 ARGS=()
 
 # Required arguments
 ARGS+=("$COMMAND")
-ARGS+=("--url" "$SALEOR_URL")
-ARGS+=("--token" "$SALEOR_TOKEN")
-ARGS+=("--config" "$CONFIG_PATH")
+ARGS+=("--config=$CONFIG_PATH")
+ARGS+=("--json-file=$RESULT_FILE")
 
 # Optional arguments based on command type
 if [[ "$COMMAND" == "deploy" ]]; then
-  # Deploy-specific flags
-  if [[ "$CI_MODE" == "true" ]]; then
-    ARGS+=("--ci")
-  fi
+  # Note: CI_MODE is deprecated and intentionally unused - the CLI detects
+  # non-interactive (non-TTY) environments automatically and skips prompts.
 
   if [[ "$PLAN_ONLY" == "true" ]]; then
     ARGS+=("--plan")
   fi
 
   if [[ -n "$REPORT_PATH" ]]; then
-    ARGS+=("--report-path" "$REPORT_PATH")
+    ARGS+=("--report-path=$REPORT_PATH")
   fi
 
   if [[ "$JSON_OUTPUT" == "true" ]]; then
@@ -38,7 +52,6 @@ if [[ "$COMMAND" == "deploy" ]]; then
 fi
 
 if [[ "$COMMAND" == "diff" ]]; then
-  # Diff-specific flags
   if [[ "$JSON_OUTPUT" == "true" ]]; then
     ARGS+=("--json")
   elif [[ "$POST_PR_COMMENT" == "true" ]]; then
@@ -55,116 +68,122 @@ if [[ "$COMMAND" == "diff" ]]; then
 fi
 
 if [[ "$VERBOSE" == "true" ]]; then
-  ARGS+=("--verbose")
+  export LOG_LEVEL="${LOG_LEVEL:-debug}"
+  # Only deploy has a --verbose flag (detailed error messages).
+  if [[ "$COMMAND" == "deploy" ]]; then
+    ARGS+=("--verbose")
+  fi
 fi
 
-# Create temp file for output capture
-OUTPUT_FILE=$(mktemp)
-JSON_OUTPUT_FILE=$(mktemp)
+# The CLI prints JSON when stdout is not a TTY, as on GitHub runners. Unless
+# JSON was requested, keep the log and the PR comment human-readable.
+if [[ "$JSON_OUTPUT" != "true" ]]; then
+  ARGS+=("--text")
+fi
 
-# Execute configurator and capture output
 echo "Running: configurator ${ARGS[*]}"
 echo "---"
 
 EXIT_CODE=0
 
-# For diff with github-comment format, capture output for PR comment
 if [[ "$COMMAND" == "diff" && "$POST_PR_COMMENT" == "true" ]]; then
-  configurator "${ARGS[@]}" > "$OUTPUT_FILE" 2>&1 || EXIT_CODE=$?
+  # Capture stdout only so stderr logs do not end up in the PR comment
+  configurator "${ARGS[@]}" > "$OUTPUT_FILE" || EXIT_CODE=$?
   cat "$OUTPUT_FILE"
 
-  # Set output for PR comment (escape newlines for GitHub Actions)
-  DIFF_OUTPUT=$(cat "$OUTPUT_FILE" | jq -Rs .)
-  echo "diff-output<<EOF" >> "$GITHUB_OUTPUT"
-  cat "$OUTPUT_FILE" >> "$GITHUB_OUTPUT"
-  echo "EOF" >> "$GITHUB_OUTPUT"
-elif [[ "$JSON_OUTPUT" == "true" ]]; then
-  # JSON output mode - capture JSON for parsing
-  configurator "${ARGS[@]}" > "$JSON_OUTPUT_FILE" 2>&1 || EXIT_CODE=$?
-  cat "$JSON_OUTPUT_FILE"
-
-  # Parse JSON output for GitHub outputs
-  if [[ -s "$JSON_OUTPUT_FILE" ]]; then
-    CHANGES_COUNT=$(jq -r '.summary.totalChanges // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    CREATES_COUNT=$(jq -r '.summary.creates // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    UPDATES_COUNT=$(jq -r '.summary.updates // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-    DELETES_COUNT=$(jq -r '.summary.deletes // 0' "$JSON_OUTPUT_FILE" 2>/dev/null || echo "0")
-
-    echo "changes-count=$CHANGES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "creates-count=$CREATES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "updates-count=$UPDATES_COUNT" >> "$GITHUB_OUTPUT"
-    echo "deletes-count=$DELETES_COUNT" >> "$GITHUB_OUTPUT"
-
-    if [[ "$CHANGES_COUNT" -gt 0 ]]; then
-      echo "has-changes=true" >> "$GITHUB_OUTPUT"
-    else
-      echo "has-changes=false" >> "$GITHUB_OUTPUT"
-    fi
-  fi
+  # Multiline output; a random delimiter cannot collide with the diff content
+  DELIMITER="EOF_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+  {
+    echo "diff-output<<$DELIMITER"
+    cat "$OUTPUT_FILE"
+    echo ""
+    echo "$DELIMITER"
+  } >> "$GITHUB_OUTPUT"
 else
-  # Standard output mode
-  configurator "${ARGS[@]}" 2>&1 | tee "$OUTPUT_FILE" || EXIT_CODE=$?
+  configurator "${ARGS[@]}" || EXIT_CODE=$?
 fi
 
 echo "---"
 echo "Exit code: $EXIT_CODE"
-
-# Set exit code output
 echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
-# Set report path if specified
-if [[ -n "$REPORT_PATH" && -f "$REPORT_PATH" ]]; then
-  echo "report-path=$REPORT_PATH" >> "$GITHUB_OUTPUT"
+# Counts come from result.summary (diff, deploy --plan, executed deploy); a
+# deploy with nothing to do reports status "no-changes" and no summary. Error
+# results have neither, so no counts are written.
+TOTAL_CHANGES=""
+if [[ -s "$RESULT_FILE" ]]; then
+  jq -r '
+    .result as $r
+    | ($r.summary // (if $r.status == "no-changes" then {totalChanges: 0} else null end)) as $s
+    | (if $s then
+        "changes-count=\($s.totalChanges // 0)",
+        "creates-count=\($s.creates // 0)",
+        "updates-count=\($s.updates // 0)",
+        "deletes-count=\($s.deletes // 0)",
+        "has-changes=\(($s.totalChanges // 0) > 0)"
+      else empty end),
+      ($r.reportPath // empty | "report-path=\(.)")
+  ' "$RESULT_FILE" >> "$GITHUB_OUTPUT"
+  TOTAL_CHANGES=$(jq -r '
+    .result.summary.totalChanges // (if .result.status == "no-changes" then 0 else empty end)
+  ' "$RESULT_FILE")
+else
+  echo "::warning::configurator $COMMAND wrote no result file"
+fi
+
+# diff and deploy --plan report pending changes: diff exits 0 and deploy --plan
+# exits 1 when there are changes. Those changes are informational unless
+# fail-on-diff is set.
+CHANGES_DETECTED=false
+if [[ -n "$TOTAL_CHANGES" && "$TOTAL_CHANGES" != "0" ]]; then
+  if [[ "$COMMAND" == "diff" && "$EXIT_CODE" -eq 0 ]] ||
+    [[ "$COMMAND" == "deploy" && "$PLAN_ONLY" == "true" && "$EXIT_CODE" -eq 1 ]]; then
+    CHANGES_DETECTED=true
+  fi
 fi
 
 # Generate summary based on exit code
-case $EXIT_CODE in
-  0)
-    if [[ "$COMMAND" == "diff" ]]; then
-      echo "summary=No changes detected - configurations are in sync" >> "$GITHUB_OUTPUT"
-    else
-      echo "summary=Operation completed successfully" >> "$GITHUB_OUTPUT"
-    fi
-    ;;
-  1)
-    echo "summary=Changes detected" >> "$GITHUB_OUTPUT"
-    ;;
-  2)
-    echo "summary=Authentication error" >> "$GITHUB_OUTPUT"
-    ;;
-  3)
-    echo "summary=Network error" >> "$GITHUB_OUTPUT"
-    ;;
-  4)
-    echo "summary=Validation error" >> "$GITHUB_OUTPUT"
-    ;;
-  5)
-    echo "summary=Partial failure - some operations succeeded" >> "$GITHUB_OUTPUT"
-    ;;
-  6)
-    echo "summary=Blocked - deletions detected (--fail-on-delete)" >> "$GITHUB_OUTPUT"
-    ;;
-  7)
-    echo "summary=Blocked - breaking changes detected (--fail-on-breaking)" >> "$GITHUB_OUTPUT"
-    ;;
-  *)
-    echo "summary=Unexpected error occurred" >> "$GITHUB_OUTPUT"
-    ;;
-esac
-
-# Cleanup temp files
-rm -f "$OUTPUT_FILE" "$JSON_OUTPUT_FILE"
-
-# Handle exit code based on fail-on-diff flag
-if [[ "$COMMAND" == "diff" && "$FAIL_ON_DIFF" == "true" && "$EXIT_CODE" -eq 1 ]]; then
-  echo "Failing because changes were detected and fail-on-diff is enabled"
-  exit 1
+if [[ "$CHANGES_DETECTED" == "true" ]]; then
+  echo "summary=Changes detected ($TOTAL_CHANGES)" >> "$GITHUB_OUTPUT"
+else
+  case $EXIT_CODE in
+    0)
+      if [[ "$TOTAL_CHANGES" == "0" ]]; then
+        echo "summary=No changes detected - configurations are in sync" >> "$GITHUB_OUTPUT"
+      else
+        echo "summary=Operation completed successfully" >> "$GITHUB_OUTPUT"
+      fi
+      ;;
+    2)
+      echo "summary=Authentication error" >> "$GITHUB_OUTPUT"
+      ;;
+    3)
+      echo "summary=Network error" >> "$GITHUB_OUTPUT"
+      ;;
+    4)
+      echo "summary=Validation error" >> "$GITHUB_OUTPUT"
+      ;;
+    5)
+      echo "summary=Partial failure - some operations succeeded" >> "$GITHUB_OUTPUT"
+      ;;
+    6)
+      echo "summary=Blocked - deletions detected (--fail-on-delete)" >> "$GITHUB_OUTPUT"
+      ;;
+    7)
+      echo "summary=Blocked - breaking changes detected (--fail-on-breaking)" >> "$GITHUB_OUTPUT"
+      ;;
+    *)
+      echo "summary=Unexpected error occurred" >> "$GITHUB_OUTPUT"
+      ;;
+  esac
 fi
 
-# Exit with the original exit code (except for expected diff exit code 1 when not using fail-on-diff)
-if [[ "$COMMAND" == "diff" && "$EXIT_CODE" -eq 1 && "$FAIL_ON_DIFF" != "true" ]]; then
-  # Diff found changes but fail-on-diff is not set - this is informational, not an error
+if [[ "$CHANGES_DETECTED" == "true" ]]; then
+  if [[ "$FAIL_ON_DIFF" == "true" ]]; then
+    echo "Failing because changes were detected and fail-on-diff is enabled"
+    exit 1
+  fi
   exit 0
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

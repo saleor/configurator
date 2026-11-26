@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { CommandConfig, CommandHandler } from "../cli/command";
-import { baseCommandArgsSchema, confirmAction, shouldOutputJson } from "../cli/command";
+import {
+  baseCommandArgsSchema,
+  confirmAction,
+  envelopeTarget,
+  jsonFileArg,
+  shouldOutputJson,
+} from "../cli/command";
 import { Console, cliConsole } from "../cli/console";
 import { SilentProgressReporter } from "../cli/progress";
 import { printDuplicateIssues } from "../cli/reporters/duplicates";
@@ -35,7 +41,12 @@ import {
 import type { DuplicateIssue } from "../core/validation/preflight";
 import { isEntitySection, runPreflightValidation } from "../core/validation/preflight";
 import { isNonInteractiveEnvironment } from "../lib/ci-mode";
-import { buildEnvelope, type EnvelopeError, outputEnvelope } from "../lib/json-envelope";
+import {
+  buildEnvelope,
+  type EnvelopeError,
+  type EnvelopeTarget,
+  outputEnvelope,
+} from "../lib/json-envelope";
 import { globalLogCollector } from "../lib/json-log-collector";
 import { logger } from "../lib/logger";
 import {
@@ -68,6 +79,7 @@ export const deployCommandSchema = baseCommandArgsSchema.extend({
     .describe("Comma-separated list of sections to include (e.g., 'channels,shop')"),
   exclude: z.string().optional().describe("Comma-separated list of sections to exclude"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
+  jsonFile: jsonFileArg,
 });
 
 export type DeployCommandArgs = z.infer<typeof deployCommandSchema>;
@@ -98,6 +110,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       .filter((issue): issue is DuplicateIssue => issue !== null);
   }
 
+  private envelope: EnvelopeTarget = { print: false };
+
   private outputErrorEnvelope(exitCode: number, errors: EnvelopeError[]): void {
     outputEnvelope(
       buildEnvelope({
@@ -105,7 +119,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         exitCode,
         result: { status: "error" as const },
         errors,
-      })
+      }),
+      this.envelope
     );
   }
 
@@ -116,13 +131,13 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       const dupes = this.parseDuplicateIssues(error);
 
       if (dupes.length > 0) {
+        this.outputErrorEnvelope(
+          EXIT_CODES.VALIDATION,
+          dupes.map((d) => ({
+            message: `Duplicate ${d.label} '${d.identifier}' found ${d.count} times in ${d.section}`,
+          }))
+        );
         if (useJson) {
-          this.outputErrorEnvelope(
-            EXIT_CODES.VALIDATION,
-            dupes.map((d) => ({
-              message: `Duplicate ${d.label} '${d.identifier}' found ${d.count} times in ${d.section}`,
-            }))
-          );
           process.exit(EXIT_CODES.VALIDATION);
         }
         printDuplicateIssues(dupes, this.console, args.config);
@@ -149,11 +164,11 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         error
       );
 
+      this.outputErrorEnvelope(
+        deploymentError.getExitCode(),
+        nonSuggestionErrors.map((err) => ({ message: `${err.path}: ${err.message}` }))
+      );
       if (useJson) {
-        this.outputErrorEnvelope(
-          deploymentError.getExitCode(),
-          nonSuggestionErrors.map((err) => ({ message: `${err.path}: ${err.message}` }))
-        );
         process.exit(deploymentError.getExitCode());
       }
 
@@ -170,11 +185,10 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     }
 
     const deploymentError = toDeploymentError(error, "deployment");
-    if (useJson) {
-      this.outputErrorEnvelope(deploymentError.getExitCode(), [
-        { message: describeDeploymentError(deploymentError) },
-      ]);
-    } else {
+    this.outputErrorEnvelope(deploymentError.getExitCode(), [
+      { message: describeDeploymentError(deploymentError) },
+    ]);
+    if (!useJson) {
       this.console.error(deploymentError.getUserMessage(args.verbose));
     }
     process.exit(deploymentError.getExitCode());
@@ -450,6 +464,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     return {
       status: "plan" as const,
       summary: {
+        totalChanges: summary.totalChanges,
         creates: summary.creates,
         updates: summary.updates,
         deletes: summary.deletes,
@@ -470,16 +485,16 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   ): void {
     if (args.failOnDelete && summary.deletes > 0) {
       const message = `Deployment blocked: ${summary.deletes} deletion(s) detected (--fail-on-delete is enabled)`;
-      if (useJson) {
-        outputEnvelope(
-          buildEnvelope({
-            command: "deploy",
-            exitCode: EXIT_CODES.DELETION_BLOCKED,
-            result: { status: "blocked", reason: "deletions_detected", deletions: summary.deletes },
-            errors: [{ message }],
-          })
-        );
-      } else {
+      outputEnvelope(
+        buildEnvelope({
+          command: "deploy",
+          exitCode: EXIT_CODES.DELETION_BLOCKED,
+          result: { status: "blocked", reason: "deletions_detected", deletions: summary.deletes },
+          errors: [{ message }],
+        }),
+        this.envelope
+      );
+      if (!useJson) {
         this.console.error(`❌ ${message}`);
       }
       process.exit(EXIT_CODES.DELETION_BLOCKED);
@@ -488,6 +503,14 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
 
   /** Only entities that stay in Saleor differ: list them, without asking to deploy nothing. */
   private handleNothingToApply(summary: DiffSummary): never {
+    outputEnvelope(
+      buildEnvelope({
+        command: "deploy",
+        exitCode: EXIT_CODES.SUCCESS,
+        result: { status: "no-changes" as const },
+      }),
+      this.envelope
+    );
     this.console.status(`\n${new DeployDiffFormatter().format(summary)}`);
     this.console.status(
       "\n✅ No changes to apply - deploy leaves entities only in Saleor in place"
@@ -496,15 +519,15 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   }
 
   private handleNoChanges(summary: DiffSummary, useJson: boolean): never {
-    if (useJson) {
-      outputEnvelope(
-        buildEnvelope({
-          command: "deploy",
-          exitCode: EXIT_CODES.SUCCESS,
-          result: { status: "no-changes" as const },
-        })
-      );
-    } else {
+    outputEnvelope(
+      buildEnvelope({
+        command: "deploy",
+        exitCode: EXIT_CODES.SUCCESS,
+        result: { status: "no-changes" as const },
+      }),
+      this.envelope
+    );
+    if (!useJson) {
       this.console.status("✅ No changes detected - configuration is already in sync");
     }
     process.exit(EXIT_CODES.SUCCESS);
@@ -516,10 +539,9 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
     useJson: boolean
   ): never {
     const exitCode = diffAnalysis.summary.totalChanges > 0 ? 1 : EXIT_CODES.SUCCESS;
-    if (useJson) {
-      const result = this.formatPlanResult(diffAnalysis, args);
-      outputEnvelope(buildEnvelope({ command: "deploy", exitCode, result }));
-    } else {
+    const result = this.formatPlanResult(diffAnalysis, args);
+    outputEnvelope(buildEnvelope({ command: "deploy", exitCode, result }), this.envelope);
+    if (!useJson) {
       this.displayDeploymentPreview(diffAnalysis.summary);
       this.console.muted("\n📋 Plan mode: No changes will be applied");
     }
@@ -569,7 +591,8 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
           reportPath: deployment.reportPath ?? null,
         },
         errors,
-      })
+      }),
+      this.envelope
     );
   }
 
@@ -632,15 +655,14 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
       const shouldDeploy = await this.confirmDeployment(diffAnalysis.summary, useJson);
 
       if (!shouldDeploy) {
-        if (useJson) {
-          outputEnvelope(
-            buildEnvelope({
-              command: "deploy",
-              exitCode: EXIT_CODES.SUCCESS,
-              result: { status: "cancelled" as const },
-            })
-          );
-        }
+        outputEnvelope(
+          buildEnvelope({
+            command: "deploy",
+            exitCode: EXIT_CODES.SUCCESS,
+            result: { status: "cancelled" as const },
+          }),
+          this.envelope
+        );
         this.console.cancelled("Deployment cancelled by user");
         process.exit(0);
       }
@@ -652,9 +674,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
         scopedConfig,
         useJson
       );
-      if (useJson) {
-        this.outputDeploymentEnvelope(diffAnalysis.summary, deploymentResult);
-      }
+      this.outputDeploymentEnvelope(diffAnalysis.summary, deploymentResult);
       this.logDeploymentCompletion(diffAnalysis.summary, deploymentResult);
       process.exit(deploymentResult.exitCode);
     } catch (error) {
@@ -668,6 +688,7 @@ class DeployCommandHandler implements CommandHandler<DeployCommandArgs, void> {
   async execute(args: DeployCommandArgs): Promise<void> {
     globalLogCollector.reset();
     const useJson = shouldOutputJson(args);
+    this.envelope = envelopeTarget(args);
     this.console.setOptions({ quiet: args.quiet || useJson });
     if (useJson) {
       // Keep stdout reserved for the JSON envelope (summary box, progress output)

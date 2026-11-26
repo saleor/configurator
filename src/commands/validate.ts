@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { parse } from "yaml";
 import { z } from "zod";
 import type { CommandConfig } from "../cli/command";
-import { shouldOutputJson } from "../cli/command";
+import { envelopeTarget, jsonFileArg, shouldOutputJson } from "../cli/command";
 import { buildEnvelope, outputEnvelope } from "../lib/json-envelope";
 import { COMMAND_NAME } from "../meta";
 import {
@@ -22,6 +22,7 @@ const validateCommandSchema = z.object({
   config: z.string().default("config.yml").describe("Configuration file path"),
   json: z.boolean().default(false).describe("Output validation results as JSON"),
   text: z.boolean().default(false).describe("Force human-readable output even in non-TTY mode"),
+  jsonFile: jsonFileArg,
 });
 
 type ValidateCommandArgs = z.infer<typeof validateCommandSchema>;
@@ -75,6 +76,7 @@ function printTextErrors(errors: ValidationError[], configPath: string): void {
 export async function validateHandler(args: ValidateCommandArgs): Promise<void> {
   const { config: configPath } = args;
   const useJson = shouldOutputJson(args);
+  const envelope = envelopeTarget(args);
 
   let rawContent: string;
 
@@ -88,15 +90,15 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
       warnings: [],
     };
 
-    if (useJson) {
-      outputEnvelope(
-        buildEnvelope({
-          command: "validate",
-          exitCode: VALIDATE_EXIT.INVALID,
-          result: validationResult,
-        })
-      );
-    } else {
+    outputEnvelope(
+      buildEnvelope({
+        command: "validate",
+        exitCode: VALIDATE_EXIT.INVALID,
+        result: validationResult,
+      }),
+      envelope
+    );
+    if (!useJson) {
       console.error(`Error: ${message}`);
     }
 
@@ -115,15 +117,15 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
       warnings: [],
     };
 
-    if (useJson) {
-      outputEnvelope(
-        buildEnvelope({
-          command: "validate",
-          exitCode: VALIDATE_EXIT.PARSE_ERROR,
-          result: validationResult,
-        })
-      );
-    } else {
+    outputEnvelope(
+      buildEnvelope({
+        command: "validate",
+        exitCode: VALIDATE_EXIT.PARSE_ERROR,
+        result: validationResult,
+      }),
+      envelope
+    );
+    if (!useJson) {
       console.error(`Configuration file "${configPath}" is not valid YAML:\n\n${message}`);
     }
 
@@ -136,15 +138,15 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
     const warnings = formatUnknownKeys(result.unknownKeys);
     const validationResult: ValidationResult = { valid: true, errors: [], warnings };
 
-    if (useJson) {
-      outputEnvelope(
-        buildEnvelope({
-          command: "validate",
-          exitCode: VALIDATE_EXIT.SUCCESS,
-          result: validationResult,
-        })
-      );
-    } else {
+    outputEnvelope(
+      buildEnvelope({
+        command: "validate",
+        exitCode: VALIDATE_EXIT.SUCCESS,
+        result: validationResult,
+      }),
+      envelope
+    );
+    if (!useJson) {
       printTextWarnings(warnings);
       printTextSuccess();
     }
@@ -154,15 +156,15 @@ export async function validateHandler(args: ValidateCommandArgs): Promise<void> 
   const errors = formatZodErrors(result.error);
   const validationResult: ValidationResult = { valid: false, errors, warnings: [] };
 
-  if (useJson) {
-    outputEnvelope(
-      buildEnvelope({
-        command: "validate",
-        exitCode: VALIDATE_EXIT.INVALID,
-        result: validationResult,
-      })
-    );
-  } else {
+  outputEnvelope(
+    buildEnvelope({
+      command: "validate",
+      exitCode: VALIDATE_EXIT.INVALID,
+      result: validationResult,
+    }),
+    envelope
+  );
+  if (!useJson) {
     printTextErrors(errors, configPath);
   }
 

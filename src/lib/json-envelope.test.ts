@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { buildEnvelope } from "./json-envelope";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, expect, it, vi } from "vitest";
+import { buildEnvelope, outputEnvelope } from "./json-envelope";
 
 describe("buildEnvelope", () => {
   it("builds envelope with all required fields", () => {
@@ -52,5 +55,61 @@ describe("JsonEnvelope type", () => {
     const json = JSON.stringify(envelope, null, 2);
     const parsed = JSON.parse(json);
     expect(parsed.command).toBe("validate");
+  });
+});
+
+describe("outputEnvelope", () => {
+  const envelope = buildEnvelope({ command: "diff", exitCode: 0, result: { ok: true } });
+
+  function withTempDir(run: (dir: string) => void) {
+    const dir = mkdtempSync(join(tmpdir(), "configurator-envelope-"));
+    try {
+      run(dir);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("writes the envelope to the file, says so on stderr and prints nothing on stdout", () => {
+    withTempDir((dir) => {
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const file = join(dir, "result.json");
+
+      outputEnvelope(envelope, { print: false, file });
+
+      expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual(envelope);
+      expect(log).not.toHaveBeenCalled();
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining(`Result written to ${file}`));
+      log.mockRestore();
+      stderr.mockRestore();
+    });
+  });
+
+  it("writes the file without the note when quiet", () => {
+    withTempDir((dir) => {
+      const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+      const file = join(dir, "result.json");
+
+      outputEnvelope(envelope, { print: false, file, quiet: true });
+
+      expect(JSON.parse(readFileSync(file, "utf-8"))).toEqual(envelope);
+      expect(stderr).not.toHaveBeenCalled();
+      stderr.mockRestore();
+    });
+  });
+
+  it("prints and writes the same envelope when both are requested", () => {
+    withTempDir((dir) => {
+      const log = vi.spyOn(console, "log").mockImplementation(() => {});
+      const file = join(dir, "result.json");
+
+      outputEnvelope(envelope, { print: true, file });
+
+      expect(JSON.parse(log.mock.calls[0][0] as string)).toEqual(
+        JSON.parse(readFileSync(file, "utf-8"))
+      );
+      log.mockRestore();
+    });
   });
 });
