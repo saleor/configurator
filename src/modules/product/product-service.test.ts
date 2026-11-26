@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { logger } from "../../lib/logger";
 import { AttributeCache, type CachedAttribute } from "../attribute/attribute-cache";
 import type { ProductInput } from "../config/schema/schema";
 import { PRODUCT_MEDIA_SOURCE_METADATA_KEY } from "./media-metadata";
@@ -1831,6 +1832,368 @@ describe("ProductService", () => {
       // Should be wrapped as EditorJS, not passed through
       expect(parsed).toHaveProperty("blocks");
       expect(parsed.blocks[0].data.text).toBe("{Contact us at support@example.com}");
+    });
+  });
+
+  describe("bulk create request outcome", () => {
+    const newProduct = (slug: string, media?: ProductInput["media"]): ProductInput =>
+      ({
+        name: `Product ${slug}`,
+        slug,
+        productType: "Book",
+        category: "Fiction",
+        variants: [{ name: `${slug} M`, sku: `${slug.toUpperCase()}-M` }],
+        ...(media ? { media } : {}),
+      }) as ProductInput;
+
+    const createdProduct = (slug: string, media: Array<{ id: string }> = []) => ({
+      product: {
+        id: `id-${slug}`,
+        name: `Product ${slug}`,
+        slug,
+        description: null,
+        productType: { id: "pt-1", name: "Book" },
+        category: { id: "cat-1", name: "Fiction" },
+        channelListings: [],
+        media: media.map((m) => ({
+          ...m,
+          alt: "",
+          type: "IMAGE" as const,
+          url: `https://store.saleor.cloud/thumbnail/${m.id}/4096/`,
+          metadata: [],
+        })),
+      },
+      errors: [],
+    });
+
+    const existingProduct = {
+      ...createdProduct("existing").product,
+      id: "id-existing",
+    } as any;
+
+    const existingProductInput = { ...newProduct("existing"), variants: [] } as ProductInput;
+
+    const gatewayTimeout = new Error(
+      "Network error during bulk product creation: [Network] <html><head><title>504 Gateway Time-out</title></head></html>"
+    );
+
+    const makeFakeClock = (pollIntervalMs = 1_000, pollDeadlineMs = 2_000) => {
+      let current = 0;
+      const sleep = vi.fn(async (ms: number) => {
+        current += ms;
+      });
+      const now = () => current;
+      return {
+        sleep,
+        now,
+        batching: { pollIntervalMs, pollDeadlineMs, sleep, now },
+      };
+    };
+
+    const loggedFailures = (errorSpy: ReturnType<typeof vi.spyOn>) => {
+      const call = errorSpy.mock.calls.find(([message]) =>
+        String(message).startsWith("Failed to bootstrap")
+      );
+      const meta = call?.[1] as { failures: Array<{ entity: string; error: Error }> } | undefined;
+      return meta?.failures.map(({ entity, error }) => ({ entity, message: error.message })) ?? [];
+    };
+
+    let errorSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      vi.unstubAllEnvs();
+      errorSpy = vi.spyOn(logger, "error").mockImplementation(() => undefined);
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([]);
+      vi.mocked(mockRepository.getProductTypeByName).mockResolvedValue({
+        id: "pt-1",
+        name: "Book",
+      });
+      vi.mocked(mockRepository.getCategoryByPath).mockResolvedValue({
+        id: "cat-1",
+        name: "Fiction",
+      });
+      vi.mocked(mockRepository.updateProduct).mockResolvedValue(existingProduct);
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
+      vi.unstubAllEnvs();
+    });
+
+    it("sends new products in fixed batches of 25, in config order, ignoring failed rows", async () => {
+      const slugs = Array.from({ length: 60 }, (_, i) => `p-${String(i + 1).padStart(2, "0")}`);
+      vi.mocked(mockRepository.bulkCreateProducts).mockImplementation(async (input) => {
+        const batchSlugs = (input.products as Array<{ slug: string }>).map((p) => p.slug);
+        return {
+          count: batchSlugs.length,
+          results: batchSlugs.map((slug) => createdProduct(slug)),
+          errors: [],
+        };
+      });
+
+      await service.bootstrapProductsBulk(slugs.map((slug) => newProduct(slug)));
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(3);
+      const batchCalls = vi.mocked(mockRepository.bulkCreateProducts).mock.calls;
+      expect(batchCalls.map(([req]) => (req.products as Array<{ slug: string }>).length)).toEqual([
+        25, 25, 10,
+      ]);
+      for (const [req] of batchCalls) {
+        expect(req.errorPolicy).toBe("IGNORE_FAILED");
+      }
+      const sentSlugs = batchCalls.flatMap(([req]) =>
+        (req.products as Array<{ slug: string }>).map((p) => p.slug)
+      );
+      expect(sentSlugs).toEqual(slugs);
+    });
+
+    it("respects SALEOR_PRODUCT_BATCH_SIZE env override and falls back to 25 when invalid", async () => {
+      vi.stubEnv("SALEOR_PRODUCT_BATCH_SIZE", "2");
+      vi.mocked(mockRepository.bulkCreateProducts).mockImplementation(async (input) => {
+        const batchSlugs = (input.products as Array<{ slug: string }>).map((p) => p.slug);
+        return {
+          count: batchSlugs.length,
+          results: batchSlugs.map((slug) => createdProduct(slug)),
+          errors: [],
+        };
+      });
+
+      await service.bootstrapProductsBulk(["a", "b", "c", "d", "e"].map((s) => newProduct(s)));
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(3);
+      expect(
+        vi
+          .mocked(mockRepository.bulkCreateProducts)
+          .mock.calls.map(([req]) => (req.products as Array<{ slug: string }>).map((p) => p.slug))
+      ).toEqual([["a", "b"], ["c", "d"], ["e"]]);
+
+      vi.mocked(mockRepository.bulkCreateProducts).mockClear();
+      vi.stubEnv("SALEOR_PRODUCT_BATCH_SIZE", "not-a-number");
+      const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => undefined);
+
+      await service.bootstrapProductsBulk(["a", "b", "c"].map((s) => newProduct(s)));
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("SALEOR_PRODUCT_BATCH_SIZE"));
+      warnSpy.mockRestore();
+    });
+
+    it("sends only products missing from Saleor to the create request", async () => {
+      vi.mocked(mockRepository.getProductsBySlugs).mockResolvedValue([existingProduct]);
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [createdProduct("a")],
+        errors: [],
+      });
+
+      await service.bootstrapProductsBulk([existingProductInput, newProduct("a")]);
+
+      const [request] = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[0];
+      expect((request.products as Array<{ slug: string }>).map((p) => p.slug)).toEqual(["a"]);
+      expect(mockRepository.updateProduct).toHaveBeenCalledWith("id-existing", expect.anything());
+    });
+
+    it("fails only the products Saleor rejected, matched by position", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 2,
+        results: [
+          createdProduct("a"),
+          {
+            product: null,
+            errors: [{ path: "slug", message: "Product with this Slug already exists." }],
+          },
+          createdProduct("c"),
+        ],
+        errors: [],
+      } as any);
+
+      await expect(
+        service.bootstrapProductsBulk(["a", "b", "c"].map((s) => newProduct(s)))
+      ).rejects.toThrow("Failed to bootstrap 1 of 3 products");
+
+      expect(loggedFailures(errorSpy)).toEqual([
+        { entity: "Product b", message: "slug: Product with this Slug already exists." },
+      ]);
+    });
+
+    it("reports a request-level error as one extra failure", async () => {
+      vi.mocked(mockRepository.bulkCreateProducts).mockResolvedValue({
+        count: 1,
+        results: [createdProduct("a")],
+        errors: [{ path: "products", message: "Something went wrong." }],
+      } as any);
+
+      await expect(service.bootstrapProductsBulk([newProduct("a")])).rejects.toThrow(
+        "Failed to bootstrap 1 of 1 products"
+      );
+
+      expect(loggedFailures(errorSpy)).toEqual([
+        {
+          entity: "bulk product creation (global)",
+          message: "products: Something went wrong.",
+        },
+      ]);
+    });
+
+    it("polls slugs after a 504 and does not resend when Saleor commits in the background", async () => {
+      const { batching, sleep } = makeFakeClock(1_000, 5_000);
+      vi.mocked(mockRepository.bulkCreateProducts).mockRejectedValueOnce(gatewayTimeout);
+      vi.mocked(mockRepository.getProductsBySlugs)
+        .mockResolvedValueOnce([]) // initial partition
+        .mockResolvedValueOnce([]) // poll 1: Saleor still running
+        .mockResolvedValueOnce([
+          createdProduct("a", [{ id: "media-a" }]).product as any,
+          createdProduct("b").product as any,
+        ]); // poll 2: transaction committed
+
+      await service.bootstrapProductsBulk(
+        [
+          newProduct("a", [{ externalUrl: "https://example.com/a.png", alt: "A" }]),
+          newProduct("b"),
+        ],
+        { batching }
+      );
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(1);
+      expect(mockRepository.getProductsBySlugs).toHaveBeenCalledTimes(3);
+      expect(sleep).toHaveBeenCalledTimes(1);
+      expect(mockRepository.setProductMediaSourceUrl).toHaveBeenCalledWith(
+        "media-a",
+        "https://example.com/a.png"
+      );
+    });
+
+    it("resends only missing slugs once when a timed-out batch partially committed", async () => {
+      const { batching } = makeFakeClock(1_000, 3_000);
+      vi.mocked(mockRepository.bulkCreateProducts)
+        .mockRejectedValueOnce(gatewayTimeout)
+        .mockResolvedValueOnce({
+          count: 0,
+          results: [
+            {
+              product: null,
+              errors: [{ path: "slug", message: "Invalid slug." }],
+            },
+          ],
+          errors: [],
+        } as any);
+      vi.mocked(mockRepository.getProductsBySlugs)
+        .mockResolvedValueOnce([]) // initial partition
+        .mockResolvedValueOnce([
+          createdProduct("a").product as any,
+          createdProduct("c").product as any,
+        ]);
+
+      await expect(
+        service.bootstrapProductsBulk(
+          ["a", "b", "c"].map((s) => newProduct(s)),
+          { batching }
+        )
+      ).rejects.toThrow("Failed to bootstrap 1 of 3 products");
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(2);
+      const [resendRequest] = vi.mocked(mockRepository.bulkCreateProducts).mock.calls[1];
+      expect((resendRequest.products as Array<{ slug: string }>).map((p) => p.slug)).toEqual(["b"]);
+      expect(loggedFailures(errorSpy)).toEqual([
+        { entity: "Product b", message: "slug: Invalid slug." },
+      ]);
+    });
+
+    it("polls until deadline, resends once when none appear, and reports failure with safe-to-rerun hint if resend also fails", async () => {
+      const { batching, sleep } = makeFakeClock(1_000, 2_000);
+      vi.mocked(mockRepository.bulkCreateProducts).mockRejectedValue(gatewayTimeout);
+
+      await expect(
+        service.bootstrapProductsBulk(
+          ["a", "b", "c"].map((s) => newProduct(s)),
+          { batching }
+        )
+      ).rejects.toThrow(
+        "Failed to bootstrap 3 of 3 products. Re-running deploy is safe and will resume from what is still missing."
+      );
+
+      // 1 initial attempt + 1 single resend after deadline
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(2);
+      // 1 initial partition + 3 polls (t=0, t=1000, t=2000)
+      expect(mockRepository.getProductsBySlugs).toHaveBeenCalledTimes(4);
+      expect(sleep).toHaveBeenCalledTimes(2);
+      expect(loggedFailures(errorSpy)).toEqual(
+        ["a", "b", "c"].map((slug) => ({
+          entity: `Product ${slug}`,
+          message: gatewayTimeout.message,
+        }))
+      );
+    });
+
+    it("skips resending when slug verification itself fails after a 504, to avoid duplicates", async () => {
+      const { batching } = makeFakeClock(1_000, 1_000);
+      vi.mocked(mockRepository.bulkCreateProducts).mockRejectedValueOnce(gatewayTimeout);
+      vi.mocked(mockRepository.getProductsBySlugs)
+        .mockResolvedValueOnce([]) // initial partition
+        .mockRejectedValue(new Error("Network error fetching slugs"));
+
+      await expect(
+        service.bootstrapProductsBulk(
+          ["a", "b"].map((s) => newProduct(s)),
+          { batching }
+        )
+      ).rejects.toThrow("Failed to bootstrap 2 of 2 products");
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(1);
+    });
+
+    it("continues remaining batches when one batch fails and logs batch progress and duration", async () => {
+      const { batching } = makeFakeClock(1_000, 1_000);
+      const infoSpy = vi.spyOn(logger, "info").mockImplementation(() => undefined);
+      const debugSpy = vi.spyOn(logger, "debug").mockImplementation(() => undefined);
+
+      vi.mocked(mockRepository.bulkCreateProducts)
+        .mockRejectedValueOnce(new Error("GraphQL errors during bulk product creation: Forbidden"))
+        .mockResolvedValueOnce({
+          count: 2,
+          results: [createdProduct("c"), createdProduct("d")],
+          errors: [],
+        });
+
+      await expect(
+        service.bootstrapProductsBulk(
+          ["a", "b", "c", "d"].map((s) => newProduct(s)),
+          {
+            batching: { ...batching, batchSize: 2 },
+          }
+        )
+      ).rejects.toThrow("Failed to bootstrap 2 of 4 products");
+
+      expect(mockRepository.bulkCreateProducts).toHaveBeenCalledTimes(2);
+      // Non-timeout GraphQL error does not poll slugs
+      expect(mockRepository.getProductsBySlugs).toHaveBeenCalledTimes(1);
+      expect(loggedFailures(errorSpy)).toEqual([
+        { entity: "Product a", message: "GraphQL errors during bulk product creation: Forbidden" },
+        { entity: "Product b", message: "GraphQL errors during bulk product creation: Forbidden" },
+      ]);
+      expect(infoSpy).toHaveBeenCalledWith("Creating product batch 1/2 (2 products)");
+      expect(infoSpy).toHaveBeenCalledWith("Creating product batch 2/2 (2 products)");
+      expect(debugSpy).toHaveBeenCalledWith(
+        "Product bulk create batch completed",
+        expect.objectContaining({ batch: 2, totalBatches: 2, durationMs: expect.any(Number) })
+      );
+
+      infoSpy.mockRestore();
+      debugSpy.mockRestore();
+    });
+
+    it("still updates existing products after a create batch times out", async () => {
+      const { batching } = makeFakeClock(1_000, 1_000);
+      vi.mocked(mockRepository.getProductsBySlugs)
+        .mockResolvedValueOnce([existingProduct])
+        .mockResolvedValue([]);
+      vi.mocked(mockRepository.bulkCreateProducts).mockRejectedValue(gatewayTimeout);
+
+      await expect(
+        service.bootstrapProductsBulk([existingProductInput, newProduct("a")], { batching })
+      ).rejects.toThrow("Failed to bootstrap 1 of 2 products");
+
+      expect(mockRepository.updateProduct).toHaveBeenCalledWith("id-existing", expect.anything());
     });
   });
 });
