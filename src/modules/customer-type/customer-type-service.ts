@@ -1,6 +1,6 @@
 import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
-import { processInChunks } from "../../lib/utils/chunked-processor";
+import { processEachInChunks } from "../../lib/utils/chunked-processor";
 import type { AttributeCache } from "../attribute/attribute-cache";
 import { isReferencedAttribute, validateAttributeReference } from "../attribute/attribute-service";
 import type { CustomerTypeInput } from "../config/schema/schema";
@@ -135,14 +135,9 @@ export class CustomerTypeService {
       ])
     );
 
-    const { successes, failures } = await processInChunks(
+    const { successes, failures } = await processEachInChunks(
       inputs,
-      async (chunk) =>
-        Promise.all(
-          chunk.map((input) =>
-            this.bootstrapCustomerType(input, existingBySlug.get(input.slug), options)
-          )
-        ),
+      (input) => this.bootstrapCustomerType(input, existingBySlug.get(input.slug), options),
       {
         chunkSize: 10,
         delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
@@ -160,7 +155,7 @@ export class CustomerTypeService {
 
     logger.debug("Successfully bootstrapped all customer types", { count: successes.length });
 
-    return successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
+    return successes.map((s) => s.result);
   }
 
   private validateUniqueSlugs(inputs: CustomerTypeInput[]): void {

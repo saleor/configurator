@@ -95,6 +95,29 @@ describe("in-process engine", () => {
     expect(write).not.toHaveBeenCalled();
   });
 
+  it("preserves classified network failures when deployment aborts", async () => {
+    const error = new CombinedError({ networkError: new Error("fetch failed") });
+    const remaining = vi.fn();
+    vi.spyOn(deployment, "getAllStages").mockReturnValue([
+      {
+        name: "Network failure",
+        execute: async () => {
+          throw error;
+        },
+      },
+      { name: "Remaining", execute: remaining },
+    ]);
+    const configurator = createConfigurator({
+      url: "https://example.test/graphql/",
+      token: "secret",
+    });
+    await expect(configurator.deploy({}, summary)).rejects.toMatchObject({
+      code: "NETWORK_ERROR",
+      cause: error,
+    });
+    expect(remaining).not.toHaveBeenCalled();
+  });
+
   it("snapshots object input before awaiting remote configuration", async () => {
     const config = { shop: { defaultMailSenderName: "Approved" } };
     vi.spyOn(ConfigurationService.prototype, "retrieveWithoutSaving").mockImplementation(

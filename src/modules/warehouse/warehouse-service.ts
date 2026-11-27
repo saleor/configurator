@@ -1,6 +1,6 @@
 import { logger } from "../../lib/logger";
 import { DelayConfig } from "../../lib/utils/bulk-operation-constants";
-import { processInChunks } from "../../lib/utils/chunked-processor";
+import { processEachInChunks } from "../../lib/utils/chunked-processor";
 import { ServiceErrorWrapper } from "../../lib/utils/error-wrapper";
 import { object } from "../../lib/utils/object";
 import type { WarehouseInput } from "../config/schema/schema";
@@ -262,11 +262,9 @@ export class WarehouseService {
       );
     }
 
-    const { successes, failures } = await processInChunks(
+    const { successes, failures } = await processEachInChunks(
       inputs,
-      async (chunk) => {
-        return Promise.all(chunk.map((input) => this.getOrCreateWarehouse(input)));
-      },
+      (input) => this.getOrCreateWarehouse(input),
       {
         chunkSize: 10,
         delayMs: DelayConfig.DEFAULT_CHUNK_DELAY_MS,
@@ -297,8 +295,7 @@ export class WarehouseService {
     logger.debug("Successfully bootstrapped all warehouses", {
       count: results.successes.length,
     });
-    // Flatten the results - each success contains a single Warehouse, not an array
-    return results.successes.flatMap((s) => (Array.isArray(s.result) ? s.result : [s.result]));
+    return results.successes.map((s) => s.result);
   }
 
   async syncWarehouseShippingZones(
